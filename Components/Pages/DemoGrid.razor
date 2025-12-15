@@ -17,8 +17,7 @@
 else
 {
     <!-- ALTRIMENTI MOSTRIAMO LA GRIGLIA -->
-    <MudDataGrid T="Country" Items="@Elements" ReadOnly="false" EditMode="DataGridEditMode.Cell"
-        Bordered="true" Dense="true" Striped="true" Hover="true" Elevation="4">
+    <EnterpriseDataGrid T="Country" Items="@Elements" ReadOnly="false" EditMode="DataGridEditMode.Cell">
         
         <Columns>
             <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
@@ -40,7 +39,7 @@ else
         <PagerContent>
             <MudDataGridPager T="Country" />
         </PagerContent>
-    </MudDataGrid>
+    </EnterpriseDataGrid>
 }
 
 @code {

@@ -19,3 +19,17 @@ L'applicazione è stata configurata con un layout di livello Enterprise utilizza
 Il repository è stato inizializzato e pushato utilizzando la CLI di GitHub (`gh`).
 *   File `.gitignore` standard per .NET incluso.
 *   Branch principale: `Main-Repository`.
+
+## Architettura UI e Componenti
+
+### Libreria Componenti (Shared)
+È stata avviata la creazione di una libreria di componenti personalizzati per garantire riutilizzabilità e coerenza grafica.
+*   **EnterpriseDataGrid**: Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
+    *   Applica automaticamente le classi CSS enterprise.
+    *   Configura i default (Dense, Striped, Hover).
+    *   Risolve i problemi di ereditarietà dei tipi generici tramite `[CascadingTypeParameter]`.
+
+### Stili CSS Avanzati
+Gli stili non sono inline ma organizzati in file CSS specifici.
+*   **Grid CSS** (`wwwroot/css/components/grid.css`): Definisce la tipografia (Maiuscolo, peso font) e i colori esatti per Header e Righe, con supporto completo per **Light Mode** e **Dark Mode** tramite classi scope (`.theme-dark`, `.theme-light`).
+*   **Theme Switching**: `MainLayout` inietta dinamicamente la classe del tema nel contenitore principale per attivare le variabili CSS corrette.
