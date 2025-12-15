@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Avvia GestioneViaggi (Mac)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "run-maui",
+            "program": "${workspaceFolder}/bin/Debug/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.dll",
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole"
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+﻿@page "/"
+
+<MudText Typo="Typo.h3" GutterBottom="true">Benvenuto in Gestione Viaggi</MudText>
+<MudText Typo="Typo.body1" Class="mb-8">Seleziona "Nazioni" dal menu laterale per vedere la griglia.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Nazioni</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Map" Color="Color.Default" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText>Gestisci l'elenco delle nazioni, codici ISO e popolazione.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Href="/demogrid" Variant="Variant.Text" Color="Color.Primary">Vai a Nazioni</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>

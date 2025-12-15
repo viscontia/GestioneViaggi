@@ -1,0 +1,41 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/GestioneViaggi.csproj",
+                "-f",
+                "net9.0-maccatalyst"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "run-maui",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "-f",
+                "net9.0-maccatalyst"
+            ],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^.*$",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*Building.*$",
+                    "endsPattern": "^.*Application started.*$"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,85 @@
+@page "/demogrid"
+@using MudBlazor
+@using System.Text.Json
+
+<MudText Typo="Typo.h4" GutterBottom="true">Gestione Nazioni (Demo)</MudText>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <!-- SE C'È UN ERRORE, LO MOSTRIAMO QUI -->
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE RILEVATO:</MudText>
+        <MudText>@ErrorMessage</MudText>
+        <MudText Typo="Typo.caption" Class="mt-2">Stack Trace:</MudText>
+        <pre>@ErrorStack</pre>
+    </MudAlert>
+}
+else
+{
+    <!-- ALTRIMENTI MOSTRIAMO LA GRIGLIA -->
+    <MudDataGrid T="Country" Items="@Elements" ReadOnly="false" EditMode="DataGridEditMode.Cell"
+        Bordered="true" Dense="true" Striped="true" Hover="true" Elevation="4">
+        
+        <Columns>
+            <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
+            
+            <PropertyColumn Property="x => x.Name" Title="Nazione">
+                <EditTemplate>
+                    <MudTextField @bind-Value="context.Item.Name" 
+              Variant="Variant.Text" 
+              Margin="Margin.Dense"   
+              Converter="@UpperCaseConverter" />
+                </EditTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.Code" Title="Codice ISO" />
+            <PropertyColumn Property="x => x.Region" Title="Regione" />
+            <PropertyColumn Property="x => x.Population" Title="Popolazione" />
+        </Columns>
+        
+        <PagerContent>
+            <MudDataGridPager T="Country" />
+        </PagerContent>
+    </MudDataGrid>
+}
+
+@code {
+    private List<Country> Elements = new List<Country>();
+    private string ErrorMessage = "";
+    private string ErrorStack = "";
+
+    // Convertitore per forzare il MAIUSCOLO
+    Converter<string?> UpperCaseConverter = new Converter<string?>
+    {
+        SetFunc = value => value?.ToUpper(),
+        GetFunc = text => text?.ToUpper()
+    };
+
+    protected override void OnInitialized()
+    {
+        try 
+        {
+            // Dati finti di prova
+            Elements.Add(new Country { Id = "1", Name = "ITALIA", Code = "IT", Region = "Europa", Population = 60000000 });
+            Elements.Add(new Country { Id = "2", Name = "FRANCIA", Code = "FR", Region = "Europa", Population = 67000000 });
+            Elements.Add(new Country { Id = "3", Name = "GERMANIA", Code = "DE", Region = "Europa", Population = 83000000 });
+            Elements.Add(new Country { Id = "4", Name = "SPAGNA", Code = "ES", Region = "Europa", Population = 47000000 });
+            Elements.Add(new Country { Id = "5", Name = "GIAPPONE", Code = "JP", Region = "Asia", Population = 125000000 });
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+            ErrorStack = ex.StackTrace;
+        }
+    }
+
+    // DEFINIZIONE CLASSE
+    public class Country
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Code { get; set; }
+        public string? Region { get; set; }
+        public long Population { get; set; } 
+    }
+}
