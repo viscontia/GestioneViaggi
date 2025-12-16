@@ -29,8 +29,12 @@
 
 .theme-dark .enterprise-grid .mud-table-body .mud-table-cell {
     color: #E1E3E8;
-    background-color: #34363F;
+    /* background-color removed to allow striped rows */
     border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.theme-dark .enterprise-grid .mud-table-row {
+    background-color: #34363F;
 }
 
 .theme-dark .enterprise-grid {
@@ -46,10 +50,23 @@
 
 .theme-light .enterprise-grid .mud-table-body .mud-table-cell {
     color: #2E2F33;
-    background-color: #FFFFFF;
+    /* background-color removed to allow striped rows */
     border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.theme-light .enterprise-grid .mud-table-row {
+    background-color: #FFFFFF;
 }
 
 .theme-light .enterprise-grid {
     background-color: #FFFFFF;
+}
+
+/* SELECTION STATE */
+.theme-light .enterprise-grid .mud-table-row.mud-table-selected {
+    background-color: rgba(33, 150, 243, 0.12) !important;
+}
+
+.theme-dark .enterprise-grid .mud-table-row.mud-table-selected {
+    background-color: rgba(33, 150, 243, 0.25) !important;
 }

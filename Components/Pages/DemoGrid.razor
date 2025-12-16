@@ -16,7 +16,8 @@ else
     <EnterpriseDataGrid T="Country" 
                         Items="@Elements" 
                         Title="Gestione Nazioni"
-                        SearchFunction="@SearchCountry">
+                        SearchFunction="@SearchCountry"
+                        @bind-SelectedItem="_selectedItem">
         
         <Columns>
             <PropertyColumn Property="x => x.Id" Title="ID" />
@@ -33,6 +34,7 @@ else
 
 @code {
     private List<Country> Elements = new List<Country>();
+    private Country? _selectedItem;
     private string ErrorMessage = "";
     private string ErrorStack = "";
 

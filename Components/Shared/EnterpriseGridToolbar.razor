@@ -3,6 +3,7 @@
 <MudText Typo="Typo.h6">@Title</MudText>
 <MudSpacer />
 <MudTextField T="string" 
+              @ref="_searchField"
               Value="@SearchString" 
               ValueChanged="@SearchStringChanged"
               Placeholder="Cerca..." 
@@ -16,4 +17,14 @@
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? SearchString { get; set; }
     [Parameter] public EventCallback<string> SearchStringChanged { get; set; }
+
+    private MudTextField<string>? _searchField;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _searchField != null)
+        {
+            await _searchField.FocusAsync();
+        }
+    }
 }

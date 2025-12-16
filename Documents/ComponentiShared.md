@@ -11,7 +11,7 @@ Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`)
     *   **Filtro**: Supporta una `SearchFunction` personalizzata per il filtro trasversale.
 *   **Utilizzo**:
     ```razor
-    <EnterpriseDataGrid T="Modello" Title="Titolo" SearchFunction="@SearchFunc">
+    <EnterpriseDataGrid T="Modello" Title="Titolo" SearchFunction="@SearchFunc" @bind-SelectedItem="_selectedItem">
         <Columns>
             ...
             <EnterpriseActionsColumn T="Modello" OnEdit="..." OnDelete="..." />
