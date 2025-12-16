@@ -62,4 +62,10 @@
         <PackageReference Include="MudBlazor" Version="8.15.0" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Escludi file di esempio dalla compilazione -->
+        <Compile Remove="Documents\**\*.razor" />
+        <Content Remove="Documents\**\*.razor" />
+    </ItemGroup>
+
 </Project>

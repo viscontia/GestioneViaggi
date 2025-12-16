@@ -1,0 +1,9 @@
+<div class="status-badge status-@Status?.ToLower().Replace(" ", "-")">
+    <span class="status-dot"></span>
+    @Status
+</div>
+
+@code {
+    [Parameter]
+    public string? Status { get; set; } = "Planned";
+}

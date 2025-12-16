@@ -14,19 +14,20 @@ namespace GestioneViaggi.Components.Shared
 
         public EnterpriseDataGrid()
         {
-            // Default Enterprise settings
+            // Default Enterprise settings - CONFIGURAZIONE CORRETTA PER CSS
             Bordered = false;
-            Dense = true;
-            Striped = true;
+            Dense = false;      // ⚠️ IMPORTANTE: false per padding corretto
+            Striped = false;    // ⚠️ IMPORTANTE: false per controllare i colori con CSS
             Hover = true;
             Elevation = 0;
             MultiSelection = false;
             ReadOnly = true;
             Class = "enterprise-grid";
+            SelectOnRowClick = true;
 
             // Toolbar
             ToolBarContent = BuildToolbar;
-            
+
             // Filter
             QuickFilter = QuickFilterFunc;
         }

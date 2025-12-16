@@ -1,0 +1,494 @@
+/* ========== PREMIUM SAAS THEME - .NET MAUI + MudBlazor ========== */
+/* Versione: 1.0 - Dicembre 2024 */
+/* Design System: Linear/Vercel/Stripe inspired */
+
+/* ========================================== */
+/* 1. CSS VARIABLES - PALETTE COLORS         */
+/* ========================================== */
+
+:root {
+    /* Primary - Nero su light, Bianco su dark */
+    --mud-palette-primary: #111827;
+    --mud-palette-primary-lighten: #1F2937;
+    --mud-palette-primary-darken: #030712;
+    
+    /* Secondary - Grigio neutro */
+    --mud-palette-secondary: #6B7280;
+    --mud-palette-secondary-lighten: #9CA3AF;
+    --mud-palette-secondary-darken: #4B5563;
+    
+    /* Success - Verde soft */
+    --mud-palette-success: #10B981;
+    --mud-palette-success-lighten: #34D399;
+    --mud-palette-success-darken: #059669;
+    
+    /* Error - Rosso soft */
+    --mud-palette-error: #EF4444;
+    --mud-palette-error-lighten: #F87171;
+    --mud-palette-error-darken: #DC2626;
+    
+    /* Warning - Arancione soft */
+    --mud-palette-warning: #F59E0B;
+    --mud-palette-warning-lighten: #FBBF24;
+    --mud-palette-warning-darken: #D97706;
+    
+    /* Info - Blu freddo */
+    --mud-palette-info: #0EA5E9;
+    --mud-palette-info-lighten: #38BDF8;
+    --mud-palette-info-darken: #0284C7;
+    
+    /* Surface backgrounds */
+    --mud-palette-surface: #FFFFFF;
+    --mud-palette-background: #F7F8FA;
+    --mud-palette-background-grey: #F9FAFB;
+    
+    /* Typography */
+    --mud-typography-default-font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Dark mode palette overrides */
+.mud-theme-dark {
+    --mud-palette-primary: #E6E8EB;
+    --mud-palette-surface: #30333B;
+    --mud-palette-background: #1A1D23;
+    --mud-palette-background-grey: #2A2D34;
+}
+
+/* ========================================== */
+/* 2. BUTTONS - PREMIUM SAAS STYLE          */
+/* ========================================== */
+
+.mud-button-root {
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    border-radius: 6px;
+    padding: 0 16px;
+    height: 36px;
+}
+
+.mud-button-filled {
+    box-shadow: none;
+}
+
+.mud-button-filled:hover {
+    box-shadow: none;
+}
+
+/* Ghost button (Text variant) */
+.mud-button-text {
+    background: transparent;
+}
+
+.mud-button-text:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+.mud-theme-dark .mud-button-text:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+/* Secondary button - Light mode */
+.mud-button-filled.mud-button-filled-secondary {
+    background: rgba(0,0,0,0.04);
+    color: #374151;
+}
+
+.mud-button-filled.mud-button-filled-secondary:hover {
+    background: rgba(0,0,0,0.08);
+}
+
+/* Secondary button - Dark mode */
+.mud-theme-dark .mud-button-filled.mud-button-filled-secondary {
+    background: rgba(255,255,255,0.06);
+    color: #D1D5DB;
+}
+
+.mud-theme-dark .mud-button-filled.mud-button-filled-secondary:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Error/Destructive button - Light mode */
+.mud-button-filled.mud-button-filled-error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #DC2626;
+}
+
+.mud-button-filled.mud-button-filled-error:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+/* Error/Destructive button - Dark mode */
+.mud-theme-dark .mud-button-filled.mud-button-filled-error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #F87171;
+}
+
+.mud-theme-dark .mud-button-filled.mud-button-filled-error:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* Success button - Light mode */
+.mud-button-filled.mud-button-filled-success {
+    background: rgba(16, 185, 129, 0.08);
+    color: #059669;
+}
+
+.mud-button-filled.mud-button-filled-success:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+/* Success button - Dark mode */
+.mud-theme-dark .mud-button-filled.mud-button-filled-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34D399;
+}
+
+.mud-theme-dark .mud-button-filled.mud-button-filled-success:hover {
+    background: rgba(16, 185, 129, 0.18);
+}
+
+/* ========================================== */
+/* 3. INLINE ACTION BUTTONS (Edit/Delete)   */
+/* ========================================== */
+
+.inline-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    min-width: 28px !important;
+}
+
+.inline-action-btn .mud-icon-root {
+    font-size: 18px !important;
+}
+
+/* Hover normale - Light mode */
+.mud-icon-button.inline-action-btn:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+/* Hover normale - Dark mode */
+.mud-theme-dark .mud-icon-button.inline-action-btn:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+/* Delete button hover - Light mode */
+.mud-icon-button.inline-action-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #DC2626 !important;
+}
+
+/* Delete button hover - Dark mode */
+.mud-theme-dark .mud-icon-button.inline-action-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #F87171 !important;
+}
+
+/* ========================================== */
+/* 4. DATAGRID - BASE STRUCTURE              */
+/* ========================================== */
+
+.mud-table-root {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Sorting icons */
+.mud-table-sort-label {
+    opacity: 0.4;
+    transition: opacity 0.15s ease;
+}
+
+.mud-table-sort-label:hover {
+    opacity: 0.8;
+}
+
+.mud-table-sort-label.mud-direction-asc,
+.mud-table-sort-label.mud-direction-desc {
+    opacity: 1;
+}
+
+/* ========================================== */
+/* 5. DATAGRID - LIGHT MODE                  */
+/* ========================================== */
+
+/* Header LIGHT */
+.mud-table-head .mud-table-cell {
+    background-color: #F7F8FA !important;
+    color: #6B7280 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.04) !important;
+}
+
+/* Rows LIGHT - Base state */
+.mud-table-body .mud-table-row {
+    background-color: #FFFFFF !important;
+    transition: background-color 0.15s ease;
+}
+
+/* Cells LIGHT */
+.mud-table-body .mud-table-cell {
+    color: #111827 !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.04) !important;
+    line-height: 1.5 !important;
+}
+
+/* Hover LIGHT (non selezionata) */
+.mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #F9FAFB !important;
+}
+
+/* Riga SELEZIONATA LIGHT */
+.mud-table-body .mud-table-row.mud-selected {
+    background-color: rgba(14, 165, 233, 0.08) !important;
+}
+
+.mud-table-body .mud-table-row.mud-selected:hover {
+    background-color: rgba(14, 165, 233, 0.12) !important;
+}
+
+.mud-table-body .mud-table-row.mud-selected .mud-table-cell {
+    color: #111827 !important;
+}
+
+/* ========================================== */
+/* 6. DATAGRID - DARK MODE                   */
+/* ========================================== */
+
+/* Header DARK */
+.mud-theme-dark .mud-table-head .mud-table-cell {
+    background-color: #2A2D34 !important;
+    color: #9AA1AC !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04) !important;
+}
+
+/* Rows DARK - Base state */
+.mud-theme-dark .mud-table-body .mud-table-row {
+    background-color: #30333B !important;
+}
+
+/* Cells DARK */
+.mud-theme-dark .mud-table-body .mud-table-cell {
+    color: #E6E8EB !important;
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+/* Hover DARK (non selezionata) */
+.mud-theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #35383F !important;
+}
+
+/* Riga SELEZIONATA DARK */
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected {
+    background-color: rgba(14, 165, 233, 0.15) !important;
+}
+
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected:hover {
+    background-color: rgba(14, 165, 233, 0.20) !important;
+}
+
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected .mud-table-cell {
+    color: #E6E8EB !important;
+}
+
+/* ========================================== */
+/* 7. DATAGRID - STRIPED MODE (Opzionale)   */
+/* ========================================== */
+
+/* Striped LIGHT */
+.mud-table-striped .mud-table-body .mud-table-row:nth-of-type(odd) {
+    background-color: #FFFFFF !important;
+}
+
+.mud-table-striped .mud-table-body .mud-table-row:nth-of-type(even) {
+    background-color: #F9FAFB !important;
+}
+
+.mud-table-striped .mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #F3F4F6 !important;
+}
+
+/* Striped DARK */
+.mud-theme-dark .mud-table-striped .mud-table-body .mud-table-row:nth-of-type(odd) {
+    background-color: #2A2D34 !important;
+}
+
+.mud-theme-dark .mud-table-striped .mud-table-body .mud-table-row:nth-of-type(even) {
+    background-color: #30333B !important;
+}
+
+.mud-theme-dark .mud-table-striped .mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #35383F !important;
+}
+
+/* ========================================== */
+/* 8. DATAGRID - CHECKBOX MULTI-SELECTION   */
+/* ========================================== */
+
+.mud-table-body .mud-table-row .mud-table-cell .mud-checkbox {
+    margin: 0;
+}
+
+/* Checkbox checked - Light mode */
+.mud-checkbox.mud-checked .mud-icon-root {
+    color: #0EA5E9 !important;
+}
+
+/* Checkbox checked - Dark mode */
+.mud-theme-dark .mud-checkbox.mud-checked .mud-icon-root {
+    color: #38BDF8 !important;
+}
+
+/* ========================================== */
+/* 9. STATUS BADGES                          */
+/* ========================================== */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Status colors - Light mode */
+.status-planned {
+    background: rgba(14, 165, 233, 0.08);
+    color: #0EA5E9;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.08);
+    color: #10B981;
+}
+
+.status-completed {
+    background: rgba(107, 114, 128, 0.08);
+    color: #6B7280;
+}
+
+.status-cancelled {
+    background: rgba(239, 68, 68, 0.08);
+    color: #DC2626;
+}
+
+/* Status colors - Dark mode */
+.mud-theme-dark .status-planned {
+    background: rgba(14, 165, 233, 0.12);
+    color: #38BDF8;
+}
+
+.mud-theme-dark .status-active {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34D399;
+}
+
+.mud-theme-dark .status-completed {
+    background: rgba(107, 114, 128, 0.12);
+    color: #9CA3AF;
+}
+
+.mud-theme-dark .status-cancelled {
+    background: rgba(239, 68, 68, 0.12);
+    color: #F87171;
+}
+
+/* ========================================== */
+/* 10. DIFFICULTY BADGES                     */
+/* ========================================== */
+
+.difficulty-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 4px;
+}
+
+/* Difficulty colors - Light mode */
+.difficulty-easy {
+    background: rgba(16, 185, 129, 0.08);
+    color: #059669;
+}
+
+.difficulty-medium {
+    background: rgba(245, 158, 11, 0.08);
+    color: #D97706;
+}
+
+.difficulty-hard {
+    background: rgba(239, 68, 68, 0.08);
+    color: #DC2626;
+}
+
+/* Difficulty colors - Dark mode */
+.mud-theme-dark .difficulty-easy {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34D399;
+}
+
+.mud-theme-dark .difficulty-medium {
+    background: rgba(245, 158, 11, 0.12);
+    color: #FBBF24;
+}
+
+.mud-theme-dark .difficulty-hard {
+    background: rgba(239, 68, 68, 0.12);
+    color: #F87171;
+}
+
+/* ========================================== */
+/* 11. OPTIONAL ADJUSTMENTS                  */
+/* ========================================== */
+
+/* Se serve font più grande, decommenta: */
+/*
+.mud-table-body .mud-table-cell {
+    font-size: 15px !important;
+}
+
+.mud-table-head .mud-table-cell {
+    font-size: 12.5px !important;
+}
+*/
+
+/* Se vuoi bordo laterale invece di background sulla selezione: */
+/*
+.mud-table-body .mud-table-row.mud-selected {
+    background-color: transparent !important;
+    border-left: 3px solid #0EA5E9 !important;
+    padding-left: 13px !important;
+}
+
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected {
+    border-left-color: #38BDF8 !important;
+}
+*/
+
+/* Se vuoi disabilitare completamente l'effetto selezione: */
+/*
+.mud-table-body .mud-table-row.mud-selected {
+    background-color: inherit !important;
+}
+*/

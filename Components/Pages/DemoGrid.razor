@@ -23,8 +23,20 @@ else
             <PropertyColumn Property="x => x.Id" Title="ID" />
             <PropertyColumn Property="x => x.Name" Title="Nazione" />
             <PropertyColumn Property="x => x.Code" Title="Codice ISO" />
-            <PropertyColumn Property="x => x.Region" Title="Regione" />
+            <PropertyColumn Property="x => x.Region" Title="Regione">
+                <CellTemplate>
+                    <MudChip Size="Size.Small" 
+                             Class="@($"difficulty-badge difficulty-{context.Item.Region?.ToLower().Replace(" ", "-")}")">
+                        @context.Item.Region
+                    </MudChip>
+                </CellTemplate>
+            </PropertyColumn>
             <PropertyColumn Property="x => x.Population" Title="Popolazione" />
+            <PropertyColumn Property="x => x.Status" Title="Stato">
+                <CellTemplate>
+                    <StatusBadge Status="@context.Item.Status" />
+                </CellTemplate>
+            </PropertyColumn>
             
             <EnterpriseActionsColumn T="Country" OnEdit="@EditCountry" OnDelete="@DeleteCountry" />
         </Columns>
@@ -42,11 +54,11 @@ else
     {
         try 
         {
-            Elements.Add(new Country { Id = "1", Name = "ITALIA", Code = "IT", Region = "Europa", Population = 60000000 });
-            Elements.Add(new Country { Id = "2", Name = "FRANCIA", Code = "FR", Region = "Europa", Population = 67000000 });
-            Elements.Add(new Country { Id = "3", Name = "GERMANIA", Code = "DE", Region = "Europa", Population = 83000000 });
-            Elements.Add(new Country { Id = "4", Name = "SPAGNA", Code = "ES", Region = "Europa", Population = 47000000 });
-            Elements.Add(new Country { Id = "5", Name = "GIAPPONE", Code = "JP", Region = "Asia", Population = 125000000 });
+            Elements.Add(new Country { Id = "1", Name = "ITALIA", Code = "IT", Region = "Europa", Population = 60000000, Status = "Active" });
+            Elements.Add(new Country { Id = "2", Name = "FRANCIA", Code = "FR", Region = "Europa", Population = 67000000, Status = "Planned" });
+            Elements.Add(new Country { Id = "3", Name = "GERMANIA", Code = "DE", Region = "Europa", Population = 83000000, Status = "Completed" });
+            Elements.Add(new Country { Id = "4", Name = "SPAGNA", Code = "ES", Region = "Europa", Population = 47000000, Status = "Active" });
+            Elements.Add(new Country { Id = "5", Name = "GIAPPONE", Code = "JP", Region = "Asia", Population = 125000000, Status = "Planned" });
         }
         catch (Exception ex)
         {
@@ -63,6 +75,7 @@ else
         if (country.Code?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (country.Region?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (country.Id?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (country.Status?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         return false;
     }
 
@@ -85,5 +98,6 @@ else
         public string? Code { get; set; }
         public string? Region { get; set; }
         public long Population { get; set; } 
+        public string? Status { get; set; } = "Planned"; // New Status property
     }
 }

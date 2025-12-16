@@ -41,13 +41,31 @@
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = Colors.Blue.Darken2,
-            AppbarBackground = Colors.Blue.Darken2,
+            Primary = "#111827",
+            Secondary = "#6B7280",
+            Success = "#10B981",
+            Error = "#EF4444",
+            Warning = "#F59E0B",
+            Info = "#0EA5E9",
+            Background = "#F7F8FA",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#111827",
+            TextPrimary = "#111827",
+            TextSecondary = "#6B7280",
         },
         PaletteDark = new PaletteDark()
         {
-            Primary = Colors.Blue.Lighten1,
-        }
+            Primary = "#E6E8EB",
+            Secondary = "#9CA3AF",
+            Success = "#34D399",
+            Error = "#F87171",
+            Background = "#1A1D23",
+            Surface = "#30333B",
+            AppbarBackground = "#30333B",
+            TextPrimary = "#E6E8EB",
+            TextSecondary = "#9AA1AC",
+        },
     };
     
     protected override async Task OnAfterRenderAsync(bool firstRender)

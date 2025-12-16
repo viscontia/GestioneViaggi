@@ -1,0 +1,420 @@
+/* ========== PREMIUM SAAS THEME - ULTRA SPECIFIC ========== */
+/* Versione 2.0 - Selettori ad alta specificità */
+/* Sovrascrive FORZATAMENTE tutti gli stili MudBlazor */
+
+/* ========================================== */
+/* 1. DATAGRID - LIGHT MODE (MASSIMA PRIORITÀ) */
+/* ========================================== */
+
+/* Container principale - LIGHT */
+.mud-table-container .mud-table.mud-table-root,
+.mud-table-container .mud-table,
+.mud-table.mud-table-root {
+    background-color: transparent !important;
+    border-radius: 8px !important;
+}
+
+/* HEADER LIGHT - Ultra specifico */
+.mud-table-container .mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.mud-table-head .mud-table-row .mud-table-cell {
+    background-color: #F7F8FA !important;
+    color: #6B7280 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.04) !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+/* BODY ROWS LIGHT - Base state */
+.mud-table-container .mud-table .mud-table-body .mud-table-row,
+.mud-table .mud-table-body .mud-table-row,
+.mud-table-body .mud-table-row {
+    background-color: #FFFFFF !important;
+    transition: background-color 0.15s ease !important;
+}
+
+/* CELLS LIGHT */
+.mud-table-container .mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.mud-table-body .mud-table-row .mud-table-cell {
+    background-color: #FFFFFF !important;
+    color: #111827 !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(0,0,0,0.04) !important;
+    line-height: 1.5 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+/* HOVER LIGHT (non selezionata) */
+.mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #F9FAFB !important;
+}
+
+.mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell {
+    background-color: #F9FAFB !important;
+}
+
+/* SELECTED ROW LIGHT */
+.mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected,
+.mud-table .mud-table-body .mud-table-row.mud-selected,
+.mud-table-body .mud-table-row.mud-selected {
+    background-color: rgba(14, 165, 233, 0.08) !important;
+}
+
+.mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.mud-table-body .mud-table-row.mud-selected .mud-table-cell {
+    background-color: rgba(14, 165, 233, 0.08) !important;
+    color: #111827 !important;
+}
+
+/* ========================================== */
+/* 2. DATAGRID - DARK MODE (MASSIMA PRIORITÀ) */
+/* ========================================== */
+
+/* HEADER DARK - Ultra specifico */
+.theme-dark .mud-table-container .mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.theme-dark .mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.theme-dark .mud-table-head .mud-table-row .mud-table-cell {
+    background-color: #2A2D34 !important;
+    color: #9AA1AC !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04) !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+/* BODY ROWS DARK - Base state */
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row,
+.theme-dark .mud-table .mud-table-body .mud-table-row,
+.theme-dark .mud-table-body .mud-table-row {
+    background-color: #30333B !important;
+    transition: background-color 0.15s ease !important;
+}
+
+/* CELLS DARK */
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.theme-dark .mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.theme-dark .mud-table-body .mud-table-row .mud-table-cell {
+    background-color: #30333B !important;
+    color: #E6E8EB !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    padding: 14px 16px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    line-height: 1.5 !important;
+    font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+/* HOVER DARK (non selezionata) */
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) {
+    background-color: #35383F !important;
+}
+
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell {
+    background-color: #35383F !important;
+}
+
+/* SELECTED ROW DARK */
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected,
+.theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected,
+.theme-dark .mud-table-body .mud-table-row.mud-selected {
+    background-color: rgba(14, 165, 233, 0.15) !important;
+}
+
+.theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.theme-dark .mud-table-body .mud-table-row.mud-selected .mud-table-cell {
+    background-color: rgba(14, 165, 233, 0.15) !important;
+    color: #E6E8EB !important;
+}
+
+/* ========================================== */
+/* 3. BUTTONS - PREMIUM SAAS                 */
+/* ========================================== */
+
+.mud-button-root {
+    font-family: 'Inter', -apple-system, sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none !important;
+    border-radius: 6px !important;
+    padding: 0 16px !important;
+    height: 36px !important;
+}
+
+.mud-button-filled {
+    box-shadow: none !important;
+}
+
+.mud-button-text {
+    background: transparent !important;
+}
+
+.mud-button-text:hover {
+    background: rgba(0,0,0,0.04) !important;
+}
+
+.theme-dark .mud-button-text:hover {
+    background: rgba(255,255,255,0.06) !important;
+}
+
+/* Secondary buttons */
+.mud-button-filled.mud-button-filled-secondary {
+    background: rgba(0,0,0,0.04) !important;
+    color: #374151 !important;
+}
+
+.mud-button-filled.mud-button-filled-secondary:hover {
+    background: rgba(0,0,0,0.08) !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-secondary {
+    background: rgba(255,255,255,0.06) !important;
+    color: #D1D5DB !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-secondary:hover {
+    background: rgba(255,255,255,0.1) !important;
+}
+
+/* Error buttons */
+.mud-button-filled.mud-button-filled-error {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #DC2626 !important;
+}
+
+.mud-button-filled.mud-button-filled-error:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-error {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #F87171 !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-error:hover {
+    background: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* Success buttons */
+.mud-button-filled.mud-button-filled-success {
+    background: rgba(16, 185, 129, 0.08) !important;
+    color: #059669 !important;
+}
+
+.mud-button-filled.mud-button-filled-success:hover {
+    background: rgba(16, 185, 129, 0.12) !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-success {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #34D399 !important;
+}
+
+.theme-dark .mud-button-filled.mud-button-filled-success:hover {
+    background: rgba(16, 185, 129, 0.18) !important;
+}
+
+/* ========================================== */
+/* 4. INLINE ACTION BUTTONS                  */
+/* ========================================== */
+
+.inline-action-btn,
+.mud-icon-button.inline-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    min-width: 28px !important;
+    border-radius: 4px !important;
+}
+
+.inline-action-btn .mud-icon-root,
+.mud-icon-button.inline-action-btn .mud-icon-root {
+    font-size: 18px !important;
+}
+
+.mud-icon-button.inline-action-btn:hover {
+    background: rgba(0,0,0,0.04) !important;
+}
+
+.theme-dark .mud-icon-button.inline-action-btn:hover {
+    background: rgba(255,255,255,0.06) !important;
+}
+
+/* Edit button hover - warning yellow/orange */
+.mud-icon-button.inline-action-btn.edit-btn:hover {
+    background: rgba(245, 158, 11, 0.08) !important;
+    color: #D97706 !important;
+}
+
+.theme-dark .mud-icon-button.inline-action-btn.edit-btn:hover {
+    background: rgba(245, 158, 11, 0.12) !important;
+    color: #FBBF24 !important;
+}
+
+/* Delete button hover - error red */
+.mud-icon-button.inline-action-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.08) !important;
+    color: #DC2626 !important;
+}
+
+.theme-dark .mud-icon-button.inline-action-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #F87171 !important;
+}
+
+/* ========================================== */
+/* 5. STATUS BADGES                          */
+/* ========================================== */
+
+.status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 10px !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    letter-spacing: 0.02em !important;
+}
+
+.status-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+}
+
+/* Light mode */
+.status-planned {
+    background: rgba(14, 165, 233, 0.08) !important;
+    color: #0EA5E9 !important;
+}
+
+.status-active {
+    background: rgba(16, 185, 129, 0.08) !important;
+    color: #10B981 !important;
+}
+
+.status-completed {
+    background: rgba(107, 114, 128, 0.08) !important;
+    color: #6B7280 !important;
+}
+
+/* Dark mode */
+.theme-dark .status-planned {
+    background: rgba(14, 165, 233, 0.12) !important;
+    color: #38BDF8 !important;
+}
+
+.theme-dark .status-active {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: #34D399 !important;
+}
+
+.theme-dark .status-completed {
+    background: rgba(107, 114, 128, 0.12) !important;
+    color: #9CA3AF !important;
+}
+
+/* ========================================== */
+/* 6. REGION BADGES (NUOVO - per le tue immagini) */
+/* ========================================== */
+
+.region-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    background: rgba(107, 114, 128, 0.08) !important;
+    color: #6B7280 !important;
+}
+
+.theme-dark .region-badge {
+    background: rgba(107, 114, 128, 0.12) !important;
+    color: #9CA3AF !important;
+}
+
+/* ========================================== */
+/* 7. FIX SPECIFICI PER LE TUE SCHERMATE    */
+/* ========================================== */
+
+/* Rimuovi padding/margin extra della tabella */
+.mud-table-container {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Fix bordi tabella */
+.mud-table {
+    border: none !important;
+}
+
+/* Prima colonna (ID) più stretta */
+.mud-table-body .mud-table-row .mud-table-cell:first-child,
+.mud-table-head .mud-table-row .mud-table-cell:first-child {
+    width: 60px !important;
+    max-width: 60px !important;
+}
+
+/* Colonna azioni (ultima) */
+.mud-table-body .mud-table-row .mud-table-cell:last-child,
+.mud-table-head .mud-table-row .mud-table-cell:last-child {
+    width: 60px !important;
+    max-width: 60px !important;
+    text-align: center !important;
+}
+
+/* ========================================== */
+/* 8. OVERRIDE MUDBLAZOR DEFAULTS            */
+/* ========================================== */
+
+/* Rimuovi zebra striping di default */
+.mud-table-striped .mud-table-row:nth-of-type(odd),
+.mud-table-striped .mud-table-row:nth-of-type(even) {
+    background: inherit !important;
+}
+
+/* Rimuovi ombreggiature */
+.mud-table-container,
+.mud-table,
+.mud-table-root {
+    box-shadow: none !important;
+}
+
+/* Sorting icons */
+.mud-table-sort-label {
+    opacity: 0.4 !important;
+}
+
+.mud-table-sort-label:hover {
+    opacity: 0.8 !important;
+}
+
+.mud-table-sort-label.mud-direction-asc,
+.mud-table-sort-label.mud-direction-desc {
+    opacity: 1 !important;
+}
