@@ -1,0 +1,24 @@
+@typeparam T
+@using MudBlazor
+
+<TemplateColumn T="T" Tag="@("Actions")" Sortable="false">
+    <CellTemplate Context="cellContext">
+        <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+            <MudTooltip Text="Modifica">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                               Size="Size.Small" 
+                               OnClick="@(() => OnEdit.InvokeAsync(cellContext.Item))" />
+            </MudTooltip>
+            <MudTooltip Text="Elimina">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                               Size="Size.Small" 
+                               OnClick="@(() => OnDelete.InvokeAsync(cellContext.Item))" />
+            </MudTooltip>
+        </MudStack>
+    </CellTemplate>
+</TemplateColumn>
+
+@code {
+    [Parameter] public EventCallback<T> OnEdit { get; set; }
+    [Parameter] public EventCallback<T> OnDelete { get; set; }
+}

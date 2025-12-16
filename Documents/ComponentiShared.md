@@ -6,10 +6,26 @@
 ### EnterpriseDataGrid
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
-    *   Applica automaticamente le classi CSS enterprise (`.enterprise-grid`).
-    *   Configura i default (Dense, Striped, Hover, Elevation=0).
-    *   Risolve i problemi di ereditarietà dei tipi generici tramite `[CascadingTypeParameter]`.
-*   **Utilizzo**: `<EnterpriseDataGrid T="Modello" ...>`
+    *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.
+    *   **Toolbar**: Include automaticamente un titolo e una casella di ricerca (Search Box).
+    *   **Filtro**: Supporta una `SearchFunction` personalizzata per il filtro trasversale.
+*   **Utilizzo**:
+    ```razor
+    <EnterpriseDataGrid T="Modello" Title="Titolo" SearchFunction="@SearchFunc">
+        <Columns>
+            ...
+            <EnterpriseActionsColumn T="Modello" OnEdit="..." OnDelete="..." />
+        </Columns>
+    </EnterpriseDataGrid>
+    ```
+
+### EnterpriseActionsColumn
+Colonna standard per le azioni (Modifica/Elimina) (`Components/Shared/EnterpriseActionsColumn.razor`).
+*   **Funzionalità**: Mostra icone standard con Tooltip.
+*   **Parametri**: `OnEdit` e `OnDelete` (EventCallback).
+
+### EnterpriseGridToolbar
+Componente interno usato da EnterpriseDataGrid per renderizzare Titolo e SearchBox.
 
 ### EnterprisePager
 Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).

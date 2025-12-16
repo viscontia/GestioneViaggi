@@ -2,11 +2,8 @@
 @using MudBlazor
 @using System.Text.Json
 
-<MudText Typo="Typo.h4" GutterBottom="true">Gestione Nazioni (Demo)</MudText>
-
 @if (!string.IsNullOrEmpty(ErrorMessage))
 {
-    <!-- SE C'È UN ERRORE, LO MOSTRIAMO QUI -->
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
         <MudText Typo="Typo.h6">ERRORE RILEVATO:</MudText>
         <MudText>@ErrorMessage</MudText>
@@ -16,29 +13,21 @@
 }
 else
 {
-    <!-- ALTRIMENTI MOSTRIAMO LA GRIGLIA -->
-    <EnterpriseDataGrid T="Country" Items="@Elements" ReadOnly="false" EditMode="DataGridEditMode.Cell">
+    <EnterpriseDataGrid T="Country" 
+                        Items="@Elements" 
+                        Title="Gestione Nazioni"
+                        SearchFunction="@SearchCountry">
         
         <Columns>
-            <PropertyColumn Property="x => x.Id" Title="ID" Editable="false" />
-            
-            <PropertyColumn Property="x => x.Name" Title="Nazione">
-                <EditTemplate>
-                    <MudTextField @bind-Value="context.Item.Name" 
-              Variant="Variant.Text" 
-              Margin="Margin.Dense"   
-              Converter="@UpperCaseConverter" />
-                </EditTemplate>
-            </PropertyColumn>
-
+            <PropertyColumn Property="x => x.Id" Title="ID" />
+            <PropertyColumn Property="x => x.Name" Title="Nazione" />
             <PropertyColumn Property="x => x.Code" Title="Codice ISO" />
             <PropertyColumn Property="x => x.Region" Title="Regione" />
             <PropertyColumn Property="x => x.Population" Title="Popolazione" />
+            
+            <EnterpriseActionsColumn T="Country" OnEdit="@EditCountry" OnDelete="@DeleteCountry" />
         </Columns>
         
-        <PagerContent>
-            <EnterprisePager T="Country" />
-        </PagerContent>
     </EnterpriseDataGrid>
 }
 
@@ -47,18 +36,10 @@ else
     private string ErrorMessage = "";
     private string ErrorStack = "";
 
-    // Convertitore per forzare il MAIUSCOLO
-    Converter<string?> UpperCaseConverter = new Converter<string?>
-    {
-        SetFunc = value => value?.ToUpper(),
-        GetFunc = text => text?.ToUpper()
-    };
-
     protected override void OnInitialized()
     {
         try 
         {
-            // Dati finti di prova
             Elements.Add(new Country { Id = "1", Name = "ITALIA", Code = "IT", Region = "Europa", Population = 60000000 });
             Elements.Add(new Country { Id = "2", Name = "FRANCIA", Code = "FR", Region = "Europa", Population = 67000000 });
             Elements.Add(new Country { Id = "3", Name = "GERMANIA", Code = "DE", Region = "Europa", Population = 83000000 });
@@ -72,7 +53,29 @@ else
         }
     }
 
-    // DEFINIZIONE CLASSE
+    // Funzione di Ricerca Case-Insensitive su tutti i campi
+    private bool SearchCountry(Country country, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (country.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (country.Code?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (country.Region?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (country.Id?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private void EditCountry(Country item)
+    {
+        // Logica di edit (es. apertura dialog)
+        Console.WriteLine($"Edit richiesto per: {item.Name}");
+    }
+
+    private void DeleteCountry(Country item)
+    {
+        // Logica di delete (es. conferma e rimozione)
+        Elements.Remove(item);
+    }
+
     public class Country
     {
         public string? Id { get; set; }

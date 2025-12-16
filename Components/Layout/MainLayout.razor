@@ -24,7 +24,7 @@
 
 @code {
     bool _drawerOpen = true;
-    bool _isDarkMode = false;
+    bool _isDarkMode = false; // Default Light Mode
     private MudThemeProvider? _mudThemeProvider;
 
     void DrawerToggle()
@@ -54,7 +54,9 @@
     {
         if (firstRender && _mudThemeProvider != null)
         {
-             _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+             // Force Light Mode initially as requested
+             _isDarkMode = false; 
+             // _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
              StateHasChanged();
         }
     }

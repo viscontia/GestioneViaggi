@@ -1,0 +1,19 @@
+@using MudBlazor
+
+<MudText Typo="Typo.h6">@Title</MudText>
+<MudSpacer />
+<MudTextField T="string" 
+              Value="@SearchString" 
+              ValueChanged="@SearchStringChanged"
+              Placeholder="Cerca..." 
+              Adornment="Adornment.Start" 
+              AdornmentIcon="@Icons.Material.Filled.Search" 
+              IconSize="Size.Medium" 
+              Class="mt-0"
+              Immediate="true" />
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? SearchString { get; set; }
+    [Parameter] public EventCallback<string> SearchStringChanged { get; set; }
+}
