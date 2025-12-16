@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using MudBlazor.Services; // <--- Se manca questo using, non compila
+using MudBlazor;
 using GestioneViaggi.Components;
+using GestioneViaggi.Components.Shared;
 
 namespace GestioneViaggi;
 
@@ -20,7 +22,10 @@ public static class MauiProgram
         // QUESTA È LA RIGA CHE FA FUNZIONARE LA GRIGLIA
         // Se questa manca, appena apri la pagina esplode tutto.
         // ==========================================================
-        builder.Services.AddMudServices(); 
+        builder.Services.AddMudServices();
+        
+        // REGISTRAZIONE LOCALIZZAZIONE ITALIANA (GRID, PAGER, ECC.)
+        builder.Services.AddTransient<MudLocalizer, ItalianMudLocalizer>();
 
         builder.Services.AddMauiBlazorWebView();
 

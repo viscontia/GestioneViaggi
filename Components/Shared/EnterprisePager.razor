@@ -1,0 +1,11 @@
+@typeparam T
+@using MudBlazor
+
+<MudDataGridPager T="T"
+                  RowsPerPageString="Righe per pagina:"
+                  InfoFormat="{first_item}-{last_item} di {all_items}"
+                  PageSizeOptions="@PageSizeOptions" />
+
+@code {
+    [Parameter] public int[] PageSizeOptions { get; set; } = new int[] { 10, 25, 50, 100 };
+}

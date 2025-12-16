@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium SaaS UI - Gestione Viaggi Offroad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 40px;
+            background: #F5F5F5;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .theme-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .theme-wrapper.dark {
+            background: #1A1D23;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .theme-wrapper.light h1 {
+            color: #111827;
+        }
+
+        .theme-wrapper.dark h1 {
+            color: #E6E8EB;
+        }
+
+        /* ========== TABELLA PREMIUM SAAS ========== */
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* LIGHT MODE */
+        .light thead {
+            background-color: #F7F8FA;
+            box-shadow: inset 0 -1px 0 rgba(0,0,0,0.04);
+        }
+
+        .light th {
+            color: #6B7280;
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 10px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .light tbody tr {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .light tbody tr:hover {
+            background-color: #F9FAFB;
+        }
+
+        .light td {
+            color: #111827;
+            font-size: 13.5px;
+            font-weight: 400;
+            padding: 14px 16px;
+        }
+
+        /* DARK MODE */
+        .dark thead {
+            background-color: #2A2D34;
+            box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
+        }
+
+        .dark th {
+            color: #9AA1AC;
+            font-size: 11.5px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 10px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .dark tbody tr {
+            background-color: #30333B;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .dark tbody tr:hover {
+            background-color: #35383F;
+        }
+
+        .dark td {
+            color: #E6E8EB;
+            font-size: 13.5px;
+            font-weight: 400;
+            padding: 14px 16px;
+        }
+
+        /* STATUS BADGES */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            font-size: 11.5px;
+            font-weight: 500;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .status-planned {
+            background: rgba(14, 165, 233, 0.08);
+            color: #0EA5E9;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.08);
+            color: #10B981;
+        }
+
+        .status-completed {
+            background: rgba(107, 114, 128, 0.08);
+            color: #6B7280;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* DIFFICULTY BADGES */
+        .difficulty-badge {
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .light .difficulty-easy {
+            background: rgba(16, 185, 129, 0.08);
+            color: #059669;
+        }
+
+        .light .difficulty-medium {
+            background: rgba(245, 158, 11, 0.08);
+            color: #D97706;
+        }
+
+        .light .difficulty-hard {
+            background: rgba(239, 68, 68, 0.08);
+            color: #DC2626;
+        }
+
+        .dark .difficulty-easy {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34D399;
+        }
+
+        .dark .difficulty-medium {
+            background: rgba(245, 158, 11, 0.12);
+            color: #FBBF24;
+        }
+
+        .dark .difficulty-hard {
+            background: rgba(239, 68, 68, 0.12);
+            color: #F87171;
+        }
+
+        /* INLINE ACTIONS */
+        .inline-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .light .icon-btn {
+            color: #6B7280;
+        }
+
+        .light .icon-btn:hover {
+            background: rgba(0,0,0,0.04);
+            color: #111827;
+        }
+
+        .light .icon-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.08);
+            color: #DC2626;
+        }
+
+        .dark .icon-btn {
+            color: #9AA1AC;
+        }
+
+        .dark .icon-btn:hover {
+            background: rgba(255,255,255,0.06);
+            color: #E6E8EB;
+        }
+
+        .dark .icon-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.12);
+            color: #F87171;
+        }
+
+        .icon-btn .material-icons {
+            font-size: 18px;
+        }
+
+        /* ========== SISTEMA BOTTONI ========== */
+        .button-section {
+            margin-bottom: 32px;
+        }
+
+        .button-section h2 {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .light .button-section h2 {
+            color: #6B7280;
+        }
+
+        .dark .button-section h2 {
+            color: #9AA1AC;
+        }
+
+        .button-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 16px;
+            height: 36px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            letter-spacing: -0.01em;
+        }
+
+        .btn .material-icons {
+            font-size: 18px;
+        }
+
+        /* PRIMARY - Azioni principali (Crea nuovo viaggio, Salva) */
+        .btn-primary {
+            background: #111827;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1F2937;
+        }
+
+        .dark .btn-primary {
+            background: #E6E8EB;
+            color: #111827;
+        }
+
+        .dark .btn-primary:hover {
+            background: #F3F4F6;
+        }
+
+        /* SECONDARY - Azioni secondarie (Esporta, Filtra) */
+        .light .btn-secondary {
+            background: rgba(0,0,0,0.04);
+            color: #374151;
+        }
+
+        .light .btn-secondary:hover {
+            background: rgba(0,0,0,0.08);
+        }
+
+        .dark .btn-secondary {
+            background: rgba(255,255,255,0.06);
+            color: #D1D5DB;
+        }
+
+        .dark .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* GHOST - Azioni terziarie (Annulla) */
+        .light .btn-ghost {
+            background: transparent;
+            color: #6B7280;
+        }
+
+        .light .btn-ghost:hover {
+            background: rgba(0,0,0,0.04);
+        }
+
+        .dark .btn-ghost {
+            background: transparent;
+            color: #9AA1AC;
+        }
+
+        .dark .btn-ghost:hover {
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* DESTRUCTIVE - Elimina, Cancella */
+        .light .btn-destructive {
+            background: rgba(239, 68, 68, 0.08);
+            color: #DC2626;
+        }
+
+        .light .btn-destructive:hover {
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .dark .btn-destructive {
+            background: rgba(239, 68, 68, 0.12);
+            color: #F87171;
+        }
+
+        .dark .btn-destructive:hover {
+            background: rgba(239, 68, 68, 0.18);
+        }
+
+        /* SUCCESS - Completa viaggio, Approva */
+        .light .btn-success {
+            background: rgba(16, 185, 129, 0.08);
+            color: #059669;
+        }
+
+        .light .btn-success:hover {
+            background: rgba(16, 185, 129, 0.12);
+        }
+
+        .dark .btn-success {
+            background: rgba(16, 185, 129, 0.12);
+            color: #34D399;
+        }
+
+        .dark .btn-success:hover {
+            background: rgba(16, 185, 129, 0.18);
+        }
+
+        /* OUTLINED - Variante con bordo */
+        .btn-outlined {
+            background: transparent;
+            border: 1px solid;
+        }
+
+        .light .btn-outlined {
+            border-color: rgba(0,0,0,0.1);
+            color: #374151;
+        }
+
+        .light .btn-outlined:hover {
+            background: rgba(0,0,0,0.02);
+        }
+
+        .dark .btn-outlined {
+            border-color: rgba(255,255,255,0.1);
+            color: #D1D5DB;
+        }
+
+        .dark .btn-outlined:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+        .usage-note {
+            font-size: 12px;
+            margin-top: 4px;
+            font-style: italic;
+            opacity: 0.6;
+        }
+
+        /* TOOLBAR EXAMPLE */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            margin-bottom: 20px;
+        }
+
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        hr {
+            border: none;
+            margin: 32px 0;
+        }
+
+        .light hr {
+            border-top: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .dark hr {
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- LIGHT MODE -->
+        <div class="theme-wrapper light">
+            <h1>☀️ Light Mode - Premium SaaS</h1>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome Viaggio</th>
+                            <th>Data Partenza</th>
+                            <th>Difficoltà</th>
+                            <th>Distanza</th>
+                            <th>Stato</th>
+                            <th style="width: 80px;">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight: 500;">Kgalagadi Transfrontier</td>
+                            <td>15 Gen 2025</td>
+                            <td><span class="difficulty-badge difficulty-hard">Hard</span></td>
+                            <td>847 km</td>
+                            <td>
+                                <span class="status-badge status-planned">
+                                    <span class="status-dot"></span>
+                                    Pianificato
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 500;">Garden Route Coastal</td>
+                            <td>08 Gen 2025</td>
+                            <td><span class="difficulty-badge difficulty-easy">Easy</span></td>
+                            <td>342 km</td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    <span class="status-dot"></span>
+                                    In corso
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 500;">Cederberg Mountains</td>
+                            <td>20 Dic 2024</td>
+                            <td><span class="difficulty-badge difficulty-medium">Medium</span></td>
+                            <td>523 km</td>
+                            <td>
+                                <span class="status-badge status-completed">
+                                    <span class="status-dot"></span>
+                                    Completato
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr>
+
+            <!-- TOOLBAR EXAMPLE -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary">
+                        <span class="material-icons">add</span>
+                        Nuovo Viaggio
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">filter_list</span>
+                        Filtra
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">file_download</span>
+                        Esporta
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- SISTEMA BOTTONI -->
+            <div class="button-section">
+                <h2>Azioni Principali (Primary)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-primary">
+                        <span class="material-icons">add</span>
+                        Nuovo Viaggio
+                    </button>
+                    <button class="btn btn-primary">
+                        <span class="material-icons">save</span>
+                        Salva Modifiche
+                    </button>
+                    <button class="btn btn-primary">
+                        <span class="material-icons">publish</span>
+                        Pubblica
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Primary"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Secondarie (Secondary)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">filter_list</span>
+                        Filtra
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">search</span>
+                        Cerca
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">settings</span>
+                        Impostazioni
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">map</span>
+                        Visualizza Mappa
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Secondary"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Terziarie (Ghost)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">close</span>
+                        Annulla
+                    </button>
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">file_download</span>
+                        Esporta CSV
+                    </button>
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">help_outline</span>
+                        Guida
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Text"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Distruttive (Destructive)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-destructive">
+                        <span class="material-icons">delete</span>
+                        Elimina Viaggio
+                    </button>
+                    <button class="btn btn-destructive">
+                        <span class="material-icons">cancel</span>
+                        Cancella Prenotazione
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Error"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Positive (Success)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-success">
+                        <span class="material-icons">check_circle</span>
+                        Completa Viaggio
+                    </button>
+                    <button class="btn btn-success">
+                        <span class="material-icons">done_all</span>
+                        Approva
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Success"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Variante Outlined</h2>
+                <div class="button-grid">
+                    <button class="btn btn-outlined">
+                        <span class="material-icons">share</span>
+                        Condividi
+                    </button>
+                    <button class="btn btn-outlined">
+                        <span class="material-icons">print</span>
+                        Stampa
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Outlined"</p>
+            </div>
+        </div>
+
+        <!-- DARK MODE -->
+        <div class="theme-wrapper dark">
+            <h1>🌙 Dark Mode - Premium SaaS</h1>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome Viaggio</th>
+                            <th>Data Partenza</th>
+                            <th>Difficoltà</th>
+                            <th>Distanza</th>
+                            <th>Stato</th>
+                            <th style="width: 80px;">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight: 500;">Kgalagadi Transfrontier</td>
+                            <td>15 Gen 2025</td>
+                            <td><span class="difficulty-badge difficulty-hard">Hard</span></td>
+                            <td>847 km</td>
+                            <td>
+                                <span class="status-badge status-planned">
+                                    <span class="status-dot"></span>
+                                    Pianificato
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 500;">Garden Route Coastal</td>
+                            <td>08 Gen 2025</td>
+                            <td><span class="difficulty-badge difficulty-easy">Easy</span></td>
+                            <td>342 km</td>
+                            <td>
+                                <span class="status-badge status-active">
+                                    <span class="status-dot"></span>
+                                    In corso
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: 500;">Cederberg Mountains</td>
+                            <td>20 Dic 2024</td>
+                            <td><span class="difficulty-badge difficulty-medium">Medium</span></td>
+                            <td>523 km</td>
+                            <td>
+                                <span class="status-badge status-completed">
+                                    <span class="status-dot"></span>
+                                    Completato
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-actions">
+                                    <button class="icon-btn" title="Modifica">
+                                        <span class="material-icons">edit</span>
+                                    </button>
+                                    <button class="icon-btn delete" title="Elimina">
+                                        <span class="material-icons">delete</span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr>
+
+            <!-- TOOLBAR EXAMPLE -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary">
+                        <span class="material-icons">add</span>
+                        Nuovo Viaggio
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">filter_list</span>
+                        Filtra
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">file_download</span>
+                        Esporta
+                    </button>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- SISTEMA BOTTONI -->
+            <div class="button-section">
+                <h2>Azioni Principali (Primary)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-primary">
+                        <span class="material-icons">add</span>
+                        Nuovo Viaggio
+                    </button>
+                    <button class="btn btn-primary">
+                        <span class="material-icons">save</span>
+                        Salva Modifiche
+                    </button>
+                    <button class="btn btn-primary">
+                        <span class="material-icons">publish</span>
+                        Pubblica
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Primary"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Secondarie (Secondary)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">filter_list</span>
+                        Filtra
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">search</span>
+                        Cerca
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">settings</span>
+                        Impostazioni
+                    </button>
+                    <button class="btn btn-secondary">
+                        <span class="material-icons">map</span>
+                        Visualizza Mappa
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Secondary"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Terziarie (Ghost)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">close</span>
+                        Annulla
+                    </button>
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">file_download</span>
+                        Esporta CSV
+                    </button>
+                    <button class="btn btn-ghost">
+                        <span class="material-icons">help_outline</span>
+                        Guida
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Text"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Distruttive (Destructive)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-destructive">
+                        <span class="material-icons">delete</span>
+                        Elimina Viaggio
+                    </button>
+                    <button class="btn btn-destructive">
+                        <span class="material-icons">cancel</span>
+                        Cancella Prenotazione
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Error"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Azioni Positive (Success)</h2>
+                <div class="button-grid">
+                    <button class="btn btn-success">
+                        <span class="material-icons">check_circle</span>
+                        Completa Viaggio
+                    </button>
+                    <button class="btn btn-success">
+                        <span class="material-icons">done_all</span>
+                        Approva
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Filled" + Color="Success"</p>
+            </div>
+
+            <div class="button-section">
+                <h2>Variante Outlined</h2>
+                <div class="button-grid">
+                    <button class="btn btn-outlined">
+                        <span class="material-icons">share</span>
+                        Condividi
+                    </button>
+                    <button class="btn btn-outlined">
+                        <span class="material-icons">print</span>
+                        Stampa
+                    </button>
+                </div>
+                <p class="usage-note">MudBlazor: Variant="Outlined"</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

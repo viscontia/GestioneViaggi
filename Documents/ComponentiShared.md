@@ -11,6 +11,11 @@ Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`)
     *   Risolve i problemi di ereditarietà dei tipi generici tramite `[CascadingTypeParameter]`.
 *   **Utilizzo**: `<EnterpriseDataGrid T="Modello" ...>`
 
+### EnterprisePager
+Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
+*   **Funzionalità**: Wrapper di `MudDataGridPager` con testi pre-localizzati in Italiano ("Righe per pagina", record count).
+*   **Utilizzo**: Da inserire nel `PagerContent` della griglia.
+
 ## Stili CSS Avanzati
 Gli stili sono organizzati in file CSS specifici in `wwwroot/css/components/`.
 
