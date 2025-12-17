@@ -1,0 +1,121 @@
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Models
+@inject IStatusBarService StatusBarService
+@implements IDisposable
+
+<div class="status-bar-container">
+    <span class="status-icon" title="@GetDbStatusText()">@GetDbEmoji()</span>
+    <span class="status-text">Database</span>
+
+    <span class="divider">|</span>
+
+    <span class="status-icon">👤</span>
+    <span class="status-text status-bold">@StatusBarService.CurrentStatus.UserFullName</span>
+
+    <span class="divider">|</span>
+
+    <span class="status-icon">🛡️</span>
+    <span class="status-text">@StatusBarService.CurrentStatus.UserRole</span>
+
+    <span class="divider">|</span>
+
+    <span class="status-icon">🏢</span>
+    <span class="status-text">@StatusBarService.CurrentStatus.CompanyName</span>
+
+    <div style="flex: 1;"></div>
+
+    <span class="status-icon">🕒</span>
+    <span class="status-text status-mono">@StatusBarService.CurrentStatus.CurrentDateTime.ToString("dd/MM/yyyy HH:mm:ss")</span>
+</div>
+
+<style>
+    .status-bar-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--mud-palette-surface, #fff);
+        border-top: 1px solid var(--mud-palette-divider, #e0e0e0);
+        height: 40px;
+        font-size: 0.75rem;
+    }
+
+    .status-icon {
+        margin: 0;
+    }
+
+    .status-text {
+        color: var(--mud-palette-text-secondary, #666);
+        white-space: nowrap;
+    }
+
+    .status-bold {
+        font-weight: 500;
+        color: var(--mud-palette-text-primary, #000);
+    }
+
+    .status-mono {
+        font-variant-numeric: tabular-nums;
+    }
+
+    .divider {
+        color: var(--mud-palette-divider, #e0e0e0);
+        margin: 0 4px;
+    }
+</style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        StatusBarService.OnStatusChanged += OnStatusChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Initialize after first render with small delay
+                await Task.Delay(200);
+                await StatusBarService.InitializeAsync();
+            }
+            catch (Exception)
+            {
+                // Fail silently
+            }
+        }
+    }
+
+    private void OnStatusChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetDbEmoji()
+    {
+        return StatusBarService.CurrentStatus.DbStatus switch
+        {
+            DatabaseStatus.Connected => "🟢",
+            DatabaseStatus.Warning => "🟡",
+            DatabaseStatus.Disconnected => "🔴",
+            _ => "⚪"
+        };
+    }
+
+    private string GetDbStatusText()
+    {
+        return StatusBarService.CurrentStatus.DbStatus switch
+        {
+            DatabaseStatus.Connected => "Database connesso",
+            DatabaseStatus.Warning => "Database: avviso",
+            DatabaseStatus.Disconnected => "Database disconnesso",
+            _ => "Stato sconosciuto"
+        };
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.OnStatusChanged -= OnStatusChanged;
+    }
+}

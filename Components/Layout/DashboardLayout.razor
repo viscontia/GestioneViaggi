@@ -63,6 +63,11 @@
     </MudMainContent>
 </MudLayout>
 
+<!-- Bottom Status Bar -->
+<div style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200; margin-left: var(--mud-drawer-width-mini, 56px);">
+    <StatusBar />
+</div>
+
 @code {
     private bool _isDisposing = false;
 
