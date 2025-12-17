@@ -1,17 +1,186 @@
 @page "/tabelle/capoluoghi"
 @using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject CapoluogoService CapoluogoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @attribute [Authorize]
 
-<MudText Typo="Typo.h4" Class="mb-4">Gestione Capoluoghi di Regione</MudText>
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Capoluogo"
+                        Items="@_capoluoghi"
+                        Title="Gestione Capoluoghi di Regione"
+                        SearchFunction="@SearchCapoluogo"
+                        @bind-SelectedItem="_selectedItem">
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.body1">
-            Placeholder per la gestione dei Capoluoghi di Regione.
-        </MudText>
-    </MudCardContent>
-</MudCard>
+        <ToolBarContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog"
+                       Class="ml-2">
+                Nuovo Capoluogo
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione Capoluogo" />
+
+            <EnterpriseActionsColumn T="Capoluogo"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteCapoluogo" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
 
 @code {
-    // Implementazione futura
+    private List<Capoluogo> _capoluoghi = new();
+    private Capoluogo? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _capoluoghi = await CapoluogoService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento dei capoluoghi: {ex.Message}";
+        }
+    }
+
+    private bool SearchCapoluogo(Capoluogo capoluogo, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (capoluogo.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<CapoluogoDialog>
+        {
+            { x => x.Entity, new Capoluogo() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<CapoluogoDialog>("Nuovo Capoluogo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Capoluogo newCapoluogo)
+        {
+            try
+            {
+                var created = await CapoluogoService.CreateAsync(newCapoluogo);
+                _capoluoghi.Add(created);
+                Snackbar.Add($"Capoluogo '{created.Descrizione}' creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante la creazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Capoluogo capoluogo)
+    {
+        var parameters = new DialogParameters<CapoluogoDialog>
+        {
+            { x => x.Entity, new Capoluogo { Id = capoluogo.Id, Descrizione = capoluogo.Descrizione } },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<CapoluogoDialog>("Modifica Capoluogo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Capoluogo updatedCapoluogo)
+        {
+            try
+            {
+                var updated = await CapoluogoService.UpdateAsync(updatedCapoluogo);
+                var index = _capoluoghi.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _capoluoghi[index] = updated;
+                }
+                Snackbar.Add($"Capoluogo '{updated.Descrizione}' aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'aggiornamento: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteCapoluogo(Capoluogo capoluogo)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"Sei sicuro di voler eliminare il capoluogo '{capoluogo.Descrizione}'?" },
+            { "ButtonText", "Elimina" },
+            { "Color", Color.Error }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+
+        var dialog = await DialogService.ShowAsync<MudMessageBox>("Conferma Eliminazione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await CapoluogoService.DeleteAsync(capoluogo.Id);
+                if (success)
+                {
+                    _capoluoghi.Remove(capoluogo);
+                    Snackbar.Add($"Capoluogo '{capoluogo.Descrizione}' eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare il capoluogo", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 }

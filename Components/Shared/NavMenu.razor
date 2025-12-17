@@ -6,12 +6,12 @@
 @inject ISnackbar Snackbar
 
 <MudNavMenu>
-    <MudNavLink Href="/dashboard-admin" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.Prefix"
+    <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
                 OnClick="@(() => OpenTab("/dashboard-admin", "Dashboard", "dashboard"))">
         Dashboard
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.AccountBox"
+    <MudNavLink Icon="@Icons.Material.Filled.AccountBox"
                 OnClick="@(() => OpenTab("/anagrafiche", "Anagrafiche", "people"))">
         Anagrafiche
     </MudNavLink>
@@ -20,27 +20,27 @@
 
         <!-- Tabelle Geografiche -->
         <MudNavGroup Title="Tabelle Geografiche" Icon="@Icons.Material.Filled.Public" Expanded="false">
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Public"
+            <MudNavLink Icon="@Icons.Material.Filled.Public"
                         OnClick="@(() => OpenTab("/tabelle/nazioni", "Nazioni", "table"))">
                 Nazioni
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Map"
+            <MudNavLink Icon="@Icons.Material.Filled.Map"
                         OnClick="@(() => OpenTab("/tabelle/regioni", "Regioni", "table"))">
                 Regioni
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.LocationCity"
+            <MudNavLink Icon="@Icons.Material.Filled.LocationCity"
                         OnClick="@(() => OpenTab("/tabelle/capoluoghi", "Capoluoghi", "table"))">
                 Capoluogo di Regione
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Terrain"
+            <MudNavLink Icon="@Icons.Material.Filled.Terrain"
                         OnClick="@(() => OpenTab("/tabelle/province", "Province", "table"))">
                 Province
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Place"
+            <MudNavLink Icon="@Icons.Material.Filled.Place"
                         OnClick="@(() => OpenTab("/tabelle/comuni", "Comuni", "table"))">
                 Comuni
             </MudNavLink>
@@ -48,12 +48,12 @@
 
         <!-- Tabelle Viaggi -->
         <MudNavGroup Title="Tabelle Viaggi" Icon="@Icons.Material.Filled.Explore" Expanded="false">
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Route"
+            <MudNavLink Icon="@Icons.Material.Filled.Route"
                         OnClick="@(() => OpenTab("/tabelle/destinazioni", "Destinazioni", "table"))">
                 Destinazioni
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Category"
+            <MudNavLink Icon="@Icons.Material.Filled.Category"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-viaggio", "Tipologie Viaggio", "table"))">
                 Tipologie Viaggio
             </MudNavLink>
@@ -61,17 +61,17 @@
 
         <!-- Tabelle Mezzi -->
         <MudNavGroup Title="Tabelle Mezzi" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="false">
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.CarRental"
+            <MudNavLink Icon="@Icons.Material.Filled.CarRental"
                         OnClick="@(() => OpenTab("/tabelle/marche-veicoli", "Marche Veicoli", "table"))">
                 Marche Veicoli
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.DriveEta"
+            <MudNavLink Icon="@Icons.Material.Filled.DriveEta"
                         OnClick="@(() => OpenTab("/tabelle/modelli-veicoli", "Modelli Veicoli", "table"))">
                 Modelli Veicoli
             </MudNavLink>
 
-            <MudNavLink Href="#" Icon="@Icons.Material.Filled.Category"
+            <MudNavLink Icon="@Icons.Material.Filled.Category"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-veicoli", "Tipologie Veicoli", "table"))">
                 Tipologie Veicoli
             </MudNavLink>
@@ -79,17 +79,17 @@
 
     </MudNavGroup>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.DirectionsCar"
+    <MudNavLink Icon="@Icons.Material.Filled.DirectionsCar"
                 OnClick="@(() => OpenTab("/viaggi", "Viaggi", "car"))">
         Viaggi
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Print"
+    <MudNavLink Icon="@Icons.Material.Filled.Print"
                 OnClick="@(() => OpenTab("/stampe", "Stampe", "print"))">
         Stampe
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Settings"
+    <MudNavLink Icon="@Icons.Material.Filled.Settings"
                 OnClick="@(() => OpenTab("/configurazione", "Configurazione", "settings"))">
         Configurazione
     </MudNavLink>

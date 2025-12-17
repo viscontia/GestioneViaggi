@@ -1,0 +1,114 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Capoluogo" : "Nuovo Capoluogo")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField @ref="_firstField"
+                          @bind-Value="Entity.Descrizione"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione Capoluogo"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="50"
+                          tabindex="1"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_firstField))" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Capoluogo Entity { get; set; } = new Capoluogo();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _firstField != null)
+        {
+            // Delay necessario per attendere il completamento dell'animazione del dialog
+            // e il rendering completo dei componenti MudBlazor
+            await Task.Delay(100);
+            await InvokeAsync(async () =>
+            {
+                if (_firstField != null)
+                {
+                    await _firstField.FocusAsync();
+                }
+            });
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleFieldBlur(MudTextField<string>? field)
+    {
+        if (field != null)
+        {
+            await field.Validate();
+            if (field.Error)
+            {
+                // Delay per permettere al click su "Annulla" di essere processato prima del focus back
+                await Task.Delay(150);
+                try
+                {
+                    await field.FocusAsync();
+                }
+                catch
+                {
+                    // Ignora errori se il dialog è stato chiuso
+                }
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                // Gestione errore in conferma: Focus sul primo campo in errore
+                if (_firstField?.Error == true)
+                {
+                    await _firstField.FocusAsync();
+                }
+            }
+        }
+    }
+}
