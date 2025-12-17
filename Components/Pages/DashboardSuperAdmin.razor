@@ -2,31 +2,26 @@
 @using GestioneViaggi.Services.Authentication
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "superadmin")]
+@layout DashboardLayout
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudStack Spacing="4">
+<MudStack Spacing="4">
 
-        <!-- Header -->
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <div>
-                    <MudText Typo="Typo.h4" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-2" />
-                        Dashboard Super Admin
-                    </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Benvenuto, @_currentUser?.FullName - Accesso globale a tutte le aziende
-                    </MudText>
-                </div>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="HandleLogout">
-                    Esci
-                </MudButton>
-            </MudStack>
-        </MudPaper>
+    <!-- Header -->
+    <MudPaper Elevation="2" Class="pa-4">
+        <div>
+            <MudText Typo="Typo.h4" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-2" />
+                Dashboard Super Admin
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Benvenuto, @_currentUser?.FullName - Accesso globale a tutte le aziende
+            </MudText>
+        </div>
+    </MudPaper>
 
-        <!-- Stats Cards -->
+    <!-- Stats Cards -->
         <MudGrid>
             <MudItem xs="12" sm="6" md="3">
                 <MudPaper Elevation="2" Class="pa-4">
@@ -87,8 +82,7 @@
             Hai accesso completo a tutte le funzionalità e dati del sistema. Usa i permessi di SuperAdmin con responsabilità.
         </MudAlert>
 
-    </MudStack>
-</MudContainer>
+</MudStack>
 
 @code {
     private Models.UserInfo? _currentUser;
@@ -96,11 +90,5 @@
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
-    }
-
-    private async Task HandleLogout()
-    {
-        await AuthService.LogoutAsync();
-        Navigation.NavigateTo("/login", true);
     }
 }

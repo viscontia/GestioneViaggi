@@ -1,0 +1,43 @@
+@using GestioneViaggi.Services.Authentication
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<MudNavMenu>
+    <MudNavLink Href="/dashboard-admin" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.Prefix">
+        Dashboard
+    </MudNavLink>
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.AccountBox">
+        Anagrafiche
+    </MudNavLink>
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.TableChart">
+        Tabelle
+    </MudNavLink>
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.DirectionsCar">
+        Viaggi
+    </MudNavLink>
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Print">
+        Stampe
+    </MudNavLink>
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Settings">
+        Configurazione
+    </MudNavLink>
+
+    <MudDivider Class="my-2" />
+
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">
+        Logout
+    </MudNavLink>
+</MudNavMenu>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

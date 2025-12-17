@@ -2,35 +2,30 @@
 @using GestioneViaggi.Services.Authentication
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize]
+@layout DashboardLayout
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudStack Spacing="4">
+<MudStack Spacing="4">
 
-        <!-- Header -->
-        <MudPaper Elevation="2" Class="pa-4">
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                <div>
-                    <MudText Typo="Typo.h4" Class="mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
-                        Dashboard Aziendale
-                    </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        Benvenuto, @_currentUser?.FullName
-                        @if (_currentUser?.AziendaId != null)
-                        {
-                            <span> - Azienda ID: @_currentUser.AziendaId</span>
-                        }
-                    </MudText>
-                </div>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="HandleLogout">
-                    Esci
-                </MudButton>
-            </MudStack>
-        </MudPaper>
+    <!-- Header -->
+    <MudPaper Elevation="2" Class="pa-4">
+        <div>
+            <MudText Typo="Typo.h4" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+                Dashboard Aziendale
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Benvenuto, @_currentUser?.FullName
+                @if (_currentUser?.AziendaId != null)
+                {
+                    <span> - Azienda ID: @_currentUser.AziendaId</span>
+                }
+            </MudText>
+        </div>
+    </MudPaper>
 
-        <!-- Stats Cards -->
+    <!-- Stats Cards -->
         <MudGrid>
             <MudItem xs="12" sm="6" md="4">
                 <MudPaper Elevation="2" Class="pa-4">
@@ -93,8 +88,7 @@
             </MudList>
         </MudPaper>
 
-    </MudStack>
-</MudContainer>
+</MudStack>
 
 @code {
     private Models.UserInfo? _currentUser;
@@ -102,11 +96,5 @@
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
-    }
-
-    private async Task HandleLogout()
-    {
-        await AuthService.LogoutAsync();
-        Navigation.NavigateTo("/login", true);
     }
 }
