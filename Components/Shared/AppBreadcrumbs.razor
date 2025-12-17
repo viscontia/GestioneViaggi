@@ -1,5 +1,7 @@
 @using Microsoft.AspNetCore.Components.Routing
+@using GestioneViaggi.Services.Navigation
 @inject NavigationManager NavigationManager
+@inject ITabManagerService TabManager
 @implements IDisposable
 
 <MudBreadcrumbs Items="_items" Separator=">">
@@ -20,7 +22,14 @@
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
+        TabManager.OnTabsChanged += OnTabsChanged;
         UpdateBreadcrumbs();
+    }
+
+    private void OnTabsChanged()
+    {
+        UpdateBreadcrumbs();
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
@@ -31,40 +40,36 @@
 
     private void UpdateBreadcrumbs()
     {
-        var uri = new Uri(NavigationManager.Uri);
-        var path = uri.AbsolutePath.ToLower().Trim('/');
-
         _items = new List<BreadcrumbItem>
         {
-            new BreadcrumbItem("Home", href: "/", disabled: path == "", icon: Icons.Material.Filled.Home)
+            new BreadcrumbItem("Home", href: "/", disabled: false, icon: Icons.Material.Filled.Home)
         };
 
-        if (!string.IsNullOrEmpty(path))
+        var activeTab = TabManager.GetActiveTab();
+        if (activeTab != null && activeTab.Route != "/")
         {
-            switch (path)
-            {
-                case "demogrid":
-                    _items.Add(new BreadcrumbItem("Nazioni", href: null, disabled: true, icon: Icons.Material.Filled.TableView));
-                    break;
-
-                case "counter":
-                    _items.Add(new BreadcrumbItem("Counter", href: null, disabled: true, icon: Icons.Material.Filled.Add));
-                    break;
-
-                case "weather":
-                    _items.Add(new BreadcrumbItem("Weather", href: null, disabled: true, icon: Icons.Material.Filled.Cloud));
-                    break;
-
-                default:
-                    // Pagina non riconosciuta
-                    _items.Add(new BreadcrumbItem(path, href: null, disabled: true, icon: Icons.Material.Filled.ChevronRight));
-                    break;
-            }
+            var icon = GetIconForRoute(activeTab.Icon);
+            _items.Add(new BreadcrumbItem(activeTab.Title, href: null, disabled: true, icon: icon));
         }
+    }
+
+    private string GetIconForRoute(string iconName)
+    {
+        return iconName.ToLower() switch
+        {
+            "dashboard" => Icons.Material.Filled.Dashboard,
+            "people" => Icons.Material.Filled.People,
+            "table" => Icons.Material.Filled.TableChart,
+            "car" => Icons.Material.Filled.DirectionsCar,
+            "print" => Icons.Material.Filled.Print,
+            "settings" => Icons.Material.Filled.Settings,
+            _ => Icons.Material.Filled.ChevronRight
+        };
     }
 
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        TabManager.OnTabsChanged -= OnTabsChanged;
     }
 }

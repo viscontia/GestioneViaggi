@@ -8,6 +8,7 @@ using GestioneViaggi.Components.Shared;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Authentication;
 using GestioneViaggi.Services.Session;
+using GestioneViaggi.Services.Navigation;
 
 namespace GestioneViaggi;
 
@@ -51,6 +52,8 @@ public static class MauiProgram
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
         builder.Services.AddAuthorizationCore();
+
+        builder.Services.AddScoped<ITabManagerService, TabManagerService>();
 
         builder.Services.AddMauiBlazorWebView();
 

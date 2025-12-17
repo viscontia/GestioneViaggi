@@ -1,43 +1,77 @@
 @using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Navigation
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
+@inject ITabManagerService TabManager
+@inject ISnackbar Snackbar
 
 <MudNavMenu>
-    <MudNavLink Href="/dashboard-admin" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.Prefix">
+    <MudNavLink Href="/dashboard-admin" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.Prefix"
+                OnClick="@(() => OpenTab("/dashboard-admin", "Dashboard", "dashboard"))">
         Dashboard
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.AccountBox">
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.AccountBox"
+                OnClick="@(() => OpenTab("/anagrafiche", "Anagrafiche", "people"))">
         Anagrafiche
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.TableChart">
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.TableChart"
+                OnClick="@(() => OpenTab("/tabelle", "Tabelle", "table"))">
         Tabelle
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.DirectionsCar">
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.DirectionsCar"
+                OnClick="@(() => OpenTab("/viaggi", "Viaggi", "car"))">
         Viaggi
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Print">
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Print"
+                OnClick="@(() => OpenTab("/stampe", "Stampe", "print"))">
         Stampe
     </MudNavLink>
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Settings">
+    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Settings"
+                OnClick="@(() => OpenTab("/configurazione", "Configurazione", "settings"))">
         Configurazione
     </MudNavLink>
 
     <MudDivider Class="my-2" />
 
-    <MudNavLink Href="#" Icon="@Icons.Material.Filled.Logout" OnClick="HandleLogout">
-        Logout
-    </MudNavLink>
+    <div class="mud-nav-item" @onclick="HandleLogout" style="cursor: pointer; display: flex; align-items: center; padding: 8px 16px;">
+        <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Medium" Class="mr-3" />
+        <MudText>Logout</MudText>
+    </div>
 </MudNavMenu>
 
 @code {
+    private void OpenTab(string route, string title, string icon)
+    {
+        if (!TabManager.CanOpenTab())
+        {
+            Snackbar.Add($"Impossibile aprire '{title}': limite di {TabManager.MaxTabs} tab raggiunto. Chiudi una tab per continuare.", Severity.Warning, config =>
+            {
+                config.VisibleStateDuration = 4000;
+            });
+            return;
+        }
+
+        bool opened = TabManager.OpenTab(route, title, icon);
+        if (opened)
+        {
+            Snackbar.Add($"Tab aperto: {title}", Severity.Success, config =>
+            {
+                config.VisibleStateDuration = 2000;
+            });
+        }
+    }
+
     private async Task HandleLogout()
     {
+        // Perform logout - force reload will reset everything
         await AuthService.LogoutAsync();
-        Navigation.NavigateTo("/login", true);
+
+        // Force reload to login page (this will destroy all components and tabs)
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

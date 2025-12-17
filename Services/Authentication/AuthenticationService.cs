@@ -199,10 +199,13 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             var currentUser = _currentUser;
+
+            // Email is preserved by SessionManager - LastLoginEmail is not cleared
             _currentUser = null;
             await _sessionManager.ClearSessionAsync();
-            await _sessionManager.ClearPersistedDataAsync();
-            
+            // Don't clear persisted data - it contains LastLoginEmail
+            // await _sessionManager.ClearPersistedDataAsync();
+
             _logger.LogInformation("User logged out: {Email}", currentUser?.Email ?? "Unknown");
         }
         catch (Exception ex)

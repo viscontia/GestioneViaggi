@@ -1,7 +1,13 @@
 @inherits LayoutComponentBase
 @using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Navigation
+@using GestioneViaggi.Models
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
+@inject ITabManagerService TabManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@implements IDisposable
 
 <MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
@@ -23,13 +29,43 @@
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-4">
-            @Body
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-4" Style="padding-top: 0;">
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true"
+                     ActivePanelIndex="@TabManager.ActiveTabIndex"
+                     ActivePanelIndexChanged="@OnTabChanged"
+                     Class="mb-4">
+                @foreach (var tab in TabManager.ActiveTabs)
+                {
+                    <MudTabPanel BadgeData="@(tab.IsDirty ? "●" : null)" BadgeColor="Color.Warning">
+                        <TabWrapperContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                @if (!string.IsNullOrEmpty(tab.Icon))
+                                {
+                                    <MudIcon Icon="@GetTabIcon(tab.Icon)" Size="Size.Small" />
+                                }
+                                <MudText>@tab.Title</MudText>
+                                @if (tab.IsCloseable)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OnCloseTab(tab))"
+                                                   Style="margin-left: 4px;" />
+                                }
+                            </MudStack>
+                        </TabWrapperContent>
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                    </MudTabPanel>
+                }
+            </MudTabs>
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
+    private bool _isDisposing = false;
+
     MudTheme _theme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
@@ -55,6 +91,57 @@
         if (user == null)
         {
             Navigation.NavigateTo("/login");
+            return;
         }
+
+        TabManager.OnTabsChanged += OnTabsChanged;
+    }
+
+    private void OnTabsChanged()
+    {
+        if (!_isDisposing)
+        {
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnTabChanged(int newIndex)
+    {
+        TabManager.SwitchToTab(newIndex);
+    }
+
+    private async Task OnCloseTab(TabInfo tab)
+    {
+        if (tab.IsDirty)
+        {
+            bool? result = await DialogService.ShowMessageBox(
+                "Modifiche non salvate",
+                $"La tab '{tab.Title}' contiene modifiche non salvate. Chiudere comunque?",
+                yesText: "Chiudi", cancelText: "Annulla");
+
+            if (result != true) return;
+        }
+
+        TabManager.CloseTab(tab.Id);
+    }
+
+    private string GetTabIcon(string iconName)
+    {
+        return iconName.ToLower() switch
+        {
+            "home" => Icons.Material.Filled.Home,
+            "dashboard" => Icons.Material.Filled.Dashboard,
+            "car" => Icons.Material.Filled.DirectionsCar,
+            "people" => Icons.Material.Filled.People,
+            "table" => Icons.Material.Filled.TableChart,
+            "settings" => Icons.Material.Filled.Settings,
+            _ => Icons.Material.Filled.Description
+        };
+    }
+
+    public void Dispose()
+    {
+        _isDisposing = true;
+        TabManager.OnTabsChanged -= OnTabsChanged;
     }
 }
