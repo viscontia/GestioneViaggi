@@ -15,15 +15,17 @@
                           Label="Descrizione Capoluogo"
                           Variant="Variant.Outlined"
                           Immediate="true"
+                          Converter="@_uppercaseConverter"
                           Required="true"
                           RequiredError="La descrizione è obbligatoria"
                           MaxLength="50"
                           tabindex="1"
-                          Class="mb-3"
+                          Class="mb-3 uppercase-input"
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
-                          OnBlur="@(() => HandleFieldBlur(_firstField))" />
+                          OnBlur="@(() => HandleFieldBlur(_firstField))"
+                          OnKeyDown="@HandleKeyDown" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -48,6 +50,12 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    private Converter<string> _uppercaseConverter = new Converter<string>
+    {
+        SetFunc = value => value?.ToUpper(),
+        GetFunc = text => text?.ToUpper()
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -89,6 +97,14 @@
                     // Ignora errori se il dialog è stato chiuso
                 }
             }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
         }
     }
 

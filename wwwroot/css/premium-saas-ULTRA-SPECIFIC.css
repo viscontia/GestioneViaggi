@@ -580,3 +580,12 @@
 .mud-table-sort-label.mud-direction-desc {
     opacity: 1 !important;
 }
+
+/* ========================================== */
+/* 9. GLOBAL UTILITIES                       */
+/* ========================================== */
+
+/* Uppercase Input Force - Applica uppercase all'elemento input interno */
+.uppercase-input .mud-input-slot {
+    text-transform: uppercase !important;
+}

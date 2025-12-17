@@ -151,14 +151,13 @@ else
     {
         var parameters = new DialogParameters
         {
-            { "ContentText", $"Sei sicuro di voler eliminare il capoluogo '{capoluogo.Descrizione}'?" },
-            { "ButtonText", "Elimina" },
-            { "Color", Color.Error }
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({capoluogo.Descrizione})" }
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
 
-        var dialog = await DialogService.ShowAsync<MudMessageBox>("Conferma Eliminazione", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;
 
         if (!result!.Canceled)

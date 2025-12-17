@@ -169,6 +169,8 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
                           Label="Campo 1"
                           Variant="Variant.Outlined"
                           Immediate="true"
+                          Converter="@_uppercaseConverter"
+                          Style="text-transform: uppercase"
                           Required="true"
                           RequiredError="Campo 1 è obbligatorio"
                           MaxLength="100"
@@ -177,7 +179,8 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
-                          OnBlur="@(() => HandleFieldBlur(_firstField))" />
+                          OnBlur="@(() => HandleFieldBlur(_firstField))"
+                          OnKeyDown="@HandleKeyDown" />
 
             <!-- SECONDO CAMPO OPZIONALE: senza asterisco -->
             <MudTextField @bind-Value="Entity.Campo2"
@@ -215,6 +218,13 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
     [Parameter]
     public bool IsEditMode { get; set; }
 
+    // Converter per forzare l'uppercase
+    private Converter<string> _uppercaseConverter = new Converter<string>
+    {
+        SetFunc = value => value?.ToUpper(),
+        GetFunc = text => text?.ToUpper()
+    };
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _firstField != null)
@@ -247,6 +257,14 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
                     // Ignora errori se il dialog è stato chiuso
                 }
             }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
         }
     }
 
@@ -295,12 +313,16 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 4. **Label opzionali**: Aggiungere "(opzionale)" nel label per campi non obbligatori
 5. **Adornment**: Usare `AdornmentText="*"` con `AdornmentColor="Color.Error"`
 6. **Focus Trap Intelligente**: Implementare `OnBlur` con delay per permettere il funzionamento del pulsante "Annulla" pur mantenendo il focus sul campo invalido
+7. **Uppercase Enforced**: Usare `Converter` e `Class="uppercase-input"` per forzare l'uppercase in input e visualizzazione.
+   **NOTA:** Non applicare a campi Password o email case-sensitive.
 
 **Esempio campo obbligatorio:**
 ```razor
 <MudTextField @bind-Value="Entity.Nome"
               Label="Nome"
               Immediate="true"
+              Converter="@_uppercaseConverter"
+              Class="uppercase-input"
               Required="true"
               RequiredError="Il nome è obbligatorio"
               Adornment="Adornment.End"
@@ -476,14 +498,13 @@ else
     {
         var parameters = new DialogParameters
         {
-            { "ContentText", $"Sei sicuro di voler eliminare '{item.Campo1}'?" },
-            { "ButtonText", "Elimina" },
-            { "Color", Color.Error }
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Campo1})" }
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
 
-        var dialog = await DialogService.ShowAsync<MudMessageBox>("Conferma Eliminazione", parameters, options);
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;
 
         if (!result!.Canceled)
