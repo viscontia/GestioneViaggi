@@ -14,7 +14,7 @@
                     }
                     else
                     {
-                        <RedirectToLogin />
+                        <p>Redirect al login...</p>
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
@@ -24,13 +24,5 @@
 </CascadingAuthenticationState>
 
 @code {
-    private class RedirectToLogin : ComponentBase
-    {
-        [Inject] private NavigationManager Navigation { get; set; } = default!;
-
-        protected override void OnInitialized()
-        {
-            Navigation.NavigateTo("/login", true);
-        }
-    }
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 }
