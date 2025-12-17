@@ -1,0 +1,53 @@
+@using GestioneViaggi.Services.Database
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Authentication
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+
+@inject IDatabaseConnectionManager DatabaseConnectionManager
+@inject ISessionManager SessionManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<AppInitializer> Logger
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation("Starting application initialization...");
+
+            await DatabaseConnectionManager.InitializePoolAsync();
+            Logger.LogInformation("Database connection pool initialized successfully");
+
+            await SessionManager.InitializeAsync();
+            Logger.LogInformation("Session manager initialized successfully");
+
+            if (AuthStateProvider is CustomAuthStateProvider customProvider)
+            {
+                customProvider.NotifyAuthenticationStateChanged();
+                Logger.LogInformation("Authentication state notified successfully");
+            }
+
+            Logger.LogInformation("Application initialization completed successfully");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Critical error during application initialization");
+            throw;
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        try
+        {
+            await DatabaseConnectionManager.DisposePoolAsync();
+            Logger.LogInformation("Database connection pool disposed");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error disposing database connection pool");
+        }
+    }
+}

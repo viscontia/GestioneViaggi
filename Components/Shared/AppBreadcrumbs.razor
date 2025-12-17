@@ -1,0 +1,70 @@
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<MudBreadcrumbs Items="_items" Separator=">">
+    <ItemTemplate Context="item">
+        <MudLink Href="@item.Href" Disabled="@item.Disabled" Color="Color.Inherit">
+            @if (!string.IsNullOrEmpty(item.Icon))
+            {
+                <MudIcon Icon="@item.Icon" Size="Size.Small" Class="mr-1" Style="vertical-align: middle;" />
+            }
+            <span style="vertical-align: middle;">@item.Text</span>
+        </MudLink>
+    </ItemTemplate>
+</MudBreadcrumbs>
+
+@code {
+    private List<BreadcrumbItem> _items = new();
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        UpdateBreadcrumbs();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        UpdateBreadcrumbs();
+        StateHasChanged();
+    }
+
+    private void UpdateBreadcrumbs()
+    {
+        var uri = new Uri(NavigationManager.Uri);
+        var path = uri.AbsolutePath.ToLower().Trim('/');
+
+        _items = new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem("Home", href: "/", disabled: path == "", icon: Icons.Material.Filled.Home)
+        };
+
+        if (!string.IsNullOrEmpty(path))
+        {
+            switch (path)
+            {
+                case "demogrid":
+                    _items.Add(new BreadcrumbItem("Nazioni", href: null, disabled: true, icon: Icons.Material.Filled.TableView));
+                    break;
+
+                case "counter":
+                    _items.Add(new BreadcrumbItem("Counter", href: null, disabled: true, icon: Icons.Material.Filled.Add));
+                    break;
+
+                case "weather":
+                    _items.Add(new BreadcrumbItem("Weather", href: null, disabled: true, icon: Icons.Material.Filled.Cloud));
+                    break;
+
+                default:
+                    // Pagina non riconosciuta
+                    _items.Add(new BreadcrumbItem(path, href: null, disabled: true, icon: Icons.Material.Filled.ChevronRight));
+                    break;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

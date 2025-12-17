@@ -1,8 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
-using MudBlazor.Services; // <--- Se manca questo using, non compila
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Components.Authorization;
+using MudBlazor.Services;
 using MudBlazor;
 using GestioneViaggi.Components;
 using GestioneViaggi.Components.Shared;
+using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Authentication;
+using GestioneViaggi.Services.Session;
 
 namespace GestioneViaggi;
 
@@ -19,13 +24,33 @@ public static class MauiProgram
             });
 
         // ==========================================================
-        // QUESTA È LA RIGA CHE FA FUNZIONARE LA GRIGLIA
-        // Se questa manca, appena apri la pagina esplode tutto.
+        // MUDBLAZOR
         // ==========================================================
         builder.Services.AddMudServices();
-        
+
         // REGISTRAZIONE LOCALIZZAZIONE ITALIANA (GRID, PAGER, ECC.)
         builder.Services.AddTransient<MudLocalizer, ItalianMudLocalizer>();
+
+        // ==========================================================
+        // AUTHENTICATION & DATABASE
+        // ==========================================================
+
+        var inMemorySettings = new Dictionary<string, string>
+        {
+            {"ConnectionStrings:PostgreSQL", "Host=127.0.0.1;Port=5432;Database=gestione_viaggi;Username=postgres;Password=postgres;Pooling=true;MinPoolSize=1;MaxPoolSize=20;Timeout=30;CommandTimeout=30;"}
+        };
+        builder.Configuration.AddInMemoryCollection(inMemorySettings!);
+
+        builder.Services.AddSingleton<IDatabaseConnectionManager, DatabaseConnectionManager>();
+        builder.Services.AddSingleton<IDatabaseService, PostgreSqlService>();
+
+        builder.Services.AddSingleton<ISecureStorageProvider, FileStorageProvider>();
+
+        builder.Services.AddSingleton<ISessionManager, SessionManager>();
+
+        builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+        builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+        builder.Services.AddAuthorizationCore();
 
         builder.Services.AddMauiBlazorWebView();
 

@@ -1,0 +1,352 @@
+@page "/login"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using Microsoft.JSInterop
+@inject IAuthenticationService AuthService
+@inject ISessionManager SessionManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@layout LoginLayout
+
+<div class="login-container">
+    <MudPaper Class="login-card" Elevation="3">
+
+        <!-- Logo e Titolo -->
+        <div class="login-header">
+            <MudIcon Icon="@Icons.Material.Filled.Hiking" Size="Size.Large" Color="Color.Primary" Class="login-logo" />
+            <MudText Typo="Typo.h4" Class="login-title">Gestione Viaggi</MudText>
+            <MudText Typo="Typo.body2" Class="login-subtitle">Accedi al tuo account</MudText>
+        </div>
+
+        <!-- Alert Errore Validazione -->
+        @if (!string.IsNullOrEmpty(_validationErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+                @_validationErrorMessage
+            </MudAlert>
+        }
+
+        <!-- Alert Errore Autenticazione -->
+        @if (!string.IsNullOrEmpty(_authErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="false" Class="mb-4" Variant="Variant.Filled">
+                @if (_authErrorMessage.Contains("\n"))
+                {
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; font-family: monospace; margin: 0;">@_authErrorMessage</pre>
+                }
+                else
+                {
+                    @_authErrorMessage
+                }
+            </MudAlert>
+        }
+
+        <!-- Form Login -->
+        <EditForm Model="@_loginRequest" OnSubmit="HandleFormSubmit">
+            <DataAnnotationsValidator />
+
+            <MudStack Spacing="3">
+
+                <!-- Email/Username -->
+                <MudTextField
+                    @ref="_emailField"
+                    @bind-Value="_loginRequest.Email"
+                    Label="Email"
+                    Variant="Variant.Outlined"
+                    Adornment="Adornment.Start"
+                    AdornmentIcon="@Icons.Material.Filled.Email"
+                    HelperText="Es: user@example.com"
+                    Disabled="@_isLoading"
+                    Class="login-input"
+                    tabindex="1"
+                    aria-label="Inserisci il tuo indirizzo email"
+                    @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Email))" />
+
+                <!-- Password -->
+                <MudTextField
+                    @ref="_passwordField"
+                    @bind-Value="_loginRequest.Password"
+                    Label="Password"
+                    Variant="Variant.Outlined"
+                    InputType="@_passwordInputType"
+                    Adornment="Adornment.End"
+                    AdornmentIcon="@_passwordIcon"
+                    OnAdornmentClick="TogglePasswordVisibility"
+                    AdornmentAriaLabel="Mostra Password"
+                    HelperText="Almeno 8 caratteri, una maiuscola e un carattere speciale"
+                    Disabled="@_isLoading"
+                    Class="login-input"
+                    tabindex="2"
+                    aria-label="Inserisci una password sicura"
+                    @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Password))" />
+
+                <!-- Ricordami -->
+                <MudCheckBox
+                    @bind-Value="_loginRequest.RememberMe"
+                    Label="Ricordami"
+                    Color="Color.Primary"
+                    Disabled="@_isLoading"
+                    tabindex="3"
+                    aria-label="Seleziona per rimanere connesso"
+                    @onkeydown="HandleCheckboxKeyDown" />
+
+                <!-- Bottone Login -->
+                <MudButton
+                    ButtonType="ButtonType.Submit"
+                    Variant="Variant.Filled"
+                    Color="Color.Primary"
+                    Size="Size.Large"
+                    FullWidth="true"
+                    Disabled="@_isLoading"
+                    Class="login-button"
+                    tabindex="4"
+                    aria-label="Fai clic per accedere al tuo account">
+                    @if (_isLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Accesso in corso...</span>
+                    }
+                    else
+                    {
+                        <span>Accedi</span>
+                    }
+                </MudButton>
+
+                <!-- Link Password Dimenticata -->
+                <MudLink Href="#" Underline="Underline.Hover" Color="Color.Primary" Class="forgot-password-link" Disabled="true">
+                    Password dimenticata?
+                </MudLink>
+
+            </MudStack>
+        </EditForm>
+
+    </MudPaper>
+</div>
+
+@code {
+    enum KeyDownTarget { Email, Password }
+
+    private LoginRequest _loginRequest = new();
+    private bool _isLoading = false;
+    private string? _validationErrorMessage;
+    private string? _authErrorMessage;
+    private bool _passwordVisible = false;
+    private MudTextField<string>? _emailField;
+    private MudTextField<string>? _passwordField;
+
+    private InputType _passwordInputType => _passwordVisible ? InputType.Text : InputType.Password;
+    private string _passwordIcon => _passwordVisible ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var lastEmail = await SessionManager.GetLastLoginEmailAsync();
+                if (!string.IsNullOrEmpty(lastEmail))
+                {
+                    _loginRequest.Email = lastEmail;
+                    StateHasChanged();
+                }
+
+                await JS.InvokeVoidAsync("loginFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up tab navigation: {ex.Message}");
+            }
+            finally
+            {
+                if (_emailField != null)
+                {
+                    await _emailField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        _passwordVisible = !_passwordVisible;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e, KeyDownTarget target)
+    {
+        if (e.Key == "Enter" && !_isLoading)
+        {
+            if (!ValidateForm())
+            {
+                StateHasChanged();
+                return;
+            }
+            await HandleLogin();
+        }
+    }
+
+    private async Task HandleCheckboxKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_isLoading)
+        {
+            if (!ValidateForm())
+            {
+                StateHasChanged();
+                return;
+            }
+            await HandleLogin();
+        }
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        if (!ValidateForm())
+        {
+            StateHasChanged();
+            return;
+        }
+        await HandleLogin();
+    }
+
+    private bool ValidateForm()
+    {
+        _validationErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_loginRequest.Email))
+        {
+            _validationErrorMessage = "L'email è obbligatoria";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        if (!IsValidEmail(_loginRequest.Email))
+        {
+            _validationErrorMessage = "L'email non è in formato valido";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(_loginRequest.Password))
+        {
+            _validationErrorMessage = "La password è obbligatoria";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        if (_loginRequest.Password.Length < 8)
+        {
+            _validationErrorMessage = "La password deve contenere almeno 8 caratteri";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        if (!HasUpperCase(_loginRequest.Password))
+        {
+            _validationErrorMessage = "La password deve contenere almeno una maiuscola";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        if (!HasSpecialCharacter(_loginRequest.Password))
+        {
+            _validationErrorMessage = "La password deve contenere almeno un carattere speciale";
+            FocusFirstInvalidField();
+            return false;
+        }
+
+        return true;
+    }
+
+    private async void FocusFirstInvalidField()
+    {
+        if (string.IsNullOrWhiteSpace(_loginRequest.Email) || !IsValidEmail(_loginRequest.Email))
+        {
+            if (_emailField != null)
+            {
+                await _emailField.FocusAsync();
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(_loginRequest.Password) || 
+                 _loginRequest.Password.Length < 8 || 
+                 !HasUpperCase(_loginRequest.Password) || 
+                 !HasSpecialCharacter(_loginRequest.Password))
+        {
+            if (_passwordField != null)
+            {
+                await _passwordField.FocusAsync();
+            }
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool HasUpperCase(string text)
+    {
+        return text.Any(char.IsUpper);
+    }
+
+    private bool HasSpecialCharacter(string text)
+    {
+        var specialChars = "!@#$%^&*()_+-=[]{};\':\"\\|,.<>/?";
+        return text.Any(c => specialChars.Contains(c));
+    }
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _authErrorMessage = null;
+        _validationErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var isDbConnectable = await AuthService.IsDbConnectableAsync();
+            if (!isDbConnectable)
+            {
+                _authErrorMessage = "Data Base non raggiungibile: rivolgersi all'assistenza tecnica.";
+                _isLoading = false;
+                StateHasChanged();
+                return;
+            }
+
+            var response = await AuthService.LoginAsync(_loginRequest);
+
+            if (response.Success && response.User != null)
+            {
+                if (response.User.IsSuperAdmin)
+                {
+                    Navigation.NavigateTo("/dashboard-superadmin", true);
+                }
+                else
+                {
+                    Navigation.NavigateTo("/dashboard-admin", true);
+                }
+            }
+            else
+            {
+                _authErrorMessage = response.Error ?? "Errore durante il login";
+            }
+        }
+        catch (Exception ex)
+        {
+            _authErrorMessage = "Data Base non raggiungibile: rivolgersi all'assistenza tecnica.";
+            Console.WriteLine($"Login error: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

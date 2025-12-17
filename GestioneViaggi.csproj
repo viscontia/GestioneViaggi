@@ -51,7 +51,7 @@
         <MauiFont Include="Resources\Fonts\*" />
 
         <!-- Raw Assets -->
-        <MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+        <MauiAsset Include="Resources\Raw\**" LogicalName="%(Filename)%(Extension)" />
     </ItemGroup>
 
     <ItemGroup>
@@ -60,6 +60,12 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
         <PackageReference Include="MudBlazor" Version="8.15.0" />
+
+        <!-- Database PostgreSQL -->
+        <PackageReference Include="Npgsql" Version="8.0.5" />
+
+        <!-- Authentication -->
+        <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.0" />
     </ItemGroup>
 
     <ItemGroup>

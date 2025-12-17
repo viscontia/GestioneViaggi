@@ -1,0 +1,112 @@
+@page "/dashboard-admin"
+@using GestioneViaggi.Services.Authentication
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="4">
+
+        <!-- Header -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.Dashboard" Class="mr-2" />
+                        Dashboard Aziendale
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Benvenuto, @_currentUser?.FullName
+                        @if (_currentUser?.AziendaId != null)
+                        {
+                            <span> - Azienda ID: @_currentUser.AziendaId</span>
+                        }
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="HandleLogout">
+                    Esci
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Stats Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large" Color="Color.Primary" />
+                        <MudText Typo="Typo.h4">8</MudText>
+                        <MudText Typo="Typo.body2">Viaggi Attivi</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Success" />
+                        <MudText Typo="Typo.h4">24</MudText>
+                        <MudText Typo="Typo.body2">Partecipanti</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Large" Color="Color.Info" />
+                        <MudText Typo="Typo.h4">12</MudText>
+                        <MudText Typo="Typo.body2">Destinazioni</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Quick Actions -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    Nuovo Viaggio
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
+                    Gestisci Partecipanti
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.TableView" OnClick="@(() => Navigation.NavigateTo("/demogrid"))">
+                    Visualizza Nazioni
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Recent Activity -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Attività Recente</MudText>
+            <MudList T="string">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    <MudText>Viaggio "Safari Kenya" completato - 2 ore fa</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Edit" IconColor="Color.Info">
+                    <MudText>Modificato itinerario "Islanda 2025" - 5 ore fa</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" IconColor="Color.Primary">
+                    <MudText>Nuovo partecipante aggiunto a "Dolomiti Adventure" - 1 giorno fa</MudText>
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+
+    </MudStack>
+</MudContainer>
+
+@code {
+    private Models.UserInfo? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await AuthService.GetCurrentUserAsync();
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

@@ -1,0 +1,106 @@
+@page "/dashboard-superadmin"
+@using GestioneViaggi.Services.Authentication
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "superadmin")]
+@inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudStack Spacing="4">
+
+        <!-- Header -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <div>
+                    <MudText Typo="Typo.h4" Class="mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Class="mr-2" />
+                        Dashboard Super Admin
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Benvenuto, @_currentUser?.FullName - Accesso globale a tutte le aziende
+                    </MudText>
+                </div>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="HandleLogout">
+                    Esci
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Stats Cards -->
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Primary" />
+                        <MudText Typo="Typo.h4">12</MudText>
+                        <MudText Typo="Typo.body2">Aziende Totali</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Success" />
+                        <MudText Typo="Typo.h4">48</MudText>
+                        <MudText Typo="Typo.body2">Utenti Attivi</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large" Color="Color.Info" />
+                        <MudText Typo="Typo.h4">156</MudText>
+                        <MudText Typo="Typo.body2">Viaggi Totali</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Color="Color.Warning" />
+                        <MudText Typo="Typo.h4">+24%</MudText>
+                        <MudText Typo="Typo.body2">Crescita Mensile</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Quick Actions -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Business">
+                    Gestisci Aziende
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
+                    Gestisci Utenti
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Settings">
+                    Configurazione Sistema
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Info Note -->
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            Hai accesso completo a tutte le funzionalità e dati del sistema. Usa i permessi di SuperAdmin con responsabilità.
+        </MudAlert>
+
+    </MudStack>
+</MudContainer>
+
+@code {
+    private Models.UserInfo? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await AuthService.GetCurrentUserAsync();
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

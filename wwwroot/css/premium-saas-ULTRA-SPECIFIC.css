@@ -285,7 +285,70 @@
 }
 
 /* ========================================== */
-/* 5. STATUS BADGES                          */
+/* 5. LOGIN PAGE                             */
+/* ========================================== */
+
+.login-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #F7F8FA 0%, #E5E7EB 100%);
+    padding: 20px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-card {
+    padding: 40px 32px !important;
+    border-radius: 12px !important;
+    background: #FFFFFF !important;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.login-logo {
+    margin-bottom: 16px;
+}
+
+.login-title {
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin-bottom: 8px !important;
+}
+
+.login-subtitle {
+    color: #6B7280 !important;
+}
+
+.login-input {
+    margin-bottom: 0 !important;
+}
+
+.login-button {
+    margin-top: 8px !important;
+    height: 48px !important;
+    font-size: 15px !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+.forgot-password-link {
+    text-align: center;
+    display: block;
+    font-size: 14px !important;
+    margin-top: 8px !important;
+}
+
+/* ========================================== */
+/* 6. STATUS BADGES                          */
 /* ========================================== */
 
 .status-badge {

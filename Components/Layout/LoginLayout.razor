@@ -1,0 +1,30 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="login-layout">
+    @Body
+</div>
+
+@code {
+    MudTheme _theme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#111827",
+            Secondary = "#6B7280",
+            Success = "#10B981",
+            Error = "#EF4444",
+            Warning = "#F59E0B",
+            Info = "#0EA5E9",
+            Background = "#F7F8FA",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#FFFFFF",
+            AppbarText = "#111827",
+            TextPrimary = "#111827",
+            TextSecondary = "#6B7280",
+        }
+    };
+}
