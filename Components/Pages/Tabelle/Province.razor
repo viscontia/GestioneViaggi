@@ -25,6 +25,10 @@ else
                         Breakpoint="Breakpoint.None">
 
         <Columns>
+            <EnterpriseActionsColumn T="Provincia"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+
             <PropertyColumn Property="x => x.Descrizione"
                             Title="Provincia"
                             HeaderStyle="min-width: 150px;"
@@ -61,10 +65,6 @@ else
                             HeaderClass="justify-end"
                             HeaderStyle="min-width: 90px;"
                             CellStyle="min-width: 90px; text-align: right;" />
-
-            <EnterpriseActionsColumn T="Provincia"
-                                     OnEdit="@OpenEditDialog"
-                                     OnDelete="@DeleteItem" />
         </Columns>
 
         <PagerContent>

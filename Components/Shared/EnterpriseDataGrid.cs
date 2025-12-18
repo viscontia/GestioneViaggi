@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Components;
+using System;
+using System.Linq;
 using Microsoft.AspNetCore.Components.Rendering;
 using MudBlazor;
 
@@ -8,6 +10,7 @@ namespace GestioneViaggi.Components.Shared
     public class EnterpriseDataGrid<T> : MudDataGrid<T>
     {
         private string _searchString = string.Empty;
+        private bool _actionsColumnPinned;
 
         [Parameter] public string? Title { get; set; }
         [Parameter] public Func<T, string, bool>? SearchFunction { get; set; }
@@ -50,6 +53,43 @@ namespace GestioneViaggi.Components.Shared
                 StateHasChanged(); 
             }));
             builder.CloseComponent();
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+            EnsureActionsColumnPosition();
+        }
+
+        private void EnsureActionsColumnPosition()
+        {
+            if (_actionsColumnPinned) return;
+            if (RenderedColumns == null || RenderedColumns.Count == 0) return;
+
+            var actionColumns = RenderedColumns
+                .Where(c => string.Equals(c.Tag?.ToString(), "Actions", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (actionColumns.Count == 0) return;
+
+            var insertIndex = 0;
+
+            foreach (var column in actionColumns)
+            {
+                var currentIndex = RenderedColumns.IndexOf(column);
+                if (currentIndex == insertIndex)
+                {
+                    insertIndex++;
+                    continue;
+                }
+
+                RenderedColumns.RemoveAt(currentIndex);
+                RenderedColumns.Insert(insertIndex, column);
+                insertIndex++;
+            }
+
+            _actionsColumnPinned = true;
+            StateHasChanged();
         }
     }
 }

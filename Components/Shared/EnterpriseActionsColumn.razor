@@ -1,7 +1,15 @@
-@typeparam T
 @using MudBlazor
+@typeparam T
 
-<TemplateColumn T="T" Tag="@("Actions")" Sortable="false">
+<TemplateColumn T="T" 
+                Tag="@("Actions")" 
+                Sortable="false" 
+                StickyLeft="true"
+                HeaderClass="sticky-actions-column" 
+                CellClass="sticky-actions-column">
+    <HeaderTemplate>
+        <MudText Typo="Typo.caption" Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni</MudText>
+    </HeaderTemplate>
     <CellTemplate Context="cellContext">
         <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
             <MudTooltip Text="Modifica">

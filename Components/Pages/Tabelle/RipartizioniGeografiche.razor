@@ -34,11 +34,11 @@ else
         </ToolBarContent>
 
         <Columns>
-            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
-
             <EnterpriseActionsColumn T="RipartizioneGeografica"
                                      OnEdit="@OpenEditDialog"
                                      OnDelete="@DeleteItem" />
+
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
         </Columns>
 
     </EnterpriseDataGrid>
