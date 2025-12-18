@@ -32,6 +32,30 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 *   **Funzionalità**: Wrapper di `MudDataGridPager` con testi pre-localizzati in Italiano ("Righe per pagina", record count).
 *   **Utilizzo**: Da inserire nel `PagerContent` della griglia.
 
+### RegioneSelect
+Componente dropdown riutilizzabile per la selezione di regioni (`Components/Shared/RegioneSelect.razor`).
+*   **Funzionalità**:
+    *   Carica automaticamente tutte le regioni da `ana_geo_regioni_ita` ordinate per descrizione (ASC).
+    *   Supporta binding bidirezionale con `@bind-SelectedRegioneId`.
+    *   Configurabile: Label, Required, RequiredError, Disabled, TabIndex, Class.
+    *   Mostra asterisco rosso se Required=true.
+*   **Parametri**:
+    *   `SelectedRegioneId` (int?) - ID regione selezionata (binding)
+    *   `Label` (string) - Etichetta campo (default: "Regione")
+    *   `Required` (bool) - Campo obbligatorio (default: false)
+    *   `RequiredError` (string) - Messaggio errore (default: "La regione è obbligatoria")
+    *   `Disabled` (bool) - Campo disabilitato (default: false)
+    *   `Class` (string) - Classi CSS aggiuntive (default: "mb-3")
+    *   `TabIndex` (int) - Ordine TAB navigation (default: 0)
+*   **Utilizzo**:
+    ```razor
+    <RegioneSelect @bind-SelectedRegioneId="@Entity.RegioneIdFk"
+                   Required="true"
+                   RequiredError="La regione è obbligatoria"
+                   tabindex="3" />
+    ```
+*   **Dipendenze**: Richiede `RegioneService` registrato in `MauiProgram.cs`.
+
 ## Stili CSS Avanzati
 Gli stili sono organizzati in file CSS specifici in `wwwroot/css/components/`.
 

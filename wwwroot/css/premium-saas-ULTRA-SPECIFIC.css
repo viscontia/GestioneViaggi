@@ -589,3 +589,17 @@
 .uppercase-input .mud-input-slot {
     text-transform: uppercase !important;
 }
+
+/* ========================================== */
+/* 10. DATAGRID COLUMN HEADER ALIGNMENT  */
+/* ========================================== */
+
+/* Allinea a destra le intestazioni delle colonne numeriche */
+.mud-table-head .mud-table-cell.justify-end .mud-table-sort-label {
+    justify-content: flex-end !important;
+}
+
+/* Centra le intestazioni */
+.mud-table-head .mud-table-cell.justify-center .mud-table-sort-label {
+    justify-content: center !important;
+}

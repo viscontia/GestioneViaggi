@@ -1,0 +1,193 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Provincia" : "Nuova Provincia")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField @ref="_firstField"
+                          Value="@Entity.Descrizione"
+                          ValueChanged="@((string value) => HandleDescrizioneChanged(value))"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione Provincia"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="100"
+                          tabindex="1"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_firstField))"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <MudTextField @ref="_siglaField"
+                          Value="@Entity.Sigla"
+                          ValueChanged="@((string value) => HandleSiglaChanged(value))"
+                          For="@(() => Entity.Sigla)"
+                          Label="Sigla Provincia"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La sigla è obbligatoria"
+                          MaxLength="2"
+                          tabindex="2"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_siglaField))"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <RegioneSelect SelectedRegioneId="@Entity.RegioneIdFk"
+                           SelectedRegioneIdChanged="@((int? value) => Entity.RegioneIdFk = value ?? 0)"
+                           Required="true"
+                           RequiredError="La regione è obbligatoria"
+                           TabIndex="3"
+                           Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.Superficie"
+                             For="@(() => Entity.Superficie)"
+                             Label="Superficie (kmq) - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N2"
+                             tabindex="4"
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.Residenti"
+                             For="@(() => Entity.Residenti)"
+                             Label="Residenti - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             tabindex="5"
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.NumeroComuni"
+                             For="@(() => Entity.NumeroComuni)"
+                             Label="Numero Comuni - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             tabindex="6"
+                             Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+    private MudTextField<string>? _siglaField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Provincia Entity { get; set; } = new Provincia();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _firstField != null)
+        {
+            await Task.Delay(100);
+            await InvokeAsync(async () =>
+            {
+                if (_firstField != null)
+                {
+                    await _firstField.FocusAsync();
+                }
+            });
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void HandleDescrizioneChanged(string value)
+    {
+        Entity.Descrizione = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleSiglaChanged(string value)
+    {
+        Entity.Sigla = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleFieldBlur(MudTextField<string>? field)
+    {
+        if (field != null)
+        {
+            await field.Validate();
+            if (field.Error)
+            {
+                await Task.Delay(150);
+                try
+                {
+                    await field.FocusAsync();
+                }
+                catch
+                {
+                    // Ignora errori se il dialog è stato chiuso
+                }
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                // Focus sul primo campo in errore
+                if (_firstField?.Error == true)
+                {
+                    await _firstField.FocusAsync();
+                }
+                else if (_siglaField?.Error == true)
+                {
+                    await _siglaField.FocusAsync();
+                }
+            }
+        }
+    }
+}

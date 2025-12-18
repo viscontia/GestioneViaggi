@@ -1,17 +1,220 @@
 @page "/tabelle/province"
 @using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject ProvinciaService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @attribute [Authorize]
 
-<MudText Typo="Typo.h4" Class="mb-4">Gestione Province</MudText>
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Provincia"
+                        Items="@_items"
+                        Title="Gestione Province"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem"
+                        Breakpoint="Breakpoint.None">
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.body1">
-            Placeholder per la gestione delle Province.
-        </MudText>
-    </MudCardContent>
-</MudCard>
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione"
+                            Title="Provincia"
+                            HeaderStyle="min-width: 150px;"
+                            CellStyle="min-width: 150px;" />
+
+            <PropertyColumn Property="x => x.Sigla"
+                            Title="Sigla"
+                            HeaderClass="justify-center"
+                            HeaderStyle="min-width: 80px;"
+                            CellStyle="min-width: 80px; text-align: center;" />
+
+            <PropertyColumn Property="x => x.RegioneDescrizione"
+                            Title="Regione"
+                            HeaderStyle="min-width: 130px;"
+                            CellStyle="min-width: 130px;" />
+
+            <PropertyColumn Property="x => x.Superficie"
+                            Title="Superf. (kmq)"
+                            Format="N2"
+                            HeaderClass="justify-end"
+                            HeaderStyle="min-width: 120px;"
+                            CellStyle="min-width: 120px; text-align: right;" />
+
+            <PropertyColumn Property="x => x.Residenti"
+                            Title="Residenti"
+                            Format="N0"
+                            HeaderClass="justify-end"
+                            HeaderStyle="min-width: 110px;"
+                            CellStyle="min-width: 110px; text-align: right;" />
+
+            <PropertyColumn Property="x => x.NumeroComuni"
+                            Title="Comuni"
+                            Format="N0"
+                            HeaderClass="justify-end"
+                            HeaderStyle="min-width: 90px;"
+                            CellStyle="min-width: 90px; text-align: right;" />
+
+            <EnterpriseActionsColumn T="Provincia"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="Provincia" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+        </PagerContent>
+
+    </EnterpriseDataGrid>
+}
 
 @code {
-    // Implementazione futura
+    private List<Provincia> _items = new();
+    private Provincia? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(Provincia item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Sigla?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.RegioneDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ProvinciaDialog>
+        {
+            { x => x.Entity, new Provincia() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ProvinciaDialog>("Nuova Provincia", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Provincia newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Add("Provincia creata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Provincia item)
+    {
+        var parameters = new DialogParameters<ProvinciaDialog>
+        {
+            { x => x.Entity, new Provincia
+                {
+                    Id = item.Id,
+                    Descrizione = item.Descrizione,
+                    Sigla = item.Sigla,
+                    Superficie = item.Superficie,
+                    Residenti = item.Residenti,
+                    NumeroComuni = item.NumeroComuni,
+                    RegioneIdFk = item.RegioneIdFk
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ProvinciaDialog>("Modifica Provincia", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Provincia updatedItem)
+        {
+            try
+            {
+                await Service.UpdateAsync(updatedItem);
+                await LoadDataAsync();
+                Snackbar.Add("Provincia aggiornata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(Provincia item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Provincia eliminata con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare la provincia", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 }

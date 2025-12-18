@@ -350,6 +350,153 @@ private void HandleNomeChanged(string value)
               Label="Note (opzionale)" />
 ```
 
+**🔢 Campi Numerici - Formattazione Italiana con Separatore Migliaia:**
+
+**REGOLA OBBLIGATORIA**: Tutti i campi numerici (int, decimal) devono essere visualizzati con il separatore delle migliaia in formato italiano (punto come separatore migliaia, virgola come separatore decimali).
+
+1. **In Input (Dialog)**: Usare `MudNumericField` con `Culture` italiano
+2. **In Grid (Visualizzazione)**: Usare `PropertyColumn` con `Format` o `CellTemplate` per formattazione custom
+
+**Esempio campo numerico in Dialog:**
+```razor
+<MudNumericField @bind-Value="Entity.Residenti"
+                 For="@(() => Entity.Residenti)"
+                 Label="Residenti - opzionale"
+                 Variant="Variant.Outlined"
+                 Min="0"
+                 Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                 Format="N0"
+                 tabindex="5"
+                 Class="mb-3" />
+
+<MudNumericField @bind-Value="Entity.Superficie"
+                 For="@(() => Entity.Superficie)"
+                 Label="Superficie (kmq) - opzionale"
+                 Variant="Variant.Outlined"
+                 Min="0"
+                 Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                 Format="N2"
+                 tabindex="4"
+                 Class="mb-3" />
+```
+
+**Formati disponibili:**
+- `Format="N0"` - Numeri interi con separatore migliaia (es: 1.234.567)
+- `Format="N2"` - Numeri decimali con 2 cifre (es: 1.234,56)
+- `Format="C2"` - Valuta con simbolo € (es: € 1.234,56)
+- `Format="P2"` - Percentuale (es: 12,34%)
+
+**Esempio colonna numerica in DataGrid con larghezza e allineamento:**
+```razor
+<PropertyColumn Property="x => x.Residenti"
+                Title="Residenti"
+                Format="N0">
+    <HeaderStyle>
+        min-width: 120px;
+        text-align: right;
+    </HeaderStyle>
+    <CellStyle>
+        min-width: 120px;
+        text-align: right;
+    </CellStyle>
+</PropertyColumn>
+
+<PropertyColumn Property="x => x.Superficie"
+                Title="Superficie (kmq)"
+                Format="N2">
+    <HeaderStyle>
+        min-width: 140px;
+        text-align: right;
+    </HeaderStyle>
+    <CellStyle>
+        min-width: 140px;
+        text-align: right;
+    </CellStyle>
+</PropertyColumn>
+```
+
+**🎯 Larghezze Colonne Consigliate:**
+- Colonne testo corto (Sigla, Codice): `80-100px` con `text-align: center`
+- Colonne testo medio (Nome, Descrizione): `180-200px`
+- Colonne numeriche (int): `110-120px` con `text-align: right`
+- Colonne numeriche (decimal): `130-150px` con `text-align: right`
+- **IMPORTANTE**: Usare sempre `text-align: right` per colonne numeriche
+
+**🤖 Auto-Sizing Automatico delle Colonne (CONSIGLIATO):**
+
+Invece di configurare manualmente ogni colonna, usa `DataGridHelper` per calcolo automatico:
+
+**Step 1: Inizializza l'helper dopo il caricamento dati**
+```csharp
+@code {
+    private List<Provincia> _items = new();
+    private DataGridHelper<Provincia>? _gridHelper;
+
+    private async Task LoadDataAsync()
+    {
+        _items = await Service.GetAllAsync();
+
+        // Inizializza helper per auto-sizing
+        if (_items.Any())
+        {
+            _gridHelper = new DataGridHelper<Provincia>(_items, sampleSize: 50);
+        }
+    }
+}
+```
+
+**Step 2: Usa l'helper nelle colonne**
+```razor
+@using GestioneViaggi.Services.UI
+
+<Columns>
+    @if (_gridHelper != null)
+    {
+        <PropertyColumn Property="x => x.Descrizione"
+                        Title="Provincia"
+                        HeaderStyle="@_gridHelper.GetColumnStyle(nameof(Provincia.Descrizione), "Provincia")"
+                        CellStyle="@_gridHelper.GetColumnStyle(nameof(Provincia.Descrizione), "Provincia")" />
+
+        <PropertyColumn Property="x => x.Residenti"
+                        Title="Residenti"
+                        Format="N0"
+                        HeaderStyle="@_gridHelper.GetColumnStyle(nameof(Provincia.Residenti), "Residenti")"
+                        CellStyle="@_gridHelper.GetColumnStyle(nameof(Provincia.Residenti), "Residenti")" />
+    }
+</Columns>
+```
+
+**Vantaggi Auto-Sizing:**
+- ✅ **Calcolo automatico** larghezza basato sul contenuto reale
+- ✅ **Allineamento intelligente**: numeri a destra, testo corto centrato
+- ✅ **Performance**: analizza solo primi 50 record (configurabile)
+- ✅ **Responsive**: si adatta ai dati effettivi della tabella
+- ✅ **Meno codice**: elimina configurazione manuale ripetitiva
+
+**Parametri Configurabili:**
+```csharp
+_gridHelper = new DataGridHelper<T>(
+    items,
+    sampleSize: 50,     // Numero record da analizzare (default: 50)
+    minWidth: 80,       // Larghezza minima colonna (default: 80px)
+    maxWidth: 400       // Larghezza massima colonna (default: 400px)
+);
+```
+
+**Alternativa con CellTemplate per formattazione custom:**
+```razor
+<TemplateColumn Title="Residenti">
+    <CellTemplate>
+        @context.Item.Residenti?.ToString("N0", new System.Globalization.CultureInfo("it-IT"))
+    </CellTemplate>
+</TemplateColumn>
+```
+
+**⚠️ IMPORTANTE**:
+- Culture `it-IT` è OBBLIGATORIA per avere punto come separatore migliaia
+- Usare sempre `Format` o `.ToString()` con culture specificata
+- Per nullable int/decimal, usare `?.ToString()` per gestire valori null
+
 ---
 
 ## 📄 Step 4: Creare la Page Component

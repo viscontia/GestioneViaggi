@@ -1,0 +1,73 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject RegioneService RegioneService
+
+<MudSelect T="int?"
+           Value="@SelectedRegioneId"
+           ValueChanged="@SelectedRegioneIdChanged"
+           Label="@Label"
+           Variant="Variant.Outlined"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Disabled="@Disabled"
+           Class="@Class"
+           Adornment="@(Required ? Adornment.End : Adornment.None)"
+           AdornmentText="@(Required ? "*" : "")"
+           AdornmentColor="@(Required ? Color.Error : Color.Default)"
+           tabindex="@TabIndex">
+    @if (_regioni != null)
+    {
+        @foreach (var regione in _regioni)
+        {
+            <MudSelectItem T="int?" Value="@regione.Id">@regione.Descrizione</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    private List<Regione>? _regioni;
+
+    [Parameter]
+    public int? SelectedRegioneId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedRegioneIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Regione";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "La regione è obbligatoria";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public int TabIndex { get; set; } = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRegioniAsync();
+    }
+
+    private async Task LoadRegioniAsync()
+    {
+        try
+        {
+            _regioni = await RegioneService.GetAllOrderedByDescrizioneAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error - in produzione usare ILogger
+            Console.WriteLine($"Errore caricamento regioni: {ex.Message}");
+            _regioni = new List<Regione>();
+        }
+    }
+}

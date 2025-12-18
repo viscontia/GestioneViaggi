@@ -119,4 +119,22 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
     {
         return reader.GetInt32(reader.GetOrdinal(columnName));
     }
+
+    /// <summary>
+    /// Helper per leggere un int nullable dal reader
+    /// </summary>
+    protected int? ReadNullableInt(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetInt32(ordinal);
+    }
+
+    /// <summary>
+    /// Helper per leggere un decimal nullable dal reader
+    /// </summary>
+    protected decimal? ReadNullableDecimal(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
+    }
 }
