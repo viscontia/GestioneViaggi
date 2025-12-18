@@ -1,0 +1,184 @@
+@page "/tabelle/ripartizioni-geografiche"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject RipartizioneGeograficaService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize]
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="RipartizioneGeografica"
+                        Items="@_items"
+                        Title="Gestione Ripartizioni Geografiche"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog"
+                       Class="ml-2">
+                Nuovo
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+
+            <EnterpriseActionsColumn T="RipartizioneGeografica"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<RipartizioneGeografica> _items = new();
+    private RipartizioneGeografica? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento delle ripartizioni geografiche: {ex.Message}";
+        }
+    }
+
+    private bool Search(RipartizioneGeografica item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<RipartizioneGeograficaDialog>
+        {
+            { x => x.Entity, new RipartizioneGeografica() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RipartizioneGeograficaDialog>("Nuova Ripartizione Geografica", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is RipartizioneGeografica newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                _items.Add(created);
+                Snackbar.Add("Ripartizione geografica creata con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante la creazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(RipartizioneGeografica item)
+    {
+        var parameters = new DialogParameters<RipartizioneGeograficaDialog>
+        {
+            { x => x.Entity, new RipartizioneGeografica { Id = item.Id, Descrizione = item.Descrizione } },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RipartizioneGeograficaDialog>("Modifica Ripartizione Geografica", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is RipartizioneGeografica updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                var index = _items.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _items[index] = updated;
+                }
+                Snackbar.Add("Ripartizione geografica aggiornata con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'aggiornamento: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(RipartizioneGeografica item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questa ripartizione geografica? ({item.Descrizione})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Ripartizione geografica eliminata con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare la ripartizione geografica", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

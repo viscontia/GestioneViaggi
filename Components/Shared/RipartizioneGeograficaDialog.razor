@@ -4,7 +4,7 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            @(IsEditMode ? "Modifica Capoluogo" : "Nuovo Capoluogo")
+            @(IsEditMode ? "Modifica Ripartizione Geografica" : "Nuova Ripartizione Geografica")
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -13,7 +13,7 @@
                           Value="@Entity.Descrizione"
                           ValueChanged="@((string value) => HandleDescrizioneChanged(value))"
                           For="@(() => Entity.Descrizione)"
-                          Label="Descrizione Capoluogo"
+                          Label="Descrizione Ripartizione Geografica"
                           Variant="Variant.Outlined"
                           Immediate="true"
                           Required="true"
@@ -46,7 +46,7 @@
     private IMudDialogInstance? MudDialog { get; set; }
 
     [Parameter]
-    public Capoluogo Entity { get; set; } = new Capoluogo();
+    public RipartizioneGeografica Entity { get; set; } = new RipartizioneGeografica();
 
     [Parameter]
     public bool IsEditMode { get; set; }
@@ -55,8 +55,6 @@
     {
         if (firstRender && _firstField != null)
         {
-            // Delay necessario per attendere il completamento dell'animazione del dialog
-            // e il rendering completo dei componenti MudBlazor
             await Task.Delay(100);
             await InvokeAsync(async () =>
             {
@@ -86,7 +84,6 @@
             await field.Validate();
             if (field.Error)
             {
-                // Delay per permettere al click su "Annulla" di essere processato prima del focus back
                 await Task.Delay(150);
                 try
                 {
@@ -119,7 +116,6 @@
             }
             else
             {
-                // Gestione errore in conferma: Focus sul primo campo in errore
                 if (_firstField?.Error == true)
                 {
                     await _firstField.FocusAsync();

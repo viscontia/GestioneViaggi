@@ -162,20 +162,19 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form" Model="@Entity">
-            <!-- PRIMO CAMPO OBBLIGATORIO: con asterisco rosso per visibilità immediata -->
+            <!-- PRIMO CAMPO OBBLIGATORIO: con asterisco rosso e uppercase enforced -->
             <MudTextField @ref="_firstField"
-                          @bind-Value="Entity.Campo1"
+                          Value="@Entity.Campo1"
+                          ValueChanged="@HandleCampo1Changed"
                           For="@(() => Entity.Campo1)"
                           Label="Campo 1"
                           Variant="Variant.Outlined"
                           Immediate="true"
-                          Converter="@_uppercaseConverter"
-                          Style="text-transform: uppercase"
                           Required="true"
                           RequiredError="Campo 1 è obbligatorio"
                           MaxLength="100"
                           tabindex="1"
-                          Class="mb-3"
+                          Class="mb-3 uppercase-input"
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
@@ -218,13 +217,6 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
     [Parameter]
     public bool IsEditMode { get; set; }
 
-    // Converter per forzare l'uppercase
-    private Converter<string> _uppercaseConverter = new Converter<string>
-    {
-        SetFunc = value => value?.ToUpper(),
-        GetFunc = text => text?.ToUpper()
-    };
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _firstField != null)
@@ -237,6 +229,13 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
     private void Cancel()
     {
         MudDialog?.Cancel();
+    }
+
+    // ⚠️ OBBLIGATORIO: Handler per uppercase in tempo reale
+    private void HandleCampo1Changed(string value)
+    {
+        Entity.Campo1 = value?.ToUpper() ?? string.Empty;
+        StateHasChanged(); // Forza re-render per mostrare uppercase
     }
 
     private async Task HandleFieldBlur(MudTextField<string>? field)
@@ -313,22 +312,36 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 4. **Label opzionali**: Aggiungere "(opzionale)" nel label per campi non obbligatori
 5. **Adornment**: Usare `AdornmentText="*"` con `AdornmentColor="Color.Error"`
 6. **Focus Trap Intelligente**: Implementare `OnBlur` con delay per permettere il funzionamento del pulsante "Annulla" pur mantenendo il focus sul campo invalido
-7. **Uppercase Enforced**: Usare `Converter` e `Class="uppercase-input"` per forzare l'uppercase in input e visualizzazione.
-   **NOTA:** Non applicare a campi Password o email case-sensitive.
+7. **🔴 Uppercase Enforced - OBBLIGATORIO per tutti i campi di testo**:
+   - Usare `Value` / `ValueChanged` con metodo custom invece di `@bind-Value`
+   - `ValueChanged="@HandleNomeChanged"` - chiama metodo che converte e forza re-render
+   - `Immediate="true"` - applica la conversione immediatamente
+   - **AGGIUNGERE `Class="uppercase-input"`** per visualizzare in tempo reale il testo maiuscolo mentre si digita
+   - Nel @code creare metodo: `Entity.Nome = value?.ToUpper(); StateHasChanged();`
+   - Il dato viene salvato in UPPERCASE nel database PostgreSQL
+   - **ECCEZIONE**: Non applicare a campi Password o email case-sensitive
+   - ⚠️ **NON usare lambda inline o Converter**: non forzano re-render corretto
 
-**Esempio campo obbligatorio:**
+**Esempio campo obbligatorio con uppercase:**
 ```razor
-<MudTextField @bind-Value="Entity.Nome"
+<MudTextField Value="@Entity.Nome"
+              ValueChanged="@HandleNomeChanged"
               Label="Nome"
               Immediate="true"
-              Converter="@_uppercaseConverter"
-              Class="uppercase-input"
               Required="true"
               RequiredError="Il nome è obbligatorio"
+              Class="uppercase-input"
               Adornment="Adornment.End"
               AdornmentText="*"
               AdornmentColor="Color.Error"
               OnBlur="@(() => HandleFieldBlur(_firstField))" />
+
+// Nel @code:
+private void HandleNomeChanged(string value)
+{
+    Entity.Nome = value?.ToUpper() ?? string.Empty;
+    StateHasChanged(); // OBBLIGATORIO per mostrare uppercase in tempo reale
+}
 ```
 
 **Esempio campo opzionale:**
