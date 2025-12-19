@@ -603,7 +603,76 @@
 }
 
 /* ========================================== */
-/* 11. STICKY ACTIONS COLUMN                 */
+/* 11. COLUMN WIDTH OPTIMIZATION             */
+/* ========================================== */
+
+/* Classi per colonne compatte */
+.col-xs {
+    width: 60px !important;
+    max-width: 60px !important;
+    min-width: 60px !important;
+    padding: 14px 6px !important;
+}
+
+.col-sm {
+    width: 75px !important;
+    max-width: 75px !important;
+    min-width: 75px !important;
+    padding: 14px 6px !important;
+}
+
+.col-md {
+    width: 95px !important;
+    max-width: 95px !important;
+    min-width: 95px !important;
+    padding: 14px 8px !important;
+}
+
+.col-lg {
+    width: 110px !important;
+    max-width: 110px !important;
+    min-width: 110px !important;
+    padding: 14px 8px !important;
+}
+
+/* Header specifico */
+.mud-table-head .col-xs,
+.mud-table-head .col-sm,
+.mud-table-head .col-md,
+.mud-table-head .col-lg {
+    padding: 10px 6px !important;
+}
+
+/* ========================================== */
+/* 12. MAIN CONTENT CONTAINER OPTIMIZATION   */
+/* ========================================== */
+
+/* Riduce padding del container principale per dare più spazio alle DataGrid */
+.mud-main-content .mud-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+/* Riduce padding interno delle MudTabs */
+.mud-tabs .mud-tabs-panels {
+    padding: 0 !important;
+}
+
+/* Full-width DataGrid - usa tutto lo spazio disponibile con margini minimi */
+.enterprise-grid.full-width,
+.enterprise-grid-full-width {
+    margin-left: -12px !important;
+    margin-right: -12px !important;
+}
+
+.enterprise-grid.full-width .mud-table-container,
+.enterprise-grid-full-width .mud-table-container {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+/* ========================================== */
+/* 13. STICKY ACTIONS COLUMN                 */
 /* ========================================== */
 
 /* STICKY POSITIONING - Applicato a tutte le celle con classe sticky-actions-column */

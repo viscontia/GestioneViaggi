@@ -30,41 +30,37 @@ else
                                      OnDelete="@DeleteItem" />
 
             <PropertyColumn Property="x => x.Descrizione"
-                            Title="Provincia"
-                            HeaderStyle="min-width: 150px;"
-                            CellStyle="min-width: 150px;" />
+                            Title="Provincia" />
 
             <PropertyColumn Property="x => x.Sigla"
                             Title="Sigla"
-                            HeaderClass="justify-center"
-                            HeaderStyle="min-width: 80px;"
-                            CellStyle="min-width: 80px; text-align: center;" />
+                            HeaderClass="col-xs justify-center"
+                            CellClass="col-xs"
+                            CellStyle="text-align: center;" />
 
             <PropertyColumn Property="x => x.RegioneDescrizione"
-                            Title="Regione"
-                            HeaderStyle="min-width: 130px;"
-                            CellStyle="min-width: 130px;" />
+                            Title="Regione" />
 
             <PropertyColumn Property="x => x.Superficie"
                             Title="Superf. (kmq)"
                             Format="N2"
-                            HeaderClass="justify-end"
-                            HeaderStyle="min-width: 120px;"
-                            CellStyle="min-width: 120px; text-align: right;" />
+                            HeaderClass="col-lg justify-end"
+                            CellClass="col-lg"
+                            CellStyle="text-align: right;" />
 
             <PropertyColumn Property="x => x.Residenti"
                             Title="Residenti"
                             Format="N0"
-                            HeaderClass="justify-end"
-                            HeaderStyle="min-width: 110px;"
-                            CellStyle="min-width: 110px; text-align: right;" />
+                            HeaderClass="col-md justify-end"
+                            CellClass="col-md"
+                            CellStyle="text-align: right;" />
 
             <PropertyColumn Property="x => x.NumeroComuni"
                             Title="Comuni"
                             Format="N0"
-                            HeaderClass="justify-end"
-                            HeaderStyle="min-width: 90px;"
-                            CellStyle="min-width: 90px; text-align: right;" />
+                            HeaderClass="col-sm justify-end"
+                            CellClass="col-sm"
+                            CellStyle="text-align: right;" />
         </Columns>
 
         <PagerContent>
