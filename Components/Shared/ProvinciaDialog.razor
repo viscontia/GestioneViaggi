@@ -1,5 +1,9 @@
 @using GestioneViaggi.Models
 @using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inherits BaseCrudDialog<Provincia>
+@implements IDisposable
 
 <MudDialog>
     <TitleContent>
@@ -19,8 +23,8 @@
                           Required="true"
                           RequiredError="La descrizione è obbligatoria"
                           MaxLength="100"
-                          tabindex="1"
                           Class="mb-3 uppercase-input"
+                          HelperText="Inserisci la denominazione ufficiale della provincia."
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
@@ -37,8 +41,8 @@
                           Required="true"
                           RequiredError="La sigla è obbligatoria"
                           MaxLength="2"
-                          tabindex="2"
                           Class="mb-3 uppercase-input"
+                          HelperText="Indica la sigla a due lettere della provincia (es. MI)."
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
@@ -49,7 +53,7 @@
                            SelectedRegioneIdChanged="@((int? value) => Entity.RegioneIdFk = value ?? 0)"
                            Required="true"
                            RequiredError="La regione è obbligatoria"
-                           TabIndex="3"
+                           HelperText="Seleziona la regione amministrativa di riferimento."
                            Class="mb-3" />
 
             <MudNumericField @bind-Value="Entity.Superficie"
@@ -59,7 +63,7 @@
                              Min="0"
                              Culture="@(new System.Globalization.CultureInfo("it-IT"))"
                              Format="N2"
-                             tabindex="4"
+                             HelperText="Specifica la superficie totale in chilometri quadrati (opzionale)."
                              Class="mb-3" />
 
             <MudNumericField @bind-Value="Entity.Residenti"
@@ -69,7 +73,7 @@
                              Min="0"
                              Culture="@(new System.Globalization.CultureInfo("it-IT"))"
                              Format="N0"
-                             tabindex="5"
+                             HelperText="Inserisci il numero stimato di residenti (opzionale)."
                              Class="mb-3" />
 
             <MudNumericField @bind-Value="Entity.NumeroComuni"
@@ -79,12 +83,12 @@
                              Min="0"
                              Culture="@(new System.Globalization.CultureInfo("it-IT"))"
                              Format="N0"
-                             tabindex="6"
+                             HelperText="Indica il numero totale di comuni compresi nella provincia (opzionale)."
                              Class="mb-3" />
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+        <MudButton OnClick="CancelDialog" Variant="Variant.Text" Color="Color.Default">
             Annulla
         </MudButton>
         <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
@@ -98,9 +102,6 @@
     private MudTextField<string>? _firstField;
     private MudTextField<string>? _siglaField;
 
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-
     [Parameter]
     public Provincia Entity { get; set; } = new Provincia();
 
@@ -109,22 +110,37 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _firstField != null)
+        if (firstRender)
         {
-            await Task.Delay(100);
-            await InvokeAsync(async () =>
+            try
             {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+                // Fallback: focus manuale
                 if (_firstField != null)
                 {
+                    await Task.Delay(150);
                     await _firstField.FocusAsync();
                 }
-            });
+            }
         }
     }
 
-    private void Cancel()
+    public void Dispose()
     {
-        MudDialog?.Cancel();
+        // Cleanup JavaScript handlers quando il dialog viene chiuso
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch
+        {
+            // Ignora errori su cleanup
+        }
     }
 
     private void HandleDescrizioneChanged(string value)
@@ -174,7 +190,7 @@
             await _form.Validate();
             if (_form.IsValid)
             {
-                MudDialog?.Close(DialogResult.Ok(Entity));
+                CloseDialog(DialogResult.Ok(Entity));
             }
             else
             {

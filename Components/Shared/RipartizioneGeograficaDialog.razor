@@ -1,5 +1,9 @@
 @using GestioneViaggi.Models
 @using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inherits BaseCrudDialog<RipartizioneGeografica>
+@implements IDisposable
 
 <MudDialog>
     <TitleContent>
@@ -19,8 +23,8 @@
                           Required="true"
                           RequiredError="La descrizione è obbligatoria"
                           MaxLength="50"
-                          tabindex="1"
                           Class="mb-3 uppercase-input"
+                          HelperText="Descrivi la ripartizione geografica secondo la nomenclatura ufficiale."
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error"
@@ -29,7 +33,7 @@
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+        <MudButton OnClick="CancelDialog" Variant="Variant.Text" Color="Color.Default">
             Annulla
         </MudButton>
         <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
@@ -42,9 +46,6 @@
     private MudForm? _form;
     private MudTextField<string>? _firstField;
 
-    [CascadingParameter]
-    private IMudDialogInstance? MudDialog { get; set; }
-
     [Parameter]
     public RipartizioneGeografica Entity { get; set; } = new RipartizioneGeografica();
 
@@ -53,22 +54,37 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _firstField != null)
+        if (firstRender)
         {
-            await Task.Delay(100);
-            await InvokeAsync(async () =>
+            try
             {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+                // Fallback: focus manuale
                 if (_firstField != null)
                 {
+                    await Task.Delay(150);
                     await _firstField.FocusAsync();
                 }
-            });
+            }
         }
     }
 
-    private void Cancel()
+    public void Dispose()
     {
-        MudDialog?.Cancel();
+        // Cleanup JavaScript handlers quando il dialog viene chiuso
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch
+        {
+            // Ignora errori su cleanup
+        }
     }
 
     private void HandleDescrizioneChanged(string value)
@@ -112,7 +128,7 @@
             await _form.Validate();
             if (_form.IsValid)
             {
-                MudDialog?.Close(DialogResult.Ok(Entity));
+                CloseDialog(DialogResult.Ok(Entity));
             }
             else
             {

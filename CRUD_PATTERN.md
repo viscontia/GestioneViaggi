@@ -297,13 +297,59 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 - `MudSelect` - dropdown
 - `MudCheckBox` - checkbox
 
-**⚡ Pattern SetFocus e TAB Navigation:**
-1. **Primo campo**: Sempre con `@ref="_firstField"` e `tabindex="1"` (lowercase!)
-2. **SetFocus automatico**: `OnAfterRenderAsync` chiama `_firstField.FocusAsync()` al primo render (con Task.Delay(100))
-3. **TAB Navigation**: Assegnare `tabindex` progressivo (1, 2, 3...) dall'alto verso il basso, da sinistra a destra
-4. **Campo tipo**: Per campi non-string, usare `MudTextField<int>?`, `MudTextField<decimal>?`, etc.
-5. **Layout multi-colonna**: Usare `tabindex` per definire ordine logico di navigazione
-6. **IMPORTANTE**: MudBlazor richiede `tabindex` lowercase, non `TabIndex`
+**⚡ Pattern SetFocus e TAB Navigation (SOLUZIONE DEFINITIVA - JavaScript):**
+
+**🚨 PROBLEMA**: Il **FocusTrap** di MudDialog blocca la navigazione TAB del browser. Nessuna soluzione HTML/CSS funziona.
+
+**✅ UNICA SOLUZIONE FUNZIONANTE (JavaScript Helper):**
+
+**1. Script incluso in `index.html`:**
+```html
+<script src="js/dialogFormHelper.js"></script>
+```
+
+**2. Pattern OBBLIGATORIO per TUTTI i Dialog CRUD:**
+
+```razor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: {ex.Message}");
+                if (_firstField != null) await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+}
+```
+
+**💡 COME FUNZIONA:**
+- JavaScript intercetta `keydown` con TAB
+- Usa `e.preventDefault()` per bloccare il comportamento del FocusTrap
+- Forza manualmente `.focus()` sull'input successivo
+- Supporta SHIFT+TAB per navigazione indietro
+
+**🔴 COSA NON FUNZIONA (evitare):**
+- ❌ `tabindex="1"` inline → va sul wrapper `<div>`, non su `<input>`
+- ❌ UserAttributes → combatte col FocusTrap
+- ❌ Ordine DOM naturale → FocusTrap blocca comunque
+- ❌ Soluzioni CSS-only → problema JavaScript, non CSS
 
 **🌟 Campi Obbligatori - UX Best Practice:**
 1. **Asterisco rosso**: Usare `AdornmentText="*"` con colore rosso per indicare visivamente i campi obbligatori
@@ -322,27 +368,9 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
    - **ECCEZIONE**: Non applicare a campi Password o email case-sensitive
    - ⚠️ **NON usare lambda inline o Converter**: non forzano re-render corretto
 
-**Esempio campo obbligatorio con uppercase:**
-```razor
-<MudTextField Value="@Entity.Nome"
-              ValueChanged="@HandleNomeChanged"
-              Label="Nome"
-              Immediate="true"
-              Required="true"
-              RequiredError="Il nome è obbligatorio"
-              Class="uppercase-input"
-              Adornment="Adornment.End"
-              AdornmentText="*"
-              AdornmentColor="Color.Error"
-              OnBlur="@(() => HandleFieldBlur(_firstField))" />
+**Esempio completo di Dialog CRUD con TAB funzionante:**
 
-// Nel @code:
-private void HandleNomeChanged(string value)
-{
-    Entity.Nome = value?.ToUpper() ?? string.Empty;
-    StateHasChanged(); // OBBLIGATORIO per mostrare uppercase in tempo reale
-}
-```
+Vedi file reali: `ProvinciaDialog.razor`, `CapoluogoDialog.razor` per esempi completi implementati.
 
 **Esempio campo opzionale:**
 ```razor

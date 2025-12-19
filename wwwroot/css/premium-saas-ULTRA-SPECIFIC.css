@@ -30,6 +30,13 @@
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 
+.required-field .mud-input-label::after {
+    content: "*";
+    color: #DC2626;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
 /* BODY ROWS LIGHT - Base state */
 .mud-table-container .mud-table .mud-table-body .mud-table-row,
 .mud-table .mud-table-body .mud-table-row,
