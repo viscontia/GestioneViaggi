@@ -1,0 +1,198 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inherits BaseCrudDialog<Regione>
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Regione" : "Nuova Regione")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <CountrySelect @ref="_countrySelectRef"
+                           SelectedCountryId="@(Entity.CountryIdFk == 0 ? null : Entity.CountryIdFk)"
+                           SelectedCountryIdChanged="@((int? value) => Entity.CountryIdFk = value ?? 0)"
+                           Required="true"
+                           AutoFocus="true"
+                           RequiredError="Il paese è obbligatorio"
+                           HelperText="Seleziona il paese di appartenenza della regione."
+                           Class="mb-3" />
+
+            <MudTextField @ref="_descrizioneField"
+                          Value="@Entity.Descrizione"
+                          ValueChanged="@((string value) => HandleDescrizioneChanged(value))"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione Regione"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="100"
+                          Class="mb-3 uppercase-input required-field"
+                          HelperText="Inserisci la denominazione ufficiale della regione."
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_descrizioneField))"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <MudNumericField @bind-Value="Entity.NumeroResidenti"
+                             For="@(() => Entity.NumeroResidenti)"
+                             Label="Nr. Residenti - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             HelperText="Inserisci il numero totale di residenti (opzionale)."
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.PercentualeResidenti"
+                             For="@(() => Entity.PercentualeResidenti)"
+                             Label="Percentuale Residenti (%) - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Max="100"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N2"
+                             HelperText="Percentuale di residenti rispetto al totale nazionale (opzionale)."
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.DensitaKmq"
+                             For="@(() => Entity.DensitaKmq)"
+                             Label="Densità (ab/kmq) - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N2"
+                             HelperText="Densità abitativa per chilometro quadrato (opzionale)."
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.NumeroProvince"
+                             For="@(() => Entity.NumeroProvince)"
+                             Label="Nr. Province - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             HelperText="Numero totale di province nella regione (opzionale)."
+                             Class="mb-3" />
+
+            <MudNumericField @bind-Value="Entity.NumeroComuni"
+                             For="@(() => Entity.NumeroComuni)"
+                             Label="Nr. Comuni - opzionale"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             HelperText="Numero totale di comuni nella regione (opzionale)."
+                             Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CancelDialog" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private CountrySelect? _countrySelectRef;
+    private MudTextField<string>? _descrizioneField;
+
+    [Parameter]
+    public Regione Entity { get; set; } = new Regione();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup JavaScript handlers quando il dialog viene chiuso
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch
+        {
+            // Ignora errori su cleanup
+        }
+    }
+
+    private void HandleDescrizioneChanged(string value)
+    {
+        Entity.Descrizione = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleFieldBlur(MudTextField<string>? field)
+    {
+        if (field != null)
+        {
+            await field.Validate();
+            if (field.Error)
+            {
+                await Task.Delay(150);
+                try
+                {
+                    await field.FocusAsync();
+                }
+                catch
+                {
+                    // Ignora errori se il dialog è stato chiuso
+                }
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                CloseDialog(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                // Focus sul primo campo in errore (descrizione è l'unico obbligatorio testuale)
+                if (_descrizioneField?.Error == true)
+                {
+                    await _descrizioneField.FocusAsync();
+                }
+            }
+        }
+    }
+}

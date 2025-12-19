@@ -32,27 +32,57 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 *   **Funzionalità**: Wrapper di `MudDataGridPager` con testi pre-localizzati in Italiano ("Righe per pagina", record count).
 *   **Utilizzo**: Da inserire nel `PagerContent` della griglia.
 
+### CountrySelect
+Componente dropdown riutilizzabile per la selezione di paesi (`Components/Shared/CountrySelect.razor`).
+*   **Funzionalità**:
+    *   Carica automaticamente tutti i paesi da `eba_countries` ordinati per nome (ASC).
+    *   Supporta binding bidirezionale con `@bind-SelectedCountryId`.
+    *   Item vuoto "-- Seleziona --" per gestione valori null.
+    *   Configurabile: Label, Required, RequiredError, Disabled, AutoFocus, Class, HelperText, Placeholder.
+    *   Mostra asterisco rosso se Required=true (classe `required-field`).
+*   **Parametri**:
+    *   `SelectedCountryId` (int?) - ID paese selezionato (binding)
+    *   `Label` (string) - Etichetta campo (default: "Paese")
+    *   `Required` (bool) - Campo obbligatorio (default: false)
+    *   `RequiredError` (string) - Messaggio errore (default: "Il paese è obbligatorio")
+    *   `Disabled` (bool) - Campo disabilitato (default: false)
+    *   `AutoFocus` (bool) - Focus automatico al render (default: false)
+    *   `Class` (string) - Classi CSS aggiuntive (default: "mb-3")
+    *   `HelperText` (string) - Testo helper (default: "Seleziona il paese dall'elenco")
+    *   `Placeholder` (string) - Placeholder (default: "Seleziona un paese...")
+*   **Utilizzo**:
+    ```razor
+    <CountrySelect SelectedCountryId="@(Entity.CountryIdFk == 0 ? null : Entity.CountryIdFk)"
+                   SelectedCountryIdChanged="@((int? value) => Entity.CountryIdFk = value ?? 0)"
+                   Required="true"
+                   AutoFocus="true"
+                   RequiredError="Il paese è obbligatorio" />
+    ```
+*   **Dipendenze**: Richiede `CountryService` registrato in `MauiProgram.cs`.
+*   **Best Practice**: Convertire valore 0 → null nel binding per evitare visualizzazione "0" iniziale.
+
 ### RegioneSelect
 Componente dropdown riutilizzabile per la selezione di regioni (`Components/Shared/RegioneSelect.razor`).
 *   **Funzionalità**:
     *   Carica automaticamente tutte le regioni da `ana_geo_regioni_ita` ordinate per descrizione (ASC).
     *   Supporta binding bidirezionale con `@bind-SelectedRegioneId`.
-    *   Configurabile: Label, Required, RequiredError, Disabled, TabIndex, Class.
-    *   Mostra asterisco rosso se Required=true.
+    *   Configurabile: Label, Required, RequiredError, Disabled, AutoFocus, Class, HelperText.
+    *   Mostra asterisco rosso se Required=true (classe `required-field`).
 *   **Parametri**:
     *   `SelectedRegioneId` (int?) - ID regione selezionata (binding)
     *   `Label` (string) - Etichetta campo (default: "Regione")
     *   `Required` (bool) - Campo obbligatorio (default: false)
     *   `RequiredError` (string) - Messaggio errore (default: "La regione è obbligatoria")
     *   `Disabled` (bool) - Campo disabilitato (default: false)
+    *   `AutoFocus` (bool) - Focus automatico al render (default: false)
     *   `Class` (string) - Classi CSS aggiuntive (default: "mb-3")
-    *   `TabIndex` (int) - Ordine TAB navigation (default: 0)
+    *   `HelperText` (string) - Testo helper (default: "Seleziona la regione corretta dall'elenco")
 *   **Utilizzo**:
     ```razor
     <RegioneSelect @bind-SelectedRegioneId="@Entity.RegioneIdFk"
                    Required="true"
                    RequiredError="La regione è obbligatoria"
-                   tabindex="3" />
+                   HelperText="Seleziona la regione amministrativa di riferimento." />
     ```
 *   **Dipendenze**: Richiede `RegioneService` registrato in `MauiProgram.cs`.
 

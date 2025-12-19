@@ -1,17 +1,242 @@
 @page "/tabelle/regioni"
 @using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject RegioneService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @attribute [Authorize]
 
-<MudText Typo="Typo.h4" Class="mb-4">Gestione Regioni</MudText>
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Regione"
+                        Items="@_items"
+                        Title="Gestione Regioni"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem"
+                        Breakpoint="Breakpoint.None">
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.body1">
-            Placeholder per la gestione delle Regioni.
-        </MudText>
-    </MudCardContent>
-</MudCard>
+        <ToolBarContent>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <EnterpriseActionsColumn T="Regione"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+
+            <PropertyColumn Property="x => x.CountryName"
+                            Title="Paese" />
+
+            <PropertyColumn Property="x => x.Descrizione"
+                            Title="Regione" />
+
+            <PropertyColumn Property="x => x.NumeroResidenti"
+                            Title="Residenti"
+                            Format="N0"
+                            HeaderClass="col-md justify-end"
+                            CellClass="col-md"
+                            CellStyle="text-align: right;" />
+
+            <PropertyColumn Property="x => x.PercentualeResidenti"
+                            Title="% Resid."
+                            Format="N2"
+                            HeaderClass="col-sm justify-end"
+                            CellClass="col-sm"
+                            CellStyle="text-align: right;" />
+
+            <PropertyColumn Property="x => x.DensitaKmq"
+                            Title="Densità (ab/kmq)"
+                            Format="N2"
+                            HeaderClass="col-lg justify-end"
+                            CellClass="col-lg"
+                            CellStyle="text-align: right;" />
+
+            <PropertyColumn Property="x => x.NumeroProvince"
+                            Title="N.Prov."
+                            Format="N0"
+                            HeaderClass="col-sm justify-end"
+                            CellClass="col-sm"
+                            CellStyle="text-align: right;" />
+
+            <TemplateColumn Title="N.Comuni"
+                            HeaderClass="col-sm justify-end"
+                            CellClass="col-sm"
+                            CellStyle="text-align: right;">
+                <HeaderTemplate>
+                    <div style="text-align: right; line-height: 1.2;">
+                        <div>Num.</div>
+                        <div>Comuni</div>
+                    </div>
+                </HeaderTemplate>
+                <CellTemplate>
+                    @context.Item.NumeroComuni?.ToString("N0")
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="Regione" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+        </PagerContent>
+
+    </EnterpriseDataGrid>
+}
 
 @code {
-    // Implementazione futura
+    private List<Regione> _items = new();
+    private Regione? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(Regione item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CountryName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<RegioneDialog>
+        {
+            { x => x.Entity, new Regione() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RegioneDialog>("Nuova Regione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Regione newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Add("Regione creata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Regione item)
+    {
+        var parameters = new DialogParameters<RegioneDialog>
+        {
+            { x => x.Entity, new Regione
+                {
+                    Id = item.Id,
+                    Descrizione = item.Descrizione,
+                    NumeroResidenti = item.NumeroResidenti,
+                    PercentualeResidenti = item.PercentualeResidenti,
+                    DensitaKmq = item.DensitaKmq,
+                    NumeroProvince = item.NumeroProvince,
+                    NumeroComuni = item.NumeroComuni,
+                    CountryIdFk = item.CountryIdFk
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RegioneDialog>("Modifica Regione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Regione editedItem)
+        {
+            try
+            {
+                await Service.UpdateAsync(editedItem);
+                await LoadDataAsync();
+                Snackbar.Add("Regione aggiornata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(Regione item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Regione eliminata con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare la regione", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 }

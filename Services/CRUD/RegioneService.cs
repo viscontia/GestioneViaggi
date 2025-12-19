@@ -117,6 +117,47 @@ public class RegioneService : BaseCrudService<Regione>
     }
 
     /// <summary>
+    /// Override di GetAllAsync per includere JOIN con countries e ORDER BY descrizione
+    /// </summary>
+    public override async Task<List<Regione>> GetAllAsync()
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                SELECT
+                    r.regione_id,
+                    r.regione_descrizione,
+                    r.regione_nr_residenti,
+                    r.regione_perc_residenti,
+                    r.regione_densita_kmq,
+                    r.regione_nr_province,
+                    r.regione_nr_comuni,
+                    r.country_id_fk,
+                    c.name as country_name
+                FROM ana_geo_regioni_ita r
+                INNER JOIN eba_countries c ON r.country_id_fk = c.country_id
+                ORDER BY r.regione_descrizione ASC";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            await using var reader = await command.ExecuteReaderAsync();
+
+            var regioni = new List<Regione>();
+            while (await reader.ReadAsync())
+            {
+                regioni.Add(MapFromReaderWithCountry(reader));
+            }
+
+            return regioni;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il caricamento delle regioni");
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Ottiene tutte le regioni ordinate per descrizione (ASC) - per uso in dropdown
     /// </summary>
     public async Task<List<Regione>> GetAllOrderedByDescrizioneAsync()
@@ -146,5 +187,15 @@ public class RegioneService : BaseCrudService<Regione>
             _logger.LogError(ex, "Errore durante il caricamento delle regioni ordinate");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Mapper specifico per query con JOIN che include country_name
+    /// </summary>
+    private Regione MapFromReaderWithCountry(NpgsqlDataReader reader)
+    {
+        var regione = MapFromReader(reader);
+        regione.CountryName = ReadNullableString(reader, "country_name");
+        return regione;
     }
 }

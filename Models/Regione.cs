@@ -16,5 +16,10 @@ public class Regione : BaseEntity
     public decimal? DensitaKmq { get; set; }
     public int? NumeroProvince { get; set; }
     public int? NumeroComuni { get; set; }
+
+    [Required(ErrorMessage = "Il paese è obbligatorio")]
     public int CountryIdFk { get; set; }
+
+    // Navigation property (non mappato direttamente dal DB)
+    public string? CountryName { get; set; }
 }
