@@ -1,15 +1,18 @@
 @using MudBlazor
 
-<MudText Typo="Typo.h6">@Title</MudText>
+@if (!string.IsNullOrWhiteSpace(Title))
+{
+    <MudText Typo="Typo.h5" Class="enterprise-grid-title">@Title</MudText>
+}
 <MudSpacer />
-<MudTextField T="string" 
+<MudTextField T="string"
               @ref="_searchField"
-              Value="@SearchString" 
+              Value="@SearchString"
               ValueChanged="@SearchStringChanged"
-              Placeholder="Cerca..." 
-              Adornment="Adornment.Start" 
-              AdornmentIcon="@Icons.Material.Filled.Search" 
-              IconSize="Size.Medium" 
+              Placeholder="Cerca..."
+              Adornment="Adornment.Start"
+              AdornmentIcon="@Icons.Material.Filled.Search"
+              IconSize="Size.Medium"
               Class="mt-0"
               Immediate="true" />
 

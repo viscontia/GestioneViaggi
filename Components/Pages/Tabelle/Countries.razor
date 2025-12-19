@@ -1,0 +1,264 @@
+@page "/tabelle/nazioni"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@inject CountryService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Country"
+                        Items="@_items"
+                        Title="Gestione Nazioni"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem"
+                        Breakpoint="Breakpoint.None">
+
+        <ToolBarContent>
+            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nazioni</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarContent>
+
+        <Columns>
+            <EnterpriseActionsColumn T="Country"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+
+            <PropertyColumn Property="x => x.Name"
+                            Title="Nome Nazione" />
+
+            <PropertyColumn Property="x => x.Nationality"
+                            Title="Nazionalità" />
+
+            <PropertyColumn Property="x => x.CountryCode"
+                            Title="Codice"
+                            HeaderClass="col-sm" />
+
+            <PropertyColumn Property="x => x.IsoAlpha2"
+                            Title="ISO"
+                            HeaderClass="col-sm" />
+
+            <PropertyColumn Property="x => x.Capital"
+                            Title="Capitale" />
+
+            <PropertyColumn Property="x => x.Population"
+                            Title="Popolazione"
+                            Format="N0"
+                            HeaderClass="col-lg justify-end"
+                            CellClass="col-lg"
+                            CellStyle="text-align: right;" />
+
+            <PropertyColumn Property="x => x.AreaKm2"
+                            Title="Area (kmq)"
+                            Format="N2"
+                            HeaderClass="col-lg justify-end"
+                            CellClass="col-lg"
+                            CellStyle="text-align: right;" />
+
+            <PropertyColumn Property="x => x.RegionName"
+                            Title="Regione" />
+
+            <PropertyColumn Property="x => x.SubRegionName"
+                            Title="Sotto-Regione" />
+
+            <PropertyColumn Property="x => x.IntermediateName"
+                            Title="Reg. Intermedia" />
+
+            <PropertyColumn Property="x => x.OrganizationName"
+                            Title="Organizzazione" />
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="Country" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+        </PagerContent>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<Country> _items = new();
+    private Country? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("eba_countries");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllOrderedByNameAsync();
+            Console.WriteLine($"✅ Caricati {_items.Count} paesi con successo");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+            Console.WriteLine($"❌ ERRORE LoadDataAsync: {ex.Message}");
+            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    private bool Search(Country item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Nationality?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CountryCode?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.IsoAlpha2?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Capital?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.RegionName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.SubRegionName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.IntermediateName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.OrganizationName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<CountryDialog>
+        {
+            { x => x.Entity, new Country() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<CountryDialog>("Nuova Nazione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Country newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Add("Nazione creata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Country item)
+    {
+        var parameters = new DialogParameters<CountryDialog>
+        {
+            { x => x.Entity, new Country
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Nationality = item.Nationality,
+                    CountryCode = item.CountryCode,
+                    IsoAlpha2 = item.IsoAlpha2,
+                    Capital = item.Capital,
+                    Population = item.Population,
+                    AreaKm2 = item.AreaKm2,
+                    RegionId = item.RegionId,
+                    SubRegionId = item.SubRegionId,
+                    IntermediateRegionId = item.IntermediateRegionId,
+                    OrganizationRegionId = item.OrganizationRegionId
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<CountryDialog>("Modifica Nazione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Country editedItem)
+        {
+            try
+            {
+                await Service.UpdateAsync(editedItem);
+                await LoadDataAsync();
+                Snackbar.Add("Nazione aggiornata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(Country item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Name})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Nazione eliminata con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare la nazione", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

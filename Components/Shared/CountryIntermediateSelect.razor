@@ -1,0 +1,106 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject CountryIntermediateService CountryIntermediateService
+
+<MudSelect T="int?"
+           @ref="_selectRef"
+           Value="@SelectedIntermediateId"
+           ValueChanged="@SelectedIntermediateIdChanged"
+           Label="@Label"
+           Variant="Variant.Outlined"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Disabled="@Disabled"
+           Class="@ComputedClass"
+           HelperText="@HelperText"
+           Placeholder="Seleziona regione intermedia..."
+           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
+           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
+           @attributes="AdditionalAttributes">
+    @if (_intermediates != null)
+    {
+        <MudSelectItem T="int?" Value="@((int?)null)">-- Seleziona --</MudSelectItem>
+        @foreach (var intermediate in _intermediates)
+        {
+            <MudSelectItem T="int?" Value="@intermediate.Id">@intermediate.Name</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    private List<CountryIntermediate>? _intermediates;
+    private MudSelect<int?>? _selectRef;
+    private bool _focusApplied;
+
+    [Parameter]
+    public int? SelectedIntermediateId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedIntermediateIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Regione Intermedia";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "La regione intermedia è obbligatoria";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Seleziona la regione intermedia (es: Caribbean, Eastern Africa)";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ComputedClass
+    {
+        get
+        {
+            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
+            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
+        }
+    }
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadIntermediatesAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!_focusApplied && AutoFocus && _selectRef is not null)
+        {
+            _focusApplied = true;
+            await _selectRef.FocusAsync();
+        }
+    }
+
+    private async Task LoadIntermediatesAsync()
+    {
+        try
+        {
+            _intermediates = await CountryIntermediateService.GetAllOrderedByNameAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento regioni intermedie: {ex.Message}");
+            _intermediates = new List<CountryIntermediate>();
+        }
+    }
+}

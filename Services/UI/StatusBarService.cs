@@ -115,6 +115,12 @@ public class StatusBarService : IStatusBarService, IDisposable
         _cts?.Cancel();
     }
 
+    public void SetCurrentTable(string? tableName)
+    {
+        CurrentStatus.CurrentTableName = tableName;
+        OnStatusChanged?.Invoke();
+    }
+
     public void Dispose()
     {
         StopAutoRefresh();

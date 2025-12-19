@@ -2,11 +2,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
 @using MudBlazor
 @inject RipartizioneGeograficaService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
 @attribute [Authorize]
+@implements IDisposable
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -24,11 +27,12 @@ else
                         @bind-SelectedItem="_selectedItem">
 
         <ToolBarContent>
+            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Ripartizioni Geografiche</MudText>
+            <MudSpacer />
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-2">
+                       OnClick="@OpenCreateDialog">
                 Nuovo
             </MudButton>
         </ToolBarContent>
@@ -51,7 +55,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        StatusBarService.SetCurrentTable("ana_geo_ita_ripgeo");
         await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
     }
 
     private async Task LoadDataAsync()

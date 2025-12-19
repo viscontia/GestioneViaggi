@@ -536,11 +536,14 @@ _gridHelper = new DataGridHelper<T>(
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
 @using MudBlazor
 @inject NomeEntitaService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
 @attribute [Authorize]
+@implements IDisposable
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -553,16 +556,17 @@ else
 {
     <EnterpriseDataGrid T="NomeEntita"
                         Items="@_items"
-                        Title="Gestione [Nome Tabella]"
+                        Title="Gestione Nome Tabella"
                         SearchFunction="@Search"
                         @bind-SelectedItem="_selectedItem">
 
         <ToolBarContent>
+            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nome Tabella</MudText>
+            <MudSpacer />
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-2">
+                       OnClick="@OpenCreateDialog">
                 Nuovo
             </MudButton>
         </ToolBarContent>
@@ -586,7 +590,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        StatusBarService.SetCurrentTable("nome_tabella_db");
         await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
     }
 
     private async Task LoadDataAsync()
@@ -765,6 +775,104 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
 
 ---
 
+## 📋 Title della DataGrid - OBBLIGATORIO
+
+**REGOLA FONDAMENTALE**: Ogni `EnterpriseDataGrid` deve avere un `Title` chiaro e descrittivo che indica la gestione in corso.
+
+### Formato Standard (OBBLIGATORIO):
+```razor
+<EnterpriseDataGrid T="NomeEntita"
+                    Items="@_items"
+                    Title="Gestione Nome Entità"
+                    SearchFunction="@Search"
+                    @bind-SelectedItem="_selectedItem">
+
+    <ToolBarContent>
+        <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nome Entità</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarContent>
+
+    <Columns>
+        ...
+    </Columns>
+</EnterpriseDataGrid>
+```
+
+### Componenti Necessari:
+1. **`<MudText Typo="Typo.h5" Class="enterprise-grid-title">`** - Titolo visibile (H5, semi-bold)
+2. **`<MudSpacer />`** - Spazio flessibile tra titolo e pulsante
+3. **Pulsante "Nuovo"** - Allineato a destra
+
+### Esempi:
+- `Gestione Nazioni` - per tabella Countries
+- `Gestione Regioni` - per tabella Regioni
+- `Gestione Province` - per tabella Province
+- `Gestione Capoluoghi di Regione` - per tabella Capoluoghi
+
+### Stile Automatico (da CSS globale):
+- ✅ Font size 1.5rem (H5 - grande e visibile)
+- ✅ Font weight 600 (semi-bold)
+- ✅ Supporto automatico tema chiaro/scuro
+- ✅ Letter-spacing ottimizzato (-0.02em)
+- ✅ Colori: Light `#111827`, Dark `#E6E8EB`
+
+**⚠️ IMPORTANTE**:
+- Il titolo viene inserito **manualmente** nel `<ToolBarContent>`, non viene generato automaticamente
+- Il parametro `Title` dell'EnterpriseDataGrid è ancora presente ma viene usato per altri scopi interni
+- Il testo deve essere user-friendly, NON il nome tecnico della tabella DB
+
+---
+
+## 📊 StatusBar - Visualizzazione Nome Tabella
+
+**PATTERN OBBLIGATORIO**: Ogni pagina CRUD deve mostrare nella bottom bar il nome della tabella DB su cui sta lavorando.
+
+### Implementazione:
+
+**1. Aggiungere le dipendenze necessarie:**
+```razor
+@using GestioneViaggi.Services.UI
+@inject IStatusBarService StatusBarService
+@implements IDisposable
+```
+
+**2. Impostare il nome tabella in `OnInitializedAsync()`:**
+```csharp
+protected override async Task OnInitializedAsync()
+{
+    StatusBarService.SetCurrentTable("nome_tabella_db");
+    await LoadDataAsync();
+}
+```
+
+**3. Ripulire il nome tabella quando la pagina viene distrutta:**
+```csharp
+public void Dispose()
+{
+    StatusBarService.SetCurrentTable(null);
+}
+```
+
+### Comportamento:
+- ✅ Quando l'utente entra in una pagina CRUD, la bottom bar mostra: **📄 File: nome_tabella_db**
+- ✅ Quando l'utente esce dalla pagina, l'informazione scompare automaticamente
+- ✅ L'icona 📄 è generica e adatta a qualsiasi tipo di tabella
+- ✅ Il nome della tabella è quello definito nel `Service` (`TableName`)
+
+### Esempi:
+- Pagina Nazioni → mostra `File: eba_countries`
+- Pagina Regioni → mostra `File: ana_geo_regioni_ita`
+- Pagina Province → mostra `File: ana_geo_province`
+- Dashboard o altre pagine → nessuna visualizzazione
+
+---
+
 ## ✅ Checklist per Nuova Tabella
 
 - [ ] Creare Model in `/Models/`
@@ -772,10 +880,14 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
 - [ ] Implementare `CreateAsync()`, `UpdateAsync()`, `MapFromReader()`
 - [ ] Creare Dialog in `/Components/Shared/`
 - [ ] Creare Page in `/Components/Pages/Tabelle/`
+- [ ] **Aggiungere Title descrittivo all'EnterpriseDataGrid** (es: "Gestione Nazioni")
+- [ ] **Implementare StatusBar pattern (SetCurrentTable + Dispose)**
 - [ ] Registrare Service in `MauiProgram.cs`
 - [ ] Testare: Create, Read, Update, Delete
 - [ ] Verificare validazione form
 - [ ] Testare funzione Search
+- [ ] Verificare visualizzazione Title nella toolbar
+- [ ] Verificare visualizzazione nome tabella in StatusBar
 
 ---
 

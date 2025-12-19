@@ -62,6 +62,10 @@ public static class MauiProgram
         // CRUD SERVICES
         // ==========================================================
         builder.Services.AddScoped<CountryService>();
+        builder.Services.AddScoped<CountryRegionService>();
+        builder.Services.AddScoped<CountrySubRegionService>();
+        builder.Services.AddScoped<CountryIntermediateService>();
+        builder.Services.AddScoped<CountryOrganizationService>();
         builder.Services.AddScoped<CapoluogoService>();
         builder.Services.AddScoped<RipartizioneGeograficaService>();
         builder.Services.AddScoped<RegioneService>();

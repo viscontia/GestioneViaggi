@@ -11,4 +11,5 @@ public interface IStatusBarService
     Task RefreshStatusAsync();
     void StartAutoRefresh();
     void StopAutoRefresh();
+    void SetCurrentTable(string? tableName);
 }

@@ -28,8 +28,16 @@ public class Country : BaseEntity
 
     public long? Population { get; set; }
     public decimal? AreaKm2 { get; set; }
+
+    // Foreign Keys
     public int? RegionId { get; set; }
     public int? SubRegionId { get; set; }
     public int? IntermediateRegionId { get; set; }
     public int? OrganizationRegionId { get; set; }
+
+    // Proprietà navigazionali (popolate da JOIN nel Service)
+    public string? RegionName { get; set; }
+    public string? SubRegionName { get; set; }
+    public string? IntermediateName { get; set; }
+    public string? OrganizationName { get; set; }
 }

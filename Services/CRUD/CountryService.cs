@@ -16,7 +16,7 @@ public class CountryService : BaseCrudService<Country>
     }
 
     /// <summary>
-    /// Ottiene tutti i paesi ordinati per nome ASC
+    /// Ottiene tutti i paesi ordinati per nome ASC con proprietà navigazionali
     /// </summary>
     public async Task<List<Country>> GetAllOrderedByNameAsync()
     {
@@ -25,20 +25,28 @@ public class CountryService : BaseCrudService<Country>
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
                 SELECT
-                    country_id,
-                    name,
-                    nationality,
-                    country_code,
-                    iso_alpha2,
-                    capital,
-                    population,
-                    area_km2,
-                    region_id,
-                    sub_region_id,
-                    intermediate_region_id,
-                    organization_region_id
-                FROM eba_countries
-                ORDER BY name ASC";
+                    c.country_id,
+                    c.name,
+                    c.nationality,
+                    c.country_code,
+                    c.iso_alpha2,
+                    c.capital,
+                    c.population,
+                    c.area_km2,
+                    c.region_id,
+                    c.sub_region_id,
+                    c.intermediate_region_id,
+                    c.organization_region_id,
+                    cr.name AS region_name,
+                    csr.name AS sub_region_name,
+                    ci.name AS intermediate_name,
+                    co.name AS organization_name
+                FROM eba_countries c
+                LEFT JOIN eba_country_regions cr ON c.region_id = cr.id
+                LEFT JOIN eba_country_sub_regions csr ON c.sub_region_id = csr.id
+                LEFT JOIN eba_country_intermediates ci ON c.intermediate_region_id = ci.id
+                LEFT JOIN eba_country_organizations co ON c.organization_region_id = co.id
+                ORDER BY c.name ASC";
 
             await using var command = new NpgsqlCommand(sql, connection);
             await using var reader = await command.ExecuteReaderAsync();
@@ -46,7 +54,7 @@ public class CountryService : BaseCrudService<Country>
             var countries = new List<Country>();
             while (await reader.ReadAsync())
             {
-                countries.Add(MapFromReader(reader));
+                countries.Add(MapFromReaderWithNavigations(reader));
             }
 
             return countries;
@@ -177,6 +185,33 @@ public class CountryService : BaseCrudService<Country>
             SubRegionId = ReadNullableInt(reader, "sub_region_id"),
             IntermediateRegionId = ReadNullableInt(reader, "intermediate_region_id"),
             OrganizationRegionId = ReadNullableInt(reader, "organization_region_id")
+        };
+    }
+
+    /// <summary>
+    /// Mapper con proprietà navigazionali per query con JOIN
+    /// </summary>
+    private Country MapFromReaderWithNavigations(NpgsqlDataReader reader)
+    {
+        return new Country
+        {
+            Id = ReadInt(reader, "country_id"),
+            Name = reader.GetString(reader.GetOrdinal("name")),
+            Nationality = reader.GetString(reader.GetOrdinal("nationality")),
+            CountryCode = reader.GetString(reader.GetOrdinal("country_code")),
+            IsoAlpha2 = reader.GetString(reader.GetOrdinal("iso_alpha2")),
+            Capital = ReadNullableString(reader, "capital"),
+            Population = ReadNullableLong(reader, "population"),
+            AreaKm2 = ReadNullableDecimal(reader, "area_km2"),
+            RegionId = ReadNullableInt(reader, "region_id"),
+            SubRegionId = ReadNullableInt(reader, "sub_region_id"),
+            IntermediateRegionId = ReadNullableInt(reader, "intermediate_region_id"),
+            OrganizationRegionId = ReadNullableInt(reader, "organization_region_id"),
+            // Proprietà navigazionali
+            RegionName = ReadNullableString(reader, "region_name"),
+            SubRegionName = ReadNullableString(reader, "sub_region_name"),
+            IntermediateName = ReadNullableString(reader, "intermediate_name"),
+            OrganizationName = ReadNullableString(reader, "organization_name")
         };
     }
 

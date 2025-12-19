@@ -2,11 +2,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
 @using MudBlazor
 @inject RegioneService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
 @attribute [Authorize]
+@implements IDisposable
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -25,6 +28,7 @@ else
                         Breakpoint="Breakpoint.None">
 
         <ToolBarContent>
+            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Regioni</MudText>
             <MudSpacer />
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
@@ -103,7 +107,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        StatusBarService.SetCurrentTable("ana_geo_regioni_ita");
         await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
     }
 
     private async Task LoadDataAsync()

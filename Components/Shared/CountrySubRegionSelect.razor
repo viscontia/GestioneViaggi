@@ -1,0 +1,106 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject CountrySubRegionService CountrySubRegionService
+
+<MudSelect T="int?"
+           @ref="_selectRef"
+           Value="@SelectedSubRegionId"
+           ValueChanged="@SelectedSubRegionIdChanged"
+           Label="@Label"
+           Variant="Variant.Outlined"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Disabled="@Disabled"
+           Class="@ComputedClass"
+           HelperText="@HelperText"
+           Placeholder="Seleziona una sotto-regione..."
+           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
+           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
+           @attributes="AdditionalAttributes">
+    @if (_subRegions != null)
+    {
+        <MudSelectItem T="int?" Value="@((int?)null)">-- Seleziona --</MudSelectItem>
+        @foreach (var subRegion in _subRegions)
+        {
+            <MudSelectItem T="int?" Value="@subRegion.Id">@subRegion.Name</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    private List<CountrySubRegion>? _subRegions;
+    private MudSelect<int?>? _selectRef;
+    private bool _focusApplied;
+
+    [Parameter]
+    public int? SelectedSubRegionId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedSubRegionIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Sotto-Regione";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "La sotto-regione è obbligatoria";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Seleziona la sotto-regione (es: Eastern Europe, Central Asia)";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ComputedClass
+    {
+        get
+        {
+            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
+            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
+        }
+    }
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSubRegionsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!_focusApplied && AutoFocus && _selectRef is not null)
+        {
+            _focusApplied = true;
+            await _selectRef.FocusAsync();
+        }
+    }
+
+    private async Task LoadSubRegionsAsync()
+    {
+        try
+        {
+            _subRegions = await CountrySubRegionService.GetAllOrderedByNameAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento sotto-regioni: {ex.Message}");
+            _subRegions = new List<CountrySubRegion>();
+        }
+    }
+}

@@ -2,11 +2,14 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
 @using MudBlazor
 @inject ProvinciaService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
 @attribute [Authorize]
+@implements IDisposable
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -77,7 +80,13 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        StatusBarService.SetCurrentTable("ana_geo_province");
         await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
     }
 
     private async Task LoadDataAsync()
