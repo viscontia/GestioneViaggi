@@ -672,7 +672,55 @@
 }
 
 /* ========================================== */
-/* 13. STICKY ACTIONS COLUMN                 */
+/* 13. NAVIGATION MENU - DARK MODE FIX       */
+/* ========================================== */
+
+/* DARK MODE - Tutti gli elementi del NavMenu devono essere MOLTO CHIARI */
+
+/* MudNavLink - Base */
+.theme-dark .mud-nav-link,
+.theme-dark .mud-nav-link *,
+.theme-dark .mud-nav-item,
+.theme-dark .mud-nav-item * {
+    color: #E5E7EB !important;
+}
+
+/* MudNavLink - Hover */
+.theme-dark .mud-nav-link:hover,
+.theme-dark .mud-nav-link:hover *,
+.theme-dark .mud-nav-item:hover,
+.theme-dark .mud-nav-item:hover * {
+    color: #F9FAFB !important;
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* MudNavGroup - Titoli */
+.theme-dark .mud-nav-group-header,
+.theme-dark .mud-nav-group-header *,
+.theme-dark .mud-nav-group .mud-nav-link,
+.theme-dark .mud-nav-group .mud-nav-link * {
+    color: #E5E7EB !important;
+}
+
+/* Icons - MOLTO CHIARI */
+.theme-dark .mud-nav-link .mud-icon-root,
+.theme-dark .mud-nav-item .mud-icon-root,
+.theme-dark .mud-nav-group .mud-icon-root {
+    color: #D1D5DB !important;
+}
+
+.theme-dark .mud-nav-link:hover .mud-icon-root,
+.theme-dark .mud-nav-item:hover .mud-icon-root {
+    color: #F9FAFB !important;
+}
+
+/* Divider nel menu */
+.theme-dark .mud-divider {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* ========================================== */
+/* 14. STICKY ACTIONS COLUMN                 */
 /* ========================================== */
 
 /* STICKY POSITIONING - Applicato a tutte le celle con classe sticky-actions-column */

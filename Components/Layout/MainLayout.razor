@@ -14,7 +14,7 @@
         <MudSpacer />
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="@((e) => DarkModeToggle())" />
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini" OpenMiniOnHover="true">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini" OpenMiniOnHover="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
