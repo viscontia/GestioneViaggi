@@ -70,6 +70,7 @@ public static class MauiProgram
         builder.Services.AddScoped<RipartizioneGeograficaService>();
         builder.Services.AddScoped<RegioneService>();
         builder.Services.AddScoped<ProvinciaService>();
+        builder.Services.AddScoped<ComuneService>();
 
         builder.Services.AddMauiBlazorWebView();
 

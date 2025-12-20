@@ -52,14 +52,29 @@
 
         <!-- Tabelle Viaggi -->
         <MudNavGroup Title="Tabelle Viaggi" Icon="@Icons.Material.Filled.Explore" Expanded="false">
-            <MudNavLink Icon="@Icons.Material.Filled.Route"
-                        OnClick="@(() => OpenTab("/tabelle/destinazioni", "Destinazioni", "table"))">
-                Destinazioni
-            </MudNavLink>
-
             <MudNavLink Icon="@Icons.Material.Filled.Category"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-viaggio", "Tipologie Viaggio", "table"))">
                 Tipologie Viaggio
+            </MudNavLink>
+
+            <MudNavLink Icon="@Icons.Material.Filled.People"
+                        OnClick="@(() => OpenTab("/tabelle/tipologie-partecipanti", "Tipologie Partecipanti", "table"))">
+                Tipologie Partecipanti
+            </MudNavLink>
+
+            <MudNavLink Icon="@Icons.Material.Filled.Hotel"
+                        OnClick="@(() => OpenTab("/tabelle/tipologie-alloggi", "Tipologie Alloggi", "table"))">
+                Tipologie Alloggi
+            </MudNavLink>
+
+            <MudNavLink Icon="@Icons.Material.Filled.Restaurant"
+                        OnClick="@(() => OpenTab("/tabelle/tipologie-trattamento-alberghiero", "Tipologie Tratt. Alberghiero", "table"))">
+                Tipologie Tratt. Alberghiero
+            </MudNavLink>
+
+            <MudNavLink Icon="@Icons.Material.Filled.NightsStay"
+                        OnClick="@(() => OpenTab("/tabelle/tipologie-pernottamento", "Tipologie Pernottamento", "table"))">
+                Tipologie di Pernottamento
             </MudNavLink>
         </MudNavGroup>
 

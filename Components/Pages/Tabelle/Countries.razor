@@ -27,16 +27,14 @@ else
                         @bind-SelectedItem="_selectedItem"
                         Breakpoint="Breakpoint.None">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nazioni</MudText>
-            <MudSpacer />
+        <ToolBarActions>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
                 Nuovo
             </MudButton>
-        </ToolBarContent>
+        </ToolBarActions>
 
         <Columns>
             <EnterpriseActionsColumn T="Country"
@@ -116,17 +114,10 @@ else
         {
             _errorMessage = string.Empty;
             _items = await Service.GetAllOrderedByNameAsync();
-            Console.WriteLine($"✅ Caricati {_items.Count} paesi con successo");
         }
         catch (Exception ex)
         {
             _errorMessage = $"Errore durante il caricamento: {ex.Message}";
-            Console.WriteLine($"❌ ERRORE LoadDataAsync: {ex.Message}");
-            Console.WriteLine($"Stack Trace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-            }
         }
     }
 

@@ -1,0 +1,105 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject CapoluogoService CapoluogoService
+
+<MudSelect T="int?"
+           @ref="_selectRef"
+           Value="@SelectedCapoluogoId"
+           ValueChanged="@SelectedCapoluogoIdChanged"
+           Label="@Label"
+           Variant="Variant.Outlined"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Disabled="@Disabled"
+           Class="@ComputedClass"
+           HelperText="@HelperText"
+           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
+           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
+           @attributes="AdditionalAttributes">
+    @if (_capoluoghi != null)
+    {
+        @foreach (var capoluogo in _capoluoghi)
+        {
+            <MudSelectItem T="int?" Value="@capoluogo.Id">@capoluogo.Descrizione</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    private List<Capoluogo>? _capoluoghi;
+    private MudSelect<int?>? _selectRef;
+    private bool _focusApplied;
+
+    [Parameter]
+    public int? SelectedCapoluogoId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedCapoluogoIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Capoluogo";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "Il capoluogo è obbligatorio";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Seleziona il capoluogo corretto dall'elenco";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ComputedClass
+    {
+        get
+        {
+            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
+            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
+        }
+    }
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCapoluoghiAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (!_focusApplied && AutoFocus && _selectRef is not null)
+        {
+            _focusApplied = true;
+            await _selectRef.FocusAsync();
+        }
+    }
+
+    private async Task LoadCapoluoghiAsync()
+    {
+        try
+        {
+            // GetAllAsync già ordina per descrizione ASC
+            _capoluoghi = await CapoluogoService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento capoluoghi: {ex.Message}");
+            _capoluoghi = new List<Capoluogo>();
+        }
+    }
+}

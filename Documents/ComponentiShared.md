@@ -7,11 +7,24 @@
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
     *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.
-    *   **Toolbar**: Include automaticamente un titolo e una casella di ricerca (Search Box).
+    *   **Toolbar**: Include automaticamente un titolo, una casella di ricerca (Search Box) con tasto "Clear" e un'area per azioni personalizzate (es. bottone "Nuovo").
     *   **Filtro**: Supporta una `SearchFunction` personalizzata per il filtro trasversale.
 *   **Utilizzo**:
     ```razor
-    <EnterpriseDataGrid T="Modello" Title="Titolo" SearchFunction="@SearchFunc" @bind-SelectedItem="_selectedItem">
+    <EnterpriseDataGrid T="Modello" 
+                        Title="Titolo" 
+                        SearchFunction="@SearchFunc" 
+                        @bind-SelectedItem="_selectedItem">
+        
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add" 
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
         <Columns>
             ...
             <EnterpriseActionsColumn T="Modello" OnEdit="..." OnDelete="..." />
@@ -25,7 +38,10 @@ Colonna standard per le azioni (Modifica/Elimina) (`Components/Shared/Enterprise
 *   **Parametri**: `OnEdit` e `OnDelete` (EventCallback).
 
 ### EnterpriseGridToolbar
-Componente interno usato da EnterpriseDataGrid per renderizzare Titolo e SearchBox.
+Componente interno usato da EnterpriseDataGrid per renderizzare Titolo, SearchBox e Azioni.
+*   **Layout**: [Titolo] [Spacer] [SearchBox] [Azioni]
+*   **SearchBox**: Include icona lente d'ingrandimento a sinistra e tasto "X" (Clear) a destra.
+
 
 ### EnterprisePager
 Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).

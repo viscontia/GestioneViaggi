@@ -1,17 +1,279 @@
 @page "/tabelle/comuni"
 @using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@inject ComuneService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
 @attribute [Authorize]
+@implements IDisposable
 
-<MudText Typo="Typo.h4" Class="mb-4">Gestione Comuni</MudText>
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Comune"
+                        Items="@_items"
+                        Title="Gestione Comuni"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem"
+                        Breakpoint="Breakpoint.None">
 
-<MudCard>
-    <MudCardContent>
-        <MudText Typo="Typo.body1">
-            Placeholder per la gestione dei Comuni.
-        </MudText>
-    </MudCardContent>
-</MudCard>
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <EnterpriseActionsColumn T="Comune"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+
+            <PropertyColumn Property="x => x.Nome"
+                            Title="Comune" />
+
+            <PropertyColumn Property="x => x.CodIstat"
+                            Title="Cod. ISTAT"
+                            HeaderClass="col-sm justify-center"
+                            CellClass="col-sm"
+                            CellStyle="text-align: center;" />
+
+            <PropertyColumn Property="x => x.PrefTel"
+                            Title="Pref.Tel."
+                            HeaderClass="col-xs justify-center"
+                            CellClass="col-xs"
+                            CellStyle="text-align: center;" />
+
+            <PropertyColumn Property="x => x.Cap"
+                            Title="CAP"
+                            HeaderClass="col-xs justify-center"
+                            CellClass="col-xs"
+                            CellStyle="text-align: center;" />
+
+            <PropertyColumn Property="x => x.CodFiscale"
+                            Title="Cod.Fisc."
+                            HeaderClass="col-xs justify-center"
+                            CellClass="col-xs"
+                            CellStyle="text-align: center;" />
+
+            <PropertyColumn Property="x => x.NumAbitanti"
+                            Title="Abitanti"
+                            Format="N0"
+                            HeaderClass="col-md justify-end"
+                            CellClass="col-md"
+                            CellStyle="text-align: right;" />
+
+            <TemplateColumn Title="Estero"
+                            HeaderClass="col-xs justify-center"
+                            CellClass="col-xs"
+                            CellStyle="text-align: center;">
+                <CellTemplate>
+                    <MudCheckBox Value="@context.Item.ComuneEstero"
+                                 ReadOnly="true"
+                                 Color="Color.Primary"
+                                 Style="pointer-events: none;" />
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.ProvinciaDescrizione"
+                            Title="Provincia" />
+
+            <PropertyColumn Property="x => x.RipGeoDescrizione"
+                            Title="Rip. Geografica" />
+
+            <PropertyColumn Property="x => x.CapoluogoDescrizione"
+                            Title="Capoluogo" />
+
+            <PropertyColumn Property="x => x.Link"
+                            Title="Link">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.Link))
+                    {
+                        <MudLink Href="@context.Item.Link" Target="_blank" Color="Color.Primary">
+                            @context.Item.Link
+                        </MudLink>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="Comune" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+        </PagerContent>
+
+    </EnterpriseDataGrid>
+}
 
 @code {
-    // Implementazione futura
+    private List<Comune> _items = new();
+    private Comune? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_geo_comuni");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(Comune item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Nome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CodIstat?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.PrefTel?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Cap?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CodFiscale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.ProvinciaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.RipGeoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CapoluogoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Link?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<ComuneDialog>
+        {
+            { x => x.Entity, new Comune() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ComuneDialog>("Nuovo Comune", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Comune newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Add("Comune creato con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Comune item)
+    {
+        var parameters = new DialogParameters<ComuneDialog>
+        {
+            { x => x.Entity, new Comune
+                {
+                    Id = item.Id,
+                    Nome = item.Nome,
+                    CodIstat = item.CodIstat,
+                    PrefTel = item.PrefTel,
+                    Cap = item.Cap,
+                    CodFiscale = item.CodFiscale,
+                    NumAbitanti = item.NumAbitanti,
+                    Link = item.Link,
+                    ComuneEstero = item.ComuneEstero,
+                    ProvinciaIdFk = item.ProvinciaIdFk,
+                    RipGeoIdFk = item.RipGeoIdFk,
+                    CapoluogoIdFk = item.CapoluogoIdFk
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ComuneDialog>("Modifica Comune", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Comune updatedItem)
+        {
+            try
+            {
+                await Service.UpdateAsync(updatedItem);
+                await LoadDataAsync();
+                Snackbar.Add("Comune aggiornato con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(Comune item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Nome})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Comune eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare il comune", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
 }

@@ -1,0 +1,131 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace GestioneViaggi.Models;
+
+/// <summary>
+/// Rappresenta un comune italiano o estero (tabella ana_geo_comuni)
+/// Colonne DB: comune_id, comune, cod_istat, pref_tel, cap, cod_fiscale,
+/// num_abitanti, link, comune_estero, comune_provincia_fk, comune_ripgeo_FK, comune_capoluogo_fk
+/// </summary>
+public class Comune : BaseEntity, IValidatableObject
+{
+    [Required(ErrorMessage = "Il nome del comune è obbligatorio")]
+    [StringLength(100, ErrorMessage = "Il nome del comune non può superare i 100 caratteri")]
+    public string Nome { get; set; } = string.Empty;
+
+    [StringLength(10, ErrorMessage = "Il codice ISTAT non può superare i 10 caratteri")]
+    public string? CodIstat { get; set; }
+
+    [StringLength(5, ErrorMessage = "Il prefisso telefonico non può superare i 5 caratteri")]
+    public string? PrefTel { get; set; }
+
+    [StringLength(5, MinimumLength = 5, ErrorMessage = "Il CAP deve essere di esattamente 5 caratteri")]
+    [RegularExpression(@"^\d{5}$", ErrorMessage = "Il CAP deve contenere solo 5 cifre numeriche")]
+    public string? Cap { get; set; }
+
+    [StringLength(4, ErrorMessage = "Il codice fiscale non può superare i 4 caratteri")]
+    public string? CodFiscale { get; set; }
+
+    public int? NumAbitanti { get; set; }
+
+    [StringLength(200, ErrorMessage = "Il link non può superare i 200 caratteri")]
+    [Url(ErrorMessage = "Il link deve essere un URL valido")]
+    public string? Link { get; set; }
+
+    public bool ComuneEstero { get; set; } = false;
+
+    [Required(ErrorMessage = "La provincia è obbligatoria")]
+    public int? ProvinciaIdFk { get; set; }
+
+    [Required(ErrorMessage = "La ripartizione geografica è obbligatoria")]
+    public int? RipGeoIdFk { get; set; }
+
+    [Required(ErrorMessage = "Il capoluogo è obbligatorio")]
+    public int? CapoluogoIdFk { get; set; }
+
+    // Campi non salvati nel DB, solo per visualizzazione nella grid
+    public string? ProvinciaDescrizione { get; set; }
+    public string? RipGeoDescrizione { get; set; }
+    public string? CapoluogoDescrizione { get; set; }
+
+    /// <summary>
+    /// Validazioni condizionali basate su ComuneEstero
+    /// </summary>
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        var results = new List<ValidationResult>();
+
+        // FK OBBLIGATORIE
+        if (!ProvinciaIdFk.HasValue || ProvinciaIdFk.Value <= 0)
+        {
+            results.Add(new ValidationResult(
+                "La provincia è obbligatoria",
+                new[] { nameof(ProvinciaIdFk) }
+            ));
+        }
+
+        if (!RipGeoIdFk.HasValue || RipGeoIdFk.Value <= 0)
+        {
+            results.Add(new ValidationResult(
+                "La ripartizione geografica è obbligatoria",
+                new[] { nameof(RipGeoIdFk) }
+            ));
+        }
+
+        if (!CapoluogoIdFk.HasValue || CapoluogoIdFk.Value <= 0)
+        {
+            results.Add(new ValidationResult(
+                "Il capoluogo è obbligatorio",
+                new[] { nameof(CapoluogoIdFk) }
+            ));
+        }
+
+        // Se NON è un comune estero, alcuni campi diventano obbligatori
+        if (!ComuneEstero)
+        {
+            if (string.IsNullOrWhiteSpace(CodIstat))
+            {
+                results.Add(new ValidationResult(
+                    "Il codice ISTAT è obbligatorio per i comuni italiani",
+                    new[] { nameof(CodIstat) }
+                ));
+            }
+
+            if (string.IsNullOrWhiteSpace(Cap))
+            {
+                results.Add(new ValidationResult(
+                    "Il CAP è obbligatorio per i comuni italiani",
+                    new[] { nameof(Cap) }
+                ));
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(Cap, @"^\d{5}$"))
+            {
+                results.Add(new ValidationResult(
+                    "Il CAP deve essere di esattamente 5 cifre numeriche",
+                    new[] { nameof(Cap) }
+                ));
+            }
+
+            if (string.IsNullOrWhiteSpace(CodFiscale))
+            {
+                results.Add(new ValidationResult(
+                    "Il codice fiscale è obbligatorio per i comuni italiani",
+                    new[] { nameof(CodFiscale) }
+                ));
+            }
+        }
+        else
+        {
+            // Se è un comune estero ma il CAP è compilato, deve essere comunque valido
+            if (!string.IsNullOrWhiteSpace(Cap) && !System.Text.RegularExpressions.Regex.IsMatch(Cap, @"^\d{5}$"))
+            {
+                results.Add(new ValidationResult(
+                    "Se compilato, il CAP deve essere di esattamente 5 cifre numeriche",
+                    new[] { nameof(Cap) }
+                ));
+            }
+        }
+
+        return results;
+    }
+}

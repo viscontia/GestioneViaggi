@@ -27,16 +27,14 @@ else
                         @bind-SelectedItem="_selectedItem"
                         Breakpoint="Breakpoint.None">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Regioni</MudText>
-            <MudSpacer />
+        <ToolBarActions>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
                 Nuovo
             </MudButton>
-        </ToolBarContent>
+        </ToolBarActions>
 
         <Columns>
             <EnterpriseActionsColumn T="Regione"

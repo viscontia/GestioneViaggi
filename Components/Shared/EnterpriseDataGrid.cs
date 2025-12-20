@@ -14,6 +14,7 @@ namespace GestioneViaggi.Components.Shared
 
         [Parameter] public string? Title { get; set; }
         [Parameter] public Func<T, string, bool>? SearchFunction { get; set; }
+        [Parameter] public RenderFragment? ToolBarActions { get; set; }
 
         public EnterpriseDataGrid()
         {
@@ -52,6 +53,7 @@ namespace GestioneViaggi.Components.Shared
                 _searchString = s; 
                 StateHasChanged(); 
             }));
+            builder.AddAttribute(4, nameof(EnterpriseGridToolbar.ChildContent), ToolBarActions);
             builder.CloseComponent();
         }
 

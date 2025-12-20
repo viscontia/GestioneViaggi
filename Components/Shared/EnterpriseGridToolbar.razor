@@ -13,13 +13,16 @@
               Adornment="Adornment.Start"
               AdornmentIcon="@Icons.Material.Filled.Search"
               IconSize="Size.Medium"
-              Class="mt-0"
-              Immediate="true" />
+              Class="mt-0 mr-4"
+              Immediate="true"
+              Clearable="true" />
+@ChildContent
 
 @code {
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? SearchString { get; set; }
     [Parameter] public EventCallback<string> SearchStringChanged { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private MudTextField<string>? _searchField;
 

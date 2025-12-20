@@ -1,0 +1,315 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Comune" : "Nuovo Comune")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- Nome Comune - OBBLIGATORIO con UPPERCASE -->
+            <MudTextField @ref="_firstField"
+                          Value="@Entity.Nome"
+                          ValueChanged="@((string val) => HandleNomeChanged(val))"
+                          For="@(() => Entity.Nome)"
+                          Label="Nome Comune"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="Il nome del comune è obbligatorio"
+                          MaxLength="100"
+                          tabindex="1"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_firstField))"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- Checkbox Comune Estero -->
+            <MudCheckBox Value="@Entity.ComuneEstero"
+                         ValueChanged="@((bool val) => HandleComuneEsteroChanged(val))"
+                         For="@(() => Entity.ComuneEstero)"
+                         Label="Comune Estero"
+                         Color="Color.Primary"
+                         tabindex="2"
+                         Class="mb-3" />
+
+            <!-- Cod. ISTAT - Condizionalmente obbligatorio -->
+            <MudTextField @bind-Value="Entity.CodIstat"
+                          For="@(() => Entity.CodIstat)"
+                          Label="@GetCodIstatLabel()"
+                          Variant="Variant.Outlined"
+                          Required="@(!Entity.ComuneEstero)"
+                          RequiredError="Il codice ISTAT è obbligatorio per i comuni italiani"
+                          MaxLength="10"
+                          tabindex="3"
+                          Class="mb-3"
+                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Pref. Telefonico - Opzionale -->
+            <MudTextField @bind-Value="Entity.PrefTel"
+                          For="@(() => Entity.PrefTel)"
+                          Label="Prefisso Telefonico (opzionale)"
+                          Variant="Variant.Outlined"
+                          MaxLength="5"
+                          tabindex="4"
+                          Class="mb-3" />
+
+            <!-- CAP - Condizionalmente obbligatorio con MASK 5 cifre -->
+            <MudTextField @bind-Value="Entity.Cap"
+                          For="@(() => Entity.Cap)"
+                          Label="@GetCapLabel()"
+                          Variant="Variant.Outlined"
+                          Required="@(!Entity.ComuneEstero)"
+                          RequiredError="Il CAP è obbligatorio per i comuni italiani"
+                          Mask="@(new PatternMask("00000"))"
+                          MaxLength="5"
+                          tabindex="5"
+                          Class="mb-3"
+                          HelperText="Inserire 5 cifre numeriche (es: 00035)"
+                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Cod. Fiscale - Condizionalmente obbligatorio -->
+            <MudTextField @bind-Value="Entity.CodFiscale"
+                          For="@(() => Entity.CodFiscale)"
+                          Label="@GetCodFiscaleLabel()"
+                          Variant="Variant.Outlined"
+                          Required="@(!Entity.ComuneEstero)"
+                          RequiredError="Il codice fiscale è obbligatorio per i comuni italiani"
+                          MaxLength="4"
+                          tabindex="6"
+                          Class="mb-3"
+                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Num. Abitanti - Opzionale -->
+            <MudNumericField @bind-Value="Entity.NumAbitanti"
+                             For="@(() => Entity.NumAbitanti)"
+                             Label="Numero Abitanti (opzionale)"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
+                             Format="N0"
+                             tabindex="7"
+                             Class="mb-3" />
+
+            <!-- Link - Opzionale -->
+            <MudTextField @bind-Value="Entity.Link"
+                          For="@(() => Entity.Link)"
+                          Label="Link Sito Web (opzionale)"
+                          Variant="Variant.Outlined"
+                          MaxLength="200"
+                          tabindex="8"
+                          Class="mb-3"
+                          HelperText="Inserire URL completo (es: https://www.esempio.it)" />
+
+            <!-- Provincia FK - OBBLIGATORIO -->
+            <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ProvinciaIdFk"
+                             Label="Provincia"
+                             Required="true"
+                             RequiredError="La provincia è obbligatoria"
+                             tabindex="9"
+                             Class="mb-3" />
+
+            <!-- Ripartizione Geografica FK - OBBLIGATORIO (auto-impostato se Estero) -->
+            <RipGeoSelect @bind-SelectedRipGeoId="Entity.RipGeoIdFk"
+                          Label="Ripartizione Geografica"
+                          Required="true"
+                          RequiredError="La ripartizione geografica è obbligatoria"
+                          Disabled="@Entity.ComuneEstero"
+                          tabindex="10"
+                          Class="mb-3" />
+
+            <!-- Capoluogo FK - OBBLIGATORIO -->
+            <CapoluogoSelect @bind-SelectedCapoluogoId="Entity.CapoluogoIdFk"
+                             Label="Capoluogo"
+                             Required="true"
+                             RequiredError="Il capoluogo è obbligatorio"
+                             tabindex="11"
+                             Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Comune Entity { get; set; } = new Comune();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            // Focus manuale sul primo campo (sempre, per sicurezza)
+            // Delay maggiore per permettere rendering completo
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                    Console.WriteLine("Focus manuale applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus manuale: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void HandleNomeChanged(string value)
+    {
+        Entity.Nome = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleComuneEsteroChanged(bool value)
+    {
+        Entity.ComuneEstero = value;
+
+        // Se è un comune estero, imposta automaticamente RipGeoIdFk = 6 (ESTERO)
+        if (value)
+        {
+            Entity.RipGeoIdFk = 6; // ID di ESTERO nella tabella ana_geo_ita_ripgeo
+        }
+
+        // Forza la rivalutazione delle validazioni quando cambia il flag
+        StateHasChanged();
+    }
+
+    private string GetCodIstatLabel()
+    {
+        return Entity.ComuneEstero ? "Codice ISTAT (opzionale)" : "Codice ISTAT";
+    }
+
+    private string GetCapLabel()
+    {
+        return Entity.ComuneEstero ? "CAP (opzionale)" : "CAP";
+    }
+
+    private string GetCodFiscaleLabel()
+    {
+        return Entity.ComuneEstero ? "Codice Fiscale (opzionale)" : "Codice Fiscale";
+    }
+
+    private async Task HandleFieldBlur(MudTextField<string>? field)
+    {
+        if (field != null)
+        {
+            await field.Validate();
+            if (field.Error)
+            {
+                await Task.Delay(150);
+                try
+                {
+                    await field.FocusAsync();
+                }
+                catch
+                {
+                    // Ignora errori se il dialog è stato chiuso
+                }
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                // DEBUG: Mostra i valori PRIMA di chiudere il dialog
+                var debugMsg = $"DIALOG - PRIMA DI CHIUDERE:\n\n" +
+                              $"Entity.Id: {Entity.Id}\nTipo: {Entity.Id.GetType().FullName}\n\n" +
+                              $"Prov FK: {Entity.ProvinciaIdFk}\nTipo: {Entity.ProvinciaIdFk?.GetType().FullName ?? "NULL"}\n\n" +
+                              $"RipGeo FK: {Entity.RipGeoIdFk}\nTipo: {Entity.RipGeoIdFk?.GetType().FullName ?? "NULL"}\n\n" +
+                              $"Capol FK: {Entity.CapoluogoIdFk}\nTipo: {Entity.CapoluogoIdFk?.GetType().FullName ?? "NULL"}";
+                await DialogService.ShowMessageBox("DEBUG in Dialog", debugMsg, yesText: "Chiudi Dialog");
+
+                // Validazione manuale per le regole condizionali
+                var validationResults = Entity.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(Entity));
+                if (!validationResults.Any())
+                {
+                    MudDialog?.Close(DialogResult.Ok(Entity));
+                }
+                else
+                {
+                    // Se ci sono errori di validazione custom, focus sul primo campo
+                    if (_firstField != null)
+                    {
+                        await _firstField.FocusAsync();
+                    }
+                }
+            }
+            else
+            {
+                if (_firstField?.Error == true)
+                {
+                    await _firstField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

@@ -308,7 +308,7 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 <script src="js/dialogFormHelper.js"></script>
 ```
 
-**2. Pattern OBBLIGATORIO per TUTTI i Dialog CRUD:**
+**2. Pattern OBBLIGATORIO per TUTTI i Dialog CRUD (con Focus + TAB):**
 
 ```razor
 @using Microsoft.JSInterop
@@ -322,12 +322,28 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
         {
             try
             {
+                // Setup TAB navigation con JavaScript helper
                 await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
-                if (_firstField != null) await _firstField.FocusAsync();
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            // ⚠️ OBBLIGATORIO: Focus manuale sul primo campo (sempre eseguito)
+            // Delay di 300ms per permettere rendering completo di MudBlazor
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                    Console.WriteLine("Focus manuale applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus manuale: {ex.Message}");
+                }
             }
         }
     }
@@ -340,16 +356,44 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 ```
 
 **💡 COME FUNZIONA:**
-- JavaScript intercetta `keydown` con TAB
-- Usa `e.preventDefault()` per bloccare il comportamento del FocusTrap
-- Forza manualmente `.focus()` sull'input successivo
-- Supporta SHIFT+TAB per navigazione indietro
+- **JavaScript helper** (`dialogFormHelper.setupTabNavigation`):
+  - Intercetta `keydown` con TAB
+  - Usa `e.preventDefault()` per bloccare il comportamento del FocusTrap
+  - Forza manualmente `.focus()` sull'input successivo
+  - Supporta SHIFT+TAB per navigazione indietro
+  - **Include un focus automatico sul primo campo dopo 150ms**
+
+- **Focus manuale C# OBBLIGATORIO** (dopo 300ms):
+  - MudBlazor può impiegare più tempo a renderizzare i componenti
+  - Il delay di 300ms garantisce che il DOM sia completamente pronto
+  - Il focus manuale **sovrascrive** eventuali conflitti con il JavaScript
+  - **SEMPRE eseguito**, anche se il JavaScript funziona
+  - Include try/catch per gestire errori senza bloccare il dialog
 
 **🔴 COSA NON FUNZIONA (evitare):**
+- ❌ Solo JavaScript senza focus manuale C# → timing non garantito
+- ❌ Focus manuale senza delay (o con delay < 300ms) → componenti non pronti
 - ❌ `tabindex="1"` inline → va sul wrapper `<div>`, non su `<input>`
 - ❌ UserAttributes → combatte col FocusTrap
 - ❌ Ordine DOM naturale → FocusTrap blocca comunque
 - ❌ Soluzioni CSS-only → problema JavaScript, non CSS
+- ❌ Delay troppo brevi (50ms, 100ms, 150ms) → MudBlazor non pronto
+
+**⚙️ PERCHÉ 300ms È IL DELAY CORRETTO:**
+- MudBlazor renderizza i componenti in modo asincrono
+- I componenti complessi (Select, NumericField, CheckBox) richiedono più tempo
+- 150ms potrebbe essere insufficiente in scenari con molti campi
+- 300ms garantisce stabilità su tutti i browser e configurazioni
+
+**🔧 TROUBLESHOOTING FOCUS:**
+Se il focus NON funziona, verifica:
+1. ✅ Il campo ha `@ref="_firstField"` correttamente assegnato
+2. ✅ La variabile è dichiarata: `private MudTextField<string>? _firstField;`
+3. ✅ Il delay è di almeno 300ms (NON 150ms o meno)
+4. ✅ Il focus manuale è SEMPRE eseguito (non solo nel catch)
+5. ✅ Il dialog implementa `IDisposable` con cleanup JavaScript
+6. ✅ Controlla la console browser (F12) per vedere i log di debug
+7. ✅ Riavvia l'applicazione completamente (non solo hot-reload)
 
 **🌟 Campi Obbligatori - UX Best Practice:**
 1. **Asterisco rosso**: Usare `AdornmentText="*"` con colore rosso per indicare visivamente i campi obbligatori
@@ -368,9 +412,137 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
    - **ECCEZIONE**: Non applicare a campi Password o email case-sensitive
    - ⚠️ **NON usare lambda inline o Converter**: non forzano re-render corretto
 
-**Esempio completo di Dialog CRUD con TAB funzionante:**
+**Esempio completo di Dialog CRUD con Focus e TAB funzionanti:**
 
-Vedi file reali: `ProvinciaDialog.razor`, `CapoluogoDialog.razor` per esempi completi implementati.
+```razor
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Entità" : "Nuova Entità")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField @ref="_firstField"
+                          Value="@Entity.Nome"
+                          ValueChanged="@HandleNomeChanged"
+                          For="@(() => Entity.Nome)"
+                          Label="Nome"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="Il nome è obbligatorio"
+                          MaxLength="100"
+                          tabindex="1"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <MudTextField @bind-Value="Entity.Descrizione"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          MaxLength="500"
+                          tabindex="2"
+                          Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public MyEntity Entity { get; set; } = new MyEntity();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            // Focus manuale OBBLIGATORIO con delay 300ms
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                    Console.WriteLine("Focus applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private void HandleNomeChanged(string value)
+    {
+        Entity.Nome = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await HandleSubmit();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+        }
+    }
+}
+```
+
+**File reali da consultare:** `ComuneDialog.razor`, `ProvinciaDialog.razor`, `CapoluogoDialog.razor`
 
 **Esempio campo opzionale:**
 ```razor
