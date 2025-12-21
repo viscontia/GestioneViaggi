@@ -6,35 +6,23 @@
 @using MudBlazor
 @inject CountryService CountryService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedCountryId"
-           ValueChanged="@SelectedCountryIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           Placeholder="Seleziona un paese..."
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_countries != null)
-    {
-        <MudSelectItem T="int?" Value="@((int?)null)">-- Seleziona --</MudSelectItem>
-        @foreach (var country in _countries)
-        {
-            <MudSelectItem T="int?" Value="@country.Id">@country.Name</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="Country"
+                  Value="_selectedCountry"
+                  ValueChanged="OnCountryChanged"
+                  SearchFunc="SearchCountries"
+                  ToStringFunc="@(c => c?.Name)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Country>? _countries;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private Country? _selectedCountry;
 
     [Parameter]
     public int? SelectedCountryId { get; set; }
@@ -60,34 +48,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona il paese dall'elenco";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCountriesAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedCountry();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedCountry()
+    {
+        if (_countries == null) return;
+
+        if (SelectedCountryId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedCountry?.Id != SelectedCountryId.Value)
+            {
+                _selectedCountry = _countries.FirstOrDefault(c => c.Id == SelectedCountryId.Value);
+            }
+        }
+        else
+        {
+            _selectedCountry = null;
         }
     }
 
@@ -96,11 +86,29 @@
         try
         {
             _countries = await CountryService.GetAllOrderedByNameAsync();
+            UpdateSelectedCountry();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento paesi: {ex.Message}");
             _countries = new List<Country>();
         }
+    }
+
+    private async Task OnCountryChanged(Country country)
+    {
+        _selectedCountry = country;
+        await SelectedCountryIdChanged.InvokeAsync(country?.Id);
+    }
+
+    private async Task<IEnumerable<Country>> SearchCountries(string value, CancellationToken token)
+    {
+        if (_countries == null)
+            return Enumerable.Empty<Country>();
+
+        if (string.IsNullOrEmpty(value))
+            return _countries;
+
+        return _countries.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

@@ -20,17 +20,48 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Provincia"
-                        Items="@_items"
-                        Title="Gestione Province"
-                        SearchFunction="@Search"
-                        @bind-SelectedItem="_selectedItem"
-                        Breakpoint="Breakpoint.None">
+    <MudDataGrid T="Provincia"
+                 Items="@_items"
+                 Filterable="true"
+                 SortMode="SortMode.Multiple"
+                 Groupable="false"
+                 QuickFilter="@(x => Search(x, _searchString))"
+                 @bind-SelectedItem="_selectedItem"
+                 Breakpoint="Breakpoint.None">
+
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Gestione Province</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog"
+                       Class="ml-4">
+                Nuovo
+            </MudButton>
+        </ToolBarContent>
 
         <Columns>
-            <EnterpriseActionsColumn T="Provincia"
-                                     OnEdit="@OpenEditDialog"
-                                     OnDelete="@DeleteItem" />
+            <TemplateColumn CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                        <MudTooltip Text="Modifica">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => OpenEditDialog(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => DeleteItem(context.Item))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
 
             <PropertyColumn Property="x => x.Descrizione"
                             Title="Provincia" />
@@ -70,13 +101,14 @@ else
             <MudDataGridPager T="Provincia" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
         </PagerContent>
 
-    </EnterpriseDataGrid>
+    </MudDataGrid>
 }
 
 @code {
     private List<Provincia> _items = new();
     private Provincia? _selectedItem;
     private string _errorMessage = string.Empty;
+    private string _searchString = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,7 +208,7 @@ else
         {
             try
             {
-                await Service.UpdateAsync(updatedItem);
+                var updated = await Service.UpdateAsync(updatedItem);
                 await LoadDataAsync();
                 Snackbar.Add("Provincia aggiornata con successo", Severity.Success);
             }

@@ -6,33 +6,23 @@
 @using MudBlazor
 @inject RegioneService RegioneService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedRegioneId"
-           ValueChanged="@SelectedRegioneIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_regioni != null)
-    {
-        @foreach (var regione in _regioni)
-        {
-            <MudSelectItem T="int?" Value="@regione.Id">@regione.Descrizione</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="Regione"
+                  Value="_selectedRegione"
+                  ValueChanged="OnRegioneChanged"
+                  SearchFunc="SearchRegioni"
+                  ToStringFunc="@(r => r?.Descrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Regione>? _regioni;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private Regione? _selectedRegione;
 
     [Parameter]
     public int? SelectedRegioneId { get; set; }
@@ -58,34 +48,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la regione corretta dall'elenco";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadRegioniAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedRegione();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedRegione()
+    {
+        if (_regioni == null) return;
+
+        if (SelectedRegioneId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedRegione?.Id != SelectedRegioneId.Value)
+            {
+                _selectedRegione = _regioni.FirstOrDefault(r => r.Id == SelectedRegioneId.Value);
+            }
+        }
+        else
+        {
+            _selectedRegione = null;
         }
     }
 
@@ -94,11 +86,29 @@
         try
         {
             _regioni = await RegioneService.GetAllOrderedByDescrizioneAsync();
+            UpdateSelectedRegione();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento regioni: {ex.Message}");
             _regioni = new List<Regione>();
         }
+    }
+
+    private async Task OnRegioneChanged(Regione regione)
+    {
+        _selectedRegione = regione;
+        await SelectedRegioneIdChanged.InvokeAsync(regione?.Id);
+    }
+
+    private async Task<IEnumerable<Regione>> SearchRegioni(string value, CancellationToken token)
+    {
+        if (_regioni == null)
+            return Enumerable.Empty<Regione>();
+
+        if (string.IsNullOrEmpty(value))
+            return _regioni;
+
+        return _regioni.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

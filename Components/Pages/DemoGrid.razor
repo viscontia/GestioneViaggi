@@ -13,14 +13,40 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Country" 
-                        Items="@Elements" 
-                        Title="Gestione Nazioni"
-                        SearchFunction="@SearchCountry"
-                        @bind-SelectedItem="_selectedItem">
+    <MudDataGrid T="Country" 
+                 Items="@Elements" 
+                 Filterable="true"
+                 SortMode="SortMode.Multiple"
+                 Groupable="false"
+                 QuickFilter="@(x => SearchCountry(x, _searchString))"
+                 @bind-SelectedItem="_selectedItem">
         
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Gestione Nazioni</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+
         <Columns>
-            <EnterpriseActionsColumn T="Country" OnEdit="@EditCountry" OnDelete="@DeleteCountry" />
+            <TemplateColumn CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                        <MudTooltip Text="Modifica">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => EditCountry(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => DeleteCountry(context.Item))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
 
             <PropertyColumn Property="x => x.Id" Title="ID" />
             <PropertyColumn Property="x => x.Name" Title="Nazione" />
@@ -41,7 +67,7 @@ else
             </PropertyColumn>
         </Columns>
         
-    </EnterpriseDataGrid>
+    </MudDataGrid>
 }
 
 @code {
@@ -49,6 +75,7 @@ else
     private Country? _selectedItem;
     private string ErrorMessage = "";
     private string ErrorStack = "";
+    private string _searchString = string.Empty;
 
     protected override void OnInitialized()
     {

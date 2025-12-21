@@ -48,24 +48,28 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 *   **Funzionalità**: Wrapper di `MudDataGridPager` con testi pre-localizzati in Italiano ("Righe per pagina", record count).
 *   **Utilizzo**: Da inserire nel `PagerContent` della griglia.
 
-### CountrySelect
-Componente dropdown riutilizzabile per la selezione di paesi (`Components/Shared/CountrySelect.razor`).
+---
+
+## Componenti Select (Autocomplete)
+Tutti i componenti di selezione (Dropdown) sono stati migrati per utilizzare internamente `MudAutocomplete` tramite un componente base comune. Questo garantisce funzionalità di **Ricerca** e **Cancellazione** (Clear) uniformi in tutta l'applicazione.
+
+### BaseEntitySelect
+Componente base generico (`Components/Shared/BaseEntitySelect.razor`) che incapsula la logica di `MudAutocomplete`.
 *   **Funzionalità**:
-    *   Carica automaticamente tutti i paesi da `eba_countries` ordinati per nome (ASC).
-    *   Supporta binding bidirezionale con `@bind-SelectedCountryId`.
-    *   Item vuoto "-- Seleziona --" per gestione valori null.
-    *   Configurabile: Label, Required, RequiredError, Disabled, AutoFocus, Class, HelperText, Placeholder.
-    *   Mostra asterisco rosso se Required=true (classe `required-field`).
-*   **Parametri**:
-    *   `SelectedCountryId` (int?) - ID paese selezionato (binding)
-    *   `Label` (string) - Etichetta campo (default: "Paese")
-    *   `Required` (bool) - Campo obbligatorio (default: false)
-    *   `RequiredError` (string) - Messaggio errore (default: "Il paese è obbligatorio")
-    *   `Disabled` (bool) - Campo disabilitato (default: false)
-    *   `AutoFocus` (bool) - Focus automatico al render (default: false)
-    *   `Class` (string) - Classi CSS aggiuntive (default: "mb-3")
-    *   `HelperText` (string) - Testo helper (default: "Seleziona il paese dall'elenco")
-    *   `Placeholder` (string) - Placeholder (default: "Seleziona un paese...")
+    *   **Ricerca**: Permette di filtrare gli elementi digitando nel campo.
+    *   **Clear**: Include un pulsante "X" per pulire la selezione.
+    *   **Validazione**: Supporta `Required` e `RequiredError` con stile visuale standard (asterisco rosso).
+    *   **Auto-Focus**: Supporta il focus automatico al caricamento.
+*   **Parametri Chiave**:
+    *   `TItem`: Il tipo dell'entità (es. `Country`, `Regione`).
+    *   `SearchFunc`: Funzione di ricerca `Func<string, CancellationToken, Task<IEnumerable<TItem>>>`.
+    *   `ToStringFunc`: Funzione per visualizzare il testo dell'item.
+
+### CountrySelect
+Componente per la selezione di paesi (`Components/Shared/CountrySelect.razor`).
+*   **Funzionalità**:
+    *   Carica automaticamente i paesi da `eba_countries`.
+    *   Permette la ricerca per nome.
 *   **Utilizzo**:
     ```razor
     <CountrySelect SelectedCountryId="@(Entity.CountryIdFk == 0 ? null : Entity.CountryIdFk)"
@@ -74,33 +78,44 @@ Componente dropdown riutilizzabile per la selezione di paesi (`Components/Shared
                    AutoFocus="true"
                    RequiredError="Il paese è obbligatorio" />
     ```
-*   **Dipendenze**: Richiede `CountryService` registrato in `MauiProgram.cs`.
-*   **Best Practice**: Convertire valore 0 → null nel binding per evitare visualizzazione "0" iniziale.
 
 ### RegioneSelect
-Componente dropdown riutilizzabile per la selezione di regioni (`Components/Shared/RegioneSelect.razor`).
+Componente per la selezione di regioni (`Components/Shared/RegioneSelect.razor`).
 *   **Funzionalità**:
-    *   Carica automaticamente tutte le regioni da `ana_geo_regioni_ita` ordinate per descrizione (ASC).
-    *   Supporta binding bidirezionale con `@bind-SelectedRegioneId`.
-    *   Configurabile: Label, Required, RequiredError, Disabled, AutoFocus, Class, HelperText.
-    *   Mostra asterisco rosso se Required=true (classe `required-field`).
-*   **Parametri**:
-    *   `SelectedRegioneId` (int?) - ID regione selezionata (binding)
-    *   `Label` (string) - Etichetta campo (default: "Regione")
-    *   `Required` (bool) - Campo obbligatorio (default: false)
-    *   `RequiredError` (string) - Messaggio errore (default: "La regione è obbligatoria")
-    *   `Disabled` (bool) - Campo disabilitato (default: false)
-    *   `AutoFocus` (bool) - Focus automatico al render (default: false)
-    *   `Class` (string) - Classi CSS aggiuntive (default: "mb-3")
-    *   `HelperText` (string) - Testo helper (default: "Seleziona la regione corretta dall'elenco")
+    *   Carica le regioni da `ana_geo_regioni_ita`.
+    *   Permette la ricerca per descrizione.
 *   **Utilizzo**:
     ```razor
     <RegioneSelect @bind-SelectedRegioneId="@Entity.RegioneIdFk"
                    Required="true"
-                   RequiredError="La regione è obbligatoria"
-                   HelperText="Seleziona la regione amministrativa di riferimento." />
+                   HelperText="Seleziona la regione amministrativa." />
     ```
-*   **Dipendenze**: Richiede `RegioneService` registrato in `MauiProgram.cs`.
+
+### ProvinciaSelect
+Componente per la selezione di province (`Components/Shared/ProvinciaSelect.razor`).
+*   **Funzionalità**:
+    *   Carica le province da `ana_geo_province_ita`.
+    *   Supporta il filtro `FilterEsteroOnly` (bool?) per gestire la visualizzazione delle province estere:
+        *   `true`: Mostra **SOLO** le province che iniziano con "ESTERO".
+        *   `false`: Mostra **SOLO** le province che **NON** iniziano con "ESTERO" (default per comuni italiani).
+        *   `null` (default): Mostra **TUTTE** le province.
+*   **Utilizzo**:
+    ```razor
+    <ProvinciaSelect @bind-SelectedProvinciaId="@Entity.ProvinciaIdFk"
+                     Required="true"
+                     FilterEsteroOnly="@Entity.ComuneEstero" />
+    ```
+
+### Altri Componenti Select
+La libreria include componenti analoghi per tutte le entità geografiche:
+*   `CapoluogoSelect`
+*   `RipGeoSelect` (Ripartizione Geografica)
+*   `CountryRegionSelect` (Regione Geografica Mondiale)
+*   `CountrySubRegionSelect`
+*   `CountryIntermediateSelect`
+*   `CountryOrganizationSelect`
+
+---
 
 ## Stili CSS Avanzati
 Gli stili sono organizzati in file CSS specifici in `wwwroot/css/components/`.

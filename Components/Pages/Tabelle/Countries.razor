@@ -20,76 +20,78 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Country"
-                        Items="@_items"
-                        Title="Gestione Nazioni"
-                        SearchFunction="@Search"
-                        @bind-SelectedItem="_selectedItem"
-                        Breakpoint="Breakpoint.None">
+    <MudText Typo="Typo.body1" Class="mb-4">Debug Info: Items loaded: @_items?.Count</MudText>
 
-        <ToolBarActions>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog">
-                Nuovo
-            </MudButton>
-        </ToolBarActions>
+    @if (_items != null)
+    {
+        <MudDataGrid T="Country"
+                     Items="@_items"
+                     Filterable="true"
+                     SortMode="SortMode.Multiple"
+                     Groupable="false"
+                     QuickFilter="@_quickFilter"
+                     @bind-SelectedItem="_selectedItem"
+                     Breakpoint="Breakpoint.None"
+                     Elevation="1">
+            
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Gestione Nazioni</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchString" 
+                              Placeholder="Cerca..." 
+                              Adornment="Adornment.Start" 
+                              Immediate="true"
+                              AdornmentIcon="@Icons.Material.Filled.Search" 
+                              IconSize="Size.Medium" 
+                              Class="mt-0" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog"
+                           Class="ml-4">
+                    Nuovo
+                </MudButton>
+            </ToolBarContent>
 
-        <Columns>
-            <EnterpriseActionsColumn T="Country"
-                                     OnEdit="@OpenEditDialog"
-                                     OnDelete="@DeleteItem" />
+            <Columns>
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                            <MudTooltip Text="Modifica">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Size="Size.Small"
+                                               Color="Color.Default"
+                                               OnClick="@(() => OpenEditDialog(context.Item))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Elimina">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small"
+                                               Color="Color.Default"
+                                               OnClick="@(() => DeleteItem(context.Item))" />
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
 
-            <PropertyColumn Property="x => x.Name"
-                            Title="Nome Nazione" />
+                <PropertyColumn Property="x => x.Name" Title="Nome Nazione" />
+                <PropertyColumn Property="x => x.Nationality" Title="Nazionalità" />
+                <PropertyColumn Property="x => x.CountryCode" Title="Codice" HeaderClass="col-sm" />
+                <PropertyColumn Property="x => x.IsoAlpha2" Title="ISO" HeaderClass="col-sm" />
+                <PropertyColumn Property="x => x.Capital" Title="Capitale" />
+                <PropertyColumn Property="x => x.Population" Title="Popolazione" Format="N0" HeaderClass="col-lg justify-end" CellClass="col-lg" CellStyle="text-align: right;" />
+                <PropertyColumn Property="x => x.AreaKm2" Title="Area (kmq)" Format="N2" HeaderClass="col-lg justify-end" CellClass="col-lg" CellStyle="text-align: right;" />
+                <PropertyColumn Property="x => x.RegionName" Title="Regione" />
+                <PropertyColumn Property="x => x.SubRegionName" Title="Sotto-Regione" />
+                <PropertyColumn Property="x => x.IntermediateName" Title="Reg. Intermedia" />
+                <PropertyColumn Property="x => x.OrganizationName" Title="Organizzazione" />
+            </Columns>
 
-            <PropertyColumn Property="x => x.Nationality"
-                            Title="Nazionalità" />
+            <PagerContent>
+                <MudDataGridPager T="Country" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+            </PagerContent>
 
-            <PropertyColumn Property="x => x.CountryCode"
-                            Title="Codice"
-                            HeaderClass="col-sm" />
-
-            <PropertyColumn Property="x => x.IsoAlpha2"
-                            Title="ISO"
-                            HeaderClass="col-sm" />
-
-            <PropertyColumn Property="x => x.Capital"
-                            Title="Capitale" />
-
-            <PropertyColumn Property="x => x.Population"
-                            Title="Popolazione"
-                            Format="N0"
-                            HeaderClass="col-lg justify-end"
-                            CellClass="col-lg"
-                            CellStyle="text-align: right;" />
-
-            <PropertyColumn Property="x => x.AreaKm2"
-                            Title="Area (kmq)"
-                            Format="N2"
-                            HeaderClass="col-lg justify-end"
-                            CellClass="col-lg"
-                            CellStyle="text-align: right;" />
-
-            <PropertyColumn Property="x => x.RegionName"
-                            Title="Regione" />
-
-            <PropertyColumn Property="x => x.SubRegionName"
-                            Title="Sotto-Regione" />
-
-            <PropertyColumn Property="x => x.IntermediateName"
-                            Title="Reg. Intermedia" />
-
-            <PropertyColumn Property="x => x.OrganizationName"
-                            Title="Organizzazione" />
-        </Columns>
-
-        <PagerContent>
-            <MudDataGridPager T="Country" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-        </PagerContent>
-
-    </EnterpriseDataGrid>
+        </MudDataGrid>
+    }
 }
 
 @code {
@@ -97,10 +99,24 @@ else
     private Country? _selectedItem;
     private string _errorMessage = string.Empty;
 
+    private string _searchString = string.Empty;
+    private Func<Country, bool> _quickFilter => x => Search(x, _searchString);
+
     protected override async Task OnInitializedAsync()
     {
-        StatusBarService.SetCurrentTable("eba_countries");
-        await LoadDataAsync();
+        Console.WriteLine("Countries.OnInitializedAsync: Started");
+        try 
+        {
+            StatusBarService.SetCurrentTable("eba_countries");
+            Console.WriteLine("Countries.OnInitializedAsync: StatusBar set");
+            await LoadDataAsync();
+            Console.WriteLine("Countries.OnInitializedAsync: Data loaded");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Countries.OnInitializedAsync Error: {ex}");
+            _errorMessage = ex.Message;
+        }
     }
 
     public void Dispose()
@@ -112,11 +128,14 @@ else
     {
         try
         {
+            Console.WriteLine("Countries.LoadDataAsync: Calling Service");
             _errorMessage = string.Empty;
             _items = await Service.GetAllOrderedByNameAsync();
+            Console.WriteLine($"Countries.LoadDataAsync: Service returned {_items?.Count ?? 0} items");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Countries.LoadDataAsync Error: {ex}");
             _errorMessage = $"Errore durante il caricamento: {ex.Message}";
         }
     }

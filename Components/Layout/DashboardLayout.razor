@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@using MudBlazor
+@using GestioneViaggi.Components.Shared
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Navigation
 @using GestioneViaggi.Models
@@ -12,10 +14,13 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<MudPopoverProvider />
 
 <MudLayout>
     <MudAppBar>
         <MudText Typo="Typo.h6" Class="ml-3">Gestione Viaggi</MudText>
+        <MudSpacer />
+        <AppBreadcrumbs />
         <MudSpacer />
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
     </MudAppBar>
@@ -30,35 +35,57 @@
 
     <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 mb-4" Style="padding: 0 8px;">
-            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true"
-                     ActivePanelIndex="@TabManager.ActiveTabIndex"
-                     ActivePanelIndexChanged="@OnTabChanged"
-                     Class="mb-4">
+            <!-- Custom Tab Strip -->
+            <MudPaper Elevation="0" Class="d-flex flex-row align-center gap-2 mb-4 pa-2" Style="background-color: var(--mud-palette-background-grey); overflow-x: auto;">
                 @foreach (var tab in TabManager.ActiveTabs)
                 {
-                    <MudTabPanel BadgeData="@(tab.IsDirty ? "●" : null)" BadgeColor="Color.Warning">
-                        <TabWrapperContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                                @if (!string.IsNullOrEmpty(tab.Icon))
-                                {
-                                    <MudIcon Icon="@GetTabIcon(tab.Icon)" Size="Size.Small" />
-                                }
-                                <MudText>@tab.Title</MudText>
-                                @if (tab.IsCloseable)
-                                {
-                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                                   Size="Size.Small"
-                                                   OnClick="@(() => OnCloseTab(tab))"
-                                                   Style="margin-left: 4px;" />
-                                }
-                            </MudStack>
-                        </TabWrapperContent>
-                        <ChildContent>
-                            @Body
-                        </ChildContent>
-                    </MudTabPanel>
+                    var isActive = TabManager.ActiveTabs.ToList().IndexOf(tab) == TabManager.ActiveTabIndex;
+                    var color = isActive ? Color.Primary : Color.Default;
+                    var variant = isActive ? Variant.Filled : Variant.Text;
+
+                    <MudPaper Elevation="@(isActive ? 2 : 0)" Class="d-flex align-center pa-2 rounded-lg cursor-pointer" 
+                              Style="@(isActive ? "background-color: var(--mud-palette-primary); color: white;" : "background-color: white;")"
+                              @onclick="@(() => OnTabChanged(TabManager.ActiveTabs.ToList().IndexOf(tab)))">
+                        
+                        @if (!string.IsNullOrEmpty(tab.Icon))
+                        {
+                            <MudIcon Icon="@GetTabIcon(tab.Icon)" Size="Size.Small" Class="mr-2" />
+                        }
+                        
+                        <MudText Typo="Typo.body2" Style="white-space: nowrap;">@tab.Title</MudText>
+                        
+                        @if (tab.IsDirty)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Warning" Class="ml-2" Style="font-size: 10px;" />
+                        }
+
+                        @if (tab.IsCloseable)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           Size="Size.Small"
+                                           Color="@(isActive ? Color.Inherit : Color.Default)"
+                                           OnClick="@((e) => OnCloseTab(tab))"
+                                           Class="ml-1" />
+                        }
+                    </MudPaper>
                 }
-            </MudTabs>
+            </MudPaper>
+
+            <MudPaper Elevation="0" Class="pa-4" Style="background: transparent;">
+                <ErrorBoundary @ref="_errorBoundary">
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                    <ErrorContent Context="ex">
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                            <MudText Typo="Typo.h6">Errore Critico nel Componente</MudText>
+                            <MudText>@ex.GetType().Name: @ex.Message</MudText>
+                            <MudText Typo="Typo.body2" Class="mt-2">Stack Trace:</MudText>
+                            <pre style="white-space: pre-wrap; font-size: 0.75rem;">@ex.StackTrace</pre>
+                        </MudAlert>
+                    </ErrorContent>
+                </ErrorBoundary>
+            </MudPaper>
         </MudContainer>
     </MudMainContent>
 </MudLayout>
@@ -72,6 +99,12 @@
     private bool _isDisposing = false;
     private bool _isDarkMode = false;
     private MudThemeProvider? _mudThemeProvider;
+    private ErrorBoundary? _errorBoundary;
+
+    protected override void OnParametersSet()
+    {
+        _errorBoundary?.Recover();
+    }
 
     void DarkModeToggle()
     {

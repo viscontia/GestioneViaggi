@@ -6,33 +6,24 @@
 @using MudBlazor
 @inject ProvinciaService ProvinciaService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedProvinciaId"
-           ValueChanged="@SelectedProvinciaIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_province != null)
-    {
-        @foreach (var provincia in _province)
-        {
-            <MudSelectItem T="int?" Value="@provincia.Id">@provincia.Descrizione</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="Provincia"
+                  Value="_selectedProvincia"
+                  ValueChanged="OnProvinciaChanged"
+                  SearchFunc="SearchProvince"
+                  ToStringFunc="@(p => p?.Descrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
-    private List<Provincia>? _province;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private List<Provincia> _allProvince = new();
+    private List<Provincia> _filteredProvince = new();
+    private Provincia? _selectedProvincia;
 
     [Parameter]
     public int? SelectedProvinciaId { get; set; }
@@ -58,34 +49,42 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la provincia corretta dall'elenco";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter]
+    public bool? FilterEsteroOnly { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadProvinceAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        ApplyFilter();
+        UpdateSelectedProvincia();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedProvincia()
+    {
+        if (_filteredProvince == null) return;
+
+        if (SelectedProvinciaId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedProvincia?.Id != SelectedProvinciaId.Value)
+            {
+                // Search in all province because the selected one might not be in the filtered list (though it should be if logic is correct)
+                // But for display purposes, we need the object.
+                _selectedProvincia = _allProvince.FirstOrDefault(p => p.Id == SelectedProvinciaId.Value);
+            }
+        }
+        else
+        {
+            _selectedProvincia = null;
         }
     }
 
@@ -93,13 +92,54 @@
     {
         try
         {
-            // GetAllAsync già ordina per descrizione ASC
-            _province = await ProvinciaService.GetAllAsync();
+            _allProvince = await ProvinciaService.GetAllAsync();
+            ApplyFilter();
+            UpdateSelectedProvincia();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento province: {ex.Message}");
-            _province = new List<Provincia>();
+            _allProvince = new List<Provincia>();
+            _filteredProvince = new List<Provincia>();
         }
+    }
+
+    private void ApplyFilter()
+    {
+        if (_allProvince == null) return;
+
+        if (FilterEsteroOnly == true)
+        {
+            _filteredProvince = _allProvince
+                .Where(p => p.Descrizione != null && p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (FilterEsteroOnly == false)
+        {
+            _filteredProvince = _allProvince
+                .Where(p => p.Descrizione != null && !p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else
+        {
+            _filteredProvince = _allProvince.ToList();
+        }
+    }
+
+    private async Task OnProvinciaChanged(Provincia provincia)
+    {
+        _selectedProvincia = provincia;
+        await SelectedProvinciaIdChanged.InvokeAsync(provincia?.Id);
+    }
+
+    private async Task<IEnumerable<Provincia>> SearchProvince(string value, CancellationToken token)
+    {
+        if (_filteredProvince == null)
+            return Enumerable.Empty<Provincia>();
+
+        if (string.IsNullOrEmpty(value))
+            return _filteredProvince;
+
+        return _filteredProvince.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

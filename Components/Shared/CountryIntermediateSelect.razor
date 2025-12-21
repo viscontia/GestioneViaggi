@@ -4,37 +4,26 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using System.Threading
 @inject CountryIntermediateService CountryIntermediateService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedIntermediateId"
-           ValueChanged="@SelectedIntermediateIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           Placeholder="Seleziona regione intermedia..."
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_intermediates != null)
-    {
-        <MudSelectItem T="int?" Value="@((int?)null)">-- Seleziona --</MudSelectItem>
-        @foreach (var intermediate in _intermediates)
-        {
-            <MudSelectItem T="int?" Value="@intermediate.Id">@intermediate.Name</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="CountryIntermediate"
+                  Value="_selectedIntermediate"
+                  ValueChanged="OnIntermediateChanged"
+                  SearchFunc="SearchIntermediates"
+                  ToStringFunc="@(i => i?.Name)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<CountryIntermediate>? _intermediates;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private CountryIntermediate? _selectedIntermediate;
 
     [Parameter]
     public int? SelectedIntermediateId { get; set; }
@@ -60,34 +49,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la regione intermedia (es: Caribbean, Eastern Africa)";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadIntermediatesAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedIntermediate();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedIntermediate()
+    {
+        if (_intermediates == null) return;
+
+        if (SelectedIntermediateId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedIntermediate?.Id != SelectedIntermediateId.Value)
+            {
+                _selectedIntermediate = _intermediates.FirstOrDefault(i => i.Id == SelectedIntermediateId.Value);
+            }
+        }
+        else
+        {
+            _selectedIntermediate = null;
         }
     }
 
@@ -96,11 +87,29 @@
         try
         {
             _intermediates = await CountryIntermediateService.GetAllOrderedByNameAsync();
+            UpdateSelectedIntermediate();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento regioni intermedie: {ex.Message}");
             _intermediates = new List<CountryIntermediate>();
         }
+    }
+
+    private async Task OnIntermediateChanged(CountryIntermediate intermediate)
+    {
+        _selectedIntermediate = intermediate;
+        await SelectedIntermediateIdChanged.InvokeAsync(intermediate?.Id);
+    }
+
+    private async Task<IEnumerable<CountryIntermediate>> SearchIntermediates(string value, CancellationToken token)
+    {
+        if (_intermediates == null)
+            return Enumerable.Empty<CountryIntermediate>();
+
+        if (string.IsNullOrEmpty(value))
+            return _intermediates;
+
+        return _intermediates.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

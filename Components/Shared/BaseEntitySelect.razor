@@ -1,0 +1,62 @@
+@typeparam TItem
+@using MudBlazor
+@using System.Threading
+
+<MudAutocomplete T="TItem"
+                 Value="Value"
+                 ValueChanged="OnValueChanged"
+                 SearchFunc="SearchFunc"
+                 ToStringFunc="ToStringFunc"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Disabled="@Disabled"
+                 Class="@ComputedClass"
+                 HelperText="@HelperText"
+                 Clearable="true"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 CoerceValue="false"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 Strict="false"
+                 Dense="true"
+                 @ref="_autocompleteRef"
+                 @attributes="AdditionalAttributes" />
+
+@code {
+    private MudAutocomplete<TItem>? _autocompleteRef;
+    private bool _focusApplied;
+
+    [Parameter] public TItem? Value { get; set; }
+    [Parameter] public EventCallback<TItem?> ValueChanged { get; set; }
+    [Parameter] public Func<string, CancellationToken, Task<IEnumerable<TItem>>>? SearchFunc { get; set; }
+    [Parameter] public Func<TItem, string>? ToStringFunc { get; set; }
+
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public bool AutoFocus { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ComputedClass =>
+        Required ? $"{Class} required-field" : (Class ?? string.Empty);
+
+    private async Task OnValueChanged(TItem? value)
+    {
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus && _autocompleteRef != null)
+        {
+            await _autocompleteRef.FocusAsync();
+        }
+    }
+}

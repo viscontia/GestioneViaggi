@@ -4,35 +4,26 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using System.Threading
 @inject CapoluogoService CapoluogoService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedCapoluogoId"
-           ValueChanged="@SelectedCapoluogoIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_capoluoghi != null)
-    {
-        @foreach (var capoluogo in _capoluoghi)
-        {
-            <MudSelectItem T="int?" Value="@capoluogo.Id">@capoluogo.Descrizione</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="Capoluogo"
+                  Value="_selectedCapoluogo"
+                  ValueChanged="OnCapoluogoChanged"
+                  SearchFunc="SearchCapoluoghi"
+                  ToStringFunc="@(c => c?.Descrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Capoluogo>? _capoluoghi;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private Capoluogo? _selectedCapoluogo;
 
     [Parameter]
     public int? SelectedCapoluogoId { get; set; }
@@ -58,34 +49,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona il capoluogo corretto dall'elenco";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadCapoluoghiAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedCapoluogo();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedCapoluogo()
+    {
+        if (_capoluoghi == null) return;
+
+        if (SelectedCapoluogoId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedCapoluogo?.Id != SelectedCapoluogoId.Value)
+            {
+                _selectedCapoluogo = _capoluoghi.FirstOrDefault(c => c.Id == SelectedCapoluogoId.Value);
+            }
+        }
+        else
+        {
+            _selectedCapoluogo = null;
         }
     }
 
@@ -93,13 +86,30 @@
     {
         try
         {
-            // GetAllAsync già ordina per descrizione ASC
             _capoluoghi = await CapoluogoService.GetAllAsync();
+            UpdateSelectedCapoluogo();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento capoluoghi: {ex.Message}");
             _capoluoghi = new List<Capoluogo>();
         }
+    }
+
+    private async Task OnCapoluogoChanged(Capoluogo capoluogo)
+    {
+        _selectedCapoluogo = capoluogo;
+        await SelectedCapoluogoIdChanged.InvokeAsync(capoluogo?.Id);
+    }
+
+    private async Task<IEnumerable<Capoluogo>> SearchCapoluoghi(string value, CancellationToken token)
+    {
+        if (_capoluoghi == null)
+            return Enumerable.Empty<Capoluogo>();
+
+        if (string.IsNullOrEmpty(value))
+            return _capoluoghi;
+
+        return _capoluoghi.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

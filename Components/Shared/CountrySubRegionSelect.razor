@@ -4,37 +4,26 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using System.Threading
 @inject CountrySubRegionService CountrySubRegionService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedSubRegionId"
-           ValueChanged="@SelectedSubRegionIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           Placeholder="Seleziona una sotto-regione..."
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_subRegions != null)
-    {
-        <MudSelectItem T="int?" Value="@((int?)null)">-- Seleziona --</MudSelectItem>
-        @foreach (var subRegion in _subRegions)
-        {
-            <MudSelectItem T="int?" Value="@subRegion.Id">@subRegion.Name</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="CountrySubRegion"
+                  Value="_selectedSubRegion"
+                  ValueChanged="OnSubRegionChanged"
+                  SearchFunc="SearchSubRegions"
+                  ToStringFunc="@(s => s?.Name)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<CountrySubRegion>? _subRegions;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private CountrySubRegion? _selectedSubRegion;
 
     [Parameter]
     public int? SelectedSubRegionId { get; set; }
@@ -60,34 +49,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la sotto-regione (es: Eastern Europe, Central Asia)";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadSubRegionsAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedSubRegion();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedSubRegion()
+    {
+        if (_subRegions == null) return;
+
+        if (SelectedSubRegionId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedSubRegion?.Id != SelectedSubRegionId.Value)
+            {
+                _selectedSubRegion = _subRegions.FirstOrDefault(s => s.Id == SelectedSubRegionId.Value);
+            }
+        }
+        else
+        {
+            _selectedSubRegion = null;
         }
     }
 
@@ -96,11 +87,29 @@
         try
         {
             _subRegions = await CountrySubRegionService.GetAllOrderedByNameAsync();
+            UpdateSelectedSubRegion();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento sotto-regioni: {ex.Message}");
             _subRegions = new List<CountrySubRegion>();
         }
+    }
+
+    private async Task OnSubRegionChanged(CountrySubRegion subRegion)
+    {
+        _selectedSubRegion = subRegion;
+        await SelectedSubRegionIdChanged.InvokeAsync(subRegion?.Id);
+    }
+
+    private async Task<IEnumerable<CountrySubRegion>> SearchSubRegions(string value, CancellationToken token)
+    {
+        if (_subRegions == null)
+            return Enumerable.Empty<CountrySubRegion>();
+
+        if (string.IsNullOrEmpty(value))
+            return _subRegions;
+
+        return _subRegions.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

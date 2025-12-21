@@ -167,11 +167,21 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
-                // Fallback: focus manuale
-                if (_firstField != null)
+            }
+
+            // ⚠️ OBBLIGATORIO: Focus manuale sul primo campo (sempre eseguito)
+            // Delay di 300ms per permettere rendering completo di MudBlazor
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
                 {
-                    await Task.Delay(150);
                     await _firstField.FocusAsync();
+                    Console.WriteLine("Focus manuale applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus manuale: {ex.Message}");
                 }
             }
         }

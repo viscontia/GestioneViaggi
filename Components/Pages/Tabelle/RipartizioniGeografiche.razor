@@ -20,38 +20,59 @@
 }
 else
 {
-    <EnterpriseDataGrid T="RipartizioneGeografica"
-                        Items="@_items"
-                        Title="Gestione Ripartizioni Geografiche"
-                        SearchFunction="@Search"
-                        @bind-SelectedItem="_selectedItem">
+    <MudDataGrid T="RipartizioneGeografica"
+                 Items="@_items"
+                 Filterable="true"
+                 SortMode="SortMode.Multiple"
+                 Groupable="false"
+                 QuickFilter="@(x => Search(x, _searchString))"
+                 @bind-SelectedItem="_selectedItem">
 
         <ToolBarContent>
-            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Ripartizioni Geografiche</MudText>
+            <MudText Typo="Typo.h6">Gestione Ripartizioni Geografiche</MudText>
             <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog">
+                       OnClick="@OpenCreateDialog"
+                       Class="ml-4">
                 Nuovo
             </MudButton>
         </ToolBarContent>
 
         <Columns>
-            <EnterpriseActionsColumn T="RipartizioneGeografica"
-                                     OnEdit="@OpenEditDialog"
-                                     OnDelete="@DeleteItem" />
+            <TemplateColumn CellClass="d-flex justify-end">
+                <CellTemplate>
+                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                        <MudTooltip Text="Modifica">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => OpenEditDialog(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="@(() => DeleteItem(context.Item))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
 
             <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
         </Columns>
 
-    </EnterpriseDataGrid>
+    </MudDataGrid>
 }
 
 @code {
     private List<RipartizioneGeografica> _items = new();
     private RipartizioneGeografica? _selectedItem;
     private string _errorMessage = string.Empty;
+    private string _searchString = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {

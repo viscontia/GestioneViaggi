@@ -4,35 +4,26 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using System.Threading
 @inject RipartizioneGeograficaService RipGeoService
 
-<MudSelect T="int?"
-           @ref="_selectRef"
-           Value="@SelectedRipGeoId"
-           ValueChanged="@SelectedRipGeoIdChanged"
-           Label="@Label"
-           Variant="Variant.Outlined"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Disabled="@Disabled"
-           Class="@ComputedClass"
-           HelperText="@HelperText"
-           OpenIcon="@Icons.Material.Filled.ArrowDropDown"
-           CloseIcon="@Icons.Material.Filled.ArrowDropDown"
-           @attributes="AdditionalAttributes">
-    @if (_ripartizioni != null)
-    {
-        @foreach (var ripgeo in _ripartizioni)
-        {
-            <MudSelectItem T="int?" Value="@ripgeo.Id">@ripgeo.Descrizione</MudSelectItem>
-        }
-    }
-</MudSelect>
+<BaseEntitySelect TItem="RipartizioneGeografica"
+                  Value="_selectedRipGeo"
+                  ValueChanged="OnRipGeoChanged"
+                  SearchFunc="SearchRipartizioni"
+                  ToStringFunc="@(r => r?.Descrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<RipartizioneGeografica>? _ripartizioni;
-    private MudSelect<int?>? _selectRef;
-    private bool _focusApplied;
+    private RipartizioneGeografica? _selectedRipGeo;
 
     [Parameter]
     public int? SelectedRipGeoId { get; set; }
@@ -58,34 +49,36 @@
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la ripartizione geografica corretta dall'elenco";
 
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    private string ComputedClass
-    {
-        get
-        {
-            var baseClass = string.IsNullOrWhiteSpace(Class) ? string.Empty : Class;
-            return Required ? string.Join(' ', new[] { baseClass, "required-field" }.Where(x => !string.IsNullOrWhiteSpace(x))) : baseClass;
-        }
-    }
-
     [Parameter]
     public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         await LoadRipartizioniAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnParametersSet()
     {
-        await base.OnAfterRenderAsync(firstRender);
+        UpdateSelectedRipGeo();
+    }
 
-        if (!_focusApplied && AutoFocus && _selectRef is not null)
+    private void UpdateSelectedRipGeo()
+    {
+        if (_ripartizioni == null) return;
+
+        if (SelectedRipGeoId.HasValue)
         {
-            _focusApplied = true;
-            await _selectRef.FocusAsync();
+            if (_selectedRipGeo?.Id != SelectedRipGeoId.Value)
+            {
+                _selectedRipGeo = _ripartizioni.FirstOrDefault(r => r.Id == SelectedRipGeoId.Value);
+            }
+        }
+        else
+        {
+            _selectedRipGeo = null;
         }
     }
 
@@ -93,13 +86,30 @@
     {
         try
         {
-            // GetAllAsync già ordina per descrizione ASC
             _ripartizioni = await RipGeoService.GetAllAsync();
+            UpdateSelectedRipGeo();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Errore caricamento ripartizioni geografiche: {ex.Message}");
             _ripartizioni = new List<RipartizioneGeografica>();
         }
+    }
+
+    private async Task OnRipGeoChanged(RipartizioneGeografica ripGeo)
+    {
+        _selectedRipGeo = ripGeo;
+        await SelectedRipGeoIdChanged.InvokeAsync(ripGeo?.Id);
+    }
+
+    private async Task<IEnumerable<RipartizioneGeografica>> SearchRipartizioni(string value, CancellationToken token)
+    {
+        if (_ripartizioni == null)
+            return Enumerable.Empty<RipartizioneGeografica>();
+
+        if (string.IsNullOrEmpty(value))
+            return _ripartizioni;
+
+        return _ripartizioni.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }
