@@ -77,6 +77,8 @@ public static class MauiProgram
         builder.Services.AddScoped<TipoAlloggioService>();
         builder.Services.AddScoped<TipoPernottamentoService>();
         builder.Services.AddScoped<TipoMezzoService>();
+        builder.Services.AddScoped<MarcaVeicoloService>();
+        builder.Services.AddScoped<MezzoModelloService>();
 
         builder.Services.AddMauiBlazorWebView();
 

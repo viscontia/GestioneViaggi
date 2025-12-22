@@ -1,0 +1,177 @@
+@page "/tabelle/marche-veicoli"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject MarcaVeicoloService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="MarcaVeicolo"
+                        Items="@_items"
+                        Title="Gestione Marche Veicoli"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+
+            <EnterpriseActionsColumn T="MarcaVeicolo"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<MarcaVeicolo> _items = new();
+    private MarcaVeicolo? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_mezzi");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = (await Service.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(MarcaVeicolo item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<MarcaVeicoloDialog>
+        {
+            { x => x.Entity, new MarcaVeicolo() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<MarcaVeicoloDialog>("Nuova Marca Veicolo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is MarcaVeicolo newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                _items.Add(created);
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(MarcaVeicolo item)
+    {
+        var itemClone = new MarcaVeicolo
+        {
+            Id = item.Id,
+            Descrizione = item.Descrizione
+        };
+
+        var parameters = new DialogParameters<MarcaVeicoloDialog>
+        {
+            { x => x.Entity, itemClone },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<MarcaVeicoloDialog>("Modifica Marca Veicolo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is MarcaVeicolo updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                var index = _items.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _items[index] = updated;
+                }
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'aggiornamento: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(MarcaVeicolo item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Sei sicuro di voler eliminare la marca veicolo '{item.Descrizione}'?" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma Eliminazione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                await Service.DeleteAsync(item.Id);
+                _items.Remove(item);
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

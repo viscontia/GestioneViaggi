@@ -709,6 +709,7 @@ _gridHelper = new DataGridHelper<T>(
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
 @using MudBlazor
 @inject NomeEntitaService Service
 @inject IDialogService DialogService
@@ -942,6 +943,7 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
 - Hover effects (Edit: giallo, Delete: rosso)
 - Typography: Headers 12px uppercase, Celle 14px
 - Striping e dense mode disabilitati per controllo CSS completo
+- **Paginazione Automatica**: Pager integrato in basso a destra con testi in italiano ("Righe per pagina", "{first}-{last} di {total}")
 
 ---
 
@@ -957,16 +959,14 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
                     SearchFunction="@Search"
                     @bind-SelectedItem="_selectedItem">
 
-    <ToolBarContent>
-        <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nome Entità</MudText>
-        <MudSpacer />
+    <ToolBarActions>
         <MudButton Variant="Variant.Filled"
                    Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    OnClick="@OpenCreateDialog">
             Nuovo
         </MudButton>
-    </ToolBarContent>
+    </ToolBarActions>
 
     <Columns>
         ...
@@ -975,9 +975,8 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
 ```
 
 ### Componenti Necessari:
-1. **`<MudText Typo="Typo.h5" Class="enterprise-grid-title">`** - Titolo visibile (H5, semi-bold)
-2. **`<MudSpacer />`** - Spazio flessibile tra titolo e pulsante
-3. **Pulsante "Nuovo"** - Allineato a destra
+1. **Parametro `Title`**: Passare la stringa descrittiva direttamente al componente (es: `Title="Gestione Nazioni"`). Il componente si occuperà di renderizzarlo con lo stile corretto (H5, semi-bold).
+2. **`<ToolBarActions>`**: Usare questo RenderFragment per i pulsanti (es: "Nuovo"). Verranno posizionati automaticamente a destra della barra di ricerca.
 
 ### Esempi:
 - `Gestione Nazioni` - per tabella Countries
@@ -993,9 +992,8 @@ Il componente `EnterpriseDataGrid` applica automaticamente:
 - ✅ Colori: Light `#111827`, Dark `#E6E8EB`
 
 **⚠️ IMPORTANTE**:
-- Il titolo viene inserito **manualmente** nel `<ToolBarContent>`, non viene generato automaticamente
-- Il parametro `Title` dell'EnterpriseDataGrid è ancora presente ma viene usato per altri scopi interni
-- Il testo deve essere user-friendly, NON il nome tecnico della tabella DB
+- Il titolo viene gestito internamente dal componente `EnterpriseGridToolbar`.
+- Il testo deve essere user-friendly, NON il nome tecnico della tabella DB.
 
 ---
 

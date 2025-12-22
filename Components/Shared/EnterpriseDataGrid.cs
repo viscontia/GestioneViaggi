@@ -32,8 +32,19 @@ namespace GestioneViaggi.Components.Shared
             // Toolbar
             ToolBarContent = BuildToolbar;
 
+            // Pager
+            PagerContent = BuildPager;
+
             // Filter
             QuickFilter = QuickFilterFunc;
+        }
+
+        private void BuildPager(RenderTreeBuilder builder)
+        {
+            builder.OpenComponent<MudDataGridPager<T>>(0);
+            builder.AddAttribute(1, nameof(MudDataGridPager<T>.RowsPerPageString), "Righe per pagina:");
+            builder.AddAttribute(2, nameof(MudDataGridPager<T>.InfoFormat), "{first_item}-{last_item} di {all_items}");
+            builder.CloseComponent();
         }
 
         private bool QuickFilterFunc(T item)

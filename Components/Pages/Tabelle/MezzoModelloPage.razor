@@ -1,0 +1,150 @@
+@page "/tabelle/mezzi-modelli"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject MezzoModelloService MezzoModelloService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+
+<EnterpriseDataGrid T="MezzoModello"
+                    Title="Gestione Modelli Veicoli"
+                    Items="@_items"
+                    SearchFunction="@SearchFunc"
+                    @bind-SelectedItem="_selectedItem">
+
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenCreateDialog">
+            Nuovo Modello
+        </MudButton>
+    </ToolBarActions>
+
+    <Columns>
+        <PropertyColumn Property="x => x.TipoMezzoDescrizione" Title="Tipo Mezzo" Sortable="true" />
+        <PropertyColumn Property="x => x.MarcaDescrizione" Title="Marca" Sortable="true" />
+        <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" Sortable="true" />
+        <EnterpriseActionsColumn T="MezzoModello" OnEdit="@OpenEditDialog" OnDelete="@DeleteAsync" />
+    </Columns>
+
+</EnterpriseDataGrid>
+
+@code {
+    private MezzoModello? _selectedItem;
+    private List<MezzoModello> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_mezzi_modelli");
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _items = await MezzoModelloService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool SearchFunc(MezzoModello item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        return (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (item.MarcaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+               (item.TipoMezzoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Nuovo Modello", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is MezzoModello newItem)
+        {
+            try
+            {
+                await MezzoModelloService.CreateAsync(newItem);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(MezzoModello item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Entity", new MezzoModello
+                {
+                    Id = item.Id,
+                    Descrizione = item.Descrizione,
+                    MarcaIdFk = item.MarcaIdFk,
+                    TipoMezzoIdFk = item.TipoMezzoIdFk,
+                    // Passiamo anche le descrizioni per coerenza visiva se servissero nel dialog (anche se non usate direttamente)
+                    MarcaDescrizione = item.MarcaDescrizione,
+                    TipoMezzoDescrizione = item.TipoMezzoDescrizione
+                }
+            },
+            { "IsEditMode", true }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Modifica Modello", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is MezzoModello updatedItem)
+        {
+            try
+            {
+                await MezzoModelloService.UpdateAsync(updatedItem);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'aggiornamento: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteAsync(MezzoModello item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Sei sicuro di voler eliminare il modello '{item.Descrizione}'?",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await MezzoModelloService.DeleteAsync(item.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Operazione completata con successo.", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

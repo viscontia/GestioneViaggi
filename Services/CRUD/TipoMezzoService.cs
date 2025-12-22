@@ -15,6 +15,31 @@ public class TipoMezzoService : BaseCrudService<TipoMezzo>
     {
     }
 
+    public override async Task<List<TipoMezzo>> GetAllAsync()
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM ana_tipo_mezzi ORDER BY ana_tipo_mezzo_descrizione";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            await using var reader = await command.ExecuteReaderAsync();
+
+            var items = new List<TipoMezzo>();
+            while (await reader.ReadAsync())
+            {
+                items.Add(MapFromReader(reader));
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero di tutti gli elementi da {TableName}", TableName);
+            throw;
+        }
+    }
+
     public override async Task<TipoMezzo> CreateAsync(TipoMezzo entity)
     {
         try
