@@ -1,0 +1,129 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Tipo Alloggio" : "Nuovo Tipo Alloggio")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField T="string"
+                          @ref="_firstField"
+                          Value="@Entity.Descrizione"
+                          ValueChanged="@((string val) => HandleDescrizioneChanged(val))"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="100"
+                          tabindex="1"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <MudNumericField @bind-Value="Entity.NumeroOccupanti"
+                             For="@(() => Entity.NumeroOccupanti)"
+                             Label="Numero Occupanti (0-6)"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Max="6"
+                             tabindex="2"
+                             Class="mb-3" />
+
+            <MudCheckBox @bind-Value="Entity.Supplemento"
+                         Label="Supplemento"
+                         Color="Color.Primary"
+                         tabindex="3"
+                         Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public TipoAlloggio Entity { get; set; } = new TipoAlloggio();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private void HandleDescrizioneChanged(string value)
+    {
+        Entity.Descrizione = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await HandleSubmit();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+        }
+    }
+}

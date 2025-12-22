@@ -1,0 +1,176 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Tipo Viaggio" : "Nuovo Tipo Viaggio")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- TIPO: Obbligatorio, Max 6 chars -->
+            <MudTextField T="string" @ref="_firstField"
+                          Value="@Entity.Tipo"
+                          ValueChanged="@((string val) => HandleTipoChanged(val))"
+                          For="@(() => Entity.Tipo)"
+                          Label="Tipo"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="Il tipo è obbligatorio"
+                          MaxLength="6"
+                          tabindex="1"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          OnBlur="@(() => HandleFieldBlur(_firstField))"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- DESCRIZIONE: Obbligatorio, Max 100 chars -->
+            <MudTextField T="string"
+                          Value="@Entity.Descrizione"
+                          ValueChanged="@((string val) => HandleDescrizioneChanged(val))"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="100"
+                          tabindex="2"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public TipoViaggio Entity { get; set; } = new TipoViaggio();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            // ⚠️ OBBLIGATORIO: Focus manuale sul primo campo (sempre eseguito)
+            // Delay di 300ms per permettere rendering completo di MudBlazor
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                    Console.WriteLine("Focus manuale applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus manuale: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void HandleTipoChanged(string value)
+    {
+        Entity.Tipo = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleDescrizioneChanged(string value)
+    {
+        Entity.Descrizione = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleFieldBlur(MudTextField<string>? field)
+    {
+        if (field != null)
+        {
+            await field.Validate();
+            if (field.Error)
+            {
+                // Delay per permettere al click su "Annulla" di essere processato prima del focus back
+                await Task.Delay(150);
+                try
+                {
+                    await field.FocusAsync();
+                }
+                catch
+                {
+                    // Ignora errori se il dialog è stato chiuso
+                }
+            }
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_firstField?.Error == true)
+                {
+                    await _firstField.FocusAsync();
+                }
+            }
+        }
+    }
+}

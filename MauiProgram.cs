@@ -71,6 +71,12 @@ public static class MauiProgram
         builder.Services.AddScoped<RegioneService>();
         builder.Services.AddScoped<ProvinciaService>();
         builder.Services.AddScoped<ComuneService>();
+        builder.Services.AddScoped<TipoViaggioService>();
+        builder.Services.AddScoped<TipoPartecipanteService>();
+        builder.Services.AddScoped<TipoTrattamentoService>();
+        builder.Services.AddScoped<TipoAlloggioService>();
+        builder.Services.AddScoped<TipoPernottamentoService>();
+        builder.Services.AddScoped<TipoMezzoService>();
 
         builder.Services.AddMauiBlazorWebView();
 

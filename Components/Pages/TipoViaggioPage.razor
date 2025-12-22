@@ -1,0 +1,199 @@
+@page "/tabelle/tipologie-viaggio"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject TipoViaggioService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="TipoViaggio"
+                        Items="@_items"
+                        Title="Gestione Tipologie Viaggio"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Tipo" Title="Tipo"
+                            HeaderStyle="min-width: 80px; text-align: center;"
+                            CellStyle="min-width: 80px; text-align: center;" />
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" 
+                            HeaderStyle="min-width: 200px;"
+                            CellStyle="min-width: 200px;" />
+
+            <EnterpriseActionsColumn T="TipoViaggio"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<TipoViaggio> _items = new();
+    private TipoViaggio? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_tipo_viaggi");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = (await Service.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(TipoViaggio item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Tipo?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TipoViaggioDialog>
+        {
+            { x => x.Entity, new TipoViaggio() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<TipoViaggioDialog>("Nuovo Tipo Viaggio", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoViaggio newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                _items.Add(created);
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(TipoViaggio item)
+    {
+        var parameters = new DialogParameters<TipoViaggioDialog>
+        {
+            { x => x.Entity, new TipoViaggio { Id = item.Id, Tipo = item.Tipo, Descrizione = item.Descrizione } },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<TipoViaggioDialog>("Modifica Tipo Viaggio", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoViaggio updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                var index = _items.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _items[index] = updated;
+                }
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(TipoViaggio item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Tipo})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

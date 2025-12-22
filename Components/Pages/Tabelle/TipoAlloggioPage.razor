@@ -1,0 +1,206 @@
+@page "/tabelle/tipologie-alloggi"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@using GestioneViaggi.Components.Shared
+@inject TipoAlloggioService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="TipoAlloggio"
+                        Items="@_items"
+                        Title="Gestione Tipologie Alloggio"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+            
+            <PropertyColumn Property="x => x.NumeroOccupanti" Title="N. Occupanti" HeaderStyle="text-align: right; justify-content: end; min-width: 120px;" CellStyle="text-align: right; justify-content: end; min-width: 120px;" />
+
+            <TemplateColumn Title="Supplemento" SortBy="x => x.Supplemento">
+                <CellTemplate>
+                    <MudCheckBox Value="@context.Item.Supplemento" ReadOnly="true" Color="Color.Primary" Dense="true" />
+                </CellTemplate>
+            </TemplateColumn>
+
+            <EnterpriseActionsColumn T="TipoAlloggio"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<TipoAlloggio> _items = new();
+    private TipoAlloggio? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_tipo_alloggio");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(TipoAlloggio item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TipoAlloggioDialog>
+        {
+            { x => x.Entity, new TipoAlloggio() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<TipoAlloggioDialog>("Nuovo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoAlloggio newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                _items.Add(created);
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(TipoAlloggio item)
+    {
+        var parameters = new DialogParameters<TipoAlloggioDialog>
+        {
+            { x => x.Entity, new TipoAlloggio {
+                Id = item.Id,
+                Descrizione = item.Descrizione,
+                NumeroOccupanti = item.NumeroOccupanti,
+                SupplementoDb = item.SupplementoDb
+            } },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<TipoAlloggioDialog>("Modifica", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoAlloggio updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                var index = _items.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _items[index] = updated;
+                }
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(TipoAlloggio item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

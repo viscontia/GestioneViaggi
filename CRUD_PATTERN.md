@@ -732,16 +732,14 @@ else
                         SearchFunction="@Search"
                         @bind-SelectedItem="_selectedItem">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h5" Class="enterprise-grid-title">Gestione Nome Tabella</MudText>
-            <MudSpacer />
+        <ToolBarActions>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
                 Nuovo
             </MudButton>
-        </ToolBarContent>
+        </ToolBarActions>
 
         <Columns>
             <PropertyColumn Property="x => x.Campo1" Title="Campo 1" />
