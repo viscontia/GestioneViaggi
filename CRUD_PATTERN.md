@@ -139,6 +139,89 @@ public class NomeEntitaService : BaseCrudService<NomeEntita>
 }
 ```
 
+## 🔢 Step 2.1: Gestione Sequence e Auto-Increment (PostgreSQL)
+
+**⚠️ CRITICO:** In PostgreSQL, l'auto-increment è gestito tramite **Sequence**.
+Spesso, specialmente dopo importazioni dati o creazioni manuali di tabelle, la sequence potrebbe mancare o non essere sincronizzata con l'ID massimo, causando errori `42P01` (undefined table/sequence) o `23505` (duplicate key).
+
+**✅ Soluzione Standard (Self-Healing Pattern):**
+Il Service deve essere in grado di "auto-ripararsi" se la sequence manca.
+
+**Implementazione nel Service (`CreateAsync`):**
+
+```csharp
+    public override async Task<NomeEntita> CreateAsync(NomeEntita entity)
+    {
+        // Wrapper per gestire il retry
+        return await CreateAsyncInternal(entity, true);
+    }
+
+    private async Task<NomeEntita> CreateAsyncInternal(NomeEntita entity, bool allowRetry)
+    {
+        try
+        {
+            // ... codice standard di insert ...
+            // INSERT INTO ... RETURNING ...
+        }
+        catch (PostgresException ex) when (allowRetry && ex.SqlState == "42P01" && ex.Message.Contains("nome_tabella_seq"))
+        {
+            _logger.LogWarning(ex, "Sequence mancante. Tentativo di auto-fix.");
+            await FixSequenceAsync();
+            return await CreateAsyncInternal(entity, false); // Retry
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore creazione");
+            throw;
+        }
+    }
+
+    private async Task FixSequenceAsync()
+    {
+        try 
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                DO $$
+                BEGIN
+                    -- 1. Crea la sequence se non esiste
+                    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'nome_tabella_seq') THEN
+                        CREATE SEQUENCE nome_tabella_seq;
+                    END IF;
+
+                    -- 2. Imposta il default della colonna ID
+                    ALTER TABLE nome_tabella 
+                    ALTER COLUMN id_column_db SET DEFAULT nextval('nome_tabella_seq');
+
+                    -- 3. Sincronizza con il MAX ID attuale
+                    PERFORM setval('nome_tabella_seq', COALESCE((SELECT MAX(id_column_db) FROM nome_tabella), 0) + 1, false);
+                END $$;";
+                
+            await using var command = new NpgsqlCommand(sql, connection);
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il fix della sequence");
+            throw;
+        }
+    }
+```
+
+**Verifica Manuale SQL:**
+È buona norma creare anche uno script SQL di fix nella cartella `SqlScripts/` (es. `12_Fix_NomeTabella_Sequence.sql`):
+```sql
+-- Fix sequence for nome_tabella
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'nome_tabella_seq') THEN
+        CREATE SEQUENCE nome_tabella_seq;
+    END IF;
+    ALTER TABLE nome_tabella ALTER COLUMN id_column_db SET DEFAULT nextval('nome_tabella_seq');
+    PERFORM setval('nome_tabella_seq', COALESCE((SELECT MAX(id_column_db) FROM nome_tabella), 0) + 1, false);
+END $$;
+```
+
 **Helper methods disponibili:**
 - `ReadInt(reader, "columnName")` - legge un int
 - `ReadNullableString(reader, "columnName")` - legge una stringa nullable
