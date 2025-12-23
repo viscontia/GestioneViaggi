@@ -13,7 +13,8 @@ public class Comune : BaseEntity, IValidatableObject
     [StringLength(100, ErrorMessage = "Il nome del comune non può superare i 100 caratteri")]
     public string Nome { get; set; } = string.Empty;
 
-    [StringLength(10, ErrorMessage = "Il codice ISTAT non può superare i 10 caratteri")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Il codice ISTAT deve essere di esattamente 6 cifre")]
+    [RegularExpression(@"^\d{6}$", ErrorMessage = "Il codice ISTAT deve contenere solo cifre numeriche")]
     public string? CodIstat { get; set; }
 
     [StringLength(5, ErrorMessage = "Il prefisso telefonico non può superare i 5 caratteri")]
@@ -26,6 +27,8 @@ public class Comune : BaseEntity, IValidatableObject
     [StringLength(4, ErrorMessage = "Il codice fiscale non può superare i 4 caratteri")]
     public string? CodFiscale { get; set; }
 
+    [Required(ErrorMessage = "Il numero di abitanti è obbligatorio")]
+    [Range(10, int.MaxValue, ErrorMessage = "Il numero di abitanti deve essere almeno 10.")]
     public int? NumAbitanti { get; set; }
 
     [StringLength(200, ErrorMessage = "Il link non può superare i 200 caratteri")]
@@ -109,8 +112,30 @@ public class Comune : BaseEntity, IValidatableObject
             if (string.IsNullOrWhiteSpace(CodFiscale))
             {
                 results.Add(new ValidationResult(
-                    "Il codice fiscale è obbligatorio per i comuni italiani",
+                    "Il codice catasto (Belfiore) è obbligatorio per i comuni italiani",
                     new[] { nameof(CodFiscale) }
+                ));
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(CodFiscale, @"^[A-Z][0-9]{3}$"))
+            {
+                 results.Add(new ValidationResult(
+                    "Il codice deve essere di 4 caratteri: 1 lettera e 3 numeri (es. H501)",
+                    new[] { nameof(CodFiscale) }
+                ));
+            }
+
+            if (string.IsNullOrWhiteSpace(PrefTel))
+            {
+                results.Add(new ValidationResult(
+                    "Il prefisso telefonico è obbligatorio per i comuni italiani",
+                    new[] { nameof(PrefTel) }
+                ));
+            }
+            else if (!System.Text.RegularExpressions.Regex.IsMatch(PrefTel, @"^0\d{1,3}$"))
+            {
+                results.Add(new ValidationResult(
+                    "Il prefisso deve essere di 2-4 cifre e iniziare con 0 (es. 02, 06, 055, 0332)",
+                    new[] { nameof(PrefTel) }
                 ));
             }
         }

@@ -99,3 +99,7 @@ h1:focus {
         padding-left: env(safe-area-inset-left);
     }
 }
+
+.uppercase-input input {
+    text-transform: uppercase;
+}

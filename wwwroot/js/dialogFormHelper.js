@@ -1,7 +1,7 @@
 // Gestione TAB personalizzata per i MudDialog form
 // Risolve il problema del FocusTrap che blocca la navigazione TAB nei dialog
 window.dialogFormHelper = {
-    setupTabNavigation: function(dialogSelector = '.mud-dialog-content') {
+    setupTabNavigation: function (dialogSelector = '.mud-dialog-content') {
         // Retry mechanism per aspettare che MudBlazor renderizzi gli input
         const trySetup = (attempts = 0) => {
             if (attempts > 20) {
@@ -9,8 +9,10 @@ window.dialogFormHelper = {
                 return;
             }
 
-            // Trova il contenitore del dialog
-            const dialogContent = document.querySelector(dialogSelector);
+            // Trova il contenitore del dialog (prendi l'ultimo se ce ne sono multipli, per gestire nested dialogs)
+            const dialogs = document.querySelectorAll(dialogSelector);
+            const dialogContent = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
+
             if (!dialogContent) {
                 setTimeout(() => trySetup(attempts + 1), 100);
                 return;
@@ -40,7 +42,7 @@ window.dialogFormHelper = {
                 field.removeEventListener('keydown', field._tabHandler);
 
                 // Crea il nuovo handler
-                const tabHandler = function(e) {
+                const tabHandler = function (e) {
                     if (e.key === 'Tab' && !e.shiftKey) {
                         // TAB forward
                         e.preventDefault();
@@ -77,8 +79,10 @@ window.dialogFormHelper = {
     },
 
     // Cleanup quando il dialog viene chiuso
-    cleanup: function(dialogSelector = '.mud-dialog-content') {
-        const dialogContent = document.querySelector(dialogSelector);
+    cleanup: function (dialogSelector = '.mud-dialog-content') {
+        const dialogs = document.querySelectorAll(dialogSelector);
+        const dialogContent = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
+
         if (!dialogContent) return;
 
         const allInputs = dialogContent.querySelectorAll('input, select, textarea');

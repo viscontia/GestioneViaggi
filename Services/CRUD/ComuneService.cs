@@ -66,55 +66,52 @@ public class ComuneService : BaseCrudService<Comune>
 
     public override async Task<Comune> CreateAsync(Comune entity)
     {
-        return await CreateAsyncInternal(entity, async (e) =>
+        try
         {
-            try
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                INSERT INTO ana_geo_comuni (
+                    comune_descrizione,
+                    comune_istat,
+                    comune_preftel,
+                    comune_cap,
+                    comune_codfisc,
+                    comune_num_abitanti,
+                    comune_link,
+                    comune_estero,
+                    comune_provincia_fk,
+                    comune_ripgeo_fk,
+                    comune_capoluogo_fk
+                )
+                VALUES (@nome, @codIstat, @prefTel, @cap, @codFiscale, @numAbitanti, @link, @comuneEstero, @provinciaFk, @ripGeoFk, @capoluogoFk)
+                RETURNING comune_id, comune_descrizione, comune_istat, comune_preftel, comune_cap, comune_codfisc, comune_num_abitanti, comune_link, comune_estero, comune_provincia_fk, comune_ripgeo_fk, comune_capoluogo_fk";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("nome", entity.Nome);
+            command.Parameters.AddWithValue("codIstat", (object?)entity.CodIstat ?? DBNull.Value);
+            command.Parameters.AddWithValue("prefTel", (object?)entity.PrefTel ?? DBNull.Value);
+            command.Parameters.AddWithValue("cap", (object?)entity.Cap ?? DBNull.Value);
+            command.Parameters.AddWithValue("codFiscale", (object?)entity.CodFiscale ?? DBNull.Value);
+            command.Parameters.AddWithValue("numAbitanti", (object?)entity.NumAbitanti ?? 0);
+            command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
+            command.Parameters.AddWithValue("comuneEstero", entity.ComuneEstero ? "Y" : "N");
+            command.Parameters.AddWithValue("provinciaFk", (object?)entity.ProvinciaIdFk ?? DBNull.Value);
+            command.Parameters.AddWithValue("ripGeoFk", (object?)entity.RipGeoIdFk ?? DBNull.Value);
+            command.Parameters.AddWithValue("capoluogoFk", (object?)entity.CapoluogoIdFk ?? DBNull.Value);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
             {
-                await using var connection = await _databaseService.GetConnectionAsync();
-                var sql = @"
-                    INSERT INTO ana_geo_comuni (
-                        comune_descrizione,
-                        comune_istat,
-                        comune_preftel,
-                        comune_cap,
-                        comune_codfisc,
-                        comune_num_abitanti,
-                        comune_link,
-                        comune_estero,
-                        comune_provincia_fk,
-                        comune_ripgeo_fk,
-                        comune_capoluogo_fk
-                    )
-                    VALUES (@nome, @codIstat, @prefTel, @cap, @codFiscale, @numAbitanti, @link, @comuneEstero, @provinciaFk, @ripGeoFk, @capoluogoFk)
-                    RETURNING comune_id, comune_descrizione, comune_istat, comune_preftel, comune_cap, comune_codfisc, comune_num_abitanti, comune_link, comune_estero, comune_provincia_fk, comune_ripgeo_fk, comune_capoluogo_fk";
-
-                await using var command = new NpgsqlCommand(sql, connection);
-                command.Parameters.AddWithValue("nome", e.Nome);
-                command.Parameters.AddWithValue("codIstat", (object?)e.CodIstat ?? DBNull.Value);
-                command.Parameters.AddWithValue("prefTel", (object?)e.PrefTel ?? DBNull.Value);
-                command.Parameters.AddWithValue("cap", (object?)e.Cap ?? DBNull.Value);
-                command.Parameters.AddWithValue("codFiscale", (object?)e.CodFiscale ?? DBNull.Value);
-                command.Parameters.AddWithValue("numAbitanti", (object?)e.NumAbitanti ?? DBNull.Value);
-                command.Parameters.AddWithValue("link", (object?)e.Link ?? DBNull.Value);
-                command.Parameters.AddWithValue("comuneEstero", e.ComuneEstero ? "Y" : "N");
-                command.Parameters.AddWithValue("provinciaFk", (object?)e.ProvinciaIdFk ?? DBNull.Value);
-                command.Parameters.AddWithValue("ripGeoFk", (object?)e.RipGeoIdFk ?? DBNull.Value);
-                command.Parameters.AddWithValue("capoluogoFk", (object?)e.CapoluogoIdFk ?? DBNull.Value);
-
-                await using var reader = await command.ExecuteReaderAsync();
-                if (await reader.ReadAsync())
-                {
-                    return MapFromReader(reader);
-                }
-
-                throw new Exception("Impossibile creare il comune");
+                return MapFromReader(reader);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Errore durante la creazione del comune {Nome}", e.Nome);
-                throw;
-            }
-        });
+
+            throw new Exception("Impossibile creare il comune");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante la creazione del comune {Nome}", entity.Nome);
+            throw;
+        }
     }
 
     public override async Task<Comune> UpdateAsync(Comune entity)
@@ -145,7 +142,7 @@ public class ComuneService : BaseCrudService<Comune>
             command.Parameters.AddWithValue("prefTel", (object?)entity.PrefTel ?? DBNull.Value);
             command.Parameters.AddWithValue("cap", (object?)entity.Cap ?? DBNull.Value);
             command.Parameters.AddWithValue("codFiscale", (object?)entity.CodFiscale ?? DBNull.Value);
-            command.Parameters.AddWithValue("numAbitanti", (object?)entity.NumAbitanti ?? DBNull.Value);
+            command.Parameters.AddWithValue("numAbitanti", (object?)entity.NumAbitanti ?? 0);
             command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
             command.Parameters.AddWithValue("comuneEstero", entity.ComuneEstero ? "Y" : "N");
             command.Parameters.AddWithValue("provinciaFk", (object?)entity.ProvinciaIdFk ?? DBNull.Value);

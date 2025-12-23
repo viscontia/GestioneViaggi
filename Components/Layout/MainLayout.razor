@@ -1,4 +1,6 @@
 ﻿@inherits LayoutComponentBase
+@using GestioneViaggi.Services.Database
+@inject IDatabaseService DatabaseService
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudDialogProvider />
@@ -81,12 +83,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && _mudThemeProvider != null)
+        if (firstRender)
         {
-            // Force Light Mode initially as requested
-            _isDarkMode = false;
-            // _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
-            StateHasChanged();
+            if (_mudThemeProvider != null)
+            {
+                _isDarkMode = false;
+                StateHasChanged();
+            }
         }
     }
 }

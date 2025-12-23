@@ -1173,6 +1173,54 @@ public void Dispose()
 
 ---
 
+
+## 🛡️ Regole di Validazione
+
+La validazione rigida dei dati lato client è fondamentale per mantenere intatta l'integrità del database.
+
+### 🔢 1. Campi Numerici
+
+I campi che rappresentano numeri (interi, decimali, quantità, etc.) devono essere configurati per **accettare ESCLUSIVAMENTE input numerici**.
+La soluzione standard con `MudNumericField` ha mostrato instabilità su MacCatalyst. L'approccio raccomandato è utilizzare `MudTextField` di tipo stringa con Maschera regex.
+
+**SOLUZIONE TECNICA OBBLIGATORIA:**
+1. Utilizzare `MudTextField` con `T="string"`.
+2. Impostare `Mask` con `RegexMask(@"^\d*$")`.
+3. **IMPORTANTE**: NON impostare `InputType="InputType.Number"` se si usa la `Mask`, altrimenti l'app potrebbe crashare su MacCatalyst.
+4. Se la proprietà del Model è numerica (`int?`), utilizzare una **Proprietà Proxy** di tipo `string` nel componente per gestire il binding e la validazione.
+
+```razor
+<!-- Proprietà Proxy nel blocco @code -->
+@code {
+    private string NumAbitantiString
+    {
+        get => Entity.NumAbitanti?.ToString() ?? "";
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value)) Entity.NumAbitanti = null;
+            else if (int.TryParse(value, out int result)) Entity.NumAbitanti = result;
+        }
+    }
+}
+
+<!-- Markup del componente -->
+<MudTextField T="string" 
+    @bind-Value="NumAbitantiString" 
+    Label="Numero Abitanti"
+    Variant="Variant.Outlined" 
+    Required="true" 
+    Mask="@(new RegexMask(@"^\d*$"))" 
+    tabindex="7" /> 
+<!-- NOTA: Rimosso InputType="InputType.Number" per evitare crash -->
+```
+
+**Spiegazione:**
+- **`MudTextField<string>`**: Gestisce l'input come testo grezzo.
+- **`Mask`**: La regex `^\d*$` impedisce fisicamente l'inserimento di caratteri non numerici.
+- **Proxy**: Converte bidirezionalmente tra la stringa della UI e l'intero del Model.
+
+---
+
 ## 🚀 Build e Test
 
 ```bash

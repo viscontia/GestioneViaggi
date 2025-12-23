@@ -1,8 +1,11 @@
 @using GestioneViaggi.Models
 @using MudBlazor
 @using Microsoft.JSInterop
+@using GestioneViaggi.Services.CRUD
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ProvinciaService ProvinciaService
 @implements IDisposable
 
 <MudDialog>
@@ -29,14 +32,19 @@
             <!-- Cod. ISTAT - Condizionalmente obbligatorio -->
             <MudTextField @bind-Value="Entity.CodIstat" For="@(() => Entity.CodIstat)" Label="@GetCodIstatLabel()"
                 Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
-                RequiredError="Il codice ISTAT è obbligatorio per i comuni italiani" MaxLength="10" tabindex="3"
-                Class="mb-3" Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                RequiredError="Il codice ISTAT è obbligatorio per i comuni italiani" Mask="@(new PatternMask("000000"))"
+                MaxLength="6" tabindex="3" Class="mb-3" HelperText="Obbligatorio per Italia. 6 cifre (es: 001001)"
+                Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
                 AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
-            <!-- Pref. Telefonico - Opzionale -->
-            <MudTextField @bind-Value="Entity.PrefTel" For="@(() => Entity.PrefTel)"
-                Label="Prefisso Telefonico (opzionale)" Variant="Variant.Outlined" MaxLength="5" tabindex="4"
-                Class="mb-3" />
+            <!-- Pref. Telefonico - Condizionalmente obbligatorio -->
+            <MudTextField @bind-Value="Entity.PrefTel" For="@(() => Entity.PrefTel)" Label="@GetPrefTelLabel()"
+                Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
+                RequiredError="Il prefisso è obbligatorio per i comuni italiani" Mask="@GetPrefTelMask()"
+                MaxLength="4" tabindex="4" Class="mb-3"
+                HelperText="Obbligatorio per Italia. 2-4 cifre (es: 02, 055, 0332)"
+                Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" Immediate="true" />
 
             <!-- CAP - Condizionalmente obbligatorio con MASK 5 cifre -->
             <MudTextField @bind-Value="Entity.Cap" For="@(() => Entity.Cap)" Label="@GetCapLabel()"
@@ -46,17 +54,23 @@
                 Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
                 AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
-            <!-- Cod. Fiscale - Condizionalmente obbligatorio -->
+            <!-- Cod. Fiscale / Catastale - Condizionalmente obbligatorio -->
             <MudTextField @bind-Value="Entity.CodFiscale" For="@(() => Entity.CodFiscale)" Label="@GetCodFiscaleLabel()"
                 Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
-                RequiredError="Il codice fiscale è obbligatorio per i comuni italiani" MaxLength="4" tabindex="6"
-                Class="mb-3" Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                RequiredError="Il codice è obbligatorio per i comuni italiani" 
+                Mask="@(new PatternMask("L000"))" 
+                MaxLength="4" tabindex="6"
+                Class="mb-3 uppercase-input" HelperText="Obbligatorio per Italia. Es: H501"
+                Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
                 AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
-            <!-- Num. Abitanti - Opzionale -->
-            <MudNumericField @bind-Value="Entity.NumAbitanti" For="@(() => Entity.NumAbitanti)"
-                Label="Numero Abitanti (opzionale)" Variant="Variant.Outlined" Min="0"
-                Culture="@(new System.Globalization.CultureInfo("it-IT"))" Format="N0" tabindex="7" Class="mb-3" />
+
+            <!-- Num. Abitanti - OBBLIGATORIO -->
+            <MudTextField T="string" @bind-Value="NumAbitantiString" Label="Numero Abitanti"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateNumAbitanti))" Variant="Variant.Outlined"
+                Required="true" RequiredError="Il numero di abitanti è obbligatorio" Mask="@(new RegexMask(@"^\d*$"))"
+                tabindex="7" Class="mb-3" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                Immediate="true" />
 
             <!-- Link - Opzionale -->
             <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Sito Web (opzionale)"
@@ -70,9 +84,15 @@
                 HelperTextError="@Entity.ComuneEstero" tabindex="@(Entity.ComuneEstero ? -1 : 9)" Class="mb-3" />
 
             <!-- Provincia FK - OBBLIGATORIO - Disabilitata se RipGeo non selezionata -->
-            <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ProvinciaIdFk" Label="Provincia" Required="true"
-                RequiredError="La provincia è obbligatoria" FilterEsteroOnly="@Entity.ComuneEstero"
-                Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="10" Class="mb-3" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <ProvinciaSelect @key="_provinciaSelectKey" @bind-SelectedProvinciaId="Entity.ProvinciaIdFk"
+                    Label="Provincia" Required="true" RequiredError="La provincia è obbligatoria"
+                    FilterEsteroOnly="@Entity.ComuneEstero" Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="10"
+                    Class="flex-grow-1" />
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenAddProvinciaDialog"
+                    Variant="Variant.Outlined" Size="Size.Small" Title="Crea nuova provincia"
+                    Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="-1" />
+            </MudStack>
 
             <!-- Capoluogo FK - OBBLIGATORIO -->
             <CapoluogoSelect @bind-SelectedCapoluogoId="Entity.CapoluogoIdFk" Label="Capoluogo" Required="true"
@@ -92,6 +112,29 @@
 @code {
     private MudForm? _form;
     private MudTextField<string>? _firstField;
+    private int _provinciaSelectKey = 0;
+
+    /// <summary>
+    /// Proxy property per gestire input numerico mascherato come stringa.
+    /// Risolve il problema del casting con MudTextField e Mask su tipi int?.
+    /// </summary>
+    private string NumAbitantiString
+    {
+        get => Entity.NumAbitanti?.ToString() ?? string.Empty;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Entity.NumAbitanti = null;
+            }
+            else if (int.TryParse(value, out int i))
+            {
+                Entity.NumAbitanti = i;
+            }
+            // Se il parsing fallisce (improbabile con mask), il valore originale resta
+        }
+    }
+
 
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
@@ -101,6 +144,18 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    private IEnumerable<string> ValidateNumAbitanti(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield return "Il numero di abitanti è obbligatorio";
+
+        if (int.TryParse(value, out int i))
+        {
+            if (i < 10)
+                yield return "Il numero di abitanti deve essere almeno 10";
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -186,10 +241,28 @@
         return Entity.ComuneEstero ? "Codice Fiscale (opzionale)" : "Codice Fiscale";
     }
 
+    private string GetPrefTelLabel()
+    {
+        return Entity.ComuneEstero ? "Prefisso Telefonico (opzionale)" : "Prefisso Telefonico";
+    }
+
+    private IMask GetPrefTelMask()
+    {
+        if (Entity.ComuneEstero)
+            return new RegexMask(@"^\d*$"); // Estero: Solo numeri, lunghezza libera
+        
+        // Italia: Deve iniziare con 0, max 4 cifre totali (0 + 3 cifre)
+        // La regex accetta stringa vuota O stringa che inizia con 0 seguita da 0-3 cifre
+        return new RegexMask(@"^(0\d{0,3})?$");
+    }
+
     private async Task HandleFieldBlur(MudTextField<string>? field)
     {
         if (field != null)
         {
+            // Normalizzazione specifica
+            if (Entity.CodFiscale != null) Entity.CodFiscale = Entity.CodFiscale.ToUpper();
+            
             await field.Validate();
             if (field.Error)
             {
@@ -242,6 +315,57 @@
                 {
                     await _firstField.FocusAsync();
                 }
+            }
+        }
+    }
+
+    private async Task OpenAddProvinciaDialog()
+    {
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                BackdropClick = false
+            };
+
+        // Apre il dialog della provincia in modalità CREAZIONE (Entity vuota)
+        var parameters = new DialogParameters<ProvinciaDialog>
+{
+{ x => x.Entity, new Provincia() },
+{ x => x.IsEditMode, false }
+};
+
+        var dialog = await DialogService.ShowAsync<ProvinciaDialog>("Nuova Provincia", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Provincia tempProvincia)
+        {
+            try
+            {
+                // 1. Salva la nuova provincia nel database
+                // Il dialog ritorna l'oggetto ma spetta al chiamante salvarlo (Pattern CRUD)
+                var savedProvincia = await ProvinciaService.CreateAsync(tempProvincia);
+
+                // 2. Forza il refresh del componente ProvinciaSelect incrementando la chiave
+                _provinciaSelectKey++;
+
+                // 3. Seleziona automaticamente la nuova provincia usando l'ID generato dal DB
+                Entity.ProvinciaIdFk = savedProvincia.Id;
+
+                Snackbar.Add("Provincia creata e selezionata con successo", Severity.Success);
+
+                // 4. Notifica il cambiamento di stato
+                StateHasChanged();
+
+                // 5. Aggiorna la navigazione TAB nel caso ci siano cambiamenti nel DOM
+                await Task.Delay(150);
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante il salvataggio della provincia: {ex.Message}", Severity.Error);
+                Console.WriteLine($"Errore salvataggio provincia: {ex}");
             }
         }
     }
