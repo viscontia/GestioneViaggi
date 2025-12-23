@@ -7,19 +7,10 @@
 @using System.Threading
 @inject RipartizioneGeograficaService RipGeoService
 
-<BaseEntitySelect TItem="RipartizioneGeografica"
-                  Value="_selectedRipGeo"
-                  ValueChanged="OnRipGeoChanged"
-                  SearchFunc="SearchRipartizioni"
-                  ToStringFunc="@(r => r?.Descrizione)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="RipartizioneGeografica" Value="_selectedRipGeo" ValueChanged="OnRipGeoChanged"
+    SearchFunc="SearchRipartizioni" ToStringFunc="@(r => r?.Descrizione)" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@Class" HelperText="@HelperText" HelperTextError="@HelperTextError" AutoFocus="@AutoFocus"
+    AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<RipartizioneGeografica>? _ripartizioni;
@@ -48,6 +39,9 @@
 
     [Parameter]
     public string HelperText { get; set; } = "Seleziona la ripartizione geografica corretta dall'elenco";
+
+    [Parameter]
+    public bool HelperTextError { get; set; } = false;
 
     [Parameter]
     public bool AutoFocus { get; set; } = false;

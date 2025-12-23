@@ -1,0 +1,9 @@
+{
+    "roslynExtensionsOptions": {
+        "enableAnalyzersSupport": true
+    },
+    "msBuild": {
+        "useNETCoreSdk": true,
+        "LoadProjectsOnDemand": false
+    }
+} 

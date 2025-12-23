@@ -8,13 +8,20 @@
             "preLaunchTask": "build",
             "program": "dotnet",
             "args": [
-                "run",
-                "-f",
-                "net9.0-maccatalyst"
+                "${workspaceFolder}/bin/Debug/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app/Contents/MacOS/GestioneViaggi"
             ],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
-            "stopAtEntry": false
+            "stopAtEntry": false,
+            "env": {
+                "DOTNET_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "Avvia GestioneViaggi (Senza Debug - bundle .app)",
+            "type": "coreclr",
+            "request": "attach",
+            "preLaunchTask": "run-app-bundle"
         }
     ]
 }

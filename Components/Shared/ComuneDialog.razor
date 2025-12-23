@@ -14,132 +14,69 @@
     <DialogContent>
         <MudForm @ref="_form" Model="@Entity">
             <!-- Nome Comune - OBBLIGATORIO con UPPERCASE -->
-            <MudTextField @ref="_firstField"
-                          Value="@Entity.Nome"
-                          ValueChanged="@((string val) => HandleNomeChanged(val))"
-                          For="@(() => Entity.Nome)"
-                          Label="Nome Comune"
-                          Variant="Variant.Outlined"
-                          Immediate="true"
-                          Required="true"
-                          RequiredError="Il nome del comune è obbligatorio"
-                          MaxLength="100"
-                          tabindex="1"
-                          Class="mb-3 uppercase-input"
-                          Adornment="Adornment.End"
-                          AdornmentText="*"
-                          AdornmentColor="Color.Error"
-                          OnBlur="@(() => HandleFieldBlur(_firstField))"
-                          OnKeyDown="@HandleKeyDown" />
+            <MudTextField @ref="_firstField" Value="@Entity.Nome"
+                ValueChanged="@((string val) => HandleNomeChanged(val))" For="@(() => Entity.Nome)" Label="Nome Comune"
+                Variant="Variant.Outlined" Immediate="true" Required="true"
+                RequiredError="Il nome del comune è obbligatorio" MaxLength="100" tabindex="1"
+                Class="mb-3 uppercase-input" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                OnBlur="@(() => HandleFieldBlur(_firstField))" OnKeyDown="@HandleKeyDown" />
 
             <!-- Checkbox Comune Estero -->
-            <MudCheckBox Value="@Entity.ComuneEstero"
-                         ValueChanged="@((bool val) => HandleComuneEsteroChanged(val))"
-                         For="@(() => Entity.ComuneEstero)"
-                         Label="Comune Estero"
-                         Color="Color.Primary"
-                         tabindex="2"
-                         Class="mb-3" />
+            <MudCheckBox Value="@Entity.ComuneEstero" ValueChanged="@((bool val) => HandleComuneEsteroChanged(val))"
+                For="@(() => Entity.ComuneEstero)" Label="Comune Estero" Color="Color.Primary" tabindex="2"
+                Class="mb-3" />
 
             <!-- Cod. ISTAT - Condizionalmente obbligatorio -->
-            <MudTextField @bind-Value="Entity.CodIstat"
-                          For="@(() => Entity.CodIstat)"
-                          Label="@GetCodIstatLabel()"
-                          Variant="Variant.Outlined"
-                          Required="@(!Entity.ComuneEstero)"
-                          RequiredError="Il codice ISTAT è obbligatorio per i comuni italiani"
-                          MaxLength="10"
-                          tabindex="3"
-                          Class="mb-3"
-                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
-                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
-                          AdornmentColor="Color.Error" />
+            <MudTextField @bind-Value="Entity.CodIstat" For="@(() => Entity.CodIstat)" Label="@GetCodIstatLabel()"
+                Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
+                RequiredError="Il codice ISTAT è obbligatorio per i comuni italiani" MaxLength="10" tabindex="3"
+                Class="mb-3" Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
             <!-- Pref. Telefonico - Opzionale -->
-            <MudTextField @bind-Value="Entity.PrefTel"
-                          For="@(() => Entity.PrefTel)"
-                          Label="Prefisso Telefonico (opzionale)"
-                          Variant="Variant.Outlined"
-                          MaxLength="5"
-                          tabindex="4"
-                          Class="mb-3" />
+            <MudTextField @bind-Value="Entity.PrefTel" For="@(() => Entity.PrefTel)"
+                Label="Prefisso Telefonico (opzionale)" Variant="Variant.Outlined" MaxLength="5" tabindex="4"
+                Class="mb-3" />
 
             <!-- CAP - Condizionalmente obbligatorio con MASK 5 cifre -->
-            <MudTextField @bind-Value="Entity.Cap"
-                          For="@(() => Entity.Cap)"
-                          Label="@GetCapLabel()"
-                          Variant="Variant.Outlined"
-                          Required="@(!Entity.ComuneEstero)"
-                          RequiredError="Il CAP è obbligatorio per i comuni italiani"
-                          Mask="@(new PatternMask("00000"))"
-                          MaxLength="5"
-                          tabindex="5"
-                          Class="mb-3"
-                          HelperText="Inserire 5 cifre numeriche (es: 00035)"
-                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
-                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
-                          AdornmentColor="Color.Error" />
+            <MudTextField @bind-Value="Entity.Cap" For="@(() => Entity.Cap)" Label="@GetCapLabel()"
+                Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
+                RequiredError="Il CAP è obbligatorio per i comuni italiani" Mask="@(new PatternMask("00000"))"
+                MaxLength="5" tabindex="5" Class="mb-3" HelperText="Inserire 5 cifre numeriche (es: 00035)"
+                Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
             <!-- Cod. Fiscale - Condizionalmente obbligatorio -->
-            <MudTextField @bind-Value="Entity.CodFiscale"
-                          For="@(() => Entity.CodFiscale)"
-                          Label="@GetCodFiscaleLabel()"
-                          Variant="Variant.Outlined"
-                          Required="@(!Entity.ComuneEstero)"
-                          RequiredError="Il codice fiscale è obbligatorio per i comuni italiani"
-                          MaxLength="4"
-                          tabindex="6"
-                          Class="mb-3"
-                          Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
-                          AdornmentText="@(Entity.ComuneEstero ? "" : "*")"
-                          AdornmentColor="Color.Error" />
+            <MudTextField @bind-Value="Entity.CodFiscale" For="@(() => Entity.CodFiscale)" Label="@GetCodFiscaleLabel()"
+                Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
+                RequiredError="Il codice fiscale è obbligatorio per i comuni italiani" MaxLength="4" tabindex="6"
+                Class="mb-3" Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
+                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
 
             <!-- Num. Abitanti - Opzionale -->
-            <MudNumericField @bind-Value="Entity.NumAbitanti"
-                             For="@(() => Entity.NumAbitanti)"
-                             Label="Numero Abitanti (opzionale)"
-                             Variant="Variant.Outlined"
-                             Min="0"
-                             Culture="@(new System.Globalization.CultureInfo("it-IT"))"
-                             Format="N0"
-                             tabindex="7"
-                             Class="mb-3" />
+            <MudNumericField @bind-Value="Entity.NumAbitanti" For="@(() => Entity.NumAbitanti)"
+                Label="Numero Abitanti (opzionale)" Variant="Variant.Outlined" Min="0"
+                Culture="@(new System.Globalization.CultureInfo("it-IT"))" Format="N0" tabindex="7" Class="mb-3" />
 
             <!-- Link - Opzionale -->
-            <MudTextField @bind-Value="Entity.Link"
-                          For="@(() => Entity.Link)"
-                          Label="Link Sito Web (opzionale)"
-                          Variant="Variant.Outlined"
-                          MaxLength="200"
-                          tabindex="8"
-                          Class="mb-3"
-                          HelperText="Inserire URL completo (es: https://www.esempio.it)" />
-
-            <!-- Provincia FK - OBBLIGATORIO -->
-            <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ProvinciaIdFk"
-                             Label="Provincia"
-                             Required="true"
-                             RequiredError="La provincia è obbligatoria"
-                             FilterEsteroOnly="@Entity.ComuneEstero"
-                             tabindex="9"
-                             Class="mb-3" />
+            <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Sito Web (opzionale)"
+                Variant="Variant.Outlined" MaxLength="200" tabindex="8" Class="mb-3"
+                HelperText="Inserire URL completo (es: https://www.esempio.it)" />
 
             <!-- Ripartizione Geografica FK - OBBLIGATORIO (auto-impostato se Estero) -->
-            <RipGeoSelect @bind-SelectedRipGeoId="Entity.RipGeoIdFk"
-                          Label="Ripartizione Geografica"
-                          Required="true"
-                          RequiredError="La ripartizione geografica è obbligatoria"
-                          Disabled="@Entity.ComuneEstero"
-                          tabindex="10"
-                          Class="mb-3" />
+            <RipGeoSelect @bind-SelectedRipGeoId="Entity.RipGeoIdFk" Label="Ripartizione Geografica" Required="true"
+                RequiredError="La ripartizione geografica è obbligatoria" Disabled="@Entity.ComuneEstero"
+                HelperText="@(Entity.ComuneEstero ? "Se Comune Estero questo campo non è modificabile" : "Seleziona la ripartizione geografica corretta dall'elenco")"
+                HelperTextError="@Entity.ComuneEstero" tabindex="@(Entity.ComuneEstero ? -1 : 9)" Class="mb-3" />
+
+            <!-- Provincia FK - OBBLIGATORIO - Disabilitata se RipGeo non selezionata -->
+            <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ProvinciaIdFk" Label="Provincia" Required="true"
+                RequiredError="La provincia è obbligatoria" FilterEsteroOnly="@Entity.ComuneEstero"
+                Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="10" Class="mb-3" />
 
             <!-- Capoluogo FK - OBBLIGATORIO -->
-            <CapoluogoSelect @bind-SelectedCapoluogoId="Entity.CapoluogoIdFk"
-                             Label="Capoluogo"
-                             Required="true"
-                             RequiredError="Il capoluogo è obbligatorio"
-                             tabindex="11"
-                             Class="mb-3" />
+            <CapoluogoSelect @bind-SelectedCapoluogoId="Entity.CapoluogoIdFk" Label="Capoluogo" Required="true"
+                RequiredError="Il capoluogo è obbligatorio" tabindex="11" Class="mb-3" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -208,7 +145,7 @@
         StateHasChanged();
     }
 
-    private void HandleComuneEsteroChanged(bool value)
+    private async Task HandleComuneEsteroChanged(bool value)
     {
         Entity.ComuneEstero = value;
 
@@ -218,8 +155,20 @@
             Entity.RipGeoIdFk = 6; // ID di ESTERO nella tabella ana_geo_ita_ripgeo
         }
 
-        // Forza la rivalutazione delle validazioni quando cambia il flag
+        // Forza la rivalutazione delle validazioni quando cambia il flag e renderizza l'UI
         StateHasChanged();
+
+        // IMPORTANTE: Ricarica la navigazione TAB perché la lista dei campi attivi è cambiata
+        // (RipGeoSelect è stato abilitato/disabilitato)
+        try
+        {
+            await Task.Delay(150); // Attendi che MudBlazor renderizzi i cambiamenti nel DOM
+            await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore aggiornamento navigazione TAB: {ex.Message}");
+        }
     }
 
     private string GetCodIstatLabel()

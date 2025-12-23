@@ -14,128 +14,69 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
-        <MudText Typo="Typo.h6">ERRORE:</MudText>
-        <MudText>@_errorMessage</MudText>
-    </MudAlert>
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
 }
 else
 {
-    <MudDataGrid T="Comune"
-                 Items="@_items"
-                 Filterable="true"
-                 SortMode="SortMode.Multiple"
-                 Groupable="false"
-                 QuickFilter="@(x => Search(x, _searchString))"
-                 @bind-SelectedItem="_selectedItem"
-                 Breakpoint="Breakpoint.None">
+    <EnterpriseDataGrid T="Comune" Items="@_items" Title="Gestione Comuni" SearchFunction="@((x, s) => Search(x, s))"
+    @bind-SelectedItem="_selectedItem">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Gestione Comuni</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-4">
-                Nuovo
-            </MudButton>
-        </ToolBarContent>
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarActions>
 
-        <Columns>
-            <TemplateColumn CellClass="d-flex justify-end">
-                <CellTemplate>
-                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
-                        <MudTooltip Text="Modifica">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => OpenEditDialog(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Elimina">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => DeleteItem(context.Item))" />
-                        </MudTooltip>
-                    </MudStack>
-                </CellTemplate>
-            </TemplateColumn>
+    <Columns>
+        <EnterpriseActionsColumn T="Comune" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
 
-            <PropertyColumn Property="x => x.Nome"
-                            Title="Comune" />
+        <PropertyColumn Property="x => x.Nome" Title="Comune" />
 
-            <PropertyColumn Property="x => x.CodIstat"
-                            Title="Cod. ISTAT"
-                            HeaderClass="col-sm justify-center"
-                            CellClass="col-sm"
-                            CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.CodIstat" Title="Cod. ISTAT" HeaderClass="col-sm justify-center"
+            CellClass="col-sm" CellStyle="text-align: center;" />
 
-            <PropertyColumn Property="x => x.PrefTel"
-                            Title="Pref.Tel."
-                            HeaderClass="col-xs justify-center"
-                            CellClass="col-xs"
-                            CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.PrefTel" Title="Pref.Tel." HeaderClass="col-xs justify-center"
+            CellClass="col-xs" CellStyle="text-align: center;" />
 
-            <PropertyColumn Property="x => x.Cap"
-                            Title="CAP"
-                            HeaderClass="col-xs justify-center"
-                            CellClass="col-xs"
-                            CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.Cap" Title="CAP" HeaderClass="col-xs justify-center" CellClass="col-xs"
+            CellStyle="text-align: center;" />
 
-            <PropertyColumn Property="x => x.CodFiscale"
-                            Title="Cod.Fisc."
-                            HeaderClass="col-xs justify-center"
-                            CellClass="col-xs"
-                            CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.CodFiscale" Title="Cod.Fisc." HeaderClass="col-xs justify-center"
+            CellClass="col-xs" CellStyle="text-align: center;" />
 
-            <PropertyColumn Property="x => x.NumAbitanti"
-                            Title="Abitanti"
-                            Format="N0"
-                            HeaderClass="col-md justify-end"
-                            CellClass="col-md"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.NumAbitanti" Title="Abitanti" Format="N0" HeaderClass="col-md justify-end"
+            CellClass="col-md" CellStyle="text-align: right;" />
 
-            <TemplateColumn Title="Estero"
-                            HeaderClass="col-xs justify-center"
-                            CellClass="col-xs"
-                            CellStyle="text-align: center;">
-                <CellTemplate>
-                    <MudCheckBox Value="@context.Item.ComuneEstero"
-                                 ReadOnly="true"
-                                 Color="Color.Primary"
-                                 Style="pointer-events: none;" />
-                </CellTemplate>
-            </TemplateColumn>
+        <TemplateColumn Title="Estero" HeaderClass="col-xs justify-center" CellClass="col-xs"
+            CellStyle="text-align: center;">
+            <CellTemplate>
+                <MudCheckBox Value="@context.Item.ComuneEstero" ReadOnly="true" Color="Color.Primary" Size="Size.Small"
+                    Style="pointer-events: none;" />
+            </CellTemplate>
+        </TemplateColumn>
 
-            <PropertyColumn Property="x => x.ProvinciaDescrizione"
-                            Title="Provincia" />
+        <PropertyColumn Property="x => x.ProvinciaDescrizione" Title="Provincia" />
 
-            <PropertyColumn Property="x => x.RipGeoDescrizione"
-                            Title="Rip. Geografica" />
+        <PropertyColumn Property="x => x.RipGeoDescrizione" Title="Rip. Geografica" />
 
-            <PropertyColumn Property="x => x.CapoluogoDescrizione"
-                            Title="Capoluogo" />
+        <PropertyColumn Property="x => x.CapoluogoDescrizione" Title="Capoluogo" />
 
-            <PropertyColumn Property="x => x.Link"
-                            Title="Link">
-                <CellTemplate>
-                    @if (!string.IsNullOrWhiteSpace(context.Item.Link))
+        <TemplateColumn Title="Link">
+            <CellTemplate>
+                @if (!string.IsNullOrWhiteSpace(context.Item.Link))
                     {
-                        <MudLink Href="@context.Item.Link" Target="_blank" Color="Color.Primary">
-                            @context.Item.Link
+                        <MudLink Href="@context.Item.Link" Target="_blank" Color="Color.Primary" Typo="Typo.body2">
+                            Link
                         </MudLink>
                     }
                 </CellTemplate>
-            </PropertyColumn>
+            </TemplateColumn>
         </Columns>
 
-        <PagerContent>
-            <MudDataGridPager T="Comune" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-        </PagerContent>
-
-    </MudDataGrid>
+    </EnterpriseDataGrid>
 }
 
 @code {
@@ -186,17 +127,16 @@ else
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<ComuneDialog>
-        {
-            { x => x.Entity, new Comune() },
-            { x => x.IsEditMode, false }
-        };
+{
+{ x => x.Entity, new Comune() },
+{ x => x.IsEditMode, false }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<ComuneDialog>("Nuovo Comune", parameters, options);
         var result = await dialog.Result;
@@ -219,32 +159,31 @@ else
     private async Task OpenEditDialog(Comune item)
     {
         var parameters = new DialogParameters<ComuneDialog>
-        {
-            { x => x.Entity, new Comune
-                {
-                    Id = item.Id,
-                    Nome = item.Nome,
-                    CodIstat = item.CodIstat,
-                    PrefTel = item.PrefTel,
-                    Cap = item.Cap,
-                    CodFiscale = item.CodFiscale,
-                    NumAbitanti = item.NumAbitanti,
-                    Link = item.Link,
-                    ComuneEstero = item.ComuneEstero,
-                    ProvinciaIdFk = item.ProvinciaIdFk,
-                    RipGeoIdFk = item.RipGeoIdFk,
-                    CapoluogoIdFk = item.CapoluogoIdFk
-                }
-            },
-            { x => x.IsEditMode, true }
-        };
+{
+{ x => x.Entity, new Comune
+{
+Id = item.Id,
+Nome = item.Nome,
+CodIstat = item.CodIstat,
+PrefTel = item.PrefTel,
+Cap = item.Cap,
+CodFiscale = item.CodFiscale,
+NumAbitanti = item.NumAbitanti,
+Link = item.Link,
+ComuneEstero = item.ComuneEstero,
+ProvinciaIdFk = item.ProvinciaIdFk,
+RipGeoIdFk = item.RipGeoIdFk,
+CapoluogoIdFk = item.CapoluogoIdFk
+}
+},
+{ x => x.IsEditMode, true }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<ComuneDialog>("Modifica Comune", parameters, options);
         var result = await dialog.Result;
@@ -267,12 +206,12 @@ else
     private async Task DeleteItem(Comune item)
     {
         var parameters = new DialogParameters
-        {
-            { "Title", "Attenzione" },
-            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Nome})" }
-        };
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare questo record? ({item.Nome})" }
+};
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
 
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;

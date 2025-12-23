@@ -139,3 +139,9 @@ Il `MainLayout` inietta dinamicamente la classe `.theme-dark` o `.theme-light` n
 
 ### Desktop Optimization
 *   **Window Size**: Su MacCatalyst/Windows, dimensione finestra predefinita impostata a **1200x800** in `App.xaml.cs`.
+
+## Comportamento Modali (Dialogs)
+
+**Regola Globale**: Tutte le modali di inserimento/modifica devono impedire la chiusura accidentale tramite click esterno.
+*   **Implementazione**: Quando si crea l'oggetto `DialogOptions`, impostare sempre **`BackdropClick = false`**.
+*   **Esempio**: `new DialogOptions { BackdropClick = false, ... }`

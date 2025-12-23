@@ -14,94 +14,43 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
-        <MudText Typo="Typo.h6">ERRORE:</MudText>
-        <MudText>@_errorMessage</MudText>
-    </MudAlert>
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
 }
 else
 {
-    <MudDataGrid T="Provincia"
-                 Items="@_items"
-                 Filterable="true"
-                 SortMode="SortMode.Multiple"
-                 Groupable="false"
-                 QuickFilter="@(x => Search(x, _searchString))"
-                 @bind-SelectedItem="_selectedItem"
-                 Breakpoint="Breakpoint.None">
+    <EnterpriseDataGrid T="Provincia" Items="@_items" Title="Gestione Province" SearchFunction="@((x, s) => Search(x, s))"
+    @bind-SelectedItem="_selectedItem">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Gestione Province</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-4">
-                Nuovo
-            </MudButton>
-        </ToolBarContent>
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarActions>
 
-        <Columns>
-            <TemplateColumn CellClass="d-flex justify-end">
-                <CellTemplate>
-                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
-                        <MudTooltip Text="Modifica">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => OpenEditDialog(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Elimina">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => DeleteItem(context.Item))" />
-                        </MudTooltip>
-                    </MudStack>
-                </CellTemplate>
-            </TemplateColumn>
+    <Columns>
+        <EnterpriseActionsColumn T="Provincia" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
 
-            <PropertyColumn Property="x => x.Descrizione"
-                            Title="Provincia" />
+        <PropertyColumn Property="x => x.Descrizione" Title="Provincia" />
 
-            <PropertyColumn Property="x => x.Sigla"
-                            Title="Sigla"
-                            HeaderClass="col-xs justify-center"
-                            CellClass="col-xs"
-                            CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.Sigla" Title="Sigla" HeaderClass="col-xs justify-center" CellClass="col-xs"
+            CellStyle="text-align: center;" />
 
-            <PropertyColumn Property="x => x.RegioneDescrizione"
-                            Title="Regione" />
+        <PropertyColumn Property="x => x.RegioneDescrizione" Title="Regione" />
 
-            <PropertyColumn Property="x => x.Superficie"
-                            Title="Superf. (kmq)"
-                            Format="N2"
-                            HeaderClass="col-lg justify-end"
-                            CellClass="col-lg"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.Superficie" Title="Superf. (kmq)" Format="N2" HeaderClass="col-lg justify-end"
+            CellClass="col-lg" CellStyle="text-align: right;" />
 
-            <PropertyColumn Property="x => x.Residenti"
-                            Title="Residenti"
-                            Format="N0"
-                            HeaderClass="col-md justify-end"
-                            CellClass="col-md"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.Residenti" Title="Residenti" Format="N0" HeaderClass="col-md justify-end"
+            CellClass="col-md" CellStyle="text-align: right;" />
 
-            <PropertyColumn Property="x => x.NumeroComuni"
-                            Title="Comuni"
-                            Format="N0"
-                            HeaderClass="col-sm justify-end"
-                            CellClass="col-sm"
-                            CellStyle="text-align: right;" />
-        </Columns>
+        <PropertyColumn Property="x => x.NumeroComuni" Title="Comuni" Format="N0" HeaderClass="col-sm justify-end"
+            CellClass="col-sm" CellStyle="text-align: right;" />
+    </Columns>
 
-        <PagerContent>
-            <MudDataGridPager T="Provincia" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-        </PagerContent>
-
-    </MudDataGrid>
+</EnterpriseDataGrid>
 }
 
 @code {
@@ -146,17 +95,16 @@ else
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<ProvinciaDialog>
-        {
-            { x => x.Entity, new Provincia() },
-            { x => x.IsEditMode, false }
-        };
+{
+{ x => x.Entity, new Provincia() },
+{ x => x.IsEditMode, false }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<ProvinciaDialog>("Nuova Provincia", parameters, options);
         var result = await dialog.Result;
@@ -179,27 +127,26 @@ else
     private async Task OpenEditDialog(Provincia item)
     {
         var parameters = new DialogParameters<ProvinciaDialog>
-        {
-            { x => x.Entity, new Provincia
-                {
-                    Id = item.Id,
-                    Descrizione = item.Descrizione,
-                    Sigla = item.Sigla,
-                    Superficie = item.Superficie,
-                    Residenti = item.Residenti,
-                    NumeroComuni = item.NumeroComuni,
-                    RegioneIdFk = item.RegioneIdFk
-                }
-            },
-            { x => x.IsEditMode, true }
-        };
+{
+{ x => x.Entity, new Provincia
+{
+Id = item.Id,
+Descrizione = item.Descrizione,
+Sigla = item.Sigla,
+Superficie = item.Superficie,
+Residenti = item.Residenti,
+NumeroComuni = item.NumeroComuni,
+RegioneIdFk = item.RegioneIdFk
+}
+},
+{ x => x.IsEditMode, true }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<ProvinciaDialog>("Modifica Provincia", parameters, options);
         var result = await dialog.Result;
@@ -222,12 +169,12 @@ else
     private async Task DeleteItem(Provincia item)
     {
         var parameters = new DialogParameters
-        {
-            { "Title", "Attenzione" },
-            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
-        };
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+};
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
 
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;

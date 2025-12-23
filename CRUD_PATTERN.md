@@ -287,6 +287,26 @@ END $$;
     </DialogActions>
 </MudDialog>
 
+### ⚠️ Regola GLOBALE per le Modali: BackdropClick = false
+
+**REGOLA FONDAMENTALE**: L'utente NON deve poter chiudere la modale cliccando fuori (sul backdrop).
+Quando si istanzia `DialogOptions` nella pagina che apre il dialog (vedi Step 4), è **OBBLIGATORIO** impostare `BackdropClick = false`.
+
+```csharp
+var options = new DialogOptions 
+{ 
+    CloseButton = true, 
+    MaxWidth = MaxWidth.Small, 
+    FullWidth = true, 
+    BackdropClick = false // <--- OBBLIGATORIO
+};
+```
+
+### 🧩 Ereditarietà: BaseCrudDialog (Opzionale ma Consigliato)
+È possibile far ereditare il dialog da `BaseCrudDialog<T>` invece che implementare tutto manualmente.
+Vedi `/Components/Shared/BaseCrudDialog.cs` per dettagli.
+Attualmente il pattern standard prevede l'implementazione esplicita per massima flessibilità, ma ricordarsi della regola `BackdropClick`.
+
 @code {
     private MudForm? _form;
     private MudTextField<string>? _firstField;
@@ -886,7 +906,8 @@ else
         {
             CloseButton = true,
             MaxWidth = MaxWidth.Small,
-            FullWidth = true
+            FullWidth = true,
+            BackdropClick = false // <--- OBBLIGATORIO
         };
 
         var dialog = await DialogService.ShowAsync<NomeEntitaDialog>("Nuovo", parameters, options);

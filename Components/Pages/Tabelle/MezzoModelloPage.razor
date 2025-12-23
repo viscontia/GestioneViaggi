@@ -9,17 +9,12 @@
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
 
-<EnterpriseDataGrid T="MezzoModello"
-                    Title="Gestione Modelli Veicoli"
-                    Items="@_items"
-                    SearchFunction="@SearchFunc"
-                    @bind-SelectedItem="_selectedItem">
+<EnterpriseDataGrid T="MezzoModello" Title="Gestione Modelli Veicoli" Items="@_items" SearchFunction="@SearchFunc"
+@bind-SelectedItem="_selectedItem">
 
     <ToolBarActions>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="@OpenCreateDialog">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
             Nuovo Modello
         </MudButton>
     </ToolBarActions>
@@ -61,17 +56,17 @@
             return true;
 
         return (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (item.MarcaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
-               (item.TipoMezzoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false);
+        (item.MarcaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (item.TipoMezzoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false);
     }
 
     private async Task OpenCreateDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true  };
         var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Nuovo Modello", options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is MezzoModello newItem)
+        if (result is not null && !result.Canceled && result.Data is MezzoModello newItem)
         {
             try
             {
@@ -90,26 +85,26 @@
     private async Task OpenEditDialog(MezzoModello item)
     {
         var parameters = new DialogParameters
-        {
-            { "Entity", new MezzoModello
-                {
-                    Id = item.Id,
-                    Descrizione = item.Descrizione,
-                    MarcaIdFk = item.MarcaIdFk,
-                    TipoMezzoIdFk = item.TipoMezzoIdFk,
-                    // Passiamo anche le descrizioni per coerenza visiva se servissero nel dialog (anche se non usate direttamente)
-                    MarcaDescrizione = item.MarcaDescrizione,
-                    TipoMezzoDescrizione = item.TipoMezzoDescrizione
-                }
-            },
-            { "IsEditMode", true }
-        };
+{
+{ "Entity", new MezzoModello
+{
+Id = item.Id,
+Descrizione = item.Descrizione,
+MarcaIdFk = item.MarcaIdFk,
+TipoMezzoIdFk = item.TipoMezzoIdFk,
+// Passiamo anche le descrizioni per coerenza visiva se servissero nel dialog (anche se non usate direttamente)
+MarcaDescrizione = item.MarcaDescrizione,
+TipoMezzoDescrizione = item.TipoMezzoDescrizione
+}
+},
+{ "IsEditMode", true }
+};
 
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true  };
         var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Modifica Modello", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is MezzoModello updatedItem)
+        if (result is not null && !result.Canceled && result.Data is MezzoModello updatedItem)
         {
             try
             {
@@ -128,9 +123,9 @@
     private async Task DeleteAsync(MezzoModello item)
     {
         bool? result = await DialogService.ShowMessageBox(
-            "Conferma Eliminazione",
-            $"Sei sicuro di voler eliminare il modello '{item.Descrizione}'?",
-            yesText: "Elimina", cancelText: "Annulla");
+        "Conferma Eliminazione",
+        $"Sei sicuro di voler eliminare il modello '{item.Descrizione}'?",
+        yesText: "Elimina", cancelText: "Annulla");
 
         if (result == true)
         {

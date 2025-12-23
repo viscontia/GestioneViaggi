@@ -14,110 +14,58 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
-        <MudText Typo="Typo.h6">ERRORE:</MudText>
-        <MudText>@_errorMessage</MudText>
-    </MudAlert>
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
 }
 else
 {
-    <MudDataGrid T="Regione"
-                 Items="@_items"
-                 Filterable="true"
-                 SortMode="SortMode.Multiple"
-                 Groupable="false"
-                 QuickFilter="@(x => Search(x, _searchString))"
-                 @bind-SelectedItem="_selectedItem"
-                 Breakpoint="Breakpoint.None">
+    <EnterpriseDataGrid T="Regione" Items="@_items" Title="Gestione Regioni" SearchFunction="@((x, s) => Search(x, s))"
+    @bind-SelectedItem="_selectedItem">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Gestione Regioni</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-4">
-                Nuovo
-            </MudButton>
-        </ToolBarContent>
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarActions>
 
-        <Columns>
-            <TemplateColumn CellClass="d-flex justify-end">
-                <CellTemplate>
-                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
-                        <MudTooltip Text="Modifica">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => OpenEditDialog(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Elimina">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => DeleteItem(context.Item))" />
-                        </MudTooltip>
-                    </MudStack>
-                </CellTemplate>
-            </TemplateColumn>
+    <Columns>
+        <EnterpriseActionsColumn T="Regione" 
+                                   OnEdit="@OpenEditDialog" 
+                                   OnDelete="@DeleteItem" />
 
-            <PropertyColumn Property="x => x.CountryName"
-                            Title="Paese" />
+        <PropertyColumn Property="x => x.CountryName" Title="Paese" />
 
-            <PropertyColumn Property="x => x.Descrizione"
-                            Title="Regione" />
+        <PropertyColumn Property="x => x.Descrizione" Title="Regione" />
 
-            <PropertyColumn Property="x => x.NumeroResidenti"
-                            Title="Residenti"
-                            Format="N0"
-                            HeaderClass="col-md justify-end"
-                            CellClass="col-md"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.NumeroResidenti" Title="Residenti" Format="N0" HeaderClass="col-md justify-end"
+            CellClass="col-md" CellStyle="text-align: right;" />
 
-            <PropertyColumn Property="x => x.PercentualeResidenti"
-                            Title="% Resid."
-                            Format="N2"
-                            HeaderClass="col-sm justify-end"
-                            CellClass="col-sm"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.PercentualeResidenti" Title="% Resid." Format="N2"
+            HeaderClass="col-sm justify-end" CellClass="col-sm" CellStyle="text-align: right;" />
 
-            <PropertyColumn Property="x => x.DensitaKmq"
-                            Title="Densità (ab/kmq)"
-                            Format="N2"
-                            HeaderClass="col-lg justify-end"
-                            CellClass="col-lg"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.DensitaKmq" Title="Densità (ab/kmq)" Format="N2"
+            HeaderClass="col-lg justify-end" CellClass="col-lg" CellStyle="text-align: right;" />
 
-            <PropertyColumn Property="x => x.NumeroProvince"
-                            Title="N.Prov."
-                            Format="N0"
-                            HeaderClass="col-sm justify-end"
-                            CellClass="col-sm"
-                            CellStyle="text-align: right;" />
+        <PropertyColumn Property="x => x.NumeroProvince" Title="N.Prov." Format="N0" HeaderClass="col-sm justify-end"
+            CellClass="col-sm" CellStyle="text-align: right;" />
 
-            <TemplateColumn Title="N.Comuni"
-                            HeaderClass="col-sm justify-end"
-                            CellClass="col-sm"
-                            CellStyle="text-align: right;">
-                <HeaderTemplate>
-                    <div style="text-align: right; line-height: 1.2;">
-                        <div>Num.</div>
-                        <div>Comuni</div>
-                    </div>
-                </HeaderTemplate>
-                <CellTemplate>
-                    @context.Item.NumeroComuni?.ToString("N0")
-                </CellTemplate>
-            </TemplateColumn>
-        </Columns>
+        <TemplateColumn Title="N.Comuni" HeaderClass="col-sm justify-end" CellClass="col-sm"
+            CellStyle="text-align: right;">
+            <HeaderTemplate>
+                <div style="text-align: right; line-height: 1.2;">
+                    <div>Num.</div>
+                    <div>Comuni</div>
+                </div>
+            </HeaderTemplate>
+            <CellTemplate>
+                @context.Item.NumeroComuni?.ToString("N0")
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
 
-        <PagerContent>
-            <MudDataGridPager T="Regione" PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-        </PagerContent>
-
-    </MudDataGrid>
+</EnterpriseDataGrid>
 }
 
 @code {
@@ -161,17 +109,16 @@ else
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<RegioneDialog>
-        {
-            { x => x.Entity, new Regione() },
-            { x => x.IsEditMode, false }
-        };
+{
+{ x => x.Entity, new Regione() },
+{ x => x.IsEditMode, false }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<RegioneDialog>("Nuova Regione", parameters, options);
         var result = await dialog.Result;
@@ -194,28 +141,27 @@ else
     private async Task OpenEditDialog(Regione item)
     {
         var parameters = new DialogParameters<RegioneDialog>
-        {
-            { x => x.Entity, new Regione
-                {
-                    Id = item.Id,
-                    Descrizione = item.Descrizione,
-                    NumeroResidenti = item.NumeroResidenti,
-                    PercentualeResidenti = item.PercentualeResidenti,
-                    DensitaKmq = item.DensitaKmq,
-                    NumeroProvince = item.NumeroProvince,
-                    NumeroComuni = item.NumeroComuni,
-                    CountryIdFk = item.CountryIdFk
-                }
-            },
-            { x => x.IsEditMode, true }
-        };
+{
+{ x => x.Entity, new Regione
+{
+Id = item.Id,
+Descrizione = item.Descrizione,
+NumeroResidenti = item.NumeroResidenti,
+PercentualeResidenti = item.PercentualeResidenti,
+DensitaKmq = item.DensitaKmq,
+NumeroProvince = item.NumeroProvince,
+NumeroComuni = item.NumeroComuni,
+CountryIdFk = item.CountryIdFk
+}
+},
+{ x => x.IsEditMode, true }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<RegioneDialog>("Modifica Regione", parameters, options);
         var result = await dialog.Result;
@@ -238,12 +184,12 @@ else
     private async Task DeleteItem(Regione item)
     {
         var parameters = new DialogParameters
-        {
-            { "Title", "Attenzione" },
-            { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
-        };
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+};
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
 
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;

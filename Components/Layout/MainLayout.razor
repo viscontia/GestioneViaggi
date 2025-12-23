@@ -7,14 +7,17 @@
 
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+            OnClick="@((e) => DrawerToggle())" />
         <MudText Typo="Typo.h5" Class="ml-3">Gestione Viaggi</MudText>
         <MudSpacer />
         <AppBreadcrumbs />
         <MudSpacer />
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="@((e) => DarkModeToggle())" />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)"
+            Color="Color.Inherit" OnClick="@((e) => DarkModeToggle())" />
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini" OpenMiniOnHover="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini"
+        OpenMiniOnHover="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
@@ -25,7 +28,8 @@
 </MudLayout>
 
 <!-- Bottom Status Bar -->
-<div style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200; margin-left: var(--mud-drawer-width-mini, 56px);">
+<div
+    style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200; margin-left: var(--mud-drawer-width-mini, 56px);">
     <StatusBar />
 </div>
 
@@ -45,44 +49,52 @@
     }
 
     MudTheme _theme = new MudTheme()
-    {
-        PaletteLight = new PaletteLight()
         {
-            Primary = "#111827",
-            Secondary = "#6B7280",
-            Success = "#10B981",
-            Error = "#EF4444",
-            Warning = "#F59E0B",
-            Info = "#0EA5E9",
-            Background = "#F7F8FA",
-            Surface = "#FFFFFF",
-            AppbarBackground = "#FFFFFF",
-            AppbarText = "#111827",
-            TextPrimary = "#111827",
-            TextSecondary = "#6B7280",
-        },
-        PaletteDark = new PaletteDark()
-        {
-            Primary = "#E6E8EB",
-            Secondary = "#9CA3AF",
-            Success = "#34D399",
-            Error = "#F87171",
-            Background = "#1A1D23",
-            Surface = "#30333B",
-            AppbarBackground = "#30333B",
-            TextPrimary = "#E6E8EB",
-            TextSecondary = "#9AA1AC",
-        },
-    };
-    
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#111827",
+                Secondary = "#6B7280",
+                Success = "#10B981",
+                Error = "#EF4444",
+                Warning = "#F59E0B",
+                Info = "#0EA5E9",
+                Background = "#F7F8FA",
+                Surface = "#FFFFFF",
+                AppbarBackground = "#FFFFFF",
+                AppbarText = "#111827",
+                TextPrimary = "#111827",
+                TextSecondary = "#6B7280",
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#E6E8EB",
+                Secondary = "#9CA3AF",
+                Success = "#34D399",
+                Error = "#F87171",
+                Background = "#1A1D23",
+                Surface = "#30333B",
+                AppbarBackground = "#30333B",
+                TextPrimary = "#E6E8EB",
+                TextSecondary = "#9AA1AC",
+            },
+        };
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && _mudThemeProvider != null)
         {
-             // Force Light Mode initially as requested
-             _isDarkMode = false; 
-             // _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
-             StateHasChanged();
+            // Force Light Mode initially as requested
+            _isDarkMode = false;
+            // _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+            StateHasChanged();
         }
     }
 }
+
+<style>
+    /* Utility per colorare l'helper text di rosso (errore/warning) */
+    .helper-text-error .mud-input-helper-text {
+        color: var(--mud-palette-error) !important;
+        font-weight: 600;
+    }
+</style>

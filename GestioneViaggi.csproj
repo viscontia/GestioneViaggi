@@ -2,8 +2,8 @@
 
     <PropertyGroup>
         <!-- Framework impostati su .NET 9 -->
-        <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net9.0-windows10.0.19041.0</TargetFrameworks>
+        <!-- <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks> -->
+        <TargetFrameworks>net9.0-maccatalyst</TargetFrameworks>
 
         <!-- QUESTA È LA RIGA MAGICA CHE RISOLVE L'ERRORE DI XCODE -->
         <_SuppressSdkVersionCheck>true</_SuppressSdkVersionCheck>
@@ -20,7 +20,7 @@
         <ApplicationTitle>GestioneViaggi</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.gestioneviaggi</ApplicationId>
+        <ApplicationId>com.adrianovisconti.gestioneviaggi</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -34,6 +34,16 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    </PropertyGroup>
+
+    <!-- Entitlements per MacCatalyst Debug (senza sandbox) -->
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst' AND '$(Configuration)' == 'Debug'">
+        <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.Debug.plist</CodesignEntitlements>
+    </PropertyGroup>
+
+    <!-- Entitlements per MacCatalyst Release (con sandbox per App Store) -->
+    <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst' AND '$(Configuration)' == 'Release'">
+        <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.plist</CodesignEntitlements>
     </PropertyGroup>
 
     <ItemGroup>
@@ -72,6 +82,10 @@
         <!-- Escludi file di esempio dalla compilazione -->
         <Compile Remove="Documents\**\*.razor" />
         <Content Remove="Documents\**\*.razor" />
+        
+        <!-- Fix build error with omnisharp.json -->
+        <Content Remove="omnisharp.json" />
+        <None Remove="omnisharp.json" />
     </ItemGroup>
 
 </Project>

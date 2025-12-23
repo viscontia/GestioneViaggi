@@ -137,4 +137,84 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         var ordinal = reader.GetOrdinal(columnName);
         return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
     }
+    /// <summary>
+    /// Metodo helper per creare un'entità con retry automatico in caso di errore sequence
+    /// </summary>
+    protected async Task<T> CreateAsyncInternal(T entity, Func<T, Task<T>> createAction, bool allowRetry = true)
+    {
+        try
+        {
+            return await createAction(entity);
+        }
+        catch (PostgresException ex) when (allowRetry && (ex.SqlState == "42P01" || ex.SqlState == "23505"))
+        {
+            // 42P01: undefined_table (spesso confuso con sequence mancante)
+            // 23505: unique_violation (se la sequence è indietro rispetto agli ID)
+
+            _logger.LogWarning(ex, "Errore database ({SqlState}). Tentativo di auto-fix della sequence per {TableName}.", ex.SqlState, TableName);
+
+            try
+            {
+                await FixSequenceAsync();
+                return await CreateAsyncInternal(entity, createAction, false); // Retry once
+            }
+            catch (Exception fixEx)
+            {
+                _logger.LogError(fixEx, "Tentativo di fix sequence fallito per {TableName}", TableName);
+                throw; // Rilancia l'eccezione originale o quella del fix
+            }
+        }
+    }
+
+    /// <summary>
+    /// Tenta di riparare la sequence della tabella corrente
+    /// </summary>
+    protected virtual async Task FixSequenceAsync()
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sequenceName = $"{TableName}_{IdColumnName}_seq"; // Naming convention standard PostgreSQL
+
+            // Per sicurezza, cerchiamo il nome esatto della sequence se diverso dallo standard
+            // Ma per ora assumiamo lo standard serial/identity di default
+
+            var sql = $@"
+                DO $$
+                DECLARE
+                    seq_name text := '{TableName}_seq'; -- Fallback name
+                    max_id integer;
+                BEGIN
+                    -- Cerca di indovinare il nome sequence corretto se esiste una dipendenza
+                    BEGIN
+                        SELECT pg_get_serial_sequence('{TableName}', '{IdColumnName}') INTO seq_name;
+                    EXCEPTION WHEN OTHERS THEN
+                        seq_name := '{TableName}_seq';
+                    END;
+
+                    IF seq_name IS NULL THEN
+                        seq_name := '{TableName}_seq';
+                    END IF;
+
+                    -- Calcola ID massimo attuale
+                    SELECT COALESCE(MAX({IdColumnName}), 0) + 1 INTO max_id FROM {TableName};
+                    
+                    -- Log per debug
+                    RAISE NOTICE 'Fixing sequence % to %', seq_name, max_id;
+                    
+                    -- Aggiorna la sequence
+                    PERFORM setval(seq_name, max_id, false);
+                END $$;";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            await command.ExecuteNonQueryAsync();
+
+            _logger.LogInformation("Sequence fix completato per {TableName}", TableName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore critico durante il fix della sequence per {TableName}", TableName);
+            throw;
+        }
+    }
 }

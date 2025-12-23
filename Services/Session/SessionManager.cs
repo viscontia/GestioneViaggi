@@ -22,7 +22,7 @@ public class SessionManager : ISessionManager
         try
         {
             var session = await GetSessionAsync();
-            
+
             if (session?.IsExpired ?? false)
             {
                 _logger.LogWarning("Session expired. Clearing stored session.");
@@ -32,7 +32,7 @@ public class SessionManager : ISessionManager
             else
             {
                 _cachedSession = session;
-                _logger.LogInformation("Session initialized. User: {Email}, Tenant: {TenantId}", 
+                _logger.LogInformation("Session initialized. User: {Email}, Tenant: {TenantId}",
                     session?.User.Email, session?.TenantId);
             }
         }
@@ -85,11 +85,11 @@ public class SessionManager : ISessionManager
 
             _logger.LogDebug("Persisting email to storage: {Email}", user.Email);
             await _storageProvider.SetAsync(SessionStorageConstants.LastLoginEmailKey, user.Email);
-            
+
             _logger.LogDebug("Persisting tenant to storage: {TenantId}", user.TenantId);
             await _storageProvider.SetAsync(SessionStorageConstants.LastLoginTenantIdKey, user.TenantId);
 
-            _logger.LogInformation("Session saved in memory for user: {Email}, Tenant: {TenantId}", 
+            _logger.LogInformation("Session saved in memory for user: {Email}, Tenant: {TenantId}",
                 user.Email, user.TenantId);
         }
         catch (Exception ex)
@@ -190,6 +190,8 @@ public class SessionManager : ISessionManager
 
     public async Task ClearPersistedDataAsync()
     {
+        await Task.CompletedTask;
+
         try
         {
             _logger.LogDebug("Clearing persisted session data");

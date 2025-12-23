@@ -36,6 +36,16 @@
                     "endsPattern": "^.*Application started.*$"
                 }
             }
+        },
+        {
+            "label": "run-app-bundle",
+            "command": "open",
+            "type": "shell",
+            "args": [
+                "${workspaceFolder}/bin/Debug/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app"
+            ],
+            "dependsOn": "build",
+            "problemMatcher": []
         }
     ]
 }

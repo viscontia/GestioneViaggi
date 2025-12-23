@@ -155,7 +155,7 @@ else
             { "ContentText", $"Sei sicuro di voler eliminare la marca veicolo '{item.Descrizione}'?" }
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma Eliminazione", parameters, options);
         var result = await dialog.Result;
 

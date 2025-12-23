@@ -103,9 +103,9 @@ public class MezzoModelloService : BaseCrudService<MezzoModello>
         }
     }
 
-    private async Task FixSequenceAsync()
+    protected override async Task FixSequenceAsync()
     {
-        try 
+        try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
@@ -123,7 +123,7 @@ public class MezzoModelloService : BaseCrudService<MezzoModello>
                     -- 3. Sync the sequence with the current max id
                     PERFORM setval('ana_mezzi_modelli_seq', COALESCE((SELECT MAX(mezzo_modello_id) FROM ana_mezzi_modelli), 0) + 1, false);
                 END $$;";
-                
+
             await using var command = new NpgsqlCommand(sql, connection);
             await command.ExecuteNonQueryAsync();
             _logger.LogInformation("Schema auto-fix applied: ana_mezzi_modelli_seq created and synced.");

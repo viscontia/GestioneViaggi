@@ -91,12 +91,11 @@ else
             { x => x.IsEditMode, false }
         };
 
-        var options = new DialogOptions
-        {
+        var options = new DialogOptions { BackdropClick = false, 
             CloseButton = true,
             MaxWidth = MaxWidth.Small,
             FullWidth = true
-        };
+         };
 
         var dialog = await DialogService.ShowAsync<TipoTrattamentoDialog>("Nuovo", parameters, options);
         var result = await dialog.Result;
@@ -125,12 +124,11 @@ else
             { x => x.IsEditMode, true }
         };
 
-        var options = new DialogOptions
-        {
+        var options = new DialogOptions { BackdropClick = false, 
             CloseButton = true,
             MaxWidth = MaxWidth.Small,
             FullWidth = true
-        };
+         };
 
         var dialog = await DialogService.ShowAsync<TipoTrattamentoDialog>("Modifica", parameters, options);
         var result = await dialog.Result;
@@ -163,7 +161,7 @@ else
             { "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
 
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;

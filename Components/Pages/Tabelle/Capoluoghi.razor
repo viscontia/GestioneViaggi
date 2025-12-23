@@ -15,58 +15,29 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
-        <MudText Typo="Typo.h6">ERRORE:</MudText>
-        <MudText>@_errorMessage</MudText>
-    </MudAlert>
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
 }
 else
 {
-    <MudDataGrid T="Capoluogo"
-                 Items="@_capoluoghi"
-                 Filterable="true"
-                 SortMode="SortMode.Multiple"
-                 Groupable="false"
-                 QuickFilter="@(x => SearchCapoluogo(x, _searchString))"
-                 @bind-SelectedItem="_selectedItem">
+    <EnterpriseDataGrid T="Capoluogo" Items="@_capoluoghi" Title="Gestione Capoluoghi di Regione"
+    SearchFunction="@((x, s) => SearchCapoluogo(x, s))" @bind-SelectedItem="_selectedItem">
 
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Gestione Capoluoghi di Regione</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="_searchString" Placeholder="Cerca..." Adornment="Adornment.Start" Immediate="true"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog"
-                       Class="ml-4">
-                Nuovo
-            </MudButton>
-        </ToolBarContent>
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarActions>
 
-        <Columns>
-            <TemplateColumn CellClass="d-flex justify-end">
-                <CellTemplate>
-                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
-                        <MudTooltip Text="Modifica">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => OpenEditDialog(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Elimina">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Default"
-                                           OnClick="@(() => DeleteCapoluogo(context.Item))" />
-                        </MudTooltip>
-                    </MudStack>
-                </CellTemplate>
-            </TemplateColumn>
+    <Columns>
+        <EnterpriseActionsColumn T="Capoluogo" OnEdit="@OpenEditDialog" OnDelete="@DeleteCapoluogo" />
 
-            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione Capoluogo" />
-        </Columns>
+        <PropertyColumn Property="x => x.Descrizione" Title="Descrizione Capoluogo" />
+    </Columns>
 
-    </MudDataGrid>
+</EnterpriseDataGrid>
 }
 
 @code {
@@ -109,17 +80,16 @@ else
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters<CapoluogoDialog>
-        {
-            { x => x.Entity, new Capoluogo() },
-            { x => x.IsEditMode, false }
-        };
+{
+{ x => x.Entity, new Capoluogo() },
+{ x => x.IsEditMode, false }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<CapoluogoDialog>("Nuovo Capoluogo", parameters, options);
         var result = await dialog.Result;
@@ -143,17 +113,16 @@ else
     private async Task OpenEditDialog(Capoluogo capoluogo)
     {
         var parameters = new DialogParameters<CapoluogoDialog>
-        {
-            { x => x.Entity, new Capoluogo { Id = capoluogo.Id, Descrizione = capoluogo.Descrizione } },
-            { x => x.IsEditMode, true }
-        };
+{
+{ x => x.Entity, new Capoluogo { Id = capoluogo.Id, Descrizione = capoluogo.Descrizione } },
+{ x => x.IsEditMode, true }
+};
 
-        var options = new DialogOptions
-        {
-            CloseButton = true,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
+        var options = new DialogOptions { BackdropClick = false, 
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+             };
 
         var dialog = await DialogService.ShowAsync<CapoluogoDialog>("Modifica Capoluogo", parameters, options);
         var result = await dialog.Result;
@@ -181,12 +150,12 @@ else
     private async Task DeleteCapoluogo(Capoluogo capoluogo)
     {
         var parameters = new DialogParameters
-        {
-            { "Title", "Attenzione" },
-            { "ContentText", $"Vuoi veramente cancellare questo record? ({capoluogo.Descrizione})" }
-        };
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare questo record? ({capoluogo.Descrizione})" }
+};
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var options = new DialogOptions { BackdropClick = false,  CloseButton = true, MaxWidth = MaxWidth.ExtraSmall  };
 
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
         var result = await dialog.Result;

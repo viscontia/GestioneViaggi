@@ -66,103 +66,55 @@ public class ComuneService : BaseCrudService<Comune>
 
     public override async Task<Comune> CreateAsync(Comune entity)
     {
-        try
+        return await CreateAsyncInternal(entity, async (e) =>
         {
-            // DEBUG: Log DETTAGLIATO dei valori prima della INSERT
-            _logger.LogInformation("=== INIZIO CreateAsync ===");
-            _logger.LogInformation("Entity.Id: {Id} (type: {IdType})", entity.Id, entity.Id.GetType().FullName);
-            _logger.LogInformation("Entity.Nome: {Nome}", entity.Nome);
-            _logger.LogInformation("Entity.ProvinciaIdFk: {ProvinciaIdFk} (type: {ProvinciaType})",
-                entity.ProvinciaIdFk, entity.ProvinciaIdFk?.GetType().FullName ?? "null");
-            _logger.LogInformation("Entity.RipGeoIdFk: {RipGeoIdFk} (type: {RipGeoType})",
-                entity.RipGeoIdFk, entity.RipGeoIdFk?.GetType().FullName ?? "null");
-            _logger.LogInformation("Entity.CapoluogoIdFk: {CapoluogoIdFk} (type: {CapoluogoType})",
-                entity.CapoluogoIdFk, entity.CapoluogoIdFk?.GetType().FullName ?? "null");
-
-            // VALIDAZIONE CRITICA: verifica che i tipi siano corretti
-            if (entity.ProvinciaIdFk.HasValue && entity.ProvinciaIdFk.GetType() != typeof(int?))
+            try
             {
-                _logger.LogError("TIPO ERRATO PER ProvinciaIdFk! Tipo atteso: int?, Tipo reale: {Type}",
-                    entity.ProvinciaIdFk.GetType().FullName);
+                await using var connection = await _databaseService.GetConnectionAsync();
+                var sql = @"
+                    INSERT INTO ana_geo_comuni (
+                        comune_descrizione,
+                        comune_istat,
+                        comune_preftel,
+                        comune_cap,
+                        comune_codfisc,
+                        comune_num_abitanti,
+                        comune_link,
+                        comune_estero,
+                        comune_provincia_fk,
+                        comune_ripgeo_fk,
+                        comune_capoluogo_fk
+                    )
+                    VALUES (@nome, @codIstat, @prefTel, @cap, @codFiscale, @numAbitanti, @link, @comuneEstero, @provinciaFk, @ripGeoFk, @capoluogoFk)
+                    RETURNING comune_id, comune_descrizione, comune_istat, comune_preftel, comune_cap, comune_codfisc, comune_num_abitanti, comune_link, comune_estero, comune_provincia_fk, comune_ripgeo_fk, comune_capoluogo_fk";
+
+                await using var command = new NpgsqlCommand(sql, connection);
+                command.Parameters.AddWithValue("nome", e.Nome);
+                command.Parameters.AddWithValue("codIstat", (object?)e.CodIstat ?? DBNull.Value);
+                command.Parameters.AddWithValue("prefTel", (object?)e.PrefTel ?? DBNull.Value);
+                command.Parameters.AddWithValue("cap", (object?)e.Cap ?? DBNull.Value);
+                command.Parameters.AddWithValue("codFiscale", (object?)e.CodFiscale ?? DBNull.Value);
+                command.Parameters.AddWithValue("numAbitanti", (object?)e.NumAbitanti ?? DBNull.Value);
+                command.Parameters.AddWithValue("link", (object?)e.Link ?? DBNull.Value);
+                command.Parameters.AddWithValue("comuneEstero", e.ComuneEstero ? "Y" : "N");
+                command.Parameters.AddWithValue("provinciaFk", (object?)e.ProvinciaIdFk ?? DBNull.Value);
+                command.Parameters.AddWithValue("ripGeoFk", (object?)e.RipGeoIdFk ?? DBNull.Value);
+                command.Parameters.AddWithValue("capoluogoFk", (object?)e.CapoluogoIdFk ?? DBNull.Value);
+
+                await using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return MapFromReader(reader);
+                }
+
+                throw new Exception("Impossibile creare il comune");
             }
-            if (entity.RipGeoIdFk.HasValue && entity.RipGeoIdFk.GetType() != typeof(int?))
+            catch (Exception ex)
             {
-                _logger.LogError("TIPO ERRATO PER RipGeoIdFk! Tipo atteso: int?, Tipo reale: {Type}",
-                    entity.RipGeoIdFk.GetType().FullName);
+                _logger.LogError(ex, "Errore durante la creazione del comune {Nome}", e.Nome);
+                throw;
             }
-            if (entity.CapoluogoIdFk.HasValue && entity.CapoluogoIdFk.GetType() != typeof(int?))
-            {
-                _logger.LogError("TIPO ERRATO PER CapoluogoIdFk! Tipo atteso: int?, Tipo reale: {Type}",
-                    entity.CapoluogoIdFk.GetType().FullName);
-            }
-
-            // Serializza l'intero oggetto per vedere tutti i campi
-            var serialized = System.Text.Json.JsonSerializer.Serialize(entity);
-            _logger.LogInformation("Entity JSON: {Json}", serialized);
-
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                INSERT INTO ana_geo_comuni (
-                    comune_descrizione,
-                    comune_istat,
-                    comune_preftel,
-                    comune_cap,
-                    comune_codfisc,
-                    comune_num_abitanti,
-                    comune_link,
-                    comune_estero,
-                    comune_provincia_fk,
-                    comune_ripgeo_fk,
-                    comune_capoluogo_fk
-                )
-                VALUES (@nome, @codIstat, @prefTel, @cap, @codFiscale, @numAbitanti, @link, @comuneEstero, @provinciaFk, @ripGeoFk, @capoluogoFk)
-                RETURNING comune_id, comune_descrizione, comune_istat, comune_preftel, comune_cap, comune_codfisc, comune_num_abitanti, comune_link, comune_estero, comune_provincia_fk, comune_ripgeo_fk, comune_capoluogo_fk";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("nome", entity.Nome);
-            command.Parameters.AddWithValue("codIstat", (object?)entity.CodIstat ?? DBNull.Value);
-            command.Parameters.AddWithValue("prefTel", (object?)entity.PrefTel ?? DBNull.Value);
-            command.Parameters.AddWithValue("cap", (object?)entity.Cap ?? DBNull.Value);
-            command.Parameters.AddWithValue("codFiscale", (object?)entity.CodFiscale ?? DBNull.Value);
-            command.Parameters.AddWithValue("numAbitanti", (object?)entity.NumAbitanti ?? DBNull.Value);
-            command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
-            command.Parameters.AddWithValue("comuneEstero", entity.ComuneEstero ? "Y" : "N");
-            command.Parameters.AddWithValue("provinciaFk", (object?)entity.ProvinciaIdFk ?? DBNull.Value);
-            command.Parameters.AddWithValue("ripGeoFk", (object?)entity.RipGeoIdFk ?? DBNull.Value);
-            command.Parameters.AddWithValue("capoluogoFk", (object?)entity.CapoluogoIdFk ?? DBNull.Value);
-
-            // DEBUG: Log dei parametri che verranno passati a PostgreSQL
-            _logger.LogInformation("=== PARAMETRI SQL ===");
-            foreach (NpgsqlParameter param in command.Parameters)
-            {
-                _logger.LogInformation("Param {Name}: Value={Value}, Type={Type}, NpgsqlDbType={DbType}",
-                    param.ParameterName,
-                    param.Value ?? "NULL",
-                    param.Value?.GetType().FullName ?? "null",
-                    param.NpgsqlDbType);
-            }
-            _logger.LogInformation("=== ESECUZIONE QUERY ===");
-
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                _logger.LogInformation("=== SUCCESSO ===");
-                return MapFromReader(reader);
-            }
-
-            throw new Exception("Impossibile creare il comune");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "=== ERRORE durante la creazione del comune ===");
-            _logger.LogError("Exception Type: {ExType}", ex.GetType().FullName);
-            _logger.LogError("Exception Message: {Message}", ex.Message);
-            if (ex.InnerException != null)
-            {
-                _logger.LogError("Inner Exception: {InnerMessage}", ex.InnerException.Message);
-            }
-            throw;
-        }
+        });
     }
 
     public override async Task<Comune> UpdateAsync(Comune entity)
