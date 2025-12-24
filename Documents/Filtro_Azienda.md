@@ -7,32 +7,73 @@
 Con il refactoring del 2024-12-24, il campo `tenant_id` è stato rimosso da tutte le tabelle.  
 L'isolamento dei dati è ora gestito **a livello applicativo** usando `azienda_id`.
 
-## Ottenere l'Azienda Corrente
+---
+
+## Ruoli e Accesso
+
+| Ruolo | Accesso |
+|-------|---------|
+| **SuperAdmin** | Tutte le aziende, tutti i dati |
+| **Altri ruoli** | Solo dati della propria azienda |
+
+---
+
+## Helper nel Servizio Base
+
+Aggiungere questo metodo helper in ogni servizio che richiede filtro:
 
 ```csharp
-// Iniettare ISessionManager nel servizio
 private readonly ISessionManager _sessionManager;
 
-// Ottenere l'azienda corrente
-int? aziendaId = _sessionManager.GetCurrentAziendaId();
+/// <summary>
+/// Verifica se l'utente corrente è SuperAdmin
+/// </summary>
+private bool IsSuperAdmin()
+{
+    var session = _sessionManager.GetSessionAsync().Result;
+    return session?.User?.IsSuperAdmin ?? false;
+}
+
+/// <summary>
+/// Restituisce aziendaId se non SuperAdmin, null se SuperAdmin (accesso globale)
+/// </summary>
+private int? GetFilteredAziendaId()
+{
+    if (IsSuperAdmin()) return null; // Nessun filtro per SuperAdmin
+    return _sessionManager.GetCurrentAziendaId();
+}
 ```
 
 ---
 
 ## Esempi di Implementazione
 
-### 1. GetAll con Filtro Azienda
+### 1. GetAll con Filtro Azienda (SuperAdmin bypass)
 
 ```csharp
 public async Task<List<Cliente>> GetAllAsync()
 {
-    var aziendaId = _sessionManager.GetCurrentAziendaId();
+    var aziendaId = GetFilteredAziendaId();
     
     await using var connection = await _databaseService.GetConnectionAsync();
-    var sql = "SELECT * FROM ana_clienti WHERE azienda_fk = @AziendaId ORDER BY cliente_id";
+    
+    string sql;
+    if (aziendaId.HasValue)
+    {
+        // Utente normale: filtra per azienda
+        sql = "SELECT * FROM ana_clienti WHERE azienda_fk = @AziendaId ORDER BY cliente_id";
+    }
+    else
+    {
+        // SuperAdmin: vede tutti
+        sql = "SELECT * FROM ana_clienti ORDER BY cliente_id";
+    }
     
     await using var command = new NpgsqlCommand(sql, connection);
-    command.Parameters.AddWithValue("AziendaId", aziendaId ?? (object)DBNull.Value);
+    if (aziendaId.HasValue)
+    {
+        command.Parameters.AddWithValue("AziendaId", aziendaId.Value);
+    }
     
     // ... esegui query
 }
@@ -43,15 +84,23 @@ public async Task<List<Cliente>> GetAllAsync()
 ```csharp
 public async Task<Cliente> CreateAsync(Cliente entity)
 {
+    // Per Create, usiamo sempre l'azienda effettiva (anche SuperAdmin deve specificarla)
     var aziendaId = _sessionManager.GetCurrentAziendaId();
+    
+    if (!aziendaId.HasValue && !IsSuperAdmin())
+    {
+        throw new InvalidOperationException("Azienda non impostata per l'utente corrente");
+    }
+    
+    // SuperAdmin: usa l'aziendaId passato nell'entity se presente
+    var effectiveAziendaId = aziendaId ?? entity.AziendaFk;
     
     var sql = @"
         INSERT INTO ana_clienti (azienda_fk, cliente_nome, cliente_cognome, ...)
         VALUES (@AziendaId, @Nome, @Cognome, ...)
         RETURNING cliente_id";
     
-    command.Parameters.AddWithValue("AziendaId", aziendaId ?? (object)DBNull.Value);
-    // ... altri parametri
+    command.Parameters.AddWithValue("AziendaId", effectiveAziendaId ?? (object)DBNull.Value);
 }
 ```
 
@@ -60,13 +109,27 @@ public async Task<Cliente> CreateAsync(Cliente entity)
 ```csharp
 public async Task<Cliente> UpdateAsync(Cliente entity)
 {
-    var aziendaId = _sessionManager.GetCurrentAziendaId();
+    var aziendaId = GetFilteredAziendaId();
     
-    // Aggiunge azienda_fk al WHERE per sicurezza
-    var sql = @"
-        UPDATE ana_clienti 
-        SET cliente_nome = @Nome, ...
-        WHERE cliente_id = @Id AND azienda_fk = @AziendaId";
+    string sql;
+    if (aziendaId.HasValue)
+    {
+        // Utente normale: verifica anche azienda
+        sql = @"
+            UPDATE ana_clienti 
+            SET cliente_nome = @Nome, ...
+            WHERE cliente_id = @Id AND azienda_fk = @AziendaId";
+    }
+    else
+    {
+        // SuperAdmin: può modificare qualsiasi record
+        sql = @"
+            UPDATE ana_clienti 
+            SET cliente_nome = @Nome, ...
+            WHERE cliente_id = @Id";
+    }
+    
+    // ... parametri
 }
 ```
 
@@ -75,10 +138,55 @@ public async Task<Cliente> UpdateAsync(Cliente entity)
 ```csharp
 public async Task<bool> DeleteAsync(int id)
 {
-    var aziendaId = _sessionManager.GetCurrentAziendaId();
+    var aziendaId = GetFilteredAziendaId();
     
-    var sql = "DELETE FROM ana_clienti WHERE cliente_id = @Id AND azienda_fk = @AziendaId";
+    string sql;
+    if (aziendaId.HasValue)
+    {
+        sql = "DELETE FROM ana_clienti WHERE cliente_id = @Id AND azienda_fk = @AziendaId";
+    }
+    else
+    {
+        // SuperAdmin: può eliminare qualsiasi record
+        sql = "DELETE FROM ana_clienti WHERE cliente_id = @Id";
+    }
 }
+```
+
+### 5. GetById con Verifica Azienda
+
+```csharp
+public async Task<Cliente?> GetByIdAsync(int id)
+{
+    var aziendaId = GetFilteredAziendaId();
+    
+    string sql;
+    if (aziendaId.HasValue)
+    {
+        sql = "SELECT * FROM ana_clienti WHERE cliente_id = @Id AND azienda_fk = @AziendaId";
+    }
+    else
+    {
+        sql = "SELECT * FROM ana_clienti WHERE cliente_id = @Id";
+    }
+}
+```
+
+---
+
+## Pattern Compatto con Query Builder
+
+Per ridurre duplicazione, usare un helper:
+
+```csharp
+private string BuildAziendaWhereClause(string baseColumn = "azienda_fk")
+{
+    var aziendaId = GetFilteredAziendaId();
+    return aziendaId.HasValue ? $" AND {baseColumn} = @AziendaId" : "";
+}
+
+// Uso:
+var sql = $"SELECT * FROM ana_clienti WHERE cliente_id = @Id{BuildAziendaWhereClause()}";
 ```
 
 ---
