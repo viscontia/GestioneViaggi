@@ -158,7 +158,10 @@ public class SessionManager : ISessionManager
         }
     }
 
-    // GetCurrentTenantId() rimosso - TenantId non più utilizzato
+    public int? GetCurrentAziendaId()
+    {
+        return _cachedSession?.User?.AziendaId;
+    }
 
     public async Task<string?> GetLastLoginEmailAsync()
     {
