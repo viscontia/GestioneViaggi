@@ -294,6 +294,11 @@ catch (PostgresException ex)
 | Validatore Client | Metodo | Descrizione | File |
 |-------------------|--------|-------------|------|
 | GeographicValidator | `CheckCap()` | Verifica CAP italiano (5 cifre, zero significativo) | Semantic/GeographicValidator.cs |
+| DateValidator | `CheckDateRange()` | Confronto date: fine >= inizio | Semantic/DateValidator.cs |
+| DateValidator | `CheckNotFuture()` | Verifica data non futura | Semantic/DateValidator.cs |
+| DateValidator | `CheckNotPast()` | Verifica data non passata | Semantic/DateValidator.cs |
+| DateValidator | `CheckDateBetween()` | Data in range specifico | Semantic/DateValidator.cs |
+| DateValidator | `CheckMinimumAge()` | Verifica età minima da data nascita | Semantic/DateValidator.cs |
 
 ---
 
@@ -311,10 +316,10 @@ catch (PostgresException ex)
 - [x] `TextValidator.cs` (Trim, lunghezza)
 - [x] `CodeValidator.cs` (SDI, codici vari)
 
-### Fase 3: Semantic Validators ⚙️ IN CORSO
+### Fase 3: Semantic Validators ✅ COMPLETATA
 - [x] `NumericValidator.cs` (Range, positività)
 - [x] `GeographicValidator.cs` (CAP italiano)
-- [ ] `DateValidator.cs` (Range date, logica)
+- [x] `DateValidator.cs` (Range date, logica temporale, età)
 
 ### Fase 4: Integration 🔜 PROSSIMA FASE
 - [ ] `FluentValidationExtensions.cs`

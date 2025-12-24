@@ -71,6 +71,7 @@ public static class MauiProgram
         builder.Services.AddScoped<RegioneService>();
         builder.Services.AddScoped<ProvinciaService>();
         builder.Services.AddScoped<ComuneService>();
+        builder.Services.AddScoped<AziendaService>();
         builder.Services.AddScoped<TipoViaggioService>();
         builder.Services.AddScoped<TipoPartecipanteService>();
         builder.Services.AddScoped<TipoTrattamentoService>();

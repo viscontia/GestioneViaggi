@@ -12,7 +12,10 @@
     </MudNavLink>
 
     <MudNavGroup Title="Anagrafiche" Icon="@Icons.Material.Filled.AccountBox" Expanded="false">
-        <!-- Qui potrai aggiungere sottovoci in futuro -->
+        <MudNavLink Icon="@Icons.Material.Filled.Business"
+                    OnClick="@(() => OpenTab("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
+            Anagrafica Aziende
+        </MudNavLink>
     </MudNavGroup>
 
     <MudNavGroup Title="Tabelle" Icon="@Icons.Material.Filled.TableChart" Expanded="false">

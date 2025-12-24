@@ -1,0 +1,283 @@
+@page "/anagrafiche/aziende"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@inject AziendaService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Azienda" 
+                        Items="@_items" 
+                        Title="Anagrafica Aziende" 
+                        SearchFunction="@((x, s) => Search(x, s))"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuova Azienda
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <EnterpriseActionsColumn T="Azienda" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
+
+            <PropertyColumn Property="x => x.RagioneSociale" 
+                            Title="Ragione Sociale" 
+                            Sortable="true"
+                            HeaderStyle="min-width: 250px; width: 250px;"
+                            CellStyle="min-width: 250px; width: 250px;" />
+
+            <PropertyColumn Property="x => x.FormaGiuridica" 
+                            Title="Forma Giuridica" 
+                            HeaderStyle="min-width: 180px; width: 180px; text-align: center;"
+                            CellStyle="min-width: 180px; width: 180px; text-align: center;" />
+
+            <PropertyColumn Property="x => x.PartitaIva" 
+                            Title="Partita IVA" 
+                            HeaderStyle="min-width: 120px; width: 120px; text-align: center;"
+                            CellStyle="min-width: 120px; width: 120px; text-align: center;" />
+
+            <PropertyColumn Property="x => x.CodiceDestinatarioSdi" 
+                            Title="Cod. SDI" 
+                            HeaderStyle="min-width: 90px; width: 90px; text-align: center;"
+                            CellStyle="min-width: 90px; width: 90px; text-align: center;" />
+
+            <PropertyColumn Property="x => x.SitoWeb" 
+                            Title="Sito Web"
+                            HeaderStyle="min-width: 140px; width: 140px; text-align: center;"
+                            CellStyle="min-width: 140px; width: 140px; text-align: center;">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.SitoWeb))
+                    {
+                        <MudLink Href="@context.Item.SitoWeb" 
+                                 Target="_blank" 
+                                 Color="Color.Primary" 
+                                 Typo="Typo.body2">
+                            Sito Web
+                        </MudLink>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <PropertyColumn Property="x => x.TelefonoPrincipale" 
+                            Title="Telefono" 
+                            HeaderStyle="min-width: 130px; width: 130px; text-align: center;"
+                            CellStyle="min-width: 130px; width: 130px; text-align: center;" />
+
+            <TemplateColumn Title="Attivo" 
+                            HeaderStyle="min-width: 80px; width: 80px; text-align: center;"
+                            CellStyle="min-width: 80px; width: 80px; text-align: center;">
+                <CellTemplate>
+                    <MudCheckBox Value="@context.Item.Attivo" 
+                                 ReadOnly="true" 
+                                 Color="@(context.Item.Attivo ? Color.Success : Color.Error)" 
+                                 Size="Size.Small"
+                                 Style="pointer-events: none;" />
+                </CellTemplate>
+            </TemplateColumn>
+
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<Azienda> _items = new();
+    private Azienda? _selectedItem;
+    private string _errorMessage = string.Empty;
+    private string _searchString = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_aziende");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(Azienda item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.RagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.FormaGiuridica?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.PartitaIva?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CodiceFiscale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CodiceDestinatarioSdi?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Pec?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.SitoWeb?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.TelefonoPrincipale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<AziendaDialog>
+        {
+            { x => x.Entity, new Azienda() },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions 
+        { 
+            BackdropClick = false,
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaDialog>("Nuova Azienda", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Azienda newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Azienda creata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Azienda item)
+    {
+        var parameters = new DialogParameters<AziendaDialog>
+        {
+            { x => x.Entity, new Azienda
+                {
+                    Id = item.Id,
+                    RagioneSociale = item.RagioneSociale,
+                    FormaGiuridica = item.FormaGiuridica,
+                    DataCostituzione = item.DataCostituzione,
+                    DataInizioAttivita = item.DataInizioAttivita,
+                    CapitaleSociale = item.CapitaleSociale,
+                    SocioUnico = item.SocioUnico,
+                    InLiquidazione = item.InLiquidazione,
+                    PartitaIva = item.PartitaIva,
+                    CodiceFiscale = item.CodiceFiscale,
+                    ReaProvinciaFk = item.ReaProvinciaFk,
+                    ReaNumero = item.ReaNumero,
+                    ReaDataIscrizione = item.ReaDataIscrizione,
+                    CodiceDestinatarioSdi = item.CodiceDestinatarioSdi,
+                    Pec = item.Pec,
+                    SitoWeb = item.SitoWeb,
+                    TelefonoPrincipale = item.TelefonoPrincipale,
+                    Attivo = item.Attivo
+                }
+            },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions 
+        { 
+            BackdropClick = false,
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaDialog>("Modifica Azienda", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Azienda updatedItem)
+        {
+            try
+            {
+                await Service.UpdateAsync(updatedItem);
+                await LoadDataAsync();
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Azienda aggiornata con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(Azienda item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questa azienda? ({item.RagioneSociale})" }
+        };
+
+        var options = new DialogOptions 
+        { 
+            BackdropClick = false, 
+            CloseButton = true, 
+            MaxWidth = MaxWidth.ExtraSmall 
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Azienda eliminata con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Impossibile eliminare l'azienda", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

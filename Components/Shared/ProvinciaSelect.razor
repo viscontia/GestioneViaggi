@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject ProvinciaService ProvinciaService
 
-<BaseEntitySelect TItem="Provincia"
-                  Value="_selectedProvincia"
-                  ValueChanged="OnProvinciaChanged"
-                  SearchFunc="SearchProvince"
-                  ToStringFunc="@(p => p?.Descrizione)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="Provincia" Value="_selectedProvincia" ValueChanged="OnProvinciaChanged"
+    SearchFunc="SearchProvince" ToStringFunc="@(p => p?.Descrizione)" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@Class" HelperText="@HelperText" AutoFocus="@AutoFocus"
+    Validation="@Validation" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Provincia> _allProvince = new();
@@ -39,6 +30,9 @@
 
     [Parameter]
     public string RequiredError { get; set; } = "La provincia è obbligatoria";
+
+    [Parameter]
+    public object? Validation { get; set; }
 
     [Parameter]
     public bool Disabled { get; set; } = false;
@@ -77,8 +71,8 @@
         {
             if (_selectedProvincia?.Id != SelectedProvinciaId.Value)
             {
-                // Search in all province because the selected one might not be in the filtered list (though it should be if logic is correct)
-                // But for display purposes, we need the object.
+                // Search in all province because the selected one might not be in the filtered list
+                // (though it should be if logic is correct)
                 _selectedProvincia = _allProvince.FirstOrDefault(p => p.Id == SelectedProvinciaId.Value);
             }
         }
@@ -111,14 +105,14 @@
         if (FilterEsteroOnly == true)
         {
             _filteredProvince = _allProvince
-                .Where(p => p.Descrizione != null && p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            .Where(p => p.Descrizione != null && p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         }
         else if (FilterEsteroOnly == false)
         {
             _filteredProvince = _allProvince
-                .Where(p => p.Descrizione != null && !p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            .Where(p => p.Descrizione != null && !p.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         }
         else
         {

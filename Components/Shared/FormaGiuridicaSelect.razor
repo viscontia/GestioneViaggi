@@ -1,0 +1,141 @@
+@using MudBlazor
+
+<MudSelect T="string" Value="@SelectedFormaGiuridica" ValueChanged="@OnValueChanged" Label="@Label"
+    Variant="Variant.Outlined" Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Immediate="true"
+    Clearable="false" Class="@Class" Adornment="@(Required ? Adornment.End : Adornment.None)"
+    AdornmentText="@(Required ? "*" : "")" AdornmentColor="Color.Error" @attributes="AdditionalAttributes">
+
+    @foreach (var gruppo in FormeGiuridiche)
+    {
+        if (!string.IsNullOrEmpty(gruppo.Categoria))
+        {
+            <MudSelectItem T="string" Value="@gruppo.Categoria" Disabled="true">
+                <strong>@gruppo.Categoria</strong>
+            </MudSelectItem>
+        }
+
+        @foreach (var forma in gruppo.Forme)
+        {
+            <MudSelectItem T="string" Value="@forma">
+                @(string.IsNullOrEmpty(gruppo.Categoria) ? forma : $" {forma}")
+            </MudSelectItem>
+        }
+    }
+    </MudSelect>
+
+    @code {
+    [Parameter]
+    public string? SelectedFormaGiuridica { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> SelectedFormaGiuridicaChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Forma Giuridica";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "La forma giuridica è obbligatoria";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task OnValueChanged(string? value)
+    {
+        SelectedFormaGiuridica = value;
+        await SelectedFormaGiuridicaChanged.InvokeAsync(value);
+    }
+
+    private class FormaGiuridicaGruppo
+    {
+        public string? Categoria { get; set; }
+        public List<string> Forme { get; set; } = new();
+    }
+
+    private List<FormaGiuridicaGruppo> FormeGiuridiche = new()
+{
+// Forme individuali
+new FormaGiuridicaGruppo
+{
+Categoria = null,
+Forme = new List<string>
+{
+"Ditta individuale",
+"Impresa familiare",
+"Libero professionista (con albo)",
+"Libero professionista (senza albo)",
+"Professionista in forma individuale"
+}
+},
+
+// Società di persone
+new FormaGiuridicaGruppo
+{
+Categoria = "Società di Persone",
+Forme = new List<string>
+{
+"Società semplice (S.s.)",
+"Società in nome collettivo (S.n.c.)",
+"Società in accomandita semplice (S.a.s.)"
+}
+},
+
+// Società a responsabilità limitata
+new FormaGiuridicaGruppo
+{
+Categoria = "Società a Responsabilità Limitata",
+Forme = new List<string>
+{
+"S.r.l. ordinaria",
+"S.r.l. semplificata (S.r.l.s.)",
+"S.r.l. unipersonale",
+"S.r.l. startup innovativa"
+}
+},
+
+// Società per azioni
+new FormaGiuridicaGruppo
+{
+Categoria = "Società per Azioni",
+Forme = new List<string>
+{
+"S.p.A. unipersonale",
+"S.p.A. quotata"
+}
+},
+
+// Altre società
+new FormaGiuridicaGruppo
+{
+Categoria = "Altre Società",
+Forme = new List<string>
+{
+"Società in accomandita per azioni (S.a.p.A.)"
+}
+},
+
+// Associazioni
+new FormaGiuridicaGruppo
+{
+Categoria = "Associazioni",
+Forme = new List<string>
+{
+"Associazione non riconosciuta",
+"Associazione riconosciuta",
+"Associazione di promozione sociale (APS)",
+"Associazione sportiva dilettantistica (ASD)",
+"Associazione culturale",
+"Associazione professionale",
+"Associazione temporanea di imprese (ATI)"
+}
+}
+};
+}

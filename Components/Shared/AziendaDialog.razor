@@ -1,0 +1,383 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Validation.Semantic
+@inject IJSRuntime JS
+@implements IDisposable
+@implements IAsyncDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Azienda" : "Nuova Azienda")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+
+            <!-- Ragione Sociale - OBBLIGATORIO -->
+            <MudTextField @ref="_firstField" Value="@Entity.RagioneSociale"
+                ValueChanged="@((string val) => HandleRagioneSocialeChanged(val))" For="@(() => Entity.RagioneSociale)"
+                Label="Ragione Sociale" Variant="Variant.Outlined" Immediate="true" Required="true"
+                RequiredError="La ragione sociale è obbligatoria" MaxLength="255" Class="mb-3 uppercase-input"
+                Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                HelperText="Inserire la denominazione completa dell'azienda" OnKeyDown="@HandleKeyDown" />
+
+            <!-- Forma Giuridica - OBBLIGATORIO -->
+            <FormaGiuridicaSelect @bind-SelectedFormaGiuridica="Entity.FormaGiuridica" Label="Forma Giuridica"
+                Required="true" RequiredError="La forma giuridica è obbligatoria" Class="mb-3" />
+
+            <!-- Partita IVA - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.PartitaIva" For="@(() => Entity.PartitaIva)" Label="Partita IVA"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidatePartitaIva))" Variant="Variant.Outlined"
+                Required="true" RequiredError="La Partita IVA è obbligatoria" Mask="@(new PatternMask("00000000000"))"
+                MaxLength="11" Class="mb-3" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                HelperText="Inserire 11 cifre numeriche" Immediate="true" />
+
+            <!-- Codice Fiscale - Opzionale -->
+            <MudTextField Value="@Entity.CodiceFiscale"
+                ValueChanged="@((string val) => HandleCodiceFiscaleChanged(val))" For="@(() => Entity.CodiceFiscale)"
+                Label="Codice Fiscale (opzionale)"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateCodiceFiscale))" Variant="Variant.Outlined"
+                MaxLength="16" Class="mb-3 uppercase-input"
+                HelperText="Alfanumerico maiuscolo, 11-16 caratteri (es: 12345678901 o RSSMRA80A01H501X)"
+                Immediate="true" />
+
+            <!-- Telefono Principale - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.TelefonoPrincipale" For="@(() => Entity.TelefonoPrincipale)"
+                Label="Telefono Principale" Validation="@(new Func<string, IEnumerable<string>>(ValidateTelefono))"
+                Variant="Variant.Outlined" Required="true" RequiredError="Il telefono principale è obbligatorio"
+                MaxLength="30" Class="mb-3" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                HelperText="Es: +39 0123456789 oppure 0123456789" Immediate="true" />
+
+            <!-- PEC - Opzionale -->
+            <MudTextField @bind-Value="Entity.Pec" For="@(() => Entity.Pec)" Label="PEC (opzionale)"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidatePec))" Variant="Variant.Outlined"
+                MaxLength="255" Class="mb-3" HelperText="Email certificata" Immediate="true" />
+
+            <!-- Codice Destinatario SDI - Con default 0000000 -->
+            <MudTextField Value="@Entity.CodiceDestinatarioSdi"
+                ValueChanged="@((string val) => HandleCodiceSdiChanged(val))"
+                For="@(() => Entity.CodiceDestinatarioSdi)" Label="Codice Destinatario SDI"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateCodiceSdi))" Variant="Variant.Outlined"
+                MaxLength="7" Class="mb-3 uppercase-input"
+                HelperText="7 caratteri alfanumerici maiuscoli per fatturazione elettronica (default: 0000000)"
+                Immediate="true" />
+
+            <!-- Sito Web - Opzionale -->
+            <MudTextField @bind-Value="Entity.SitoWeb" For="@(() => Entity.SitoWeb)" Label="Sito Web (opzionale)"
+                Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
+                HelperText="URL completo (es: https://www.esempio.it)" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Data Costituzione - Opzionale -->
+            <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
+                Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" Class="mb-3" DateFormat="dd/MM/yyyy"
+                Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" HelperText="Data di costituzione dell'azienda" />
+
+            <!-- Data Inizio Attività - Opzionale -->
+            <MudDatePicker @bind-Date="Entity.DataInizioAttivita" For="@(() => Entity.DataInizioAttivita)"
+                Label="Data Inizio Attività (opzionale)"
+                Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataInizioAttivita))"
+                Variant="Variant.Outlined" Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true"
+                Mask="@(new DateMask("dd/MM/yyyy"))"
+                HelperText="Data di inizio dell'attività (deve essere >= Costituzione)" />
+
+            <!-- Capitale Sociale - Opzionale -->
+            <MudNumericField @bind-Value="Entity.CapitaleSociale" For="@(() => Entity.CapitaleSociale)"
+                Label="Capitale Sociale (opzionale)"
+                Validation="@(new Func<decimal?, IEnumerable<string>>(ValidateCapitaleSociale))"
+                Variant="Variant.Outlined" Format="N2" Class="mb-3" Adornment="Adornment.Start"
+                AdornmentIcon="@Icons.Material.Filled.Euro" HelperText="Importo in Euro" Immediate="true" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Provincia REA - Opzionale -->
+            <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ReaProvinciaFk" Label="Provincia REA (opzionale)"
+                Validation="@(new Func<int?, IEnumerable<string>>(ValidateReaProvincia))" Class="mb-3" />
+
+            <!-- Numero REA - Opzionale -->
+            <MudTextField @bind-Value="Entity.ReaNumero" For="@(() => Entity.ReaNumero)" Label="Numero REA (opzionale)"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateReaNumero))" Variant="Variant.Outlined"
+                MaxLength="20" Class="mb-3" HelperText="Identificativo REA dell'azienda" Immediate="true" />
+
+            <!-- Data Iscrizione REA - Opzionale -->
+            <MudDatePicker @bind-Date="Entity.ReaDataIscrizione" For="@(() => Entity.ReaDataIscrizione)"
+                Label="Data Iscrizione REA (opzionale)"
+                Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateReaData))" Variant="Variant.Outlined"
+                Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Socio Unico - Checkbox -->
+            <MudCheckBox @bind-Value="Entity.SocioUnico" For="@(() => Entity.SocioUnico)" Label="Socio Unico"
+                Color="Color.Primary" Class="mb-3" />
+
+            <!-- In Liquidazione - Checkbox -->
+            <MudCheckBox @bind-Value="Entity.InLiquidazione" For="@(() => Entity.InLiquidazione)"
+                Label="In Liquidazione" Color="Color.Warning" Class="mb-3" />
+
+            <!-- Attivo - Checkbox -->
+            <MudCheckBox @bind-Value="Entity.Attivo" For="@(() => Entity.Attivo)" Label="Attivo" Color="Color.Success"
+                Class="mb-3" />
+
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Azienda Entity { get; set; } = new Azienda();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation con JavaScript helper
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            // ⚠️ OBBLIGATORIO: Focus manuale sul primo campo (sempre eseguito)
+            // Delay di 300ms per permettere rendering completo di MudBlazor
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                    Console.WriteLine("Focus manuale applicato al primo campo");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus manuale: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private void HandleRagioneSocialeChanged(string value)
+    {
+        Entity.RagioneSociale = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleCodiceFiscaleChanged(string value)
+    {
+        Entity.CodiceFiscale = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleCodiceSdiChanged(string value)
+    {
+        Entity.CodiceDestinatarioSdi = value?.ToUpper() ?? "0000000";
+        StateHasChanged();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                // Validazione custom IValidatableObject
+                var validationResults = Entity.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(Entity));
+                if (!validationResults.Any())
+                {
+                    MudDialog?.Close(DialogResult.Ok(Entity));
+                }
+                else
+                {
+                    // Focus sul primo campo in errore
+                    if (_firstField != null)
+                    {
+                        await _firstField.FocusAsync();
+                    }
+                }
+            }
+            else
+            {
+                if (_firstField?.Error == true)
+                {
+                    await _firstField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    // Validatori inline che usano i validatori centralizzati
+    private IEnumerable<string> ValidatePartitaIva(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "La Partita IVA è obbligatoria";
+            yield break;
+        }
+
+        var result = ItalianFiscalValidator.CheckPartitaIva(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateCodiceFiscale(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var result = ItalianFiscalValidator.CheckCodiceFiscale(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateTelefono(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "Il telefono principale è obbligatorio";
+            yield break;
+        }
+
+        var result = PhoneValidator.CheckTelefonoItaly(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidatePec(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var result = EmailValidatorPEC.CheckPec(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateCodiceSdi(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "Il Codice SDI è obbligatorio";
+            yield break;
+        }
+
+        var result = CodeValidator.CheckCodiceSdi(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateCapitaleSociale(decimal? value)
+    {
+        if (value.HasValue)
+        {
+            var result = NumericValidator.CheckCapitaleSociale(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateDataInizioAttivita(DateTime? value)
+    {
+        if (Entity.DataCostituzione.HasValue && value.HasValue)
+        {
+            var result = DateValidator.CheckDateRange(Entity.DataCostituzione, value, "Costituzione", "Inizio Attività");
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateReaNumero(string value)
+    {
+        if ((Entity.ReaProvinciaFk.HasValue || Entity.ReaDataIscrizione.HasValue) && string.IsNullOrWhiteSpace(value))
+        {
+            yield return "Il Numero REA è obbligatorio se è presente un dato REA";
+        }
+    }
+
+    private IEnumerable<string> ValidateReaProvincia(int? value)
+    {
+        if ((!string.IsNullOrWhiteSpace(Entity.ReaNumero) || Entity.ReaDataIscrizione.HasValue) && !value.HasValue)
+        {
+            yield return "La Provincia REA è obbligatoria se è presente un dato REA";
+        }
+    }
+
+    private IEnumerable<string> ValidateReaData(DateTime? value)
+    {
+        if ((!string.IsNullOrWhiteSpace(Entity.ReaNumero) || Entity.ReaProvinciaFk.HasValue) && !value.HasValue)
+        {
+            yield return "La Data Iscrizione REA è obbligatoria se è presente un dato REA";
+            yield break;
+        }
+
+        if (value.HasValue && Entity.DataCostituzione.HasValue)
+        {
+            var result = DateValidator.CheckDateRange(Entity.DataCostituzione, value, "Costituzione", "Iscrizione REA");
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Task.CompletedTask;
+    }
+}

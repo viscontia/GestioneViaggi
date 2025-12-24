@@ -7,7 +7,7 @@
     RequiredError="@RequiredError" Disabled="@Disabled" Class="@ComputedClass" HelperText="@HelperText" Clearable="true"
     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="false" AdornmentIcon="@Icons.Material.Filled.Search"
     AdornmentColor="Color.Primary" Strict="false" Dense="true" @ref="_autocompleteRef"
-@attributes="AdditionalAttributes" />
+    Validation="@Validation" @attributes="AdditionalAttributes" />
 
 @code {
     private MudAutocomplete<TItem>? _autocompleteRef;
@@ -20,6 +20,7 @@
     [Parameter] public string? Label { get; set; }
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public object? Validation { get; set; }
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? HelperText { get; set; }
