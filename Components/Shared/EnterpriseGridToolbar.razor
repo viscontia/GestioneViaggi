@@ -31,6 +31,7 @@
     private string? _lastSearchString;
     private string? _lastTitle;
     private bool _shouldRender = true;
+    private bool _hasFocused = false;
 
     protected override void OnParametersSet()
     {
@@ -47,6 +48,21 @@
         {
             _shouldRender = true;
             _lastTitle = Title;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Usa FocusAsync nativo di MudBlazor con delay per attendere i re-render della grid
+        if (firstRender || !_hasFocused)
+        {
+            _hasFocused = true;
+            // Delay per attendere che la grid parent completi il suo StateHasChanged
+            await Task.Delay(600);
+            if (_searchField != null)
+            {
+                await _searchField.FocusAsync();
+            }
         }
     }
 

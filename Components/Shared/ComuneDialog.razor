@@ -2,6 +2,7 @@
 @using MudBlazor
 @using Microsoft.JSInterop
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Validation.Semantic
 @inject IJSRuntime JS
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -48,11 +49,12 @@
 
             <!-- CAP - Condizionalmente obbligatorio con MASK 5 cifre -->
             <MudTextField @bind-Value="Entity.Cap" For="@(() => Entity.Cap)" Label="@GetCapLabel()"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateCap))"
                 Variant="Variant.Outlined" Required="@(!Entity.ComuneEstero)"
                 RequiredError="Il CAP è obbligatorio per i comuni italiani" Mask="@(new PatternMask("00000"))"
-                MaxLength="5" tabindex="5" Class="mb-3" HelperText="Inserire 5 cifre numeriche (es: 00035)"
+                MaxLength="5" tabindex="5" Class="mb-3" HelperText="5 cifre numeriche (es: 00035). Supporta zero iniziale"
                 Adornment="@(Entity.ComuneEstero ? Adornment.None : Adornment.End)"
-                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" />
+                AdornmentText="@(Entity.ComuneEstero ? "" : "*")" AdornmentColor="Color.Error" Immediate="true" />
 
             <!-- Cod. Fiscale / Catastale - Condizionalmente obbligatorio -->
             <MudTextField @bind-Value="Entity.CodFiscale" For="@(() => Entity.CodFiscale)" Label="@GetCodFiscaleLabel()"
@@ -155,6 +157,24 @@
         {
             if (i < 10)
                 yield return "Il numero di abitanti deve essere almeno 10";
+        }
+    }
+
+    private IEnumerable<string> ValidateCap(string value)
+    {
+        if (!Entity.ComuneEstero && string.IsNullOrWhiteSpace(value))
+        {
+            yield return "Il CAP è obbligatorio per i comuni italiani";
+            yield break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var result = GeographicValidator.CheckCap(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
         }
     }
 

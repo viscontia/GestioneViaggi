@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GestioneViaggi.Validation.Semantic;
 
 namespace GestioneViaggi.Models;
 
@@ -101,12 +102,16 @@ public class Comune : BaseEntity, IValidatableObject
                     new[] { nameof(Cap) }
                 ));
             }
-            else if (!System.Text.RegularExpressions.Regex.IsMatch(Cap, @"^\d{5}$"))
+            else
             {
-                results.Add(new ValidationResult(
-                    "Il CAP deve essere di esattamente 5 cifre numeriche",
-                    new[] { nameof(Cap) }
-                ));
+                var capValidation = GeographicValidator.CheckCap(Cap);
+                if (!capValidation.IsValid)
+                {
+                    results.Add(new ValidationResult(
+                        capValidation.ErrorMessage,
+                        new[] { nameof(Cap) }
+                    ));
+                }
             }
 
             if (string.IsNullOrWhiteSpace(CodFiscale))
@@ -142,12 +147,16 @@ public class Comune : BaseEntity, IValidatableObject
         else
         {
             // Se è un comune estero ma il CAP è compilato, deve essere comunque valido
-            if (!string.IsNullOrWhiteSpace(Cap) && !System.Text.RegularExpressions.Regex.IsMatch(Cap, @"^\d{5}$"))
+            if (!string.IsNullOrWhiteSpace(Cap))
             {
-                results.Add(new ValidationResult(
-                    "Se compilato, il CAP deve essere di esattamente 5 cifre numeriche",
-                    new[] { nameof(Cap) }
-                ));
+                var capValidation = GeographicValidator.CheckCap(Cap);
+                if (!capValidation.IsValid)
+                {
+                    results.Add(new ValidationResult(
+                        $"Se compilato, {capValidation.ErrorMessage.ToLower()}",
+                        new[] { nameof(Cap) }
+                    ));
+                }
             }
         }
 

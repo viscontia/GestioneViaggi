@@ -3,6 +3,21 @@
 /* Sovrascrive FORZATAMENTE tutti gli stili MudBlazor */
 
 /* ========================================== */
+/* WEBKIT FIX - Cursor/Caret visibility on macOS/iOS */
+/* ========================================== */
+input,
+textarea {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+.search-field input {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    caret-color: currentColor !important;
+}
+
+/* ========================================== */
 /* 1. DATAGRID - LIGHT MODE (MASSIMA PRIORITÀ) */
 /* ========================================== */
 
@@ -25,8 +40,8 @@
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     padding: 10px 16px !important;
-    border-bottom: 1px solid rgba(0,0,0,0.06) !important;
-    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.04) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.04) !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 
@@ -54,7 +69,7 @@
     font-size: 14px !important;
     font-weight: 400 !important;
     padding: 14px 16px !important;
-    border-bottom: 1px solid rgba(0,0,0,0.04) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
     line-height: 1.5 !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
@@ -101,8 +116,8 @@
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     padding: 10px 16px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
-    box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04) !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 
@@ -123,7 +138,7 @@
     font-size: 14px !important;
     font-weight: 400 !important;
     padding: 14px 16px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
     line-height: 1.5 !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
@@ -179,30 +194,30 @@
 }
 
 .mud-button-text:hover {
-    background: rgba(0,0,0,0.04) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
 }
 
 .theme-dark .mud-button-text:hover {
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* Secondary buttons */
 .mud-button-filled.mud-button-filled-secondary {
-    background: rgba(0,0,0,0.04) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
     color: #374151 !important;
 }
 
 .mud-button-filled.mud-button-filled-secondary:hover {
-    background: rgba(0,0,0,0.08) !important;
+    background: rgba(0, 0, 0, 0.08) !important;
 }
 
 .theme-dark .mud-button-filled.mud-button-filled-secondary {
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
     color: #D1D5DB !important;
 }
 
 .theme-dark .mud-button-filled.mud-button-filled-secondary:hover {
-    background: rgba(255,255,255,0.1) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Error buttons */
@@ -262,11 +277,11 @@
 }
 
 .mud-icon-button.inline-action-btn:hover {
-    background: rgba(0,0,0,0.04) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
 }
 
 .theme-dark .mud-icon-button.inline-action-btn:hover {
-    background: rgba(255,255,255,0.06) !important;
+    background: rgba(255, 255, 255, 0.06) !important;
 }
 
 /* Edit button hover - warning yellow/orange */
