@@ -14,6 +14,7 @@
 
 @code {
     private List<RipartizioneGeografica>? _ripartizioni;
+    private List<RipartizioneGeografica>? _filteredRipartizioni;
     private RipartizioneGeografica? _selectedRipGeo;
 
     [Parameter]
@@ -46,6 +47,9 @@
     [Parameter]
     public bool AutoFocus { get; set; } = false;
 
+    [Parameter]
+    public bool? FilterEsteroOnly { get; set; } = null;
+
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
@@ -56,6 +60,7 @@
 
     protected override void OnParametersSet()
     {
+        ApplyFilter();
         UpdateSelectedRipGeo();
     }
 
@@ -73,6 +78,28 @@
         else
         {
             _selectedRipGeo = null;
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (_ripartizioni == null) return;
+
+        if (FilterEsteroOnly == true)
+        {
+            _filteredRipartizioni = _ripartizioni
+                .Where(r => r.Descrizione != null && r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (FilterEsteroOnly == false)
+        {
+            _filteredRipartizioni = _ripartizioni
+                .Where(r => r.Descrizione != null && !r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else
+        {
+            _filteredRipartizioni = _ripartizioni.ToList();
         }
     }
 
@@ -98,12 +125,12 @@
 
     private async Task<IEnumerable<RipartizioneGeografica>> SearchRipartizioni(string value, CancellationToken token)
     {
-        if (_ripartizioni == null)
+        if (_filteredRipartizioni == null)
             return Enumerable.Empty<RipartizioneGeografica>();
 
         if (string.IsNullOrEmpty(value))
-            return _ripartizioni;
+            return _filteredRipartizioni;
 
-        return _ripartizioni.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+        return _filteredRipartizioni.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 }

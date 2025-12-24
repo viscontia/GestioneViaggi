@@ -8,7 +8,6 @@ public class SessionData
     public UserInfo User { get; set; } = new();
     public DateTime IssuedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
-    public string TenantId { get; set; } = string.Empty;
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
     public bool IsValid => !IsExpired && !string.IsNullOrEmpty(SessionToken) && User != null;

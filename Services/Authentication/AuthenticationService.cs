@@ -114,7 +114,6 @@ public class AuthenticationService : IAuthenticationService
                 var user = new UserInfo
                 {
                     UserId = Guid.Parse(userElement.GetProperty("user_id").GetString()!),
-                    TenantId = userElement.GetProperty("tenant_id").GetString() ?? string.Empty,
                     Email = userElement.GetProperty("email").GetString() ?? string.Empty,
                     Nome = userElement.GetProperty("nome").GetString() ?? string.Empty,
                     Cognome = userElement.GetProperty("cognome").GetString() ?? string.Empty,
@@ -130,18 +129,18 @@ public class AuthenticationService : IAuthenticationService
                     LastLoginAt = ParseDateTime(userElement, "last_login_at")
                 };
 
-                _logger.LogInformation("User data parsed: UserId={UserId}, Email={Email}, Role={Role}", 
+                _logger.LogInformation("User data parsed: UserId={UserId}, Email={Email}, Role={Role}",
                     user.UserId, user.Email, user.RoleCode);
 
                 _currentUser = user;
 
-                var sessionToken = GenerateSessionToken(user.UserId, user.TenantId);
+                var sessionToken = GenerateSessionToken(user.UserId);
                 _logger.LogDebug("Generated session token for user: {Email}", user.Email);
 
                 await _sessionManager.SaveSessionAsync(user, sessionToken);
                 _logger.LogInformation("Session saved successfully for user: {Email}", user.Email);
 
-                _logger.LogInformation("Login successful and session saved for user: {Email}, Role: {Role}", 
+                _logger.LogInformation("Login successful and session saved for user: {Email}, Role: {Role}",
                     user.Email, user.RoleCode);
 
                 return new LoginResponse
@@ -173,9 +172,9 @@ public class AuthenticationService : IAuthenticationService
             catch (Exception ex)
             {
                 var userElementJson = userElement.ToString();
-                _logger.LogError(ex, "Error parsing user data from database response: {UserElement}", 
+                _logger.LogError(ex, "Error parsing user data from database response: {UserElement}",
                     userElementJson);
-                
+
                 return new LoginResponse
                 {
                     Success = false,
@@ -235,17 +234,17 @@ public class AuthenticationService : IAuthenticationService
         return _currentUser != null || _sessionManager.IsSessionValid();
     }
 
-    private string GenerateSessionToken(Guid userId, string tenantId)
+    private string GenerateSessionToken(Guid userId)
     {
         var timestamp = DateTime.UtcNow.Ticks;
         var randomBytes = new byte[16];
-        
+
         using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
         {
             rng.GetBytes(randomBytes);
         }
 
-        var tokenData = $"{userId}:{tenantId}:{timestamp}:{Convert.ToBase64String(randomBytes)}";
+        var tokenData = $"{userId}:{timestamp}:{Convert.ToBase64String(randomBytes)}";
         return Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(tokenData));
     }
 
@@ -263,13 +262,13 @@ public class AuthenticationService : IAuthenticationService
             if (string.IsNullOrEmpty(dateString))
                 return null;
 
-            if (DateTime.TryParse(dateString, System.Globalization.CultureInfo.InvariantCulture, 
+            if (DateTime.TryParse(dateString, System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.RoundtripKind, out var parsedDate))
             {
                 return parsedDate;
             }
 
-            _logger.LogWarning("Unable to parse date '{DateString}' from property '{PropertyName}'", 
+            _logger.LogWarning("Unable to parse date '{DateString}' from property '{PropertyName}'",
                 dateString, propertyName);
             return null;
         }

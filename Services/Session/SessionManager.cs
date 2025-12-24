@@ -32,8 +32,7 @@ public class SessionManager : ISessionManager
             else
             {
                 _cachedSession = session;
-                _logger.LogInformation("Session initialized. User: {Email}, Tenant: {TenantId}",
-                    session?.User.Email, session?.TenantId);
+                _logger.LogInformation("Session initialized. User: {Email}", session?.User.Email);
             }
         }
         catch (Exception ex)
@@ -74,7 +73,6 @@ public class SessionManager : ISessionManager
             {
                 SessionToken = sessionToken,
                 User = user,
-                TenantId = user.TenantId,
                 IssuedAt = now,
                 ExpiresAt = now.AddHours(SessionConstants.SessionExpiryHours)
             };
@@ -86,11 +84,7 @@ public class SessionManager : ISessionManager
             _logger.LogDebug("Persisting email to storage: {Email}", user.Email);
             await _storageProvider.SetAsync(SessionStorageConstants.LastLoginEmailKey, user.Email);
 
-            _logger.LogDebug("Persisting tenant to storage: {TenantId}", user.TenantId);
-            await _storageProvider.SetAsync(SessionStorageConstants.LastLoginTenantIdKey, user.TenantId);
-
-            _logger.LogInformation("Session saved in memory for user: {Email}, Tenant: {TenantId}",
-                user.Email, user.TenantId);
+            _logger.LogInformation("Session saved in memory for user: {Email}", user.Email);
         }
         catch (Exception ex)
         {
@@ -148,7 +142,6 @@ public class SessionManager : ISessionManager
             {
                 SessionToken = _cachedSession.SessionToken,
                 User = _cachedSession.User,
-                TenantId = _cachedSession.TenantId,
                 IssuedAt = DateTime.UtcNow,
                 ExpiresAt = refreshedExpiry
             };
@@ -165,10 +158,7 @@ public class SessionManager : ISessionManager
         }
     }
 
-    public string? GetCurrentTenantId()
-    {
-        return _cachedSession?.TenantId;
-    }
+    // GetCurrentTenantId() rimosso - TenantId non più utilizzato
 
     public async Task<string?> GetLastLoginEmailAsync()
     {
@@ -196,7 +186,7 @@ public class SessionManager : ISessionManager
         {
             _logger.LogDebug("Clearing persisted session data");
             _storageProvider.Remove(SessionStorageConstants.LastLoginEmailKey);
-            _storageProvider.Remove(SessionStorageConstants.LastLoginTenantIdKey);
+            // LastLoginTenantIdKey rimosso - TenantId non più utilizzato
             _logger.LogInformation("Persisted session data cleared successfully");
         }
         catch (Exception ex)

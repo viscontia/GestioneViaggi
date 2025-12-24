@@ -57,12 +57,12 @@ namespace GestioneViaggi.Components.Shared
         private void BuildToolbar(RenderTreeBuilder builder)
         {
             builder.OpenComponent<EnterpriseGridToolbar>(0);
+            builder.SetKey("EnterpriseGridToolbar");
             builder.AddAttribute(1, nameof(EnterpriseGridToolbar.Title), Title);
             builder.AddAttribute(2, nameof(EnterpriseGridToolbar.SearchString), _searchString);
             builder.AddAttribute(3, nameof(EnterpriseGridToolbar.SearchStringChanged), EventCallback.Factory.Create<string>(this, (s) => 
             { 
-                _searchString = s; 
-                StateHasChanged(); 
+                _searchString = s;
             }));
             builder.AddAttribute(4, nameof(EnterpriseGridToolbar.ChildContent), ToolBarActions);
             builder.CloseComponent();

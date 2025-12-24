@@ -3,7 +3,6 @@ namespace GestioneViaggi.Models;
 public class UserInfo
 {
     public Guid UserId { get; set; }
-    public string TenantId { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Nome { get; set; } = string.Empty;
     public string Cognome { get; set; } = string.Empty;

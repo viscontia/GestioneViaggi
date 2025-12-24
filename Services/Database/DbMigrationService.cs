@@ -53,7 +53,7 @@ public class DbMigrationService
                 -- Check Constraint for NumAbitanti
                 DO $$
                 BEGIN
-                    -- Safe update for existing invalid data
+                    -- Safe update for existing invalid data (NumAbitanti)
                     UPDATE ana_geo_comuni SET comune_num_abitanti = 10 WHERE comune_num_abitanti < 10 OR comune_num_abitanti IS NULL;
 
                     -- Add constraint if not exists

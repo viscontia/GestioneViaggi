@@ -6,16 +6,18 @@
 }
 <MudSpacer />
 <MudTextField T="string"
+              @key="@("search-field-input")"
               @ref="_searchField"
               Value="@SearchString"
               ValueChanged="@SearchStringChanged"
-              Placeholder="Cerca..."
+              Placeholder="Digita per cercare..."
               Adornment="Adornment.Start"
               AdornmentIcon="@Icons.Material.Filled.Search"
               IconSize="Size.Medium"
-              Class="mt-0 mr-4"
+              Class="mt-0 mr-4 search-field"
               Immediate="true"
-              Clearable="true" />
+              Clearable="true"
+              AutoFocus="true" />
 @ChildContent
 
 @code {
@@ -26,11 +28,32 @@
 
     private MudTextField<string>? _searchField;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string? _lastSearchString;
+    private string? _lastTitle;
+    private bool _shouldRender = true;
+
+    protected override void OnParametersSet()
     {
-        if (firstRender && _searchField != null)
+        // Determina se è necessario un re-render
+        _shouldRender = false;
+
+        if (SearchString != _lastSearchString)
         {
-            await _searchField.FocusAsync();
+            _shouldRender = true;
+            _lastSearchString = SearchString;
         }
+
+        if (Title != _lastTitle)
+        {
+            _shouldRender = true;
+            _lastTitle = Title;
+        }
+    }
+
+    protected override bool ShouldRender()
+    {
+        // Ottimizzazione: blocca re-render inutili causati dal layout engine della griglia
+        // Preserva l'istanza DOM quando i dati sono identici
+        return _shouldRender;
     }
 }

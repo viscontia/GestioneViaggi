@@ -821,3 +821,58 @@
 .theme-dark .enterprise-grid .mud-table-body .mud-table-row.mud-selected .mud-table-cell.sticky-actions-column {
     background-color: rgba(14, 165, 233, 0.15) !important;
 }
+
+/* ========================================== */
+/* 15. SEARCH FIELD FOCUS STATE (VISIBLE)    */
+/* ========================================== */
+
+/* Generic input focus state */
+.mud-input-slot input:focus,
+.mud-text-field .mud-input-slot input:focus {
+    outline: none !important;
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1), 0 0 0 3px #3B82F6 !important;
+}
+
+.theme-dark .mud-input-slot input:focus,
+.theme-dark .mud-text-field .mud-input-slot input:focus {
+    border-color: #60A5FA !important;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.1), 0 0 0 3px #60A5FA !important;
+}
+
+/* Search field - Clean and simple */
+.search-field .mud-input-slot {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+
+.search-field .mud-input-slot input {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    caret-color: #2563EB !important;
+    background-color: #FFFFFF !important;
+}
+
+/* Light mode focus */
+.search-field .mud-input-slot input:focus {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), inset 0 1px 2px rgba(37, 99, 235, 0.1) !important;
+    background-color: #FFFFFF !important;
+}
+
+/* Remove any pseudo-elements that might cover the input */
+.search-field .mud-input-slot::before,
+.search-field .mud-input-slot::after {
+    display: none !important;
+}
+
+/* Dark mode */
+.theme-dark .search-field .mud-input-slot input {
+    background-color: #2A2D34 !important;
+    color: #E6E8EB !important;
+    caret-color: #60A5FA !important;
+}
+
+.theme-dark .search-field .mud-input-slot input:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), inset 0 1px 2px rgba(59, 130, 246, 0.15) !important;
+    background-color: #2A2D34 !important;
+}

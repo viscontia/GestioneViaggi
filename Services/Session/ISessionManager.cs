@@ -10,7 +10,7 @@ public interface ISessionManager
     Task ClearSessionAsync();
     bool IsSessionValid();
     Task<bool> RefreshSessionAsync();
-    string? GetCurrentTenantId();
+    // GetCurrentTenantId() rimosso - TenantId non più utilizzato
     Task<string?> GetLastLoginEmailAsync();
     Task ClearPersistedDataAsync();
 }

@@ -78,8 +78,9 @@
                 HelperText="Inserire URL completo (es: https://www.esempio.it)" />
 
             <!-- Ripartizione Geografica FK - OBBLIGATORIO (auto-impostato se Estero) -->
-            <RipGeoSelect @bind-SelectedRipGeoId="Entity.RipGeoIdFk" Label="Ripartizione Geografica" Required="true"
+            <RipGeoSelect SelectedRipGeoId="Entity.RipGeoIdFk" SelectedRipGeoIdChanged="@HandleRipGeoIdChanged" Label="Ripartizione Geografica" Required="true"
                 RequiredError="La ripartizione geografica è obbligatoria" Disabled="@Entity.ComuneEstero"
+                FilterEsteroOnly="@(Entity.ComuneEstero ? null : false)"
                 HelperText="@(Entity.ComuneEstero ? "Se Comune Estero questo campo non è modificabile" : "Seleziona la ripartizione geografica corretta dall'elenco")"
                 HelperTextError="@Entity.ComuneEstero" tabindex="@(Entity.ComuneEstero ? -1 : 9)" Class="mb-3" />
 
@@ -218,6 +219,23 @@
         try
         {
             await Task.Delay(150); // Attendi che MudBlazor renderizzi i cambiamenti nel DOM
+            await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore aggiornamento navigazione TAB: {ex.Message}");
+        }
+    }
+
+    private async Task HandleRipGeoIdChanged(int? ripGeoId)
+    {
+        Entity.RipGeoIdFk = ripGeoId;
+        StateHasChanged();
+
+        // Aggiorna il setup TAB perché la disponibilità del ProvinciaSelect è cambiata
+        try
+        {
+            await Task.Delay(150);
             await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
         }
         catch (Exception ex)

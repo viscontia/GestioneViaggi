@@ -37,8 +37,7 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim("TenantId", user.TenantId)
+                new Claim(ClaimTypes.Name, user.FullName)
             };
 
             if (!string.IsNullOrEmpty(user.RoleCode))
@@ -72,7 +71,7 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     public async Task<bool> ValidateSessionAsync()
     {
         var session = await _sessionManager.GetSessionAsync();
-        
+
         if (session?.IsExpired ?? true)
         {
             _logger.LogWarning("Session is invalid or expired");
