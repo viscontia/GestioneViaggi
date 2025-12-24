@@ -11,6 +11,7 @@ using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Statistics;
 
 namespace GestioneViaggi;
 
@@ -80,6 +81,16 @@ public static class MauiProgram
         builder.Services.AddScoped<TipoMezzoService>();
         builder.Services.AddScoped<MarcaVeicoloService>();
         builder.Services.AddScoped<MezzoModelloService>();
+
+        // ==========================================================
+        // STATISTICS SERVICES
+        // ==========================================================
+        builder.Services.AddScoped<StatisticCountAziende>();
+        builder.Services.AddScoped<StatisticCountClienti>();
+        builder.Services.AddScoped<StatisticCountViaggi>();
+        builder.Services.AddScoped<StatisticCountViaggiFatti>();
+        builder.Services.AddScoped<StatisticCountViaggiDaFare>();
+        builder.Services.AddScoped<StatisticRevenue>();
 
         builder.Services.AddMauiBlazorWebView();
 
