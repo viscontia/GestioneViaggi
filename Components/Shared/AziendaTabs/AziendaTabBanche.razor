@@ -1,0 +1,187 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaBancaService BancaService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Conti Bancari</MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenBancaDialog(null))">
+                Nuovo Conto
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_banche" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Banca</MudTh>
+                <MudTh>IBAN</MudTh>
+                <MudTh>SWIFT/BIC</MudTh>
+                <MudTh Style="text-align: center;">Predefinito</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Banca">
+                    <div>
+                        <strong>@context.NomeBanca</strong>
+                        @if (context.IsPredefinito)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ml-2">DEFAULT</MudChip>
+                        }
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(context.Filiale))
+                    {
+                        <div><small>Filiale: @context.Filiale</small></div>
+                    }
+                </MudTd>
+                <MudTd DataLabel="IBAN"><code>@context.Iban</code></MudTd>
+                <MudTd DataLabel="SWIFT/BIC">@(string.IsNullOrWhiteSpace(context.SwiftBic) ? "-" : context.SwiftBic)</MudTd>
+                <MudTd DataLabel="Predefinito" Style="text-align: center;">
+                    <MudIcon Icon="@(context.IsPredefinito ? Icons.Material.Filled.CheckCircle : Icons.Material.Outlined.Circle)"
+                             Color="@(context.IsPredefinito ? Color.Success : Color.Default)" />
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenBancaDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteBanca(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_banche.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessun conto bancario configurato.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<AziendaBanca> _banche = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId > 0)
+        {
+            await LoadBancheAsync();
+        }
+    }
+
+    private async Task LoadBancheAsync()
+    {
+        _loading = true;
+        try
+        {
+            _banche = await BancaService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento conti bancari: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenBancaDialog(AziendaBanca? banca)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = banca ?? new AziendaBanca { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = banca != null
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaBancaDialog>(
+            banca == null ? "Nuovo Conto Bancario" : "Modifica Conto Bancario",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: AziendaBanca updatedBanca })
+        {
+            try
+            {
+                if (banca == null)
+                {
+                    await BancaService.CreateAsync(updatedBanca);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Conto bancario creato con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedBanca.Id = banca.Id;
+                    await BancaService.UpdateAsync(updatedBanca);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Conto bancario aggiornato con successo", Severity.Success);
+                }
+
+                await LoadBancheAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteBanca(AziendaBanca banca)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione del conto bancario '{banca.NomeBanca}' (IBAN: {banca.Iban})?",
+            yesText: "Elimina", 
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await BancaService.DeleteAsync(banca.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Conto bancario eliminato con successo", Severity.Success);
+                await LoadBancheAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,114 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject TipoSedeService TipoSedeService
+
+<BaseEntitySelect TItem="TipoSede"
+                  Value="_selectedTipoSede"
+                  ValueChanged="OnTipoSedeChanged"
+                  SearchFunc="SearchTipiSede"
+                  ToStringFunc="@(t => t?.Descrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  Class="@Class"
+                  HelperText="@HelperText"
+                  AutoFocus="@AutoFocus"
+                  AdditionalAttributes="AdditionalAttributes" />
+
+@code {
+    private List<TipoSede>? _tipiSede;
+    private TipoSede? _selectedTipoSede;
+
+    [Parameter]
+    public int? SelectedTipoSedeId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedTipoSedeIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Tipo Sede";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "Il tipo sede è obbligatorio";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Seleziona il tipo di sede dall'elenco";
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTipiSedeAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedTipoSede();
+    }
+
+    private void UpdateSelectedTipoSede()
+    {
+        if (_tipiSede == null) return;
+
+        if (SelectedTipoSedeId.HasValue)
+        {
+            if (_selectedTipoSede?.Id != SelectedTipoSedeId.Value)
+            {
+                _selectedTipoSede = _tipiSede.FirstOrDefault(t => t.Id == SelectedTipoSedeId.Value);
+            }
+        }
+        else
+        {
+            _selectedTipoSede = null;
+        }
+    }
+
+    private async Task LoadTipiSedeAsync()
+    {
+        try
+        {
+            _tipiSede = await TipoSedeService.GetAllActiveAsync();
+            UpdateSelectedTipoSede();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento tipi sede: {ex.Message}");
+            _tipiSede = new List<TipoSede>();
+        }
+    }
+
+    private async Task OnTipoSedeChanged(TipoSede tipoSede)
+    {
+        _selectedTipoSede = tipoSede;
+        await SelectedTipoSedeIdChanged.InvokeAsync(tipoSede?.Id);
+    }
+
+    private async Task<IEnumerable<TipoSede>> SearchTipiSede(string value, CancellationToken token)
+    {
+        if (_tipiSede == null)
+            return Enumerable.Empty<TipoSede>();
+
+        if (string.IsNullOrEmpty(value))
+            return _tipiSede;
+
+        return _tipiSede.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+}

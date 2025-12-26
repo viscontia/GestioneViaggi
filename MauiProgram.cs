@@ -28,9 +28,19 @@ public static class MauiProgram
             });
 
         // ==========================================================
-        // MUDBLAZOR
+        // MUDBLAZOR - PREMIUM SAAS THEME
         // ==========================================================
-        builder.Services.AddMudServices();
+        builder.Services.AddMudServices(config =>
+        {
+            config.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
+            config.SnackbarConfiguration.PreventDuplicates = false;
+            config.SnackbarConfiguration.NewestOnTop = true;
+            config.SnackbarConfiguration.ShowCloseIcon = true;
+            config.SnackbarConfiguration.VisibleStateDuration = 4000;
+            config.SnackbarConfiguration.HideTransitionDuration = 500;
+            config.SnackbarConfiguration.ShowTransitionDuration = 500;
+            config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
+        });
 
         // REGISTRAZIONE LOCALIZZAZIONE ITALIANA (GRID, PAGER, ECC.)
         builder.Services.AddTransient<MudLocalizer, ItalianMudLocalizer>();
@@ -51,6 +61,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISecureStorageProvider, FileStorageProvider>();
 
         builder.Services.AddSingleton<ISessionManager, SessionManager>();
+        builder.Services.AddScoped<ITenantContext, TenantContext>();
 
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
@@ -73,6 +84,12 @@ public static class MauiProgram
         builder.Services.AddScoped<ProvinciaService>();
         builder.Services.AddScoped<ComuneService>();
         builder.Services.AddScoped<AziendaService>();
+        builder.Services.AddScoped<AziendaSedeService>();
+        builder.Services.AddScoped<AziendaContattoService>();
+        builder.Services.AddScoped<AziendaBancaService>();
+        builder.Services.AddScoped<AziendaEmailService>();
+        builder.Services.AddScoped<TipoSedeService>();
+        builder.Services.AddScoped<RepartoAziendaleService>();
         builder.Services.AddScoped<TipoViaggioService>();
         builder.Services.AddScoped<TipoPartecipanteService>();
         builder.Services.AddScoped<TipoTrattamentoService>();

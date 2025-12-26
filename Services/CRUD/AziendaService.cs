@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -10,19 +11,28 @@ public class AziendaService : BaseCrudService<Azienda>
     protected override string TableName => "ana_aziende";
     protected override string IdColumnName => "azienda_id";
 
-    public AziendaService(IDatabaseService databaseService, ILogger<AziendaService> logger)
-        : base(databaseService, logger)
+    public AziendaService(
+        IDatabaseService databaseService, 
+        ILogger<AziendaService> logger,
+        ITenantContext tenantContext)
+        : base(databaseService, logger, tenantContext)
     {
     }
 
     /// <summary>
-    /// Override GetAllAsync per includere JOIN con provincia REA
+    /// Override GetAllAsync con filtro multi-tenant:
+    /// - SuperAdmin: vede TUTTE le aziende
+    /// - Altri ruoli: vedono SOLO la propria azienda
     /// </summary>
     public override async Task<List<Azienda>> GetAllAsync()
     {
         try
         {
+            var currentAziendaId = await GetCurrentAziendaIdAsync();
+
             await using var connection = await _databaseService.GetConnectionAsync();
+
+            // Base query con JOIN per provincia REA
             var sql = @"
                 SELECT
                     a.azienda_id,
@@ -47,8 +57,20 @@ public class AziendaService : BaseCrudService<Azienda>
                     a.data_ultima_modifica,
                     p.provincia_sigla as rea_provincia_sigla
                 FROM ana_aziende a
-                LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id
-                ORDER BY a.ragione_sociale ASC";
+                LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id";
+
+            // Applica filtro tenant se NON SuperAdmin
+            if (currentAziendaId.HasValue)
+            {
+                sql += $" WHERE a.azienda_id = {currentAziendaId.Value}";
+                _logger.LogDebug("GetAllAsync: Filtering by AziendaId={AziendaId} (non-SuperAdmin)", currentAziendaId.Value);
+            }
+            else
+            {
+                _logger.LogDebug("GetAllAsync: No tenant filter (SuperAdmin access)");
+            }
+
+            sql += " ORDER BY a.ragione_sociale ASC";
 
             await using var command = new NpgsqlCommand(sql, connection);
             await using var reader = await command.ExecuteReaderAsync();
@@ -59,6 +81,7 @@ public class AziendaService : BaseCrudService<Azienda>
                 aziende.Add(MapFromReaderWithJoins(reader));
             }
 
+            _logger.LogInformation("GetAllAsync: Returned {Count} aziende", aziende.Count);
             return aziende;
         }
         catch (Exception ex)
@@ -68,8 +91,29 @@ public class AziendaService : BaseCrudService<Azienda>
         }
     }
 
+    /// <summary>
+    /// Override GetByIdAsync con validazione tenant access
+    /// </summary>
+    public override async Task<Azienda?> GetByIdAsync(int id)
+    {
+        await ValidateTenantAccessAsync(id);
+        return await base.GetByIdAsync(id);
+    }
+
+    /// <summary>
+    /// Override CreateAsync con validazione tenant:
+    /// SOLO SuperAdmin può creare nuove aziende.
+    /// </summary>
     public override async Task<Azienda> CreateAsync(Azienda entity)
     {
+        // BUSINESS RULE: Solo SuperAdmin può creare aziende
+        var currentAziendaId = await GetCurrentAziendaIdAsync();
+        if (currentAziendaId.HasValue)
+        {
+            _logger.LogWarning("SECURITY: Non-SuperAdmin user attempted to create new Azienda");
+            throw new UnauthorizedAccessException("Solo l'amministratore SuperAdmin può creare nuove aziende.");
+        }
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -152,8 +196,16 @@ public class AziendaService : BaseCrudService<Azienda>
         }
     }
 
+    /// <summary>
+    /// Override UpdateAsync con validazione tenant:
+    /// - SuperAdmin: può modificare qualsiasi azienda
+    /// - Altri ruoli: possono modificare SOLO la propria azienda
+    /// </summary>
     public override async Task<Azienda> UpdateAsync(Azienda entity)
     {
+        // Valida che l'utente possa accedere a questa azienda
+        await ValidateTenantAccessAsync(entity.Id);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -219,6 +271,28 @@ public class AziendaService : BaseCrudService<Azienda>
         }
     }
 
+    /// <summary>
+    /// Override DeleteAsync con validazione tenant:
+    /// - SuperAdmin: può eliminare qualsiasi azienda
+    /// - Altri ruoli: possono eliminare SOLO la propria azienda (business rule discutibile)
+    /// </summary>
+    public override async Task<bool> DeleteAsync(int id)
+    {
+        // Valida che l'utente possa accedere a questa azienda
+        await ValidateTenantAccessAsync(id);
+
+        // BUSINESS RULE CONSIDERATION: Permettere agli utenti di eliminare la propria azienda?
+        // Potrebbe essere pericoloso. Considerare di limitare solo a SuperAdmin.
+        var currentAziendaId = await GetCurrentAziendaIdAsync();
+        if (currentAziendaId.HasValue && currentAziendaId.Value == id)
+        {
+            _logger.LogWarning("SECURITY: User attempted to delete their own Azienda (AziendaId={AziendaId})", id);
+            throw new InvalidOperationException("Non è possibile eliminare la propria azienda. Contattare SuperAdmin.");
+        }
+
+        return await base.DeleteAsync(id);
+    }
+
     protected override Azienda MapFromReader(NpgsqlDataReader reader)
     {
         return new Azienda
@@ -274,9 +348,4 @@ public class AziendaService : BaseCrudService<Azienda>
         command.Parameters.AddWithValue("attivo", entity.Attivo);
     }
 
-    private DateTime? ReadNullableDateTime(NpgsqlDataReader reader, string columnName)
-    {
-        var ordinal = reader.GetOrdinal(columnName);
-        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
-    }
 }

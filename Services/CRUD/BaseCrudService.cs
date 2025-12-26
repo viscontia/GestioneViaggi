@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Data;
@@ -8,20 +9,104 @@ using System.Text.Json;
 namespace GestioneViaggi.Services.CRUD;
 
 /// <summary>
-/// Implementazione base per operazioni CRUD su database PostgreSQL
+/// Implementazione base per operazioni CRUD su database PostgreSQL.
+/// Supporta multi-tenancy attraverso ITenantContext.
 /// </summary>
 /// <typeparam name="T">Tipo di entità che eredita da BaseEntity</typeparam>
 public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity, new()
 {
     protected readonly IDatabaseService _databaseService;
     protected readonly ILogger _logger;
+    protected readonly ITenantContext? _tenantContext;
+
     protected abstract string TableName { get; }
     protected abstract string IdColumnName { get; }
 
-    protected BaseCrudService(IDatabaseService databaseService, ILogger logger)
+    /// <summary>
+    /// Nome della colonna FK per il tenant (es. "azienda_id_fk").
+    /// Ritornare NULL se l'entità non è tenant-scoped (es. geo_province).
+    /// Override in servizi che richiedono multi-tenancy.
+    /// </summary>
+    protected virtual string? TenantColumnName => null;
+
+    protected BaseCrudService(IDatabaseService databaseService, ILogger logger, ITenantContext? tenantContext = null)
     {
         _databaseService = databaseService;
         _logger = logger;
+        _tenantContext = tenantContext;
+    }
+
+    /// <summary>
+    /// Verifica se l'utente corrente può accedere ai dati di una specifica azienda.
+    /// SuperAdmin: sempre true. Altri ruoli: true solo se aziendaId == UserInfo.AziendaId
+    /// </summary>
+    protected async Task<bool> CanAccessAziendaAsync(int aziendaId)
+    {
+        if (_tenantContext == null)
+        {
+            _logger.LogWarning("TenantContext not injected - allowing access (backward compatibility)");
+            return true;
+        }
+
+        return await _tenantContext.CanAccessAziendaAsync(aziendaId);
+    }
+
+    /// <summary>
+    /// Solleva UnauthorizedAccessException se l'utente non può accedere ai dati dell'azienda.
+    /// </summary>
+    protected async Task ValidateTenantAccessAsync(int aziendaId)
+    {
+        if (_tenantContext == null)
+        {
+            _logger.LogWarning("TenantContext not injected - skipping validation (backward compatibility)");
+            return;
+        }
+
+        await _tenantContext.ValidateAccessAsync(aziendaId);
+    }
+
+    /// <summary>
+    /// Restituisce l'AziendaId dell'utente corrente (NULL per SuperAdmin).
+    /// </summary>
+    protected async Task<int?> GetCurrentAziendaIdAsync()
+    {
+        if (_tenantContext == null)
+        {
+            _logger.LogWarning("TenantContext not injected - returning NULL");
+            return null;
+        }
+
+        return await _tenantContext.GetCurrentAziendaIdAsync();
+    }
+
+    /// <summary>
+    /// Genera la clausola WHERE per filtrare per tenant.
+    /// Se TenantColumnName è NULL o user è SuperAdmin, ritorna stringa vuota.
+    /// </summary>
+    protected async Task<string> GetTenantFilterWhereClauseAsync()
+    {
+        if (string.IsNullOrWhiteSpace(TenantColumnName) || _tenantContext == null)
+        {
+            return string.Empty;
+        }
+
+        return await _tenantContext.GetTenantFilterSqlAsync(TenantColumnName, includeWhereKeyword: true);
+    }
+
+    /// <summary>
+    /// Genera la condizione AND per filtrare per tenant (senza WHERE).
+    /// Utile quando ci sono già altre condizioni WHERE.
+    /// </summary>
+    protected async Task<string> GetTenantFilterAndClauseAsync()
+    {
+        if (string.IsNullOrWhiteSpace(TenantColumnName) || _tenantContext == null)
+        {
+            return string.Empty;
+        }
+
+        var filter = await _tenantContext.GetTenantFilterSqlAsync(TenantColumnName, includeWhereKeyword: false);
+        
+        return string.IsNullOrEmpty(filter) ? string.Empty : $"AND {filter}";
     }
 
     public virtual async Task<List<T>> GetAllAsync()
@@ -137,6 +222,13 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         var ordinal = reader.GetOrdinal(columnName);
         return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
     }
+
+    protected DateTime? ReadNullableDateTime(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+    }
+
     /// <summary>
     /// Metodo helper per creare un'entità con retry automatico in caso di errore sequence
     /// </summary>

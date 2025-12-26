@@ -14,8 +14,12 @@ public class Regione : BaseEntity
     public int? NumeroResidenti { get; set; }
     public decimal? PercentualeResidenti { get; set; }
     public decimal? DensitaKmq { get; set; }
-    public int? NumeroProvince { get; set; }
-    public int? NumeroComuni { get; set; }
+
+    [Required(ErrorMessage = "Il numero di province è obbligatorio")]
+    public int NumeroProvince { get; set; }
+
+    [Required(ErrorMessage = "Il numero di comuni è obbligatorio")]
+    public int NumeroComuni { get; set; }
 
     [Required(ErrorMessage = "Il paese è obbligatorio")]
     public int CountryIdFk { get; set; }

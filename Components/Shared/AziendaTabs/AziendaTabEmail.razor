@@ -1,0 +1,180 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaEmailService EmailService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Indirizzi Email Aziendali</MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenEmailDialog(null))">
+                Nuova Email
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_emails" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Email</MudTh>
+                <MudTh>Reparto</MudTh>
+                <MudTh Style="text-align: center;">Principale</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Email">
+                    <MudLink Href="@($"mailto:{context.Email}")">@context.Email</MudLink>
+                    @if (context.IsPrincipale)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2">PRINCIPALE</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Reparto">@(string.IsNullOrWhiteSpace(context.RepartoNome) ? "-" : context.RepartoNome)</MudTd>
+                <MudTd DataLabel="Principale" Style="text-align: center;">
+                    <MudIcon Icon="@(context.IsPrincipale ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarOutline)"
+                             Color="@(context.IsPrincipale ? Color.Warning : Color.Default)" />
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenEmailDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteEmail(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_emails.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessun indirizzo email configurato.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<AziendaEmail> _emails = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId > 0)
+        {
+            await LoadEmailsAsync();
+        }
+    }
+
+    private async Task LoadEmailsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _emails = await EmailService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento email: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenEmailDialog(AziendaEmail? email)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = email ?? new AziendaEmail { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = email != null,
+            ["AziendaId"] = AziendaId
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaEmailDialog>(
+            email == null ? "Nuova Email Aziendale" : "Modifica Email Aziendale",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: AziendaEmail updatedEmail })
+        {
+            try
+            {
+                if (email == null)
+                {
+                    await EmailService.CreateAsync(updatedEmail);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Email aziendale creata con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedEmail.Id = email.Id;
+                    await EmailService.UpdateAsync(updatedEmail);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Email aziendale aggiornata con successo", Severity.Success);
+                }
+
+                await LoadEmailsAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteEmail(AziendaEmail email)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione dell'email '{email.Email}'?",
+            yesText: "Elimina", 
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await EmailService.DeleteAsync(email.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Email aziendale eliminata con successo", Severity.Success);
+                await LoadEmailsAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -3,8 +3,10 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.UI
+@using GestioneViaggi.Services.Session
 @using MudBlazor
 @inject AziendaService Service
+@inject ITenantContext TenantContext
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
@@ -27,12 +29,27 @@ else
                         @bind-SelectedItem="_selectedItem">
 
         <ToolBarActions>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog">
-                Nuova Azienda
-            </MudButton>
+            @* MULTI-TENANT: Solo SuperAdmin può creare nuove aziende *@
+            @if (_isSuperAdmin)
+            {
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog">
+                    Nuova Azienda
+                </MudButton>
+            }
+            else
+            {
+                <MudTooltip Text="Solo gli amministratori SuperAdmin possono creare nuove aziende">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Default" 
+                               StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="true">
+                        Nuova Azienda
+                    </MudButton>
+                </MudTooltip>
+            }
         </ToolBarActions>
 
         <Columns>
@@ -103,10 +120,12 @@ else
     private Azienda? _selectedItem;
     private string _errorMessage = string.Empty;
     private string _searchString = string.Empty;
+    private bool _isSuperAdmin = false;
 
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("ana_aziende");
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
         await LoadDataAsync();
     }
 
@@ -154,7 +173,7 @@ else
         { 
             BackdropClick = false,
             CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
+            MaxWidth = MaxWidth.ExtraLarge,
             FullWidth = true,
             CloseOnEscapeKey = true
         };
@@ -212,7 +231,7 @@ else
         { 
             BackdropClick = false,
             CloseButton = true,
-            MaxWidth = MaxWidth.Medium,
+            MaxWidth = MaxWidth.ExtraLarge,
             FullWidth = true,
             CloseOnEscapeKey = true
         };

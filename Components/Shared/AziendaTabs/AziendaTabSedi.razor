@@ -1,0 +1,264 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaSedeService SedeService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Sedi Aziendali</MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenSedeDialog(null))">
+                Nuova Sede
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_sedi" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Indirizzo</MudTh>
+                <MudTh>Comune</MudTh>
+                <MudTh>Telefono</MudTh>
+                <MudTh Style="text-align: center;">Principale</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Tipo">
+                    <MudChip T="string" Size="Size.Small" Color="@GetSedeTypeColor(context.TipoSedeDescrizione!)"
+                             Style="@GetSedeTypeStyle(context.TipoSedeDescrizione!)">
+                        @context.TipoSedeDescrizione
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Indirizzo">@context.Indirizzo @context.NumeroCivico</MudTd>
+                <MudTd DataLabel="Comune">@context.ComuneNome (@context.ProvinciaSigla)</MudTd>
+                <MudTd DataLabel="Telefono">@context.Telefono</MudTd>
+                <MudTd DataLabel="Principale" Style="text-align: center;">
+                    <MudCheckBox Value="@context.IsPrincipale" ReadOnly="true"
+                                 Color="@(context.IsPrincipale ? Color.Success : Color.Default)"
+                                 Size="Size.Small" />
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Size="Size.Small" 
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenSedeDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteSede(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_sedi.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessuna sede configurata. Aggiungi almeno la <strong>Sede Legale</strong>.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<AziendaSede> _sedi = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Console.WriteLine($"AziendaTabSedi - OnParametersSetAsync: AziendaId = {AziendaId}");
+        if (AziendaId > 0)
+        {
+            await LoadSediAsync();
+        }
+        else
+        {
+            Console.WriteLine("AziendaTabSedi - AziendaId is 0, skipping load");
+        }
+    }
+
+    private async Task LoadSediAsync()
+    {
+        _loading = true;
+        try
+        {
+            _sedi = await SedeService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento sedi: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private Color GetSedeTypeColor(string tipoSede)
+    {
+        return tipoSede.ToLower() switch
+        {
+            "legale" => Color.Primary,
+            "operativa" => Color.Success,
+            "magazzino" => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private string GetSedeTypeStyle(string tipoSede)
+    {
+        // Stili con contrasto alto per il tema scuro
+        return tipoSede.ToLower() switch
+        {
+            "legale" => "background-color: #1E3A5F !important; color: #93C5FD !important; border: 1px solid #3B82F6 !important;",
+            "operativa" => "background-color: #064E3B !important; color: #6EE7B7 !important; border: 1px solid #10B981 !important;",
+            "magazzino" => "background-color: #78350F !important; color: #FCD34D !important; border: 1px solid #F59E0B !important;",
+            _ => "background-color: #374151 !important; color: #F9FAFB !important; border: 1px solid #6B7280 !important;"
+        };
+    }
+
+    private async Task OpenSedeDialog(AziendaSede? sede)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = sede ?? new AziendaSede { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = sede != null
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaSedeDialog>(
+            sede == null ? "Nuova Sede" : "Modifica Sede",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: AziendaSede updatedSede })
+        {
+            try
+            {
+                if (sede == null)
+                {
+                    await SedeService.CreateAsync(updatedSede);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Sede creata con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedSede.Id = sede.Id;
+                    await SedeService.UpdateAsync(updatedSede);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Sede aggiornata con successo", Severity.Success);
+                }
+
+                await LoadSediAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteSede(AziendaSede sede)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione della sede '{sede.TipoSedeDescrizione}' in {sede.Indirizzo}?",
+            yesText: "Elimina",
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await SedeService.DeleteAsync(sede.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Sede eliminata con successo", Severity.Success);
+                await LoadSediAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}
+
+<style>
+    /* Fix visibilità chip nel tema scuro - sovrascrive gli stili inline di MudBlazor */
+    
+    /* Primary - Legale */
+    .mud-theme-dark .mud-chip.mud-chip-color-primary {
+        background-color: rgba(96, 165, 250, 0.2) !important;
+        color: #93C5FD !important;
+        border: 1px solid rgba(96, 165, 250, 0.3) !important;
+    }
+    
+    /* Success - Operativa */
+    .mud-theme-dark .mud-chip.mud-chip-color-success {
+        background-color: rgba(52, 211, 153, 0.2) !important;
+        color: #6EE7B7 !important;
+        border: 1px solid rgba(52, 211, 153, 0.3) !important;
+    }
+    
+    /* Warning - Magazzino */
+    .mud-theme-dark .mud-chip.mud-chip-color-warning {
+        background-color: rgba(251, 191, 36, 0.2) !important;
+        color: #FCD34D !important;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
+    }
+    
+    /* Default - Altri tipi */
+    .mud-theme-dark .mud-chip.mud-chip-color-default {
+        background-color: rgba(156, 163, 175, 0.2) !important;
+        color: #D1D5DB !important;
+        border: 1px solid rgba(156, 163, 175, 0.3) !important;
+    }
+    
+    /* Info */
+    .mud-theme-dark .mud-chip.mud-chip-color-info {
+        background-color: rgba(56, 189, 248, 0.2) !important;
+        color: #7DD3FC !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+    }
+    
+    /* Error */
+    .mud-theme-dark .mud-chip.mud-chip-color-error {
+        background-color: rgba(248, 113, 113, 0.2) !important;
+        color: #FCA5A5 !important;
+        border: 1px solid rgba(248, 113, 113, 0.3) !important;
+    }
+    
+    /* Secondary */
+    .mud-theme-dark .mud-chip.mud-chip-color-secondary {
+        background-color: rgba(156, 163, 175, 0.2) !important;
+        color: #D1D5DB !important;
+        border: 1px solid rgba(156, 163, 175, 0.3) !important;
+    }
+</style>

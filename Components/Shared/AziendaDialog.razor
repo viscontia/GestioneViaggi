@@ -3,18 +3,28 @@
 @using Microsoft.JSInterop
 @using GestioneViaggi.Validation.Syntax
 @using GestioneViaggi.Validation.Semantic
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared.AziendaTabs
 @inject IJSRuntime JS
+@inject AziendaSedeService SedeService
+@inject AziendaContattoService ContattoService
+@inject AziendaBancaService BancaService
+@inject AziendaEmailService EmailService
 @implements IDisposable
 @implements IAsyncDisposable
 
-<MudDialog>
+<MudDialog DefaultFocus="DefaultFocus.FirstChild">
     <TitleContent>
         <MudText Typo="Typo.h6">
-            @(IsEditMode ? "Modifica Azienda" : "Nuova Azienda")
+            @(IsEditMode ? $"Modifica Azienda: {Entity.RagioneSociale}" : "Nuova Azienda")
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="_form" Model="@Entity">
+        <div style="height: 600px; overflow-y: auto;">
+        @if (!IsEditMode)
+        {
+            <!-- CREAZIONE: Solo form dati generali -->
+            <MudForm @ref="_form" Model="@Entity">
 
             <!-- Ragione Sociale - OBBLIGATORIO -->
             <MudTextField @ref="_firstField" Value="@Entity.RagioneSociale"
@@ -124,6 +134,128 @@
                 Class="mb-3" />
 
         </MudForm>
+        }
+        else
+        {
+            <!-- MODIFICA: Form con TAB per detail -->
+            <MudTabs Elevation="0" Rounded="true" PanelClass="pa-4" Color="Color.Primary" KeepPanelsAlive="true" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Business">
+                    <MudForm @ref="_form" Model="@Entity">
+                        <!-- Ragione Sociale - OBBLIGATORIO -->
+                        <MudTextField @ref="_firstField" Value="@Entity.RagioneSociale"
+                            ValueChanged="@((string val) => HandleRagioneSocialeChanged(val))" For="@(() => Entity.RagioneSociale)"
+                            Label="Ragione Sociale" Variant="Variant.Outlined" Immediate="true" Required="true"
+                            RequiredError="La ragione sociale è obbligatoria" MaxLength="255" Class="mb-3 uppercase-input"
+                            Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                            HelperText="Inserire la denominazione completa dell'azienda" OnKeyDown="@HandleKeyDown" />
+
+                        <!-- Forma Giuridica -->
+                        <FormaGiuridicaSelect @bind-SelectedFormaGiuridica="Entity.FormaGiuridica" Label="Forma Giuridica"
+                            Required="true" RequiredError="La forma giuridica è obbligatoria" Class="mb-3" />
+
+                        <!-- Partita IVA -->
+                        <MudTextField @bind-Value="Entity.PartitaIva" For="@(() => Entity.PartitaIva)" Label="Partita IVA"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidatePartitaIva))" Variant="Variant.Outlined"
+                            Required="true" RequiredError="La Partita IVA è obbligatoria" Mask="@(new PatternMask("00000000000"))"
+                            MaxLength="11" Class="mb-3" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                            HelperText="Inserire 11 cifre numeriche" Immediate="true" />
+
+                        <!-- Codice Fiscale -->
+                        <MudTextField Value="@Entity.CodiceFiscale"
+                            ValueChanged="@((string val) => HandleCodiceFiscaleChanged(val))" For="@(() => Entity.CodiceFiscale)"
+                            Label="Codice Fiscale (opzionale)"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidateCodiceFiscale))" Variant="Variant.Outlined"
+                            MaxLength="16" Class="mb-3 uppercase-input"
+                            HelperText="Alfanumerico maiuscolo, 11-16 caratteri (es: 12345678901 o RSSMRA80A01H501X)"
+                            Immediate="true" />
+
+                        <!-- Telefono -->
+                        <MudTextField @bind-Value="Entity.TelefonoPrincipale" For="@(() => Entity.TelefonoPrincipale)"
+                            Label="Telefono Principale" Validation="@(new Func<string, IEnumerable<string>>(ValidateTelefono))"
+                            Variant="Variant.Outlined" Required="true" RequiredError="Il telefono principale è obbligatorio"
+                            MaxLength="30" Class="mb-3" Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                            HelperText="Es: +39 0123456789 oppure 0123456789" Immediate="true" />
+
+                        <!-- PEC -->
+                        <MudTextField @bind-Value="Entity.Pec" For="@(() => Entity.Pec)" Label="PEC (opzionale)"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidatePec))" Variant="Variant.Outlined"
+                            MaxLength="255" Class="mb-3" HelperText="Email certificata" Immediate="true" />
+
+                        <!-- SDI -->
+                        <MudTextField Value="@Entity.CodiceDestinatarioSdi"
+                            ValueChanged="@((string val) => HandleCodiceSdiChanged(val))"
+                            For="@(() => Entity.CodiceDestinatarioSdi)" Label="Codice Destinatario SDI"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidateCodiceSdi))" Variant="Variant.Outlined"
+                            MaxLength="7" Class="mb-3 uppercase-input"
+                            HelperText="7 caratteri alfanumerici maiuscoli per fatturazione elettronica (default: 0000000)"
+                            Immediate="true" />
+
+                        <!-- Sito Web -->
+                        <MudTextField @bind-Value="Entity.SitoWeb" For="@(() => Entity.SitoWeb)" Label="Sito Web (opzionale)"
+                            Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
+                            HelperText="URL completo (es: https://www.esempio.it)" />
+
+                        <MudDivider Class="my-4" />
+
+                        <!-- Data Costituzione -->
+                        <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
+                            Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" Class="mb-3"
+                            DateFormat="dd/MM/yyyy" Editable="true" HelperText="Data di costituzione dell'azienda" />
+
+                        <!-- Data Inizio Attività -->
+                        <MudDatePicker @bind-Date="Entity.DataInizioAttivita" For="@(() => Entity.DataInizioAttivita)"
+                            Label="Data Inizio Attività (opzionale)" Variant="Variant.Outlined" Class="mb-3"
+                            DateFormat="dd/MM/yyyy" Editable="true" HelperText="Data di inizio dell'attività" />
+
+                        <!-- Capitale Sociale -->
+                        <MudNumericField @bind-Value="Entity.CapitaleSociale" For="@(() => Entity.CapitaleSociale)"
+                            Label="Capitale Sociale (opzionale)"
+                            Validation="@(new Func<decimal?, IEnumerable<string>>(ValidateCapitaleSociale))"
+                            Variant="Variant.Outlined" Format="N2" Class="mb-3" Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.Euro" HelperText="Importo in Euro" Immediate="true" />
+
+                        <MudDivider Class="my-4" />
+
+                        <!-- REA -->
+                        <ProvinciaSelect @bind-SelectedProvinciaId="Entity.ReaProvinciaFk"
+                            Label="Provincia REA (opzionale)" Class="mb-3" />
+                        <MudTextField @bind-Value="Entity.ReaNumero" For="@(() => Entity.ReaNumero)"
+                            Label="Numero REA (opzionale)" Variant="Variant.Outlined" MaxLength="20" Class="mb-3"
+                            HelperText="Se specificato, indicare anche la provincia REA" />
+                        <MudDatePicker @bind-Date="Entity.ReaDataIscrizione" For="@(() => Entity.ReaDataIscrizione)"
+                            Label="Data Iscrizione REA (opzionale)" Variant="Variant.Outlined" Class="mb-3"
+                            DateFormat="dd/MM/yyyy" Editable="true" />
+
+                        <MudDivider Class="my-4" />
+
+                        <!-- Flags -->
+                        <MudCheckBox @bind-Value="Entity.SocioUnico" For="@(() => Entity.SocioUnico)" Label="Socio Unico"
+                            Color="Color.Primary" Class="mb-3" />
+                        <MudCheckBox @bind-Value="Entity.InLiquidazione" For="@(() => Entity.InLiquidazione)"
+                            Label="In Liquidazione" Color="Color.Warning" Class="mb-3" />
+                        <MudCheckBox @bind-Value="Entity.Attivo" For="@(() => Entity.Attivo)" Label="Attivo"
+                            Color="Color.Success" Class="mb-3" />
+                    </MudForm>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Sedi" Icon="@Icons.Material.Filled.LocationOn" BadgeData="@_sediCount" BadgeColor="Color.Info">
+                    <AziendaTabSedi AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Contatti" Icon="@Icons.Material.Filled.Contacts" BadgeData="@_contattiCount" BadgeColor="Color.Info">
+                    <AziendaTabContatti AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Banche" Icon="@Icons.Material.Filled.AccountBalance" BadgeData="@_bancheCount" BadgeColor="Color.Info">
+                    <AziendaTabBanche AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Email" Icon="@Icons.Material.Filled.Email" BadgeData="@_emailCount" BadgeColor="Color.Info">
+                    <AziendaTabEmail AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+            </MudTabs>
+        }
+        </div>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
@@ -139,6 +271,12 @@
     private MudForm? _form;
     private MudTextField<string>? _firstField;
 
+    // Badge counts per i TAB
+    private int? _sediCount;
+    private int? _contattiCount;
+    private int? _bancheCount;
+    private int? _emailCount;
+
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
 
@@ -147,6 +285,14 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditMode && Entity.Id > 0)
+        {
+            await LoadBadgeCountsAsync();
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -240,6 +386,30 @@
                     await _firstField.FocusAsync();
                 }
             }
+        }
+    }
+
+    private async Task LoadBadgeCountsAsync()
+    {
+        try
+        {
+            var sediTask = SedeService.GetByAziendaIdAsync(Entity.Id);
+            var contattiTask = ContattoService.GetByAziendaIdAsync(Entity.Id);
+            var bancheTask = BancaService.GetByAziendaIdAsync(Entity.Id);
+            var emailTask = EmailService.GetByAziendaIdAsync(Entity.Id);
+
+            await Task.WhenAll(sediTask, contattiTask, bancheTask, emailTask);
+
+            _sediCount = sediTask.Result.Count;
+            _contattiCount = contattiTask.Result.Count;
+            _bancheCount = bancheTask.Result.Count;
+            _emailCount = emailTask.Result.Count;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore durante il caricamento dei badge counts: {ex.Message}");
         }
     }
 

@@ -1,0 +1,190 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaContattoService ContattoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Contatti Aziendali</MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenContattoDialog(null))">
+                Nuovo Contatto
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_contatti" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Nome Completo</MudTh>
+                <MudTh>Ruolo</MudTh>
+                <MudTh>Sede</MudTh>
+                <MudTh>Email</MudTh>
+                <MudTh>Telefono/Cellulare</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome">
+                    <strong>@context.Cognome @context.Nome</strong>
+                </MudTd>
+                <MudTd DataLabel="Ruolo">@context.Ruolo</MudTd>
+                <MudTd DataLabel="Sede">@context.SedeIndirizzo, @context.SedeCitta</MudTd>
+                <MudTd DataLabel="Email">
+                    @if (!string.IsNullOrWhiteSpace(context.Email))
+                    {
+                        <MudLink Href="@($"mailto:{context.Email}")">@context.Email</MudLink>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Telefono">
+                    @if (!string.IsNullOrWhiteSpace(context.TelefonoDiretto))
+                    {
+                        <div>Tel: @context.TelefonoDiretto</div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(context.Cellulare))
+                    {
+                        <div>Cell: @context.Cellulare</div>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                   Size="Size.Small" 
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenContattoDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                   Size="Size.Small" 
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteContatto(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_contatti.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessun contatto configurato. Aggiungi i referenti aziendali.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<AziendaContatto> _contatti = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId > 0)
+        {
+            await LoadContattiAsync();
+        }
+    }
+
+    private async Task LoadContattiAsync()
+    {
+        _loading = true;
+        try
+        {
+            _contatti = await ContattoService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento contatti: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenContattoDialog(AziendaContatto? contatto)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = contatto ?? new AziendaContatto { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = contatto != null
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaContattoDialog>(
+            contatto == null ? "Nuovo Contatto" : "Modifica Contatto",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: AziendaContatto updatedContatto })
+        {
+            try
+            {
+                if (contatto == null)
+                {
+                    await ContattoService.CreateAsync(updatedContatto);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Contatto creato con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedContatto.Id = contatto.Id;
+                    await ContattoService.UpdateAsync(updatedContatto);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Contatto aggiornato con successo", Severity.Success);
+                }
+
+                await LoadContattiAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteContatto(AziendaContatto contatto)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione del contatto '{contatto.Cognome} {contatto.Nome}' ({contatto.Ruolo})?",
+            yesText: "Elimina", 
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await ContattoService.DeleteAsync(contatto.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Contatto eliminato con successo", Severity.Success);
+                await LoadContattiAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

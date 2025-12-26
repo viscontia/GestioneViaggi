@@ -110,8 +110,8 @@ public class RegioneService : BaseCrudService<Regione>
             NumeroResidenti = ReadNullableInt(reader, "regione_nr_residenti"),
             PercentualeResidenti = ReadNullableDecimal(reader, "regione_perc_residenti"),
             DensitaKmq = ReadNullableDecimal(reader, "regione_densita_kmq"),
-            NumeroProvince = ReadNullableInt(reader, "regione_nr_province"),
-            NumeroComuni = ReadNullableInt(reader, "regione_nr_comuni"),
+            NumeroProvince = ReadNullableInt(reader, "regione_nr_province") ?? 0,
+            NumeroComuni = ReadNullableInt(reader, "regione_nr_comuni") ?? 0,
             CountryIdFk = ReadInt(reader, "country_id_fk")
         };
     }

@@ -1,0 +1,229 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog DefaultFocus="DefaultFocus.FirstChild" CloseOnEscapeKey="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Sede" : "Nuova Sede")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- Tipo Sede - OBBLIGATORIO -->
+            <TipoSedeSelect @ref="_tipoSedeSelectRef"
+                           SelectedTipoSedeId="@(Entity.TipoSedeIdFk == 0 ? null : Entity.TipoSedeIdFk)"
+                           SelectedTipoSedeIdChanged="@((int? value) => Entity.TipoSedeIdFk = value ?? 0)"
+                           Required="true"
+                           AutoFocus="true"
+                           RequiredError="Il tipo sede è obbligatorio"
+                           HelperText="Seleziona la tipologia di sede"
+                           Class="mb-3" />
+
+            <MudCheckBox @bind-Value="Entity.IsPrincipale"
+                         For="@(() => Entity.IsPrincipale)"
+                         Label="Sede Principale"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Indirizzo - OBBLIGATORIO -->
+            <MudTextField @ref="_indirizzoField"
+                          Value="@Entity.Indirizzo"
+                          ValueChanged="@((string val) => Entity.Indirizzo = val?.ToUpper() ?? string.Empty)"
+                          For="@(() => Entity.Indirizzo)"
+                          Label="Indirizzo"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="L'indirizzo è obbligatorio"
+                          MaxLength="255"
+                          Class="mb-3 uppercase-input"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Es: VIA ROMA"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- Numero Civico - Opzionale -->
+            <MudTextField @bind-Value="Entity.NumeroCivico"
+                          For="@(() => Entity.NumeroCivico)"
+                          Label="Numero Civico (opzionale)"
+                          Variant="Variant.Outlined"
+                          MaxLength="20"
+                          Class="mb-3"
+                          HelperText="Es: 123, 45/A, SNC" />
+
+            <!-- Comune - OBBLIGATORIO -->
+            <ComuneSelect SelectedComuneId="@ComuneIdWrapper"
+                          SelectedComuneIdChanged="@((int? value) => ComuneIdWrapper = value)"
+                          Label="Comune"
+                          Required="true"
+                          RequiredError="Il comune è obbligatorio"
+                          Class="mb-3" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Telefono - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.Telefono"
+                          For="@(() => Entity.Telefono)"
+                          Label="Telefono"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Il telefono è obbligatorio"
+                          MaxLength="30"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Numero di telefono della sede" />
+
+            <!-- Email - OBBLIGATORIA -->
+            <MudTextField @bind-Value="Entity.Email"
+                          For="@(() => Entity.Email)"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="L'email è obbligatoria"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Indirizzo email della sede" />
+
+            <MudDivider Class="my-4" />
+
+            <!-- Coordinate GPS - OBBLIGATORIE -->
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Coordinate GPS</MudText>
+
+            <MudNumericField @bind-Value="Entity.CoordinateLat"
+                             For="@(() => Entity.CoordinateLat)"
+                             Label="Latitudine"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             RequiredError="La latitudine è obbligatoria"
+                             Format="N8"
+                             Min="35"
+                             Max="48"
+                             Class="mb-3"
+                             Adornment="Adornment.End"
+                             AdornmentText="*"
+                             AdornmentColor="Color.Error"
+                             HelperText="Latitudine Italia: 35.0 - 48.0" />
+
+            <MudNumericField @bind-Value="Entity.CoordinateLng"
+                             For="@(() => Entity.CoordinateLng)"
+                             Label="Longitudine"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             RequiredError="La longitudine è obbligatoria"
+                             Format="N8"
+                             Min="6"
+                             Max="19"
+                             Class="mb-3"
+                             Adornment="Adornment.End"
+                             AdornmentText="*"
+                             AdornmentColor="Color.Error"
+                             HelperText="Longitudine Italia: 6.0 - 19.0" />
+
+            <!-- Note - Opzionali -->
+            <MudTextField @bind-Value="Entity.Note"
+                          For="@(() => Entity.Note)"
+                          Label="Note (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Class="mb-3"
+                          HelperText="Informazioni aggiuntive sulla sede" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private TipoSedeSelect? _tipoSedeSelectRef;
+    private MudTextField<string>? _indirizzoField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public AziendaSede Entity { get; set; } = new AziendaSede();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    // Wrapper per convertire int <-> int?
+    private int? ComuneIdWrapper
+    {
+        get => Entity.ComuneIdFk == 0 ? null : Entity.ComuneIdFk;
+        set => Entity.ComuneIdFk = value ?? 0;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_indirizzoField?.Error == true)
+                {
+                    await _indirizzoField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

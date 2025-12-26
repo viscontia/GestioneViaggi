@@ -1,0 +1,142 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog DefaultFocus="DefaultFocus.FirstChild" CloseOnEscapeKey="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Email Aziendale" : "Nuova Email Aziendale")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- Email - OBBLIGATORIO -->
+            <MudTextField @ref="_emailField"
+                          @bind-Value="Entity.Email"
+                          For="@(() => Entity.Email)"
+                          Label="Indirizzo Email"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Required="true"
+                          RequiredError="L'indirizzo email è obbligatorio"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Inserire indirizzo email valido (es: info@azienda.it)"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- Reparto - OBBLIGATORIO -->
+            <RepartoSelect @ref="_repartoSelectRef"
+                           AziendaId="@AziendaId"
+                           SelectedRepartoId="@(Entity.RepartoIdFk == 0 ? null : Entity.RepartoIdFk)"
+                           SelectedRepartoIdChanged="@((int? value) => Entity.RepartoIdFk = value ?? 0)"
+                           Required="true"
+                           AutoFocus="false"
+                           RequiredError="Il reparto è obbligatorio"
+                           HelperText="Seleziona il reparto di appartenenza"
+                           Class="mb-3" />
+
+            <!-- Flag Principale -->
+            <MudCheckBox @bind-Value="Entity.IsPrincipale"
+                         For="@(() => Entity.IsPrincipale)"
+                         Label="Email Principale"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+
+            <!-- Note - Opzionali -->
+            <MudTextField @bind-Value="Entity.Note"
+                          For="@(() => Entity.Note)"
+                          Label="Note (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Class="mb-3"
+                          HelperText="Informazioni aggiuntive sull'email" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private RepartoSelect? _repartoSelectRef;
+    private MudTextField<string>? _emailField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public AziendaEmail Entity { get; set; } = new AziendaEmail();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public int? AziendaId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_emailField?.Error == true)
+                {
+                    await _emailField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

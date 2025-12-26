@@ -1,0 +1,150 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject ComuneService ComuneService
+
+<BaseEntitySelect TItem="Comune"
+                  Value="_selectedComune"
+                  ValueChanged="OnComuneChanged"
+                  SearchFunc="SearchComuni"
+                  ToStringFunc="@(c => c?.Nome ?? string.Empty)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@Disabled"
+                  AutoFocus="@AutoFocus"
+                  HelperText="@HelperText"
+                  Class="@Class"
+                  Validation="@Validation"
+                  AdditionalAttributes="@AdditionalAttributes" />
+
+@code {
+    private List<Comune> _allComuni = new();
+    private Comune? _selectedComune;
+    private bool _loaded = false;
+
+    [Parameter]
+    public int? SelectedComuneId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedComuneIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Comune";
+
+    [Parameter]
+    public bool Required { get; set; }
+
+    [Parameter]
+    public string RequiredError { get; set; } = "Il comune è obbligatorio";
+
+    [Parameter]
+    public object? Validation { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public bool AutoFocus { get; set; }
+
+    [Parameter]
+    public string? HelperText { get; set; } = "Digita per cercare il comune";
+
+    [Parameter]
+    public string? Class { get; set; } = "mb-3";
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>
+    /// Filtro opzionale per provincia (limita i comuni visualizzati)
+    /// </summary>
+    [Parameter]
+    public int? ProvinciaIdFilter { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadComuniAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedComune();
+    }
+
+    private void UpdateSelectedComune()
+    {
+        if (!_loaded || _allComuni.Count == 0) return;
+
+        if (SelectedComuneId.HasValue)
+        {
+            if (_selectedComune?.Id != SelectedComuneId.Value)
+            {
+                _selectedComune = _allComuni.FirstOrDefault(c => c.Id == SelectedComuneId.Value);
+            }
+        }
+        else
+        {
+            _selectedComune = null;
+        }
+    }
+
+    private async Task LoadComuniAsync()
+    {
+        try
+        {
+            _allComuni = await ComuneService.GetAllAsync();
+            _loaded = true;
+            UpdateSelectedComune();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento comuni: {ex.Message}");
+            _allComuni = new List<Comune>();
+        }
+    }
+
+    private async Task OnComuneChanged(Comune? comune)
+    {
+        _selectedComune = comune;
+        await SelectedComuneIdChanged.InvokeAsync(comune?.Id);
+    }
+
+    private async Task<IEnumerable<Comune>> SearchComuni(string searchText, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+
+        if (!_loaded || _allComuni.Count == 0)
+            return Enumerable.Empty<Comune>();
+
+        // PERFORMANCE: Se non c'è testo, ritorna lista vuota (forza l'utente a digitare)
+        // I comuni sono troppi (migliaia) per mostrarli tutti
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return Enumerable.Empty<Comune>();
+        }
+
+        // Filtra per provincia se specificato
+        var source = ProvinciaIdFilter.HasValue
+            ? _allComuni.Where(c => c.ProvinciaIdFk == ProvinciaIdFilter.Value)
+            : _allComuni;
+
+        // Ricerca case-insensitive che inizia con il testo cercato (più veloce)
+        var startsWithResults = source
+            .Where(c => c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase))
+            .Take(50)
+            .ToList();
+
+        // Se ci sono abbastanza risultati, ritorna solo quelli
+        if (startsWithResults.Count >= 20)
+            return startsWithResults;
+
+        // Altrimenti aggiungi anche i risultati "contiene" (fino a 50 totali)
+        var containsResults = source
+            .Where(c => !c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) &&
+                        c.Nome.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Take(50 - startsWithResults.Count);
+
+        return startsWithResults.Concat(containsResults).ToList();
+    }
+}
+
