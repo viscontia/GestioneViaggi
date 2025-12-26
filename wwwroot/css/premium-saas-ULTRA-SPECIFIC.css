@@ -1,6 +1,6 @@
 /* ========== PREMIUM SAAS THEME - ULTRA SPECIFIC ========== */
-/* Versione 2.0 - Selettori ad alta specificità */
-/* Sovrascrive FORZATAMENTE tutti gli stili MudBlazor */
+/* Versione 2.1 - Font size aumentati per migliore leggibilità */
+/* Selettori ad alta specificità - Sovrascrive FORZATAMENTE tutti gli stili MudBlazor */
 
 /* ========================================== */
 /* WEBKIT FIX - Cursor/Caret visibility on macOS/iOS */
@@ -35,7 +35,7 @@ textarea {
 .mud-table-head .mud-table-row .mud-table-cell {
     background-color: #F7F8FA !important;
     color: #6B7280 !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     font-weight: 500 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
@@ -66,7 +66,7 @@ textarea {
 .mud-table-body .mud-table-row .mud-table-cell {
     background-color: #FFFFFF !important;
     color: #111827 !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: 400 !important;
     padding: 14px 16px !important;
     border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
@@ -111,7 +111,7 @@ textarea {
 .theme-dark .mud-table-head .mud-table-row .mud-table-cell {
     background-color: #2A2D34 !important;
     color: #9AA1AC !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
     font-weight: 500 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
@@ -135,7 +135,7 @@ textarea {
 .theme-dark .mud-table-body .mud-table-row .mud-table-cell {
     background-color: #30333B !important;
     color: #E6E8EB !important;
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: 400 !important;
     padding: 14px 16px !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
@@ -176,7 +176,7 @@ textarea {
 
 .mud-button-root {
     font-family: 'Inter', -apple-system, sans-serif !important;
-    font-size: 13.5px !important;
+    font-size: 15px !important;
     font-weight: 500 !important;
     letter-spacing: -0.01em !important;
     text-transform: none !important;
@@ -492,8 +492,8 @@ textarea {
     display: inline-flex !important;
     align-items: center !important;
     gap: 6px !important;
-    padding: 3px 10px !important;
-    font-size: 11.5px !important;
+    padding: 4px 12px !important;
+    font-size: 13px !important;
     font-weight: 500 !important;
     border-radius: 6px !important;
     letter-spacing: 0.02em !important;
@@ -707,6 +707,38 @@ textarea {
 /* ========================================== */
 
 /* DARK MODE - Tutti gli elementi del NavMenu devono essere MOLTO CHIARI */
+
+/* NavMenu Base - Font size aumentato - ULTRA FORZATO */
+.mud-navmenu,
+.mud-navmenu *,
+.mud-drawer .mud-navmenu,
+.mud-drawer .mud-navmenu *,
+.mud-nav-link,
+.mud-nav-link *,
+.mud-nav-group,
+.mud-nav-group *,
+.mud-nav-link-content,
+.mud-nav-group-header,
+.mud-nav-group-header * {
+    font-size: 15px !important;
+    font-size: 15px !important;
+    font-size: 15px !important;
+}
+
+/* Override MudBlazor specifico */
+span.mud-nav-link-text,
+div.mud-nav-link-text {
+    font-size: 15px !important;
+}
+
+/* Tutti i livelli possibili */
+.mud-navmenu .mud-nav-link .mud-nav-link-text {
+    font-size: 15px !important;
+}
+
+.mud-navmenu .mud-nav-group .mud-nav-group-header {
+    font-size: 15px !important;
+}
 
 /* MudNavLink - Base */
 .theme-dark .mud-nav-link,
