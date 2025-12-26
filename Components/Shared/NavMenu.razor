@@ -5,17 +5,17 @@
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
 
-<MudNavMenu Style="font-size: 15px !important;">
+<MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
                 OnClick="@(() => OpenTab("/dashboard-admin", "Dashboard", "dashboard"))">
-        Dashboard
+        <span style="font-size: 18px !important;">Dashboard</span>
     </MudNavLink>
 
     @* MULTI-TENANT: Tutti vedono menu Aziende (SuperAdmin: tutte | Altri: solo propria) *@
     <MudNavGroup Title="Anagrafiche" Icon="@Icons.Material.Filled.AccountBox" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Business"
                     OnClick="@(() => OpenTab("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
-            Anagrafica Aziende
+            <span style="font-size: 18px !important;">Anagrafica Aziende</span>
         </MudNavLink>
     </MudNavGroup>
 
@@ -25,32 +25,32 @@
         <MudNavGroup Title="Tabelle Geografiche" Icon="@Icons.Material.Filled.Public" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Public"
                         OnClick="@(() => OpenTab("/tabelle/nazioni", "Nazioni", "table"))">
-                Nazioni
+                <span style="font-size: 17px !important;">Nazioni</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Map"
                         OnClick="@(() => OpenTab("/tabelle/regioni", "Regioni", "table"))">
-                Regioni
+                <span style="font-size: 17px !important;">Regioni</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.LocationCity"
                         OnClick="@(() => OpenTab("/tabelle/capoluoghi", "Capoluoghi", "table"))">
-                Capoluogo di Regione
+                <span style="font-size: 17px !important;">Capoluogo di Regione</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Landscape"
                         OnClick="@(() => OpenTab("/tabelle/ripartizioni-geografiche", "Ripartizioni Geografiche", "table"))">
-                Ripartizioni Geografiche
+                <span style="font-size: 17px !important;">Ripartizioni Geografiche</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Terrain"
                         OnClick="@(() => OpenTab("/tabelle/province", "Province", "table"))">
-                Province
+                <span style="font-size: 17px !important;">Province</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Place"
                         OnClick="@(() => OpenTab("/tabelle/comuni", "Comuni", "table"))">
-                Comuni
+                <span style="font-size: 17px !important;">Comuni</span>
             </MudNavLink>
         </MudNavGroup>
 
@@ -58,27 +58,27 @@
         <MudNavGroup Title="Tabelle Viaggi" Icon="@Icons.Material.Filled.Explore" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Category"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-viaggio", "Tipologie Viaggio", "table"))">
-                Tipologie Viaggio
+                <span style="font-size: 17px !important;">Tipologie Viaggio</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.People"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-partecipanti", "Tipologie Partecipanti", "table"))">
-                Tipologie Partecipanti
+                <span style="font-size: 17px !important;">Tipologie Partecipanti</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Hotel"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-alloggi", "Tipologie Alloggi", "table"))">
-                Tipologie Alloggi
+                <span style="font-size: 17px !important;">Tipologie Alloggi</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Restaurant"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-trattamento-alberghiero", "Tipologie Tratt. Alberghiero", "table"))">
-                Tipologie Tratt. Alberghiero
+                <span style="font-size: 17px !important;">Tipologie Tratt. Alberghiero</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.NightsStay"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-pernottamento", "Tipologie Pernottamento", "table"))">
-                Tipologie di Pernottamento
+                <span style="font-size: 17px !important;">Tipologie di Pernottamento</span>
             </MudNavLink>
         </MudNavGroup>
 
@@ -86,17 +86,17 @@
         <MudNavGroup Title="Tabelle Mezzi" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.CarRental"
                         OnClick="@(() => OpenTab("/tabelle/marche-veicoli", "Marche Veicoli", "table"))">
-                Marche Veicoli
+                <span style="font-size: 17px !important;">Marche Veicoli</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.DirectionsCar"
                         OnClick="@(() => OpenTab("/tabelle/mezzi-modelli", "Modelli Veicoli", "table"))">
-                Modelli Veicoli
+                <span style="font-size: 17px !important;">Modelli Veicoli</span>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Category"
                         OnClick="@(() => OpenTab("/tabelle/tipologie-veicoli", "Tipologie Veicoli", "table"))">
-                Tipologie Veicoli
+                <span style="font-size: 17px !important;">Tipologie Veicoli</span>
             </MudNavLink>
         </MudNavGroup>
 
@@ -104,24 +104,24 @@
 
     <MudNavLink Icon="@Icons.Material.Filled.DirectionsCar"
                 OnClick="@(() => OpenTab("/viaggi", "Viaggi", "car"))">
-        Viaggi
+        <span style="font-size: 18px !important;">Viaggi</span>
     </MudNavLink>
 
     <MudNavLink Icon="@Icons.Material.Filled.Print"
                 OnClick="@(() => OpenTab("/stampe", "Stampe", "print"))">
-        Stampe
+        <span style="font-size: 18px !important;">Stampe</span>
     </MudNavLink>
 
     <MudNavLink Icon="@Icons.Material.Filled.Settings"
                 OnClick="@(() => OpenTab("/configurazione", "Configurazione", "settings"))">
-        Configurazione
+        <span style="font-size: 18px !important;">Configurazione</span>
     </MudNavLink>
 
     <MudDivider Class="my-2" />
 
     <div class="mud-nav-item" @onclick="HandleLogout" style="cursor: pointer; display: flex; align-items: center; padding: 8px 16px;">
         <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Medium" Class="mr-3" />
-        <MudText>Logout</MudText>
+        <span style="font-size: 18px !important;">Logout</span>
     </div>
 </MudNavMenu>
 

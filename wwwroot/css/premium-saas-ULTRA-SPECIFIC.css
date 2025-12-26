@@ -708,36 +708,62 @@ textarea {
 
 /* DARK MODE - Tutti gli elementi del NavMenu devono essere MOLTO CHIARI */
 
-/* NavMenu Base - Font size aumentato - ULTRA FORZATO */
+/* NavMenu Base - Font size aumentato - ULTRA FORZATO CON SPECIFICITÀ MASSIMA */
+/* Strategia multi-livello per bypassare stili inline di MudBlazor */
+
+/* Livello 1: Selettori base con !important */
 .mud-navmenu,
-.mud-navmenu *,
 .mud-drawer .mud-navmenu,
+.mud-drawer-content .mud-navmenu {
+    font-size: 16px !important;
+}
+
+/* Livello 2: Tutti gli elementi figli */
+.mud-navmenu *,
 .mud-drawer .mud-navmenu *,
-.mud-nav-link,
-.mud-nav-link *,
-.mud-nav-group,
-.mud-nav-group *,
-.mud-nav-link-content,
-.mud-nav-group-header,
-.mud-nav-group-header * {
-    font-size: 15px !important;
-    font-size: 15px !important;
-    font-size: 15px !important;
+.mud-drawer-content .mud-navmenu * {
+    font-size: 16px !important;
 }
 
-/* Override MudBlazor specifico */
+/* Livello 3: NavLink con attributi specifici */
+.mud-nav-link[href],
+a.mud-nav-link,
+.mud-list-item.mud-nav-link,
+.mud-drawer .mud-nav-link {
+    font-size: 16px !important;
+}
+
+/* Livello 4: Contenuto testo - MASSIMA PRIORITÀ */
+.mud-nav-link .mud-nav-link-text,
 span.mud-nav-link-text,
-div.mud-nav-link-text {
-    font-size: 15px !important;
+div.mud-nav-link-text,
+.mud-list-item .mud-list-item-text,
+.mud-navmenu .mud-list-item-text {
+    font-size: 16px !important;
 }
 
-/* Tutti i livelli possibili */
+/* Livello 5: Con classi MudBlazor combinate */
+.mud-drawer .mud-list .mud-list-item .mud-list-item-text {
+    font-size: 16px !important;
+}
+
 .mud-navmenu .mud-nav-link .mud-nav-link-text {
-    font-size: 15px !important;
+    font-size: 16px !important;
 }
 
+/* Livello 6: NavGroup */
+.mud-nav-group,
+.mud-nav-group-header,
+.mud-nav-group .mud-nav-link,
 .mud-navmenu .mud-nav-group .mud-nav-group-header {
-    font-size: 15px !important;
+    font-size: 16px !important;
+}
+
+/* Livello 7: Attributo selectors per stili inline */
+.mud-navmenu [style*="font-size"],
+.mud-nav-link[style*="font-size"],
+.mud-nav-link-text[style*="font-size"] {
+    font-size: 16px !important;
 }
 
 /* MudNavLink - Base */
@@ -765,11 +791,12 @@ div.mud-nav-link-text {
     color: #E5E7EB !important;
 }
 
-/* Icons - MOLTO CHIARI */
+/* Icons - MOLTO CHIARI E PIÙ GRANDI */
 .theme-dark .mud-nav-link .mud-icon-root,
 .theme-dark .mud-nav-item .mud-icon-root,
 .theme-dark .mud-nav-group .mud-icon-root {
     color: #D1D5DB !important;
+    font-size: 24px !important;
 }
 
 .theme-dark .mud-nav-link:hover .mud-icon-root,
@@ -777,9 +804,40 @@ div.mud-nav-link-text {
     color: #F9FAFB !important;
 }
 
+/* Icons anche per tema chiaro */
+.mud-nav-link .mud-icon-root,
+.mud-nav-item .mud-icon-root,
+.mud-nav-group .mud-icon-root {
+    font-size: 24px !important;
+}
+
 /* Divider nel menu */
 .theme-dark .mud-divider {
     background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Larghezza drawer aumentata */
+.mud-drawer {
+    width: 280px !important;
+}
+
+.mud-drawer.mud-drawer--open {
+    width: 280px !important;
+}
+
+.mud-drawer-content {
+    width: 280px !important;
+}
+
+/* Main content offset per compensare drawer più largo */
+.mud-main-content {
+    margin-left: 280px !important;
+}
+
+/* AppBar offset per compensare drawer più largo */
+.mud-appbar {
+    left: 280px !important;
+    width: calc(100% - 280px) !important;
 }
 
 /* ========================================== */
