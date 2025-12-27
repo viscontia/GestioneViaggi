@@ -2,6 +2,7 @@
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
 @inject AziendaContattoService ContattoService
+@inject AziendaSedeService SedeService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -84,19 +85,42 @@
     public EventCallback OnDataChanged { get; set; }
 
     private List<AziendaContatto> _contatti = new();
+    private List<AziendaSede> _sedi = new();
     private bool _loading = true;
 
     protected override async Task OnParametersSetAsync()
     {
         if (AziendaId > 0)
         {
-            await LoadContattiAsync();
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            var sediTask = SedeService.GetByAziendaIdAsync(AziendaId);
+            var contattiTask = ContattoService.GetByAziendaIdAsync(AziendaId);
+            
+            await Task.WhenAll(sediTask, contattiTask);
+            
+            _sedi = sediTask.Result;
+            _contatti = contattiTask.Result;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento dati: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
     private async Task LoadContattiAsync()
     {
-        _loading = true;
         try
         {
             _contatti = await ContattoService.GetByAziendaIdAsync(AziendaId);
@@ -105,17 +129,20 @@
         {
             Snackbar.Add($"Errore caricamento contatti: {ex.Message}", Severity.Error);
         }
-        finally
-        {
-            _loading = false;
-        }
     }
 
     private async Task OpenContattoDialog(AziendaContatto? contatto)
     {
+        if (_sedi.Count == 0)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add("È necessario creare almeno una sede prima di aggiungere contatti.", Severity.Warning);
+            return;
+        }
+
         var parameters = new DialogParameters
         {
-            ["Entity"] = contatto ?? new AziendaContatto { AziendaIdFk = AziendaId },
+            ["Entity"] = contatto?.Clone() ?? new AziendaContatto { AziendaIdFk = AziendaId },
             ["IsEditMode"] = contatto != null
         };
 

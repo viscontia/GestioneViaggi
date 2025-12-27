@@ -112,7 +112,7 @@
     {
         var parameters = new DialogParameters
         {
-            ["Entity"] = banca ?? new AziendaBanca { AziendaIdFk = AziendaId },
+            ["Entity"] = banca?.Clone() ?? new AziendaBanca { AziendaIdFk = AziendaId },
             ["IsEditMode"] = banca != null
         };
 

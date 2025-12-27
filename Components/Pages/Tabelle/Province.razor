@@ -128,17 +128,7 @@ else
     {
         var parameters = new DialogParameters<ProvinciaDialog>
 {
-{ x => x.Entity, new Provincia
-{
-Id = item.Id,
-Descrizione = item.Descrizione,
-Sigla = item.Sigla,
-Superficie = item.Superficie,
-Residenti = item.Residenti,
-NumeroComuni = item.NumeroComuni,
-RegioneIdFk = item.RegioneIdFk
-}
-},
+{ x => x.Entity, item.Clone<Provincia>() },
 { x => x.IsEditMode, true }
 };
 

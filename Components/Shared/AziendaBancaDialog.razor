@@ -1,4 +1,5 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Syntax
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
@@ -42,12 +43,15 @@
             <MudDivider Class="my-4" />
 
             <!-- IBAN - OBBLIGATORIO -->
-            <MudTextField @bind-Value="Entity.Iban"
+            <MudTextField Value="@Entity.Iban"
+                          ValueChanged="@((string val) => Entity.Iban = val?.ToUpper().Replace(" ", "") ?? string.Empty)"
                           For="@(() => Entity.Iban)"
                           Label="IBAN"
                           Variant="Variant.Outlined"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateIban))"
                           Required="true"
                           RequiredError="L'IBAN è obbligatorio"
+                          Immediate="true"
                           MaxLength="34"
                           Class="mb-3"
                           Adornment="Adornment.End"
@@ -56,10 +60,13 @@
                           HelperText="Es: IT60X0542811101000000123456" />
 
             <!-- SWIFT/BIC - Opzionale -->
-            <MudTextField @bind-Value="Entity.SwiftBic"
+            <MudTextField Value="@Entity.SwiftBic"
+                          ValueChanged="@((string val) => Entity.SwiftBic = val?.ToUpper().Replace(" ", "") ?? string.Empty)"
                           For="@(() => Entity.SwiftBic)"
                           Label="SWIFT/BIC (opzionale)"
                           Variant="Variant.Outlined"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateSwift))"
+                          Immediate="true"
                           MaxLength="11"
                           Class="mb-3"
                           HelperText="Es: ABCDITMM oppure ABCDITMMXXX" />
@@ -130,6 +137,29 @@
         {
             await HandleSubmit();
         }
+    }
+
+    private IEnumerable<string> ValidateIban(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "L'IBAN è obbligatorio";
+            yield break;
+        }
+
+        var result = BankingValidator.CheckIban(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateSwift(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // SWIFT è opzionale
+
+        var result = BankingValidator.CheckSwift(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
     }
 
     private async Task HandleSubmit()

@@ -120,7 +120,7 @@ else
     {
         var parameters = new DialogParameters<TipoTrattamentoDialog>
         {
-            { x => x.Entity, new TipoTrattamento { Id = item.Id, Descrizione = item.Descrizione } },
+            { x => x.Entity, item.Clone<TipoTrattamento>() },
             { x => x.IsEditMode, true }
         };
 

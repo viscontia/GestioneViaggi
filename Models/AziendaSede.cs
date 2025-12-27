@@ -48,4 +48,31 @@ public class AziendaSede : BaseEntity
     public string? TipoSedeDescrizione { get; set; }
     public string? ComuneNome { get; set; }
     public string? ProvinciaSigla { get; set; }
+
+    /// <summary>
+    /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// </summary>
+    public AziendaSede Clone()
+    {
+        return new AziendaSede
+        {
+            Id = this.Id,
+            AziendaIdFk = this.AziendaIdFk,
+            TipoSedeIdFk = this.TipoSedeIdFk,
+            Indirizzo = this.Indirizzo,
+            NumeroCivico = this.NumeroCivico,
+            ComuneIdFk = this.ComuneIdFk,
+            Telefono = this.Telefono,
+            Email = this.Email,
+            Note = this.Note,
+            IsPrincipale = this.IsPrincipale,
+            CoordinateLat = this.CoordinateLat,
+            CoordinateLng = this.CoordinateLng,
+            DataCreazione = this.DataCreazione,
+            DataUltimaModifica = this.DataUltimaModifica,
+            TipoSedeDescrizione = this.TipoSedeDescrizione,
+            ComuneNome = this.ComuneNome,
+            ProvinciaSigla = this.ProvinciaSigla
+        };
+    }
 }

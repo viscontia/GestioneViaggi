@@ -41,4 +41,27 @@ public class AziendaContatto : BaseEntity
     // Navigation properties (non mappate direttamente dal DB)
     public string? SedeIndirizzo { get; set; }
     public string? SedeCitta { get; set; }
+
+    /// <summary>
+    /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// </summary>
+    public AziendaContatto Clone()
+    {
+        return new AziendaContatto
+        {
+            Id = this.Id,
+            AziendaIdFk = this.AziendaIdFk,
+            SedeIdFk = this.SedeIdFk,
+            Nome = this.Nome,
+            Cognome = this.Cognome,
+            Ruolo = this.Ruolo,
+            TelefonoDiretto = this.TelefonoDiretto,
+            Cellulare = this.Cellulare,
+            Email = this.Email,
+            Note = this.Note,
+            DataUltimaModifica = this.DataUltimaModifica,
+            SedeIndirizzo = this.SedeIndirizzo,
+            SedeCitta = this.SedeCitta
+        };
+    }
 }

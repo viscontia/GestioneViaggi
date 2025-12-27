@@ -142,7 +142,7 @@ else
     {
         var parameters = new DialogParameters<RipartizioneGeograficaDialog>
         {
-            { x => x.Entity, new RipartizioneGeografica { Id = item.Id, Descrizione = item.Descrizione } },
+            { x => x.Entity, item.Clone<RipartizioneGeografica>() },
             { x => x.IsEditMode, true }
         };
 

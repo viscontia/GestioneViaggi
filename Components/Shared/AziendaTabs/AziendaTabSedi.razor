@@ -136,7 +136,7 @@
     {
         var parameters = new DialogParameters
         {
-            ["Entity"] = sede ?? new AziendaSede { AziendaIdFk = AziendaId },
+            ["Entity"] = sede?.Clone() ?? new AziendaSede { AziendaIdFk = AziendaId },
             ["IsEditMode"] = sede != null
         };
 

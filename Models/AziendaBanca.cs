@@ -27,4 +27,22 @@ public class AziendaBanca : BaseEntity
     public bool IsPredefinito { get; set; } = false;
 
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// </summary>
+    public AziendaBanca Clone()
+    {
+        return new AziendaBanca
+        {
+            Id = this.Id,
+            AziendaIdFk = this.AziendaIdFk,
+            NomeBanca = this.NomeBanca,
+            Filiale = this.Filiale,
+            Iban = this.Iban,
+            SwiftBic = this.SwiftBic,
+            IsPredefinito = this.IsPredefinito,
+            Note = this.Note
+        };
+    }
 }

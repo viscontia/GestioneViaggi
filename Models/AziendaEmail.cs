@@ -23,4 +23,21 @@ public class AziendaEmail : BaseEntity
 
     // Navigation properties (non mappate direttamente dal DB)
     public string? RepartoNome { get; set; }
+
+    /// <summary>
+    /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// </summary>
+    public AziendaEmail Clone()
+    {
+        return new AziendaEmail
+        {
+            Id = this.Id,
+            AziendaIdFk = this.AziendaIdFk,
+            Email = this.Email,
+            IsPrincipale = this.IsPrincipale,
+            Note = this.Note,
+            RepartoIdFk = this.RepartoIdFk,
+            RepartoNome = this.RepartoNome
+        };
+    }
 }

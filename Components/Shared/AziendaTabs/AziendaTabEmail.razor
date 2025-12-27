@@ -104,7 +104,7 @@
     {
         var parameters = new DialogParameters
         {
-            ["Entity"] = email ?? new AziendaEmail { AziendaIdFk = AziendaId },
+            ["Entity"] = email?.Clone() ?? new AziendaEmail { AziendaIdFk = AziendaId },
             ["IsEditMode"] = email != null,
             ["AziendaId"] = AziendaId
         };
