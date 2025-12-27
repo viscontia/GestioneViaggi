@@ -1,10 +1,12 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Business
+@using GestioneViaggi.Validation.Syntax
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 @implements IDisposable
 
-<MudDialog DefaultFocus="DefaultFocus.FirstChild" CloseOnEscapeKey="true">
+<MudDialog close-on-escape-key="true">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Modifica Contatto" : "Nuovo Contatto")
@@ -12,14 +14,14 @@
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form" Model="@Entity">
-            <!-- Sede - OBBLIGATORIO (deve essere passata dall'esterno) -->
-            <MudTextField Value="@SedeDescription"
-                          Label="Sede"
-                          Variant="Variant.Outlined"
-                          ReadOnly="true"
-                          Disabled="true"
-                          Class="mb-3"
-                          HelperText="La sede è determinata dal contesto" />
+            <!-- Sede - OBBLIGATORIO -->
+            <SedeSelect @bind-SelectedSedeId="_sedeIdNullable"
+                        AziendaId="@Entity.AziendaIdFk"
+                        Label="Sede"
+                        Required="true"
+                        RequiredError="La sede è obbligatoria"
+                        HelperText="Selezionare la sede di riferimento per questo contatto"
+                        Class="mb-3" />
 
             <!-- Nome - OBBLIGATORIO -->
             <MudTextField @ref="_nomeField"
@@ -71,31 +73,62 @@
 
             <MudDivider Class="my-4" />
 
-            <!-- Telefono Diretto - Opzionale -->
-            <MudTextField @bind-Value="Entity.TelefonoDiretto"
+            @if (_showRecapitoError)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" CloseIcon="@Icons.Material.Filled.Close" 
+                          CloseIconClicked="@(() => _showRecapitoError = false)">
+                    <strong>Almeno un recapito è obbligatorio:</strong> Inserire Email, Cellulare o Telefono Diretto
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    <strong>Almeno un recapito è obbligatorio:</strong> Email, Cellulare o Telefono Diretto
+                </MudAlert>
+            }
+
+            <!-- Telefono Diretto - Solo numeri, zero significativo -->
+            <MudTextField Value="@Entity.TelefonoDiretto"
+                          ValueChanged="@((string val) => { Entity.TelefonoDiretto = val; _showRecapitoError = false; })"
                           For="@(() => Entity.TelefonoDiretto)"
                           Label="Telefono Diretto (opzionale)"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateTelefonoDiretto))"
                           Variant="Variant.Outlined"
                           MaxLength="30"
                           Class="mb-3"
-                          HelperText="Numero di telefono diretto" />
+                          Immediate="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Phone"
+                          HelperText="Es: +39 0123456789 oppure 0123456789"
+                          OnBlur="@OnTelefonoBlur" />
 
-            <!-- Cellulare - Opzionale -->
-            <MudTextField @bind-Value="Entity.Cellulare"
+            <!-- Cellulare - Solo numeri, zero significativo -->
+            <MudTextField Value="@Entity.Cellulare"
+                          ValueChanged="@((string val) => { Entity.Cellulare = val; _showRecapitoError = false; })"
                           For="@(() => Entity.Cellulare)"
                           Label="Cellulare (opzionale)"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateCellulare))"
                           Variant="Variant.Outlined"
                           MaxLength="30"
                           Class="mb-3"
-                          HelperText="Numero di cellulare" />
+                          Immediate="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.PhoneAndroid"
+                          HelperText="Es: +39 333 1234567 oppure 3331234567"
+                          OnBlur="@OnCellulareBlur" />
 
-            <!-- Email - Opzionale -->
-            <MudTextField @bind-Value="Entity.Email"
+            <!-- Email -->
+            <MudTextField Value="@Entity.Email"
+                          ValueChanged="@((string val) => { Entity.Email = val; _showRecapitoError = false; })"
                           For="@(() => Entity.Email)"
                           Label="Email (opzionale)"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
                           Variant="Variant.Outlined"
                           MaxLength="255"
                           Class="mb-3"
+                          Immediate="true"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Email"
                           HelperText="Indirizzo email del contatto" />
 
             <!-- Note - Opzionali -->
@@ -121,6 +154,13 @@
 @code {
     private MudForm? _form;
     private MudTextField<string>? _nomeField;
+    private bool _showRecapitoError = false;
+    
+    private int? _sedeIdNullable
+    {
+        get => Entity.SedeIdFk == 0 ? null : Entity.SedeIdFk;
+        set => Entity.SedeIdFk = value ?? 0;
+    }
 
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
@@ -130,9 +170,6 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
-
-    [Parameter]
-    public string SedeDescription { get; set; } = string.Empty;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -162,13 +199,119 @@
         }
     }
 
+    private IEnumerable<string> ValidateTelefonoDiretto(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break;
+
+        var cleaned = CleanPhoneNumber(value);
+        if (string.IsNullOrWhiteSpace(cleaned))
+        {
+            yield return "Il numero di telefono non contiene cifre valide.";
+            yield break;
+        }
+
+        var result = PhoneValidator.CheckTelefonoItaly(cleaned);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateCellulare(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break;
+
+        var cleaned = CleanPhoneNumber(value);
+        if (string.IsNullOrWhiteSpace(cleaned))
+        {
+            yield return "Il numero di cellulare non contiene cifre valide.";
+            yield break;
+        }
+
+        var result = PhoneValidator.CheckTelefonoItaly(cleaned);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private string CleanPhoneNumber(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+            return string.Empty;
+
+        var cleaned = new System.Text.StringBuilder();
+        bool hasPlus = input.TrimStart().StartsWith("+");
+        
+        if (hasPlus)
+            cleaned.Append("+");
+
+        foreach (char c in input)
+        {
+            if (char.IsDigit(c))
+                cleaned.Append(c);
+            else if (c == ' ' || c == '-' || c == '.' || c == '/')
+                continue;
+        }
+
+        return cleaned.ToString();
+    }
+
+    private void OnTelefonoBlur()
+    {
+        if (!string.IsNullOrWhiteSpace(Entity.TelefonoDiretto))
+        {
+            var cleaned = CleanPhoneNumber(Entity.TelefonoDiretto);
+            if (cleaned != Entity.TelefonoDiretto)
+            {
+                Entity.TelefonoDiretto = cleaned;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void OnCellulareBlur()
+    {
+        if (!string.IsNullOrWhiteSpace(Entity.Cellulare))
+        {
+            var cleaned = CleanPhoneNumber(Entity.Cellulare);
+            if (cleaned != Entity.Cellulare)
+            {
+                Entity.Cellulare = cleaned;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break;
+
+        var result = EmailValidator.CheckEmail(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
     private async Task HandleSubmit()
     {
+        _showRecapitoError = false;
+        
         if (_form != null)
         {
             await _form.Validate();
             if (_form.IsValid)
             {
+                var recapitoResult = ContattoValidator.ValidateRecapitoPresence(
+                    Entity.Email, 
+                    Entity.Cellulare, 
+                    Entity.TelefonoDiretto);
+
+                if (!recapitoResult.IsValid)
+                {
+                    _showRecapitoError = true;
+                    StateHasChanged();
+                    return;
+                }
+
                 MudDialog?.Close(DialogResult.Ok(Entity));
             }
             else

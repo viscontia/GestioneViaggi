@@ -13,7 +13,7 @@
 @implements IDisposable
 @implements IAsyncDisposable
 
-<MudDialog DefaultFocus="DefaultFocus.FirstChild">
+<MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? $"Modifica Azienda: {Entity.RagioneSociale}" : "Nuova Azienda")
@@ -242,7 +242,12 @@
                     <AziendaTabSedi AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="Contatti" Icon="@Icons.Material.Filled.Contacts" BadgeData="@_contattiCount" BadgeColor="Color.Info">
+                <MudTabPanel Text="Contatti" 
+                             Icon="@Icons.Material.Filled.Contacts" 
+                             BadgeData="@_contattiCount" 
+                             BadgeColor="Color.Info"
+                             Disabled="@(_sediCount == null || _sediCount == 0)"
+                             ToolTip="@(_sediCount == null || _sediCount == 0 ? "Creare almeno una sede prima di aggiungere contatti" : "")">
                     <AziendaTabContatti AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
                 </MudTabPanel>
 

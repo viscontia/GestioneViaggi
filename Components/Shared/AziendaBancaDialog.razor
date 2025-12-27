@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<MudDialog DefaultFocus="DefaultFocus.FirstChild" CloseOnEscapeKey="true">
+<MudDialog close-on-escape-key="true">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Modifica Conto Bancario" : "Nuovo Conto Bancario")

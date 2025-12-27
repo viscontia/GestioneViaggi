@@ -4,7 +4,7 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<MudDialog DefaultFocus="DefaultFocus.FirstChild" CloseOnEscapeKey="true">
+<MudDialog close-on-escape-key="true">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Modifica Sede" : "Nuova Sede")
@@ -17,7 +17,6 @@
                            SelectedTipoSedeId="@(Entity.TipoSedeIdFk == 0 ? null : Entity.TipoSedeIdFk)"
                            SelectedTipoSedeIdChanged="@((int? value) => Entity.TipoSedeIdFk = value ?? 0)"
                            Required="true"
-                           AutoFocus="true"
                            RequiredError="Il tipo sede è obbligatorio"
                            HelperText="Seleziona la tipologia di sede"
                            Class="mb-3" />

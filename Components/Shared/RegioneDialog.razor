@@ -17,7 +17,6 @@
                            SelectedCountryId="@(Entity.CountryIdFk == 0 ? null : Entity.CountryIdFk)"
                            SelectedCountryIdChanged="@((int? value) => Entity.CountryIdFk = value ?? 0)"
                            Required="true"
-                           AutoFocus="true"
                            RequiredError="Il paese è obbligatorio"
                            HelperText="Seleziona il paese di appartenenza della regione."
                            Class="mb-3" />
