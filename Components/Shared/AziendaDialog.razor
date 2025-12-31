@@ -10,6 +10,9 @@
 @inject AziendaContattoService ContattoService
 @inject AziendaBancaService BancaService
 @inject AziendaEmailService EmailService
+@inject RepartoAziendaleService RepartoService
+@inject AziendaSmtpService SmtpService
+@inject AziendaLogoService LogoService
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -258,6 +261,18 @@
                 <MudTabPanel Text="Email" Icon="@Icons.Material.Filled.Email" BadgeData="@_emailCount" BadgeColor="Color.Info">
                     <AziendaTabEmail AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
                 </MudTabPanel>
+
+                <MudTabPanel Text="Reparti" Icon="@Icons.Material.Filled.Groups" BadgeData="@_repartiCount" BadgeColor="Color.Info">
+                    <AziendaTabReparti AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="SMTP" Icon="@Icons.Material.Filled.Email" BadgeData="@_smtpCount" BadgeColor="Color.Info">
+                    <AziendaTabSmtp AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Logo" Icon="@Icons.Material.Filled.Image" BadgeData="@_logoCount" BadgeColor="Color.Info">
+                    <AziendaTabLogo AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
+                </MudTabPanel>
             </MudTabs>
         }
         </div>
@@ -281,6 +296,9 @@
     private int? _contattiCount;
     private int? _bancheCount;
     private int? _emailCount;
+    private int? _repartiCount;
+    private int? _smtpCount;
+    private int? _logoCount;
 
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
@@ -402,13 +420,19 @@
             var contattiTask = ContattoService.GetByAziendaIdAsync(Entity.Id);
             var bancheTask = BancaService.GetByAziendaIdAsync(Entity.Id);
             var emailTask = EmailService.GetByAziendaIdAsync(Entity.Id);
+            var repartiTask = RepartoService.GetByAziendaIdAsync(Entity.Id);
+            var smtpTask = SmtpService.GetByAziendaIdAsync(Entity.Id);
+            var logoTask = LogoService.GetByAziendaIdAsync(Entity.Id);
 
-            await Task.WhenAll(sediTask, contattiTask, bancheTask, emailTask);
+            await Task.WhenAll(sediTask, contattiTask, bancheTask, emailTask, repartiTask, smtpTask, logoTask);
 
             _sediCount = sediTask.Result.Count;
             _contattiCount = contattiTask.Result.Count;
             _bancheCount = bancheTask.Result.Count;
             _emailCount = emailTask.Result.Count;
+            _repartiCount = repartiTask.Result.Count;
+            _smtpCount = smtpTask.Result.Count;
+            _logoCount = logoTask.Result.Count;
 
             StateHasChanged();
         }

@@ -114,6 +114,9 @@ public class AziendaService : BaseCrudService<Azienda>
             throw new UnauthorizedAccessException("Solo l'amministratore SuperAdmin può creare nuove aziende.");
         }
 
+        // Normalizza stringhe nullable (converte "" in NULL)
+        NormalizeEntityBeforeSave(entity);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -205,6 +208,9 @@ public class AziendaService : BaseCrudService<Azienda>
     {
         // Valida che l'utente possa accedere a questa azienda
         await ValidateTenantAccessAsync(entity.Id);
+
+        // Normalizza stringhe nullable (converte "" in NULL)
+        NormalizeEntityBeforeSave(entity);
 
         try
         {

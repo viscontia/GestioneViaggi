@@ -1,0 +1,275 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@using Microsoft.JSInterop
+@using System.Security.Cryptography
+@inject IJSRuntime JS
+@inject AziendaLogoService LogoService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog close-on-escape-key="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Logo Aziendale" : "Nuovo Logo Aziendale")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- File Upload -->
+            @if (!IsEditMode)
+            {
+                <MudFileUpload T="IBrowserFile"
+                               FilesChanged="OnFileSelected"
+                               Accept="image/*"
+                               MaximumFileCount="1">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Carica Immagine Logo
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (_selectedFile != null)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        File selezionato: @_selectedFile.Name (@FormatFileSize(_selectedFile.Size))
+                    </MudText>
+                }
+            }
+
+            <!-- Tipo Logo - OBBLIGATORIO -->
+            <MudSelect @bind-Value="Entity.LogoType"
+                       For="@(() => Entity.LogoType)"
+                       Label="Tipo Logo"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Class="mb-3 mt-3"
+                       Adornment="Adornment.End"
+                       AdornmentText="*"
+                       AdornmentColor="Color.Error">
+                <MudSelectItem Value="@("primary")">Primario</MudSelectItem>
+                <MudSelectItem Value="@("secondary")">Secondario</MudSelectItem>
+                <MudSelectItem Value="@("watermark")">Watermark</MudSelectItem>
+                <MudSelectItem Value="@("favicon")">Favicon</MudSelectItem>
+                <MudSelectItem Value="@("letterhead")">Intestazione</MudSelectItem>
+                <MudSelectItem Value="@("social")">Social Media</MudSelectItem>
+            </MudSelect>
+
+            <!-- Variante Logo -->
+            <MudSelect @bind-Value="Entity.LogoVariant"
+                       For="@(() => Entity.LogoVariant)"
+                       Label="Variante"
+                       Variant="Variant.Outlined"
+                       Class="mb-3">
+                <MudSelectItem Value="@("standard")">Standard</MudSelectItem>
+                <MudSelectItem Value="@("horizontal")">Orizzontale</MudSelectItem>
+                <MudSelectItem Value="@("vertical")">Verticale</MudSelectItem>
+                <MudSelectItem Value="@("icon")">Icona</MudSelectItem>
+                <MudSelectItem Value="@("monochrome")">Monocromatico</MudSelectItem>
+                <MudSelectItem Value="@("inverse")">Inverso</MudSelectItem>
+                <MudSelectItem Value="@("dark")">Scuro</MudSelectItem>
+                <MudSelectItem Value="@("light")">Chiaro</MudSelectItem>
+            </MudSelect>
+
+            <!-- Testo Alternativo - OBBLIGATORIO -->
+            <MudTextField @ref="_altTextField"
+                          @bind-Value="Entity.AltText"
+                          For="@(() => Entity.AltText)"
+                          Label="Testo Alternativo"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Il testo alternativo è obbligatorio"
+                          MaxLength="500"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Descrizione del logo per accessibilità" />
+
+            <!-- Descrizione - Opzionale -->
+            <MudTextField @bind-Value="Entity.Description"
+                          For="@(() => Entity.Description)"
+                          Label="Descrizione (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Class="mb-3"
+                          HelperText="Note sul logo" />
+
+            <!-- Flag Default -->
+            <MudCheckBox @bind-Value="Entity.IsDefault"
+                         For="@(() => Entity.IsDefault)"
+                         Label="Logo Predefinito"
+                         Color="Color.Primary"
+                         Class="mb-2" />
+
+            <!-- Flag Attivo -->
+            <MudCheckBox @bind-Value="Entity.IsActive"
+                         For="@(() => Entity.IsActive)"
+                         Label="Logo Attivo"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!IsEditMode && _selectedFile == null)">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _altTextField;
+    private IBrowserFile? _selectedFile;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public AziendaLogo Entity { get; set; } = new AziendaLogo();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public int? AziendaId { get; set; }
+
+    [Parameter]
+    public Guid? CurrentUserId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task OnFileSelected(IBrowserFile? file)
+    {
+        _selectedFile = file;
+
+        if (file != null)
+        {
+            // Leggi il file e popola i campi dell'entità
+            try
+            {
+                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // Max 10MB
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var fileBytes = memoryStream.ToArray();
+
+                Entity.BinaryData = fileBytes;
+                Entity.FileName = SanitizeFileName(file.Name);
+                Entity.OriginalFilename = file.Name;
+                Entity.FileFormat = Path.GetExtension(file.Name).TrimStart('.');
+                Entity.MimeType = file.ContentType;
+                Entity.FileSizeBytes = (int)file.Size;
+                Entity.FileHash = ComputeSha256Hash(fileBytes);
+                Entity.Md5Hash = ComputeMd5Hash(fileBytes);
+
+                // Genera automaticamente AltText se vuoto
+                if (string.IsNullOrWhiteSpace(Entity.AltText))
+                {
+                    Entity.AltText = $"Logo aziendale - {Entity.LogoType}";
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante il caricamento del file: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private string SanitizeFileName(string fileName)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        return string.Join("_", fileName.Split(invalidChars));
+    }
+
+    private string ComputeSha256Hash(byte[] data)
+    {
+        using var sha256 = SHA256.Create();
+        var hash = sha256.ComputeHash(data);
+        return BitConverter.ToString(hash).Replace("-", "").ToLower();
+    }
+
+    private string ComputeMd5Hash(byte[] data)
+    {
+        using var md5 = MD5.Create();
+        var hash = md5.ComputeHash(data);
+        return BitConverter.ToString(hash).Replace("-", "").ToLower();
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                if (!IsEditMode && _selectedFile == null)
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Selezionare un file immagine", Severity.Warning);
+                    return;
+                }
+
+                // Imposta CreatedBy se è un nuovo logo
+                if (!IsEditMode && CurrentUserId.HasValue)
+                {
+                    Entity.CreatedBy = CurrentUserId.Value;
+                }
+
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_altTextField?.Error == true)
+                {
+                    await _altTextField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

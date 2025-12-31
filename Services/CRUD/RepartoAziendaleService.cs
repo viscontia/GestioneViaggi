@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Validation.Syntax;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -19,22 +20,31 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
     {
         try
         {
+            // Validazione sintattica del telefono (opzionale)
+            if (!string.IsNullOrWhiteSpace(entity.TelefonoReparto))
+            {
+                var validationResult = PhoneValidator.CheckTelefonoItaly(entity.TelefonoReparto);
+                if (!validationResult.IsValid)
+                {
+                    throw new ArgumentException(validationResult.ErrorMessage);
+                }
+            }
+
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
                 INSERT INTO reparti_aziendali (
-                    azienda_fk, nome_reparto, descrizione, email_reparto, telefono_reparto,
+                    azienda_fk, nome_reparto, descrizione, telefono_reparto,
                     manager_contatto_fk, is_active
                 )
-                VALUES (@aziendaFk, @nomeReparto, @descrizione, @emailReparto, @telefonoReparto,
+                VALUES (@aziendaFk, @nomeReparto, @descrizione, @telefonoReparto,
                         @managerContattoFk, @isActive)
-                RETURNING reparto_id, azienda_fk, nome_reparto, descrizione, email_reparto, telefono_reparto,
-                          manager_contatto_fk, is_active, created_at, updated_at";
+                RETURNING reparto_id, azienda_fk, nome_reparto, descrizione, telefono_reparto,
+                          manager_contatto_fk, is_active";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("aziendaFk", entity.AziendaIdFk);
             command.Parameters.AddWithValue("nomeReparto", entity.NomeReparto);
             command.Parameters.AddWithValue("descrizione", (object?)entity.Descrizione ?? DBNull.Value);
-            command.Parameters.AddWithValue("emailReparto", (object?)entity.EmailReparto ?? DBNull.Value);
             command.Parameters.AddWithValue("telefonoReparto", (object?)entity.TelefonoReparto ?? DBNull.Value);
             command.Parameters.AddWithValue("managerContattoFk", (object?)entity.ManagerContattoIdFk ?? DBNull.Value);
             command.Parameters.AddWithValue("isActive", entity.IsActive);
@@ -58,24 +68,32 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
     {
         try
         {
+            // Validazione sintattica del telefono (opzionale)
+            if (!string.IsNullOrWhiteSpace(entity.TelefonoReparto))
+            {
+                var validationResult = PhoneValidator.CheckTelefonoItaly(entity.TelefonoReparto);
+                if (!validationResult.IsValid)
+                {
+                    throw new ArgumentException(validationResult.ErrorMessage);
+                }
+            }
+
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
                 UPDATE reparti_aziendali
                 SET nome_reparto = @nomeReparto,
                     descrizione = @descrizione,
-                    email_reparto = @emailReparto,
                     telefono_reparto = @telefonoReparto,
                     manager_contatto_fk = @managerContattoFk,
                     is_active = @isActive
                 WHERE reparto_id = @id
-                RETURNING reparto_id, azienda_fk, nome_reparto, descrizione, email_reparto, telefono_reparto,
-                          manager_contatto_fk, is_active, created_at, updated_at";
+                RETURNING reparto_id, azienda_fk, nome_reparto, descrizione, telefono_reparto,
+                          manager_contatto_fk, is_active";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", entity.Id);
             command.Parameters.AddWithValue("nomeReparto", entity.NomeReparto);
             command.Parameters.AddWithValue("descrizione", (object?)entity.Descrizione ?? DBNull.Value);
-            command.Parameters.AddWithValue("emailReparto", (object?)entity.EmailReparto ?? DBNull.Value);
             command.Parameters.AddWithValue("telefonoReparto", (object?)entity.TelefonoReparto ?? DBNull.Value);
             command.Parameters.AddWithValue("managerContattoFk", (object?)entity.ManagerContattoIdFk ?? DBNull.Value);
             command.Parameters.AddWithValue("isActive", entity.IsActive);
@@ -103,12 +121,9 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
             AziendaIdFk = ReadInt(reader, "azienda_fk"),
             NomeReparto = reader.GetString(reader.GetOrdinal("nome_reparto")),
             Descrizione = ReadNullableString(reader, "descrizione"),
-            EmailReparto = ReadNullableString(reader, "email_reparto"),
             TelefonoReparto = ReadNullableString(reader, "telefono_reparto"),
             ManagerContattoIdFk = ReadNullableInt(reader, "manager_contatto_fk"),
-            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
-            CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
-            UpdatedAt = reader.GetDateTime(reader.GetOrdinal("updated_at"))
+            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active"))
         };
     }
 
@@ -121,8 +136,8 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
-                SELECT reparto_id, azienda_fk, nome_reparto, descrizione, email_reparto, telefono_reparto,
-                       manager_contatto_fk, is_active, created_at, updated_at
+                SELECT reparto_id, azienda_fk, nome_reparto, descrizione, telefono_reparto,
+                       manager_contatto_fk, is_active
                 FROM reparti_aziendali
                 WHERE azienda_fk = @aziendaId AND is_active = true
                 ORDER BY nome_reparto ASC";

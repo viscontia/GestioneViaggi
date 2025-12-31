@@ -93,5 +93,63 @@ window.dialogFormHelper = {
             }
         });
         console.log('Dialog TAB handlers cleaned up');
+    },
+
+    // Filtro per campi telefono: accetta solo numeri, +, spazi, -, .
+    setupPhoneInputFilter: function (inputElement) {
+        if (!inputElement) {
+            console.warn('Phone input filter: element not found');
+            return;
+        }
+
+        const phoneInputHandler = function (e) {
+            const allowedChars = /[0-9+\s\-\.]/g;
+            const currentValue = e.target.value;
+            const filteredValue = currentValue.split('').filter(char => allowedChars.test(char)).join('');
+
+            if (currentValue !== filteredValue) {
+                e.target.value = filteredValue;
+                // Trigger change event per aggiornare il binding Blazor
+                e.target.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
+        inputElement._phoneInputHandler = phoneInputHandler;
+        inputElement.addEventListener('input', phoneInputHandler);
+        console.log('Phone input filter attached');
+    },
+
+    // Setup filtro per tutti i campi telefono in un dialog
+    setupPhoneFilters: function (dialogSelector = '.mud-dialog-content') {
+        const trySetup = (attempts = 0) => {
+            if (attempts > 20) {
+                console.log('Phone input fields not found after 20 attempts');
+                return;
+            }
+
+            const dialogs = document.querySelectorAll(dialogSelector);
+            const dialogContent = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
+
+            if (!dialogContent) {
+                setTimeout(() => trySetup(attempts + 1), 100);
+                return;
+            }
+
+            // Trova tutti gli input di tipo telefono
+            const phoneInputs = dialogContent.querySelectorAll('input[type="tel"]');
+
+            if (phoneInputs.length === 0) {
+                setTimeout(() => trySetup(attempts + 1), 100);
+                return;
+            }
+
+            phoneInputs.forEach(input => {
+                window.dialogFormHelper.setupPhoneInputFilter(input);
+            });
+
+            console.log(`Phone filters setup: found ${phoneInputs.length} phone fields`);
+        };
+
+        trySetup();
     }
 };

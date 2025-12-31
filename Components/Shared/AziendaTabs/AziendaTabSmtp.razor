@@ -1,0 +1,186 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaSmtpService SmtpService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Configurazioni SMTP</MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenSmtpDialog(null))">
+                Nuova Configurazione SMTP
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_configs" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Nome Config</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Host</MudTh>
+                <MudTh>Porta</MudTh>
+                <MudTh>Username</MudTh>
+                <MudTh Style="text-align: center;">Attivo</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome Config">
+                    <strong>@context.ConfigName</strong>
+                </MudTd>
+                <MudTd DataLabel="Tipo">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.ConfigType.ToUpper()</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Host">@context.Host</MudTd>
+                <MudTd DataLabel="Porta">@context.Port</MudTd>
+                <MudTd DataLabel="Username">@context.Username</MudTd>
+                <MudTd DataLabel="Attivo" Style="text-align: center;">
+                    <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                             Color="@(context.IsActive ? Color.Success : Color.Error)" />
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenSmtpDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteSmtp(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_configs.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessuna configurazione SMTP presente.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<AziendaSmtp> _configs = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId > 0)
+        {
+            await LoadConfigsAsync();
+        }
+    }
+
+    private async Task LoadConfigsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _configs = await SmtpService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento configurazioni SMTP: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenSmtpDialog(AziendaSmtp? smtp)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = smtp?.Clone() ?? new AziendaSmtp { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = smtp != null,
+            ["AziendaId"] = AziendaId
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AziendaSmtpDialog>(
+            smtp == null ? "Nuova Configurazione SMTP" : "Modifica Configurazione SMTP",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: AziendaSmtp updatedSmtp })
+        {
+            try
+            {
+                if (smtp == null)
+                {
+                    await SmtpService.CreateAsync(updatedSmtp);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Configurazione SMTP creata con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedSmtp.Id = smtp.Id;
+                    await SmtpService.UpdateAsync(updatedSmtp);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Configurazione SMTP aggiornata con successo", Severity.Success);
+                }
+
+                await LoadConfigsAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteSmtp(AziendaSmtp smtp)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione della configurazione '{smtp.ConfigName}'?",
+            yesText: "Elimina",
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                // Non c'è DeleteAsync in AziendaSmtpService, lo aggiungeremo dopo
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Funzionalità non ancora implementata", Severity.Warning);
+                // await SmtpService.DeleteAsync(smtp.Id);
+                // Snackbar.Add("Configurazione SMTP eliminata con successo", Severity.Success);
+                // await LoadConfigsAsync();
+                // await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

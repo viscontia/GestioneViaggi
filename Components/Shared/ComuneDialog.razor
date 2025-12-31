@@ -92,8 +92,8 @@
                     Label="Provincia" Required="true" RequiredError="La provincia è obbligatoria"
                     FilterEsteroOnly="@Entity.ComuneEstero" Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="10"
                     Class="flex-grow-1" />
-                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenAddProvinciaDialog"
-                    Variant="Variant.Outlined" Size="Size.Small" Title="Crea nuova provincia"
+<MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenAddProvinciaDialog"
+    Variant="Variant.Outlined" Size="Size.Small" title="Crea nuova provincia"
                     Disabled="@(!Entity.RipGeoIdFk.HasValue)" tabindex="-1" />
             </MudStack>
 

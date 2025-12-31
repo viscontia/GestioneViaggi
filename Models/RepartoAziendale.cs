@@ -16,9 +16,6 @@ public class RepartoAziendale : BaseEntity
 
     public string? Descrizione { get; set; }
 
-    [StringLength(255, ErrorMessage = "L'email reparto non può superare i 255 caratteri")]
-    public string? EmailReparto { get; set; }
-
     [StringLength(20, ErrorMessage = "Il telefono reparto non può superare i 20 caratteri")]
     public string? TelefonoReparto { get; set; }
 
@@ -26,9 +23,24 @@ public class RepartoAziendale : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-
     // Navigation properties (non mappate direttamente dal DB)
     public string? ManagerNomeCognome { get; set; }
+
+    /// <summary>
+    /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// </summary>
+    public RepartoAziendale Clone()
+    {
+        return new RepartoAziendale
+        {
+            Id = this.Id,
+            AziendaIdFk = this.AziendaIdFk,
+            NomeReparto = this.NomeReparto,
+            Descrizione = this.Descrizione,
+            TelefonoReparto = this.TelefonoReparto,
+            ManagerContattoIdFk = this.ManagerContattoIdFk,
+            IsActive = this.IsActive,
+            ManagerNomeCognome = this.ManagerNomeCognome
+        };
+    }
 }

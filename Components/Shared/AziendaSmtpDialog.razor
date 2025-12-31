@@ -1,0 +1,679 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject AziendaSmtpService SmtpService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog close-on-escape-key="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Configurazione SMTP" : "Nuova Configurazione SMTP")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                <MudTabPanel Text="Configurazione Base" Icon="@Icons.Material.Filled.Settings">
+            <!-- Nome Configurazione - OBBLIGATORIO -->
+            <MudTextField @ref="_configNameField"
+                          @bind-Value="Entity.ConfigName"
+                          For="@(() => Entity.ConfigName)"
+                          Label="Nome Configurazione"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Il nome della configurazione è obbligatorio"
+                          MaxLength="100"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Nome identificativo della configurazione SMTP"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- Tipo Configurazione - OBBLIGATORIO -->
+            <MudSelect @bind-Value="Entity.ConfigType"
+                       For="@(() => Entity.ConfigType)"
+                       Label="Tipo Configurazione"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Class="mb-3"
+                       Adornment="Adornment.End"
+                       AdornmentText="*"
+                       AdornmentColor="Color.Error">
+                <MudSelectItem Value="@("outbound")">Outbound (Invio)</MudSelectItem>
+                <MudSelectItem Value="@("inbound")">Inbound (Ricezione)</MudSelectItem>
+                <MudSelectItem Value="@("relay")">Relay</MudSelectItem>
+                <MudSelectItem Value="@("backup")">Backup</MudSelectItem>
+            </MudSelect>
+
+            <!-- Host - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.Host"
+                          For="@(() => Entity.Host)"
+                          Label="Host SMTP"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="L'host è obbligatorio"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateSmtpHost))"
+                          Immediate="true"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="es: smtp.gmail.com, mail.example.com, 192.168.1.100" />
+
+            <!-- Porta - OBBLIGATORIO -->
+            <MudNumericField @bind-Value="Entity.Port"
+                             For="@(() => Entity.Port)"
+                             Label="Porta"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             Min="1"
+                             Max="65535"
+                             Validation="@(new Func<int, IEnumerable<string>>(ValidateSmtpPort))"
+                             Immediate="true"
+                             Class="mb-3"
+                             Adornment="Adornment.End"
+                             AdornmentText="*"
+                             AdornmentColor="Color.Error"
+                             HelperText="Porta SMTP standard: 587 (Submission), 465 (SMTPS), 25 (SMTP), 2525" />
+
+            <!-- Username - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.Username"
+                          For="@(() => Entity.Username)"
+                          Label="Username"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Lo username è obbligatorio"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateSmtpUsername))"
+                          Immediate="true"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Password - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.Password"
+                          For="@(() => Entity.Password)"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="La password è obbligatoria"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateSmtpPassword))"
+                          Immediate="true"
+                          InputType="InputType.Password"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error" />
+
+            <!-- From Name - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.FromName"
+                          For="@(() => Entity.FromName)"
+                          Label="Nome Mittente"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Il nome mittente è obbligatorio"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Nome visualizzato come mittente" />
+
+            <!-- From Email - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.FromEmail"
+                          For="@(() => Entity.FromEmail)"
+                          Label="Email Mittente"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="L'email mittente è obbligatoria"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
+                          Immediate="true"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Reply To - OBBLIGATORIO -->
+            <MudTextField @bind-Value="Entity.ReplyTo"
+                          For="@(() => Entity.ReplyTo)"
+                          Label="Reply To"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="L'email di risposta è obbligatoria"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
+                          Immediate="true"
+                          MaxLength="255"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error" />
+
+            <!-- Sicurezza -->
+            <MudCheckBox @bind-Value="Entity.UseTls"
+                         For="@(() => Entity.UseTls)"
+                         Label="Usa TLS"
+                         Color="Color.Primary"
+                         Class="mb-2" />
+
+            <MudCheckBox @bind-Value="Entity.UseStartTls"
+                         For="@(() => Entity.UseStartTls)"
+                         Label="Usa STARTTLS"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+
+            <!-- Protocol - OBBLIGATORIO -->
+            <MudSelect @bind-Value="Entity.Protocol"
+                       For="@(() => Entity.Protocol)"
+                       Label="Protocollo"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Il protocollo è obbligatorio"
+                       Class="mb-3"
+                       Adornment="Adornment.End"
+                       AdornmentIcon="@Icons.Material.Filled.Warning"
+                       AdornmentColor="Color.Error">
+                <MudSelectItem Value="@("smtp")">SMTP</MudSelectItem>
+                <MudSelectItem Value="@("smtps")">SMTPS (SSL)</MudSelectItem>
+            </MudSelect>
+
+            <!-- Security Method - OBBLIGATORIO -->
+            <MudSelect @bind-Value="Entity.SecurityMethod"
+                       For="@(() => Entity.SecurityMethod)"
+                       Label="Metodo di Sicurezza"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Il metodo di sicurezza è obbligatorio"
+                       Class="mb-3"
+                       Adornment="Adornment.End"
+                       AdornmentIcon="@Icons.Material.Filled.Warning"
+                       AdornmentColor="Color.Error">
+                <MudSelectItem Value="@("none")">Nessuno</MudSelectItem>
+                <MudSelectItem Value="@("ssl")">SSL/TLS</MudSelectItem>
+                <MudSelectItem Value="@("starttls")">STARTTLS</MudSelectItem>
+            </MudSelect>
+
+            <!-- Descrizione - Opzionale -->
+            <MudTextField @bind-Value="Entity.Description"
+                          For="@(() => Entity.Description)"
+                          Label="Descrizione (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Class="mb-3"
+                          HelperText="Note sulla configurazione" />
+
+            <!-- Flag Attivo -->
+            <MudCheckBox @bind-Value="Entity.IsActive"
+                         For="@(() => Entity.IsActive)"
+                         Label="Configurazione Attiva"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+
+            <!-- Risultato Ultimo Test -->
+            @if (Entity.LastTestDate.HasValue)
+            {
+                <MudAlert Severity="@GetTestResultSeverity()" Class="mb-3" Dense="true">
+                    <strong>Ultimo test:</strong> @Entity.LastTestDate.Value.ToString("dd/MM/yyyy HH:mm")<br/>
+                    <strong>Risultato:</strong> @Entity.LastTestResult
+                    @if (!string.IsNullOrWhiteSpace(Entity.LastErrorMessage))
+                    {
+                        <br/><strong>Errore:</strong> @Entity.LastErrorMessage
+                    }
+                </MudAlert>
+            }
+                </MudTabPanel>
+
+                <MudTabPanel Text="Ricezione (Inbound)" Icon="@Icons.Material.Filled.MailOutline">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Configurazione opzionale per la ricezione email (IMAP/POP3)
+                    </MudText>
+
+                    <!-- Inbound Host -->
+                    <MudTextField @bind-Value="Entity.InboundHost"
+                                  For="@(() => Entity.InboundHost)"
+                                  Label="Host Inbound (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Validation="@(new Func<string?, IEnumerable<string>>(ValidateInboundHost))"
+                                  Immediate="true"
+                                  MaxLength="255"
+                                  Class="mb-3"
+                                  HelperText="es: imap.gmail.com" />
+
+                    <!-- Inbound Port -->
+                    <MudNumericField @bind-Value="Entity.InboundPort"
+                                     For="@(() => Entity.InboundPort)"
+                                     Label="Porta Inbound (opzionale)"
+                                     Variant="Variant.Outlined"
+                                     Validation="@(new Func<int?, IEnumerable<string>>(ValidateInboundPort))"
+                                     Immediate="true"
+                                     Min="1"
+                                     Max="65535"
+                                     Class="mb-3"
+                                     HelperText="Porte comuni: 993 (IMAPS), 995 (POP3S), 143 (IMAP), 110 (POP3)" />
+
+                    <!-- Inbound Protocol -->
+                    <MudSelect @bind-Value="Entity.InboundProtocol"
+                               For="@(() => Entity.InboundProtocol)"
+                               Label="Protocollo Inbound"
+                               Variant="Variant.Outlined"
+                               Class="mb-3">
+                        <MudSelectItem Value="@((string?)null)">-- Nessuno --</MudSelectItem>
+                        <MudSelectItem Value="@("imap")">IMAP</MudSelectItem>
+                        <MudSelectItem Value="@("pop3")">POP3</MudSelectItem>
+                    </MudSelect>
+
+                    <!-- Inbound Username -->
+                    <MudTextField @bind-Value="Entity.InboundUsername"
+                                  For="@(() => Entity.InboundUsername)"
+                                  Label="Username Inbound (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Validation="@(new Func<string?, IEnumerable<string>>(ValidateInboundUsername))"
+                                  Immediate="true"
+                                  MaxLength="255"
+                                  Class="mb-3" />
+
+                    <!-- Inbound Password -->
+                    <MudTextField @bind-Value="Entity.InboundPassword"
+                                  For="@(() => Entity.InboundPassword)"
+                                  Label="Password Inbound (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Validation="@(new Func<string?, IEnumerable<string>>(ValidateInboundPassword))"
+                                  Immediate="true"
+                                  InputType="InputType.Password"
+                                  Class="mb-3" />
+
+                    <!-- Inbound Use SSL -->
+                    <MudCheckBox @bind-Value="Entity.InboundUseSsl"
+                                 For="@(() => Entity.InboundUseSsl)"
+                                 Label="Usa SSL/TLS per Inbound"
+                                 Color="Color.Primary"
+                                 Class="mb-3" />
+
+                    <!-- Inbound Folder -->
+                    <MudTextField @bind-Value="Entity.InboundFolder"
+                                  For="@(() => Entity.InboundFolder)"
+                                  Label="Cartella Inbound (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100"
+                                  Class="mb-3"
+                                  HelperText="Nome della cartella da monitorare (es: INBOX)" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Bounce & Failover" Icon="@Icons.Material.Filled.ErrorOutline">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Gestione email di ritorno (bounce) e server di backup
+                    </MudText>
+
+                    <!-- Bounce Handling -->
+                    <MudCheckBox @bind-Value="Entity.BounceHandling"
+                                 For="@(() => Entity.BounceHandling)"
+                                 Label="Abilita gestione Bounce"
+                                 Color="Color.Primary"
+                                 Class="mb-3" />
+
+                    <!-- Bounce Email -->
+                    <MudTextField @bind-Value="Entity.BounceEmail"
+                                  For="@(() => Entity.BounceEmail)"
+                                  Label="Email Bounce (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Validation="@(new Func<string?, IEnumerable<string>>(ValidateBounceEmail))"
+                                  MaxLength="255"
+                                  Class="mb-3"
+                                  HelperText="Indirizzo email dove ricevere le notifiche di bounce" />
+
+                    <!-- Auto Failover -->
+                    <MudCheckBox @bind-Value="Entity.AutoFailover"
+                                 For="@(() => Entity.AutoFailover)"
+                                 Label="Abilita Failover Automatico"
+                                 Color="Color.Primary"
+                                 Class="mb-3" />
+
+                    <!-- Test Frequency -->
+                    <MudNumericField @bind-Value="Entity.TestFrequencyHours"
+                                     For="@(() => Entity.TestFrequencyHours)"
+                                     Label="Frequenza Test (ore)"
+                                     Variant="Variant.Outlined"
+                                     Min="1"
+                                     Max="168"
+                                     Class="mb-3"
+                                     HelperText="Ogni quante ore testare automaticamente la connessione" />
+                </MudTabPanel>
+
+                <MudTabPanel Text="Avanzate" Icon="@Icons.Material.Filled.Settings">
+                    <MudText Typo="Typo.body2" Class="mb-3">
+                        Configurazioni avanzate: tracking, DKIM, webhook
+                    </MudText>
+
+                    <!-- Tracking Enabled -->
+                    <MudCheckBox @bind-Value="Entity.TrackingEnabled"
+                                 For="@(() => Entity.TrackingEnabled)"
+                                 Label="Abilita Tracking Email"
+                                 Color="Color.Primary"
+                                 Class="mb-3" />
+
+                    <!-- DKIM Section -->
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Firma DKIM</MudText>
+                    <MudCheckBox @bind-Value="Entity.DkimEnabled"
+                                 For="@(() => Entity.DkimEnabled)"
+                                 Label="Abilita DKIM"
+                                 Color="Color.Primary"
+                                 Class="mb-3" />
+
+                    @if (Entity.DkimEnabled)
+                    {
+                        <MudTextField @bind-Value="Entity.DkimSelector"
+                                      For="@(() => Entity.DkimSelector)"
+                                      Label="Selettore DKIM (opzionale)"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="100"
+                                      Class="mb-3"
+                                      HelperText="es: default, mail, selector1" />
+
+                        <MudTextField @bind-Value="Entity.DkimPrivateKey"
+                                      For="@(() => Entity.DkimPrivateKey)"
+                                      Label="Chiave Privata DKIM (opzionale)"
+                                      Variant="Variant.Outlined"
+                                      Lines="5"
+                                      Class="mb-3"
+                                      HelperText="Chiave privata RSA per firma DKIM" />
+                    }
+
+                    <!-- Webhook Section -->
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">Webhook</MudText>
+                    <MudTextField @bind-Value="Entity.WebhookUrl"
+                                  For="@(() => Entity.WebhookUrl)"
+                                  Label="URL Webhook (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Validation="@(new Func<string?, IEnumerable<string>>(ValidateWebhookUrl))"
+                                  Immediate="true"
+                                  MaxLength="500"
+                                  Class="mb-3"
+                                  HelperText="URL per ricevere notifiche eventi (es: https://api.example.com/webhook)" />
+
+                    <MudTextField @bind-Value="Entity.WebhookEvents"
+                                  For="@(() => Entity.WebhookEvents)"
+                                  Label="Eventi Webhook (opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  Class="mb-3"
+                                  HelperText="Lista eventi separati da virgola (es: sent, delivered, bounced, opened)" />
+
+                    <!-- Custom Headers -->
+                    <MudTextField @bind-Value="Entity.CustomHeaders"
+                                  For="@(() => Entity.CustomHeaders)"
+                                  Label="Header Personalizzati (JSON, opzionale)"
+                                  Variant="Variant.Outlined"
+                                  Lines="4"
+                                  Class="mb-3"
+                                  HelperText="Header HTTP personalizzati in formato JSON" />
+                </MudTabPanel>
+            </MudTabs>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="TestConnection"
+                   Variant="Variant.Outlined"
+                   Color="Color.Info"
+                   Disabled="@_isTestingConnection"
+                   StartIcon="@Icons.Material.Filled.Cable">
+            @if (_isTestingConnection)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Test in corso...</span>
+            }
+            else
+            {
+                <span>Test Connessione</span>
+            }
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _configNameField;
+    private bool _isTestingConnection = false;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public AziendaSmtp Entity { get; set; } = new AziendaSmtp();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public int? AziendaId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private IEnumerable<string> ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "L'indirizzo email è obbligatorio";
+            yield break;
+        }
+
+        var result = EmailValidator.CheckEmail(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateSmtpHost(string? value)
+    {
+        var result = SmtpServerValidator.CheckSmtpHost(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateSmtpPort(int port)
+    {
+        var result = SmtpServerValidator.CheckSmtpPort(port);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateSmtpUsername(string? value)
+    {
+        var result = SmtpServerValidator.CheckSmtpUsername(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateSmtpPassword(string? value)
+    {
+        var result = SmtpServerValidator.CheckSmtpPassword(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateBounceEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // Opzionale
+
+        var result = EmailValidator.CheckEmail(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateInboundHost(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // Opzionale
+
+        var result = SmtpServerValidator.CheckSmtpHost(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateInboundPort(int? value)
+    {
+        if (!value.HasValue)
+            yield break; // Opzionale
+
+        var result = SmtpServerValidator.CheckSmtpPort(value.Value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateInboundUsername(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // Opzionale
+
+        var result = SmtpServerValidator.CheckSmtpUsername(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateInboundPassword(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // Opzionale
+
+        var result = SmtpServerValidator.CheckSmtpPassword(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private IEnumerable<string> ValidateWebhookUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            yield break; // Opzionale
+
+        var result = WebsiteValidator.CheckWebsite(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
+    private async Task TestConnection()
+    {
+        // Valida prima il form
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Correggi gli errori di validazione prima di testare la connessione", Severity.Warning);
+                return;
+            }
+        }
+
+        _isTestingConnection = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await SmtpService.TestConnectionAsync(Entity);
+
+            // Aggiorna i campi di stato nell'entità
+            Entity.LastTestDate = result.TestDate;
+            Entity.LastTestResult = result.IsSuccess ? "success" : "failed";
+            Entity.LastErrorMessage = result.ErrorMessage;
+
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            if (result.IsSuccess)
+            {
+                Snackbar.Add($"✓ Connessione riuscita! {result.Message}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"✗ Test fallito: {result.ErrorMessage}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Entity.LastTestDate = DateTime.Now;
+            Entity.LastTestResult = "failed";
+            Entity.LastErrorMessage = ex.Message;
+
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add($"Errore durante il test: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isTestingConnection = false;
+            StateHasChanged();
+        }
+    }
+
+    private Severity GetTestResultSeverity()
+    {
+        if (Entity.LastTestResult == "success")
+            return Severity.Success;
+        if (Entity.LastTestResult == "failed")
+            return Severity.Error;
+        return Severity.Info;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_configNameField?.Error == true)
+                {
+                    await _configNameField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

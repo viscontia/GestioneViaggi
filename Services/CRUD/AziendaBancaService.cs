@@ -17,6 +17,9 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
 
     public override async Task<AziendaBanca> CreateAsync(AziendaBanca entity)
     {
+        // Normalizza stringhe nullable (converte "" in NULL)
+        NormalizeEntityBeforeSave(entity);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -53,6 +56,9 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
 
     public override async Task<AziendaBanca> UpdateAsync(AziendaBanca entity)
     {
+        // Normalizza stringhe nullable (converte "" in NULL)
+        NormalizeEntityBeforeSave(entity);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();

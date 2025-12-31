@@ -1,0 +1,165 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject RepartoAziendaleService RepartoService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog close-on-escape-key="true">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Reparto Aziendale" : "Nuovo Reparto Aziendale")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <!-- Nome Reparto - OBBLIGATORIO -->
+            <MudTextField @ref="_nomeRepartoField"
+                          @bind-Value="Entity.NomeReparto"
+                          For="@(() => Entity.NomeReparto)"
+                          Label="Nome Reparto"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Il nome del reparto è obbligatorio"
+                          MaxLength="100"
+                          Class="mb-3"
+                          Adornment="Adornment.End"
+                          AdornmentText="*"
+                          AdornmentColor="Color.Error"
+                          HelperText="Nome identificativo del reparto"
+                          OnKeyDown="@HandleKeyDown" />
+
+            <!-- Descrizione - Opzionale -->
+            <MudTextField @bind-Value="Entity.Descrizione"
+                          For="@(() => Entity.Descrizione)"
+                          Label="Descrizione (opzionale)"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Class="mb-3"
+                          HelperText="Descrizione dettagliata del reparto" />
+
+            <!-- Telefono Reparto - Opzionale -->
+            <MudTextField @bind-Value="Entity.TelefonoReparto"
+                          For="@(() => Entity.TelefonoReparto)"
+                          Label="Telefono Reparto (opzionale)"
+                          Variant="Variant.Outlined"
+                          MaxLength="20"
+                          Class="mb-3"
+                          HelperText="Numero di telefono del reparto"
+                          Validation="@(new Func<string?, string?>(ValidateTelefono))" />
+
+            <!-- Flag Attivo -->
+            <MudCheckBox @bind-Value="Entity.IsActive"
+                         For="@(() => Entity.IsActive)"
+                         Label="Reparto Attivo"
+                         Color="Color.Primary"
+                         Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _nomeRepartoField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public RepartoAziendale Entity { get; set; } = new RepartoAziendale();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public int? AziendaId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleSubmit();
+        }
+    }
+
+    private string? ValidateTelefono(string? telefono)
+    {
+        if (string.IsNullOrWhiteSpace(telefono))
+            return null; // Opzionale
+
+        var result = PhoneValidator.CheckTelefonoItaly(telefono);
+        return result.IsValid ? null : result.ErrorMessage;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+            {
+                // Validazione: nome reparto non duplicato nella stessa azienda
+                var repartiAzienda = await RepartoService.GetByAziendaIdAsync(Entity.AziendaIdFk);
+                var duplicateNome = repartiAzienda.FirstOrDefault(r =>
+                    r.NomeReparto.Equals(Entity.NomeReparto, StringComparison.OrdinalIgnoreCase) &&
+                    r.Id != Entity.Id);
+
+                if (duplicateNome != null)
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add($"Nome reparto '{Entity.NomeReparto}' già esistente per questa azienda", Severity.Error);
+                    return;
+                }
+
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            }
+            else
+            {
+                if (_nomeRepartoField?.Error == true)
+                {
+                    await _nomeRepartoField.FocusAsync();
+                }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+}

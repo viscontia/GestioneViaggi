@@ -88,6 +88,8 @@ public static class MauiProgram
         builder.Services.AddScoped<AziendaContattoService>();
         builder.Services.AddScoped<AziendaBancaService>();
         builder.Services.AddScoped<AziendaEmailService>();
+        builder.Services.AddScoped<AziendaSmtpService>();
+        builder.Services.AddScoped<AziendaLogoService>();
         builder.Services.AddScoped<TipoSedeService>();
         builder.Services.AddScoped<RepartoAziendaleService>();
         builder.Services.AddScoped<TipoViaggioService>();

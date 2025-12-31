@@ -1,0 +1,187 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject RepartoAziendaleService RepartoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="pa-4">
+    @if (_loading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-3" />
+    }
+    else
+    {
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+            <MudText Typo="Typo.h6">Reparti Aziendali</MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => OpenRepartoDialog(null))">
+                Nuovo Reparto
+            </MudButton>
+        </MudStack>
+
+        <MudTable Items="@_reparti" Dense="true" Hover="true" Striped="true" Class="enterprise-grid" FixedHeader="false" Height="auto">
+            <HeaderContent>
+                <MudTh>Nome Reparto</MudTh>
+                <MudTh>Descrizione</MudTh>
+                <MudTh>Telefono</MudTh>
+                <MudTh Style="text-align: center;">Attivo</MudTh>
+                <MudTh Style="text-align: center; width: 100px;">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome Reparto">
+                    <strong>@context.NomeReparto</strong>
+                </MudTd>
+                <MudTd DataLabel="Descrizione">
+                    @if (!string.IsNullOrWhiteSpace(context.Descrizione))
+                    {
+                        <span>@context.Descrizione</span>
+                    }
+                    else
+                    {
+                        <span class="mud-text-secondary">-</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Telefono">@(string.IsNullOrWhiteSpace(context.TelefonoReparto) ? "-" : context.TelefonoReparto)</MudTd>
+                <MudTd DataLabel="Attivo" Style="text-align: center;">
+                    <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                             Color="@(context.IsActive ? Color.Success : Color.Error)" />
+                </MudTd>
+                <MudTd DataLabel="Azioni" Style="text-align: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Color="Color.Warning"
+                                   OnClick="@(() => OpenRepartoDialog(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteReparto(context))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_reparti.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                Nessun reparto configurato.
+            </MudAlert>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public EventCallback OnDataChanged { get; set; }
+
+    private List<RepartoAziendale> _reparti = new();
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId > 0)
+        {
+            await LoadRepartiAsync();
+        }
+    }
+
+    private async Task LoadRepartiAsync()
+    {
+        _loading = true;
+        try
+        {
+            _reparti = await RepartoService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento reparti: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenRepartoDialog(RepartoAziendale? reparto)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = reparto?.Clone() ?? new RepartoAziendale { AziendaIdFk = AziendaId },
+            ["IsEditMode"] = reparto != null,
+            ["AziendaId"] = AziendaId
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<RepartoAziendaleDialog>(
+            reparto == null ? "Nuovo Reparto Aziendale" : "Modifica Reparto Aziendale",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false, Data: RepartoAziendale updatedReparto })
+        {
+            try
+            {
+                if (reparto == null)
+                {
+                    await RepartoService.CreateAsync(updatedReparto);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Reparto aziendale creato con successo", Severity.Success);
+                }
+                else
+                {
+                    updatedReparto.Id = reparto.Id;
+                    await RepartoService.UpdateAsync(updatedReparto);
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add("Reparto aziendale aggiornato con successo", Severity.Success);
+                }
+
+                await LoadRepartiAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteReparto(RepartoAziendale reparto)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Confermi l'eliminazione del reparto '{reparto.NomeReparto}'?",
+            yesText: "Elimina",
+            cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await RepartoService.DeleteAsync(reparto.Id);
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add("Reparto aziendale eliminato con successo", Severity.Success);
+                await LoadRepartiAsync();
+                await OnDataChanged.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -19,6 +19,9 @@ public class AziendaContattoService : BaseCrudService<AziendaContatto>
     {
         try
         {
+            // Normalizza stringhe nullable (converte "" in NULL)
+            NormalizeEntityBeforeSave(entity);
+
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
                 INSERT INTO ana_aziende_contatti (
@@ -60,6 +63,9 @@ public class AziendaContattoService : BaseCrudService<AziendaContatto>
     {
         try
         {
+            // Normalizza stringhe nullable (converte "" in NULL)
+            NormalizeEntityBeforeSave(entity);
+
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
                 UPDATE ana_aziende_contatti

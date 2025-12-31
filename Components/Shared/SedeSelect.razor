@@ -1,0 +1,160 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AziendaSedeService SedeService
+
+<BaseEntitySelect TItem="AziendaSede" 
+    Value="_selectedSede" 
+    ValueChanged="OnSedeChanged"
+    SearchFunc="SearchSedi" 
+    ToStringFunc="@FormatSedeDisplay" 
+    Label="@Label" 
+    Required="@Required"
+    RequiredError="@RequiredError" 
+    Disabled="@Disabled" 
+    Class="@Class" 
+    HelperText="@HelperText" 
+    AutoFocus="@AutoFocus"
+    Validation="@Validation" 
+    AdditionalAttributes="AdditionalAttributes" />
+
+@code {
+    private List<AziendaSede> _sedi = new();
+    private AziendaSede? _selectedSede;
+
+    [Parameter]
+    public int AziendaId { get; set; }
+
+    [Parameter]
+    public int? SelectedSedeId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedSedeIdChanged { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Sede";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "La sede è obbligatoria";
+
+    [Parameter]
+    public object? Validation { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Selezionare la sede di riferimento";
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSediAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedSede();
+    }
+
+    private void UpdateSelectedSede()
+    {
+        if (_sedi == null || _sedi.Count == 0) return;
+
+        if (SelectedSedeId.HasValue)
+        {
+            if (_selectedSede?.Id != SelectedSedeId.Value)
+            {
+                _selectedSede = _sedi.FirstOrDefault(s => s.Id == SelectedSedeId.Value);
+            }
+        }
+        else
+        {
+            _selectedSede = null;
+        }
+    }
+
+    private async Task LoadSediAsync()
+    {
+        try
+        {
+            if (AziendaId > 0)
+            {
+                _sedi = await SedeService.GetByAziendaIdAsync(AziendaId);
+                UpdateSelectedSede();
+            }
+            else
+            {
+                _sedi = new List<AziendaSede>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento sedi: {ex.Message}");
+            _sedi = new List<AziendaSede>();
+        }
+    }
+
+    private async Task OnSedeChanged(AziendaSede? sede)
+    {
+        _selectedSede = sede;
+        await SelectedSedeIdChanged.InvokeAsync(sede?.Id);
+    }
+
+    private async Task<IEnumerable<AziendaSede>> SearchSedi(string value, CancellationToken token)
+    {
+        if (_sedi == null || _sedi.Count == 0)
+            return Enumerable.Empty<AziendaSede>();
+
+        if (string.IsNullOrEmpty(value))
+            return _sedi;
+
+        return _sedi.Where(s => 
+            (s.TipoSedeDescrizione?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+            (s.Indirizzo?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+            (s.ComuneNome?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+            (s.ProvinciaSigla?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false)
+        );
+    }
+
+    private string FormatSedeDisplay(AziendaSede? sede)
+    {
+        if (sede == null) return string.Empty;
+
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(sede.TipoSedeDescrizione))
+            parts.Add(sede.TipoSedeDescrizione);
+
+        var indirizzo = sede.Indirizzo;
+        if (!string.IsNullOrWhiteSpace(sede.NumeroCivico))
+            indirizzo += $" {sede.NumeroCivico}";
+        
+        if (!string.IsNullOrWhiteSpace(indirizzo))
+            parts.Add(indirizzo);
+
+        if (!string.IsNullOrWhiteSpace(sede.ComuneNome))
+        {
+            var comune = sede.ComuneNome;
+            if (!string.IsNullOrWhiteSpace(sede.ProvinciaSigla))
+                comune += $" ({sede.ProvinciaSigla})";
+            parts.Add(comune);
+        }
+
+        return string.Join(" - ", parts);
+    }
+}

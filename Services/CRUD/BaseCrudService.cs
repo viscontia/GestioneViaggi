@@ -1,6 +1,7 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
+using GestioneViaggi.Helpers;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Data;
@@ -162,6 +163,16 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
 
     public abstract Task<T> CreateAsync(T entity);
     public abstract Task<T> UpdateAsync(T entity);
+
+    /// <summary>
+    /// Normalizza l'entità prima del salvataggio:
+    /// - Converte stringhe vuote in NULL per evitare violazioni di constraint DB
+    /// - Chiamare SEMPRE prima di INSERT/UPDATE nei servizi concreti
+    /// </summary>
+    protected void NormalizeEntityBeforeSave(T entity)
+    {
+        EntityNormalizer.NormalizeNullableStrings(entity);
+    }
 
     public virtual async Task<bool> DeleteAsync(int id)
     {
