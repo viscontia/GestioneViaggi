@@ -1,8 +1,12 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Validation.Semantic
+@using GestioneViaggi.Services.CRUD
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject AziendaBancaService BancaService
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <MudDialog close-on-escape-key="true">
@@ -169,6 +173,16 @@
             await _form.Validate();
             if (_form.IsValid)
             {
+                // Validazione asincrona: verifica unicità IBAN
+                var ibanValidator = new IbanValidator(BancaService);
+                var ibanUniqueResult = await ibanValidator.CheckIbanUniqueness(Entity.Iban, Entity.Id);
+
+                if (!ibanUniqueResult.IsValid)
+                {
+                    Snackbar.Add(ibanUniqueResult.ErrorMessage, Severity.Error);
+                    return;
+                }
+
                 MudDialog?.Close(DialogResult.Ok(Entity));
             }
             else

@@ -1,7 +1,11 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Services.CRUD
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject AziendaEmailService EmailService
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <MudDialog close-on-escape-key="true">
@@ -14,10 +18,12 @@
         <MudForm @ref="_form" Model="@Entity">
             <!-- Email - OBBLIGATORIO -->
             <MudTextField @ref="_emailField"
-                          @bind-Value="Entity.Email"
+                          Value="@Entity.Email"
+                          ValueChanged="@((string val) => Entity.Email = val?.ToLower().Trim() ?? string.Empty)"
                           For="@(() => Entity.Email)"
                           Label="Indirizzo Email"
                           Variant="Variant.Outlined"
+                          Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
                           Immediate="true"
                           Required="true"
                           RequiredError="L'indirizzo email è obbligatorio"
@@ -112,6 +118,19 @@
         }
     }
 
+    private IEnumerable<string> ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "L'indirizzo email è obbligatorio";
+            yield break;
+        }
+
+        var result = EmailValidator.CheckEmail(value);
+        if (!result.IsValid)
+            yield return result.ErrorMessage;
+    }
+
     private async Task HandleSubmit()
     {
         if (_form != null)
@@ -119,6 +138,33 @@
             await _form.Validate();
             if (_form.IsValid)
             {
+                // Validazione 1: email non usata da altre aziende
+                var allEmails = await EmailService.GetAllAsync();
+                var emailUsedByOtherCompany = allEmails.FirstOrDefault(e =>
+                    e.Email.Equals(Entity.Email, StringComparison.OrdinalIgnoreCase) &&
+                    e.AziendaIdFk != Entity.AziendaIdFk);
+
+                if (emailUsedByOtherCompany != null)
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add($"Email già utilizzata da un'altra azienda", Severity.Error);
+                    return;
+                }
+
+                // Validazione 2: email+reparto non duplicati nella stessa azienda
+                var sameCompanyEmails = await EmailService.GetByAziendaIdAsync(Entity.AziendaIdFk);
+                var duplicateEmailReparto = sameCompanyEmails.FirstOrDefault(e =>
+                    e.Email.Equals(Entity.Email, StringComparison.OrdinalIgnoreCase) &&
+                    e.RepartoIdFk == Entity.RepartoIdFk &&
+                    e.Id != Entity.Id);
+
+                if (duplicateEmailReparto != null)
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add($"Email già utilizzata per il reparto '{duplicateEmailReparto.RepartoNome}'", Severity.Error);
+                    return;
+                }
+
                 MudDialog?.Close(DialogResult.Ok(Entity));
             }
             else
