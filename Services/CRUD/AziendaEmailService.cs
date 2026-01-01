@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -10,13 +11,19 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
     protected override string TableName => "ana_aziende_email";
     protected override string IdColumnName => "email_id";
 
-    public AziendaEmailService(IDatabaseService databaseService, ILogger<AziendaEmailService> logger)
-        : base(databaseService, logger)
+    public AziendaEmailService(
+        IDatabaseService databaseService,
+        ILogger<AziendaEmailService> logger,
+        ITenantContext tenantContext)
+        : base(databaseService, logger, tenantContext)
     {
     }
 
     public override async Task<AziendaEmail> CreateAsync(AziendaEmail entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(entity.AziendaIdFk);
+
         // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
 
@@ -54,6 +61,9 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
 
     public override async Task<AziendaEmail> UpdateAsync(AziendaEmail entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(entity.AziendaIdFk);
+
         // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
 
@@ -109,6 +119,9 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
     /// </summary>
     public async Task<List<AziendaEmail>> GetByAziendaIdAsync(int aziendaId)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(aziendaId);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();

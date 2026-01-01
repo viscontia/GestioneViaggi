@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using GestioneViaggi.Validation.Syntax;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -21,11 +22,16 @@ public class AziendaSmtpService
 {
     protected readonly IDatabaseService _databaseService;
     protected readonly ILogger<AziendaSmtpService> _logger;
+    protected readonly ITenantContext _tenantContext;
 
-    public AziendaSmtpService(IDatabaseService databaseService, ILogger<AziendaSmtpService> logger)
+    public AziendaSmtpService(
+        IDatabaseService databaseService,
+        ILogger<AziendaSmtpService> logger,
+        ITenantContext tenantContext)
     {
         _databaseService = databaseService;
         _logger = logger;
+        _tenantContext = tenantContext;
     }
 
     protected int ReadInt(NpgsqlDataReader reader, string columnName)
@@ -165,6 +171,9 @@ public class AziendaSmtpService
 
     public async Task<AziendaSmtp> CreateAsync(AziendaSmtp entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(entity.AziendaIdFk);
+
         // Validazione sintattica campi
         ValidateEntity(entity);
 
@@ -277,6 +286,9 @@ public class AziendaSmtpService
 
     public async Task<AziendaSmtp> UpdateAsync(AziendaSmtp entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(entity.AziendaIdFk);
+
         // Validazione sintattica campi
         ValidateEntity(entity);
 
@@ -479,6 +491,9 @@ public class AziendaSmtpService
     /// </summary>
     public async Task<List<AziendaSmtp>> GetByAziendaIdAsync(int aziendaId)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(aziendaId);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();

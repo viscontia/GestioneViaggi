@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -9,11 +10,16 @@ public class AziendaLogoService
 {
     protected readonly IDatabaseService _databaseService;
     protected readonly ILogger<AziendaLogoService> _logger;
+    protected readonly ITenantContext _tenantContext;
 
-    public AziendaLogoService(IDatabaseService databaseService, ILogger<AziendaLogoService> logger)
+    public AziendaLogoService(
+        IDatabaseService databaseService,
+        ILogger<AziendaLogoService> logger,
+        ITenantContext tenantContext)
     {
         _databaseService = databaseService;
         _logger = logger;
+        _tenantContext = tenantContext;
     }
 
     protected int ReadInt(NpgsqlDataReader reader, string columnName)
@@ -50,6 +56,9 @@ public class AziendaLogoService
 
     public async Task<AziendaLogo> CreateAsync(AziendaLogo entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(entity.AziendaIdFk);
+
         NormalizeEntityBeforeSave(entity);
 
         entity.CreatedAt = DateTime.UtcNow;
@@ -107,6 +116,9 @@ public class AziendaLogoService
 
     public async Task<AziendaLogo> UpdateAsync(AziendaLogo entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(entity.AziendaIdFk);
+
         NormalizeEntityBeforeSave(entity);
 
         entity.UpdatedAt = DateTime.UtcNow;
@@ -345,6 +357,9 @@ public class AziendaLogoService
     /// </summary>
     public async Task<List<AziendaLogo>> GetByAziendaIdAsync(int aziendaId)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await _tenantContext.ValidateAccessAsync(aziendaId);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();

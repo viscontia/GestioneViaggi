@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -10,13 +11,19 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
     protected override string TableName => "ana_aziende_banche";
     protected override string IdColumnName => "banca_id";
 
-    public AziendaBancaService(IDatabaseService databaseService, ILogger<AziendaBancaService> logger)
-        : base(databaseService, logger)
+    public AziendaBancaService(
+        IDatabaseService databaseService,
+        ILogger<AziendaBancaService> logger,
+        ITenantContext tenantContext)
+        : base(databaseService, logger, tenantContext)
     {
     }
 
     public override async Task<AziendaBanca> CreateAsync(AziendaBanca entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(entity.AziendaIdFk);
+
         // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
 
@@ -56,6 +63,9 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
 
     public override async Task<AziendaBanca> UpdateAsync(AziendaBanca entity)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(entity.AziendaIdFk);
+
         // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
 
@@ -117,6 +127,9 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
     /// </summary>
     public async Task<List<AziendaBanca>> GetByAziendaIdAsync(int aziendaId)
     {
+        // Validazione tenant: verifica accesso all'azienda
+        await ValidateTenantAccessAsync(aziendaId);
+
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
