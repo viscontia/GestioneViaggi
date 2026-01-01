@@ -1,9 +1,12 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @inject AziendaLogoService LogoService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="pa-4">
     @if (_loading)
@@ -133,8 +136,15 @@
 
     private async Task OpenLogoDialog(AziendaLogo? logo)
     {
-        // TODO: Implementare CurrentUserId per CreatedBy
-        var currentUserId = Guid.NewGuid(); // Placeholder - dovrebbe venire dall'autenticazione
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var currentUserId))
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add("Errore: Utente non autenticato", Severity.Error);
+            return;
+        }
 
         var parameters = new DialogParameters
         {
@@ -171,6 +181,7 @@
                 else
                 {
                     updatedLogo.Id = logo.Id;
+                    updatedLogo.UpdatedBy = currentUserId;
                     await LogoService.UpdateAsync(updatedLogo);
                     Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
                     Snackbar.Add("Logo aziendale aggiornato con successo", Severity.Success);
@@ -199,13 +210,11 @@
         {
             try
             {
-                // Non c'è DeleteAsync in AziendaLogoService, lo aggiungeremo dopo
+                await LogoService.DeleteAsync(logo.Id);
                 Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
-                Snackbar.Add("Funzionalità non ancora implementata", Severity.Warning);
-                // await LogoService.DeleteAsync(logo.Id);
-                // Snackbar.Add("Logo aziendale eliminato con successo", Severity.Success);
-                // await LoadLogosAsync();
-                // await OnDataChanged.InvokeAsync();
+                Snackbar.Add("Logo aziendale eliminato con successo", Severity.Success);
+                await LoadLogosAsync();
+                await OnDataChanged.InvokeAsync();
             }
             catch (Exception ex)
             {

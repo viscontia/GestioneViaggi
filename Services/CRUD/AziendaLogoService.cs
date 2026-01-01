@@ -50,8 +50,9 @@ public class AziendaLogoService
 
     public async Task<AziendaLogo> CreateAsync(AziendaLogo entity)
     {
-        // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
+
+        entity.CreatedAt = DateTime.UtcNow;
 
         try
         {
@@ -65,7 +66,7 @@ public class AziendaLogoService
                     usage_context, description, alt_text, seo_keywords, brand_guidelines_notes,
                     is_active, is_default, priority, is_approved, approval_date,
                     approved_by, version_number, parent_logo_id, is_current_version,
-                    created_by
+                    created_by, created_at
                 )
                 VALUES (
                     @aziendaFk, @logoType, @logoVariant, @fileName, @originalFilename,
@@ -75,7 +76,7 @@ public class AziendaLogoService
                     @usageContext, @description, @altText, @seoKeywords, @brandGuidelinesNotes,
                     @isActive, @isDefault, @priority, @isApproved, @approvalDate,
                     @approvedBy, @versionNumber, @parentLogoId, @isCurrentVersion,
-                    @createdBy
+                    @createdBy, @createdAt
                 )
                 RETURNING logo_id, azienda_fk, logo_type, logo_variant, file_name, original_filename,
                           file_format, mime_type, file_size_bytes, image_width, image_height,
@@ -87,7 +88,7 @@ public class AziendaLogoService
                           created_by, created_at, updated_by, updated_at";
 
             await using var command = new NpgsqlCommand(sql, connection);
-            AddLogoParameters(command, entity);
+            AddLogoParameters(command, entity, includeBinaryData: true);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -106,13 +107,18 @@ public class AziendaLogoService
 
     public async Task<AziendaLogo> UpdateAsync(AziendaLogo entity)
     {
-        // Normalizza stringhe nullable (converte "" in NULL)
         NormalizeEntityBeforeSave(entity);
+
+        entity.UpdatedAt = DateTime.UtcNow;
 
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
+
+            // Se BinaryData è vuoto, non aggiorniamo il campo binary_data (preserviamo quello esistente)
+            var updateBinaryData = entity.BinaryData != null && entity.BinaryData.Length > 0;
+
+            var sql = $@"
                 UPDATE ana_aziende_logo
                 SET logo_type = @logoType,
                     logo_variant = @logoVariant,
@@ -121,7 +127,7 @@ public class AziendaLogoService
                     file_format = @fileFormat,
                     mime_type = @mimeType,
                     file_size_bytes = @fileSizeBytes,
-                    binary_data = @binaryData,
+                    {(updateBinaryData ? "binary_data = @binaryData," : "")}
                     image_width = @imageWidth,
                     image_height = @imageHeight,
                     has_transparency = @hasTransparency,
@@ -147,7 +153,8 @@ public class AziendaLogoService
                     version_number = @versionNumber,
                     parent_logo_id = @parentLogoId,
                     is_current_version = @isCurrentVersion,
-                    updated_by = @updatedBy
+                    updated_by = @updatedBy,
+                    updated_at = @updatedAt
                 WHERE logo_id = @id
                 RETURNING logo_id, azienda_fk, logo_type, logo_variant, file_name, original_filename,
                           file_format, mime_type, file_size_bytes, image_width, image_height,
@@ -161,7 +168,8 @@ public class AziendaLogoService
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", Guid.Parse(entity.Id.ToString()));
             command.Parameters.AddWithValue("updatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
-            AddLogoParameters(command, entity);
+            command.Parameters.AddWithValue("updatedAt", (object?)entity.UpdatedAt ?? DBNull.Value);
+            AddLogoParameters(command, entity, includeBinaryData: updateBinaryData);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -178,7 +186,45 @@ public class AziendaLogoService
         }
     }
 
-    private void AddLogoParameters(NpgsqlCommand command, AziendaLogo entity)
+    public async Task<byte[]?> GetBinaryDataAsync(Guid logoId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                SELECT binary_data, mime_type, file_size_bytes
+                FROM ana_aziende_logo
+                WHERE logo_id = @logoId";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("logoId", logoId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var ordinal = reader.GetOrdinal("binary_data");
+                if (reader.IsDBNull(ordinal))
+                {
+                    _logger.LogWarning("Logo {LogoId} trovato ma binary_data è NULL nel database", logoId);
+                    return null;
+                }
+
+                var binaryData = (byte[])reader.GetValue(ordinal);
+                _logger.LogInformation("Caricati {Size} bytes per logo {LogoId}", binaryData.Length, logoId);
+                return binaryData;
+            }
+
+            _logger.LogWarning("Logo {LogoId} non trovato nel database", logoId);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dei binary data per logo {LogoId}", logoId);
+            throw;
+        }
+    }
+
+    private void AddLogoParameters(NpgsqlCommand command, AziendaLogo entity, bool includeBinaryData = true)
     {
         command.Parameters.AddWithValue("aziendaFk", entity.AziendaIdFk);
         command.Parameters.AddWithValue("logoType", entity.LogoType);
@@ -188,7 +234,12 @@ public class AziendaLogoService
         command.Parameters.AddWithValue("fileFormat", entity.FileFormat);
         command.Parameters.AddWithValue("mimeType", entity.MimeType);
         command.Parameters.AddWithValue("fileSizeBytes", entity.FileSizeBytes);
-        command.Parameters.AddWithValue("binaryData", entity.BinaryData);
+
+        if (includeBinaryData)
+        {
+            command.Parameters.AddWithValue("binaryData", entity.BinaryData);
+        }
+
         command.Parameters.AddWithValue("imageWidth", (object?)entity.ImageWidth ?? DBNull.Value);
         command.Parameters.AddWithValue("imageHeight", (object?)entity.ImageHeight ?? DBNull.Value);
         command.Parameters.AddWithValue("hasTransparency", entity.HasTransparency);
@@ -215,6 +266,7 @@ public class AziendaLogoService
         command.Parameters.AddWithValue("parentLogoId", (object?)entity.ParentLogoId ?? DBNull.Value);
         command.Parameters.AddWithValue("isCurrentVersion", entity.IsCurrentVersion);
         command.Parameters.AddWithValue("createdBy", entity.CreatedBy);
+        command.Parameters.AddWithValue("createdAt", entity.CreatedAt);
     }
 
     protected AziendaLogo MapFromReader(NpgsqlDataReader reader)
@@ -324,6 +376,37 @@ public class AziendaLogoService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei loghi per azienda {AziendaId}", aziendaId);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Elimina un logo aziendale
+    /// </summary>
+    public async Task<bool> DeleteAsync(Guid logoId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "DELETE FROM ana_aziende_logo WHERE logo_id = @logoId";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("logoId", logoId);
+
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation("Logo {LogoId} eliminato con successo", logoId);
+                return true;
+            }
+
+            _logger.LogWarning("Logo {LogoId} non trovato per l'eliminazione", logoId);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante l'eliminazione del logo {LogoId}", logoId);
             throw;
         }
     }

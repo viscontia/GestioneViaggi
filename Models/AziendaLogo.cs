@@ -100,6 +100,7 @@ public class AziendaLogo
 
     /// <summary>
     /// Crea una copia dell'entità per evitare modifiche accidentali all'oggetto originale
+    /// NOTA: Non clona BinaryData se vuoto (performance optimization - verrà ricaricato on-demand)
     /// </summary>
     public AziendaLogo Clone()
     {
@@ -114,7 +115,9 @@ public class AziendaLogo
             FileFormat = this.FileFormat,
             MimeType = this.MimeType,
             FileSizeBytes = this.FileSizeBytes,
-            BinaryData = (byte[])this.BinaryData.Clone(),
+            BinaryData = this.BinaryData != null && this.BinaryData.Length > 0 
+                ? (byte[])this.BinaryData.Clone() 
+                : Array.Empty<byte>(),
             ImageWidth = this.ImageWidth,
             ImageHeight = this.ImageHeight,
             HasTransparency = this.HasTransparency,
