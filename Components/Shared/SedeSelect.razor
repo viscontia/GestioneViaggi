@@ -6,20 +6,10 @@
 @using MudBlazor
 @inject AziendaSedeService SedeService
 
-<BaseEntitySelect TItem="AziendaSede" 
-    Value="_selectedSede" 
-    ValueChanged="OnSedeChanged"
-    SearchFunc="SearchSedi" 
-    ToStringFunc="@FormatSedeDisplay" 
-    Label="@Label" 
-    Required="@Required"
-    RequiredError="@RequiredError" 
-    Disabled="@Disabled" 
-    Class="@Class" 
-    HelperText="@HelperText" 
-    AutoFocus="@AutoFocus"
-    Validation="@Validation" 
-    AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="AziendaSede" Value="_selectedSede" ValueChanged="OnSedeChanged" SearchFunc="SearchSedi"
+    ToStringFunc="@FormatSedeDisplay" Label="@Label" Required="@Required" RequiredError="@RequiredError"
+    Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText" AutoFocus="@AutoFocus"
+    Validation="@Validation" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<AziendaSede> _sedi = new();
@@ -123,11 +113,11 @@
         if (string.IsNullOrEmpty(value))
             return _sedi;
 
-        return _sedi.Where(s => 
-            (s.TipoSedeDescrizione?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-            (s.Indirizzo?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-            (s.ComuneNome?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
-            (s.ProvinciaSigla?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false)
+        return _sedi.Where(s =>
+        (s.TipoSedeDescrizione?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+        (s.Indirizzo?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+        (s.ComuneNome?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false) ||
+        (s.ProvinciaSigla?.Contains(value, StringComparison.InvariantCultureIgnoreCase) ?? false)
         );
     }
 
@@ -143,7 +133,7 @@
         var indirizzo = sede.Indirizzo;
         if (!string.IsNullOrWhiteSpace(sede.NumeroCivico))
             indirizzo += $" {sede.NumeroCivico}";
-        
+
         if (!string.IsNullOrWhiteSpace(indirizzo))
             parts.Add(indirizzo);
 
@@ -155,6 +145,6 @@
             parts.Add(comune);
         }
 
-        return string.Join(" - ", parts);
+        return string.Join(" - ", parts).ToUpperInvariant();
     }
 }

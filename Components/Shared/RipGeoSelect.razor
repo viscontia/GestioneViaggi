@@ -8,8 +8,9 @@
 @inject RipartizioneGeograficaService RipGeoService
 
 <BaseEntitySelect TItem="RipartizioneGeografica" Value="_selectedRipGeo" ValueChanged="OnRipGeoChanged"
-    SearchFunc="SearchRipartizioni" ToStringFunc="@(r => r?.Descrizione)" Label="@Label" Required="@Required"
-    RequiredError="@RequiredError" Disabled="@Disabled" Class="@Class" HelperText="@HelperText" HelperTextError="@HelperTextError" AutoFocus="@AutoFocus"
+    SearchFunc="SearchRipartizioni" ToStringFunc="@(r => r?.Descrizione?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" HelperTextError="@HelperTextError" AutoFocus="@AutoFocus"
     AdditionalAttributes="AdditionalAttributes" />
 
 @code {
@@ -88,14 +89,14 @@
         if (FilterEsteroOnly == true)
         {
             _filteredRipartizioni = _ripartizioni
-                .Where(r => r.Descrizione != null && r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            .Where(r => r.Descrizione != null && r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         }
         else if (FilterEsteroOnly == false)
         {
             _filteredRipartizioni = _ripartizioni
-                .Where(r => r.Descrizione != null && !r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            .Where(r => r.Descrizione != null && !r.Descrizione.StartsWith("ESTERO", StringComparison.OrdinalIgnoreCase))
+            .ToList();
         }
         else
         {

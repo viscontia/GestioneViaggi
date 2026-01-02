@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject TipoMezzoService TipoMezzoService
 
-<BaseEntitySelect TItem="TipoMezzo"
-                  Value="_selectedItem"
-                  ValueChanged="OnValueChanged"
-                  SearchFunc="SearchFunc"
-                  ToStringFunc="@(x => x?.Descrizione)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="TipoMezzo" Value="_selectedItem" ValueChanged="OnValueChanged" SearchFunc="SearchFunc"
+    ToStringFunc="@(x => x?.Descrizione?.ToUpperInvariant())" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText"
+    AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<TipoMezzo>? _items;

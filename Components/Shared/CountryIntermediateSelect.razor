@@ -7,19 +7,10 @@
 @using System.Threading
 @inject CountryIntermediateService CountryIntermediateService
 
-<BaseEntitySelect TItem="CountryIntermediate"
-                  Value="_selectedIntermediate"
-                  ValueChanged="OnIntermediateChanged"
-                  SearchFunc="SearchIntermediates"
-                  ToStringFunc="@(i => i?.Name)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="CountryIntermediate" Value="_selectedIntermediate" ValueChanged="OnIntermediateChanged"
+    SearchFunc="SearchIntermediates" ToStringFunc="@(i => i?.Name?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<CountryIntermediate>? _intermediates;

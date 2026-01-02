@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject TipoSedeService TipoSedeService
 
-<BaseEntitySelect TItem="TipoSede"
-                  Value="_selectedTipoSede"
-                  ValueChanged="OnTipoSedeChanged"
-                  SearchFunc="SearchTipiSede"
-                  ToStringFunc="@(t => t?.Descrizione)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="TipoSede" Value="_selectedTipoSede" ValueChanged="OnTipoSedeChanged"
+    SearchFunc="SearchTipiSede" ToStringFunc="@(t => t?.Descrizione?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<TipoSede>? _tipiSede;

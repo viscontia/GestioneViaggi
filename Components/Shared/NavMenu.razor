@@ -17,6 +17,11 @@
                     OnClick="@(() => OpenTab("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
             <span style="font-size: 18px !important;">Anagrafica Aziende</span>
         </MudNavLink>
+
+        <MudNavLink Icon="@Icons.Material.Filled.People"
+                    OnClick="@(() => OpenTab("/anagrafiche/clienti", "Anagrafica Clienti", "people"))">
+            <span style="font-size: 18px !important;">Anagrafica Clienti</span>
+        </MudNavLink>
     </MudNavGroup>
 
     <MudNavGroup Title="Tabelle" Icon="@Icons.Material.Filled.TableChart" Expanded="false">

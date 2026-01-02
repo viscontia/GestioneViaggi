@@ -1,0 +1,297 @@
+@page "/anagrafiche/clienti"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject IClienteService ClienteService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@inject ITenantContext TenantContext
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="Cliente" Items="@_items" Title="Gestione Anagrafica Clienti" SearchFunction="@Search"
+    @bind-SelectedItem="_selectedItem">
+
+    <ToolBarActions>
+        @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                OnClick="@OpenCreateDialog">
+                Nuovo Cliente
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            @if (_isSuperAdmin)
+            {
+                <PropertyColumn Property="x => x.AziendaRagioneSociale" Title="Azienda" />
+            }
+
+            <TemplateColumn Title="Cliente" HeaderStyle="font-weight:bold" SortBy="@(x => $"{x.Cognome} {x.Nome}")">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2"><strong>@context.Item.Cognome</strong> @context.Item.Nome</MudText>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.Sesso" Title="Sesso" HeaderStyle="text-align:center"
+                CellStyle="text-align:center" />
+
+            <TemplateColumn Title="Nato a" SortBy="@(x => x.ComuneNascita?.Nome)">
+                <CellTemplate>
+                    @context.Item.ComuneNascita?.Nome (@context.Item.ComuneNascita?.ProvinciaDescrizione)
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Nato il" SortBy="@(x => x.DataNascita)">
+                <CellTemplate>
+                    @context.Item.DataNascita?.ToString("dd/MM/yyyy")
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Età" HeaderStyle="text-align:center" CellStyle="text-align:center">
+                <CellTemplate>
+                    @(context.Item.DataNascita.HasValue ? (DateTime.Now.Year - context.Item.DataNascita.Value.Year -
+                        (DateTime.Now.DayOfYear < context.Item.DataNascita.Value.DayOfYear ? 1 : 0)) : "")
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Residenza" SortBy="@(x => x.ComuneResidenza?.Nome)">
+                <CellTemplate>
+                    <div style="font-size: 0.85em;">
+                        <div>@context.Item.IndirizzoResidenza</div>
+                        <div>@context.Item.ComuneResidenza?.Nome (@context.Item.ComuneResidenza?.ProvinciaDescrizione)
+                        </div>
+                    </div>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Telefono">
+                <CellTemplate>
+                    @($"{context.Item.PrefTelInt} {context.Item.Telefono}")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.Email" Title="Email" />
+            <PropertyColumn Property="x => x.CodiceFiscale" Title="Codice Fiscale" />
+
+            <PropertyColumn Property="x => x.TipoDocIdentita" Title="Documento" />
+            <PropertyColumn Property="x => x.DocumentoNumero" Title="Numero Doc." />
+
+            <TemplateColumn Title="Scadenza Doc." SortBy="@(x => x.DocumentoRilasciatoScadenza)">
+                <CellTemplate>
+                    @if (context.Item.DocumentoRilasciatoScadenza.HasValue)
+                    {
+                        var days = (context.Item.DocumentoRilasciatoScadenza.Value - DateTime.Today).TotalDays;
+                        <MudText Color="@(days < 30 ? Color.Error : Color.Default)">
+                            @context.Item.DocumentoRilasciatoScadenza.Value.ToString("dd/MM/yyyy")
+                        </MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.Intolleranza" Title="Int. Alimentare" />
+
+            <EnterpriseActionsColumn T="Cliente" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<Cliente> _items = new();
+    private Cliente? _selectedItem;
+    private string _errorMessage = string.Empty;
+    private int? _currentAziendaId;
+    private int _selectedAziendaId; // Filtro per SuperAdmin
+    private bool _isSuperAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_clienti");
+
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null; // Accesso globale
+        }
+        else
+        {
+            // Get current azienda ID for normal users
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!aziendaId.HasValue)
+            {
+                _errorMessage = "Impossibile determinare l'azienda corrente";
+                return;
+            }
+            _currentAziendaId = aziendaId.Value;
+        }
+
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            // Se filtro selezionato (SuperAdmin), usa quello. Altrimenti usa contesto corrente.
+            // Per SuperAdmin senza filtro, passa null (GetAll).
+            int? filterId = _selectedAziendaId > 0 ? _selectedAziendaId : _currentAziendaId;
+
+            _items = await ClienteService.GetAllAsync(filterId);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(Cliente item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Cognome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Nome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CodiceFiscale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Telefono?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        // Se è SuperAdmin e non ha selezionato un'azienda (filtro = 0), blocca e mostra errore
+        if (_isSuperAdmin && _selectedAziendaId == 0)
+        {
+            Snackbar.Add("Selezionare una Azienda prima di Inserire un nuovo Cliente", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters<ClienteDialog>
+{
+{ x => x.Entity, new Cliente() },
+{ x => x.IsEditMode, false },
+// Se Azienda selezionata nel filtro (SuperAdmin) o AziendaCorrente (User)
+{ x => x.AziendaFk, _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0) }
+};
+
+        var options = new DialogOptions
+            {
+                BackdropClick = false,
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+        var dialog = await DialogService.ShowAsync<ClienteDialog>("Nuovo Cliente", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Cliente newItem)
+        {
+            // Il salvataggio è già avvenuto nel dialog
+            _items.Add(newItem);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenEditDialog(Cliente item)
+    {
+        // Clone entity to avoid modifying the original during editing
+        var cloned = item.Clone<Cliente>();
+
+        var parameters = new DialogParameters<ClienteDialog>
+{
+{ x => x.Entity, cloned },
+{ x => x.IsEditMode, true },
+{ x => x.AziendaFk, _currentAziendaId ?? item.AziendaFk }
+};
+
+        var options = new DialogOptions
+            {
+                BackdropClick = false,
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+        var dialog = await DialogService.ShowAsync<ClienteDialog>($"Modifica Cliente: {item.Cognome} {item.Nome}", parameters,
+        options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is Cliente updatedItem)
+        {
+            // Il salvataggio è già avvenuto nel dialog
+            var index = _items.FindIndex(c => c.ClienteId == updatedItem.ClienteId);
+            if (index >= 0)
+            {
+                _items[index] = updatedItem;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteItem(Cliente item)
+    {
+        var parameters = new DialogParameters
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare il cliente {item.Cognome} {item.Nome}?" }
+};
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma Eliminazione", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await ClienteService.DeleteAsync(item.ClienteId, _currentAziendaId ?? item.AziendaFk);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Cliente eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare il cliente", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

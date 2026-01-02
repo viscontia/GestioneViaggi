@@ -1,0 +1,309 @@
+using GestioneViaggi.Models;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using MudBlazor;
+using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Validation.Business;
+using GestioneViaggi.Validation.Exceptions;
+using GestioneViaggi.Validation.Fiscal;
+using Microsoft.Extensions.Logging;
+
+namespace GestioneViaggi.Components.Shared;
+
+public partial class ClienteDialog : ComponentBase, IDisposable
+{
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+
+    [Inject] public IClienteService ClienteService { get; set; } = default!;
+    [Inject] public ComuneService ComuneService { get; set; } = default!;
+    [Inject] public ISnackbar Snackbar { get; set; } = default!;
+    [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
+
+    [Parameter] public Cliente Entity { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+    [Parameter] public int AziendaFk { get; set; }
+
+    private bool IsSuperAdmin => AziendaFk == 0;
+
+    private MudForm? _form;
+    private MudSelect<string>? _titoloField;
+
+    private bool _isSaving = false;
+
+    // NOTA: DateMask configurato con formato dd/MM/yyyy
+    // Permette input da tastiera (es: digitare 15031990 auto-formatta in 15/03/1990)
+    // In MAUI Blazor Hybrid, il rendering è client-side quindi l'esperienza è fluida
+    // (il bug #6796 affligge principalmente Blazor Server con alta latenza)
+
+    // Comune helpers per conversione int <-> int?
+    private int? ComuneNascitaIdProxy
+    {
+        get => Entity.ComuneNascitaFk == 0 ? null : Entity.ComuneNascitaFk;
+        set => Entity.ComuneNascitaFk = value ?? 0;
+    }
+
+    private int? ComuneResidenzaIdProxy
+    {
+        get => Entity.ComuneResidenzaFk == 0 ? null : Entity.ComuneResidenzaFk;
+        set => Entity.ComuneResidenzaFk = value ?? 0;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Inizializza azienda_fk se non in edit mode
+        if (!IsEditMode)
+        {
+            Entity.AziendaFk = AziendaFk;
+            Entity.Sesso = 'M'; // Default
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            if (_titoloField != null)
+            {
+                await Task.Delay(300);
+                await _titoloField.FocusAsync();
+            }
+        }
+    }
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Entity.ComuneResidenzaFk > 0 && Entity.ComuneResidenza == null)
+        {
+            try
+            {
+                Entity.ComuneResidenza = await ComuneService.GetByIdAsync(Entity.ComuneResidenzaFk);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Impossibile caricare il comune di residenza per validazione");
+            }
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_form == null) return;
+
+        _isSaving = true;
+
+        // Controllo SuperAdmin: Azienda obbligatoria
+        if (IsSuperAdmin && Entity.AziendaFk == 0)
+        {
+            Snackbar.Add("Selezionare un'azienda per continuare", Severity.Warning);
+            _isSaving = false;
+            return;
+        }
+
+        StateHasChanged();
+
+        try
+        {
+            await _form.Validate();
+
+            if (_form.IsValid)
+            {
+                // Normalizza i campi prima del salvataggio
+                NormalizeEntity();
+
+                if (IsEditMode)
+                {
+                    var updated = await ClienteService.UpdateAsync(Entity);
+                    Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
+                    MudDialog?.Close(DialogResult.Ok(updated));
+                }
+                else
+                {
+                    var created = await ClienteService.CreateAsync(Entity);
+                    Snackbar.Add("Cliente creato con successo", Severity.Success);
+                    MudDialog?.Close(DialogResult.Ok(created));
+                }
+            }
+        }
+        catch (UniqueConstraintViolationException ex)
+        {
+            // Gestione specifica per duplicati: mostra messaggio e tieni aperto il dialog
+            Snackbar.Add(ex.Message, Severity.Warning);
+
+            // Logica opzionale: potremmo evidenziare il campo specifico se necessario
+            // ma il messaggio Toast è già molto esplicito
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    /// <summary>
+    /// Validazione asincrona del codice fiscale (formato + unicità)
+    /// </summary>
+    private async Task<IEnumerable<string>> ValidateCodiceFiscaleAsync(string cf)
+    {
+        cf = cf?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(cf))
+        {
+            // Verifica se estero (se null, assume italiano per sicurezza)
+            bool isEstero = Entity.ComuneResidenza?.ComuneEstero ?? false;
+
+            if (!isEstero)
+                return ["Il Codice Fiscale è obbligatorio per i clienti italiani"];
+            else
+                return [];
+        }
+
+        // 1. Validazione Formato (Veloce)
+        var formatResult = CodiceFiscaleValidator.ValidateCodiceFiscale(cf);
+        if (!formatResult.IsValid)
+            return [formatResult.Message];
+
+        // 2. Validazione Unicità (DB)
+        try
+        {
+            int? excludeId = IsEditMode ? Entity.ClienteId : null;
+            // Se AziendaFk (dal parametro) è 0 (es. SuperAdmin), controlla l'azienda selezionata.
+            int? aziendaCheck = IsSuperAdmin ? (Entity.AziendaFk == 0 ? null : Entity.AziendaFk) : AziendaFk;
+
+            if (aziendaCheck == null) return []; // Non validare se azienda non selezionata
+
+            bool exists = await ClienteService.CheckCodiceFiscaleEsistenzaAsync(cf, aziendaCheck, excludeId);
+
+            if (exists)
+                return ["Codice Fiscale già presente in Anagrafica Clienti: impossibile procedere"];
+        }
+        catch (Exception ex)
+        {
+            // In caso di errore server, non blocchiamo l'UI ma logghiamo (o mostriamo errore generico)
+            Console.WriteLine($"Errore validazione CF: {ex.Message}");
+            return ["Impossibile verificare l'unicità del codice fiscale"];
+        }
+
+        return [];
+    }
+
+    private string? ValidateDataRilascio(DateTime? date)
+    {
+        if (!date.HasValue)
+            return "La data di rilascio è obbligatoria";
+
+        var result = ClienteValidator.ValidateDocumentoDataRilascio(date, Entity.DocumentoRilasciatoScadenza, Entity.DataNascita);
+        return result.IsValid ? null : result.Message;
+    }
+
+    private string? ValidateDataScadenza(DateTime? date)
+    {
+        if (!date.HasValue)
+            return "La data di scadenza è obbligatoria";
+
+        var result = ClienteValidator.ValidateDocumentoDataScadenza(date, Entity.DocumentoRilasciatoData);
+        return result.IsValid ? null : result.Message;
+    }
+
+    /// <summary>
+    /// Normalizza i dati del cliente prima del salvataggio
+    /// </summary>
+    private void NormalizeEntity()
+    {
+        // Trim e Uppercase per campi testo
+        Entity.Cognome = Entity.Cognome?.Trim().ToUpperInvariant() ?? string.Empty;
+        Entity.Nome = Entity.Nome?.Trim().ToUpperInvariant() ?? string.Empty;
+        Entity.Titolo = Entity.Titolo?.Trim().ToUpperInvariant();
+        Entity.IndirizzoResidenza = Entity.IndirizzoResidenza?.Trim().ToUpperInvariant();
+        Entity.CodiceFiscale = Entity.CodiceFiscale?.Trim().ToUpperInvariant();
+        Entity.Iban = Entity.Iban?.Trim().ToUpperInvariant();
+        Entity.TipoDocIdentita = Entity.TipoDocIdentita?.Trim().ToUpperInvariant();
+        Entity.DocumentoNumero = Entity.DocumentoNumero?.Trim().ToUpperInvariant();
+        Entity.DocumentoRilasciatoDa = Entity.DocumentoRilasciatoDa?.Trim().ToUpperInvariant();
+
+        // Lowercase per email
+        Entity.Email = Entity.Email?.Trim().ToLowerInvariant();
+
+        // Trim semplice per altri campi
+        Entity.PrefTelInt = Entity.PrefTelInt?.Trim();
+        Entity.Telefono = Entity.Telefono?.Trim();
+        Entity.Note = Entity.Note?.Trim().ToUpperInvariant();
+        Entity.Intolleranza = Entity.Intolleranza?.Trim().ToUpperInvariant();
+    }
+
+    public void Dispose()
+    {
+        try { ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup"); } catch { }
+        GC.SuppressFinalize(this);
+    }
+
+    private static IEnumerable<string> ValidateTelefono(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break;
+        }
+
+        var result = ClienteValidator.ValidateTelefono(value);
+        if (!result.IsValid)
+        {
+            yield return result.Message;
+        }
+    }
+
+    /// <summary>
+    /// Validazione asincrona dell'email (formato + unicità)
+    /// </summary>
+    private async Task<IEnumerable<string>> ValidateEmailAsync(string email)
+    {
+        email = email?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email))
+            return [];
+
+        // 1. Validazione Formato (Veloce)
+        var formatResult = ClienteValidator.ValidateEmail(email);
+        if (!formatResult.IsValid)
+            return [formatResult.Message];
+
+        // 2. Validazione Unicità (DB)
+        try
+        {
+            int? excludeId = IsEditMode ? Entity.ClienteId : null;
+            // Se AziendaFk è 0, usa Entity.AziendaFk (selezionata)
+            int? aziendaCheck = IsSuperAdmin ? (Entity.AziendaFk == 0 ? null : Entity.AziendaFk) : AziendaFk;
+
+            if (aziendaCheck == null) return []; // Non validare se azienda non selezionata
+
+            bool exists = await ClienteService.VerificaClienteEsistenteAsync(email, aziendaCheck, excludeId);
+
+            if (exists)
+                return ["Mail già presente in Anagrafica Clienti: impossibile proseguire"];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore validazione Email: {ex.Message}");
+            return ["Impossibile verificare l'unicità dell'email"];
+        }
+
+        return [];
+    }
+}

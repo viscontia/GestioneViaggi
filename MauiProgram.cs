@@ -11,6 +11,8 @@ using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Repositories;
+using GestioneViaggi.Repositories.Interfaces;
 using GestioneViaggi.Statistics;
 
 namespace GestioneViaggi;
@@ -71,8 +73,14 @@ public static class MauiProgram
         builder.Services.AddScoped<IStatusBarService, StatusBarService>();
 
         // ==========================================================
+        // REPOSITORIES
+        // ==========================================================
+        builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+
+        // ==========================================================
         // CRUD SERVICES
         // ==========================================================
+        builder.Services.AddScoped<IClienteService, ClienteService>();
         builder.Services.AddScoped<CountryService>();
         builder.Services.AddScoped<CountryRegionService>();
         builder.Services.AddScoped<CountrySubRegionService>();

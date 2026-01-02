@@ -7,19 +7,10 @@
 @using System.Threading
 @inject CountryOrganizationService CountryOrganizationService
 
-<BaseEntitySelect TItem="CountryOrganization"
-                  Value="_selectedOrganization"
-                  ValueChanged="OnOrganizationChanged"
-                  SearchFunc="SearchOrganizations"
-                  ToStringFunc="@(o => o?.Name)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="CountryOrganization" Value="_selectedOrganization" ValueChanged="OnOrganizationChanged"
+    SearchFunc="SearchOrganizations" ToStringFunc="@(o => o?.Name?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<CountryOrganization>? _organizations;

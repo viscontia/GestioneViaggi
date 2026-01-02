@@ -1,0 +1,54 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AziendaService AziendaService
+@inject ISnackbar Snackbar
+
+<MudSelect T="int" Label="@Label" Value="@Value" ValueChanged="@OnValueChanged" Variant="Variant.Outlined" Dense="true"
+    Margin="Margin.Dense" Disabled="@Disabled" Required="@Required" RequiredError="Selezionare un'azienda"
+    Clearable="@Clearable" AnchorOrigin="Origin.BottomCenter">
+    @if (ShowAllOption)
+    {
+        <MudSelectItem Value="0">Tutte le Aziende</MudSelectItem>
+    }
+    @foreach (var azienda in _aziende)
+    {
+        <MudSelectItem Value="@azienda.Id">@azienda.RagioneSociale</MudSelectItem>
+    }
+    </MudSelect>
+
+    @code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Azienda";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Required { get; set; }
+
+    [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public bool ShowAllOption { get; set; } = false;
+
+    private List<Azienda> _aziende = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAziendeAsync();
+    }
+
+    private async Task LoadAziendeAsync()
+    {
+        try
+        {
+            _aziende = await AziendaService.GetAllAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Errore codice 943: impossibile caricare lista aziende", Severity.Error);
+        }
+    }
+
+    private async Task OnValueChanged(int newValue)
+    {
+        Value = newValue;
+        await ValueChanged.InvokeAsync(newValue);
+    }
+}

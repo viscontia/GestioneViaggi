@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject RegioneService RegioneService
 
-<BaseEntitySelect TItem="Regione"
-                  Value="_selectedRegione"
-                  ValueChanged="OnRegioneChanged"
-                  SearchFunc="SearchRegioni"
-                  ToStringFunc="@(r => r?.Descrizione)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="Regione" Value="_selectedRegione" ValueChanged="OnRegioneChanged" SearchFunc="SearchRegioni"
+    ToStringFunc="@(r => r?.Descrizione?.ToUpperInvariant())" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText"
+    AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Regione>? _regioni;

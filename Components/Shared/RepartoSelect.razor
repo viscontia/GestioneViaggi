@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject RepartoAziendaleService RepartoService
 
-<BaseEntitySelect TItem="RepartoAziendale"
-                  Value="_selectedReparto"
-                  ValueChanged="OnRepartoChanged"
-                  SearchFunc="SearchReparti"
-                  ToStringFunc="@(r => r?.NomeReparto)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="RepartoAziendale" Value="_selectedReparto" ValueChanged="OnRepartoChanged"
+    SearchFunc="SearchReparti" ToStringFunc="@(r => r?.NomeReparto?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<RepartoAziendale>? _reparti;

@@ -7,9 +7,10 @@
 @inject ProvinciaService ProvinciaService
 
 <BaseEntitySelect TItem="Provincia" Value="_selectedProvincia" ValueChanged="OnProvinciaChanged"
-    SearchFunc="SearchProvince" ToStringFunc="@(p => p?.Descrizione)" Label="@Label" Required="@Required"
-    RequiredError="@RequiredError" Disabled="@Disabled" Class="@Class" HelperText="@HelperText" AutoFocus="@AutoFocus"
-    Validation="@Validation" AdditionalAttributes="AdditionalAttributes" />
+    SearchFunc="SearchProvince" ToStringFunc="@(p => p?.Descrizione?.ToUpperInvariant())" Label="@Label"
+    Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")"
+    HelperText="@HelperText" AutoFocus="@AutoFocus" Validation="@Validation"
+    AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Provincia> _allProvince = new();

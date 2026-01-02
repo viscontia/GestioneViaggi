@@ -87,16 +87,19 @@
 
             <!-- Data Costituzione - Opzionale -->
             <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
-                Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" Class="mb-3" DateFormat="dd/MM/yyyy"
-                Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" HelperText="Data di costituzione dell'azienda" />
+                Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" Class="mb-3"
+                DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                Placeholder="gg/mm/aaaa"
+                HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
             <!-- Data Inizio Attività - Opzionale -->
             <MudDatePicker @bind-Date="Entity.DataInizioAttivita" For="@(() => Entity.DataInizioAttivita)"
                 Label="Data Inizio Attività (opzionale)"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataInizioAttivita))"
-                Variant="Variant.Outlined" Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true"
-                Mask="@(new DateMask("dd/MM/yyyy"))"
-                HelperText="Data di inizio dell'attività (deve essere >= Costituzione)" />
+                Variant="Variant.Outlined" Class="mb-3"
+                DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                Placeholder="gg/mm/aaaa"
+                HelperText="Digitare la data (es: 15031990) o selezionare dal calendario (deve essere >= Costituzione)" />
 
             <!-- Capitale Sociale - Opzionale -->
             <MudNumericField @bind-Value="Entity.CapitaleSociale" For="@(() => Entity.CapitaleSociale)"
@@ -120,7 +123,9 @@
             <MudDatePicker @bind-Date="Entity.ReaDataIscrizione" For="@(() => Entity.ReaDataIscrizione)"
                 Label="Data Iscrizione REA (opzionale)"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateReaData))" Variant="Variant.Outlined"
-                Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+                Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                Placeholder="gg/mm/aaaa"
+                HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
             <MudDivider Class="my-4" />
 
@@ -203,12 +208,18 @@
                         <!-- Data Costituzione -->
                         <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
                             Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" Class="mb-3"
-                            DateFormat="dd/MM/yyyy" Editable="true" HelperText="Data di costituzione dell'azienda" />
+                            DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                            Placeholder="gg/mm/aaaa"
+                            HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
                         <!-- Data Inizio Attività -->
                         <MudDatePicker @bind-Date="Entity.DataInizioAttivita" For="@(() => Entity.DataInizioAttivita)"
-                            Label="Data Inizio Attività (opzionale)" Variant="Variant.Outlined" Class="mb-3"
-                            DateFormat="dd/MM/yyyy" Editable="true" HelperText="Data di inizio dell'attività" />
+                            Label="Data Inizio Attività (opzionale)"
+                            Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataInizioAttivita))"
+                            Variant="Variant.Outlined" Class="mb-3"
+                            DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                            Placeholder="gg/mm/aaaa"
+                            HelperText="Digitare la data (es: 15031990) o selezionare dal calendario (deve essere >= Costituzione)" />
 
                         <!-- Capitale Sociale -->
                         <MudNumericField @bind-Value="Entity.CapitaleSociale" For="@(() => Entity.CapitaleSociale)"
@@ -226,8 +237,12 @@
                             Label="Numero REA (opzionale)" Variant="Variant.Outlined" MaxLength="20" Class="mb-3"
                             HelperText="Se specificato, indicare anche la provincia REA" />
                         <MudDatePicker @bind-Date="Entity.ReaDataIscrizione" For="@(() => Entity.ReaDataIscrizione)"
-                            Label="Data Iscrizione REA (opzionale)" Variant="Variant.Outlined" Class="mb-3"
-                            DateFormat="dd/MM/yyyy" Editable="true" />
+                            Label="Data Iscrizione REA (opzionale)"
+                            Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateReaData))"
+                            Variant="Variant.Outlined" Class="mb-3"
+                            DateFormat="dd/MM/yyyy" Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))"
+                            Placeholder="gg/mm/aaaa"
+                            HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
                         <MudDivider Class="my-4" />
 

@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject CountryService CountryService
 
-<BaseEntitySelect TItem="Country"
-                  Value="_selectedCountry"
-                  ValueChanged="OnCountryChanged"
-                  SearchFunc="SearchCountries"
-                  ToStringFunc="@(c => c?.Name)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@Class"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="Country" Value="_selectedCountry" ValueChanged="OnCountryChanged" SearchFunc="SearchCountries"
+    ToStringFunc="@(c => c?.Name?.ToUpperInvariant())" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText"
+    AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<Country>? _countries;

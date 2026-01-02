@@ -2,20 +2,10 @@
 @using GestioneViaggi.Services.CRUD
 @inject ComuneService ComuneService
 
-<BaseEntitySelect TItem="Comune"
-                  Value="_selectedComune"
-                  ValueChanged="OnComuneChanged"
-                  SearchFunc="SearchComuni"
-                  ToStringFunc="@(c => c?.Nome ?? string.Empty)"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  AutoFocus="@AutoFocus"
-                  HelperText="@HelperText"
-                  Class="@Class"
-                  Validation="@Validation"
-                  AdditionalAttributes="@AdditionalAttributes" />
+<BaseEntitySelect TItem="Comune" Value="_selectedComune" ValueChanged="OnComuneChanged" SearchFunc="SearchComuni"
+    ToStringFunc="@(c => c?.Nome?.ToUpperInvariant() ?? string.Empty)" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" AutoFocus="@AutoFocus" HelperText="@HelperText"
+    Class="@($"{Class} uppercase-input")" Validation="@Validation" AdditionalAttributes="@AdditionalAttributes" />
 
 @code {
     private List<Comune> _allComuni = new();
@@ -27,6 +17,12 @@
 
     [Parameter]
     public EventCallback<int?> SelectedComuneIdChanged { get; set; }
+
+    [Parameter]
+    public Comune? SelectedComune { get; set; }
+
+    [Parameter]
+    public EventCallback<Comune?> SelectedComuneChanged { get; set; }
 
     [Parameter]
     public string Label { get; set; } = "Comune";
@@ -107,6 +103,7 @@
     {
         _selectedComune = comune;
         await SelectedComuneIdChanged.InvokeAsync(comune?.Id);
+        await SelectedComuneChanged.InvokeAsync(comune);
     }
 
     private async Task<IEnumerable<Comune>> SearchComuni(string searchText, CancellationToken cancellationToken)
@@ -125,14 +122,14 @@
 
         // Filtra per provincia se specificato
         var source = ProvinciaIdFilter.HasValue
-            ? _allComuni.Where(c => c.ProvinciaIdFk == ProvinciaIdFilter.Value)
-            : _allComuni;
+        ? _allComuni.Where(c => c.ProvinciaIdFk == ProvinciaIdFilter.Value)
+        : _allComuni;
 
         // Ricerca case-insensitive che inizia con il testo cercato (più veloce)
         var startsWithResults = source
-            .Where(c => c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase))
-            .Take(50)
-            .ToList();
+        .Where(c => c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase))
+        .Take(50)
+        .ToList();
 
         // Se ci sono abbastanza risultati, ritorna solo quelli
         if (startsWithResults.Count >= 20)
@@ -140,9 +137,9 @@
 
         // Altrimenti aggiungi anche i risultati "contiene" (fino a 50 totali)
         var containsResults = source
-            .Where(c => !c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) &&
-                        c.Nome.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-            .Take(50 - startsWithResults.Count);
+        .Where(c => !c.Nome.StartsWith(searchText, StringComparison.OrdinalIgnoreCase) &&
+        c.Nome.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+        .Take(50 - startsWithResults.Count);
 
         return startsWithResults.Concat(containsResults).ToList();
     }
