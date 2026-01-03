@@ -8,6 +8,7 @@ using GestioneViaggi.Validation.Business;
 using GestioneViaggi.Validation.Exceptions;
 using GestioneViaggi.Validation.Fiscal;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace GestioneViaggi.Components.Shared;
 
@@ -29,6 +30,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     private MudForm? _form;
     private MudSelect<string>? _titoloField;
+    private MudFileUpload<IBrowserFile>? _fileUpload;
+    private string? _photoPreviewUrl;
+    private const long MaxFileSize = 1024 * 1024 * 5; // 5MB
 
     private bool _isSaving = false;
 
@@ -92,6 +96,20 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             {
                 Logger.LogWarning(ex, "Impossibile caricare il comune di residenza per validazione");
             }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Entity.Foto != null && Entity.Foto.Length > 0)
+        {
+            var format = Entity.FotoMimeType ?? "image/jpeg";
+            var base64 = Convert.ToBase64String(Entity.Foto);
+            _photoPreviewUrl = $"data:{format};base64,{base64}";
+        }
+        else
+        {
+            _photoPreviewUrl = null;
         }
     }
 
@@ -305,5 +323,78 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         }
 
         return [];
+    }
+
+
+
+    private async Task UploadPhoto(IBrowserFile? file)
+    {
+        try
+        {
+            if (file == null)
+            {
+                return;
+            }
+
+            if (file.Size > MaxFileSize)
+            {
+                Snackbar.Add("La dimensione massima del file è 5MB", Severity.Warning);
+                return;
+            }
+
+            if (!file.ContentType.StartsWith("image/"))
+            {
+                Snackbar.Add("È possibile caricare solo immagini", Severity.Warning);
+                return;
+            }
+
+            using var stream = file.OpenReadStream(MaxFileSize);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+
+            Entity.Foto = memoryStream.ToArray();
+            Entity.FotoMimeType = file.ContentType;
+            Entity.FotoFilename = file.Name;
+            Entity.FotoUpdDate = DateTime.Now;
+
+            // Update preview
+            var base64 = Convert.ToBase64String(Entity.Foto);
+            _photoPreviewUrl = $"data:{Entity.FotoMimeType};base64,{base64}";
+
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il caricamento della foto: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void DeletePhoto()
+    {
+        Entity.Foto = null;
+        Entity.FotoMimeType = null;
+        Entity.FotoFilename = null;
+        Entity.FotoUpdDate = null;
+        _photoPreviewUrl = null;
+    }
+
+    private async Task DownloadPhoto()
+    {
+        if (Entity.Foto == null || Entity.Foto.Length == 0) return;
+
+        try
+        {
+            // Crea un link temporaneo per il download
+            var fileName = Entity.FotoFilename ?? $"foto_cliente_{Entity.ClienteId}.jpg";
+            var contentType = Entity.FotoMimeType ?? "image/jpeg";
+            var base64 = Convert.ToBase64String(Entity.Foto);
+            var fileUrl = $"data:{contentType};base64,{base64}";
+
+            await JS.InvokeVoidAsync("triggerDownload", fileName, fileUrl);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il download: {ex.Message}", Severity.Error);
+        }
     }
 }

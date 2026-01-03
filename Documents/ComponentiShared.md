@@ -51,7 +51,7 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 ---
 
 ## Componenti Select (Autocomplete)
-Tutti i componenti di selezione (Dropdown) sono stati migrati per utilizzare internamente `MudAutocomplete` tramite un componente base comune. Questo garantisce funzionalità di **Ricerca** e **Cancellazione** (Clear) uniformi in tutta l'applicazione.
+Gran parte dei componenti di selezione (Dropdown) sono stati migrati per utilizzare internamente `MudAutocomplete` tramite un componente base comune.
 
 ### BaseEntitySelect
 Componente base generico (`Components/Shared/BaseEntitySelect.razor`) che incapsula la logica di `MudAutocomplete`.
@@ -95,10 +95,7 @@ Componente per la selezione di regioni (`Components/Shared/RegioneSelect.razor`)
 Componente per la selezione di province (`Components/Shared/ProvinciaSelect.razor`).
 *   **Funzionalità**:
     *   Carica le province da `ana_geo_province_ita`.
-    *   Supporta il filtro `FilterEsteroOnly` (bool?) per gestire la visualizzazione delle province estere:
-        *   `true`: Mostra **SOLO** le province che iniziano con "ESTERO".
-        *   `false`: Mostra **SOLO** le province che **NON** iniziano con "ESTERO" (default per comuni italiani).
-        *   `null` (default): Mostra **TUTTE** le province.
+    *   Supporta il filtro `FilterEsteroOnly` per distinguere province IT/Estere.
 *   **Utilizzo**:
     ```razor
     <ProvinciaSelect @bind-SelectedProvinciaId="@Entity.ProvinciaIdFk"
@@ -106,14 +103,52 @@ Componente per la selezione di province (`Components/Shared/ProvinciaSelect.razo
                      FilterEsteroOnly="@Entity.ComuneEstero" />
     ```
 
-### Altri Componenti Select
-La libreria include componenti analoghi per tutte le entità geografiche:
-*   `CapoluogoSelect`
-*   `RipGeoSelect` (Ripartizione Geografica)
-*   `CountryRegionSelect` (Regione Geografica Mondiale)
-*   `CountrySubRegionSelect`
-*   `CountryIntermediateSelect`
-*   `CountryOrganizationSelect`
+### AziendaSelect (New)
+Componente specifico per la selezione dell'azienda (`Components/Shared/AziendaSelect.razor`).
+*   **Differenza**: Utilizza `MudSelect` standard invece di Autocomplete (lista limitata).
+*   **Funzionalità**:
+    *   Caricamento asincrono aziende.
+    *   Supporto opzione "Tutte le Aziende" (Value=0) utile per SuperAdmin.
+*   **Parametri**: `ShowAllOption`, `Required`.
+
+### Elenco Completo Componenti Select
+
+Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) disponibili in `Components/Shared`:
+
+| Componente | File | Tabella / Campo | Ordinamento | Scopo |
+|---|---|---|---|---|
+| **AziendaSelect** | `AziendaSelect.razor` | `ana_aziende` | Ragione Sociale | Selezione azienda per contesto multi-tenant. Include opzione "Tutte". |
+| **CapoluogoSelect** | `CapoluogoSelect.razor` | `ana_geo_comuni` (flag capoluogo) | Descrizione | Selezione città capoluogo di provincia. |
+| **ComuneSelect** | `ComuneSelect.razor` | `ana_geo_comuni` | Nome | Ricerca completa comuni italiani ed esteri. |
+| **CountrySelect** | `CountrySelect.razor` | `eba_countries` | Name (Nome Paese) | Selezione nazione (standard ISO). |
+| **CountryIntermediate** | `CountryIntermediateSelect` | `eba_countries_intermediate_regions` | Name | Selezione macro-regione intermedia (ONU). |
+| **CountryOrganization** | `CountryOrganizationSelect` | `eba_countries_organizations` | Name | Selezione organizzazione internazionale. |
+| **CountryRegion** | `CountryRegionSelect` | `eba_countries_regions` | Name | Selezione regione mondiale (es. Europe, Asia). |
+| **CountrySubRegion** | `CountrySubRegionSelect` | `eba_countries_sub_regions` | Name | Selezione sotto-regione (es. Southern Europe). |
+| **FormaGiuridica** | `FormaGiuridicaSelect.razor` | `ana_forme_giuridiche` | Descrizione | Selezione forma giuridica azienda (SPA, SRL...). |
+| **MarcaVeicolo** | `MarcaVeicoloSelect.razor` | `ana_marche_veicoli` | Descrizione | Selezione marca veicolo (es. Fiat, BMW). |
+| **ProvinciaSelect** | `ProvinciaSelect.razor` | `ana_geo_province_ita` | Descrizione | Selezione provincia (sigla visualizzata). supporta filtro estero. |
+| **RegioneSelect** | `RegioneSelect.razor` | `ana_geo_regioni_ita` | Descrizione | Selezione regione amministrativa italiana. |
+| **RepartoSelect** | `RepartoSelect.razor` | `ana_reparti` | NomeReparto | Assegnazione reparto interno (es. Amministrazione). |
+| **RipGeoSelect** | `RipGeoSelect.razor` | `ana_geo_ripartizioni_geo` | Descrizione | Selezione ripartizione geografica (Nord, Centro, Sud). |
+| **SedeSelect** | `SedeSelect.razor` | `ana_sedi` | Tipologia + Indirizzo | Selezione sede operativa/legale di un'azienda. |
+| **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
+| **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
+
+---
+
+## Componenti UI Generali
+
+### AppBreadcrumbs
+Componente di navigazione (`Components/Shared/AppBreadcrumbs.razor`).
+*   Gestisce la visualizzazione del percorso di navigazione corrente.
+
+### StatusBar
+Barra di stato inferiore (`Components/Shared/StatusBar.razor`).
+*   Visualizza informazioni di sistema o utente corrente.
+
+### StatusBadge
+Badge per visualizzazioni stati semplici (`Components/Shared/StatusBadge.razor`).
 
 ---
 
@@ -141,7 +176,36 @@ Il `MainLayout` inietta dinamicamente la classe `.theme-dark` o `.theme-light` n
 *   **Window Size**: Su MacCatalyst/Windows, dimensione finestra predefinita impostata a **1200x800** in `App.xaml.cs`.
 
 ## Comportamento Modali (Dialogs)
-
 **Regola Globale**: Tutte le modali di inserimento/modifica devono impedire la chiusura accidentale tramite click esterno.
 *   **Implementazione**: Quando si crea l'oggetto `DialogOptions`, impostare sempre **`BackdropClick = false`**.
 *   **Esempio**: `new DialogOptions { BackdropClick = false, ... }`
+
+---
+
+## Funzioni Database
+Questa sezione elenca le stored function personalizzate create nel database PostgreSQL.
+
+### get_count_travel_made
+Calcola il numero di viaggi effettuati da un cliente per una specifica azienda.
+*   **File Script**: `SqlScripts/25_Create_GetCountTravelMade.sql`
+*   **Parametri Input**:
+    *   `p_cliente_id` (integer): ID del cliente.
+    *   `p_azienda_id` (integer): ID dell'azienda (tenant).
+*   **Valore Restituito**: `integer` (Numero di viaggi trovati).
+*   **Logica**:
+    *   Esegue una JOIN tra `mov_clienti_viaggi` e `ana_date_viaggi`.
+    *   Filtra per `cliente_id` e `azienda_id`.
+    *   Filtra per `cliente_id` e `azienda_id`.
+    *   Considera validi solo i viaggi con `data_viaggio_effettuato_sino = 'Y'`.
+
+### get_count_travel_future
+Conta i viaggi futuri (prenotati ma non ancora effettuati) di un cliente per una specifica azienda.
+*   **File Script**: `SqlScripts/26_Create_GetCountTravelFuture.sql`
+*   **Parametri Input**:
+    *   `p_cliente_id` (integer): ID del cliente.
+    *   `p_azienda_id` (integer): ID dell'azienda.
+*   **Valore Restituito**: `integer` (Numero di viaggi futuri).
+*   **Logica**:
+    *   Filtra per `cliente_id` e `azienda_id`.
+    *   Richiede `data_viaggio_effettuato_sino = 'N'`.
+    *   Richiede `data_viaggio_data_inizio > CURRENT_DATE` (viaggi che iniziano dopo oggi).

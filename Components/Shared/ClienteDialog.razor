@@ -15,6 +15,44 @@
     <DialogContent>
         <div style="height: 600px; overflow-y: auto;" class="pr-4">
             <MudForm @ref="_form" Model="@Entity">
+                <MudGrid Spacing="4">
+                    <!-- FOTO CLIENTE (Colonna Sinistra) -->
+                    <MudItem xs="12" sm="4" md="3" Class="d-flex flex-column align-center pt-4">
+                        <MudPaper Elevation="4" Class="d-flex flex-column align-center justify-center pa-1" Style="border-radius: 50%; width: 150px; height: 150px; overflow: hidden;">
+                            @if (!string.IsNullOrEmpty(_photoPreviewUrl))
+                            {
+                                <MudImage Src="@_photoPreviewUrl" ObjectFit="ObjectFit.Cover" Style="width: 100%; height: 100%;" />
+                            }
+                            else
+                            {
+                                <MudAvatar Style="width: 100%; height: 100%; font-size: 3rem;" Color="Color.Primary" Variant="Variant.Filled">
+                                    @((Entity.Nome?.FirstOrDefault() ?? '?').ToString().ToUpper())@((Entity.Cognome?.FirstOrDefault() ?? '?').ToString().ToUpper())
+                                </MudAvatar>
+                            }
+                        </MudPaper>
+
+                        <div class="mt-4 d-flex gap-2 justify-center">
+                             <MudFileUpload T="IBrowserFile" @ref="_fileUpload" FilesChanged="UploadPhoto" Accept="image/*" MaximumFileCount="1">
+                                <ActivatorContent>
+                                    <MudIconButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   Icon="@Icons.Material.Filled.PhotoCamera"
+                                                   Size="Size.Small"
+                                                   Title="Carica Foto" />
+                                </ActivatorContent>
+                            </MudFileUpload>
+
+                            @if (!string.IsNullOrEmpty(_photoPreviewUrl))
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Download" OnClick="DownloadPhoto" Color="Color.Info" Size="Size.Small" Variant="Variant.Filled" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="DeletePhoto" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled" />
+                            }
+                        </div>
+                        <MudText Typo="Typo.caption" Class="mt-2 text-center" Color="Color.Secondary">Max 5MB<br/>.jpg, .png</MudText>
+                    </MudItem>
+
+                    <!-- FORM DATI (Colonna Destra) -->
+                    <MudItem xs="12" sm="8" md="9">
 
                 <!-- DATI ANAGRAFICI -->
                 <MudText Typo="Typo.subtitle1" Class="mb-2">
@@ -194,6 +232,8 @@
                     Variant="Variant.Outlined" Lines="3" Class="mb-3 uppercase-input"
                     HelperText="Note aggiuntive sul cliente" />
 
+                    </MudItem>
+                </MudGrid>
             </MudForm>
         </div>
     </DialogContent>
