@@ -133,6 +133,13 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         {
             await _form.Validate();
 
+            if (!_form.IsValid)
+            {
+                Snackbar.Add("Impossibile salvare: ci sono errori di validazione. Controlla i campi evidenziati.", Severity.Error);
+                _isSaving = false;
+                return;
+            }
+
             if (_form.IsValid)
             {
                 // Normalizza i campi prima del salvataggio
