@@ -1,0 +1,257 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject IClienteService ClienteService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center align-center py-8">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <!-- Header Sticky & Stats -->
+            <MudPaper Elevation="1" Class="sticky-header pa-4 mb-4"
+                Style="background-color: var(--mud-palette-background);">
+                <!-- Profilo Compact -->
+                <div class="d-flex gap-4 align-center mb-4">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                        @GetInitials()
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.h6" Class="mb-0">@Cliente.Cognome @Cliente.Nome</MudText>
+                        <MudText Typo="Typo.caption">
+                            @GetAge() anni | @Cliente.Email | @Cliente.Telefono
+                        </MudText>
+                    </div>
+                </div>
+
+                <!-- Chips Filter -->
+                <MudChipSet T="string" SelectedValue="@_selectedFilter" SelectedValueChanged="OnFilterChanged">
+                    <MudChip Text="fatti" Value="@("fatti")" Color="Color.Success" Variant="Variant.Filled">
+                        @_stats.Fatti FATTI
+                    </MudChip>
+                    <MudChip Text="da_fare" Value="@("da_fare")" Color="Color.Warning" Variant="Variant.Filled">
+                        @_stats.DaFare DA FARE
+                    </MudChip>
+                    <MudChip Text="non_partecipati" Value="@("non_partecipati")" Color="Color.Error"
+                        Variant="Variant.Filled">
+                        @_stats.NonPartecipati NON PARTECIPATI
+                    </MudChip>
+                    <MudChip Text="tutti" Value="@("tutti")" Color="Color.Default" Variant="Variant.Outlined">
+                        MOSTRA TUTTI
+                    </MudChip>
+                </MudChipSet>
+            </MudPaper>
+
+            <!-- Body List -->
+            <div class="d-flex flex-column gap-3" style="max-height: 60vh; overflow-y: auto;">
+            @if (_filteredTravels.Any())
+                {
+                    @foreach (var viaggio in _filteredTravels)
+                    {
+                        <MudCard Elevation="1" Class="pa-0"
+                            Style="@($"border-left: 6px solid {GetStatusColor(viaggio.StatusCode)};")">
+                            <MudCardContent Class="py-2 px-3">
+                                <!-- Row 1: Header -->
+                                <div class="d-flex justify-space-between align-center mb-1">
+                                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@viaggio.Titolo</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @viaggio.DataInizio.ToString("dd/MM/yyyy")
+                                    </MudText>
+                                </div>
+
+                                <!-- Row 2: Details & Icons -->
+                                <div class="d-flex flex-wrap gap-4 align-center">
+                                    <!-- Status Badge for clarity -->
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                        Color="@GetStatusColor(viaggio.StatusCode)" Class="ma-0">
+                                        @viaggio.StatusDesc.ToUpper()
+                                    </MudChip>
+
+                                    <!-- Ruolo -->
+                                    <div class="d-flex gap-1 align-center" title="Ruolo">
+                                        <MudIcon Icon="@Icons.Material.Filled.DriveEta" Size="Size.Small" Color="Color.Default" />
+                                        <MudText Typo="Typo.body2">@viaggio.Ruolo</MudText>
+                                    </div>
+
+                                    <!-- KM -->
+                                    <div class="d-flex gap-1 align-center" title="Chilometri">
+                                        <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Small" Color="Color.Default" />
+                                        <MudText Typo="Typo.body2">@viaggio.Km km</MudText>
+                                    </div>
+
+                                    <!-- Giorni -->
+                                    <div class="d-flex gap-1 align-center" title="Durata">
+                                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small"
+                                            Color="Color.Default" />
+                                        <MudText Typo="Typo.body2">@viaggio.Giorni gg</MudText>
+                                    </div>
+                                </div>
+
+                                <!-- Row 3: Passengers (Lazy Load / Expand) -->
+                                <div class="mt-2">
+                                    <MudButton Variant="Variant.Text" Color="Color.Info" Size="Size.Small"
+                                        StartIcon="@Icons.Material.Filled.People" OnClick="@(() => TogglePassengers(viaggio))">
+                                        @(viaggio.CompagniViaggio == "" ? "Vedi Passeggeri" : "Nascondi Passeggeri")
+                                    </MudButton>
+
+                                    @if (!string.IsNullOrEmpty(viaggio.CompagniViaggio))
+                                    {
+                                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-1 py-1" NoIcon="true">
+                                            <MudText Typo="Typo.caption"><b>Con:</b> @viaggio.CompagniViaggio</MudText>
+                                        </MudAlert>
+                                    }
+                                </div>
+
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info">Nessun viaggio trovato con i filtri selezionati.</MudAlert>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Cliente Cliente { get; set; } = default!;
+
+    private bool _isLoading = true;
+    private List<ClienteTravelHistory> _allTravels = new();
+    private List<ClienteTravelHistory> _filteredTravels = new();
+    private string _selectedFilter = "tutti";
+
+    // Stats Counters
+    private (int Fatti, int DaFare, int NonPartecipati) _stats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _isLoading = true;
+            _allTravels = (await ClienteService.GetTravelHistoryAsync(Cliente.ClienteId, Cliente.AziendaFk)).ToList();
+
+            // Calculate Stats
+            _stats.Fatti = _allTravels.Count(t => t.StatusCode == 1);
+            _stats.DaFare = _allTravels.Count(t => t.StatusCode == 0);
+            _stats.NonPartecipati = _allTravels.Count(t => t.StatusCode == 2);
+
+            // Default Sort (Giallo pinned top, then Date DESC)
+            _allTravels = _allTravels
+            .OrderByDescending(t => t.StatusCode == 0) // True (1) comes before False (0) -> Giallo top
+            .ThenByDescending(t => t.DataInizio)
+            .ToList();
+
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento viaggi: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OnFilterChanged(string selectedChip)
+    {
+        _selectedFilter = selectedChip;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        _filteredTravels = _selectedFilter switch
+        {
+            "fatti" => _allTravels.Where(t => t.StatusCode == 1).ToList(),
+            "da_fare" => _allTravels.Where(t => t.StatusCode == 0).ToList(),
+            "non_partecipati" => _allTravels.Where(t => t.StatusCode == 2).ToList(),
+            _ => _allTravels
+        };
+    }
+
+    private async Task TogglePassengers(ClienteTravelHistory viaggio)
+    {
+        if (string.IsNullOrEmpty(viaggio.CompagniViaggio))
+        {
+            // Load if not present
+            // Hack: storing in 'CompagniViaggio' property for UI simplicity.
+            // Ideally should be a boolean '_passengersLoaded' but this avoids extra state map.
+            try
+            {
+                var passengers = await ClienteService.GetTravelPassengersAsync(viaggio.DataViaggioId, Cliente.ClienteId);
+                if (passengers.Any())
+                {
+                    viaggio.CompagniViaggio = string.Join(", ", passengers.Select(p => $"{p.Nominativo}"));
+                }
+                else
+                {
+                    viaggio.CompagniViaggio = "Nessun altro passeggero registrato.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore caricamento passeggeri: {ex.Message}", Severity.Error);
+            }
+        }
+        else
+        {
+            // Toggle off (clear) to allow "Hide" logic or simply keep it loaded?
+            // User requirement: "Menu a tendina per vedere".
+            // To implement "Hide", we need a separate state. For now, let's keep it simple:
+            // If loaded, button becomes "Chiudi" and we clear the string?
+            // Better: use a boolean in a local wrapper class if needed, but let's try clearing for toggle effect.
+            viaggio.CompagniViaggio = "";
+        }
+    }
+
+    private Color GetStatusColor(int statusCode) => statusCode switch
+    {
+        1 => Color.Success, // Fatto
+        2 => Color.Error, // Non Partecipato
+        0 => Color.Warning, // Futuro
+        _ => Color.Default
+    };
+
+    private string GetInitials() =>
+    $"{(Cliente.Nome?.FirstOrDefault())}{(Cliente.Cognome?.FirstOrDefault())}";
+
+    private string GetAge()
+    {
+        if (!Cliente.DataNascita.HasValue) return "-";
+        var age = DateTime.Today.Year - Cliente.DataNascita.Value.Year;
+        if (Cliente.DataNascita.Value.Date > DateTime.Today.AddYears(-age)) age--;
+        return age.ToString();
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}
+
+<style>
+    .sticky-header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(5px);
+        background-color: rgba(255, 255, 255, 0.95);
+        /* Adjust for dark mode if needed */
+    }
+</style>

@@ -977,6 +977,84 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
 
     #endregion
 
+
+    #region Travel Stats
+
+    public async Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_client_travel_history(@clienteId, @aziendaFk)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("clienteId", clienteId);
+            command.Parameters.AddWithValue("aziendaFk", aziendaFk);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            var result = new List<ClienteTravelHistory>();
+
+            while (await reader.ReadAsync())
+            {
+                result.Add(new ClienteTravelHistory
+                {
+                    DataViaggioId = reader.GetInt32(reader.GetOrdinal("data_viaggio_id")),
+                    Titolo = reader.GetString(reader.GetOrdinal("titolo")),
+                    Tipo = ReadNullableString(reader, "tipo") ?? string.Empty,
+                    DataInizio = reader.GetDateTime(reader.GetOrdinal("data_inizio")),
+                    DataFine = reader.GetDateTime(reader.GetOrdinal("data_fine")),
+                    Km = reader.GetInt32(reader.GetOrdinal("km")),
+                    Giorni = reader.GetInt32(reader.GetOrdinal("giorni")),
+                    Notti = reader.GetInt32(reader.GetOrdinal("notti")),
+                    StatusCode = reader.GetInt32(reader.GetOrdinal("status_code")),
+                    StatusDesc = reader.GetString(reader.GetOrdinal("status_desc")),
+                    Ruolo = ReadNullableString(reader, "ruolo") ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dello storico viaggi per cliente {ClienteId}", clienteId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_travel_passengers(@dataViaggioId, @excludeClienteId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("dataViaggioId", dataViaggioId);
+            command.Parameters.AddWithValue("excludeClienteId", excludeClienteId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            var result = new List<TravelPassenger>();
+
+            while (await reader.ReadAsync())
+            {
+                result.Add(new TravelPassenger
+                {
+                    Nominativo = reader.GetString(reader.GetOrdinal("nominativo")),
+                    Ruolo = ReadNullableString(reader, "ruolo") ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero passeggeri per viaggio {DataViaggioId}", dataViaggioId);
+            throw;
+        }
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static Cliente MapFromReader(NpgsqlDataReader reader)

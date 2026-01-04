@@ -38,4 +38,8 @@ public interface IClienteRepository
 
     // Conteggi
     Task<int> CountAsync(int aziendaFk);
+
+    // Travel Stats
+    Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk);
+    Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
 }

@@ -23,4 +23,7 @@ public interface IClienteService
     // Search Operations
     Task<List<Cliente>> SearchAsync(string searchTerm, int aziendaFk);
     Task<int> CountAsync(int aziendaFk);
+    // Travel Stats
+    Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk);
+    Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
 }

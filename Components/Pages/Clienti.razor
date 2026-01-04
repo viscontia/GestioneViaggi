@@ -396,9 +396,21 @@ else
             }
         }
     }
-    private void ShowTravelStats(Cliente item)
+    private async Task ShowTravelStats(Cliente item)
     {
-        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
-        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
+        var parameters = new DialogParameters<TravelStatsDialog>
+{
+{ x => x.Cliente, item }
+};
+
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                NoHeader = true // Sticky header inside dialog content handles it
+            };
+
+        await DialogService.ShowAsync<TravelStatsDialog>("Statistiche Viaggi", parameters, options);
     }
 }

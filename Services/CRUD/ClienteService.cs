@@ -230,6 +230,33 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         }
     }
 
+    // Travel Stats
+    public async Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk)
+    {
+        try
+        {
+            return await _repository.GetTravelHistoryAsync(clienteId, aziendaFk);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dello storico viaggi per cliente {ClienteId}", clienteId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId)
+    {
+        try
+        {
+            return await _repository.GetTravelPassengersAsync(dataViaggioId, excludeClienteId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero passeggeri per viaggio {DataViaggioId}", dataViaggioId);
+            throw;
+        }
+    }
+
     #endregion
 
     #region Private Validation Methods

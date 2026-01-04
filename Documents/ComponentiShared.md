@@ -198,8 +198,29 @@ Calcola il numero di viaggi effettuati da un cliente per una specifica azienda.
     *   Filtra per `cliente_id` e `azienda_id`.
     *   Considera validi solo i viaggi con `data_viaggio_effettuato_sino = 'Y'`.
 
-### get_count_travel_future
-Conta i viaggi futuri (prenotati ma non ancora effettuati) di un cliente per una specifica azienda.
+### `get_count_travel_future`
+Conta i viaggi futuri (in programma) per un cliente.
+**Parametri**: `p_cliente_id` (INT), `p_azienda_id` (INT)
+**Return**: `INTEGER`
+
+### `get_client_travel_history`
+Restituisce lo storico completo dei viaggi di un cliente, ordinato per data decrescente.
+**Parametri**: `p_cliente_id` (INT), `p_azienda_id` (INT)
+**Return**: `TABLE`
+- `data_viaggio_id`: ID univoco viaggio.
+- `titolo`: Titolo del viaggio.
+- `tipo`: Tipo del viaggio (es. 4x4, Crociera).
+- `status_code`: 0=Futuro (Giallo), 1=Fatto (Verde), 2=Non Partecipato (Rosso).
+- `status_desc`: Descrizione testuale stato.
+- `ruolo`: Ruolo del cliente nel viaggio.
+- `km`, `giorni`, `notti`: Statistiche viaggio.
+
+### `get_travel_passengers`
+Restituisce la lista dei compagni di viaggio per un dato viaggio, escluso il cliente richiedente.
+**Parametri**: `p_data_viaggio_id` (INT), `p_exclude_client_id` (INT)
+**Return**: `TABLE`
+- `nominativo`: Nome e Cognome del passeggero.
+- `ruolo`: Ruolo del passeggero.
 *   **File Script**: `SqlScripts/26_Create_GetCountTravelFuture.sql`
 *   **Parametri Input**:
     *   `p_cliente_id` (integer): ID del cliente.
