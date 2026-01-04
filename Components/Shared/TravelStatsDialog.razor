@@ -17,45 +17,90 @@
             <!-- Header Sticky & Stats -->
             <MudPaper Elevation="1" Class="sticky-header pa-4 mb-4"
                 Style="background-color: var(--mud-palette-background);">
-                <!-- Profilo Compact -->
-                <div class="d-flex gap-4 align-center mb-4">
-                    @if (Cliente.Foto != null && Cliente.Foto.Length > 0)
-                    {
-                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
-                            <MudImage Src="@($"data:{Cliente.FotoMimeType};base64,{Convert.ToBase64String(Cliente.Foto)}")" ObjectFit="ObjectFit.Cover" Style="width:100%; height:100%;" />
-                        </MudAvatar>
-                    }
-                    else
-                    {
-                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
-                            @GetInitials()
-                        </MudAvatar>
-                    }
-                    
-                    <div>
-                        <MudText Typo="Typo.h6" Class="mb-0">@Cliente.Cognome @Cliente.Nome</MudText>
-                        <MudText Typo="Typo.body2">
-                            @GetAge() anni | @Cliente.Email | @Cliente.Telefono | @(Cliente.CodiceFiscale ?? "-") | @(Cliente.ComuneResidenza?.Nome ?? "-") (@(Cliente.ComuneResidenza?.ProvinciaDescrizione ?? "-"))
-                        </MudText>
-                    </div>
-                </div>
+                <!-- Header Content Grid -->
+                <MudGrid>
+                    <!-- Left: Profile Info -->
+                    <MudItem xs="8">
+                        <div class="d-flex gap-4 align-center mb-4">
+                            @if (Cliente.Foto != null && Cliente.Foto.Length > 0)
+                            {
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                                    <MudImage Src="@($"data:{Cliente.FotoMimeType};base64,{Convert.ToBase64String(Cliente.Foto)}")" ObjectFit="ObjectFit.Cover" Style="width:100%; height:100%;" />
+                                </MudAvatar>
+                            }
+                            else
+                            {
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                                    @GetInitials()
+                                </MudAvatar>
+                            }
+                            
+                            <div>
+                                <MudText Typo="Typo.h6" Class="mb-0">@Cliente.Cognome @Cliente.Nome</MudText>
+                                <MudText Typo="Typo.body2">
+                                    @GetAge() anni | @Cliente.Email | @Cliente.Telefono | @(Cliente.CodiceFiscale ?? "-") | @(Cliente.ComuneResidenza?.Nome ?? "-") (@(Cliente.ComuneResidenza?.ProvinciaDescrizione ?? "-"))
+                                </MudText>
+                            </div>
+                        </div>
 
-                <!-- Chips Filter -->
-                <MudChipSet T="string" SelectedValue="@_selectedFilter" SelectedValueChanged="OnFilterChanged">
-                    <MudChip Text="fatti" Value="@("fatti")" Color="Color.Success" Variant="Variant.Filled">
-                        @_stats.Fatti FATTI
-                    </MudChip>
-                    <MudChip Text="da_fare" Value="@("da_fare")" Color="Color.Warning" Variant="Variant.Filled">
-                        @_stats.DaFare DA FARE
-                    </MudChip>
-                    <MudChip Text="non_partecipati" Value="@("non_partecipati")" Color="Color.Error"
-                        Variant="Variant.Filled">
-                        @_stats.NonPartecipati NON PARTECIPATI
-                    </MudChip>
-                    <MudChip Text="tutti" Value="@("tutti")" Color="Color.Default" Variant="Variant.Outlined">
-                        MOSTRA TUTTI
-                    </MudChip>
-                </MudChipSet>
+                         <!-- Chips Filter -->
+                        <MudChipSet T="string" SelectedValue="@_selectedFilter" SelectedValueChanged="OnFilterChanged">
+                            <MudChip Text="fatti" Value="@("fatti")" Color="Color.Success" Variant="Variant.Filled">
+                                @_stats.Fatti FATTI
+                            </MudChip>
+                            <MudChip Text="da_fare" Value="@("da_fare")" Color="Color.Warning" Variant="Variant.Filled">
+                                @_stats.DaFare DA FARE
+                            </MudChip>
+                            <MudChip Text="non_partecipati" Value="@("non_partecipati")" Color="Color.Error"
+                                Variant="Variant.Filled">
+                                @_stats.NonPartecipati NON PARTECIPATI
+                            </MudChip>
+                            <MudChip Text="tutti" Value="@("tutti")" Color="Color.Default" Variant="Variant.Outlined">
+                                MOSTRA TUTTI
+                            </MudChip>
+                        </MudChipSet>
+                    </MudItem>
+
+                        <!-- Right: Trend Chart (Custom SVG) -->
+                    <MudItem xs="4" Class="d-flex align-center justify-end">
+                         @if (_chartPoints.Any())
+                         {
+                             <div class="d-flex flex-column align-center">
+                                 <MudText Typo="Typo.caption" Class="mb-1" Style="font-weight:bold; color: var(--mud-palette-text-secondary);">VIAGGI FATTI PER ANNO</MudText>
+                                 <div style="width: 320px; height: 160px; position: relative;">
+                                    <svg width="100%" height="100%" viewBox="0 0 320 160">
+                                    <!-- Background Grid (Horizontal) -->
+                                    @for (int i = 0; i <= 5; i++)
+                                    {
+                                        var y = 140 - (i * 25); // 5 steps
+                                        <line x1="30" y1="@y" x2="310" y2="@y" stroke="#e0e0e0" stroke-width="1" />
+                                    }
+
+                                    <!-- Background Grid (Vertical) -->
+                                    @foreach (var p in _chartPoints)
+                                    {
+                                        <line x1="@p.X" y1="15" x2="@p.X" y2="140" stroke="#e0e0e0" stroke-width="1" />
+                                    }
+
+                                    <!-- Data Line -->
+                                    <polyline points="@_svgPoints" fill="none" stroke="#594AE2" stroke-width="3" />
+
+                                    <!-- Points & Labels -->
+                                    @foreach (var p in _chartPoints)
+                                    {
+                                        <!-- Point -->
+                                        <circle cx="@p.X" cy="@p.Y" r="4" fill="#594AE2" />
+                                        <!-- Value Label -->
+                                        @((MarkupString)$"<text x=\"{p.X}\" y=\"{p.Y - 10}\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"bold\" fill=\"#333\">{p.Value}</text>")
+                                        <!-- Year Label -->
+                                        @((MarkupString)$"<text x=\"{p.X}\" y=\"155\" text-anchor=\"middle\" font-size=\"14\" font-weight=\"bold\" fill=\"#666\">{p.Label}</text>")
+                                    }
+                                </svg>
+                             </div>
+                             </div>
+                         }
+                    </MudItem>
+                </MudGrid>
             </MudPaper>
 
             <!-- Body List -->
@@ -164,6 +209,17 @@
 
     // Stats Counters
     private (int Fatti, int DaFare, int NonPartecipati) _stats;
+    
+    // Custom Chart Data
+    private class ChartPoint
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+        public int Value { get; set; }
+        public string Label { get; set; } = string.Empty;
+    }
+    private List<ChartPoint> _chartPoints = new();
+    private string _svgPoints = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,6 +250,9 @@
             .OrderByDescending(t => t.StatusCode == 0) // True (1) comes before False (0) -> Giallo top
             .ThenByDescending(t => t.DataInizio)
             .ToList();
+            
+            // Prepare SVG Chart Data
+            CalculateSvgChart();
 
             ApplyFilter();
         }
@@ -205,6 +264,67 @@
         {
             _isLoading = false;
         }
+    }
+    
+    private void CalculateSvgChart()
+    {
+        var doneTravels = _allTravels.Where(t => t.StatusCode == 1).ToList();
+        
+        if (!doneTravels.Any()) 
+        {
+            _chartPoints.Clear();
+            return;
+        };
+
+        var grouped = doneTravels
+             .GroupBy(t => t.DataInizio.Year)
+             .OrderBy(g => g.Key)
+             .ToDictionary(g => g.Key, g => g.Count());
+
+        if (!grouped.Any()) return;
+
+        // Configuration
+        double width = 320;
+        double height = 160;
+        double marginX = 40;
+        double marginY = 30; // space for text
+        double availableWidth = width - (marginX * 2);
+        double availableHeight = height - (marginY * 2);
+
+        int maxVal = grouped.Values.Max();
+        // Ensure maxVal is at least something to avoid division by zero
+        if (maxVal < 5) maxVal = 5; // Min ceiling
+        
+        int count = grouped.Count;
+        double stepX = count > 1 ? availableWidth / (count - 1) : availableWidth / 2;
+
+        _chartPoints.Clear();
+        int i = 0;
+        foreach(var item in grouped)
+        {
+            double x = marginX + (i * stepX);
+            // Y is inverted (0 at top). Value 0 should be at bottom (height - marginY)
+            // Value maxVal should be at top (marginY)
+            double normalizedVal = (double)item.Value / maxVal;
+            double y = (height - marginY) - (normalizedVal * availableHeight);
+            
+            _chartPoints.Add(new ChartPoint 
+            { 
+                 X = x, 
+                 Y = y, 
+                 Value = item.Value, 
+                 Label = item.Key.ToString() 
+            });
+            i++;
+        }
+        
+        if (count == 1)
+        {
+             // Center single point
+             _chartPoints[0].X = width / 2;
+        }
+
+        _svgPoints = string.Join(" ", _chartPoints.Select(p => $"{p.X.ToString(System.Globalization.CultureInfo.InvariantCulture)},{p.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
     }
 
     private void OnFilterChanged(string selectedChip)
@@ -328,5 +448,12 @@
         backdrop-filter: blur(5px);
         background-color: rgba(255, 255, 255, 0.95);
         /* Adjust for dark mode if needed */
+    }
+
+    /* Increase Chart Axis Font Size */
+    .mud-charts-xaxis-label, .mud-charts-yaxis-label {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        fill: var(--mud-palette-text-primary) !important;
     }
 </style>
