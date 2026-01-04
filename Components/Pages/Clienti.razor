@@ -78,7 +78,16 @@ else
 
             <TemplateColumn Title="Cliente" HeaderStyle="font-weight:bold" SortBy="@(x => $"{x.Cognome} {x.Nome}")">
                 <CellTemplate>
-                    <MudText Typo="Typo.body2"><strong>@context.Item.Cognome</strong> @context.Item.Nome</MudText>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2"><strong>@context.Item.Cognome</strong> @context.Item.Nome</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.Item.Intolleranza))
+                        {
+                            <MudTooltip Text="@context.Item.Intolleranza" Placement="Placement.Right" Arrow="true">
+                                <MudIcon Icon="@Icons.Material.Filled.NoFood" Color="Color.Error" Size="Size.Small"
+                                    Style="margin-bottom: -2px;" />
+                            </MudTooltip>
+                        }
+                    </MudStack>
                 </CellTemplate>
             </TemplateColumn>
 
