@@ -93,6 +93,8 @@ public class Cliente : BaseEntity, IValidatableObject
 
     // Proprietà navigazione DTO-like per DataGrid
     public string? AziendaRagioneSociale { get; set; }
+    public int? ViaggiFatti { get; set; }
+    public int? ViaggiDaFare { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

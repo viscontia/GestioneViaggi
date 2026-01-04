@@ -1048,3 +1048,58 @@ div.mud-nav-link-text,
 .theme-dark .mud-chip-content {
     color: inherit !important;
 }
+
+/* Stats button hover - info blue */
+.mud-icon-button.inline-action-btn.stats-btn:hover {
+    background: rgba(14, 165, 233, 0.08) !important;
+    color: #0EA5E9 !important;
+}
+
+.theme-dark .mud-icon-button.inline-action-btn.stats-btn:hover {
+    background: rgba(14, 165, 233, 0.12) !important;
+    color: #38BDF8 !important;
+}
+
+/* Pastel Green Badge for Travel Counts */
+.count-badge-green {
+    background-color: #ecfdf5 !important;
+    /* Pastel Green 50 */
+    color: #047857 !important;
+    /* Green 700 */
+    font-weight: 700 !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    padding: 4px 12px !important;
+    min-width: 32px !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 13px !important;
+}
+
+.theme-dark .count-badge-green {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #6ee7b7 !important;
+}
+
+/* Pastel Yellow Badge for Future Travels */
+.count-badge-yellow {
+    background-color: #fffbeb !important;
+    /* Pastel Yellow 50 */
+    color: #b45309 !important;
+    /* Amber 700 */
+    font-weight: 700 !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    padding: 4px 12px !important;
+    min-width: 32px !important;
+    display: inline-flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 13px !important;
+}
+
+.theme-dark .count-badge-yellow {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+}

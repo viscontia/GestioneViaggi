@@ -11,7 +11,6 @@ SELECT COUNT(1) INTO l_ret
 FROM mov_clienti_viaggi cv
     JOIN ana_date_viaggi dv ON cv.data_viaggio_id_fk = dv.data_viaggio_id
 WHERE cv.cliente_id_fk = p_cliente_id
-    AND dv.azienda_id = p_azienda_id
     AND dv.data_viaggio_effettuato_sino = 'N'
     AND dv.data_viaggio_data_inizio > CURRENT_DATE;
 RETURN l_ret;

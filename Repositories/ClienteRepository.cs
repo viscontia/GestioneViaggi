@@ -163,7 +163,9 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
                     com_nas.comune_descrizione as com_nas_nome,
                     prov_nas.provincia_sigla as com_nas_provincia,
                     com_res.comune_descrizione as com_res_nome,
-                    prov_res.provincia_sigla as com_res_provincia
+                    prov_res.provincia_sigla as com_res_provincia,
+                    get_count_travel_made(c.cliente_id, c.azienda_fk) as viaggi_fatti,
+                    get_count_travel_future(c.cliente_id, c.azienda_fk) as viaggi_da_fare
                 FROM ana_clienti c
                 LEFT JOIN ana_aziende a ON c.azienda_fk = a.azienda_id
                 LEFT JOIN ana_geo_comuni com_nas ON c.cliente_comune_nascita_fk = com_nas.comune_id
@@ -183,6 +185,8 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
             {
                 var cliente = MapFromReader(reader);
                 cliente.AziendaRagioneSociale = ReadNullableString(reader, "azienda_ragione_sociale");
+                cliente.ViaggiFatti = reader.IsDBNull(reader.GetOrdinal("viaggi_fatti")) ? 0 : reader.GetInt32(reader.GetOrdinal("viaggi_fatti"));
+                cliente.ViaggiDaFare = reader.IsDBNull(reader.GetOrdinal("viaggi_da_fare")) ? 0 : reader.GetInt32(reader.GetOrdinal("viaggi_da_fare"));
 
                 // Map nested objects manually since MapFromReader handles base entity
                 if (!reader.IsDBNull(reader.GetOrdinal("com_nas_nome")))

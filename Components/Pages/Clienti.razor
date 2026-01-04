@@ -46,6 +46,36 @@ else
                 <PropertyColumn Property="x => x.AziendaRagioneSociale" Title="Azienda" />
             }
 
+            <TemplateColumn SortBy="@(x => x.ViaggiFatti)" HeaderStyle="text-align:center" CellStyle="text-align:center"
+                Class="col-xs">
+                <HeaderTemplate>
+                    <MudText Typo="Typo.caption"
+                        Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.2;">
+                        VIAGGI<br />FATTI</MudText>
+                </HeaderTemplate>
+                <CellTemplate>
+                    @if (context.Item.ViaggiFatti > 0)
+                    {
+                        <span class="count-badge-green">@context.Item.ViaggiFatti</span>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn SortBy="@(x => x.ViaggiDaFare)" HeaderStyle="text-align:center" CellStyle="text-align:center"
+                Class="col-xs">
+                <HeaderTemplate>
+                    <MudText Typo="Typo.caption"
+                        Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; line-height: 1.2;">
+                        VIAGGI<br />DA FARE</MudText>
+                </HeaderTemplate>
+                <CellTemplate>
+                    @if (context.Item.ViaggiDaFare > 0)
+                    {
+                        <span class="count-badge-yellow">@context.Item.ViaggiDaFare</span>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
             <TemplateColumn Title="Cliente" HeaderStyle="font-weight:bold" SortBy="@(x => $"{x.Cognome} {x.Nome}")">
                 <CellTemplate>
                     <MudText Typo="Typo.body2"><strong>@context.Item.Cognome</strong> @context.Item.Nome</MudText>
@@ -109,7 +139,30 @@ else
 
             <PropertyColumn Property="x => x.Intolleranza" Title="Int. Alimentare" />
 
-            <EnterpriseActionsColumn T="Cliente" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
+            <TemplateColumn T="Cliente" Tag="@("Actions")" Sortable="false" StickyLeft="true"
+                HeaderClass="sticky-actions-column" CellClass="sticky-actions-column">
+                <HeaderTemplate>
+                    <MudText Typo="Typo.caption"
+                        Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni</MudText>
+                </HeaderTemplate>
+                <CellTemplate Context="cellContext">
+                    <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                        <MudTooltip Text="Modifica">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                Class="inline-action-btn edit-btn" OnClick="@(() => OpenEditDialog(cellContext.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Default"
+                                Class="inline-action-btn delete-btn" OnClick="@(() => DeleteItem(cellContext.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Statistiche Viaggi">
+                            <MudIconButton Icon="@Icons.Material.Filled.TravelExplore" Size="Size.Small"
+                                Color="Color.Default" Class="inline-action-btn stats-btn"
+                                OnClick="@(() => ShowTravelStats(cellContext.Item))" />
+                        </MudTooltip>
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
         </Columns>
 
     </EnterpriseDataGrid>
@@ -293,5 +346,10 @@ else
                 Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
             }
         }
+    }
+    private void ShowTravelStats(Cliente item)
+    {
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+        Snackbar.Add("Funzionalità in sviluppo", Severity.Info);
     }
 }
