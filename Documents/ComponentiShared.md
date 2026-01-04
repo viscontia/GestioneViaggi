@@ -243,3 +243,9 @@ Restituisce la lista completa dei partecipanti ad un viaggio (Data Viaggio), ord
 **Return**: `TABLE`
 - `nominativo`: Cognome e Nome del partecipante. I piloti sono identificati dal flag `tipo_partecipante_pilota` e hanno suffisso `(P)`.
 *   **File Script**: `SqlScripts/29_Create_GetAllParticipantsTravel.sql`
+
+### `get_cliente_detail`
+Restituisce **TUTTE** le informazioni anagrafiche e documentali di un cliente, incluse le decodifiche (join) per comuni e province di nascita e residenza.
+**Parametri**: `p_cliente_id` (INT) - (L'Azienda non è necessaria in quanto l'ID cliente è univoco).
+**Return**: `TABLE` con tutti i campi di `ana_clienti` + `azienda_ragione_sociale`, `comune_nascita_nome`, `comune_nascita_provincia`, `comune_residenza_nome`, `comune_residenza_provincia`.
+*   **File Script**: `SqlScripts/31_Create_GetClienteDetail.sql`

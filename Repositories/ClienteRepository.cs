@@ -116,6 +116,55 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
         }
     }
 
+    public async Task<Cliente?> GetDetailAsync(int clienteId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_cliente_detail(@clienteId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("clienteId", clienteId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                var cliente = MapFromReader(reader);
+                cliente.AziendaRagioneSociale = ReadNullableString(reader, "azienda_ragione_sociale");
+
+                if (!reader.IsDBNull(reader.GetOrdinal("comune_nascita_nome")))
+                {
+                    cliente.ComuneNascita = new Comune
+                    {
+                        Id = cliente.ComuneNascitaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("comune_nascita_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("comune_nascita_provincia"))
+                    };
+                }
+
+                if (!reader.IsDBNull(reader.GetOrdinal("comune_residenza_nome")))
+                {
+                    cliente.ComuneResidenza = new Comune
+                    {
+                        Id = cliente.ComuneResidenzaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("comune_residenza_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("comune_residenza_provincia"))
+                    };
+                }
+
+                return cliente;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero del dettaglio cliente {ClienteId}", clienteId);
+            throw;
+        }
+    }
+
     public async Task<List<Cliente>> GetAllAsync(int? aziendaFk)
     {
         try

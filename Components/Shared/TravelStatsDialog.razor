@@ -175,6 +175,13 @@
         try
         {
             _isLoading = true;
+            // Reload full client details using the new function
+            var freshCliente = await ClienteService.GetDetailAsync(Cliente.ClienteId);
+            if (freshCliente != null)
+            {
+                Cliente = freshCliente;
+            }
+
             _allTravels = (await ClienteService.GetTravelHistoryAsync(Cliente.ClienteId, Cliente.AziendaFk)).ToList();
 
             // Calculate Stats

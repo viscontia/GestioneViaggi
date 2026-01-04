@@ -11,6 +11,7 @@ public interface IClienteService
     // CRUD Operations
     Task<List<Cliente>> GetAllAsync(int? aziendaFk);
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
+    Task<Cliente?> GetDetailAsync(int clienteId);
     Task<Cliente> CreateAsync(Cliente cliente);
     Task<Cliente> UpdateAsync(Cliente cliente);
     Task<bool> DeleteAsync(int clienteId, int aziendaFk);

@@ -47,6 +47,19 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         }
     }
 
+    public async Task<Cliente?> GetDetailAsync(int clienteId)
+    {
+        try
+        {
+            return await _repository.GetDetailAsync(clienteId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero del dettaglio cliente {ClienteId}", clienteId);
+            throw;
+        }
+    }
+
     public async Task<Cliente> CreateAsync(Cliente cliente)
     {
         try
