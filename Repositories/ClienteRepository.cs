@@ -1008,7 +1008,11 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
                     Notti = reader.GetInt32(reader.GetOrdinal("notti")),
                     StatusCode = reader.GetInt32(reader.GetOrdinal("status_code")),
                     StatusDesc = reader.GetString(reader.GetOrdinal("status_desc")),
-                    Ruolo = ReadNullableString(reader, "ruolo") ?? string.Empty
+                    Ruolo = ReadNullableString(reader, "ruolo") ?? string.Empty,
+                    Trattamento = ReadNullableString(reader, "trattamento") ?? string.Empty,
+                    Pernottamento = ReadNullableString(reader, "pernottamento") ?? string.Empty,
+                    CostoPilota = reader.GetInt32(reader.GetOrdinal("costo_pilota")),
+                    CostoPasseggero = reader.GetInt32(reader.GetOrdinal("costo_passeggero"))
                 });
             }
 
@@ -1049,6 +1053,33 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero passeggeri per viaggio {DataViaggioId}", dataViaggioId);
+            throw;
+        }
+    }
+
+    public async Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT nominativo FROM get_all_participants_travel(@dataViaggioId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("dataViaggioId", dataViaggioId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            var result = new List<string>();
+
+            while (await reader.ReadAsync())
+            {
+                result.Add(reader.GetString(0));
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dei partecipanti globali per viaggio {DataViaggioId}", dataViaggioId);
             throw;
         }
     }

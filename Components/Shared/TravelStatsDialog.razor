@@ -19,13 +19,23 @@
                 Style="background-color: var(--mud-palette-background);">
                 <!-- Profilo Compact -->
                 <div class="d-flex gap-4 align-center mb-4">
-                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
-                        @GetInitials()
-                    </MudAvatar>
+                    @if (Cliente.Foto != null && Cliente.Foto.Length > 0)
+                    {
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                            <MudImage Src="@($"data:{Cliente.FotoMimeType};base64,{Convert.ToBase64String(Cliente.Foto)}")" ObjectFit="ObjectFit.Cover" Style="width:100%; height:100%;" />
+                        </MudAvatar>
+                    }
+                    else
+                    {
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Large">
+                            @GetInitials()
+                        </MudAvatar>
+                    }
+                    
                     <div>
                         <MudText Typo="Typo.h6" Class="mb-0">@Cliente.Cognome @Cliente.Nome</MudText>
-                        <MudText Typo="Typo.caption">
-                            @GetAge() anni | @Cliente.Email | @Cliente.Telefono
+                        <MudText Typo="Typo.body2">
+                            @GetAge() anni | @Cliente.Email | @Cliente.Telefono | @(Cliente.CodiceFiscale ?? "-") | @(Cliente.ComuneResidenza?.Nome ?? "-") (@(Cliente.ComuneResidenza?.ProvinciaDescrizione ?? "-"))
                         </MudText>
                     </div>
                 </div>
@@ -59,9 +69,8 @@
                             <MudCardContent Class="py-2 px-3">
                                 <!-- Row 1: Header -->
                                 <div class="d-flex justify-space-between align-center mb-1">
-                                    <MudText Typo="Typo.subtitle1" Class="fw-bold">@viaggio.Titolo</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                        @viaggio.DataInizio.ToString("dd/MM/yyyy")
+                                    <MudText Typo="Typo.subtitle1" Class="fw-bold">
+                                         @viaggio.Tipo - @viaggio.Titolo - Dal @viaggio.DataInizio.ToString("dd/MM/yyyy") Al @viaggio.DataFine.ToString("dd/MM/yyyy")
                                     </MudText>
                                 </div>
 
@@ -91,22 +100,42 @@
                                             Color="Color.Default" />
                                         <MudText Typo="Typo.body2">@viaggio.Giorni gg</MudText>
                                     </div>
+
+                                    <!-- Extra Info: Trattamento, Pernottamento, Costi -->
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                        | Tratt.: @ToTitleCase(viaggio.Trattamento) 
+                                        | Tipo: Pernott.: @ToTitleCase(viaggio.Pernottamento) 
+                                        | Costo Pilota: @FormatCost(viaggio.CostoPilota) 
+                                        | Costo Pass.: @FormatCost(viaggio.CostoPasseggero)
+                                    </MudText>
                                 </div>
 
                                 <!-- Row 3: Passengers (Lazy Load / Expand) -->
-                                <div class="mt-2">
+                                <div class="mt-2 d-flex flex-wrap gap-2">
                                     <MudButton Variant="Variant.Text" Color="Color.Info" Size="Size.Small"
                                         StartIcon="@Icons.Material.Filled.People" OnClick="@(() => TogglePassengers(viaggio))">
                                         @(viaggio.CompagniViaggio == "" ? "Vedi Passeggeri" : "Nascondi Passeggeri")
                                     </MudButton>
 
-                                    @if (!string.IsNullOrEmpty(viaggio.CompagniViaggio))
-                                    {
-                                        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-1 py-1" NoIcon="true">
-                                            <MudText Typo="Typo.caption"><b>Con:</b> @viaggio.CompagniViaggio</MudText>
-                                        </MudAlert>
-                                    }
+                                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                        StartIcon="@Icons.Material.Filled.Group" OnClick="@(() => ToggleParticipants(viaggio))">
+                                        @(viaggio.PartecipantiTotali == "" ? "Vedi tutti i Partecipanti" : "Nascondi tutti i Partecipanti")
+                                    </MudButton>
                                 </div>
+
+                                @if (!string.IsNullOrEmpty(viaggio.CompagniViaggio))
+                                {
+                                    <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="mt-1 py-1" NoIcon="true">
+                                        <MudText Typo="Typo.caption"><b>Con:</b> @viaggio.CompagniViaggio</MudText>
+                                    </MudAlert>
+                                }
+
+                                @if (!string.IsNullOrEmpty(viaggio.PartecipantiTotali))
+                                {
+                                    <MudAlert Severity="Severity.Normal" Variant="Variant.Text" Class="mt-1 py-1" NoIcon="true">
+                                        <MudText Typo="Typo.caption"><b>Partecipanti:</b> @viaggio.PartecipantiTotali</MudText>
+                                    </MudAlert>
+                                }
 
                             </MudCardContent>
                         </MudCard>
@@ -223,6 +252,33 @@
         }
     }
 
+    private async Task ToggleParticipants(ClienteTravelHistory viaggio)
+    {
+        if (string.IsNullOrEmpty(viaggio.PartecipantiTotali))
+        {
+            try
+            {
+                var participants = await ClienteService.GetAllParticipantsTravelAsync(viaggio.DataViaggioId);
+                if (participants.Any())
+                {
+                    viaggio.PartecipantiTotali = string.Join(", ", participants);
+                }
+                else
+                {
+                    viaggio.PartecipantiTotali = "Nessun partecipante trovato.";
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore caricamento partecipanti: {ex.Message}", Severity.Error);
+            }
+        }
+        else
+        {
+            viaggio.PartecipantiTotali = "";
+        }
+    }
+
     private Color GetStatusColor(int statusCode) => statusCode switch
     {
         1 => Color.Success, // Fatto
@@ -240,6 +296,18 @@
         var age = DateTime.Today.Year - Cliente.DataNascita.Value.Year;
         if (Cliente.DataNascita.Value.Date > DateTime.Today.AddYears(-age)) age--;
         return age.ToString();
+    }
+
+    private string ToTitleCase(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return input;
+        input = input.ToLower();
+        return char.ToUpper(input[0]) + input.Substring(1);
+    }
+    
+    private string FormatCost(int cost)
+    {
+        return cost.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("it-IT")) + " €";
     }
 
     void Cancel() => MudDialog.Cancel();

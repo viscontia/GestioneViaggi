@@ -39,6 +39,15 @@
                          Color="Color.Primary"
                          tabindex="2"
                          Class="mb-3" />
+
+            <!-- Pilota -->
+            <MudCheckBox T="bool"
+                         Value="@Entity.Pilota"
+                         ValueChanged="@((bool val) => Entity.Pilota = val)"
+                         Label="Pilota"
+                         Color="Color.Primary"
+                         tabindex="3"
+                         Class="mb-3" />
         </MudForm>
     </DialogContent>
     <DialogActions>

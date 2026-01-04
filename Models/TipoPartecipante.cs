@@ -16,4 +16,7 @@ public class TipoPartecipante : BaseEntity
 
     [Column("TIPO_PARTECIPANTE_DATI_MEZZO_OBB")]
     public bool DatiMezzoObbligatori { get; set; }
+
+    [Column("TIPO_PARTECIPANTE_PILOTA")]
+    public bool Pilota { get; set; }
 }

@@ -230,3 +230,16 @@ Restituisce la lista dei compagni di viaggio per un dato viaggio, escluso il cli
     *   Filtra per `cliente_id` e `azienda_id`.
     *   Richiede `data_viaggio_effettuato_sino = 'N'`.
     *   Richiede `data_viaggio_data_inizio > CURRENT_DATE` (viaggi che iniziano dopo oggi).
+
+### `get_all_travel_detail`
+Restituisce **TUTTI** i dettagli di un singolo viaggio (Data Viaggio) incrociando `ana_date_viaggi`, `ana_viaggi` e tutti i lookup (nazione, trattamento, pernottamento).
+**Parametri**: `p_data_viaggio_id` (INT)
+**Return**: `TABLE` con campi piatti (es. `titolo`, `descrizione_estesa`, `trattamento`, `costo_pilota`, ecc.).
+*   **File Script**: `SqlScripts/30_Create_GetAllTravelDetail.sql`
+
+### `get_all_participants_travel`
+Restituisce la lista completa dei partecipanti ad un viaggio (Data Viaggio), ordinata alfabeticamente per Cognome e Nome.
+**Parametri**: `p_data_viaggio_id` (INT)
+**Return**: `TABLE`
+- `nominativo`: Cognome e Nome del partecipante. I piloti sono identificati dal flag `tipo_partecipante_pilota` e hanno suffisso `(P)`.
+*   **File Script**: `SqlScripts/29_Create_GetAllParticipantsTravel.sql`

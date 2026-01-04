@@ -45,6 +45,12 @@ else
                 </CellTemplate>
             </TemplateColumn>
 
+            <TemplateColumn Title="Pilota">
+                <CellTemplate>
+                    <MudCheckBox Value="@context.Item.Pilota" ReadOnly="true" Color="Color.Primary" Dense="true" />
+                </CellTemplate>
+            </TemplateColumn>
+
             <EnterpriseActionsColumn T="TipoPartecipante"
                                      OnEdit="@OpenEditDialog"
                                      OnDelete="@DeleteItem" />
@@ -126,12 +132,13 @@ else
     {
         var parameters = new DialogParameters<TipoPartecipanteDialog>
         {
-            { x => x.Entity, new TipoPartecipante 
-                { 
-                    Id = item.Id, 
+            { x => x.Entity, new TipoPartecipante
+                {
+                    Id = item.Id,
                     Descrizione = item.Descrizione,
-                    DatiMezzoObbligatori = item.DatiMezzoObbligatori
-                } 
+                    DatiMezzoObbligatori = item.DatiMezzoObbligatori,
+                    Pilota = item.Pilota
+                }
             },
             { x => x.IsEditMode, true }
         };

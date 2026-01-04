@@ -257,6 +257,19 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         }
     }
 
+    public async Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId)
+    {
+        try
+        {
+            return await _repository.GetAllParticipantsTravelAsync(dataViaggioId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dei partecipanti per viaggio {DataViaggioId}", dataViaggioId);
+            throw;
+        }
+    }
+
     #endregion
 
     #region Private Validation Methods

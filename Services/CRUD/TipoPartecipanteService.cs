@@ -23,14 +23,16 @@ public class TipoPartecipanteService : BaseCrudService<TipoPartecipante>
             var sql = @"
                 INSERT INTO ANA_TIPO_PARTECIPANTE (
                     TIPO_PARTECIPANTE_DESCRIZIONE,
-                    TIPO_PARTECIPANTE_DATI_MEZZO_OBB
+                    TIPO_PARTECIPANTE_DATI_MEZZO_OBB,
+                    TIPO_PARTECIPANTE_PILOTA
                 )
-                VALUES (@descrizione, @datiMezzoObb)
-                RETURNING TIPO_PARTECIPANTE_ID, TIPO_PARTECIPANTE_DESCRIZIONE, TIPO_PARTECIPANTE_DATI_MEZZO_OBB";
+                VALUES (@descrizione, @datiMezzoObb, @pilota)
+                RETURNING TIPO_PARTECIPANTE_ID, TIPO_PARTECIPANTE_DESCRIZIONE, TIPO_PARTECIPANTE_DATI_MEZZO_OBB, TIPO_PARTECIPANTE_PILOTA";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("descrizione", entity.Descrizione);
             command.Parameters.AddWithValue("datiMezzoObb", entity.DatiMezzoObbligatori ? "Y" : "N");
+            command.Parameters.AddWithValue("pilota", entity.Pilota);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -55,14 +57,16 @@ public class TipoPartecipanteService : BaseCrudService<TipoPartecipante>
             var sql = @"
                 UPDATE ANA_TIPO_PARTECIPANTE
                 SET TIPO_PARTECIPANTE_DESCRIZIONE = @descrizione,
-                    TIPO_PARTECIPANTE_DATI_MEZZO_OBB = @datiMezzoObb
+                    TIPO_PARTECIPANTE_DATI_MEZZO_OBB = @datiMezzoObb,
+                    TIPO_PARTECIPANTE_PILOTA = @pilota
                 WHERE TIPO_PARTECIPANTE_ID = @id
-                RETURNING TIPO_PARTECIPANTE_ID, TIPO_PARTECIPANTE_DESCRIZIONE, TIPO_PARTECIPANTE_DATI_MEZZO_OBB";
+                RETURNING TIPO_PARTECIPANTE_ID, TIPO_PARTECIPANTE_DESCRIZIONE, TIPO_PARTECIPANTE_DATI_MEZZO_OBB, TIPO_PARTECIPANTE_PILOTA";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", entity.Id);
             command.Parameters.AddWithValue("descrizione", entity.Descrizione);
             command.Parameters.AddWithValue("datiMezzoObb", entity.DatiMezzoObbligatori ? "Y" : "N");
+            command.Parameters.AddWithValue("pilota", entity.Pilota);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -85,7 +89,8 @@ public class TipoPartecipanteService : BaseCrudService<TipoPartecipante>
         {
             Id = ReadInt(reader, "TIPO_PARTECIPANTE_ID"),
             Descrizione = reader.GetString(reader.GetOrdinal("TIPO_PARTECIPANTE_DESCRIZIONE")),
-            DatiMezzoObbligatori = reader.GetString(reader.GetOrdinal("TIPO_PARTECIPANTE_DATI_MEZZO_OBB")) == "Y"
+            DatiMezzoObbligatori = reader.GetString(reader.GetOrdinal("TIPO_PARTECIPANTE_DATI_MEZZO_OBB")) == "Y",
+            Pilota = reader.GetBoolean(reader.GetOrdinal("TIPO_PARTECIPANTE_PILOTA"))
         };
     }
 }

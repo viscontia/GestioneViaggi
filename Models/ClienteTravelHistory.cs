@@ -21,9 +21,14 @@ public class ClienteTravelHistory
     public string StatusDesc { get; set; } = string.Empty;
 
     public string Ruolo { get; set; } = string.Empty;
+    public string Trattamento { get; set; } = string.Empty;
+    public string Pernottamento { get; set; } = string.Empty;
+    public int CostoPilota { get; set; }
+    public int CostoPasseggero { get; set; }
 
     // Popolato separatamente
     public string CompagniViaggio { get; set; } = string.Empty;
+    public string PartecipantiTotali { get; set; } = string.Empty;
 }
 
 /// <summary>
