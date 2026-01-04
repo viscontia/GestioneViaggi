@@ -23,7 +23,7 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Cliente" Items="@_items" Title="Gestione Anagrafica Clienti" SearchFunction="@Search"
+    <EnterpriseDataGrid T="Cliente" Items="@_filteredItems" Title="Gestione Anagrafica Clienti" SearchFunction="@Search"
     @bind-SelectedItem="_selectedItem">
 
     <ToolBarActions>
@@ -34,6 +34,14 @@ else
                         ValueChanged="@OnAziendaFilterChanged" />
                 </div>
             }
+            <div style="min-width: 200px;" class="mr-4">
+                <MudSelect T="int" Value="_selectedPresetFilter" Label="Filtri Rapidi" ValueChanged="OnPresetFilterChanged">
+                    <MudSelectItem Value="0">Tutti</MudSelectItem>
+                    <MudSelectItem Value="1">Con Viaggi Fatti</MudSelectItem>
+                    <MudSelectItem Value="2">Con Viaggi Futuri</MudSelectItem>
+                    <MudSelectItem Value="3">Viaggi Futuri + Intolleranze</MudSelectItem>
+                </MudSelect>
+            </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                 OnClick="@OpenCreateDialog">
                 Nuovo Cliente
@@ -179,6 +187,8 @@ else
 
 @code {
     private List<Cliente> _items = new();
+    private List<Cliente> _filteredItems = new();
+    private int _selectedPresetFilter = 0; // 0=All, 1=Made, 2=Future, 3=Future+Intolerance
     private Cliente? _selectedItem;
     private string _errorMessage = string.Empty;
     private int? _currentAziendaId;
@@ -231,10 +241,36 @@ else
             int? filterId = _selectedAziendaId > 0 ? _selectedAziendaId : _currentAziendaId;
 
             _items = await ClienteService.GetAllAsync(filterId);
+            ApplyFilters();
         }
         catch (Exception ex)
         {
             _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private void OnPresetFilterChanged(int value)
+    {
+        _selectedPresetFilter = value;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        switch (_selectedPresetFilter)
+        {
+            case 1: // Viaggi Fatti
+                _filteredItems = _items.Where(x => x.ViaggiFatti > 0).ToList();
+                break;
+            case 2: // Viaggi Futuri
+                _filteredItems = _items.Where(x => x.ViaggiDaFare > 0).ToList();
+                break;
+            case 3: // Viaggi Futuri + Intolleranze
+                _filteredItems = _items.Where(x => x.ViaggiDaFare > 0 && !string.IsNullOrWhiteSpace(x.Intolleranza)).ToList();
+                break;
+            default: // Tutti
+                _filteredItems = new List<Cliente>(_items);
+                break;
         }
     }
 
@@ -281,6 +317,7 @@ else
         {
             // Il salvataggio è già avvenuto nel dialog
             _items.Add(newItem);
+            ApplyFilters(); // Refresh filtered list
             StateHasChanged();
         }
     }
@@ -317,6 +354,8 @@ else
             {
                 _items[index] = updatedItem;
             }
+
+            ApplyFilters(); // Refresh filtered list
             StateHasChanged();
         }
     }
@@ -342,6 +381,7 @@ else
                 if (success)
                 {
                     _items.Remove(item);
+                    ApplyFilters(); // Refresh filtered list
                     Snackbar.Add("Cliente eliminato con successo", Severity.Success);
                     StateHasChanged();
                 }

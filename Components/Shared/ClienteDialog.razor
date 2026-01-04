@@ -32,13 +32,14 @@
                         </MudPaper>
 
                         <div class="mt-4 d-flex gap-2 justify-center">
-                             <MudFileUpload T="IBrowserFile" @ref="_fileUpload" FilesChanged="UploadPhoto" Accept="image/*" MaximumFileCount="1">
+                            <MudFileUpload T="IBrowserFile" @ref="_fileUpload" FilesChanged="UploadPhoto" Accept="image/*" MaximumFileCount="1">
                                 <ActivatorContent>
-                                    <MudIconButton Variant="Variant.Filled"
-                                                   Color="Color.Primary"
-                                                   Icon="@Icons.Material.Filled.PhotoCamera"
-                                                   Size="Size.Small"
-                                                   Title="Carica Foto" />
+                                    <MudTooltip Text="Carica Foto">
+                                        <MudIconButton Variant="Variant.Filled"
+                                                       Color="Color.Primary"
+                                                       Icon="@Icons.Material.Filled.PhotoCamera"
+                                                       Size="Size.Small" />
+                                    </MudTooltip>
                                 </ActivatorContent>
                             </MudFileUpload>
 
