@@ -249,3 +249,10 @@ Restituisce **TUTTE** le informazioni anagrafiche e documentali di un cliente, i
 **Parametri**: `p_cliente_id` (INT) - (L'Azienda non è necessaria in quanto l'ID cliente è univoco).
 **Return**: `TABLE` con tutti i campi di `ana_clienti` + `azienda_ragione_sociale`, `comune_nascita_nome`, `comune_nascita_provincia`, `comune_residenza_nome`, `comune_residenza_provincia`.
 *   **File Script**: `SqlScripts/31_Create_GetClienteDetail.sql`
+
+### `get_exist_travel_customer_by_Year`
+Restituisce la lista degli anni (in formato intero, ordinati decrescenti) in cui un cliente ha effettuato viaggi registrati a sistema. Utilizzata per popolare il filtro "Anno" nelle statistiche.
+**Parametri**: `p_cliente_id` (INT)
+**Return**: `TABLE`
+- `anno`: Anno del viaggio (INTEGER).
+*   **File Script**: `SqlScripts/32_Create_GetExistTravelCustomerByYear.sql`

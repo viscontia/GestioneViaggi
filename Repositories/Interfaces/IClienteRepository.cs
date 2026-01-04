@@ -41,6 +41,7 @@ public interface IClienteRepository
     Task<int> CountAsync(int aziendaFk);
 
     // Travel Stats
+    Task<List<int>> GetTravelYearsAsync(int clienteId);
     Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk);
     Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
     Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId);

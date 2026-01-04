@@ -1029,6 +1029,26 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
 
     #region Travel Stats
 
+    public async Task<List<int>> GetTravelYearsAsync(int clienteId)
+    {
+        var years = new List<int>();
+        await using var conn = await _databaseService.GetConnectionAsync();
+
+        await using var cmd = new NpgsqlCommand("SELECT * FROM get_exist_travel_customer_by_year(@p_cliente_id)", conn);
+        cmd.Parameters.AddWithValue("p_cliente_id", clienteId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            if (!reader.IsDBNull(0))
+            {
+                years.Add(reader.GetInt32(0));
+            }
+        }
+
+        return years;
+    }
+
     public async Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk)
     {
         try

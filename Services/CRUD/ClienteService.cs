@@ -244,6 +244,19 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
     }
 
     // Travel Stats
+    public async Task<List<int>> GetTravelYearsAsync(int clienteId)
+    {
+        try
+        {
+            return await _repository.GetTravelYearsAsync(clienteId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero degli anni viaggi cliente {ClienteId}", clienteId);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk)
     {
         try

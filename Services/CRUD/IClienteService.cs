@@ -22,9 +22,7 @@ public interface IClienteService
     Task<Cliente?> FindExistingByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk);
 
     // Search Operations
-    Task<List<Cliente>> SearchAsync(string searchTerm, int aziendaFk);
-    Task<int> CountAsync(int aziendaFk);
-    // Travel Stats
+    Task<List<int>> GetTravelYearsAsync(int clienteId);
     Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk);
     Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
     Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId);

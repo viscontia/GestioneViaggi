@@ -20,7 +20,7 @@
                 <!-- Header Content Grid -->
                 <MudGrid>
                     <!-- Left: Profile Info -->
-                    <MudItem xs="8">
+                    <MudItem xs="7">
                         <div class="d-flex gap-4 align-center mb-4">
                             @if (Cliente.Foto != null && Cliente.Foto.Length > 0)
                             {
@@ -61,8 +61,18 @@
                         </MudChipSet>
                     </MudItem>
 
-                        <!-- Right: Trend Chart (Custom SVG) -->
-                    <MudItem xs="4" Class="d-flex align-center justify-end">
+                        <!-- Right: Trend Chart (Custom SVG) & Year Filter -->
+                    <MudItem xs="5" Class="d-flex flex-row align-center justify-end gap-4">
+                         <!-- Year Filter -->
+                         <MudSelect T="int?" Value="_selectedYear" ValueChanged="OnYearChanged" Variant="Variant.Outlined" 
+                                    Margin="Margin.Dense" Dense="true" Style="min-width: 140px; background-color: white;" Label="Anno">
+                                <MudSelectItem T="int?" Value="null">Tutti</MudSelectItem>
+                                @foreach (var y in _years)
+                                {
+                                    <MudSelectItem T="int?" Value="y">@y</MudSelectItem>
+                                }
+                         </MudSelect>
+
                          @if (_chartPoints.Any())
                          {
                              <div class="d-flex flex-column align-center">
@@ -206,6 +216,10 @@
     private List<ClienteTravelHistory> _allTravels = new();
     private List<ClienteTravelHistory> _filteredTravels = new();
     private string _selectedFilter = "tutti";
+    
+    // Year Filter
+    private int? _selectedYear = null;
+    private List<int> _years = new();
 
     // Stats Counters
     private (int Fatti, int DaFare, int NonPartecipati) _stats;
@@ -239,11 +253,11 @@
             }
 
             _allTravels = (await ClienteService.GetTravelHistoryAsync(Cliente.ClienteId, Cliente.AziendaFk)).ToList();
+            
+            // Load Years
+            _years = await ClienteService.GetTravelYearsAsync(Cliente.ClienteId);
 
-            // Calculate Stats
-            _stats.Fatti = _allTravels.Count(t => t.StatusCode == 1);
-            _stats.DaFare = _allTravels.Count(t => t.StatusCode == 0);
-            _stats.NonPartecipati = _allTravels.Count(t => t.StatusCode == 2);
+
 
             // Default Sort (Giallo pinned top, then Date DESC)
             _allTravels = _allTravels
@@ -332,15 +346,37 @@
         _selectedFilter = selectedChip;
         ApplyFilter();
     }
+    
+    private void OnYearChanged(int? year)
+    {
+        _selectedYear = year;
+        ApplyFilter();
+    }
 
     private void ApplyFilter()
     {
+        // 1. Base Filter: Year
+        var baseSet = _allTravels.AsEnumerable();
+        
+        if (_selectedYear.HasValue)
+        {
+            baseSet = baseSet.Where(t => t.DataInizio.Year == _selectedYear.Value);
+        }
+        
+        var yearFiltered = baseSet.ToList();
+
+        // 2. Update Stats based on Year Selection
+        _stats.Fatti = yearFiltered.Count(t => t.StatusCode == 1);
+        _stats.DaFare = yearFiltered.Count(t => t.StatusCode == 0);
+        _stats.NonPartecipati = yearFiltered.Count(t => t.StatusCode == 2);
+
+        // 3. Final Filter: Chip Status
         _filteredTravels = _selectedFilter switch
         {
-            "fatti" => _allTravels.Where(t => t.StatusCode == 1).ToList(),
-            "da_fare" => _allTravels.Where(t => t.StatusCode == 0).ToList(),
-            "non_partecipati" => _allTravels.Where(t => t.StatusCode == 2).ToList(),
-            _ => _allTravels
+            "fatti" => yearFiltered.Where(t => t.StatusCode == 1).ToList(),
+            "da_fare" => yearFiltered.Where(t => t.StatusCode == 0).ToList(),
+            "non_partecipati" => yearFiltered.Where(t => t.StatusCode == 2).ToList(),
+            _ => yearFiltered
         };
     }
 
