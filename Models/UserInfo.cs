@@ -13,4 +13,9 @@ public class UserInfo
 
     public string FullName => $"{Nome} {Cognome}".Trim();
     public bool IsSuperAdmin => RoleCode?.ToLower() == "superadmin";
+
+    /// <summary>
+    /// Username per audit trail database (usa email come identificatore univoco)
+    /// </summary>
+    public string Username => Email;
 }

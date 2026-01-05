@@ -1,6 +1,7 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Repositories.Interfaces;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -9,10 +10,14 @@ namespace GestioneViaggi.Repositories;
 /// <summary>
 /// Repository per operazioni CRUD su ana_clienti con supporto multi-tenant
 /// </summary>
-public class ClienteRepository(IDatabaseService databaseService, ILogger<ClienteRepository> logger) : IClienteRepository
+public class ClienteRepository(
+    IDatabaseService databaseService,
+    ILogger<ClienteRepository> logger,
+    ISessionManager sessionManager) : IClienteRepository
 {
     private readonly IDatabaseService _databaseService = databaseService;
     private readonly ILogger<ClienteRepository> _logger = logger;
+    private readonly ISessionManager _sessionManager = sessionManager;
 
     #region CRUD Base
 
@@ -276,6 +281,8 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
+
+
             var sql = @"
                 INSERT INTO ana_clienti (
                     cliente_titolo,
@@ -386,6 +393,8 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
+
+
             var sql = @"
                 UPDATE ana_clienti
                 SET
@@ -1240,6 +1249,8 @@ public class ClienteRepository(IDatabaseService databaseService, ILogger<Cliente
         command.Parameters.AddWithValue("intolleranza", (object?)cliente.Intolleranza ?? DBNull.Value);
         command.Parameters.AddWithValue("aziendaFk", cliente.AziendaFk);
     }
+
+
 
     #endregion
 }

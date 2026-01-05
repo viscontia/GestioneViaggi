@@ -125,6 +125,7 @@ public static class MauiProgram
         // Questo abilita l'Ispeziona Elemento (tasto destro)
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
+        builder.Logging.SetMinimumLevel(LogLevel.Information);
 
         // Servizio per le migrazioni DB (eseguito una tantum in MainLayout)
         builder.Services.AddScoped<DbMigrationService>();

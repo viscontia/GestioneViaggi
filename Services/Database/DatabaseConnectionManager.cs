@@ -13,7 +13,9 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
 
     public bool IsConnectionAvailable => _dataSource != null && _initialized;
 
-    public DatabaseConnectionManager(IConfiguration configuration, ILogger<DatabaseConnectionManager> logger)
+    public DatabaseConnectionManager(
+        IConfiguration configuration,
+        ILogger<DatabaseConnectionManager> logger)
     {
         _connectionString = configuration.GetConnectionString("PostgreSQL")
             ?? throw new InvalidOperationException("Connection string 'PostgreSQL' not found");
