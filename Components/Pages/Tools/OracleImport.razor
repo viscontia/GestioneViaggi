@@ -1,0 +1,256 @@
+@page "/tools/oracle-import"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Migrazione_Dati_Oracle
+@attribute [Authorize(Roles = "superadmin")]
+@inject OracleClientiImportService ImportService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Importazione Dati da Oracle</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4">
+        Procedura guidata per importare i dati dai file Excel estratti da Oracle.
+        <br />
+        <b>ATTENZIONE:</b> Operazione delicata. Si consiglia vivamente di mantenere attiva l'opzione di Backup.
+    </MudText>
+
+    <MudPaper Class="pa-6" Elevation="3">
+        <MudGrid>
+            <!-- Selezione Tabella -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Label="Tabella di Destinazione" @bind-Value="_selectedTable"
+                    Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@("ana_clienti")">ana_clienti</MudSelectItem>
+                    <MudSelectItem Value="@("ana_viaggi")">ana_viaggi</MudSelectItem>
+                    <MudSelectItem Value="@("ana_date_viaggi")">ana_date_viaggi</MudSelectItem>
+                    <MudSelectItem Value="@("mov_clienti_viaggi")">mov_clienti_viaggi</MudSelectItem>
+                    <MudSelectItem Value="@("mov_clienti_alloggi")">mov_clienti_alloggi</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <!-- File Upload -->
+            <MudItem xs="12" md="6">
+                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                            StartIcon="@Icons.Material.Filled.CloudUpload">
+                            Seleziona File Excel (.xlsx)
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (_selectedFile != null)
+                {
+                    <MudText Typo="Typo.caption" Class="mt-2">File selezionato: <b>@_selectedFile.Name</b>
+                        (@(_selectedFile.Size / 1024) KB)</MudText>
+                }
+            </MudItem>
+
+            <!-- Opzioni -->
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+                    <MudCheckBox @bind-Value="_keepPk" Label="Mantieni ID (PK) originali" Color="Color.Primary"
+                        Disabled="true" /> <!-- Always true for Oracle migration -->
+                    <MudCheckBox @bind-Value="_backupEnabled" Label="Crea Backup (_BAK) prima di importare"
+                        Color="Color.Secondary" />
+                </MudStack>
+            </MudItem>
+
+            <!-- Azione -->
+            <MudItem xs="12" Class="d-flex justify-end mt-4 gap-4">
+                 <MudButton Variant="Variant.Outlined" 
+                            Color="Color.Warning" 
+                            Size="Size.Large" 
+                            StartIcon="@Icons.Material.Filled.BugReport"
+                            OnClick="@(() => RunImport(true))"
+                            Disabled="@(_isBusy)">
+                     Simulazione (Check Duplicati)
+                 </MudButton>
+
+                 <MudButton Variant="Variant.Filled" 
+                            Color="Color.Error" 
+                            Size="Size.Large" 
+                            StartIcon="@Icons.Material.Filled.PlayArrow"
+                            OnClick="@(() => RunImport(false))"
+                            Disabled="@(_isBusy)">
+                     @(_isBusy ? "Elaborazione in corso..." : "Avvia Importazione Reale")
+                 </MudButton>
+            </MudItem>
+        </MudGrid>
+        
+        <!-- Progress Bar -->
+        @if (_isBusy)
+        {
+            <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="my-4" />
+            <MudText Typo="Typo.body2" Align="Align.Center">@_statusMessage</MudText>
+        }
+        
+        <!-- Duplicates Report -->
+        @if (_duplicates.Any())
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">
+                Rilevati @_duplicates.Count record duplicati (Violazione Vincolo Unicità).
+                <br/>
+                Questi record verrebbero saltati o causerebbero errori.
+            </MudAlert>
+            <MudPaper Class="mt-2 pa-2" Elevation="0" Style="max-height: 200px; overflow-y: auto; background-color: #fff3e0;">
+                 <ul style="list-style-type: circle; padding-left: 20px;">
+                    @foreach (var dup in _duplicates)
+                    {
+                        <li><MudText Typo="Typo.caption">@dup</MudText></li>
+                    }
+                </ul>
+            </MudPaper>
+        }
+
+        <!-- Log Output -->
+        <MudTextField T="string" 
+                      Label="Log Esecuzione" 
+                      Variant="Variant.Outlined" 
+                      Lines="10" 
+                      ReadOnly="true" 
+                      Value="@_logOutput" 
+                      Class="mt-4" 
+                      Style="font-family: monospace; font-size: 12px;" />
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _selectedTable = "ana_clienti";
+    private IBrowserFile? _selectedFile;
+    private bool _keepPk = true; // Forced true for legacy migration
+    private bool _backupEnabled = true; // Default true
+    
+    private bool _isBusy = false;
+    private string _statusMessage = "";
+    private string _logOutput = "";
+    private List<string> _duplicates = new();
+
+    private void UploadFiles(IBrowserFile file)
+    {
+        _selectedFile = file;
+    }
+
+    private void AddLog(string message)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss");
+        _logOutput += $"[{timestamp}] {message}{Environment.NewLine}";
+        StateHasChanged();
+    }
+
+    private async Task RunImport(bool dryRun)
+    {
+        if (_selectedTable != "ana_clienti")
+        {
+            await DialogService.ShowMessageBox("Funzione non disponibile", 
+                $"L'importazione per la tabella '{_selectedTable}' non è ancora stata implementata.");
+            return;
+        }
+
+        if (_selectedFile == null)
+        {
+            Snackbar.Add("Selezionare un file Excel prima di proseguire.", Severity.Warning);
+            return;
+        }
+
+        string actionName = dryRun ? "SIMULAZIONE" : "IMPORTAZIONE REALE";
+        
+        bool? confirm = await DialogService.ShowMessageBox($"Conferma {actionName}", 
+            dryRun 
+                ? "Vuoi avviare una scansione per rilevare eventuali duplicati?\nIl database NON verrà modificato."
+                : $"Stai per sovrascrivere la tabella '{_selectedTable}'.\nOperazione IRREVERSIBILE (se backup fallisce).\n\nProcedere?", 
+            yesText: "SI, Procedi", cancelText: "Annulla");
+        
+        if (confirm != true) return;
+
+        _isBusy = true;
+        _logOutput = ""; // Clear log
+        _duplicates.Clear(); // Clear previous results
+        
+        AddLog($"--- INIZIO {actionName} ---");
+        AddLog($"Tabella target: {_selectedTable}");
+        AddLog($"File sorgente: {_selectedFile.Name}");
+
+        // Save file to temporary path
+        var tempFile = Path.Combine(FileSystem.CacheDirectory, _selectedFile.Name);
+        
+        try
+        {
+            AddLog("Upload file in cache...");
+            {
+                await using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
+                await using var fs = File.Create(tempFile);
+                await stream.CopyToAsync(fs);
+            }
+            AddLog($"File salvato in: {tempFile}");
+
+            if (_backupEnabled && !dryRun)
+            {
+                AddLog("Creazione Backup tabella...");
+                await ImportService.BackupTableAsync(_selectedTable);
+                AddLog("Backup completato (Tabella suffix _BAK).");
+            }
+
+            AddLog("Avvio lettura Excel e aggiornamento DB...");
+            _statusMessage = "Elaborazione in corso...";
+            StateHasChanged();
+
+            var result = await ImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+
+            AddLog($"--- {actionName} COMPLETATA ---");
+            AddLog($"Record letti da Excel: {result.RecordsRead}");
+            AddLog($"Record processati (scritti/simulati): {result.RecordsWritten}");
+            
+            if (result.DuplicateDetails.Any())
+            {
+                _duplicates = result.DuplicateDetails;
+                AddLog($"!!! IMPORTANTE: Trovati {result.DuplicateDetails.Count} duplicati/conflitti.");
+                foreach(var d in result.DuplicateDetails.Take(5)) AddLog($"  -> {d}");
+                if (result.DuplicateDetails.Count > 5) AddLog($"  -> ... e altri {result.DuplicateDetails.Count - 5}");
+                
+                Snackbar.Add($"Rilevati {result.DuplicateDetails.Count} duplicati.", Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add($"{actionName} completata con successo!", Severity.Success);
+            }
+
+            if (!dryRun)
+            {
+                AddLog($"Delta DB (Post - Pre): {result.Delta}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLog($"!!! ERRORE FATALE: {ex.Message}");
+            Snackbar.Add("Errore durante l'operazione. Controlla il log.", Severity.Error);
+
+            if (_backupEnabled && !dryRun)
+            {
+                AddLog("TENTATIVO DI ROLLBACK AUTOMATICO...");
+                try
+                {
+                    await ImportService.RestoreTableAsync(_selectedTable);
+                    AddLog("ROLLBACK RIUSCITO. La tabella è stata ripristinata dal backup.");
+                    Snackbar.Add("Rollback completato.", Severity.Warning);
+                }
+                catch (Exception rollbackEx)
+                {
+                    AddLog($"!!! ROLLBACK FALLITO: {rollbackEx.Message}");
+                    AddLog("ATTENZIONE: Il database potrebbe essere in uno stato inconsistente.");
+                    Snackbar.Add("Rollback FALLITO! Contattare assistenza.", Severity.Error);
+                }
+            }
+        }
+        finally
+        {
+            // Cleanup temp file
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+            _isBusy = false;
+            _statusMessage = "";
+            StateHasChanged();
+        }
+    }
+}

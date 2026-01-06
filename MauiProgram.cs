@@ -13,7 +13,9 @@ using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
+
 using GestioneViaggi.Statistics;
+using GestioneViaggi.Migrazione_Dati_Oracle;
 
 namespace GestioneViaggi;
 
@@ -130,6 +132,9 @@ public static class MauiProgram
         // Servizio per le migrazioni DB (eseguito una tantum in MainLayout)
         builder.Services.AddScoped<DbMigrationService>();
 #endif
+
+        // Servizi di Migrazione Oracle
+        builder.Services.AddTransient<OracleClientiImportService>();
 
         return builder.Build();
     }

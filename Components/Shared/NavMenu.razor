@@ -1,5 +1,6 @@
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Navigation
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
 @inject ITabManagerService TabManager
@@ -121,6 +122,15 @@
                 OnClick="@(() => OpenTab("/configurazione", "Configurazione", "settings"))">
         <span style="font-size: 18px !important;">Configurazione</span>
     </MudNavLink>
+
+    <AuthorizeView Roles="superadmin">
+        <MudNavGroup Title="Utilità" Icon="@Icons.Material.Filled.Build" Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Filled.ImportExport"
+                        OnClick="@(() => OpenTab("/tools/oracle-import", "Importazione Dati da Oracle", "import_export"))">
+                <span style="font-size: 17px !important;">Importazione Dati da Oracle</span>
+            </MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
 
     <MudDivider Class="my-2" />
 
