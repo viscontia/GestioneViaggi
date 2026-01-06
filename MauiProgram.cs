@@ -133,8 +133,11 @@ public static class MauiProgram
         builder.Services.AddScoped<DbMigrationService>();
 #endif
 
-        // Servizi di Migrazione Oracle
         builder.Services.AddTransient<OracleClientiImportService>();
+        builder.Services.AddTransient<OracleViaggiImportService>();
+        builder.Services.AddTransient<OracleDateViaggiImportService>();
+        builder.Services.AddTransient<OracleMovClientiViaggiImportService>();
+        builder.Services.AddTransient<OracleMovClientiAlloggiImportService>();
 
         return builder.Build();
     }

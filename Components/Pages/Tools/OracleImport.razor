@@ -2,7 +2,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Migrazione_Dati_Oracle
 @attribute [Authorize(Roles = "superadmin")]
-@inject OracleClientiImportService ImportService
+@inject OracleClientiImportService ClientiImportService
+@inject OracleViaggiImportService ViaggiImportService
+@inject OracleDateViaggiImportService DateViaggiImportService
+@inject OracleMovClientiViaggiImportService MovClientiViaggiImportService
+@inject OracleMovClientiAlloggiImportService MovClientiAlloggiImportService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -139,7 +143,11 @@
 
     private async Task RunImport(bool dryRun)
     {
-        if (_selectedTable != "ana_clienti")
+        if (_selectedTable != "ana_clienti" && 
+            _selectedTable != "ana_viaggi" && 
+            _selectedTable != "ana_date_viaggi" && 
+            _selectedTable != "mov_clienti_viaggi" &&
+            _selectedTable != "mov_clienti_alloggi")
         {
             await DialogService.ShowMessageBox("Funzione non disponibile", 
                 $"L'importazione per la tabella '{_selectedTable}' non è ancora stata implementata.");
@@ -183,10 +191,15 @@
             }
             AddLog($"File salvato in: {tempFile}");
 
+            // Common Backup Logic (Ideally moved to a base class or interface)
             if (_backupEnabled && !dryRun)
             {
                 AddLog("Creazione Backup tabella...");
-                await ImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "ana_clienti") await ClientiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "ana_viaggi") await ViaggiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "ana_date_viaggi") await DateViaggiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "mov_clienti_viaggi") await MovClientiViaggiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "mov_clienti_alloggi") await MovClientiAlloggiImportService.BackupTableAsync(_selectedTable);
                 AddLog("Backup completato (Tabella suffix _BAK).");
             }
 
@@ -194,7 +207,27 @@
             _statusMessage = "Elaborazione in corso...";
             StateHasChanged();
 
-            var result = await ImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            ImportResult result;
+            if (_selectedTable == "ana_clienti")
+            {
+                result = await ClientiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else if (_selectedTable == "ana_viaggi")
+            {
+                result = await ViaggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else if (_selectedTable == "ana_date_viaggi")
+            {
+                result = await DateViaggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else if (_selectedTable == "mov_clienti_viaggi")
+            {
+                result = await MovClientiViaggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else // mov_clienti_alloggi
+            {
+                result = await MovClientiAlloggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
 
             AddLog($"--- {actionName} COMPLETATA ---");
             AddLog($"Record letti da Excel: {result.RecordsRead}");
@@ -229,7 +262,12 @@
                 AddLog("TENTATIVO DI ROLLBACK AUTOMATICO...");
                 try
                 {
-                    await ImportService.RestoreTableAsync(_selectedTable);
+                    if (_selectedTable == "ana_clienti") await ClientiImportService.RestoreTableAsync(_selectedTable);
+                    if (_selectedTable == "ana_viaggi") await ViaggiImportService.RestoreTableAsync(_selectedTable);
+                    if (_selectedTable == "ana_date_viaggi") await DateViaggiImportService.RestoreTableAsync(_selectedTable);
+                    if (_selectedTable == "mov_clienti_viaggi") await MovClientiViaggiImportService.RestoreTableAsync(_selectedTable);
+                    if (_selectedTable == "mov_clienti_alloggi") await MovClientiAlloggiImportService.RestoreTableAsync(_selectedTable);
+                    
                     AddLog("ROLLBACK RIUSCITO. La tabella è stata ripristinata dal backup.");
                     Snackbar.Add("Rollback completato.", Severity.Warning);
                 }
