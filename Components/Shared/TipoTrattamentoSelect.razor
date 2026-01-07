@@ -1,0 +1,65 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject TipoTrattamentoService Service
+
+<BaseEntitySelect TItem="TipoTrattamento" Value="_selectedItem" ValueChanged="OnItemChanged" SearchFunc="SearchAsync"
+    ToStringFunc="x => x?.Descrizione" Label="@Label" Required="@Required" RequiredError="@RequiredError"
+    Disabled="@Disabled" Class="@Class" Validation="@Validation" AdditionalAttributes="@AdditionalAttributes" />
+
+@code {
+    private TipoTrattamento? _selectedItem;
+
+    [Parameter] public int? SelectedId { get; set; }
+    [Parameter] public EventCallback<int?> SelectedIdChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Tipo Trattamento";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public object? Validation { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private List<TipoTrattamento>? _allItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allItems = await Service.GetAllAsync();
+        UpdateSelectedItem();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedItem();
+    }
+
+    private void UpdateSelectedItem()
+    {
+        if (_allItems == null) return;
+
+        if (SelectedId.HasValue && SelectedId.Value > 0)
+        {
+            if (_selectedItem?.Id != SelectedId.Value)
+            {
+                _selectedItem = _allItems.FirstOrDefault(x => x.Id == SelectedId.Value);
+            }
+        }
+        else
+        {
+            _selectedItem = null;
+        }
+    }
+
+    private async Task<IEnumerable<TipoTrattamento>> SearchAsync(string value, CancellationToken token)
+    {
+        if (_allItems == null) _allItems = await Service.GetAllAsync();
+        if (string.IsNullOrEmpty(value)) return _allItems;
+        return _allItems.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task OnItemChanged(TipoTrattamento? item)
+    {
+        _selectedItem = item;
+        var newId = item?.Id;
+        if (SelectedId != newId) { SelectedId = newId; await SelectedIdChanged.InvokeAsync(newId); }
+    }
+}

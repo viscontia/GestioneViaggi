@@ -829,15 +829,18 @@ div.mud-nav-link-text,
     width: 280px !important;
 }
 
-/* Main content offset per compensare drawer più largo */
-.mud-main-content {
-    margin-left: 280px !important;
+/* ========================================== */
+/* APPBAR DARK MODE FIX                      */
+/* ========================================== */
+
+/* Assicura che l'AppBar rispetti il tema anche con ClipMode.Never */
+.mud-appbar {
+    transition: background-color 0.2s ease, color 0.2s ease !important;
 }
 
-/* AppBar offset per compensare drawer più largo */
-.mud-appbar {
-    left: 280px !important;
-    width: calc(100% - 280px) !important;
+/* Status Bar - Evita overlap con drawer quando chiuso */
+.mud-layout .mud-drawer--closed ~ .mud-main-content {
+    margin-left: 0 !important;
 }
 
 /* ========================================== */

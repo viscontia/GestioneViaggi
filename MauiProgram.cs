@@ -110,6 +110,8 @@ public static class MauiProgram
         builder.Services.AddScoped<TipoMezzoService>();
         builder.Services.AddScoped<MarcaVeicoloService>();
         builder.Services.AddScoped<MezzoModelloService>();
+        builder.Services.AddScoped<AnaViaggiService>();
+        builder.Services.AddScoped<AnaTipoAvvicinamentoService>();
 
         // ==========================================================
         // STATISTICS SERVICES

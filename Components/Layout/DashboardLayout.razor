@@ -11,61 +11,70 @@
 @inject IDialogService DialogService
 @implements IDisposable
 
-<MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
+<MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar>
-        <MudText Typo="Typo.h6" Class="ml-3">Gestione Viaggi</MudText>
-        <MudSpacer />
-        <AppBreadcrumbs />
-        <MudSpacer />
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-    </MudAppBar>
-
-    <MudDrawer Variant="DrawerVariant.Persistent" Open="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
+    <MudDrawer @bind-Open="_drawerOpen"
+               Elevation="1"
+               Variant="@DrawerVariant.Persistent"
+               ClipMode="@DrawerClipMode.Never"
+               Width="280px">
         <MudDrawerHeader>
             <MudText Typo="Typo.h6">Menu Principale</MudText>
         </MudDrawerHeader>
-
         <NavMenu />
     </MudDrawer>
+
+    <MudAppBar Elevation="2" Dense="false">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+            Color="Color.Inherit"
+            Edge="Edge.Start"
+            OnClick="@ToggleDrawer" />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)"
+            Color="Color.Inherit"
+            OnClick="@DarkModeToggle"
+            Class="ml-2" />
+        <MudText Typo="Typo.h6" Class="ml-3">Gestione Viaggi</MudText>
+        <MudSpacer />
+        <AppBreadcrumbs />
+    </MudAppBar>
 
     <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <MudContainer MaxWidth="MaxWidth.False" Class="mt-4 mb-4" Style="padding: 0 8px;">
             <!-- Custom Tab Strip -->
-            <MudPaper Elevation="0" Class="d-flex flex-row align-center gap-2 mb-4 pa-2" Style="background-color: var(--mud-palette-background-grey); overflow-x: auto;">
+            <MudPaper Elevation="0" Class="d-flex flex-row align-center gap-2 mb-4 pa-2"
+                Style="background-color: var(--mud-palette-background-grey); overflow-x: auto;">
                 @foreach (var tab in TabManager.ActiveTabs)
                 {
                     var isActive = TabManager.ActiveTabs.ToList().IndexOf(tab) == TabManager.ActiveTabIndex;
                     var color = isActive ? Color.Primary : Color.Default;
                     var variant = isActive ? Variant.Filled : Variant.Text;
 
-                    <MudPaper Elevation="@(isActive ? 2 : 0)" Class="d-flex align-center pa-2 rounded-lg cursor-pointer" 
-                              Style="@(isActive ? "background-color: var(--mud-palette-primary); color: white;" : "background-color: white;")"
-                              @onclick="@(() => OnTabChanged(TabManager.ActiveTabs.ToList().IndexOf(tab)))">
-                        
+                    <MudPaper Elevation="@(isActive ? 2 : 0)" Class="d-flex align-center pa-2 rounded-lg cursor-pointer"
+                        Style="@(isActive ? "background-color: var(--mud-palette-primary); color: white;" : "background-color: white;")"
+                    @onclick="@(() => OnTabChanged(TabManager.ActiveTabs.ToList().IndexOf(tab)))">
+
                         @if (!string.IsNullOrEmpty(tab.Icon))
                         {
                             <MudIcon Icon="@GetTabIcon(tab.Icon)" Size="Size.Small" Class="mr-2" />
                         }
-                        
+
                         <MudText Typo="Typo.body2" Style="white-space: nowrap;">@tab.Title</MudText>
-                        
+
                         @if (tab.IsDirty)
                         {
-                            <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Warning" Class="ml-2" Style="font-size: 10px;" />
+                            <MudIcon Icon="@Icons.Material.Filled.Circle" Size="Size.Small" Color="Color.Warning" Class="ml-2"
+                                Style="font-size: 10px;" />
                         }
 
                         @if (tab.IsCloseable)
                         {
-                            <MudIconButton Icon="@Icons.Material.Filled.Close"
-                                           Size="Size.Small"
-                                           Color="@(isActive ? Color.Inherit : Color.Default)"
-                                           OnClick="@((e) => OnCloseTab(tab))"
-                                           Class="ml-1" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                Color="@(isActive ? Color.Inherit : Color.Default)" OnClick="@((e) => OnCloseTab(tab))"
+                                Class="ml-1" />
                         }
                     </MudPaper>
                 }
@@ -91,13 +100,15 @@
 </MudLayout>
 
 <!-- Bottom Status Bar -->
-<div style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200; margin-left: var(--mud-drawer-width-mini, 56px);">
+<div
+    style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 1200; margin-left: var(--mud-drawer-width-mini, 56px);">
     <StatusBar />
 </div>
 
 @code {
     private bool _isDisposing = false;
     private bool _isDarkMode = false;
+    private bool _drawerOpen = true;
     private MudThemeProvider? _mudThemeProvider;
     private ErrorBoundary? _errorBoundary;
 
@@ -106,46 +117,60 @@
         _errorBoundary?.Recover();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // _isDarkMode = await _mudThemeProvider!.GetSystemDarkModeAsync();
+            StateHasChanged();
+        }
+    }
+
+    void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
     void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
     }
 
     MudTheme _theme = new MudTheme()
-    {
-        PaletteLight = new PaletteLight()
         {
-            Primary = "#111827",
-            Secondary = "#6B7280",
-            Success = "#10B981",
-            Error = "#EF4444",
-            Warning = "#F59E0B",
-            Info = "#0EA5E9",
-            Background = "#F7F8FA",
-            Surface = "#FFFFFF",
-            AppbarBackground = "#FFFFFF",
-            AppbarText = "#111827",
-            TextPrimary = "#111827",
-            TextSecondary = "#6B7280",
-        },
-        PaletteDark = new PaletteDark()
-        {
-            Primary = "#0EA5E9",
-            Secondary = "#9CA3AF",
-            Success = "#10B981",
-            Error = "#EF4444",
-            Warning = "#F59E0B",
-            Info = "#38BDF8",
-            Background = "#1F2937",
-            Surface = "#374151",
-            AppbarBackground = "#1F2937",
-            AppbarText = "#F9FAFB",
-            TextPrimary = "#F9FAFB",
-            TextSecondary = "#D1D5DB",
-            DrawerBackground = "#1F2937",
-            DrawerText = "#F9FAFB",
-        }
-    };
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#111827",
+                Secondary = "#6B7280",
+                Success = "#10B981",
+                Error = "#EF4444",
+                Warning = "#F59E0B",
+                Info = "#0EA5E9",
+                Background = "#F7F8FA",
+                Surface = "#FFFFFF",
+                AppbarBackground = "#FFFFFF",
+                AppbarText = "#111827",
+                TextPrimary = "#111827",
+                TextSecondary = "#6B7280",
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#38BDF8",
+                Secondary = "#9CA3AF",
+                Success = "#10B981",
+                Error = "#EF4444",
+                Warning = "#F59E0B",
+                Info = "#38BDF8",
+                Background = "#111827",
+                Surface = "#1F2937",
+                AppbarBackground = "#1F2937",
+                AppbarText = "#F9FAFB",
+                TextPrimary = "#F9FAFB",
+                TextSecondary = "#D1D5DB",
+                DrawerBackground = "#1F2937",
+                DrawerText = "#F9FAFB",
+            }
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -177,9 +202,9 @@
         if (tab.IsDirty)
         {
             bool? result = await DialogService.ShowMessageBox(
-                "Modifiche non salvate",
-                $"La tab '{tab.Title}' contiene modifiche non salvate. Chiudere comunque?",
-                yesText: "Chiudi", cancelText: "Annulla");
+            "Modifiche non salvate",
+            $"La tab '{tab.Title}' contiene modifiche non salvate. Chiudere comunque?",
+            yesText: "Chiudi", cancelText: "Annulla");
 
             if (result != true) return;
         }

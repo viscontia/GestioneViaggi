@@ -1,0 +1,344 @@
+@page "/ana-viaggi"
+@using GestioneViaggi.Models
+@using AnaViaggiEntity = GestioneViaggi.Models.AnaViaggi
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Services.Authentication
+@inject AnaViaggiService ViaggiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IAuthenticationService AuthService
+
+@attribute [System.Diagnostics.CodeAnalysis.SuppressMessage("MudBlazor", "MUD0002", Justification = "False positive on custom DataGrid")]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h5" GutterBottom="true">Gestione Viaggi</MudText>
+
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else
+    {
+        <MudGrid>
+            <!-- LEFT PANEL: TREE VIEW FILTER (30%) -->
+            <MudItem xs="12" md="4" lg="3">
+                <MudPaper Class="pa-4" Elevation="3" Height="calc(100vh - 150px)" Style="overflow-y: auto;">
+                    <MudText Typo="Typo.h6" Class="mb-4">Esplora Viaggi</MudText>
+
+                    @if (_treeItems.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Default">Nessun viaggio trovato.</MudText>
+                    }
+                    else
+                    {
+                        <MudTreeView T="ViaggiTreeItem" Hover="true" Dense="true" ExpandOnClick="true"
+                            SelectedValueChanged="OnTreeSelectionChanged">
+                            @foreach (var country in _treeItems)
+                            {
+                                <MudTreeViewItem Value="@country" Text="@country.Title" Icon="@country.Icon">
+                                    <ChildContent>
+                                        @foreach (var type in country.Children)
+                                        {
+                                            <MudTreeViewItem Value="@type" Text="@type.Title" Icon="@type.Icon">
+                                                <ChildContent>
+                                                    @foreach (var trip in type.Children)
+                                                {
+                                                    <MudTreeViewItem Value="@trip" Text="@trip.Title" Icon="@trip.Icon" />
+                                                }
+                                            </ChildContent>
+                                        </MudTreeViewItem>
+                                        }
+                                    </ChildContent>
+                                </MudTreeViewItem>
+                            }
+                        </MudTreeView>
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <!-- RIGHT PANEL: DATA GRID (70%) -->
+            <MudItem xs="12" md="8" lg="9">
+                <MudPaper Elevation="3" Class="pa-4">
+                    <EnterpriseDataGrid T="AnaViaggiEntity" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
+                                        SearchFunction="@Search">
+                        
+                        <ToolBarActions>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                                OnClick="OpenCreateDialog">
+                                Nuovo Viaggio
+                            </MudButton>
+                        </ToolBarActions>
+
+                        <Columns>
+                            <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
+                            <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@OpenEditDialog" OnDelete="@DeleteAsync" />
+
+                            <!-- DATI -->
+                            <PropertyColumn Property="x => x.NazioneNome" Title="Nazione" />
+                            <PropertyColumn Property="x => x.DescrizioneBreve" Title="Descrizione Breve" />
+                            <PropertyColumn Property="x => x.TipoViaggioDescrizione" Title="Tipo Viaggio" />
+
+                            <PropertyColumn Property="x => x.NumeroGiorni" Title="Giorni" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
+                            <PropertyColumn Property="x => x.NumeroNotti" Title="Notti" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
+                            <PropertyColumn Property="x => x.Km" Title="Km" CellStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" HeaderStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" />
+
+                            <TemplateColumn Title="Pasti Sacco" CellStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;" HeaderStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;">
+                                <CellTemplate>
+                                    @(context.Item.PastiAlSacco == "Y" ? "Sì" : "No")
+                                </CellTemplate>
+                            </TemplateColumn>
+
+                            <PropertyColumn Property="x => x.TipoTrattamentoDescrizione" Title="Trattamento" />
+                            <PropertyColumn Property="x => x.TipoPernottamentoDescrizione" Title="Pernottamento" />
+                            <PropertyColumn Property="x => x.TipoAvvicinamentoDescrizione" Title="Avvicinamento" />
+
+                            @if (_isSuperAdmin)
+                            {
+                                <PropertyColumn Property="x => x.AziendaRagioneSociale" Title="Azienda" />
+                            }
+                        </Columns>
+
+                    </EnterpriseDataGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+    </MudContainer>
+
+    @code {
+    private bool _isLoading = true;
+    private List<AnaViaggiEntity> _allItems = new();
+    private List<AnaViaggiEntity> _filteredItems = new();
+
+    // TreeView Data Structure
+    private HashSet<ViaggiTreeItem> _treeItems = new();
+
+    private UserInfo? _session;
+    private bool _isSuperAdmin = false;
+
+    // Helper class for Tree structure
+    public class ViaggiTreeItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Icon { get; set; } = Icons.Material.Filled.Folder;
+        public string Type { get; set; } = string.Empty; // "Country", "Type", "Trip"
+        public int? RelatedId { get; set; } // ID of whatever entity this node represents
+
+        // Use HashSet for automatic deduplication in sets, but TreeView wants HashSet<T> or List<T>
+        public HashSet<ViaggiTreeItem> Children { get; set; } = new();
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is ViaggiTreeItem other)
+            {
+                // Unique based on Type + Title (Title should be unique within parent usually, but Type adds safety)
+                return Title == other.Title && Type == other.Type;
+            }
+            return false;
+        }
+
+        public override int GetHashCode() => HashCode.Combine(Title, Type);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _session = await AuthService.GetCurrentUserAsync();
+            _isSuperAdmin = _session?.IsSuperAdmin ?? false;
+        }
+        catch (Exception)
+        {
+            // Suppress auth error during init if any, default to non-admin
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var all = await ViaggiService.GetAllAsync();
+
+            if (!_isSuperAdmin && _session?.AziendaId > 0)
+            {
+                _allItems = all.Where(x => x.AziendaId == _session.AziendaId).ToList();
+            }
+            else
+            {
+                _allItems = all;
+            }
+
+            BuildTree();
+            _filteredItems = new List<AnaViaggiEntity>(_allItems);
+            StateHasChanged(); // FORCE UI UPDATE
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento dati: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void BuildTree()
+    {
+        _treeItems.Clear();
+
+        // Hierarchy: Nazione -> Tipo Viaggio -> Viaggio
+
+        // Group by Country
+        var countries = _allItems
+        .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
+        .OrderBy(g => g.Key);
+
+        foreach (var countryGroup in countries)
+        {
+            var countryNode = new ViaggiTreeItem
+                {
+                    Title = countryGroup.Key,
+                    Type = "Country",
+                    Icon = Icons.Material.Filled.Public
+                };
+
+            // Group by Type within Country
+            var types = countryGroup
+            .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
+            .OrderBy(g => g.Key);
+
+            foreach (var typeGroup in types)
+            {
+                var typeNode = new ViaggiTreeItem
+                    {
+                        Title = typeGroup.Key,
+                        Type = "Type",
+                        Icon = Icons.Material.Filled.Category
+                    };
+
+                // Leaves: Trips (Description Brief)
+                foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
+                {
+                    typeNode.Children.Add(new ViaggiTreeItem
+                        {
+                            Title = trip.DescrizioneBreve,
+                            Type = "Trip",
+                            RelatedId = trip.Id,
+                            Icon = Icons.Material.Filled.FlightTakeoff
+                        });
+                }
+
+                countryNode.Children.Add(typeNode);
+            }
+
+            _treeItems.Add(countryNode);
+        }
+    }
+
+    private bool Search(AnaViaggiEntity item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.DescrizioneBreve?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.NazioneNome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.TipoViaggioDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.TipoTrattamentoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private void OnTreeSelectionChanged(ViaggiTreeItem item)
+    {
+        if (item == null) return;
+
+        switch (item.Type)
+        {
+            case "Country":
+                _filteredItems = _allItems.Where(x => (x.NazioneNome ?? "Sconosciuta") == item.Title).ToList();
+                break;
+            case "Type":
+                _filteredItems = _allItems.Where(x => (x.TipoViaggioDescrizione ?? "Altro") == item.Title).ToList();
+                break;
+            case "Trip":
+                _filteredItems = _allItems.Where(x => x.Id == item.RelatedId).ToList();
+                break;
+        }
+        StateHasChanged(); // FORCE UI UPDATE
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters
+            {
+                ["IsEditMode"] = false,
+                ["AziendaFk"] = _session?.AziendaId ?? 0
+            };
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick =
+            false
+            };
+        var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Nuovo Viaggio", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data != null)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaViaggiEntity item)
+    {
+        var entity = item.Clone<AnaViaggiEntity>();
+
+        var parameters = new DialogParameters
+            {
+                ["Entity"] = entity,
+                ["IsEditMode"] = true,
+                ["AziendaFk"] = _session?.AziendaId ?? 0
+            };
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick =
+            false
+            };
+        var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Modifica Viaggio", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data != null)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteAsync(AnaViaggiEntity item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+        "Conferma Eliminazione",
+        $"Sei sicuro di voler eliminare il viaggio '{item.DescrizioneBreve}'?",
+        yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await ViaggiService.DeleteAsync(item.Id);
+                Snackbar.Add("Viaggio eliminato", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}
