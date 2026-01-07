@@ -227,4 +227,52 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
         return false;
     }
+
+    public async Task<List<AnaDataViaggio>> GetDatesByTripIdAsync(int tripId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_datetrips_fromtrip(@id)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("id", tripId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            var list = new List<AnaDataViaggio>();
+            while (await reader.ReadAsync())
+            {
+                list.Add(MapDateFromReader(reader));
+            }
+            return list;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero date viaggio {Id}", tripId);
+            throw;
+        }
+    }
+
+    private AnaDataViaggio MapDateFromReader(NpgsqlDataReader reader)
+    {
+        return new AnaDataViaggio
+        {
+            Id = ReadInt(reader, "data_viaggio_id"),
+            ViaggioIdFk = ReadInt(reader, "viaggio_id_fk"),
+            DataInizio = ReadNullableDateTime(reader, "data_viaggio_data_inizio"),
+            DataFine = ReadNullableDateTime(reader, "data_viaggio_data_fine"),
+            EffettuatoSino = reader.GetString(reader.GetOrdinal("data_viaggio_effettuato_sino")),
+            CostoPilota = ReadNullableDecimal(reader, "data_viaggio_costo_pilota"),
+            CostoPasseggero = ReadNullableDecimal(reader, "data_viaggio_costo_passeggero"),
+
+            CostoPasseggeroAutoGuida = ReadNullableDecimal(reader, "data_viaggio_costo_passeggero_auto_guida"),
+            CostoBambino02 = ReadNullableDecimal(reader, "data_viaggio_costo_bambino_0_2"),
+            CostoBambino26 = ReadNullableDecimal(reader, "data_viaggio_costo_bambino_2_6"),
+            CostoBambino612 = ReadNullableDecimal(reader, "data_viaggio_costo_bambino_6_12"),
+
+            Note = ReadNullableString(reader, "data_viaggio_note"),
+            AziendaId = ReadInt(reader, "azienda_id"),
+            TotMezzi = ReadInt(reader, "tot_mezzi")
+        };
+    }
 }

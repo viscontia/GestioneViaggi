@@ -16,107 +16,116 @@
 
     @if (_isLoading)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
     }
     else
     {
-        <MudGrid>
-            <!-- LEFT PANEL: TREE VIEW FILTER (30%) -->
-            <MudItem xs="12" md="4" lg="3">
-                <MudPaper Class="pa-4" Elevation="3" Height="calc(100vh - 150px)" Style="overflow-y: auto;">
-                    <MudSelect T="int" Label="Ordina per" Dense="true" Value="_sortOption" ValueChanged="OnSortChanged" Class="mb-4" Variant="Variant.Outlined" Margin="Margin.Dense">
-                        <MudSelectItem Value="0">Nazione -> Tipo</MudSelectItem>
-                        <MudSelectItem Value="1">Tipo -> Nazione</MudSelectItem>
-                    </MudSelect>
+            <MudGrid>
+                <!-- LEFT PANEL: TREE VIEW FILTER (30%) -->
+                <MudItem xs="12" md="4" lg="3">
+                    <MudPaper Class="pa-4" Elevation="3" Height="calc(100vh - 150px)" Style="overflow-y: auto;">
+                        <MudSelect T="int" Label="Ordina per" Dense="true" Value="_sortOption" ValueChanged="OnSortChanged" Class="mb-4" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="0">Nazione -> Tipo</MudSelectItem>
+                            <MudSelectItem Value="1">Tipo -> Nazione</MudSelectItem>
+                        </MudSelect>
 
                     @if (_treeItems.Count == 0)
                     {
-                        <MudText Typo="Typo.body2" Color="Color.Default">Nessun viaggio trovato.</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default">Nessun viaggio trovato.</MudText>
                     }
                     else
                     {
-                        <MudTreeView T="ViaggiTreeItem" Hover="true" Dense="true" ExpandOnClick="true"
-                            SelectedValueChanged="OnTreeSelectionChanged">
+                                <MudTreeView T="ViaggiTreeItem" Hover="true" Dense="true" ExpandOnClick="true"
+                                    SelectedValueChanged="OnTreeSelectionChanged">
                             @foreach (var level1 in _treeItems)
                             {
-                                <MudTreeViewItem Value="@level1" Text="@level1.Title" Icon="@level1.Icon">
-                                    <ChildContent>
+                                            <MudTreeViewItem Value="@level1" Text="@level1.Title" Icon="@level1.Icon" IconColor="@level1.IconColor" @bind-Expanded="@level1.IsExpanded">
+                                                <ChildContent>
                                         @foreach (var level2 in level1.Children)
                                         {
-                                            <MudTreeViewItem Value="@level2" Text="@level2.Title" Icon="@level2.Icon">
-                                                <ChildContent>
-                                                    @foreach (var leaf in level2.Children)
+                                                            <MudTreeViewItem Value="@level2" Text="@level2.Title" Icon="@level2.Icon" IconColor="@level2.IconColor" @bind-Expanded="@level2.IsExpanded">
+                                                                <ChildContent>
+                                                    @foreach (var tripNode in level2.Children)
                                                 {
-                                                    <MudTreeViewItem Value="@leaf" Text="@leaf.Title" Icon="@leaf.Icon" />
+                                                                    <MudTreeViewItem Value="@tripNode" Text="@tripNode.Title" Icon="@tripNode.Icon" IconColor="@tripNode.IconColor"
+                                                                                     Expanded="@tripNode.IsExpanded"
+                                                                                     ExpandedChanged="@((e) => { tripNode.IsExpanded = e; _ = OnItemExpanded(tripNode); })">
+                                                                        <ChildContent>
+                                                                            @foreach (var dateNode in tripNode.Children)
+                                                                            {
+                                                                                <MudTreeViewItem Value="@dateNode" Text="@dateNode.Title" Icon="@dateNode.Icon" IconColor="@dateNode.IconColor" />
+                                                                            }
+                                                                        </ChildContent>
+                                                                    </MudTreeViewItem>
                                                 }
-                                            </ChildContent>
-                                        </MudTreeViewItem>
+                                                        </ChildContent>
+                                                    </MudTreeViewItem>
                                         }
-                                    </ChildContent>
-                                </MudTreeViewItem>
+                                                </ChildContent>
+                                            </MudTreeViewItem>
                             }
-                        </MudTreeView>
+                                </MudTreeView>
                     }
-                </MudPaper>
-            </MudItem>
+                    </MudPaper>
+                </MudItem>
 
-            <!-- RIGHT PANEL: DATA GRID (70%) -->
-            <MudItem xs="12" md="8" lg="9">
-                <MudPaper Elevation="3" Class="pa-4">
-                    <EnterpriseDataGrid T="AnaViaggiEntity" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
-                                        SearchFunction="@Search">
-                        
-                        <ToolBarActions>
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                                OnClick="OpenCreateDialog">
-                                Nuovo Viaggio
-                            </MudButton>
-                        </ToolBarActions>
+                <!-- RIGHT PANEL: DATA GRID (70%) -->
+                <MudItem xs="12" md="8" lg="9">
+                    <MudPaper Elevation="3" Class="pa-4">
+                        <EnterpriseDataGrid T="AnaViaggiEntity" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
+                                            SearchFunction="@Search">
 
-                        <Columns>
-                            <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
-                            <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@OpenEditDialog" OnDelete="@DeleteAsync" />
+                            <ToolBarActions>
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                                    OnClick="OpenCreateDialog">
+                                    Nuovo Viaggio
+                                </MudButton>
+                            </ToolBarActions>
 
-                            <!-- DATI -->
-                            <PropertyColumn Property="x => x.NazioneNome" Title="Nazione" />
-                            <PropertyColumn Property="x => x.DescrizioneBreve" Title="Descrizione Breve" />
-                            <PropertyColumn Property="x => x.TipoViaggioDescrizione" Title="Tipo Viaggio" />
+                            <Columns>
+                                <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
+                                <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@OpenEditDialog" OnDelete="@DeleteAsync" />
 
-                            <PropertyColumn Property="x => x.NumeroGiorni" Title="Giorni" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
-                            <PropertyColumn Property="x => x.NumeroNotti" Title="Notti" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
-                            <PropertyColumn Property="x => x.Km" Title="Km" CellStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" HeaderStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" />
+                                <!-- DATI -->
+                                <PropertyColumn Property="x => x.NazioneNome" Title="Nazione" />
+                                <PropertyColumn Property="x => x.DescrizioneBreve" Title="Descrizione Breve" />
+                                <PropertyColumn Property="x => x.TipoViaggioDescrizione" Title="Tipo Viaggio" />
 
-                            <TemplateColumn Title="Pasti Sacco" CellStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;" HeaderStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;">
-                                <CellTemplate>
+                                <PropertyColumn Property="x => x.NumeroGiorni" Title="Giorni" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
+                                <PropertyColumn Property="x => x.NumeroNotti" Title="Notti" CellStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" HeaderStyle="width: 70px; min-width: 70px; max-width: 70px; text-align: center;" />
+                                <PropertyColumn Property="x => x.Km" Title="Km" CellStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" HeaderStyle="width: 80px; min-width: 80px; max-width: 80px; text-align: right;" />
+
+                                <TemplateColumn Title="Pasti Sacco" CellStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;" HeaderStyle="width: 90px; min-width: 90px; max-width: 90px; text-align: center;">
+                                    <CellTemplate>
                                     @(context.Item.PastiAlSacco == "Y" ? "Sì" : "No")
-                                </CellTemplate>
-                            </TemplateColumn>
+                                    </CellTemplate>
+                                </TemplateColumn>
 
-                            <PropertyColumn Property="x => x.TipoTrattamentoDescrizione" Title="Trattamento" />
-                            <PropertyColumn Property="x => x.TipoPernottamentoDescrizione" Title="Pernottamento" />
-                            <PropertyColumn Property="x => x.TipoAvvicinamentoDescrizione" Title="Avvicinamento" />
+                                <PropertyColumn Property="x => x.TipoTrattamentoDescrizione" Title="Trattamento" />
+                                <PropertyColumn Property="x => x.TipoPernottamentoDescrizione" Title="Pernottamento" />
+                                <PropertyColumn Property="x => x.TipoAvvicinamentoDescrizione" Title="Avvicinamento" />
 
                             @if (_isSuperAdmin)
                             {
-                                <PropertyColumn Property="x => x.AziendaRagioneSociale" Title="Azienda" />
+                                        <PropertyColumn Property="x => x.AziendaRagioneSociale" Title="Azienda" />
                             }
-                        </Columns>
+                            </Columns>
 
-                    </EnterpriseDataGrid>
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+                        </EnterpriseDataGrid>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
     }
     </MudContainer>
 
-    @code {
+@code {
     private bool _isLoading = true;
     private List<AnaViaggiEntity> _allItems = new();
     private List<AnaViaggiEntity> _filteredItems = new();
 
     // TreeView Data Structure
     private HashSet<ViaggiTreeItem> _treeItems = new();
-    
+
     private int _sortOption = 0; // 0: Nazione -> Tipo, 1: Tipo -> Nazione
 
     private UserInfo? _session;
@@ -127,8 +136,11 @@
     {
         public string Title { get; set; } = string.Empty;
         public string Icon { get; set; } = Icons.Material.Filled.Folder;
-        public string Type { get; set; } = string.Empty; // "Country", "Type", "Trip"
+        public Color IconColor { get; set; } = Color.Default;
+        public string Type { get; set; } = string.Empty; // "Country", "Type", "Trip", "Date", "Dummy"
         public int? RelatedId { get; set; } // ID of whatever entity this node represents
+        public bool IsExpanded { get; set; }
+        public bool AreDatesLoaded { get; set; }
 
         // Use HashSet for automatic deduplication in sets, but TreeView wants HashSet<T> or List<T>
         public HashSet<ViaggiTreeItem> Children { get; set; } = new();
@@ -213,11 +225,11 @@
             foreach (var countryGroup in countries)
             {
                 var countryNode = new ViaggiTreeItem
-                {
-                    Title = countryGroup.Key,
-                    Type = "Country",
-                    Icon = Icons.Material.Filled.Public
-                };
+                    {
+                        Title = countryGroup.Key,
+                        Type = "Country",
+                        Icon = Icons.Material.Filled.Public
+                    };
 
                 var types = countryGroup
                     .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
@@ -226,21 +238,24 @@
                 foreach (var typeGroup in types)
                 {
                     var typeNode = new ViaggiTreeItem
-                    {
-                        Title = typeGroup.Key,
-                        Type = "Type",
-                        Icon = Icons.Material.Filled.Category
-                    };
+                        {
+                            Title = typeGroup.Key,
+                            Type = "Type",
+                            Icon = Icons.Material.Filled.Category
+                        };
 
                     foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        typeNode.Children.Add(new ViaggiTreeItem
-                        {
-                            Title = trip.DescrizioneBreve,
-                            Type = "Trip",
-                            RelatedId = trip.Id,
-                            Icon = Icons.Material.Filled.FlightTakeoff
-                        });
+                        var tripNode = new ViaggiTreeItem
+                            {
+                                Title = trip.DescrizioneBreve,
+                                Type = "Trip",
+                                RelatedId = trip.Id,
+                                Icon = Icons.Material.Filled.FlightTakeoff
+                            };
+                        // Add dummy to enable expansion
+                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        typeNode.Children.Add(tripNode);
                     }
                     countryNode.Children.Add(typeNode);
                 }
@@ -257,11 +272,11 @@
             foreach (var typeGroup in types)
             {
                 var typeNode = new ViaggiTreeItem
-                {
-                    Title = typeGroup.Key,
-                    Type = "Type",
-                    Icon = Icons.Material.Filled.Category
-                };
+                    {
+                        Title = typeGroup.Key,
+                        Type = "Type",
+                        Icon = Icons.Material.Filled.Category
+                    };
 
                 var countries = typeGroup
                     .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
@@ -270,21 +285,24 @@
                 foreach (var countryGroup in countries)
                 {
                     var countryNode = new ViaggiTreeItem
-                    {
-                        Title = countryGroup.Key,
-                        Type = "Country",
-                        Icon = Icons.Material.Filled.Public
-                    };
+                        {
+                            Title = countryGroup.Key,
+                            Type = "Country",
+                            Icon = Icons.Material.Filled.Public
+                        };
 
                     foreach (var trip in countryGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        countryNode.Children.Add(new ViaggiTreeItem
-                        {
-                            Title = trip.DescrizioneBreve,
-                            Type = "Trip",
-                            RelatedId = trip.Id,
-                            Icon = Icons.Material.Filled.FlightTakeoff
-                        });
+                        var tripNode = new ViaggiTreeItem
+                            {
+                                Title = trip.DescrizioneBreve,
+                                Type = "Trip",
+                                RelatedId = trip.Id,
+                                Icon = Icons.Material.Filled.FlightTakeoff
+                            };
+                        // Add dummy to enable expansion
+                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        countryNode.Children.Add(tripNode);
                     }
                     typeNode.Children.Add(countryNode);
                 }
@@ -318,8 +336,69 @@
             case "Trip":
                 _filteredItems = _allItems.Where(x => x.Id == item.RelatedId).ToList();
                 break;
+                // case "Date": do nothing or filter further? Currently no action requested.
         }
         StateHasChanged(); // FORCE UI UPDATE
+    }
+
+    private async Task OnItemExpanded(ViaggiTreeItem item)
+    {
+        if (item.Type == "Trip" && !item.AreDatesLoaded && item.RelatedId.HasValue)
+        {
+            try
+            {
+                var dates = await ViaggiService.GetDatesByTripIdAsync(item.RelatedId.Value);
+                item.Children.Clear(); // Remove dummy
+
+                foreach (var d in dates)
+                {
+                    var color = GetStatusColor(d);
+                    var title = $"Dal {d.DataInizio:dd/MM/yyyy} al {d.DataFine:dd/MM/yyyy} - Costo P: {d.CostoPilota:C0} - Costo Pass: {d.CostoPasseggero:C0} - N.Mezzi: {d.TotMezzi}";
+
+                    item.Children.Add(new ViaggiTreeItem
+                        {
+                            Title = title,
+                            Type = "Date",
+                            RelatedId = d.Id,
+                            Icon = Icons.Material.Filled.Event,
+                            IconColor = color
+                        });
+                }
+
+                if (dates.Count == 0)
+                {
+                    item.Children.Add(new ViaggiTreeItem { Title = "Nessuna data", Type = "Info", Icon = Icons.Material.Filled.Info, IconColor = Color.Default });
+                }
+
+                item.AreDatesLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore caricamento date: {ex.Message}", Severity.Error);
+                item.Children.Clear();
+                item.Children.Add(new ViaggiTreeItem { Title = "Errore", Type = "Error", Icon = Icons.Material.Filled.Error, IconColor = Color.Error });
+            }
+            StateHasChanged();
+        }
+    }
+
+    private Color GetStatusColor(AnaDataViaggio date)
+    {
+        var today = DateTime.Today;
+        // Logic:
+        // Green: Effettuato Y AND EndDate < Today (Past)
+        // Yellow: Effettuato N AND Today <= EndDate (Future/Present)
+        // Red: Effettuato N AND EndDate < Today (Past)
+
+        bool isPast = date.DataFine.HasValue && date.DataFine.Value < today;
+        bool isFutureOrPresent = !isPast; // date.DataFine >= today
+        bool isDone = date.EffettuatoSino == "Y";
+
+        if (isDone && isPast) return Color.Success;
+        if (!isDone && isFutureOrPresent) return Color.Warning;
+        if (!isDone && isPast) return Color.Error;
+
+        return Color.Default;
     }
 
     private async Task OpenCreateDialog()
@@ -335,7 +414,7 @@
                 MaxWidth = MaxWidth.Medium,
                 FullWidth = true,
                 BackdropClick =
-            false
+                false
             };
         var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Nuovo Viaggio", parameters, options);
         var result = await dialog.Result;
@@ -362,7 +441,7 @@
                 MaxWidth = MaxWidth.Medium,
                 FullWidth = true,
                 BackdropClick =
-            false
+                false
             };
         var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Modifica Viaggio", parameters, options);
         var result = await dialog.Result;
