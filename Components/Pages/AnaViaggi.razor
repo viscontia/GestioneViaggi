@@ -24,7 +24,10 @@
             <!-- LEFT PANEL: TREE VIEW FILTER (30%) -->
             <MudItem xs="12" md="4" lg="3">
                 <MudPaper Class="pa-4" Elevation="3" Height="calc(100vh - 150px)" Style="overflow-y: auto;">
-                    <MudText Typo="Typo.h6" Class="mb-4">Esplora Viaggi</MudText>
+                    <MudSelect T="int" Label="Ordina per" Dense="true" Value="_sortOption" ValueChanged="OnSortChanged" Class="mb-4" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="0">Nazione -> Tipo</MudSelectItem>
+                        <MudSelectItem Value="1">Tipo -> Nazione</MudSelectItem>
+                    </MudSelect>
 
                     @if (_treeItems.Count == 0)
                     {
@@ -34,17 +37,17 @@
                     {
                         <MudTreeView T="ViaggiTreeItem" Hover="true" Dense="true" ExpandOnClick="true"
                             SelectedValueChanged="OnTreeSelectionChanged">
-                            @foreach (var country in _treeItems)
+                            @foreach (var level1 in _treeItems)
                             {
-                                <MudTreeViewItem Value="@country" Text="@country.Title" Icon="@country.Icon">
+                                <MudTreeViewItem Value="@level1" Text="@level1.Title" Icon="@level1.Icon">
                                     <ChildContent>
-                                        @foreach (var type in country.Children)
+                                        @foreach (var level2 in level1.Children)
                                         {
-                                            <MudTreeViewItem Value="@type" Text="@type.Title" Icon="@type.Icon">
+                                            <MudTreeViewItem Value="@level2" Text="@level2.Title" Icon="@level2.Icon">
                                                 <ChildContent>
-                                                    @foreach (var trip in type.Children)
+                                                    @foreach (var leaf in level2.Children)
                                                 {
-                                                    <MudTreeViewItem Value="@trip" Text="@trip.Title" Icon="@trip.Icon" />
+                                                    <MudTreeViewItem Value="@leaf" Text="@leaf.Title" Icon="@leaf.Icon" />
                                                 }
                                             </ChildContent>
                                         </MudTreeViewItem>
@@ -113,6 +116,8 @@
 
     // TreeView Data Structure
     private HashSet<ViaggiTreeItem> _treeItems = new();
+    
+    private int _sortOption = 0; // 0: Nazione -> Tipo, 1: Tipo -> Nazione
 
     private UserInfo? _session;
     private bool _isSuperAdmin = false;
@@ -187,56 +192,104 @@
         }
     }
 
+    private void OnSortChanged(int value)
+    {
+        _sortOption = value;
+        BuildTree();
+        StateHasChanged();
+    }
+
     private void BuildTree()
     {
         _treeItems.Clear();
 
-        // Hierarchy: Nazione -> Tipo Viaggio -> Viaggio
-
-        // Group by Country
-        var countries = _allItems
-        .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
-        .OrderBy(g => g.Key);
-
-        foreach (var countryGroup in countries)
+        if (_sortOption == 0)
         {
-            var countryNode = new ViaggiTreeItem
+            // Hierarchy: Nazione -> Tipo Viaggio -> Viaggio
+            var countries = _allItems
+                .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
+                .OrderBy(g => g.Key);
+
+            foreach (var countryGroup in countries)
+            {
+                var countryNode = new ViaggiTreeItem
                 {
                     Title = countryGroup.Key,
                     Type = "Country",
                     Icon = Icons.Material.Filled.Public
                 };
 
-            // Group by Type within Country
-            var types = countryGroup
-            .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
-            .OrderBy(g => g.Key);
+                var types = countryGroup
+                    .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
+                    .OrderBy(g => g.Key);
 
-            foreach (var typeGroup in types)
-            {
-                var typeNode = new ViaggiTreeItem
+                foreach (var typeGroup in types)
+                {
+                    var typeNode = new ViaggiTreeItem
                     {
                         Title = typeGroup.Key,
                         Type = "Type",
                         Icon = Icons.Material.Filled.Category
                     };
 
-                // Leaves: Trips (Description Brief)
-                foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
-                {
-                    typeNode.Children.Add(new ViaggiTreeItem
+                    foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
+                    {
+                        typeNode.Children.Add(new ViaggiTreeItem
                         {
                             Title = trip.DescrizioneBreve,
                             Type = "Trip",
                             RelatedId = trip.Id,
                             Icon = Icons.Material.Filled.FlightTakeoff
                         });
+                    }
+                    countryNode.Children.Add(typeNode);
                 }
-
-                countryNode.Children.Add(typeNode);
+                _treeItems.Add(countryNode);
             }
+        }
+        else
+        {
+            // Hierarchy: Tipo Viaggio -> Nazione -> Viaggio
+            var types = _allItems
+                .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
+                .OrderBy(g => g.Key);
 
-            _treeItems.Add(countryNode);
+            foreach (var typeGroup in types)
+            {
+                var typeNode = new ViaggiTreeItem
+                {
+                    Title = typeGroup.Key,
+                    Type = "Type",
+                    Icon = Icons.Material.Filled.Category
+                };
+
+                var countries = typeGroup
+                    .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
+                    .OrderBy(g => g.Key);
+
+                foreach (var countryGroup in countries)
+                {
+                    var countryNode = new ViaggiTreeItem
+                    {
+                        Title = countryGroup.Key,
+                        Type = "Country",
+                        Icon = Icons.Material.Filled.Public
+                    };
+
+                    foreach (var trip in countryGroup.OrderBy(t => t.DescrizioneBreve))
+                    {
+                        countryNode.Children.Add(new ViaggiTreeItem
+                        {
+                            Title = trip.DescrizioneBreve,
+                            Type = "Trip",
+                            RelatedId = trip.Id,
+                            Icon = Icons.Material.Filled.FlightTakeoff
+                        });
+                    }
+                    typeNode.Children.Add(countryNode);
+                }
+                _treeItems.Add(typeNode);
+            }
         }
     }
 
