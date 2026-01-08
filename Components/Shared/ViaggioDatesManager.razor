@@ -58,7 +58,7 @@
     [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
     [Parameter] public EventCallback OnTripDeleted { get; set; } // To notify parent that trip was deleted (orphaned)
 
-    private async Task AddDate()
+    public async Task AddDate()
     {
         var newDate = new AnaDataViaggio
             {
@@ -119,6 +119,11 @@
                 await ViaggiService.DeleteDateAsync(date.Id);
                 Dates.Remove(date); // UI Update
                 Snackbar.Add("Data eliminata", Severity.Success);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Business logic error
+                Snackbar.Add(ex.Message, Severity.Warning);
             }
             catch (Exception ex)
             {

@@ -7,7 +7,7 @@
 <MudDialog>
     <DialogContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
-             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
                     <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
 
@@ -147,7 +147,7 @@
                          <MudAlert Severity="Severity.Info" Class="mb-3">Inserisci le date pianificate. Saranno salvate insieme al viaggio.</MudAlert>
                      }
                      
-                     <ViaggioDatesManager Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
+                     <ViaggioDatesManager @ref="_datesManager" Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
                                           DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
                      </ChildContent>
                 </MudTabPanel>
@@ -174,6 +174,7 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Inject] public AnaViaggiService ViaggiService { get; set; } = default!;
+    [Inject] public IDialogService DialogService { get; set; } = default!;
     [Inject] public ISnackbar Snackbar { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
@@ -190,6 +191,7 @@
     private bool _isValid;
     private bool _isSaving;
     private List<AnaDataViaggio> _dates = new();
+    private ViaggioDatesManager? _datesManager;
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -294,10 +296,42 @@
         }
 
         // Validate Dates for New Trip
+        // Validate Dates for New Trip (Interactive Flow)
         if (!IsEditMode && _dates.Count == 0)
         {
-             Snackbar.Add("Devi inserire almeno una data per creare il viaggio.", Severity.Error);
-             return;
+             bool confirm = await DialogService.ShowMessageBox(
+                "Attenzione", 
+                "Per salvare il nuovo viaggio è necessario inserire almeno una data. Vuoi inserirla ora?", 
+                yesText: "Sì, inserisci", 
+                cancelText: "No, annulla tutto") ?? false;
+
+             if (!confirm)
+             {
+                 MudDialog.Cancel();
+                 return;
+             }
+             
+             // User wants to insert date.
+             // 1. Switch to Dates Tab (to ensure UI context)
+             _activeTabIndex = 1;
+             StateHasChanged();
+             await Task.Delay(100); // Allow render
+
+             // 2. Open Add Date Dialog directly
+             if (_datesManager != null)
+             {
+                 await _datesManager.AddDate();
+             }
+
+             // 3. Re-Check: Did user actually save a date?
+             if (_dates.Count == 0)
+             {
+                 // User cancelled the date dialog or didn't save.
+                 // "Se anche qui utente fa annulla... si fa rollback e si torna indietro"
+                 Snackbar.Add("Nessuna data inserita. Creazione viaggio annullata.", Severity.Info);
+                 MudDialog.Cancel();
+                 return;
+             }
         }
 
         if (_form.IsValid)
@@ -336,6 +370,26 @@
             {
                 _isSaving = false;
             }
+        }
+    }
+
+    private async Task OnTabChanged(int index)
+    {
+        _activeTabIndex = index;
+
+        // Auto-open Add Date Dialog if:
+        // 1. We switch to Dates Tab (Index 1)
+        // 2. It is a New Trip (!IsEditMode)
+        // 3. There are no dates yet
+        // 4. We rely on the Manager to pop the dialog
+        if (index == 1 && !IsEditMode && _dates.Count == 0 && _datesManager != null)
+        {
+             // Give UI a moment to render the tab content
+             await Task.Delay(100); 
+             if (_datesManager != null)
+             {
+                 await _datesManager.AddDate();
+             }
         }
     }
 

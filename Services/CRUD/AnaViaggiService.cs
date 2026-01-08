@@ -148,6 +148,80 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
     }
 
+    public override async Task<bool> DeleteAsync(int id)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+
+            // 0. Pre-Delete Validation: Check for existing dependencies
+            var checkSql = @"
+                SELECT
+                    (SELECT COUNT(1) FROM mov_clienti_viaggi WHERE viaggio_id_fk = @id) as clienti_count,
+                    (SELECT COUNT(1) FROM mov_clienti_alloggi WHERE viaggio_id_fk = @id) as alloggi_count";
+
+            await using var cmdCheck = new NpgsqlCommand(checkSql, connection);
+            cmdCheck.Parameters.AddWithValue("id", id);
+
+            await using var reader = await cmdCheck.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                var clientiCount = reader.GetInt64(0);
+                var alloggiCount = reader.GetInt64(1);
+
+                if (clientiCount > 0 || alloggiCount > 0)
+                {
+                    // Found dependencies
+                    var msg = "Impossibile eliminare il viaggio: esistono dati collegati (";
+                    if (clientiCount > 0) msg += $"{clientiCount} clienti ";
+                    if (clientiCount > 0 && alloggiCount > 0) msg += "e ";
+                    if (alloggiCount > 0) msg += $"{alloggiCount} alloggi";
+                    msg += ").";
+
+                    throw new InvalidOperationException(msg);
+                }
+            }
+            await reader.CloseAsync(); // Close reader before starting transaction on same connection?
+            // Better: Connection is open, reader closed.
+
+            await using var transaction = await connection.BeginTransactionAsync();
+
+            try
+            {
+                // 1. Delete associated dates (manual cascade)
+                var sqlDates = "DELETE FROM ana_date_viaggi WHERE viaggio_id_fk = @id";
+                await using var cmdDates = new NpgsqlCommand(sqlDates, connection, transaction);
+                cmdDates.Parameters.AddWithValue("id", id);
+                await cmdDates.ExecuteNonQueryAsync();
+
+                // 2. Delete Trip
+                var sqlTrip = $"DELETE FROM {TableName} WHERE {IdColumnName} = @id";
+                await using var cmdTrip = new NpgsqlCommand(sqlTrip, connection, transaction);
+                cmdTrip.Parameters.AddWithValue("id", id);
+
+                var rowsAffected = await cmdTrip.ExecuteNonQueryAsync();
+
+                await transaction.CommitAsync();
+                return rowsAffected > 0;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Re-throw validation errors as-is for UI to display nicely
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante l'eliminazione del viaggio {Id} e delle sue date", id);
+            throw;
+        }
+    }
+
     private void AddParameters(NpgsqlCommand command, AnaViaggi entity)
     {
         command.Parameters.AddWithValue("descBreve", entity.DescrizioneBreve.ToUpper()); // Uppercase enforced
@@ -379,6 +453,35 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     public async Task DeleteDateAsync(int dateId)
     {
         await using var connection = await _databaseService.GetConnectionAsync();
+
+        // 0. Pre-Delete Validation: Check for existing dependencies
+        var checkSql = @"
+            SELECT 
+                (SELECT COUNT(1) FROM mov_clienti_viaggi WHERE data_viaggio_id_fk = @id) as clienti_count,
+                (SELECT COUNT(1) FROM mov_clienti_alloggi WHERE data_viaggio_id_fk = @id) as alloggi_count";
+
+        await using var cmdCheck = new NpgsqlCommand(checkSql, connection);
+        cmdCheck.Parameters.AddWithValue("id", dateId);
+
+        await using var reader = await cmdCheck.ExecuteReaderAsync();
+        if (await reader.ReadAsync())
+        {
+            var clientiCount = reader.GetInt64(0);
+            var alloggiCount = reader.GetInt64(1);
+
+            if (clientiCount > 0 || alloggiCount > 0)
+            {
+                var msg = "Impossibile eliminare la data: esistono dati collegati (";
+                if (clientiCount > 0) msg += $"{clientiCount} clienti ";
+                if (clientiCount > 0 && alloggiCount > 0) msg += "e ";
+                if (alloggiCount > 0) msg += $"{alloggiCount} alloggi";
+                msg += ").";
+
+                throw new InvalidOperationException(msg);
+            }
+        }
+        await reader.CloseAsync();
+
         var sql = "DELETE FROM ana_date_viaggi WHERE data_viaggio_id = @id";
         await using var cmd = new NpgsqlCommand(sql, connection);
         cmd.Parameters.AddWithValue("id", dateId);

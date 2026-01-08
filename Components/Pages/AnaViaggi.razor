@@ -592,6 +592,11 @@
                 Snackbar.Add("Viaggio eliminato", Severity.Success);
                 await LoadDataAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                // Business logic error (e.g., dependencies found) - Show as Warning/Info, clean message
+                Snackbar.Add(ex.Message, Severity.Warning); 
+            }
             catch (Exception ex)
             {
                 Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
