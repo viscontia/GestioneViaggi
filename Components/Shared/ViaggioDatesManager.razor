@@ -1,0 +1,171 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+
+<MudDataGrid Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true" EditMode="DataGridEditMode.Cell">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Date in Programma</MudText>
+        <MudSpacer />
+        <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" Variant="Variant.Filled"
+            OnClick="AddDate">Aggiungi Data</MudButton>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.DataInizio" Title="Inizio" Format="dd/MM/yyyy" />
+        <PropertyColumn Property="x => x.DataFine" Title="Fine" Format="dd/MM/yyyy" />
+        <TemplateColumn Title="Effettuato" CellStyle="text-align:center">
+            <CellTemplate>
+                @if (context.Item.EffettuatoSino == "Y")
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Default" Size="Size.Small" />
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.CostoPilota" Title="Pilota €" Format="N0" CellStyle="text-align:right" />
+        <PropertyColumn Property="x => x.CostoPasseggero" Title="Pass. €" Format="N0" CellStyle="text-align:right" />
+
+        <TemplateColumn CellStyle="width:100px; text-align:center">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                    OnClick="@(() => EditDate(context.Item))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                    OnClick="@(() => DeleteDate(context.Item))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] AnaViaggiService ViaggiService { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+
+    [Parameter] public List<AnaDataViaggio> Dates { get; set; } = new();
+
+    // Live Mode: when true, actions are executed directly on DB and list is refreshed.
+    // when false, actions are on the in-memory list only.
+    [Parameter] public bool IsLiveMode { get; set; }
+    [Parameter] public int TripId { get; set; }
+    [Parameter] public int AziendaId { get; set; }
+
+    [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
+
+    private async Task AddDate()
+    {
+        var newDate = new AnaDataViaggio
+            {
+                ViaggioIdFk = TripId,
+                AziendaId = AziendaId,
+                DataInizio = DateTime.Today,
+                DataFine =
+            DateTime.Today.AddDays(7)
+            };
+        await OpenDialog(newDate, true);
+    }
+
+    private async Task EditDate(AnaDataViaggio date)
+    {
+        await OpenDialog(date, false);
+    }
+
+    private async Task DeleteDate(AnaDataViaggio date)
+    {
+        bool confirm = await DialogService.ShowMessageBox("Conferma", "Eliminare questa data?", yesText: "Elimina", cancelText:
+        "Annulla") ?? false;
+        if (!confirm) return;
+
+        if (IsLiveMode)
+        {
+            try
+            {
+                await ViaggiService.DeleteDateAsync(date.Id);
+                Dates.Remove(date); // UI Update
+                Snackbar.Add("Data eliminata", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+        else
+        {
+            Dates.Remove(date);
+        }
+        await DatesChanged.InvokeAsync();
+    }
+
+    private async Task OpenDialog(AnaDataViaggio date, bool isNew)
+    {
+        // Clone for edit to avoid dirty state on cancel
+        var model = (AnaDataViaggio)date.Clone();
+
+        var parameters = new DialogParameters { ["Entity"] = model };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<ViaggioDateDialog>(isNew ? "Nuova Data" : "Modifica Data", parameters,
+        options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is AnaDataViaggio modifiedDate)
+        {
+            if (IsLiveMode)
+            {
+                try
+                {
+                    // Ensure links
+                    modifiedDate.ViaggioIdFk = TripId;
+                    modifiedDate.AziendaId = AziendaId;
+
+                    if (isNew)
+                    {
+                        await ViaggiService.CreateDateAsync(modifiedDate);
+                        // Ideally reload to get ID, or Service returns ID.
+                        // CreateDateAsync currently void? Let's assume just refresh logic or we need ID.
+                        // For now, let's just add to list, but in LiveMode we should reload or get ID.
+                        // Simple approach: Reload list from parent or trust the DB.
+                        // Let's create a partial reload if needed.
+                        // To be robust: Creating returns nothing now. I should verify Service returns ID or object.
+                        // Currently void.
+                        // Let's Reload ALL dates for safety in Live Mode.
+                        var updatedDates = await ViaggiService.GetDatesByTripIdAsync(TripId);
+                        Dates.Clear();
+                        Dates.AddRange(updatedDates);
+                    }
+                    else
+                    {
+                        await ViaggiService.UpdateDateAsync(modifiedDate);
+                        // Reflection in local list
+                        var index = Dates.FindIndex(d => d.Id == date.Id);
+                        if (index >= 0) Dates[index] = modifiedDate;
+                    }
+                    Snackbar.Add("Data salvata", Severity.Success);
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Errore salvataggio: {ex.Message}", Severity.Error);
+                }
+            }
+            else
+            {
+                // Memory Mode
+                if (isNew)
+                {
+                    Dates.Add(modifiedDate);
+                }
+                else
+                {
+                    // Replace instance properties or object in list
+                    // Since 'date' is the reference in the list (if we passed the original), we can update it or swap.
+                    // 'date' passed to this method is reference from list? Yes context.Item.
+                    // But we cloned 'model'. So we need to update 'date' with 'model' values OR swap in list.
+                    var index = Dates.IndexOf(date);
+                    if (index >= 0) Dates[index] = modifiedDate;
+                }
+            }
+            await DatesChanged.InvokeAsync();
+        }
+    }
+}

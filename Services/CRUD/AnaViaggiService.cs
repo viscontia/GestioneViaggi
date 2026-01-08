@@ -275,4 +275,165 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             TotMezzi = ReadInt(reader, "tot_mezzi")
         };
     }
+    public async Task<int> CreateTripWithDatesAsync(AnaViaggi trip, List<AnaDataViaggio> dates)
+    {
+        if (dates == null || dates.Count == 0)
+        {
+            throw new ArgumentException("Almeno una data è obbligatoria per creare un viaggio.");
+        }
+
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var transaction = await connection.BeginTransactionAsync();
+
+        try
+        {
+            // 1. Insert Trip
+            var sqlTrip = @"
+                INSERT INTO ana_viaggi (
+                    viaggio_descrizione_breve, viaggio_descrizione_estesa,
+                    viaggio_numero_giorni, viaggio_numero_notti,
+                    viaggio_pasti_al_sacco, viaggio_num_km,
+                    viaggio_tipo_avvicinamento_fk,
+                    viaggio_note, viaggio_link,
+                    viaggio_nazione_fk, viaggio_tipo_viaggio_fk,
+                    viaggio_tipo_trattamento_fk, viaggio_tipo_pernottamento_fk,
+                    azienda_id,
+                    created_by, created, updated_by, updated
+                ) VALUES (
+                    @descBreve, @descEstesa,
+                    @giorni, @notti,
+                    @pasti, @km,
+                    @avvicinamento,
+                    @note, @link,
+                    @nazione, @tipo,
+                    @trattamento, @pernottamento,
+                    @aziendaId,
+                    @createdBy, @created, @updatedBy, @updated
+                )
+                RETURNING viaggio_id";
+
+            await using var cmdTrip = new NpgsqlCommand(sqlTrip, connection, transaction);
+            AddParameters(cmdTrip, trip);
+
+            var tripIdObj = await cmdTrip.ExecuteScalarAsync();
+            int tripId = Convert.ToInt32(tripIdObj);
+            trip.Id = tripId;
+
+            // 2. Insert Dates
+            foreach (var date in dates)
+            {
+                date.ViaggioIdFk = tripId; // Link to new trip
+                date.AziendaId = trip.AziendaId; // Inherit company
+                await InsertDateInternalAsync(date, connection, transaction);
+            }
+
+            await transaction.CommitAsync();
+            return tripId;
+        }
+        catch (PostgresException ex) when (ex.SqlState == "42P01" && ex.Message.Contains("ana_viaggi_seq"))
+        {
+            // If sequence missing for main table, rollback is automatic on error but we are in C# transaction block.
+            await transaction.RollbackAsync();
+            _logger.LogWarning("Sequence missing during atomic create. Attempting fix and retry manually not implemented for complex transaction yet.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Errore nella creazione atomica del viaggio con date.");
+            throw;
+        }
+    }
+
+    public async Task UpdateDateAsync(AnaDataViaggio date)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        var sql = @"
+            UPDATE ana_date_viaggi SET
+                data_viaggio_data_inizio = @inizio,
+                data_viaggio_data_fine = @fine,
+                data_viaggio_effettuato_sino = @effettuato,
+                data_viaggio_costo_pilota = @costoPilota,
+                data_viaggio_costo_passeggero = @costoPass,
+                data_viaggio_costo_passeggero_auto_guida = @costoPassAuto,
+                data_viaggio_costo_bambino_0_2 = @costoB02,
+                data_viaggio_costo_bambino_2_6 = @costoB26,
+                data_viaggio_costo_bambino_6_12 = @costoB612,
+                data_viaggio_note = @note,
+                azienda_id = @aziendaId
+            WHERE data_viaggio_id = @id";
+
+        await using var cmd = new NpgsqlCommand(sql, connection);
+        AddDateParameters(cmd, date);
+        cmd.Parameters.AddWithValue("id", date.Id);
+
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task CreateDateAsync(AnaDataViaggio date)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await InsertDateInternalAsync(date, connection, null);
+    }
+
+    public async Task DeleteDateAsync(int dateId)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        var sql = "DELETE FROM ana_date_viaggi WHERE data_viaggio_id = @id";
+        await using var cmd = new NpgsqlCommand(sql, connection);
+        cmd.Parameters.AddWithValue("id", dateId);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    private async Task InsertDateInternalAsync(AnaDataViaggio date, NpgsqlConnection connection, NpgsqlTransaction? transaction)
+    {
+        var sql = @"
+            INSERT INTO ana_date_viaggi (
+                viaggio_id_fk,
+                data_viaggio_data_inizio,
+                data_viaggio_data_fine,
+                data_viaggio_effettuato_sino,
+                data_viaggio_costo_pilota,
+                data_viaggio_costo_passeggero,
+                data_viaggio_costo_passeggero_auto_guida,
+                data_viaggio_costo_bambino_0_2,
+                data_viaggio_costo_bambino_2_6,
+                data_viaggio_costo_bambino_6_12,
+                data_viaggio_note,
+                azienda_id
+            ) VALUES (
+                @viaggioId,
+                @inizio,
+                @fine,
+                @effettuato,
+                @costoPilota,
+                @costoPass,
+                @costoPassAuto,
+                @costoB02,
+                @costoB26,
+                @costoB612,
+                @note,
+                @aziendaId
+            )";
+
+        await using var cmd = new NpgsqlCommand(sql, connection, transaction);
+        AddDateParameters(cmd, date);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    private void AddDateParameters(NpgsqlCommand cmd, AnaDataViaggio date)
+    {
+        cmd.Parameters.AddWithValue("viaggioId", date.ViaggioIdFk);
+        cmd.Parameters.AddWithValue("inizio", (object?)date.DataInizio ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("fine", (object?)date.DataFine ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("effettuato", (object?)date.EffettuatoSino ?? "N");
+        cmd.Parameters.AddWithValue("costoPilota", (object?)date.CostoPilota ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("costoPass", (object?)date.CostoPasseggero ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("costoPassAuto", (object?)date.CostoPasseggeroAutoGuida ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("costoB02", (object?)date.CostoBambino02 ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("costoB26", (object?)date.CostoBambino26 ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("costoB612", (object?)date.CostoBambino612 ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("note", (object?)date.Note ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("aziendaId", date.AziendaId);
+    }
 }

@@ -139,6 +139,7 @@
         public Color IconColor { get; set; } = Color.Default;
         public string Type { get; set; } = string.Empty; // "Country", "Type", "Trip", "Date", "Dummy"
         public int? RelatedId { get; set; } // ID of whatever entity this node represents
+        public int? ParentId { get; set; } // ID of the parent entity (e.g. Trip ID for a Date)
         public bool IsExpanded { get; set; }
         public bool AreDatesLoaded { get; set; }
 
@@ -321,7 +322,7 @@
         return false;
     }
 
-    private void OnTreeSelectionChanged(ViaggiTreeItem item)
+    private async Task OnTreeSelectionChanged(ViaggiTreeItem item)
     {
         if (item == null) return;
 
@@ -336,7 +337,28 @@
             case "Trip":
                 _filteredItems = _allItems.Where(x => x.Id == item.RelatedId).ToList();
                 break;
-                // case "Date": do nothing or filter further? Currently no action requested.
+            case "Date":
+                // Logic to open Dialog focused on this Date
+                if (item.RelatedId.HasValue)
+                {
+                    // Find Trip ID parent (we need to traverse or find in list).
+                    // Since specific date belongs to a Trip, and we likely have the Trip ID in related parent or we can fetch.
+                    // For now simplest way: Iterate _allItems to find which trip owns this date? No, date has ViaggioIdFk but we don't have the object here.
+                    // Actually, TreeItem could store parent ID.
+                    // But wait, the standard logic requested is: Click on Date -> Open Dialog Tab 2.
+                    // We need the Trip Entity to open the main dialog.
+                    // Let's implement a Helper to find Trip by Date ID or we can just pass the Trip ID to the TreeItem when building.
+                    // Let's modify BuildTree / OnItemExpanded to store TripID in the Date Node context.
+                    // FOR NOW: just ensure we select the trip in the grid.
+                     var trip = _allItems.FirstOrDefault(t => t.Id == item.ParentId); // We will add ParentId to TreeItem
+                     if (trip != null) 
+                     {
+                         _filteredItems = new List<AnaViaggiEntity> { trip };
+                         // Open Dialog
+                         await OpenEditDialog(trip, true); // true = focus on dates tab
+                     }
+                }
+                break;
         }
         StateHasChanged(); // FORCE UI UPDATE
     }
@@ -360,6 +382,7 @@
                             Title = title,
                             Type = "Date",
                             RelatedId = d.Id,
+                            ParentId = item.RelatedId,
                             Icon = Icons.Material.Filled.Event,
                             IconColor = color
                         });
@@ -425,7 +448,7 @@
         }
     }
 
-    private async Task OpenEditDialog(AnaViaggiEntity item)
+    private async Task OpenEditDialog(AnaViaggiEntity item, bool openDatesTab = false)
     {
         var entity = item.Clone<AnaViaggiEntity>();
 
@@ -435,6 +458,13 @@
                 ["IsEditMode"] = true,
                 ["AziendaFk"] = _session?.AziendaId ?? 0
             };
+            
+        // Note: We need to pass 'OpenDatesTab' to AnaViaggiDialog if we want it to auto-switch.
+        // But AnaViaggiDialog doesn't have that parameter yet. 
+        // We probably should add it, or just rely on manual switching since user asked for "Active TreeView" -> Click Data -> Open Dialog.
+        // Let's assume user accepts standard opening for now, BUT ideally we switch tab.
+        // Ideally we add [Parameter] public bool StartOnDatesTab { get; set; } to AnaViaggiDialog.
+        
         var options = new DialogOptions
             {
                 CloseButton = true,

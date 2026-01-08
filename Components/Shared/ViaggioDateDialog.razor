@@ -1,0 +1,102 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid">
+            <MudGrid Spacing="2">
+                <!-- Date -->
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Inizio" @bind-Date="Entity.DataInizio" Required="true" Editable="true"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true" Editable="true"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+
+                <!-- Stato -->
+                <MudItem xs="12">
+                    <MudCheckBox T="bool" Label="Viaggio Effettuato" KeepState="true"
+                        Value="@(Entity.EffettuatoSino == "Y")"
+                        ValueChanged="@(v => Entity.EffettuatoSino = v ? "Y" : "N")" Color="Color.Success">
+                    </MudCheckBox>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" Light="true" />
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Costi Base</MudText>
+                </MudItem>
+
+                <!-- Costi Base -->
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="Entity.CostoPilota" Label="Costo Pilota" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="Entity.CostoPasseggero" Label="Costo Passeggero"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="Entity.CostoPasseggeroAutoGuida" Label="Costo Pass. Auto Guida"
+                        Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" Light="true" />
+                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Costi Bambini</MudText>
+                </MudItem>
+
+                <!-- Costi Bambini -->
+                <MudItem xs="4">
+                    <MudNumericField @bind-Value="Entity.CostoBambino02" Label="0-2 Anni" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudNumericField @bind-Value="Entity.CostoBambino26" Label="2-6 Anni" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudNumericField @bind-Value="Entity.CostoBambino612" Label="6-12 Anni" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+                </MudItem>
+
+            </MudGrid>
+            <MudTextField @bind-Value="Entity.Note" Label="Note" Variant="Variant.Outlined" Lines="2" Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Conferma</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public AnaDataViaggio Entity { get; set; } = new();
+
+    private MudForm _form = default!;
+    private bool _isValid;
+
+    private void Submit()
+    {
+        _form.Validate();
+        if (_form.IsValid)
+        {
+            // Validate Date Logic
+            if (Entity.DataInizio.HasValue && Entity.DataFine.HasValue && Entity.DataFine < Entity.DataInizio)
+            {
+                // Simple validation feedback: could be better but basic works
+                // Ideally Snackbar or Form error using 'For' validation
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(Entity));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

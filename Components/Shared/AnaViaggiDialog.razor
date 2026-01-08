@@ -6,121 +6,137 @@
 
 <MudDialog>
     <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4" Style="max-height: 80vh; overflow-y: auto;">
-            <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
+             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
+                    <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
 
-                <!-- 1. AZIENDA -->
-                <!-- 1. AZIENDA -->
-                @if (IsEditMode)
-                {
-                    <MudTextField Value="@Entity.AziendaRagioneSociale" Label="Azienda" ReadOnly="true"
-                        Variant="Variant.Outlined" Class="mb-4" />
-                }
-                else
-                {
-                    <AziendaSelect @bind-Value="Entity.AziendaId" Label="Azienda" Required="true"
-                        Disabled="@(!IsSuperAdmin)" RequiredError="Selezionare l'azienda" Class="mb-4" />
-                }
+                        <!-- 1. AZIENDA -->
+                        @if (IsEditMode)
+                        {
+                            <MudTextField Value="@Entity.AziendaRagioneSociale" Label="Azienda" ReadOnly="true"
+                                Variant="Variant.Outlined" Class="mb-4" />
+                        }
+                        else
+                        {
+                            <AziendaSelect @bind-Value="Entity.AziendaId" Label="Azienda" Required="true"
+                                Disabled="@(!IsSuperAdmin)" RequiredError="Selezionare l'azienda" Class="mb-4" />
+                        }
 
-                <!-- 2. DATI PRINCIPALI VIAGGIO -->
-                <MudGrid>
-                    <!-- Nazione -->
-                    <MudItem xs="12" sm="6">
-                        <CountrySelect SelectedCountryId="@((int?)Entity.NazioneIdFk)"
-                            SelectedCountryIdChanged="@(val => Entity.NazioneIdFk = val ?? 0)" Label="Nazione"
-                            Required="true" Class="mb-3" />
-                    </MudItem>
+                        <!-- 2. DATI PRINCIPALI VIAGGIO -->
+                        <MudGrid>
+                            <!-- Nazione -->
+                            <MudItem xs="12" sm="6">
+                                <CountrySelect SelectedCountryId="@((int?)Entity.NazioneIdFk)"
+                                    SelectedCountryIdChanged="@(val => Entity.NazioneIdFk = val ?? 0)" Label="Nazione"
+                                    Required="true" Class="mb-3" />
+                            </MudItem>
 
-                    <!-- Tipo Viaggio -->
-                    <MudItem xs="12" sm="6">
-                        <TipoViaggioSelect SelectedId="@((int?)Entity.TipoViaggioIdFk)"
-                            SelectedIdChanged="@(val => Entity.TipoViaggioIdFk = val ?? 0)" Label="Tipo Viaggio"
-                            Required="true" Class="mb-3" />
-                    </MudItem>
+                            <!-- Tipo Viaggio -->
+                            <MudItem xs="12" sm="6">
+                                <TipoViaggioSelect SelectedId="@((int?)Entity.TipoViaggioIdFk)"
+                                    SelectedIdChanged="@(val => Entity.TipoViaggioIdFk = val ?? 0)" Label="Tipo Viaggio"
+                                    Required="true" Class="mb-3" />
+                            </MudItem>
 
-                    <!-- Descrizione Breve -->
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="Entity.DescrizioneBreve" For="@(() => Entity.DescrizioneBreve)"
-                            Label="Descrizione Breve" Variant="Variant.Outlined" Required="true" Class="uppercase-input"
-                            Immediate="true" Converter="@_uppercaseConverter" />
-                    </MudItem>
+                            <!-- Descrizione Breve -->
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Entity.DescrizioneBreve" For="@(() => Entity.DescrizioneBreve)"
+                                    Label="Descrizione Breve" Variant="Variant.Outlined" Required="true" Class="uppercase-input"
+                                    Immediate="true" Converter="@_uppercaseConverter" />
+                            </MudItem>
 
-                    <!-- Descrizione Estesa -->
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="Entity.DescrizioneEstesa" For="@(() => Entity.DescrizioneEstesa)"
-                            Label="Descrizione Estesa" Variant="Variant.Outlined" Lines="3" Required="true"
-                            Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
-                    </MudItem>
-                </MudGrid>
+                            <!-- Descrizione Estesa -->
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Entity.DescrizioneEstesa" For="@(() => Entity.DescrizioneEstesa)"
+                                    Label="Descrizione Estesa" Variant="Variant.Outlined" Lines="3" Required="true"
+                                    Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
+                            </MudItem>
+                        </MudGrid>
 
-                <MudDivider Class="my-4" />
+                        <MudDivider Class="my-4" />
 
-                <!-- 3. DETTAGLI LOGISTICI -->
-                <MudGrid>
-                    <!-- Giorni -->
-                    <MudItem xs="6" sm="3">
-                        <MudNumericField T="int" @bind-Value="Entity.NumeroGiorni" For="@(() => Entity.NumeroGiorni)"
-                            Label="Giorni" Variant="Variant.Outlined" Min="1" Max="365" Required="true" />
-                    </MudItem>
-                    <!-- Notti -->
-                    <MudItem xs="6" sm="3">
-                        <MudNumericField T="int" @bind-Value="Entity.NumeroNotti" For="@(() => Entity.NumeroNotti)"
-                            Label="Notti" Variant="Variant.Outlined" Min="0" Max="365" Required="true" />
-                    </MudItem>
-                    <!-- Km -->
-                    <MudItem xs="6" sm="3">
-                        <MudNumericField T="int" @bind-Value="Entity.Km" For="@(() => Entity.Km)" Label="Km"
-                            Variant="Variant.Outlined" Min="0" Required="true" />
-                    </MudItem>
+                        <!-- 3. DETTAGLI LOGISTICI -->
+                        <MudGrid>
+                            <!-- Giorni -->
+                            <MudItem xs="6" sm="3">
+                                <MudNumericField T="int" @bind-Value="Entity.NumeroGiorni" For="@(() => Entity.NumeroGiorni)"
+                                    Label="Giorni" Variant="Variant.Outlined" Min="1" Max="365" Required="true" />
+                            </MudItem>
+                            <!-- Notti -->
+                            <MudItem xs="6" sm="3">
+                                <MudNumericField T="int" @bind-Value="Entity.NumeroNotti" For="@(() => Entity.NumeroNotti)"
+                                    Label="Notti" Variant="Variant.Outlined" Min="0" Max="365" Required="true" />
+                            </MudItem>
+                            <!-- Km -->
+                            <MudItem xs="6" sm="3">
+                                <MudNumericField T="int" @bind-Value="Entity.Km" For="@(() => Entity.Km)" Label="Km"
+                                    Variant="Variant.Outlined" Min="0" Required="true" />
+                            </MudItem>
 
-                    <!-- Pasti al Sacco -->
-                    <MudItem xs="6" sm="3" Class="d-flex align-center">
-                        <MudCheckBox T="bool" Value="@(Entity.PastiAlSacco == "Y")"
-                            ValueChanged="@(val => Entity.PastiAlSacco = val ? "Y" : "N")" Label="Pasti al Sacco"
-                            Color="Color.Primary" />
-                    </MudItem>
-                </MudGrid>
+                            <!-- Pasti al Sacco -->
+                            <MudItem xs="6" sm="3" Class="d-flex align-center">
+                                <MudCheckBox T="bool" Value="@(Entity.PastiAlSacco == "Y")"
+                                    ValueChanged="@(val => Entity.PastiAlSacco = val ? "Y" : "N")" Label="Pasti al Sacco"
+                                    Color="Color.Primary" />
+                            </MudItem>
+                        </MudGrid>
 
-                <MudDivider Class="my-4" />
+                        <MudDivider Class="my-4" />
 
-                <!-- 4. CLASSIFICAZIONI -->
-                <MudGrid>
-                    <!-- Tipo Trattamento -->
-                    <MudItem xs="12" sm="4">
-                        <TipoTrattamentoSelect SelectedId="@((int?)Entity.TipoTrattamentoIdFk)"
-                            SelectedIdChanged="@(val => Entity.TipoTrattamentoIdFk = val ?? 0)" Label="Trattamento"
-                            Required="true" />
-                    </MudItem>
-                    <!-- Tipo Pernottamento -->
-                    <MudItem xs="12" sm="4">
-                        <TipoPernottamentoSelect SelectedId="@((int?)Entity.TipoPernottamentoIdFk)"
-                            SelectedIdChanged="@(val => Entity.TipoPernottamentoIdFk = val ?? 0)" Label="Pernottamento"
-                            Required="true" />
-                    </MudItem>
-                    <!-- Tipo Avvicinamento -->
-                    <MudItem xs="12" sm="4">
-                        <TipoAvvicinamentoSelect SelectedId="@((int?)Entity.TipoAvvicinamentoIdFk)"
-                            SelectedIdChanged="@(val => Entity.TipoAvvicinamentoIdFk = val ?? 0)" Label="Avvicinamento"
-                            Required="true" />
-                    </MudItem>
-                </MudGrid>
+                        <!-- 4. CLASSIFICAZIONI -->
+                        <MudGrid>
+                            <!-- Tipo Trattamento -->
+                            <MudItem xs="12" sm="4">
+                                <TipoTrattamentoSelect SelectedId="@((int?)Entity.TipoTrattamentoIdFk)"
+                                    SelectedIdChanged="@(val => Entity.TipoTrattamentoIdFk = val ?? 0)" Label="Trattamento"
+                                    Required="true" />
+                            </MudItem>
+                            <!-- Tipo Pernottamento -->
+                            <MudItem xs="12" sm="4">
+                                <TipoPernottamentoSelect SelectedId="@((int?)Entity.TipoPernottamentoIdFk)"
+                                    SelectedIdChanged="@(val => Entity.TipoPernottamentoIdFk = val ?? 0)" Label="Pernottamento"
+                                    Required="true" />
+                            </MudItem>
+                            <!-- Tipo Avvicinamento -->
+                            <MudItem xs="12" sm="4">
+                                <TipoAvvicinamentoSelect SelectedId="@((int?)Entity.TipoAvvicinamentoIdFk)"
+                                    SelectedIdChanged="@(val => Entity.TipoAvvicinamentoIdFk = val ?? 0)" Label="Avvicinamento"
+                                    Required="true" />
+                            </MudItem>
+                        </MudGrid>
 
-                <MudDivider Class="my-4" />
+                        <MudDivider Class="my-4" />
 
-                <!-- 5. NOTE E LINK -->
-                <MudGrid>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
-                            Variant="Variant.Outlined" Lines="2" Class="uppercase-input" Immediate="true"
-                            Converter="@_uppercaseConverter" />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Documentazione"
-                            Variant="Variant.Outlined" InputType="InputType.Url" />
-                    </MudItem>
-                </MudGrid>
+                        <!-- 5. NOTE E LINK -->
+                        <MudGrid>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
+                                    Variant="Variant.Outlined" Lines="2" Class="uppercase-input" Immediate="true"
+                                    Converter="@_uppercaseConverter" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Documentazione"
+                                    Variant="Variant.Outlined" InputType="InputType.Url" />
+                            </MudItem>
+                        </MudGrid>
 
-            </MudForm>
+                    </MudForm>
+                </MudTabPanel>
+                
+                <MudTabPanel Text="Date e Costi" Icon="@Icons.Material.Filled.DateRange" BadgeData="@(_dates.Count > 0 ? _dates.Count : null)" BadgeColor="Color.Primary">
+                     @if (IsEditMode)
+                     {
+                         <MudAlert Severity="Severity.Info" Class="mb-3">Le modifiche alle date in questa modalità vengono salvate immediatamente.</MudAlert>
+                     }
+                     else
+                     {
+                         <MudAlert Severity="Severity.Info" Class="mb-3">Inserisci le date pianificate. Saranno salvate insieme al viaggio.</MudAlert>
+                     }
+                     
+                     <ViaggioDatesManager Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" DatesChanged="@(() => StateHasChanged())" />
+                </MudTabPanel>
+             </MudTabs>
         </MudContainer>
     </DialogContent>
     <DialogActions>
@@ -148,23 +164,17 @@
 
     [Parameter] public AnaViaggi Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
-    [Parameter] public int AziendaFk { get; set; } // Current Session AziendaId
+    [Parameter] public bool StartOnDatesTab { get; set; }
 
-    private MudForm _form = default!;
-    private bool _isValid;
-    private bool _isSaving;
+    private MudTabs _tabs = default!;
+    private int _activeTabIndex = 0;
 
-    private bool IsSuperAdmin => AziendaFk == 0;
+    // ...
 
-    // Converter to enforce Uppercase on typing
-    private Converter<string?> _uppercaseConverter = new Converter<string?>
-        {
-            SetFunc = value => value?.ToUpperInvariant(),
-            GetFunc = text => text?.ToUpperInvariant()
-        };
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        if (StartOnDatesTab) _activeTabIndex = 1;
+
         // Init Azienda Logic
         if (!IsEditMode)
         {
@@ -176,6 +186,20 @@
 
             // Set default scalar values if needed
             if (Entity.NumeroGiorni == 0) Entity.NumeroGiorni = 1;
+            
+            // Dates list empty for new
+        }
+        else
+        {
+            // Load dates
+            try 
+            {
+                _dates = await ViaggiService.GetDatesByTripIdAsync(Entity.Id);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Errore caricamento date viaggio", Severity.Error);
+            }
         }
     }
 
@@ -201,6 +225,13 @@
             Snackbar.Add("Selezionare un'azienda obbligatoria", Severity.Warning);
             return;
         }
+        
+        // Validate Dates for New Trip
+        if (!IsEditMode && _dates.Count == 0)
+        {
+             Snackbar.Add("Devi inserire almeno una data per creare il viaggio.", Severity.Error);
+             return;
+        }
 
         if (_form.IsValid)
         {
@@ -216,11 +247,15 @@
                 if (IsEditMode)
                 {
                     result = await ViaggiService.UpdateAsync(Entity);
+                    // Dates are already saved in Live Mode
                     Snackbar.Add("Viaggio aggiornato con successo", Severity.Success);
                 }
                 else
                 {
-                    result = await ViaggiService.CreateAsync(Entity);
+                    // Atomic Create
+                    int newId = await ViaggiService.CreateTripWithDatesAsync(Entity, _dates);
+                    Entity.Id = newId;
+                    result = Entity;
                     Snackbar.Add("Viaggio creato con successo", Severity.Success);
                 }
 
