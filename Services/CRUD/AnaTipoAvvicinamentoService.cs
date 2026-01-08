@@ -15,15 +15,15 @@ public class AnaTipoAvvicinamentoService : BaseCrudService<AnaTipoAvvicinamento>
     {
     }
 
-    public override async Task<AnaTipoAvvicinamento> CreateAsync(AnaTipoAvvicinamento entity)
+    public override Task<AnaTipoAvvicinamento> CreateAsync(AnaTipoAvvicinamento entity)
     {
         // Read-only logic mainly, but implementing for completeness if needed later
-        throw new NotImplementedException("Creation of Tipo Avvicinamento is not supported via UI yet.");
+        return Task.FromException<AnaTipoAvvicinamento>(new NotImplementedException("Creation of Tipo Avvicinamento is not supported via UI yet."));
     }
 
-    public override async Task<AnaTipoAvvicinamento> UpdateAsync(AnaTipoAvvicinamento entity)
+    public override Task<AnaTipoAvvicinamento> UpdateAsync(AnaTipoAvvicinamento entity)
     {
-        throw new NotImplementedException("Update of Tipo Avvicinamento is not supported via UI yet.");
+        return Task.FromException<AnaTipoAvvicinamento>(new NotImplementedException("Update of Tipo Avvicinamento is not supported via UI yet."));
     }
 
     protected override AnaTipoAvvicinamento MapFromReader(NpgsqlDataReader reader)

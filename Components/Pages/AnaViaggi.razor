@@ -36,7 +36,7 @@
                     else
                     {
                                 <MudTreeView T="ViaggiTreeItem" Hover="true" Dense="true" ExpandOnClick="true"
-                                    SelectedValueChanged="OnTreeSelectionChanged">
+                                    SelectedValueChanged="OnTreeSelectionChanged" SelectedValue="_selectedTreeItem">
                             @foreach (var level1 in _treeItems)
                             {
                                             <MudTreeViewItem Value="@level1" Text="@level1.Title" Icon="@level1.Icon" IconColor="@level1.IconColor" @bind-Expanded="@level1.IsExpanded">
@@ -84,7 +84,7 @@
 
                             <Columns>
                                 <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
-                                <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@OpenEditDialog" OnDelete="@DeleteAsync" />
+                                <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@((e) => OpenEditDialog(e))" OnDelete="@DeleteAsync" />
 
                                 <!-- DATI -->
                                 <PropertyColumn Property="x => x.NazioneNome" Title="Nazione" />
@@ -174,9 +174,43 @@
         await LoadDataAsync();
     }
 
+    private ViaggiTreeItem? _selectedTreeItem;
+
+    // ...
+
+    // Recursive helper to get expanded keys
+    private HashSet<string> GetExpandedState()
+    {
+        var expanded = new HashSet<string>();
+        foreach (var item in _treeItems)
+        {
+             CollectExpanded(item, expanded);
+        }
+        return expanded;
+    }
+
+    private void CollectExpanded(ViaggiTreeItem item, HashSet<string> expanded)
+    {
+        if (item.IsExpanded)
+        {
+            expanded.Add(GetNodeKey(item));
+        }
+        foreach (var child in item.Children)
+        {
+            CollectExpanded(child, expanded);
+        }
+    }
+
+    private string GetNodeKey(ViaggiTreeItem item) => $"{item.Type}_{item.Title}_{item.RelatedId}";
+
     private async Task LoadDataAsync()
     {
         _isLoading = true;
+        
+        // Capture state before reload
+        var expandedState = GetExpandedState();
+        string? selectedKey = _selectedTreeItem != null ? GetNodeKey(_selectedTreeItem) : null;
+
         try
         {
             var all = await ViaggiService.GetAllAsync();
@@ -190,7 +224,19 @@
                 _allItems = all;
             }
 
-            BuildTree();
+            // Await the async build to ensure children are loaded
+            await BuildTreeAsync(expandedState);
+            
+            // Restore Selection
+            if (selectedKey != null)
+            {
+                 var node = FindNodeByKey(selectedKey);
+                 if (node != null)
+                 {
+                     _selectedTreeItem = node;
+                 }
+            }
+
             _filteredItems = new List<AnaViaggiEntity>(_allItems);
             StateHasChanged(); // FORCE UI UPDATE
         }
@@ -204,33 +250,49 @@
             StateHasChanged();
         }
     }
+    
+    private ViaggiTreeItem? FindNodeByKey(string key)
+    {
+        foreach (var item in _treeItems)
+        {
+            var found = FindNodeRecursive(item, key);
+            if (found != null) return found;
+        }
+        return null;
+    }
 
-    private void OnSortChanged(int value)
+    private ViaggiTreeItem? FindNodeRecursive(ViaggiTreeItem current, string key)
+    {
+        if (GetNodeKey(current) == key) return current;
+        foreach (var child in current.Children)
+        {
+            var found = FindNodeRecursive(child, key);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private async Task OnSortChanged(int value)
     {
         _sortOption = value;
-        BuildTree();
+        await BuildTreeAsync(null); 
         StateHasChanged();
     }
 
-    private void BuildTree()
+    private async Task BuildTreeAsync(HashSet<string>? expandedState = null)
     {
         _treeItems.Clear();
 
         if (_sortOption == 0)
         {
-            // Hierarchy: Nazione -> Tipo Viaggio -> Viaggio
+             // Hierarchy: Nazione -> Tipo Viaggio -> Viaggio
             var countries = _allItems
                 .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
                 .OrderBy(g => g.Key);
 
             foreach (var countryGroup in countries)
             {
-                var countryNode = new ViaggiTreeItem
-                    {
-                        Title = countryGroup.Key,
-                        Type = "Country",
-                        Icon = Icons.Material.Filled.Public
-                    };
+                var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState);
 
                 var types = countryGroup
                     .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
@@ -238,25 +300,22 @@
 
                 foreach (var typeGroup in types)
                 {
-                    var typeNode = new ViaggiTreeItem
-                        {
-                            Title = typeGroup.Key,
-                            Type = "Type",
-                            Icon = Icons.Material.Filled.Category
-                        };
+                    var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState);
 
                     foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        var tripNode = new ViaggiTreeItem
-                            {
-                                Title = trip.DescrizioneBreve,
-                                Type = "Trip",
-                                RelatedId = trip.Id,
-                                Icon = Icons.Material.Filled.FlightTakeoff
-                            };
+                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
+                        
                         // Add dummy to enable expansion
                         tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        
                         typeNode.Children.Add(tripNode);
+                        
+                        if (tripNode.IsExpanded)
+                        {
+                            // Await loading of children to ensure Date nodes exist if we need to select them
+                            await OnItemExpanded(tripNode);
+                        }
                     }
                     countryNode.Children.Add(typeNode);
                 }
@@ -266,18 +325,14 @@
         else
         {
             // Hierarchy: Tipo Viaggio -> Nazione -> Viaggio
+            // Same logic, just swapped levels
             var types = _allItems
                 .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
                 .OrderBy(g => g.Key);
 
             foreach (var typeGroup in types)
             {
-                var typeNode = new ViaggiTreeItem
-                    {
-                        Title = typeGroup.Key,
-                        Type = "Type",
-                        Icon = Icons.Material.Filled.Category
-                    };
+                 var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState);
 
                 var countries = typeGroup
                     .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
@@ -285,25 +340,20 @@
 
                 foreach (var countryGroup in countries)
                 {
-                    var countryNode = new ViaggiTreeItem
-                        {
-                            Title = countryGroup.Key,
-                            Type = "Country",
-                            Icon = Icons.Material.Filled.Public
-                        };
+                    var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState);
 
                     foreach (var trip in countryGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        var tripNode = new ViaggiTreeItem
-                            {
-                                Title = trip.DescrizioneBreve,
-                                Type = "Trip",
-                                RelatedId = trip.Id,
-                                Icon = Icons.Material.Filled.FlightTakeoff
-                            };
-                        // Add dummy to enable expansion
+                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
+                        
                         tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        
                         countryNode.Children.Add(tripNode);
+                        
+                        if (tripNode.IsExpanded)
+                        {
+                            await OnItemExpanded(tripNode);
+                        }
                     }
                     typeNode.Children.Add(countryNode);
                 }
@@ -311,6 +361,24 @@
             }
         }
     }
+
+    private ViaggiTreeItem CreateNode(string title, string type, string icon, int? relatedId, HashSet<string>? expandedState)
+    {
+        var node = new ViaggiTreeItem
+        {
+            Title = title,
+            Type = type,
+            Icon = icon,
+            RelatedId = relatedId
+        };
+        
+        if (expandedState != null && expandedState.Contains(GetNodeKey(node)))
+        {
+            node.IsExpanded = true;
+        }
+        return node;
+    }
+
 
     private bool Search(AnaViaggiEntity item, string searchString)
     {
@@ -325,6 +393,7 @@
     private async Task OnTreeSelectionChanged(ViaggiTreeItem item)
     {
         if (item == null) return;
+        _selectedTreeItem = item;
 
         switch (item.Type)
         {

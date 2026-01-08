@@ -100,7 +100,7 @@
     private async Task OpenDialog(AnaDataViaggio date, bool isNew)
     {
         // Clone for edit to avoid dirty state on cancel
-        var model = (AnaDataViaggio)date.Clone();
+        var model = date.Clone<AnaDataViaggio>();
 
         var parameters = new DialogParameters { ["Entity"] = model };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };

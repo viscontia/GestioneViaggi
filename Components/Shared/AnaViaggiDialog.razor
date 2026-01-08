@@ -169,7 +169,27 @@
     private MudTabs _tabs = default!;
     private int _activeTabIndex = 0;
 
-    // ...
+    [Parameter] public int AziendaFk { get; set; } // Current Session AziendaId
+
+    private MudForm _form = default!;
+    private bool _isValid;
+    private bool _isSaving;
+    private List<AnaDataViaggio> _dates = new();
+
+    private bool IsSuperAdmin => AziendaFk == 0;
+
+    // Converter to enforce Uppercase on typing
+    private Converter<string?> _uppercaseConverter = new Converter<string?>
+        {
+            SetFunc = value => value?.ToUpperInvariant(),
+            GetFunc = text => text?.ToUpperInvariant()
+        };
+
+    private int GetAziendaId()
+    {
+        if (Entity.AziendaId > 0) return Entity.AziendaId;
+        return AziendaFk;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -196,7 +216,7 @@
             {
                 _dates = await ViaggiService.GetDatesByTripIdAsync(Entity.Id);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Snackbar.Add("Errore caricamento date viaggio", Severity.Error);
             }

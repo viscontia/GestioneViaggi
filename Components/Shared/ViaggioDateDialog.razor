@@ -17,8 +17,7 @@
 
                 <!-- Stato -->
                 <MudItem xs="12">
-                    <MudCheckBox T="bool" Label="Viaggio Effettuato" KeepState="true"
-                        Value="@(Entity.EffettuatoSino == "Y")"
+                    <MudCheckBox T="bool" Label="Viaggio Effettuato" Value="@(Entity.EffettuatoSino == "Y")"
                         ValueChanged="@(v => Entity.EffettuatoSino = v ? "Y" : "N")" Color="Color.Success">
                     </MudCheckBox>
                 </MudItem>
