@@ -148,7 +148,7 @@
                      }
                      
                      <ViaggioDatesManager @ref="_datesManager" Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
-                                          DurationDays="@Entity.NumeroGiorni"
+                                          DurationDays="@Entity.NumeroGiorni" Trip="@Entity"
                                           DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
                      </ChildContent>
                 </MudTabPanel>

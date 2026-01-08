@@ -21,7 +21,7 @@
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                         OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
                     <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
-                        title="Partecipanti (WIP)" Disabled="true" />
+                        OnClick="@(() => OpenParticipantsDialog(context.Item))" title="Partecipanti" />
                 </div>
             </CellTemplate>
         </TemplateColumn>
@@ -90,6 +90,7 @@
     [Parameter] public int TripId { get; set; }
     [Parameter] public int AziendaId { get; set; }
     [Parameter] public int DurationDays { get; set; } // Duration from Parent Trip
+    [Parameter] public AnaViaggi? Trip { get; set; } // Full Trip Object for Context
 
     [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
     [Parameter] public EventCallback OnTripDeleted { get; set; } // To notify parent that trip was deleted (orphaned)
@@ -110,6 +111,24 @@
     private async Task EditDate(AnaDataViaggio date)
     {
         await OpenDialog(date, false);
+    }
+
+    private async Task OpenParticipantsDialog(AnaDataViaggio date)
+    {
+        if (Trip == null)
+        {
+            Snackbar.Add("Dati del viaggio non disponibili per visualizzare i partecipanti.", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters 
+        { 
+            ["Trip"] = Trip,
+            ["Date"] = date
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        await DialogService.ShowAsync<ViaggioPartecipantiDialog>("Partecipanti", parameters, options);
     }
 
     private async Task DeleteDate(AnaDataViaggio date)

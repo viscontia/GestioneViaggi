@@ -1,0 +1,50 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Partecipanti Viaggio</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudPaper Class="pa-4 mb-4" Elevation="3">
+            <MudGrid>
+                <!-- Row 1: Trip Description -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Viaggio</MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight:bold">@Trip?.DescrizioneBreve</MudText>
+                </MudItem>
+
+                <!-- Row 2: Nation and Days -->
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Nazione</MudText>
+                    <MudText Typo="Typo.body1">@Trip?.NazioneNome</MudText>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Num. gg</MudText>
+                    <MudText Typo="Typo.body1">@Trip?.NumeroGiorni</MudText>
+                </MudItem>
+
+                <!-- Row 3: Date Range -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Date in Programma</MudText>
+                    <MudText Typo="Typo.body1">
+                        Dal <b>@Date?.DataInizio?.ToString("dd/MM/yyyy")</b> al
+                        <b>@Date?.DataFine?.ToString("dd/MM/yyyy")</b>
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public AnaViaggi Trip { get; set; } = default!;
+    [Parameter] public AnaDataViaggio Date { get; set; } = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -65,6 +65,45 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
     }
 
+    public override async Task<AnaViaggi?> GetByIdAsync(int id)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                SELECT v.*,
+                       c.name as nazione_nome,
+                       t.tipo_viaggi_descrizione,
+                       tr.tipo_trattamento_descrizione,
+                       p.ana_tipo_pernottamento_descrizione,
+                       a.tipo_avvicinamento_descrizione,
+                       az.ragione_sociale as azienda_nome
+                FROM ana_viaggi v
+                LEFT JOIN eba_countries c ON v.viaggio_nazione_fk = c.country_id
+                LEFT JOIN ana_tipo_viaggi t ON v.viaggio_tipo_viaggio_fk = t.tipo_viaggi_id
+                LEFT JOIN ana_tipo_trattamento tr ON v.viaggio_tipo_trattamento_fk = tr.tipo_trattamento_id
+                LEFT JOIN ana_tipo_pernottamento p ON v.viaggio_tipo_pernottamento_fk = p.ana_tipo_pernottamento_id
+                LEFT JOIN ana_tipo_avvicinamento a ON v.viaggio_tipo_avvicinamento_fk = a.tipo_avvicinamento_id
+                LEFT JOIN ana_aziende az ON v.azienda_id = az.azienda_id
+                WHERE v.viaggio_id = @id";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("id", id);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero viaggio per id {Id}", id);
+            throw;
+        }
+    }
+
     public override async Task<AnaViaggi> CreateAsync(AnaViaggi entity)
     {
         return await CreateAsyncInternal(entity, true);
