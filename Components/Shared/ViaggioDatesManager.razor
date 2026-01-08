@@ -2,7 +2,7 @@
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
 
-<MudDataGrid Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true" EditMode="DataGridEditMode.Cell">
+<MudDataGrid T="AnaDataViaggio" Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true">
     <ToolBarContent>
         <MudText Typo="Typo.h6">Date in Programma</MudText>
         <MudSpacer />
@@ -10,9 +10,20 @@
             OnClick="AddDate">Aggiungi Data</MudButton>
     </ToolBarContent>
     <Columns>
-        <PropertyColumn Property="x => x.DataInizio" Title="Inizio" Format="dd/MM/yyyy" />
-        <PropertyColumn Property="x => x.DataFine" Title="Fine" Format="dd/MM/yyyy" />
-        <TemplateColumn Title="Effettuato" CellStyle="text-align:center">
+        <TemplateColumn Title="Azioni" Sortable="false" Filterable="false"
+            CellStyle="width:60px; text-align:center; padding:0;" StickyLeft="true">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                    OnClick="@(() => EditDate(context.Item))" title="Modifica" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                    OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.DataInizio" Title="Inizio" Format="dd/MM/yyyy"
+            CellStyle="width:90px; text-align:center; padding:2px;" />
+        <PropertyColumn Property="x => x.DataFine" Title="Fine" Format="dd/MM/yyyy"
+            CellStyle="width:90px; text-align:center; padding:2px;" />
+        <TemplateColumn Title="Eff." CellStyle="width:60px; text-align:center; padding:2px;">
             <CellTemplate>
                 @if (context.Item.EffettuatoSino == "Y")
                 {
@@ -20,21 +31,14 @@
                 }
                 else
                 {
-                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Default" Size="Size.Small" />
+                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Error" Size="Size.Small" />
                 }
             </CellTemplate>
         </TemplateColumn>
-        <PropertyColumn Property="x => x.CostoPilota" Title="Pilota €" Format="N0" CellStyle="text-align:right" />
-        <PropertyColumn Property="x => x.CostoPasseggero" Title="Pass. €" Format="N0" CellStyle="text-align:right" />
-
-        <TemplateColumn CellStyle="width:100px; text-align:center">
-            <CellTemplate>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                    OnClick="@(() => EditDate(context.Item))" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                    OnClick="@(() => DeleteDate(context.Item))" />
-            </CellTemplate>
-        </TemplateColumn>
+        <PropertyColumn Property="x => x.CostoPilota" Title="Pilota €" Format="N0"
+            CellStyle="width:90px; text-align:right; padding:2px;" />
+        <PropertyColumn Property="x => x.CostoPasseggero" Title="Pass. €" Format="N0"
+            CellStyle="width:90px; text-align:right; padding:2px;" />
     </Columns>
 </MudDataGrid>
 
@@ -52,6 +56,7 @@
     [Parameter] public int AziendaId { get; set; }
 
     [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
+    [Parameter] public EventCallback OnTripDeleted { get; set; } // To notify parent that trip was deleted (orphaned)
 
     private async Task AddDate()
     {
@@ -73,8 +78,38 @@
 
     private async Task DeleteDate(AnaDataViaggio date)
     {
-        bool confirm = await DialogService.ShowMessageBox("Conferma", "Eliminare questa data?", yesText: "Elimina", cancelText:
-        "Annulla") ?? false;
+        if (IsLiveMode && Dates.Count == 1)
+        {
+            // Orphaned Trip Scenario
+            bool confirmOrphan = await DialogService.ShowMessageBox(
+                "ATTENZIONE", 
+                "Questa è l'ultima data rimasta. Cancellandola verrà eliminato permanentemente anche l'intero Viaggio (Anagrafica). Procedere?", 
+                yesText: "Elimina Tutto", 
+                cancelText: "Annulla") ?? false;
+            
+            if (!confirmOrphan) return;
+
+            try
+            {
+                // 1. Delete the Date first
+                await ViaggiService.DeleteDateAsync(date.Id);
+                
+                // 2. Delete the Trip
+                await ViaggiService.DeleteAsync(TripId);
+                
+                Snackbar.Add("Viaggio e data eliminati correttamente", Severity.Success);
+                
+                // 3. Notify Parent to Close
+                await OnTripDeleted.InvokeAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione viaggio: {ex.Message}", Severity.Error);
+            }
+            return;
+        }
+
+        bool confirm = await DialogService.ShowMessageBox("Conferma", "Eliminare questa data?", yesText: "Elimina", cancelText: "Annulla") ?? false;
         if (!confirm) return;
 
         if (IsLiveMode)
@@ -137,9 +172,10 @@
                     else
                     {
                         await ViaggiService.UpdateDateAsync(modifiedDate);
-                        // Reflection in local list
-                        var index = Dates.FindIndex(d => d.Id == date.Id);
-                        if (index >= 0) Dates[index] = modifiedDate;
+                        // Reload from DB to ensure sync and confirmation
+                        var updatedDates = await ViaggiService.GetDatesByTripIdAsync(TripId);
+                        Dates.Clear();
+                        Dates.AddRange(updatedDates);
                     }
                     Snackbar.Add("Data salvata", Severity.Success);
                 }

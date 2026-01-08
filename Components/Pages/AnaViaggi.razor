@@ -77,14 +77,31 @@
 
                             <ToolBarActions>
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                                    OnClick="OpenCreateDialog">
+                                    OnClick="OpenCreateDialog" Class="mr-2">
                                     Nuovo Viaggio
                                 </MudButton>
+                                @if (_selectedTreeItem?.Type == "Trip")
+                                {
+                                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Event"
+                                        OnClick="OpenNewDateDialogFromTree">
+                                        Nuova Data
+                                    </MudButton>
+                                }
                             </ToolBarActions>
 
                             <Columns>
                                 <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
-                                <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@((e) => OpenEditDialog(e))" OnDelete="@DeleteAsync" />
+                                <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@((e) => OpenEditDialog(e))" OnDelete="@DeleteAsync">
+                                    <CustomActions>
+                                        <MudTooltip Text="Date e Costi">
+                                            <MudIconButton Icon="@Icons.Material.Filled.DateRange"
+                                                           Size="Size.Small"
+                                                           Color="Color.Info"
+                                                           Class="inline-action-btn"
+                                                           OnClick="@(() => OpenEditDialog(context, true))" />
+                                        </MudTooltip>
+                                    </CustomActions>
+                                </EnterpriseActionsColumn>
 
                                 <!-- DATI -->
                                 <PropertyColumn Property="x => x.NazioneNome" Title="Nazione" />
@@ -525,13 +542,9 @@
             {
                 ["Entity"] = entity,
                 ["IsEditMode"] = true,
-                ["AziendaFk"] = _session?.AziendaId ?? 0
+                ["AziendaFk"] = _session?.AziendaId ?? 0,
+                ["StartOnDatesTab"] = openDatesTab
             };
-            
-        // Note: We need to pass 'OpenDatesTab' to AnaViaggiDialog if we want it to auto-switch.
-        // But AnaViaggiDialog doesn't have that parameter yet. 
-        // We probably should add it, or just rely on manual switching since user asked for "Active TreeView" -> Click Data -> Open Dialog.
-        // Let's assume user accepts standard opening for now, BUT ideally we switch tab.
         // Ideally we add [Parameter] public bool StartOnDatesTab { get; set; } to AnaViaggiDialog.
         
         var options = new DialogOptions
@@ -548,6 +561,19 @@
         if (result != null && !result.Canceled && result.Data != null)
         {
             await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenNewDateDialogFromTree()
+    {
+        if (_selectedTreeItem?.Type == "Trip" && _selectedTreeItem.RelatedId.HasValue)
+        {
+            var tripId = _selectedTreeItem.RelatedId.Value;
+            var trip = _allItems.FirstOrDefault(x => x.Id == tripId);
+            if (trip != null)
+            {
+                await OpenEditDialog(trip, true);
+            }
         }
     }
 

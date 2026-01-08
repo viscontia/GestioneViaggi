@@ -6,7 +6,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
              <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
                     <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
@@ -113,7 +113,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
                                     Variant="Variant.Outlined" Lines="2" Class="uppercase-input" Immediate="true"
-                                    Converter="@_uppercaseConverter" />
+                                    Converter="@_uppercaseNullableConverter" />
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Documentazione"
@@ -124,7 +124,20 @@
                     </MudForm>
                 </MudTabPanel>
                 
-                <MudTabPanel Text="Date e Costi" Icon="@Icons.Material.Filled.DateRange" BadgeData="@(_dates.Count > 0 ? _dates.Count : null)" BadgeColor="Color.Primary">
+                <MudTabPanel Icon="@Icons.Material.Filled.DateRange">
+                     <TabContent>
+                         <div class="d-flex align-center">
+                             <MudText Class="ms-2">Date e Costi</MudText>
+                             @if (_dates.Count > 0)
+                             {
+                                 <span class="ms-2 px-2 py-1 rounded-circle mud-elevation-2" 
+                                       style="background-color: var(--mud-palette-primary); color: var(--mud-palette-white); font-weight: bold; font-size: 0.75rem; line-height: 1;">
+                                     @_dates.Count
+                                 </span>
+                             }
+                         </div>
+                     </TabContent>
+                     <ChildContent>
                      @if (IsEditMode)
                      {
                          <MudAlert Severity="Severity.Info" Class="mb-3">Le modifiche alle date in questa modalità vengono salvate immediatamente.</MudAlert>
@@ -134,7 +147,9 @@
                          <MudAlert Severity="Severity.Info" Class="mb-3">Inserisci le date pianificate. Saranno salvate insieme al viaggio.</MudAlert>
                      }
                      
-                     <ViaggioDatesManager Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" DatesChanged="@(() => StateHasChanged())" />
+                     <ViaggioDatesManager Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
+                                          DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
+                     </ChildContent>
                 </MudTabPanel>
              </MudTabs>
         </MudContainer>
@@ -179,7 +194,13 @@
     private bool IsSuperAdmin => AziendaFk == 0;
 
     // Converter to enforce Uppercase on typing
-    private Converter<string?> _uppercaseConverter = new Converter<string?>
+    private Converter<string> _uppercaseConverter = new Converter<string>
+        {
+            SetFunc = value => value?.ToUpperInvariant(),
+            GetFunc = text => text?.ToUpperInvariant()
+        };
+
+    private Converter<string?> _uppercaseNullableConverter = new Converter<string?>
         {
             SetFunc = value => value?.ToUpperInvariant(),
             GetFunc = text => text?.ToUpperInvariant()
@@ -245,7 +266,33 @@
             Snackbar.Add("Selezionare un'azienda obbligatoria", Severity.Warning);
             return;
         }
-        
+        // Validate Foreign Keys (Since we use manual binding, MudForm might misreport validity if Value is null but Required fails to block)
+        if (Entity.NazioneIdFk == 0)
+        {
+             Snackbar.Add("Selezionare una Nazione", Severity.Warning);
+             return;
+        }
+        if (Entity.TipoViaggioIdFk == 0)
+        {
+             Snackbar.Add("Selezionare un Tipo Viaggio", Severity.Warning);
+             return;
+        }
+        if (Entity.TipoTrattamentoIdFk == 0)
+        {
+             Snackbar.Add("Selezionare un Tipo Trattamento", Severity.Warning);
+             return;
+        }
+        if (Entity.TipoPernottamentoIdFk == 0)
+        {
+             Snackbar.Add("Selezionare un Tipo Pernottamento", Severity.Warning);
+             return;
+        }
+        if (Entity.TipoAvvicinamentoIdFk == 0)
+        {
+             Snackbar.Add("Selezionare un Tipo Avvicinamento", Severity.Warning);
+             return;
+        }
+
         // Validate Dates for New Trip
         if (!IsEditMode && _dates.Count == 0)
         {
@@ -290,6 +337,12 @@
                 _isSaving = false;
             }
         }
+    }
+
+    private void HandleTripDeleted()
+    {
+        // Trip was deleted (orphaned). Close dialog and signal success (so list refreshes).
+        MudDialog.Close(DialogResult.Ok(Entity)); 
     }
 
     private void Cancel() => MudDialog.Cancel();

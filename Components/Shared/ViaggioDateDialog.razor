@@ -1,18 +1,28 @@
 @using GestioneViaggi.Models
 @using MudBlazor
 
+<style>
+    /* Force Red Asterisk for Required Fields */
+    .mud-input-control.mud-input-required .mud-input-label::after {
+        content: " *";
+        color: var(--mud-palette-error);
+    }
+</style>
+
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid">
             <MudGrid Spacing="2">
                 <!-- Date -->
                 <MudItem xs="6">
-                    <MudDatePicker Label="Data Inizio" @bind-Date="Entity.DataInizio" Required="true" Editable="true"
-                        Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" @bind-Date="Entity.DataInizio"
+                        Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true" Editable="true"
-                        Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true"
+                        RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" />
                 </MudItem>
 
                 <!-- Stato -->
@@ -29,13 +39,14 @@
 
                 <!-- Costi Base -->
                 <MudItem xs="6">
-                    <MudNumericField @bind-Value="Entity.CostoPilota" Label="Costo Pilota" Variant="Variant.Outlined"
-                        Margin="Margin.Dense" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+                    <MudNumericField @bind-Value="Entity.CostoPilota" Label="Costo Pilota" Required="true"
+                        RequiredError="Campo obbligatorio" Variant="Variant.Outlined" Margin="Margin.Dense"
+                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudNumericField @bind-Value="Entity.CostoPasseggero" Label="Costo Passeggero"
-                        Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
-                        AdornmentIcon="@Icons.Material.Filled.Euro" />
+                    <MudNumericField @bind-Value="Entity.CostoPasseggero" Label="Costo Passeggero" Required="true"
+                        RequiredError="Campo obbligatorio" Variant="Variant.Outlined" Margin="Margin.Dense"
+                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudNumericField @bind-Value="Entity.CostoPasseggeroAutoGuida" Label="Costo Pass. Auto Guida"
@@ -63,7 +74,8 @@
                 </MudItem>
 
             </MudGrid>
-            <MudTextField @bind-Value="Entity.Note" Label="Note" Variant="Variant.Outlined" Lines="2" Class="mt-3" />
+            <MudTextField @bind-Value="Entity.Note" Label="Note" Variant="Variant.Outlined" Lines="2"
+                Class="mt-3 uppercase-input" Converter="@_uppercaseConverter" Immediate="true" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -74,11 +86,36 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] ISnackbar Snackbar { get; set; } = default!;
+    [Inject] IJSRuntime JS { get; set; } = default!;
 
     [Parameter] public AnaDataViaggio Entity { get; set; } = new();
 
+    // Converter to enforce Uppercase
+    private Converter<string?> _uppercaseConverter = new Converter<string?>
+        {
+            SetFunc = value => value?.ToUpperInvariant(),
+            GetFunc = text => text?.ToUpperInvariant()
+        };
+
     private MudForm _form = default!;
+    private MudDatePicker _startDatePicker = default!;
     private bool _isValid;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Small delay to ensure Dialog transition is complete
+                await Task.Delay(150);
+                await _startDatePicker.FocusAsync();
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { /* Ignore JS errors/timing issues */ }
+        }
+    }
 
     private void Submit()
     {
@@ -88,10 +125,22 @@
             // Validate Date Logic
             if (Entity.DataInizio.HasValue && Entity.DataFine.HasValue && Entity.DataFine < Entity.DataInizio)
             {
-                // Simple validation feedback: could be better but basic works
-                // Ideally Snackbar or Form error using 'For' validation
+                Snackbar.Add("La data di fine viaggio non può essere antecedente alla data di inizio.", Severity.Error);
                 return;
             }
+
+            // Validate Costs (must be positive?)
+            // User just said "obbligatorio". Let's assume > 0 is expected for a trip cost, or at least >= 0.
+            // If they mean "must be filled", and it's logic int/decimal, it's always "filled".
+            // Let's assume they want non-zero or just visually flagged.
+            // If the user says "edit lets me save but doesn't update", maybe the value IS updating but not saving to DB?
+            // "Se li modifico mi lascia salvare, ma poi non fa l'update sul file"
+            // This suggests the Update operation fails silently.
+            // In ViaggioDatesManager, we use Entity.Clone().
+            // If we clone, we break the reference.
+            // In UpdateDateAsync (LiveMode), we pass the modified clone.
+            // If the Clone doesn't copy the ID, then UpdateDateAsync might fail (ID=0).
+            // Let's check Clone mechanism. BaseEntity.Clone uses MemberwiseClone. It SHOULD copy ID (int).
 
             MudDialog.Close(DialogResult.Ok(Entity));
         }

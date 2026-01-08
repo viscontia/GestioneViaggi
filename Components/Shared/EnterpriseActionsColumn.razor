@@ -1,30 +1,25 @@
 @using MudBlazor
 @typeparam T
 
-<TemplateColumn T="T" 
-                Tag="@("Actions")" 
-                Sortable="false" 
-                StickyLeft="true"
-                HeaderClass="sticky-actions-column" 
-                CellClass="sticky-actions-column">
+<TemplateColumn T="T" Tag="@("Actions")" Sortable="false" StickyLeft="true" HeaderClass="sticky-actions-column"
+    CellClass="sticky-actions-column">
     <HeaderTemplate>
-        <MudText Typo="Typo.caption" Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni</MudText>
+        <MudText Typo="Typo.caption" Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni
+        </MudText>
     </HeaderTemplate>
     <CellTemplate Context="cellContext">
         <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+            @if (CustomActions != null)
+            {
+                @CustomActions(cellContext.Item)
+            }
             <MudTooltip Text="Modifica">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                               Size="Size.Small"
-                               Color="Color.Default"
-                               Class="inline-action-btn edit-btn"
-                               OnClick="@(() => OnEdit.InvokeAsync(cellContext.Item))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                    Class="inline-action-btn edit-btn" OnClick="@(() => OnEdit.InvokeAsync(cellContext.Item))" />
             </MudTooltip>
             <MudTooltip Text="Elimina">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                               Size="Size.Small"
-                               Color="Color.Default"
-                               Class="inline-action-btn delete-btn"
-                               OnClick="@(() => OnDelete.InvokeAsync(cellContext.Item))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Default"
+                    Class="inline-action-btn delete-btn" OnClick="@(() => OnDelete.InvokeAsync(cellContext.Item))" />
             </MudTooltip>
         </MudStack>
     </CellTemplate>
@@ -33,4 +28,5 @@
 @code {
     [Parameter] public EventCallback<T> OnEdit { get; set; }
     [Parameter] public EventCallback<T> OnDelete { get; set; }
+    [Parameter] public RenderFragment<T>? CustomActions { get; set; }
 }
