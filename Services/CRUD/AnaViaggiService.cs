@@ -2,6 +2,7 @@ using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -15,7 +16,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     {
     }
 
-    public override async Task<List<AnaViaggi>> GetAllAsync()
+    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null)
     {
         // Override to include JOINs for descriptions
         try
@@ -36,9 +37,18 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                 LEFT JOIN ana_tipo_pernottamento p ON v.viaggio_tipo_pernottamento_fk = p.ana_tipo_pernottamento_id
                 LEFT JOIN ana_tipo_avvicinamento a ON v.viaggio_tipo_avvicinamento_fk = a.tipo_avvicinamento_id
                 LEFT JOIN ana_aziende az ON v.azienda_id = az.azienda_id
+                WHERE (@aziendaId IS NULL OR @aziendaId = 0 OR v.azienda_id = @aziendaId)
                 ORDER BY c.name, t.tipo_viaggi_descrizione, v.viaggio_descrizione_breve";
 
             await using var command = new NpgsqlCommand(sql, connection);
+            // Explicitly define type to avoid 42P08 when value is NULL
+            var param = new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
+            {
+                Value = (object?)aziendaId ?? DBNull.Value,
+                IsNullable = true
+            };
+            command.Parameters.Add(param);
+
             await using var reader = await command.ExecuteReaderAsync();
 
             var list = new List<AnaViaggi>();

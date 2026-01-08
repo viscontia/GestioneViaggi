@@ -237,16 +237,13 @@
 
         try
         {
-            var all = await ViaggiService.GetAllAsync();
+            // Determine filter: SuperAdmin passes null (all), others pass their AziendaId
+            int? filterAziendaId = _isSuperAdmin ? null : _session?.AziendaId;
 
-            if (!_isSuperAdmin && _session?.AziendaId > 0)
-            {
-                _allItems = all.Where(x => x.AziendaId == _session.AziendaId).ToList();
-            }
-            else
-            {
-                _allItems = all;
-            }
+            _allItems = await ViaggiService.GetAllAsync(filterAziendaId);
+            
+            // Filter is now handled by SQL.
+            // _allItems contains only visible records.
 
             // Await the async build to ensure children are loaded
             await BuildTreeAsync(expandedState);
