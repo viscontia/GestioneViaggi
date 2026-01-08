@@ -10,20 +10,36 @@
             OnClick="AddDate">Aggiungi Data</MudButton>
     </ToolBarContent>
     <Columns>
-        <TemplateColumn Title="Azioni" Sortable="false" Filterable="false"
-            CellStyle="width:60px; text-align:center; padding:0;" StickyLeft="true">
+        <!-- Azioni: Fixed 140px to fit 3 icons comfortably -->
+        <TemplateColumn Title="AZIONI" Sortable="false" Filterable="false"
+            CellStyle="width:140px; min-width:140px; max-width:140px; text-align:center; padding:0;" 
+            HeaderStyle="width:140px; min-width:140px; max-width:140px; text-align:center;" StickyLeft="true">
             <CellTemplate>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
-                    OnClick="@(() => EditDate(context.Item))" title="Modifica" />
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                    OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
+                <div class="d-flex justify-center align-center">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
+                        OnClick="@(() => EditDate(context.Item))" title="Modifica" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                        OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
+                        title="Partecipanti (WIP)" Disabled="true" />
+                </div>
             </CellTemplate>
         </TemplateColumn>
-        <PropertyColumn Property="x => x.DataInizio" Title="Inizio" Format="dd/MM/yyyy"
-            CellStyle="width:90px; text-align:center; padding:2px;" />
-        <PropertyColumn Property="x => x.DataFine" Title="Fine" Format="dd/MM/yyyy"
-            CellStyle="width:90px; text-align:center; padding:2px;" />
-        <TemplateColumn Title="Eff." CellStyle="width:60px; text-align:center; padding:2px;">
+
+        <!-- Inizio: Fixed 95px -->
+        <PropertyColumn Property="x => x.DataInizio" Title="INIZIO" Format="dd/MM/yy" Sortable="true" Filterable="false"
+            CellStyle="width:95px; min-width:95px; max-width:95px; text-align:center; padding:2px; font-size:0.875rem;" 
+            HeaderStyle="width:95px; min-width:95px; max-width:95px; text-align:center;" />
+
+        <!-- Fine: Fixed 95px -->
+        <PropertyColumn Property="x => x.DataFine" Title="FINE" Format="dd/MM/yy" Sortable="false" Filterable="false"
+            CellStyle="width:95px; min-width:95px; max-width:95px; text-align:center; padding:2px; font-size:0.875rem;" 
+            HeaderStyle="width:95px; min-width:95px; max-width:95px; text-align:center;" />
+
+        <!-- Effett.: Fixed 70px -->
+        <TemplateColumn Title="EFFETT." Sortable="false" Filterable="false"
+            CellStyle="width:70px; min-width:70px; max-width:70px; text-align:center; padding:0;" 
+            HeaderStyle="width:70px; min-width:70px; max-width:70px; text-align:center;">
             <CellTemplate>
                 @if (context.Item.EffettuatoSino == "Y")
                 {
@@ -35,10 +51,29 @@
                 }
             </CellTemplate>
         </TemplateColumn>
-        <PropertyColumn Property="x => x.CostoPilota" Title="Pilota €" Format="N0"
-            CellStyle="width:90px; text-align:right; padding:2px;" />
-        <PropertyColumn Property="x => x.CostoPasseggero" Title="Pass. €" Format="N0"
-            CellStyle="width:90px; text-align:right; padding:2px;" />
+        
+        <!-- Costo Pilota: Fixed 135px - Header Centered -->
+        <PropertyColumn Property="x => x.CostoPilota" Title="COSTO PILOTA" Format="C0" Sortable="false" Filterable="false"
+            CellStyle="width:135px; min-width:135px; max-width:135px; text-align:right; padding:2px; font-size:0.875rem;" 
+            HeaderStyle="width:135px; min-width:135px; max-width:135px; text-align:center;" />
+
+        <!-- Costo Passeggero: Fixed 165px - Header Centered -->
+        <PropertyColumn Property="x => x.CostoPasseggero" Title="COSTO PASSEGGERO" Format="C0" Sortable="false" Filterable="false"
+            CellStyle="width:165px; min-width:165px; max-width:165px; text-align:right; padding:2px; font-size:0.875rem;" 
+            HeaderStyle="width:165px; min-width:165px; max-width:165px; text-align:center;" />
+
+        <!-- N. Mezzi: Fixed 80px to fit title -->
+        <PropertyColumn Property="x => x.TotMezzi" Title="N.MEZZI" Sortable="false" Filterable="false"
+            CellStyle="width:80px; min-width:80px; max-width:80px; text-align:center; padding:2px; font-weight:bold; font-size:0.875rem;" 
+            HeaderStyle="width:80px; min-width:80px; max-width:80px; text-align:center;" />
+
+        <!-- N. Clienti: Fixed 90px to fit title -->
+        <PropertyColumn Property="x => x.TotClienti" Title="N.CLIENTI" Sortable="false" Filterable="false"
+            CellStyle="width:90px; min-width:90px; max-width:90px; text-align:center; padding:2px; font-weight:bold; font-size:0.875rem;" 
+            HeaderStyle="width:90px; min-width:90px; max-width:90px; text-align:center;" />
+            
+        <!-- Spacer: Fill Remaining -->
+        <TemplateColumn Title="" Sortable="false" Filterable="false" />
     </Columns>
 </MudDataGrid>
 

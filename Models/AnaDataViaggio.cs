@@ -53,4 +53,7 @@ public class AnaDataViaggio : BaseEntity
     // === Computed ===
     [Column("tot_mezzi")]
     public int TotMezzi { get; set; }
+
+    [Column("tot_clienti")]
+    public int TotClienti { get; set; }
 }

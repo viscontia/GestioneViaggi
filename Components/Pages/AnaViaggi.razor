@@ -465,7 +465,7 @@
                 foreach (var d in dates)
                 {
                     var color = GetStatusColor(d);
-                    var title = $"Dal {d.DataInizio:dd/MM/yyyy} al {d.DataFine:dd/MM/yyyy} - Costo P: {d.CostoPilota:C0} - Costo Pass: {d.CostoPasseggero:C0} - N.Mezzi: {d.TotMezzi}";
+                    var title = $"Dal {d.DataInizio:dd/MM/yyyy} al {d.DataFine:dd/MM/yyyy} - Costo P: {d.CostoPilota:C0} - Costo Pass: {d.CostoPasseggero:C0} - N.Mezzi: {d.TotMezzi} - N.Cli.: {d.TotClienti}";
 
                     item.Children.Add(new ViaggiTreeItem
                         {

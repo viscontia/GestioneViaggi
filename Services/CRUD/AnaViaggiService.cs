@@ -356,7 +356,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             Note = ReadNullableString(reader, "data_viaggio_note"),
             AziendaId = ReadInt(reader, "azienda_id"),
-            TotMezzi = ReadInt(reader, "tot_mezzi")
+            TotMezzi = ReadInt(reader, "tot_mezzi"),
+            TotClienti = ReadInt(reader, "tot_clienti")
         };
     }
     public async Task<int> CreateTripWithDatesAsync(AnaViaggi trip, List<AnaDataViaggio> dates)

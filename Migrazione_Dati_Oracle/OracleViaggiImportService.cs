@@ -87,6 +87,9 @@ public class OracleViaggiImportService
                 var infoTable = dataSet.Tables[0];
                 result.RecordsRead = infoTable.Rows.Count;
 
+                // LOAD LOOKUP MAP for Avvicinamento
+                var avvicinamentoMap = await LoadAvvicinamentoMapAsync(connection, transaction);
+
                 // DISABLE TRIGGERS to allow inserting historical created/created_by
                 await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
 
@@ -97,7 +100,7 @@ public class OracleViaggiImportService
                     {
                         await new NpgsqlCommand("SAVEPOINT sp_row", connection, transaction).ExecuteNonQueryAsync();
 
-                        await UpsertViaggioAsync(connection, row, transaction);
+                        await UpsertViaggioAsync(connection, row, transaction, avvicinamentoMap);
 
                         await new NpgsqlCommand("RELEASE SAVEPOINT sp_row", connection, transaction).ExecuteNonQueryAsync();
                         processedCount++;
@@ -159,18 +162,48 @@ public class OracleViaggiImportService
         return result;
     }
 
-    private async Task UpsertViaggioAsync(NpgsqlConnection connection, DataRow row, NpgsqlTransaction transaction)
+
+    private async Task<Dictionary<string, int>> LoadAvvicinamentoMapAsync(NpgsqlConnection connection, NpgsqlTransaction transaction)
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        // Load DB values
+        using var cmd = new NpgsqlCommand("SELECT tipo_avvicinamento_id, tipo_avvicinamento_descrizione FROM ana_tipo_avvicinamento", connection, transaction);
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetInt32(0);
+            var desc = reader.GetString(1);
+            if (!map.ContainsKey(desc)) map.Add(desc, id);
+        }
+
+        // Add Legacy Mappings (VRU -> VEICOLO SU RUOTE, TRA -> TRAGHETTO) based on SQL migration scripts
+        // Ensure the target description exists in the map first!
+        if (map.TryGetValue("VEICOLO SU RUOTE", out int vruId)) map.TryAdd("VRU", vruId);
+        if (map.TryGetValue("TRAGHETTO", out int traId)) map.TryAdd("TRA", traId);
+
+        return map;
+    }
+
+    private async Task UpsertViaggioAsync(NpgsqlConnection connection, DataRow row, NpgsqlTransaction transaction, Dictionary<string, int> avvicinamentoMap)
     {
         // 1. Map Data
         int viaggioId = Convert.ToInt32(row["VIAGGIO_ID"]);
         string oracleUser = row["CREATED_BY"]?.ToString() ?? "UNKNOWN";
         var (aziendaId, createdBy) = MapUserToAzienda(oracleUser);
 
+        // Resolve FK for Avvicinamento
+        string rawAvvicinamento = GetString(row, "VIAGGIO_TIPO_AVVICINAMENTO") ?? "";
+        int? avvicinamentoFk = null;
+        if (!string.IsNullOrEmpty(rawAvvicinamento) && avvicinamentoMap.TryGetValue(rawAvvicinamento, out int foundId))
+        {
+            avvicinamentoFk = foundId;
+        }
+
         var sql = @"
             INSERT INTO ana_viaggi (
                 viaggio_id, viaggio_descrizione_breve, viaggio_descrizione_estesa,
                 viaggio_numero_giorni, viaggio_numero_notti, viaggio_pasti_al_sacco,
-                viaggio_num_km, viaggio_tipo_avvicinamento, viaggio_note,
+                viaggio_num_km, viaggio_tipo_avvicinamento_fk, viaggio_note,
                 viaggio_tipo_viaggio_fk, viaggio_tipo_trattamento_fk,
                 viaggio_nazione_fk, viaggio_tipo_pernottamento_fk,
                 azienda_id,
@@ -179,7 +212,7 @@ public class OracleViaggiImportService
             ) VALUES (
                 @id, @descBreve, @descEstesa,
                 @numGiorni, @numNotti, @pastiAlSacco,
-                @numKm, @tipoAvvicinamento, @note,
+                @numKm, @tipoAvvicinamentoFk, @note,
                 @tipoViaggio, @tipoTrattamento,
                 @nazione, @tipoPernottamento,
                 @azienda,
@@ -193,7 +226,7 @@ public class OracleViaggiImportService
                 viaggio_numero_notti = EXCLUDED.viaggio_numero_notti,
                 viaggio_pasti_al_sacco = EXCLUDED.viaggio_pasti_al_sacco,
                 viaggio_num_km = EXCLUDED.viaggio_num_km,
-                viaggio_tipo_avvicinamento = EXCLUDED.viaggio_tipo_avvicinamento,
+                viaggio_tipo_avvicinamento_fk = EXCLUDED.viaggio_tipo_avvicinamento_fk,
                 viaggio_note = EXCLUDED.viaggio_note,
                 viaggio_tipo_viaggio_fk = EXCLUDED.viaggio_tipo_viaggio_fk,
                 viaggio_tipo_trattamento_fk = EXCLUDED.viaggio_tipo_trattamento_fk,
@@ -213,7 +246,10 @@ public class OracleViaggiImportService
         cmd.Parameters.AddWithValue("numNotti", (object?)GetInt(row, "VIAGGIO_NUMERO_NOTTI") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("pastiAlSacco", (object?)GetString(row, "VIAGGIO_PASTI_AL_SACCO") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("numKm", (object?)GetInt(row, "VIAGGIO_NUM_KM") ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("tipoAvvicinamento", (object?)GetString(row, "VIAGGIO_TIPO_AVVICINAMENTO") ?? DBNull.Value);
+
+        // Pass FK instead of Text
+        cmd.Parameters.AddWithValue("tipoAvvicinamentoFk", (object?)avvicinamentoFk ?? DBNull.Value);
+
         cmd.Parameters.AddWithValue("note", (object?)GetString(row, "VIAGGIO_NOTE") ?? DBNull.Value);
 
         // FKs - defaulting to NULL if not found, ideally user should map lookups
