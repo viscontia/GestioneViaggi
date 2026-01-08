@@ -54,6 +54,7 @@
     [Parameter] public bool IsLiveMode { get; set; }
     [Parameter] public int TripId { get; set; }
     [Parameter] public int AziendaId { get; set; }
+    [Parameter] public int DurationDays { get; set; } // Duration from Parent Trip
 
     [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
     [Parameter] public EventCallback OnTripDeleted { get; set; } // To notify parent that trip was deleted (orphaned)
@@ -65,12 +66,12 @@
                 ViaggioIdFk = TripId,
                 AziendaId = AziendaId,
                 DataInizio = DateTime.Today,
-                DataFine =
-            DateTime.Today.AddDays(7)
+                // Default end date logic: Use DurationDays if available, otherwise +7
+                DataFine = DurationDays > 0 ? DateTime.Today.AddDays(DurationDays - 1) : DateTime.Today.AddDays(7)
             };
         await OpenDialog(newDate, true);
     }
-
+    
     private async Task EditDate(AnaDataViaggio date)
     {
         await OpenDialog(date, false);
@@ -142,7 +143,11 @@
         // Clone for edit to avoid dirty state on cancel
         var model = date.Clone<AnaDataViaggio>();
 
-        var parameters = new DialogParameters { ["Entity"] = model };
+        var parameters = new DialogParameters 
+        { 
+            ["Entity"] = model,
+            ["DurationDays"] = DurationDays
+        };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
         var dialog = await DialogService.ShowAsync<ViaggioDateDialog>(isNew ? "Nuova Data" : "Modifica Data", parameters,

@@ -93,7 +93,14 @@
                                 <!-- AZIONI (Auto-positioned to left by EnterpriseDataGrid logic) -->
                                 <EnterpriseActionsColumn T="AnaViaggiEntity" OnEdit="@((e) => OpenEditDialog(e))" OnDelete="@DeleteAsync">
                                     <CustomActions>
-                                        <MudTooltip Text="Date e Costi">
+                                        <MudTooltip Text="Aggiungi Data">
+                                            <MudIconButton Icon="@Icons.Material.Filled.EventAvailable"
+                                                           Size="Size.Small"
+                                                           Color="Color.Success"
+                                                           Class="inline-action-btn"
+                                                           OnClick="@(() => OpenEditDialog(context, true, true))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Gestione Date">
                                             <MudIconButton Icon="@Icons.Material.Filled.DateRange"
                                                            Size="Size.Small"
                                                            Color="Color.Info"
@@ -530,21 +537,33 @@
 
         if (result != null && !result.Canceled && result.Data != null)
         {
-            await LoadDataAsync();
+            try
+            {
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore ricaricamento dati: {ex.Message}", Severity.Error);
+            }
         }
     }
 
-    private async Task OpenEditDialog(AnaViaggiEntity item, bool openDatesTab = false)
+    private async Task OpenEditDialog(AnaViaggiEntity item, bool openDatesTab = false, bool autoAddDate = false)
     {
-        var entity = item.Clone<AnaViaggiEntity>();
+        // Need to fetch FULL entity (with description etc) if grid item is partial? Always safer.
+        // Assuming GetByIdAsync returns full object.
+        var entity = await ViaggiService.GetByIdAsync(item.Id);
+        if (entity == null) return;
 
         var parameters = new DialogParameters
             {
                 ["Entity"] = entity,
                 ["IsEditMode"] = true,
                 ["AziendaFk"] = _session?.AziendaId ?? 0,
-                ["StartOnDatesTab"] = openDatesTab
+                ["StartOnDatesTab"] = openDatesTab,
+                ["AutoOpenAddDate"] = autoAddDate
             };
+        // Ideally we add [Parameter] public bool StartOnDatesTab { get; set; } to AnaViaggiDialog.
         // Ideally we add [Parameter] public bool StartOnDatesTab { get; set; } to AnaViaggiDialog.
         
         var options = new DialogOptions
@@ -560,7 +579,14 @@
 
         if (result != null && !result.Canceled && result.Data != null)
         {
-            await LoadDataAsync();
+            try
+            {
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore ricaricamento dati: {ex.Message}", Severity.Error);
+            }
         }
     }
 

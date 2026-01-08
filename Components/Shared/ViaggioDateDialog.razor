@@ -15,14 +15,14 @@
             <MudGrid Spacing="2">
                 <!-- Date -->
                 <MudItem xs="6">
-                    <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" @bind-Date="Entity.DataInizio"
+                    <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" Date="Entity.DataInizio" DateChanged="OnStartDateChanged"
                         Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true"
                         RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Margin="Margin.Dense" />
+                        Margin="Margin.Dense" HelperText="@(DurationDays > 0 ? $"Durata fissa: {DurationDays} giorni" : null)" />
                 </MudItem>
 
                 <!-- Stato -->
@@ -91,6 +91,8 @@
 
     [Parameter] public AnaDataViaggio Entity { get; set; } = new();
 
+    [Parameter] public int DurationDays { get; set; }
+
     // Converter to enforce Uppercase
     private Converter<string?> _uppercaseConverter = new Converter<string?>
         {
@@ -117,16 +119,42 @@
         }
     }
 
+    private void OnStartDateChanged(DateTime? date)
+    {
+        Entity.DataInizio = date;
+        if (date.HasValue && DurationDays > 0)
+        {
+            // Auto-Calculate End Date based on Duration
+            Entity.DataFine = date.Value.AddDays(DurationDays - 1);
+        }
+    }
+
     private void Submit()
     {
         _form.Validate();
         if (_form.IsValid)
         {
             // Validate Date Logic
-            if (Entity.DataInizio.HasValue && Entity.DataFine.HasValue && Entity.DataFine < Entity.DataInizio)
+            // Validate Date Logic
+            if (Entity.DataInizio.HasValue && Entity.DataFine.HasValue)
             {
-                Snackbar.Add("La data di fine viaggio non può essere antecedente alla data di inizio.", Severity.Error);
-                return;
+                if (Entity.DataFine < Entity.DataInizio)
+                {
+                    Snackbar.Add("La data di fine viaggio non può essere antecedente alla data di inizio.", Severity.Error);
+                    return;
+                }
+
+                if (DurationDays > 0)
+                {
+                    // Strict Duration Check
+                    var duration = (Entity.DataFine.Value - Entity.DataInizio.Value).Days + 1;
+                    if (duration != DurationDays)
+                    {
+                        Snackbar.Add($"La durata del viaggio deve essere di {DurationDays} giorni (come da anagrafica). Attuale: {duration}",
+                        Severity.Error);
+                        return;
+                    }
+                }
             }
 
             // Validate Costs (must be positive?)

@@ -7,7 +7,7 @@
 <MudDialog>
     <DialogContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
-             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" KeepPanelsAlive="true">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
                     <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
 
@@ -148,6 +148,7 @@
                      }
                      
                      <ViaggioDatesManager @ref="_datesManager" Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
+                                          DurationDays="@Entity.NumeroGiorni"
                                           DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
                      </ChildContent>
                 </MudTabPanel>
@@ -181,6 +182,7 @@
     [Parameter] public AnaViaggi Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
     [Parameter] public bool StartOnDatesTab { get; set; }
+    [Parameter] public bool AutoOpenAddDate { get; set; } // Shortcut for "Quick Add"
 
     private MudTabs _tabs = default!;
     private int _activeTabIndex = 0;
@@ -254,6 +256,21 @@
             {
                 // Init Focus Trap & Tab Navigation helper
                 await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+
+                if (StartOnDatesTab)
+                {
+                     _activeTabIndex = 1;
+                     StateHasChanged();
+                     
+                     if (AutoOpenAddDate)
+                     {
+                         await Task.Delay(200); // Allow Tabs and DatesManager to render
+                         if (_datesManager != null)
+                         {
+                             await _datesManager.AddDate();
+                         }
+                     }
+                }
             }
             catch { /* Ignore JS errors on init */ }
         }
@@ -372,6 +389,8 @@
             }
         }
     }
+
+
 
     private async Task OnTabChanged(int index)
     {
