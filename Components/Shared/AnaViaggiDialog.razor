@@ -312,6 +312,36 @@
              return;
         }
 
+        // CHECK FOR DUPLICATES (Only on Create)
+        if (!IsEditMode)
+        {
+            var duplicates = await ViaggiService.CheckDuplicatesAsync(Entity.DescrizioneBreve, GetAziendaId());
+            
+            if (duplicates.Count > 0)
+            {
+                // Build warning message
+                var message = "Attenzione: sono stati trovati viaggi simili con parole chiave coincidenti:\n\n";
+                foreach (var dup in duplicates.Take(3)) // Show max 3 examples
+                {
+                    message += $"- {dup.Descrizione} (Parole: {dup.MatchingWords})\n";
+                }
+                if (duplicates.Count > 3) message += $"... e altri {duplicates.Count - 3} viaggi.\n";
+                
+                message += "\nSei sicuro di voler creare comunque questo viaggio?";
+
+                bool confirmCreation = await DialogService.ShowMessageBox(
+                        "Possibile Duplicato",
+                        message,
+                        yesText: "Sì, crea comunque",
+                        cancelText: "No, annulla") ?? false;
+
+                if (!confirmCreation)
+                {
+                    return; // Abort save
+                }
+            }
+        }
+
         // Validate Dates for New Trip
         // Validate Dates for New Trip (Interactive Flow)
         if (!IsEditMode && _dates.Count == 0)
@@ -353,6 +383,8 @@
 
         if (_form.IsValid)
         {
+
+
             _isSaving = true;
             try
             {

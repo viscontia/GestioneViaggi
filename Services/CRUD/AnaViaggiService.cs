@@ -626,4 +626,35 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         cmd.Parameters.AddWithValue("note", (object?)date.Note ?? DBNull.Value);
         cmd.Parameters.AddWithValue("aziendaId", date.AziendaId);
     }
+
+    public async Task<List<DuplicateTripDTO>> CheckDuplicatesAsync(string description, int aziendaId)
+    {
+        var result = new List<DuplicateTripDTO>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM check_possible_duplicate_travels(@desc, @aziendaId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("desc", description);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new DuplicateTripDTO
+                {
+                    Id = ReadInt(reader, "viaggio_id"),
+                    Descrizione = reader.GetString(reader.GetOrdinal("viaggio_descrizione_breve")),
+                    MatchingWords = reader.GetString(reader.GetOrdinal("matching_words"))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore during duplicate check for description: {Description}", description);
+            // Non-blocking error: return empty list
+        }
+        return result;
+    }
 }
