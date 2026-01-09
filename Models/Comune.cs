@@ -21,8 +21,9 @@ public class Comune : BaseEntity, IValidatableObject
     [StringLength(5, ErrorMessage = "Il prefisso telefonico non può superare i 5 caratteri")]
     public string? PrefTel { get; set; }
 
-    [StringLength(5, MinimumLength = 5, ErrorMessage = "Il CAP deve essere di esattamente 5 caratteri")]
-    [RegularExpression(@"^\d{5}$", ErrorMessage = "Il CAP deve contenere solo 5 cifre numeriche")]
+    // [StringLength(5, MinimumLength = 5, ErrorMessage = "Il CAP deve essere di esattamente 5 caratteri")]
+    // [RegularExpression(@"^\d{5}$", ErrorMessage = "Il CAP deve contenere solo 5 cifre numeriche")]
+    [StringLength(12, ErrorMessage = "Il CAP non può superare i 12 caratteri")] // Generic max length for safety
     public string? Cap { get; set; }
 
     [StringLength(4, ErrorMessage = "Il codice fiscale non può superare i 4 caratteri")]
@@ -123,10 +124,10 @@ public class Comune : BaseEntity, IValidatableObject
             }
             else if (!System.Text.RegularExpressions.Regex.IsMatch(CodFiscale, @"^[A-Z][0-9]{3}$"))
             {
-                 results.Add(new ValidationResult(
-                    "Il codice deve essere di 4 caratteri: 1 lettera e 3 numeri (es. H501)",
-                    new[] { nameof(CodFiscale) }
-                ));
+                results.Add(new ValidationResult(
+                   "Il codice deve essere di 4 caratteri: 1 lettera e 3 numeri (es. H501)",
+                   new[] { nameof(CodFiscale) }
+               ));
             }
 
             if (string.IsNullOrWhiteSpace(PrefTel))
@@ -146,18 +147,10 @@ public class Comune : BaseEntity, IValidatableObject
         }
         else
         {
-            // Se è un comune estero ma il CAP è compilato, deve essere comunque valido
-            if (!string.IsNullOrWhiteSpace(Cap))
-            {
-                var capValidation = GeographicValidator.CheckCap(Cap);
-                if (!capValidation.IsValid)
-                {
-                    results.Add(new ValidationResult(
-                        $"Se compilato, {capValidation.ErrorMessage.ToLower()}",
-                        new[] { nameof(Cap) }
-                    ));
-                }
-            }
+            // Se è un comune estero:
+            // 1. CAP è OPZIONALE.
+            // 2. Se c'è, controlliamo solo la lunghezza (già gestita dall'attributo generico)
+            // Non usiamo GeographicValidator.CheckCap perché impone 5 cifre.
         }
 
         return results;
