@@ -1,0 +1,188 @@
+@page "/tabelle/tipologie-avvicinamento"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@using GestioneViaggi.Components.Shared
+@inject TipoAvvicinamentoService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+    <MudText Typo="Typo.h6">ERRORE:</MudText>
+    <MudText>@_errorMessage</MudText>
+</MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="TipoAvvicinamento" Items="@_items" Title="Gestione Tipologie Avvicinamento"
+    SearchFunction="@Search" @bind-SelectedItem="_selectedItem">
+
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo
+        </MudButton>
+    </ToolBarActions>
+
+    <Columns>
+        <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+
+        <EnterpriseActionsColumn T="TipoAvvicinamento" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
+    </Columns>
+
+</EnterpriseDataGrid>
+}
+
+@code {
+    private List<TipoAvvicinamento> _items = new();
+    private TipoAvvicinamento? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_tipo_avvicinamento");
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(TipoAvvicinamento item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<TipoAvvicinamentoDialog>
+{
+{ x => x.Entity, new TipoAvvicinamento() },
+{ x => x.IsEditMode, false }
+};
+
+        var options = new DialogOptions
+            {
+                BackdropClick = false,
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+
+        var dialog = await DialogService.ShowAsync<TipoAvvicinamentoDialog>("Nuovo", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoAvvicinamento newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                _items.Add(created);
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(TipoAvvicinamento item)
+    {
+        var parameters = new DialogParameters<TipoAvvicinamentoDialog>
+{
+{ x => x.Entity, item.Clone<TipoAvvicinamento>() },
+{ x => x.IsEditMode, true }
+};
+
+        var options = new DialogOptions
+            {
+                BackdropClick = false,
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true
+            };
+
+        var dialog = await DialogService.ShowAsync<TipoAvvicinamentoDialog>("Modifica", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is TipoAvvicinamento updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                var index = _items.FindIndex(c => c.Id == updated.Id);
+                if (index >= 0)
+                {
+                    _items[index] = updated;
+                }
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(TipoAvvicinamento item)
+    {
+        var parameters = new DialogParameters
+{
+{ "Title", "Attenzione" },
+{ "ContentText", $"Vuoi veramente cancellare questo record? ({item.Descrizione})" }
+};
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}
