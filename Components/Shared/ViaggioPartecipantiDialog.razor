@@ -1,5 +1,8 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@inject AnaViaggiService ViaggiService
 
 <MudDialog>
     <TitleContent>
@@ -34,6 +37,34 @@
                 </MudItem>
             </MudGrid>
         </MudPaper>
+
+        <!-- Participants Grid -->
+        @if (_isLoading)
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="d-block mx-auto my-4" />
+        }
+        else if (_participants == null || !_participants.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="my-4">Nessun partecipante iscritto a questa data.</MudAlert>
+        }
+        else
+        {
+            <MudDataGrid Items="@_participants" Dense="true" Hover="true" Bordered="true" Striped="true" Class="mt-4">
+                <Columns>
+                    <PropertyColumn Property="x => x.PilotaNominativo" Title="PILOTA" Sortable="true">
+                        <CellTemplate>
+                            <MudText Typo="Typo.body2" Style="font-weight:bold">@context.Item.PilotaNominativo</MudText>
+                        </CellTemplate>
+                    </PropertyColumn>
+                    <PropertyColumn Property="x => x.PasseggeriNominativi" Title="PASSEGGERI" Sortable="false">
+                        <CellTemplate>
+                            <div style="white-space: pre-wrap;">@context.Item.PasseggeriNominativi</div>
+                        </CellTemplate>
+                    </PropertyColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Chiudi</MudButton>
@@ -45,6 +76,18 @@
 
     [Parameter] public AnaViaggi Trip { get; set; } = default!;
     [Parameter] public AnaDataViaggio Date { get; set; } = default!;
+
+    private List<ViaggioPartecipantiGruppoDTO> _participants = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Date != null && Date.Id > 0)
+        {
+            _participants = await ViaggiService.GetPartecipantiAsync(Date.Id);
+        }
+        _isLoading = false;
+    }
 
     private void Cancel() => MudDialog.Cancel();
 }

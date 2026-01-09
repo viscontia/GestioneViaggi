@@ -3,6 +3,7 @@ using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
+using GestioneViaggi.Models.DTOs;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -14,6 +15,42 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger)
         : base(databaseService, logger)
     {
+    }
+
+    public async Task<List<ViaggioPartecipantiGruppoDTO>> GetPartecipantiAsync(int dateId)
+    {
+        var result = new List<ViaggioPartecipantiGruppoDTO>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_viaggio_partecipanti(@dateId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("dateId", dateId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new ViaggioPartecipantiGruppoDTO
+                {
+                    GruppoId = reader.IsDBNull(reader.GetOrdinal("gruppo_id"))
+                        ? 0
+                        : reader.GetInt32(reader.GetOrdinal("gruppo_id")),
+                    PilotaNominativo = reader.IsDBNull(reader.GetOrdinal("pilota_nominativo"))
+                        ? "Sconosciuto"
+                        : reader.GetString(reader.GetOrdinal("pilota_nominativo")),
+                    PasseggeriNominativi = reader.IsDBNull(reader.GetOrdinal("passeggeri_nominativi"))
+                        ? string.Empty
+                        : reader.GetString(reader.GetOrdinal("passeggeri_nominativi"))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero partecipanti per data {DateId}", dateId);
+            // Non rilanciamo eccezione bloccante, restituiamo lista vuota e logghiamo
+        }
+        return result;
     }
 
     public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null)
