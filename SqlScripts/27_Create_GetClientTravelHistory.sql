@@ -35,13 +35,13 @@ SELECT d.data_viaggio_id,
     d.giorni,
     d.notti,
     CASE
-        WHEN d.effettuato_sino = 'N' THEN 2
+        WHEN d.effettuato_sino = 'N' AND d.data_inizio < CURRENT_DATE THEN 2
         WHEN d.effettuato_sino = 'Y'
         OR d.data_inizio < CURRENT_DATE THEN 1
         ELSE 0
     END as status_code,
     CASE
-        WHEN d.effettuato_sino = 'N' THEN 'Non Partecipato'
+        WHEN d.effettuato_sino = 'N' AND d.data_inizio < CURRENT_DATE THEN 'Non Partecipato'
         WHEN d.effettuato_sino = 'Y'
         OR d.data_inizio < CURRENT_DATE THEN 'Effettuato'
         ELSE 'In Programma'

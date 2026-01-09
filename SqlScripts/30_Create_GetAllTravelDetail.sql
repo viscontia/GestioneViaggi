@@ -53,7 +53,7 @@ SELECT dv.data_viaggio_id,
     COALESCE(dv.data_viaggio_costo_bambino_2_6, 0),
     COALESCE(dv.data_viaggio_costo_bambino_6_12, 0),
     av.viaggio_pasti_al_sacco,
-    av.viaggio_tipo_avvicinamento::text,
+    ata.tipo_avvicinamento_descrizione::text,
     av.viaggio_note::text,
     dv.data_viaggio_note::text,
     av.viaggio_link::text
@@ -63,6 +63,7 @@ FROM ana_date_viaggi dv
     LEFT JOIN eba_countries ec ON av.viaggio_nazione_fk = ec.country_id
     LEFT JOIN ana_tipo_trattamento att ON av.viaggio_tipo_trattamento_fk = att.tipo_trattamento_id
     LEFT JOIN ana_tipo_pernottamento atp ON av.viaggio_tipo_pernottamento_fk = atp.ana_tipo_pernottamento_id
+    LEFT JOIN ana_tipo_avvicinamento ata ON av.viaggio_tipo_avvicinamento_fk = ata.tipo_avvicinamento_id
 WHERE dv.data_viaggio_id = p_data_viaggio_id;
 END;
 $function$;
