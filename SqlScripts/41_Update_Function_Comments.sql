@@ -1,0 +1,40 @@
+
+-- Aggiornamento descrizioni funzioni mancanti
+
+COMMENT ON FUNCTION check_delete_ana_tipo_partecipante() IS 'Trigger che verifica l''integrità referenziale prima dell''eliminazione di un tipo partecipante';
+COMMENT ON FUNCTION current_user_id() IS 'Restituisce l''UUID dell''utente corrente dalla sessione o dal contesto';
+COMMENT ON FUNCTION fn_app_get_comune_formatted(integer) IS 'Restituisce una stringa formattata ''CAP - COMUNE (SIGLA)'' per un dato ID comune';
+COMMENT ON FUNCTION fn_app_get_comuni_lookup(text, integer) IS 'Ricerca comuni per autocompletamento (nome, cap o provincia) restituendo lista formattata';
+COMMENT ON FUNCTION fn_app_health_check() IS 'Restituisce lo stato del servizio e il timestamp corrente per monitoraggio';
+COMMENT ON FUNCTION fn_app_login_text_debug(text, text) IS 'Versione di debug del login che restituisce hash e dettagli di confronto password';
+COMMENT ON FUNCTION fn_app_logo_create_backup_20250909(character varying, uuid) IS 'Funzione di backup legacy per la tabella loghi (Non utilizzare)';
+COMMENT ON FUNCTION fn_app_profile(uuid) IS 'Restituisce il profilo completo dell''utente corrente inclusi ruoli e azienda';
+COMMENT ON FUNCTION fn_get_logo_field_help(text) IS 'Restituisce il testo di aiuto per i campi della configurazione logo';
+COMMENT ON FUNCTION fn_is_pec_domain(text) IS 'Verifica se un indirizzo email appartiene a un dominio PEC noto';
+COMMENT ON FUNCTION fn_logo_calculate_hash(bytea) IS 'Calcola l''hash SHA256 di un blob binario per verifica integrità';
+COMMENT ON FUNCTION fn_logo_setup_master_detail_relation() IS 'Configura la relazione master-detail e i metadati per la gestione dei loghi aziendali';
+COMMENT ON FUNCTION fn_logo_update_access_stats(uuid) IS 'Aggiorna le statistiche di accesso (timestamp e contatore) per un logo';
+COMMENT ON FUNCTION fn_logo_validate_mime_type(character varying, character varying) IS 'Valida che il formato file corrisponda al MIME type dichiarato';
+COMMENT ON FUNCTION fn_test_smtp_config(uuid) IS 'Esegue un test simulato della configurazione SMTP e aggiorna lo stato';
+COMMENT ON FUNCTION fn_validate_config_type_requirements(character varying, character varying, character varying, integer) IS 'Verifica i requisiti specifici per tipo di configurazione email (main, pec, support, etc)';
+COMMENT ON FUNCTION fn_validate_email_format(text) IS 'Valida il formato sintattico di un indirizzo email via regex';
+COMMENT ON FUNCTION fn_validate_protocol_requirements(character varying, character varying, integer, character varying, integer, character varying) IS 'Verifica la coerenza dei parametri di protocollo (porte, host) per inbound/outbound';
+COMMENT ON FUNCTION fn_validate_security_port_consistency(character varying, integer, character varying, character varying, integer) IS 'Verifica la coerenza tra metodo di sicurezza (SSL/TLS) e porte standard';
+COMMENT ON FUNCTION generate_reset_token() IS 'Genera un token univoco per il reset password basato su timestamp e random';
+COMMENT ON FUNCTION get_all_participants_travel(integer) IS 'Restituisce la lista semplice dei nominativi partecipanti per una data viaggio';
+COMMENT ON FUNCTION get_all_travel_detail(integer) IS 'Restituisce dettagli completi di un viaggio specifico inclusi veicoli e autisti';
+COMMENT ON FUNCTION get_client_travel_history(integer, integer) IS 'Recupera lo storico viaggi di un cliente con dettagli su destinazione e data';
+COMMENT ON FUNCTION get_cliente_detail(integer) IS 'Recupera tutti i dati anagrafici e documenti di un cliente specifico';
+COMMENT ON FUNCTION get_count_travel_future(integer, integer) IS 'Conta i viaggi futuri prenotati per un cliente';
+COMMENT ON FUNCTION get_count_travel_made(integer, integer) IS 'Conta i viaggi passati effettuati da un cliente';
+COMMENT ON FUNCTION get_customer_nationality(integer) IS 'Determina la nazionalità (ISO) del cliente basandosi su nascita o residenza';
+COMMENT ON FUNCTION get_datetrips_fromtrip(integer) IS 'Restituisce tutte le date pianificate associate a un viaggio principale';
+COMMENT ON FUNCTION get_exist_travel_customer_by_year(integer) IS 'Restituisce gli anni in cui un cliente ha effettuato viaggi';
+COMMENT ON FUNCTION get_participants_count(integer) IS 'Conta il numero totale di partecipanti per una specifica data viaggio';
+COMMENT ON FUNCTION get_totmezzi_dataviaggio(integer, integer) IS 'Conta i veicoli assegnati ed effettivi per una data viaggio';
+COMMENT ON FUNCTION get_travel_passengers(integer, integer) IS 'Restituisce la lista passeggeri per un viaggio escludendo un ID cliente specifico';
+COMMENT ON FUNCTION get_viaggio_partecipanti(integer) IS 'Restituisce lista partecipanti raggruppati per pilota con formattazione dettagliata';
+COMMENT ON FUNCTION hash_password(text) IS 'Genera hash bcrypt sicuro per una password in chiaro';
+COMMENT ON FUNCTION sp_ana_aziende_smtp_test_connection(uuid) IS 'Store Procedure per testare la connessione SMTP e aggiornare i log';
+COMMENT ON FUNCTION validate_codice_fiscale(text) IS 'Valida lunghezza e formato base del Codice Fiscale italiano';
+COMMENT ON FUNCTION validate_partita_iva(text) IS 'Valida formato e checksum della Partita IVA italiana';

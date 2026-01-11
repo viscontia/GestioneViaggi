@@ -68,17 +68,23 @@
         <!-- Pacchetti Nuget -->
         <PackageReference Include="ExcelDataReader" Version="3.8.0" />
         <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
+        <PackageReference Include="HarfBuzzSharp" Version="7.3.0.2" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.MacCatalyst" Version="7.3.0.2" />
+        <PackageReference Include="SkiaSharp" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.HarfBuzz" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.NativeAssets.MacCatalyst" Version="2.88.8" />
         <PackageReference Include="libphonenumber-csharp" Version="9.0.21" />
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
+        <PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="2.88.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
         <PackageReference Include="MudBlazor" Version="8.15.0" />
 
         <!-- Database PostgreSQL -->
         <PackageReference Include="Npgsql" Version="8.0.5" />
 
-        <!-- Authentication -->
         <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.0" />
+        <PackageReference Include="QuestPDF" Version="2023.12.6" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     </ItemGroup>
 
@@ -90,6 +96,14 @@
         <!-- Fix build error with omnisharp.json -->
         <Content Remove="omnisharp.json" />
         <None Remove="omnisharp.json" />
+    </ItemGroup>
+
+    <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->
+    <ItemGroup>
+        <MauiAsset Include="$(NuGetPackageRoot)questpdf\2024.3.0\runtimes\any\native\LatoFont\*.ttf">
+            <Link>LatoFont\%(Filename)%(Extension)</Link>
+            <LogicalName>LatoFont/%(Filename)%(Extension)</LogicalName>
+        </MauiAsset>
     </ItemGroup>
 
 </Project>

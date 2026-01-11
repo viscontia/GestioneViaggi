@@ -1,0 +1,93 @@
+@page "/tools/db-documentation"
+@using GestioneViaggi.Services.Tools
+@using System.Diagnostics
+@inject IDatabaseDocumentationService DocService
+@inject ISnackbar Snackbar
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "superadmin")]
+
+<MudText Typo="Typo.h5" Class="mb-4">Strumenti di Documentazione / Database</MudText>
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Generatore Documentazione Database</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudText Class="mb-4">
+            Questo strumento analizza il database corrente e genera un documento PDF contenente la
+            lista completa delle Functions, incluse descrizioni, input e output.
+            <br />
+            Il file verrà salvato nella cartella <b>Downloads</b>.
+        </MudText>
+
+        @if (_isGenerating)
+        {
+            <div class="d-flex align-center my-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mr-3" />
+                <MudText>Generazione in corso...</MudText>
+            </div>
+        }
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GeneratePdf" Disabled="_isGenerating"
+            StartIcon="@Icons.Material.Filled.PictureAsPdf">
+            Genera Documentazione PDF
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private bool _isGenerating;
+
+    private async Task GeneratePdf()
+    {
+        _isGenerating = true;
+        try
+        {
+            var fileName = "Funzioni_DB.pdf";
+            // Use user's Downloads folder
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fullPath = Path.Combine(targetFolder, fileName);
+
+            await DocService.GeneratePdfDocumentationAsync(fullPath);
+
+            Snackbar.Add($"Documento generato: {fileName}", Severity.Success, config =>
+            {
+                config.Action = "Dettagli";
+                config.ActionColor = Color.Surface;
+                config.VisibleStateDuration = 10000; // Show for 10 seconds
+            });
+
+            // Try to open the file (Mac specific check or Generic)
+            try
+            {
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Apri Documentazione",
+                        File = new ReadOnlyFile(fullPath)
+                    });
+            }
+            catch (Exception openEx)
+            {
+                // Ignore open errors (might happen due to sandbox/permissions)
+                Console.WriteLine($"Could not open file: {openEx.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            var msg = $"Errore ({ex.GetType().Name}): {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                msg += $" [Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}]";
+                msg += $"\nStack: {ex.InnerException.StackTrace}";
+            }
+            Snackbar.Add(msg, Severity.Error);
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
+}

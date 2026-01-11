@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
@@ -26,6 +27,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
+            .UseSkiaSharp()
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -140,6 +142,9 @@ public static class MauiProgram
         builder.Services.AddTransient<OracleDateViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiAlloggiImportService>();
+        
+        // Tool Documentazione DB
+        builder.Services.AddScoped<GestioneViaggi.Services.Tools.IDatabaseDocumentationService, GestioneViaggi.Services.Tools.DatabaseDocumentationService>();
 
         return builder.Build();
     }

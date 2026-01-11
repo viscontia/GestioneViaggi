@@ -3,7 +3,7 @@
     "tasks": [
         {
             "label": "build",
-            "command": "dotnet",
+            "command": "/usr/local/share/dotnet/dotnet",
             "type": "process",
             "args": [
                 "build",
@@ -15,7 +15,7 @@
         },
         {
             "label": "run-maui",
-            "command": "dotnet",
+            "command": "/usr/local/share/dotnet/dotnet",
             "type": "process",
             "args": [
                 "run",
