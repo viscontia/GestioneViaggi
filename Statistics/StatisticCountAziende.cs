@@ -10,14 +10,12 @@ public class StatisticCountAziende : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync()
+    public async Task<StatisticResult> GetStatsAsync(int year)
     {
-        int currentYear = DateTime.Now.Year;
+        long totalCountAtYear = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE EXTRACT(YEAR FROM data_creazione) <= @year", ("year", year));
+        long yearCount = await GetYearCountAsync(year);
 
-        long totalCount = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende");
-        long currentYearCount = await GetYearCountAsync(currentYear);
-
-        return StatisticResult.CreateCumulative(totalCount, currentYearCount);
+        return StatisticResult.CreateCumulative(totalCountAtYear, yearCount);
     }
 
     private async Task<long> GetYearCountAsync(int year)

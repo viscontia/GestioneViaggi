@@ -124,6 +124,7 @@ public static class MauiProgram
         builder.Services.AddScoped<StatisticCountViaggiFatti>();
         builder.Services.AddScoped<StatisticCountViaggiDaFare>();
         builder.Services.AddScoped<StatisticRevenue>();
+        builder.Services.AddScoped<StatisticYearService>();
 
         builder.Services.AddMauiBlazorWebView();
 

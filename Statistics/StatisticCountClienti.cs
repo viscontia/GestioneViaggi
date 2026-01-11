@@ -10,21 +10,18 @@ public class StatisticCountClienti : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int? aziendaId = null)
+    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null)
     {
-        int currentYear = DateTime.Now.Year;
-        int previousYear = currentYear - 1;
-
-        string totalSql = "SELECT COUNT(*) FROM ana_clienti";
-        var totalParams = new List<(string Name, object? Value)>();
+        string totalSql = "SELECT COUNT(*) FROM ana_clienti WHERE EXTRACT(YEAR FROM created) <= @year";
+        var totalParams = new List<(string Name, object? Value)> { ("year", year) };
         if (aziendaId.HasValue)
         {
-            totalSql += " WHERE azienda_fk = @aziendaId";
+            totalSql += " AND azienda_fk = @aziendaId";
             totalParams.Add(("aziendaId", aziendaId.Value));
         }
 
         long totalCount = await ExecuteScalarCountAsync(totalSql, totalParams.ToArray());
-        long currentYearCount = await GetYearCountAsync(currentYear, aziendaId);
+        long currentYearCount = await GetYearCountAsync(year, aziendaId);
 
         return StatisticResult.CreateCumulative(totalCount, currentYearCount);
     }

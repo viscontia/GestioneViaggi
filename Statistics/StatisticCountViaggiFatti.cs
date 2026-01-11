@@ -10,18 +10,23 @@ public class StatisticCountViaggiFatti : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int? aziendaId = null)
+    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null)
     {
-        DateTime todayCurrent = DateTime.Today;
-        DateTime startOfCurrentYear = new DateTime(todayCurrent.Year, 1, 1);
-
-        DateTime todayPrevious = todayCurrent.AddYears(-1);
-        DateTime startOfPreviousYear = new DateTime(todayPrevious.Year, 1, 1);
-
-        long currentCount = await GetPeriodCountAsync(startOfCurrentYear, todayCurrent, aziendaId);
-        long previousCount = await GetPeriodCountAsync(startOfPreviousYear, todayPrevious, aziendaId);
+        long currentCount = await GetCountForYearAsync(year, aziendaId);
+        long previousCount = await GetCountForYearAsync(year - 1, aziendaId);
 
         return StatisticResult.Create(currentCount, currentCount, previousCount);
+    }
+
+    private async Task<long> GetCountForYearAsync(int year, int? aziendaId)
+    {
+        DateTime startOfYear = new DateTime(year, 1, 1);
+        DateTime endOfYear = new DateTime(year, 12, 31);
+        DateTime effectiveEndDate = DateTime.Today < endOfYear ? DateTime.Today : endOfYear;
+
+        if (startOfYear > effectiveEndDate) return 0;
+
+        return await GetPeriodCountAsync(startOfYear, effectiveEndDate, aziendaId);
     }
 
     private async Task<long> GetPeriodCountAsync(DateTime fromDate, DateTime toDate, int? aziendaId)
