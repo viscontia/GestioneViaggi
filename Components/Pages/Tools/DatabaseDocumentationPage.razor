@@ -2,6 +2,7 @@
 @using GestioneViaggi.Services.Tools
 @using System.Diagnostics
 @inject IDatabaseDocumentationService DocService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "superadmin")]
@@ -51,6 +52,12 @@
             var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
             var fullPath = Path.Combine(targetFolder, fileName);
 
+            // 1. Automatic Overwrite: Delete if exists
+            if (File.Exists(fullPath))
+            {
+                File.Delete(fullPath);
+            }
+
             await DocService.GeneratePdfDocumentationAsync(fullPath);
 
             Snackbar.Add($"Documento generato: {fileName}", Severity.Success, config =>
@@ -60,19 +67,34 @@
                 config.VisibleStateDuration = 10000; // Show for 10 seconds
             });
 
-            // Try to open the file (Mac specific check or Generic)
-            try
+            // Prompt user to open file
+            bool? result = await DialogService.ShowMessageBox(
+            "Documento Generato",
+            "Vuoi aprire il file PDF appena creato con il lettore predefinito?",
+            yesText: "Sì", cancelText: "No");
+
+            if (result == true)
             {
-                await Launcher.Default.OpenAsync(new OpenFileRequest
-                    {
-                        Title = "Apri Documentazione",
-                        File = new ReadOnlyFile(fullPath)
-                    });
-            }
-            catch (Exception openEx)
-            {
-                // Ignore open errors (might happen due to sandbox/permissions)
-                Console.WriteLine($"Could not open file: {openEx.Message}");
+                try
+                {
+#if MACCATALYST
+// Force macOS to open the file with default viewer (Preview/Acrobat)
+// "open" command is the standard way to launch files on macOS
+Process.Start("open", $"\"{fullPath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                        {
+                            Title = "Apri Documentazione",
+                            File = new ReadOnlyFile(fullPath)
+                        });
+#endif
+                }
+                catch (Exception openEx)
+                {
+                    // Ignore open errors (might happen due to sandbox/permissions)
+                    Console.WriteLine($"Could not open file: {openEx.Message}");
+                    Snackbar.Add($"Impossibile aprire il file: {openEx.Message}", Severity.Warning);
+                }
             }
         }
         catch (Exception ex)
