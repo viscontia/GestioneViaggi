@@ -32,10 +32,10 @@
                 <MudMenu Label="@GetYearLabel()" Variant="Variant.Outlined"
                     EndIcon="@Icons.Material.Filled.KeyboardArrowDown" FullWidth="true"
                     AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
-                    <MudList T="int" @bind-SelectedValue="_selectedYear" Dense="true"
+                    <MudList T="int" SelectedValue="_selectedYear" SelectedValueChanged="OnYearChanged" Dense="true"
                         Style="max-height: 350px; overflow-y: auto;">
                         @* Anno Corrente *@
-                        <MudListItem Value="@_currentYear" OnClick="() => OnYearSelected(_currentYear)">
+                        <MudListItem Value="@_currentYear">
                             <MudText Typo="Typo.body1"><b>@_currentYear (corrente)</b></MudText>
                         </MudListItem>
 
@@ -46,7 +46,7 @@
                             <NestedList>
                                 @foreach (var year in _pastYears)
                                 {
-                                    <MudListItem Value="@year" OnClick="() => OnYearSelected(year)">@year</MudListItem>
+                                    <MudListItem Value="@year">@year</MudListItem>
                                 }
                             </NestedList>
                         </MudListItem>
@@ -56,7 +56,7 @@
                             <NestedList>
                                 @foreach (var year in _futureYears)
                                 {
-                                    <MudListItem Value="@year" OnClick="() => OnYearSelected(year)">@year</MudListItem>
+                                    <MudListItem Value="@year">@year</MudListItem>
                                 }
                             </NestedList>
                         </MudListItem>
@@ -87,7 +87,10 @@
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsAziende?.MainValue ?? 0)</MudText>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Aziende Totali</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">Aziende Totali</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()</MudText>
+                        </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
                     </MudStack>
@@ -113,7 +116,10 @@
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Clienti Totali</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">Clienti Totali</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()</MudText>
+                        </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
                     </MudStack>
@@ -139,7 +145,10 @@
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi Totali</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">Viaggi Totali</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()</MudText>
+                        </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
                     </MudStack>
@@ -175,7 +184,10 @@
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggiFatti?.MainValue ?? 0)</MudText>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi fatti @_selectedYear</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">Viaggi fatti</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">nel @_selectedYear</MudText>
+                        </MudStack>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">fino al
                             @GetEffectiveEndDate().ToString("dd/MM/yyyy")</MudText>
                     </MudStack>
@@ -203,8 +215,10 @@
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi da fare @_selectedYear</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">fino al 31/12/@_selectedYear</MudText>
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">@GetViaggiDaFareLabel()</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@GetViaggiDaFareSubtitle()</MudText>
+                        </MudStack>
                     </MudStack>
                 </MudStack>
             </MudPaper>
@@ -339,4 +353,19 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         < 0 => Icons.Material.Filled.TrendingDown,
         _ => Icons.Material.Filled.TrendingFlat
     };
+
+    private string GetTotalLabelSuffix()
+    {
+        return _selectedYear == DateTime.Now.Year ? "Fino ad oggi" : $"a tutto il {_selectedYear}";
+    }
+
+    private string GetViaggiDaFareLabel()
+    {
+        return _selectedYear < _currentYear ? "Viaggi non fatti" : $"Viaggi da fare {_selectedYear}";
+    }
+
+    private string GetViaggiDaFareSubtitle()
+    {
+        return _selectedYear < _currentYear ? $"nel {_selectedYear}" : $"fino al 31/12/{_selectedYear}";
+    }
 }

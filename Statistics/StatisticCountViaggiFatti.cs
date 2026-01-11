@@ -31,7 +31,7 @@ public class StatisticCountViaggiFatti : StatisticBase
 
     private async Task<long> GetPeriodCountAsync(DateTime fromDate, DateTime toDate, int? aziendaId)
     {
-        string sql = "SELECT COUNT(*) FROM ana_date_viaggi WHERE data_viaggio_data_inizio >= @fromDate AND data_viaggio_data_inizio <= @toDate";
+        string sql = "SELECT COUNT(*) FROM ana_date_viaggi WHERE data_viaggio_data_inizio >= @fromDate AND data_viaggio_data_inizio <= @toDate AND data_viaggio_effettuato_sino = 'Y'";
         var parameters = new List<(string Name, object? Value)>
         {
             ("fromDate", fromDate),
