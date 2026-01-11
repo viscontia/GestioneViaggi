@@ -116,8 +116,7 @@ public class DatabaseDocumentationService : IDatabaseDocumentationService
             QuestPDF.Settings.License = LicenseType.Community;
             QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
 
-            var functions = await GetFunctionsAsync();
-
+            var groupedFunctions = await GetFunctionsAsync();
 
             // Ensure directory exists
             var dir = Path.GetDirectoryName(outputPath);
@@ -144,40 +143,50 @@ public class DatabaseDocumentationService : IDatabaseDocumentationService
 
                         page.Content()
                             .PaddingVertical(1, Unit.Centimetre)
-                            .Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
+                            .Column(col => 
+                            { 
+                                var groups = groupedFunctions.GroupBy(f => f.Category).OrderBy(g => g.Key);
+                                
+                                foreach(var group in groups)
                                 {
-                                    columns.RelativeColumn(3); // Nome
-                                    columns.RelativeColumn(3); // Scopo
-                                    columns.RelativeColumn(3); // Input
-                                    columns.RelativeColumn(2); // Output
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Element(CellStyle).Text("Nome Function");
-                                    header.Cell().Element(CellStyle).Text("Scopo");
-                                    header.Cell().Element(CellStyle).Text("Input");
-                                    header.Cell().Element(CellStyle).Text("Output");
-
-                                    static QuestPDF.Infrastructure.IContainer CellStyle(QuestPDF.Infrastructure.IContainer container)
+                                    col.Item().PaddingBottom(10).Text(group.Key).FontSize(14).Bold().FontColor(QuestPDF.Helpers.Colors.Blue.Medium);
+                                    
+                                    col.Item().PaddingBottom(20).Table(table =>
                                     {
-                                        return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Black);
-                                    }
-                                });
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(3); // Nome
+                                            columns.RelativeColumn(4); // Scopo
+                                            columns.RelativeColumn(3); // Input
+                                            columns.RelativeColumn(2); // Output
+                                        });
 
-                                foreach (var func in functions)
-                                {
-                                    table.Cell().Element(CellStyle).Text(func.Name);
-                                    table.Cell().Element(CellStyle).Text(func.Description);
-                                    table.Cell().Element(CellStyle).Text(func.Arguments);
-                                    table.Cell().Element(CellStyle).Text(func.ResultType);
+                                        table.Header(header =>
+                                        {
+                                            header.Cell().Element(CellStyle).Text("Nome Function");
+                                            header.Cell().Element(CellStyle).Text("Scopo");
+                                            header.Cell().Element(CellStyle).Text("Input");
+                                            header.Cell().Element(CellStyle).Text("Output");
 
-                                    static QuestPDF.Infrastructure.IContainer CellStyle(QuestPDF.Infrastructure.IContainer container)
-                                    {
-                                        return container.BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Grey.Lighten3).PaddingVertical(5);
-                                    }
+                                            static QuestPDF.Infrastructure.IContainer CellStyle(QuestPDF.Infrastructure.IContainer container)
+                                            {
+                                                return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Black);
+                                            }
+                                        });
+
+                                        foreach (var func in group.OrderBy(x => x.Name))
+                                        {
+                                            table.Cell().Element(CellStyle).Text(func.Name);
+                                            table.Cell().Element(CellStyle).Text(func.Description);
+                                            table.Cell().Element(CellStyle).Text(func.Arguments);
+                                            table.Cell().Element(CellStyle).Text(func.ResultType);
+
+                                            static QuestPDF.Infrastructure.IContainer CellStyle(QuestPDF.Infrastructure.IContainer container)
+                                            {
+                                                return container.BorderBottom(1).BorderColor(QuestPDF.Helpers.Colors.Grey.Lighten3).PaddingVertical(5);
+                                            }
+                                        }
+                                    });
                                 }
                             });
 
@@ -208,22 +217,23 @@ public class DatabaseDocumentationService : IDatabaseDocumentationService
         using var conn = new NpgsqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        // Query to get user defined functions in public schema
-        // Excluding triggers if possible, or just all functions
-        // Excluding extension functions (like pg_trgm ones if any, usually installed in extensions schema or public)
-        // We filter by schema public.
-        // We try to exclude standard postgres functions by checking owner or OID range, but schema public is a good enough filter for user code usually.
         string query = @"
             SELECT 
                 p.proname::text as name, 
                 pg_catalog.pg_get_function_arguments(p.oid)::text as args,
                 pg_catalog.pg_get_function_result(p.oid)::text as result,
-                d.description::text as description
+                d.description::text as description,
+                pg_catalog.pg_get_functiondef(p.oid)::text as definition
             FROM pg_catalog.pg_proc p
             LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
             LEFT JOIN pg_catalog.pg_description d ON p.oid = d.objoid
             WHERE n.nspname = 'public'
             AND p.prokind != 'a' -- Exclude aggregate functions
+            AND NOT EXISTS (
+                SELECT 1 FROM pg_catalog.pg_depend dep 
+                WHERE dep.objid = p.oid 
+                AND dep.deptype = 'e'
+            )
             ORDER BY p.proname;
         ";
 
@@ -232,15 +242,74 @@ public class DatabaseDocumentationService : IDatabaseDocumentationService
 
         while (await reader.ReadAsync())
         {
-            list.Add(new DatabaseFunctionInfo
+            var info = new DatabaseFunctionInfo
             {
                 Name = reader.GetString(0),
                 Arguments = reader.IsDBNull(1) ? "" : reader.GetString(1),
                 ResultType = reader.IsDBNull(2) ? "" : reader.GetString(2),
-                Description = reader.IsDBNull(3) ? "-" : reader.GetString(3)
-            });
+                Description = reader.IsDBNull(3) ? "" : reader.GetString(3),
+                Definition = reader.IsDBNull(4) ? "" : reader.GetString(4)
+            };
+
+            // Infer description if missing
+            if (string.IsNullOrWhiteSpace(info.Description))
+            {
+                info.Description = InferDescription(info.Name, info.Definition);
+            }
+
+            // Categorize
+            info.Category = CategorizeFunction(info.Name, info.Definition);
+
+            list.Add(info);
         }
 
         return list;
+    }
+
+    private string CategorizeFunction(string name, string code)
+    {
+        name = name.ToLower();
+        code = code.ToLower();
+
+        if (name.Contains("seq") || name.Contains("nextval") || code.Contains("nextval"))
+            return "Assegnazione Numerazione PK";
+        
+        if (name.Contains("check_delete") || code.Contains("check_delete") || (code.Contains("exception") && code.Contains("delete")))
+            return "Protezione da Cancellazione";
+
+        if (name.StartsWith("get_") || name.StartsWith("select_") || code.Contains("select * from"))
+            return "Ottenimento dati";
+
+        if (name.StartsWith("insert_") || name.StartsWith("create_") || code.Contains("insert into"))
+            return "Inserimento Dati";
+
+        if (name.StartsWith("update_") || code.Contains("update "))
+            return "Aggiornamento Dati";
+
+        if (name.StartsWith("delete_") || code.Contains("delete from"))
+            return "Cancellazione Dati";
+
+        return "Altro / Utility";
+    }
+
+    private string InferDescription(string name, string code)
+    {
+        // Simple heuristic to extract intent from code if no comment exists
+        if (code.Contains("--"))
+        {
+             // Try to find first comment line
+             var lines = code.Split('\n');
+             foreach(var line in lines)
+             {
+                 var trim = line.Trim();
+                 if (trim.StartsWith("--"))
+                    return trim.Substring(2).Trim();
+             }
+        }
+
+        if (name.Contains("nextval")) return "Restituisce il prossimo valore della sequenza per PK.";
+        if (name.Contains("check_delete")) return "Verifica vincoli prima della cancellazione.";
+        
+        return "Funzione di sistema o logica custom (vedi definizione).";
     }
 }
