@@ -45,6 +45,7 @@ public class StatisticResult
     public long PreviousYearValue { get; set; }
     public long Increment => MainValue - PreviousYearValue;
     public double PercentageChange { get; set; }
+    public long? ReferenceFlowValue { get; set; } // Holds the comparative flow value for PoP Hybrid mode
 
     public static StatisticResult Create(long mainValue, long currentPeriod, long previousPeriod)
     {

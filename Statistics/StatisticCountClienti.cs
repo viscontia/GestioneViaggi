@@ -25,6 +25,7 @@ public class StatisticCountClienti : StatisticBase
         long prevCount;
         double percentageChange = 0;
         long currentYearCount;
+        long? flowPrev = null;
 
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
@@ -53,10 +54,10 @@ public class StatisticCountClienti : StatisticBase
                 flowPrevSql += " AND azienda_fk = @aziendaId";
                 flowPrevParams.Add(("aziendaId", aziendaId.Value));
             }
-            long flowPrev = await ExecuteScalarCountAsync(flowPrevSql, flowPrevParams.ToArray());
+            flowPrev = await ExecuteScalarCountAsync(flowPrevSql, flowPrevParams.ToArray());
 
             // 3. Calculate Percentage based on Flows
-            percentageChange = CalculatePercentage(flowCurrent, flowPrev);
+            percentageChange = CalculatePercentage(flowCurrent, flowPrev ?? 0);
 
             // 4. Set prevCount (PreviousYearValue) such that Increment == flowCurrent
             // StatisticResult.Increment = MainValue - PreviousYearValue
@@ -83,6 +84,7 @@ public class StatisticCountClienti : StatisticBase
         {
             var result = StatisticResult.CreateCumulative(totalCount, currentYearCount);
             result.PercentageChange = percentageChange; // Override with Flow percentage
+            result.ReferenceFlowValue = flowPrev;
             return result;
         }
 

@@ -25,6 +25,7 @@ public class StatisticCountViaggi : StatisticBase
         long prevCount;
         double percentageChange = 0;
         long yearCount;
+        long? flowPrev = null;
 
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
@@ -55,10 +56,10 @@ public class StatisticCountViaggi : StatisticBase
                 flowPrevSql += " AND azienda_id = @aziendaId";
                 flowPrevParams.Add(("aziendaId", aziendaId.Value));
             }
-            long flowPrev = await ExecuteScalarCountAsync(flowPrevSql, flowPrevParams.ToArray());
+            flowPrev = await ExecuteScalarCountAsync(flowPrevSql, flowPrevParams.ToArray());
 
             // 3. Percentage
-            percentageChange = CalculatePercentage(flowCurrent, flowPrev);
+            percentageChange = CalculatePercentage(flowCurrent, flowPrev ?? 0);
 
             // 4. Set prevCount so that Result.Increment (Total - Prev) equals flowCurrent
             prevCount = totalCount - flowCurrent;
@@ -80,6 +81,7 @@ public class StatisticCountViaggi : StatisticBase
          if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
              result.PercentageChange = percentageChange;
+             result.ReferenceFlowValue = flowPrev;
         }
         return result;
     }

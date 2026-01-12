@@ -16,6 +16,7 @@ public class StatisticCountAziende : StatisticBase
         long prevCount;
         double percentageChange = 0;
         long yearCount;
+        long? flowPrev = null;
 
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
@@ -30,11 +31,11 @@ public class StatisticCountAziende : StatisticBase
             DateTime prevEnd = DateTime.Now.AddYears(-1);
             if (prevEnd < prevStart) prevEnd = prevStart;
 
-            long flowPrev = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE data_creazione BETWEEN @start AND @end", 
+            flowPrev = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE data_creazione BETWEEN @start AND @end", 
                 ("start", prevStart), ("end", prevEnd));
 
             // 3. Percentage
-            percentageChange = CalculatePercentage(flowCurrent, flowPrev);
+            percentageChange = CalculatePercentage(flowCurrent, flowPrev ?? 0);
 
             // 4. Force Increment = flowCurrent 
             // (CreateCumulative sets Previous = Main - YearCount, so Increment becomes YearCount)
@@ -51,6 +52,7 @@ public class StatisticCountAziende : StatisticBase
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
              result.PercentageChange = percentageChange;
+             result.ReferenceFlowValue = flowPrev;
         }
         return result;
     }
