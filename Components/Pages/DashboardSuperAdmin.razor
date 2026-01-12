@@ -29,7 +29,7 @@
                 </MudText>
             </div>
             <div class="d-flex" style="width: 250px; flex: none;">
-                <MudMenu Label="@GetYearLabel()" Variant="Variant.Outlined"
+                <MudMenu @bind-Open="_isMenuOpen" Label="@GetYearLabel()" Variant="Variant.Outlined"
                     EndIcon="@Icons.Material.Filled.KeyboardArrowDown" FullWidth="true"
                     AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
                     <MudList T="int" SelectedValue="_selectedYear" SelectedValueChanged="OnYearChanged" Dense="true"
@@ -201,15 +201,14 @@
                         <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Warning" />
                         <MudStack Spacing="0" AlignItems="AlignItems.End">
                             <MudChip T="string" Size="Size.Large"
-                                Color="@(GetTrendColor(_statsViaggiDaFare?.PercentageChange ?? 0))"
-                                Variant="Variant.Text"
-                                Icon="@(GetTrendIcon(_statsViaggiDaFare?.PercentageChange ?? 0))">
-                                @(_statsViaggiDaFare?.PercentageChange.ToString("+0.#;-0.#;0"))%
+                                Color="@(GetTrendColor(GetDisplayPercentage(_statsViaggiDaFare)))"
+                                Variant="Variant.Text" Icon="@(GetTrendIcon(GetDisplayPercentage(_statsViaggiDaFare)))">
+                                @(GetDisplayPercentage(_statsViaggiDaFare).ToString("+0.#;-0.#;0"))%
                             </MudChip>
                             <MudText Typo="Typo.body1"
-                                Color="@(GetTrendColor(_statsViaggiDaFare?.PercentageChange ?? 0))"
+                                Color="@(GetTrendColor(GetDisplayPercentage(_statsViaggiDaFare)))"
                                 Style="font-weight: bold" Class="mr-2">
-                                @(_statsViaggiDaFare?.Increment.ToString("+0;-0;0"))
+                                @(GetDisplayIncrement(_statsViaggiDaFare).ToString("+0;-0;0"))
                             </MudText>
                         </MudStack>
                     </MudStack>
@@ -251,6 +250,7 @@
 
 @code {
     private Models.UserInfo? _currentUser;
+    private bool _isMenuOpen;
     private StatisticResult? _statsAziende;
     private StatisticResult? _statsClienti;
     private StatisticResult? _statsViaggi;
@@ -315,6 +315,7 @@
     private async Task OnYearChanged(int year)
     {
         _selectedYear = year;
+        _isMenuOpen = false;
         await LoadStatsAsync();
     }
 
@@ -367,5 +368,21 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
     private string GetViaggiDaFareSubtitle()
     {
         return _selectedYear < _currentYear ? $"nel {_selectedYear}" : $"fino al 31/12/{_selectedYear}";
+    }
+
+    private double GetDisplayPercentage(StatisticResult? stats)
+    {
+        if (stats == null) return 0;
+        // If future year and value is 0, show 0% instead of -100%
+        if (_selectedYear > _currentYear && stats.MainValue == 0) return 0;
+        return stats.PercentageChange;
+    }
+
+    private double GetDisplayIncrement(StatisticResult? stats)
+    {
+        if (stats == null) return 0;
+        // If future year and value is 0, show 0 increment instead of negative
+        if (_selectedYear > _currentYear && stats.MainValue == 0) return 0;
+        return stats.Increment;
     }
 }
