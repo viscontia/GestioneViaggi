@@ -10,10 +10,25 @@ public class StatisticCountViaggiFatti : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null)
+    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null, ComparisonMode comparisonMode = ComparisonMode.FullYear)
     {
         long currentCount = await GetCountForYearAsync(year, aziendaId);
-        long previousCount = await GetCountForYearAsync(year - 1, aziendaId);
+        long previousCount;
+
+        if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
+        {
+             // PoP: 01/01/PrevYear to Today/PrevYear
+             DateTime prevStart = new DateTime(year - 1, 1, 1);
+             DateTime prevEnd = DateTime.Now.AddYears(-1);
+             // Safety check: ensure prevEnd is not before prevStart (e.g. if run on Jan 1st?)
+             if (prevEnd < prevStart) prevEnd = prevStart;
+             
+             previousCount = await GetPeriodCountAsync(prevStart, prevEnd, aziendaId);
+        }
+        else
+        {
+             previousCount = await GetCountForYearAsync(year - 1, aziendaId);
+        }
 
         return StatisticResult.Create(currentCount, currentCount, previousCount);
     }

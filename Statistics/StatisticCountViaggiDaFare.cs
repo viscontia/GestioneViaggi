@@ -10,10 +10,24 @@ public class StatisticCountViaggiDaFare : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null)
+    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null, ComparisonMode comparisonMode = ComparisonMode.FullYear)
     {
         long currentCount = await GetCountForYearAsync(year, aziendaId);
-        long previousCount = await GetCountForYearAsync(year - 1, aziendaId);
+        long previousCount;
+
+        if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
+        {
+             // PoP: Future workload relative to same date last year
+             // i.e. Trips in (Year-1) with Date >= Today.AddYears(-1)
+             // WITHOUT Status='N' filter (to match "Future Workload" definition)
+             DateTime prevFrom = DateTime.Today.AddYears(-1);
+             DateTime prevTo = new DateTime(year - 1, 12, 31);
+             previousCount = await GetPeriodCountAsync(prevFrom, prevTo, aziendaId, onlyNotPerformed: false);
+        }
+        else
+        {
+             previousCount = await GetCountForYearAsync(year - 1, aziendaId);
+        }
 
         return StatisticResult.Create(currentCount, currentCount, previousCount);
     }

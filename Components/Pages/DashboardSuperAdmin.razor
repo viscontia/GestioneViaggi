@@ -28,6 +28,17 @@
                     Benvenuto, @_currentUser?.FullName - Accesso globale a tutte le aziende
                 </MudText>
             </div>
+            @if (_selectedYear == _currentYear)
+            {
+                <div class="ml-4" style="width: 200px; flex: none;">
+                    <MudSelect T="ComparisonMode" Value="_comparisonMode" ValueChanged="OnComparisonModeChanged"
+                        Label="Modalità Confronto" Variant="Variant.Outlined" Margin="Margin.Dense"
+                        AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="ComparisonMode.FullYear">Anno Intero (YoY)</MudSelectItem>
+                        <MudSelectItem Value="ComparisonMode.PeriodOverPeriod">Su Periodo (PoP)</MudSelectItem>
+                    </MudSelect>
+                </div>
+            }
             <div class="d-flex" style="width: 250px; flex: none;">
                 <MudMenu @bind-Open="_isMenuOpen" Label="@GetYearLabel()" Variant="Variant.Outlined"
                     EndIcon="@Icons.Material.Filled.KeyboardArrowDown" FullWidth="true"
@@ -251,6 +262,7 @@
 @code {
     private Models.UserInfo? _currentUser;
     private bool _isMenuOpen;
+    private ComparisonMode _comparisonMode = ComparisonMode.FullYear;
     private StatisticResult? _statsAziende;
     private StatisticResult? _statsClienti;
     private StatisticResult? _statsViaggi;
@@ -316,6 +328,14 @@
     {
         _selectedYear = year;
         _isMenuOpen = false;
+        // Reset comparison mode when changing year (optional, but requested logic implies PoP relevant mainly for current year)
+        if (_selectedYear != _currentYear) _comparisonMode = ComparisonMode.FullYear;
+        await LoadStatsAsync();
+    }
+
+    private async Task OnComparisonModeChanged(ComparisonMode mode)
+    {
+        _comparisonMode = mode;
         await LoadStatsAsync();
     }
 
@@ -324,12 +344,12 @@
         // Load Statistics
         var tasks = new Task[]
         {
-Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear)),
-Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear)),
-Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear)),
-Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear)),
-Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear)),
-Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear))
+Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, _comparisonMode)),
+Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
+Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, null, _comparisonMode)),
+Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode)),
+Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
+Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, null, _comparisonMode))
         };
 
         await Task.WhenAll(tasks);

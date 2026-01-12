@@ -10,7 +10,7 @@ public class StatisticRevenue : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null)
+    public async Task<StatisticResult> GetStatsAsync(int year, int? aziendaId = null, ComparisonMode comparisonMode = ComparisonMode.FullYear)
     {
         // Placeholder per fatturato futuro
         await Task.CompletedTask;

@@ -10,17 +10,55 @@ public class StatisticCountAziende : StatisticBase
     {
     }
 
-    public async Task<StatisticResult> GetStatsAsync(int year)
+    public async Task<StatisticResult> GetStatsAsync(int year, ComparisonMode comparisonMode = ComparisonMode.FullYear)
     {
         long totalCountAtYear = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE EXTRACT(YEAR FROM data_creazione) <= @year", ("year", year));
-        long yearCount = await GetYearCountAsync(year);
+        long prevCount;
+        double percentageChange = 0;
+        long yearCount;
 
-        return StatisticResult.CreateCumulative(totalCountAtYear, yearCount);
+        if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
+        {
+            // PoP Logic for Stock (Hybrid):
+            // 1. Calculate Flow This Year
+            long totalEndLastYear = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE EXTRACT(YEAR FROM data_creazione) <= @year - 1", ("year", year));
+            long flowCurrent = totalCountAtYear - totalEndLastYear;
+            yearCount = flowCurrent;
+
+            // 2. Flow Last Year (Jan 1 - Jan 12 2025)
+            DateTime prevStart = new DateTime(year - 1, 1, 1);
+            DateTime prevEnd = DateTime.Now.AddYears(-1);
+            if (prevEnd < prevStart) prevEnd = prevStart;
+
+            long flowPrev = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE data_creazione BETWEEN @start AND @end", 
+                ("start", prevStart), ("end", prevEnd));
+
+            // 3. Percentage
+            percentageChange = CalculatePercentage(flowCurrent, flowPrev);
+
+            // 4. Force Increment = flowCurrent 
+            // (CreateCumulative sets Previous = Main - YearCount, so Increment becomes YearCount)
+            // So we just need to pass yearCount correctly to CreateCumulative and then override Percentage.
+        }
+        else
+        {
+            // FullYear (YoY): Count up to end of previous year
+            prevCount = await ExecuteScalarCountAsync("SELECT COUNT(*) FROM ana_aziende WHERE EXTRACT(YEAR FROM data_creazione) <= @year - 1", ("year", year));
+            yearCount = totalCountAtYear - prevCount;
+        }
+
+        var result = StatisticResult.CreateCumulative(totalCountAtYear, yearCount);
+        if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
+        {
+             result.PercentageChange = percentageChange;
+        }
+        return result;
     }
 
-    private async Task<long> GetYearCountAsync(int year)
+    private double CalculatePercentage(long current, long previous)
     {
-        const string sql = "SELECT COUNT(*) FROM ana_aziende WHERE EXTRACT(YEAR FROM data_creazione) = @year";
-        return await ExecuteScalarCountAsync(sql, ("year", year));
+        if (previous > 0) return Math.Round(((double)(current - previous) / previous) * 100, 1);
+        if (current > 0) return 100;
+        return 0;
     }
 }
