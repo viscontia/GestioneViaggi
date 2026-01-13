@@ -8,11 +8,20 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IAuthenticationService AuthService
+@inject NavigationManager Navigation
 
 @attribute [System.Diagnostics.CodeAnalysis.SuppressMessage("MudBlazor", "MUD0002", Justification = "False positive on custom DataGrid")]
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudText Typo="Typo.h5" GutterBottom="true">Gestione Viaggi</MudText>
+
+    @if (QueryYear.HasValue)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="ResetFilters">
+            Filtri attivi: <b>Anno @QueryYear</b> @(QueryFilter == "completed" ? " - Solo completati" : "")
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="ResetFilters" Class="ml-2">Mostra Tutto</MudButton>
+        </MudAlert>
+    }
 
     @if (_isLoading)
     {
@@ -39,15 +48,15 @@
                                     SelectedValueChanged="OnTreeSelectionChanged" SelectedValue="_selectedTreeItem">
                             @foreach (var level1 in _treeItems)
                             {
-                                            <MudTreeViewItem Value="@level1" Text="@level1.Title" Icon="@level1.Icon" IconColor="@level1.IconColor" @bind-Expanded="@level1.IsExpanded">
+                                            <MudTreeViewItem Value="@level1" Text="@level1.DisplayText" Icon="@level1.Icon" IconColor="@level1.IconColor" @bind-Expanded="@level1.IsExpanded">
                                                 <ChildContent>
                                         @foreach (var level2 in level1.Children)
                                         {
-                                                            <MudTreeViewItem Value="@level2" Text="@level2.Title" Icon="@level2.Icon" IconColor="@level2.IconColor" @bind-Expanded="@level2.IsExpanded">
+                                                            <MudTreeViewItem Value="@level2" Text="@level2.DisplayText" Icon="@level2.Icon" IconColor="@level2.IconColor" @bind-Expanded="@level2.IsExpanded">
                                                                 <ChildContent>
                                                     @foreach (var tripNode in level2.Children)
                                                 {
-                                                                    <MudTreeViewItem Value="@tripNode" Text="@tripNode.Title" Icon="@tripNode.Icon" IconColor="@tripNode.IconColor"
+                                                                    <MudTreeViewItem Value="@tripNode" Text="@tripNode.DisplayText" Icon="@tripNode.Icon" IconColor="@tripNode.IconColor"
                                                                                      Expanded="@tripNode.IsExpanded"
                                                                                      ExpandedChanged="@((e) => { tripNode.IsExpanded = e; _ = OnItemExpanded(tripNode); })">
                                                                         <ChildContent>
@@ -155,10 +164,17 @@
     private UserInfo? _session;
     private bool _isSuperAdmin = false;
 
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? QueryYear { get; set; }
+
+    [SupplyParameterFromQuery(Name = "filter")]
+    public string? QueryFilter { get; set; }
+
     // Helper class for Tree structure
     public class ViaggiTreeItem
     {
         public string Title { get; set; } = string.Empty;
+        public string DisplayText { get; set; } = string.Empty;
         public string Icon { get; set; } = Icons.Material.Filled.Folder;
         public Color IconColor { get; set; } = Color.Default;
         public string Type { get; set; } = string.Empty; // "Country", "Type", "Trip", "Date", "Dummy"
@@ -183,16 +199,19 @@
         public override int GetHashCode() => HashCode.Combine(Title, Type);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
         try
         {
-            _session = await AuthService.GetCurrentUserAsync();
-            _isSuperAdmin = _session?.IsSuperAdmin ?? false;
+            if (_session == null)
+            {
+                _session = await AuthService.GetCurrentUserAsync();
+                _isSuperAdmin = _session?.IsSuperAdmin ?? false;
+            }
         }
         catch (Exception)
         {
-            // Suppress auth error during init if any, default to non-admin
+            // Suppress auth error
         }
 
         await LoadDataAsync();
@@ -239,8 +258,9 @@
         {
             // Determine filter: SuperAdmin passes null (all), others pass their AziendaId
             int? filterAziendaId = _isSuperAdmin ? null : _session?.AziendaId;
+            bool? onlyCompleted = QueryFilter == "completed" ? true : null;
 
-            _allItems = await ViaggiService.GetAllAsync(filterAziendaId);
+            _allItems = await ViaggiService.GetAllAsync(filterAziendaId, QueryYear, onlyCompleted);
             
             // Filter is now handled by SQL.
             // _allItems contains only visible records.
@@ -300,6 +320,11 @@
         StateHasChanged();
     }
 
+    private void ResetFilters()
+    {
+        Navigation.NavigateTo("/ana-viaggi");
+    }
+
     private async Task BuildTreeAsync(HashSet<string>? expandedState = null)
     {
         _treeItems.Clear();
@@ -313,7 +338,7 @@
 
             foreach (var countryGroup in countries)
             {
-                var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState);
+                var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, countryGroup.Count());
 
                 var types = countryGroup
                     .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
@@ -321,14 +346,14 @@
 
                 foreach (var typeGroup in types)
                 {
-                    var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState);
+                    var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeGroup.Count());
 
                     foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
                     {
                         var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
                         
                         // Add dummy to enable expansion
-                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", DisplayText = "Caricamento...", Type = "Dummy" });
                         
                         typeNode.Children.Add(tripNode);
                         
@@ -353,7 +378,7 @@
 
             foreach (var typeGroup in types)
             {
-                 var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState);
+                 var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeGroup.Count());
 
                 var countries = typeGroup
                     .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
@@ -361,13 +386,13 @@
 
                 foreach (var countryGroup in countries)
                 {
-                    var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState);
+                    var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, countryGroup.Count());
 
                     foreach (var trip in countryGroup.OrderBy(t => t.DescrizioneBreve))
                     {
                         var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
                         
-                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", Type = "Dummy" });
+                        tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", DisplayText = "Caricamento...", Type = "Dummy" });
                         
                         countryNode.Children.Add(tripNode);
                         
@@ -383,11 +408,12 @@
         }
     }
 
-    private ViaggiTreeItem CreateNode(string title, string type, string icon, int? relatedId, HashSet<string>? expandedState)
+    private ViaggiTreeItem CreateNode(string title, string type, string icon, int? relatedId, HashSet<string>? expandedState, int? count = null)
     {
         var node = new ViaggiTreeItem
         {
             Title = title,
+            DisplayText = count.HasValue ? $"{title} ({count})" : title,
             Type = type,
             Icon = icon,
             RelatedId = relatedId
@@ -470,6 +496,7 @@
                     item.Children.Add(new ViaggiTreeItem
                         {
                             Title = title,
+                            DisplayText = title, // Dates don't use short/long logic variation here, just title
                             Type = "Date",
                             RelatedId = d.Id,
                             ParentId = item.RelatedId,
@@ -480,7 +507,7 @@
 
                 if (dates.Count == 0)
                 {
-                    item.Children.Add(new ViaggiTreeItem { Title = "Nessuna data", Type = "Info", Icon = Icons.Material.Filled.Info, IconColor = Color.Default });
+                    item.Children.Add(new ViaggiTreeItem { Title = "Nessuna data", DisplayText = "Nessuna data", Type = "Info", Icon = Icons.Material.Filled.Info, IconColor = Color.Default });
                 }
 
                 item.AreDatesLoaded = true;
@@ -489,7 +516,7 @@
             {
                 Snackbar.Add($"Errore caricamento date: {ex.Message}", Severity.Error);
                 item.Children.Clear();
-                item.Children.Add(new ViaggiTreeItem { Title = "Errore", Type = "Error", Icon = Icons.Material.Filled.Error, IconColor = Color.Error });
+                item.Children.Add(new ViaggiTreeItem { Title = "Errore", DisplayText = "Errore", Type = "Error", Icon = Icons.Material.Filled.Error, IconColor = Color.Error });
             }
             StateHasChanged();
         }

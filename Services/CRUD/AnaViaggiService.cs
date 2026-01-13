@@ -53,7 +53,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         return result;
     }
 
-    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null)
+    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null)
     {
         // Override to include JOINs for descriptions
         try
@@ -75,6 +75,12 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                 LEFT JOIN ana_tipo_avvicinamento a ON v.viaggio_tipo_avvicinamento_fk = a.tipo_avvicinamento_id
                 LEFT JOIN ana_aziende az ON v.azienda_id = az.azienda_id
                 WHERE (@aziendaId IS NULL OR @aziendaId = 0 OR v.azienda_id = @aziendaId)
+                AND (@filterYear IS NULL OR EXISTS (
+                    SELECT 1 FROM ana_date_viaggi d 
+                    WHERE d.viaggio_id_fk = v.viaggio_id 
+                    AND EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear
+                    AND (@onlyCompleted IS NULL OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y'))
+                ))
                 ORDER BY c.name, t.tipo_viaggi_descrizione, v.viaggio_descrizione_breve";
 
             await using var command = new NpgsqlCommand(sql, connection);
@@ -85,6 +91,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                 IsNullable = true
             };
             command.Parameters.Add(param);
+
+            command.Parameters.Add(new NpgsqlParameter("filterYear", NpgsqlDbType.Integer)
+            {
+                Value = (object?)filterYear ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("onlyCompleted", NpgsqlDbType.Boolean)
+            {
+                Value = (object?)onlyCompleted ?? DBNull.Value,
+                IsNullable = true
+            });
 
             await using var reader = await command.ExecuteReaderAsync();
 

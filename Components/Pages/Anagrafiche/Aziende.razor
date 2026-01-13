@@ -1,5 +1,6 @@
 @page "/anagrafiche/aziende"
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.Extensions.Logging
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.UI
@@ -9,6 +10,7 @@
 @inject ITenantContext TenantContext
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject ILogger<Aziende> Logger
 @inject IStatusBarService StatusBarService
 @attribute [Authorize]
 @implements IDisposable

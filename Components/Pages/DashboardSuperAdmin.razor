@@ -188,7 +188,7 @@ else
                         @GetTooltipContent(_statsViaggi, "Viaggi", true)
                     </TooltipContent>
                     <ChildContent>
-                        <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection("/ana-viaggi", "Anagrafica Viaggi e Date", "flight_takeoff"))">
+                        <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection($"/ana-viaggi?year={_selectedYear}", $"Anagrafica Viaggi {_selectedYear}", "flight_takeoff"))">
                             <MudStack Spacing="2">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large"
@@ -238,7 +238,7 @@ else
                             @GetTooltipContent(_statsViaggiFatti, "Viaggi Fatti", false)
                         </TooltipContent>
                         <ChildContent>
-                            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+                            <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection($"/ana-viaggi?year={_selectedYear}&filter=completed", $"Viaggi Fatti {_selectedYear}", "history"))">
                                 <MudStack Spacing="2">
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large"
