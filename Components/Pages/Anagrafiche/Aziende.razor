@@ -126,6 +126,19 @@ else
     {
         StatusBarService.SetCurrentTable("ana_aziende");
         _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        // DEFENSIVE VALIDATION: Ensure non-superadmin users have aziendaId configured
+        if (!_isSuperAdmin)
+        {
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!aziendaId.HasValue)
+            {
+                _errorMessage = "ERRORE CONFIGURAZIONE: Utente non associato ad alcuna azienda. Contattare l'amministratore di sistema.";
+                Logger.LogError("User without AziendaId attempting to access Aziende page - potential security issue");
+                return;
+            }
+        }
+
         await LoadDataAsync();
     }
 

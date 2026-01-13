@@ -1,5 +1,6 @@
 @page "/dashboard-superadmin"
 @using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Navigation
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Statistics
 @attribute [Authorize(Roles = "superadmin")]
@@ -13,6 +14,8 @@
 @inject StatisticCountViaggiDaFare StatViaggiDaFare
 @inject StatisticRevenue StatRevenue
 @inject StatisticYearService StatYear
+@inject ITabManagerService TabManager
+@inject ISnackbar Snackbar
 
 @if (!_isLoaded)
 {
@@ -104,7 +107,7 @@ else
                         @GetTooltipContent(_statsAziende, "Aziende", true)
                     </TooltipContent>
                     <ChildContent>
-                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+                        <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
                             <MudStack Spacing="2">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large"
@@ -145,7 +148,7 @@ else
                         @GetTooltipContent(_statsClienti, "Clienti", true)
                     </TooltipContent>
                     <ChildContent>
-                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+                        <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection("/anagrafiche/clienti", "Anagrafica Clienti", "people"))">
                             <MudStack Spacing="2">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Success" />
@@ -185,7 +188,7 @@ else
                         @GetTooltipContent(_statsViaggi, "Viaggi", true)
                     </TooltipContent>
                     <ChildContent>
-                        <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+                        <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="@(() => NavigateToSection("/ana-viaggi", "Anagrafica Viaggi e Date", "flight_takeoff"))">
                             <MudStack Spacing="2">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                     <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large"
@@ -417,12 +420,33 @@ else
         await LoadStatsAsync();
     }
 
+    private void NavigateToSection(string route, string title, string icon)
+    {
+        if (!TabManager.CanOpenTab())
+        {
+            Snackbar.Add($"Impossibile aprire '{title}': limite di {TabManager.MaxTabs} tab raggiunto. Chiudi una tab per continuare.", Severity.Warning, config =>
+            {
+                config.VisibleStateDuration = 4000;
+            });
+            return;
+        }
+
+        bool opened = TabManager.OpenTab(route, title, icon);
+        if (opened)
+        {
+            Snackbar.Add($"Tab aperto: {title}", Severity.Success, config =>
+            {
+                config.VisibleStateDuration = 2000;
+            });
+        }
+    }
+
     private async Task LoadStatsAsync()
     {
-        // Load Statistics
+        // Load Statistics - SuperAdmin sees ALL data (aziendaId = null)
         var tasks = new Task[]
         {
-Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, _comparisonMode)),
+Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode)),
