@@ -2,13 +2,14 @@
 @using GestioneViaggi.Services.Navigation
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IAuthenticationService AuthService
+
 @inject NavigationManager Navigation
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
 
 <MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
-                OnClick="@(() => OpenTab("/dashboard-admin", "Dashboard", "dashboard"))">
+                OnClick="@(() => OpenTab(_dashboardRoute, "Dashboard", "dashboard"))">
         <span style="font-size: 18px !important;">Dashboard</span>
     </MudNavLink>
 
@@ -152,6 +153,16 @@
 </MudNavMenu>
 
 @code {
+    private string _dashboardRoute = "/dashboard-admin";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        _dashboardRoute = user?.IsSuperAdmin == true
+            ? "/dashboard-superadmin"
+            : "/dashboard-admin";
+    }
+
     private void OpenTab(string route, string title, string icon)
     {
         if (!TabManager.CanOpenTab())
