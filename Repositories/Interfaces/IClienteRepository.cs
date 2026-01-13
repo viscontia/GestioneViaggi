@@ -11,7 +11,7 @@ public interface IClienteRepository
     // CRUD Base
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
     Task<Cliente?> GetDetailAsync(int clienteId);
-    Task<List<Cliente>> GetAllAsync(int? aziendaFk);
+    Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null);
     Task<Cliente> InsertAsync(Cliente cliente);
     Task<Cliente> UpdateAsync(Cliente cliente);
     Task<bool> DeleteAsync(int clienteId, int aziendaFk);

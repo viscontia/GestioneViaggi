@@ -21,11 +21,11 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
 
     #region CRUD Operations
 
-    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk)
+    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null)
     {
         try
         {
-            return await _repository.GetAllAsync(aziendaFk);
+            return await _repository.GetAllAsync(aziendaFk, filterYear);
         }
         catch (Exception ex)
         {

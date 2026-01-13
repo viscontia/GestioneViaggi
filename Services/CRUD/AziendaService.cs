@@ -12,7 +12,7 @@ public class AziendaService : BaseCrudService<Azienda>
     protected override string IdColumnName => "azienda_id";
 
     public AziendaService(
-        IDatabaseService databaseService, 
+        IDatabaseService databaseService,
         ILogger<AziendaService> logger,
         ITenantContext tenantContext)
         : base(databaseService, logger, tenantContext)
@@ -24,7 +24,17 @@ public class AziendaService : BaseCrudService<Azienda>
     /// - SuperAdmin: vede TUTTE le aziende
     /// - Altri ruoli: vedono SOLO la propria azienda
     /// </summary>
+    /// <summary>
+    /// Override GetAllAsync con filtro multi-tenant e opzionale per anno:
+    /// - SuperAdmin: vede TUTTE le aziende (filtrate per anno se richiesto)
+    /// - Altri ruoli: vedono SOLO la propria azienda
+    /// </summary>
     public override async Task<List<Azienda>> GetAllAsync()
+    {
+        return await GetAllAsync(null);
+    }
+
+    public async Task<List<Azienda>> GetAllAsync(int? filterYear)
     {
         try
         {
@@ -57,12 +67,13 @@ public class AziendaService : BaseCrudService<Azienda>
                     a.data_ultima_modifica,
                     p.provincia_sigla as rea_provincia_sigla
                 FROM ana_aziende a
-                LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id";
+                LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id
+                WHERE 1=1";
 
             // Applica filtro tenant se NON SuperAdmin
             if (currentAziendaId.HasValue)
             {
-                sql += $" WHERE a.azienda_id = {currentAziendaId.Value}";
+                sql += $" AND a.azienda_id = {currentAziendaId.Value}";
                 _logger.LogDebug("GetAllAsync: Filtering by AziendaId={AziendaId} (non-SuperAdmin)", currentAziendaId.Value);
             }
             else
@@ -70,9 +81,19 @@ public class AziendaService : BaseCrudService<Azienda>
                 _logger.LogDebug("GetAllAsync: No tenant filter (SuperAdmin access)");
             }
 
+            var parameters = new List<NpgsqlParameter>();
+
+            if (filterYear.HasValue)
+            {
+                sql += " AND EXTRACT(YEAR FROM a.data_creazione) = @year";
+                parameters.Add(new NpgsqlParameter("year", filterYear.Value));
+            }
+
             sql += " ORDER BY a.ragione_sociale ASC";
 
             await using var command = new NpgsqlCommand(sql, connection);
+            foreach (var p in parameters) command.Parameters.Add(p);
+
             await using var reader = await command.ExecuteReaderAsync();
 
             var aziende = new List<Azienda>();
@@ -81,7 +102,7 @@ public class AziendaService : BaseCrudService<Azienda>
                 aziende.Add(MapFromReaderWithJoins(reader));
             }
 
-            _logger.LogInformation("GetAllAsync: Returned {Count} aziende", aziende.Count);
+            _logger.LogInformation("GetAllAsync: Returned {Count} aziende (YearFilter: {Year})", aziende.Count, filterYear);
             return aziende;
         }
         catch (Exception ex)

@@ -18,7 +18,11 @@
     @if (QueryYear.HasValue)
     {
         <MudAlert Severity="Severity.Info" Class="mb-3" ShowCloseIcon="true" CloseIconClicked="ResetFilters">
-            Filtri attivi: <b>Anno @QueryYear</b> @(QueryFilter == "completed" ? " - Solo completati" : "")
+            Filtri attivi: <b>Anno @QueryYear</b> 
+            @(QueryFilter == "completed" ? " - Solo completati" : "")
+            @(QueryFilter == "not_done" ? " - Solo non completati" : "")
+            @(QueryFilter == "future" ? " - Solo partenze future" : "")
+            - Totale Partenze: <b>@(_allItems.Sum(x => x.MatchingDatesCount))</b> su @(_filteredItems.Count) Viaggi Unici
             <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" OnClick="ResetFilters" Class="ml-2">Mostra Tutto</MudButton>
         </MudAlert>
     }
@@ -136,6 +140,12 @@
 
                                 <PropertyColumn Property="x => x.TipoTrattamentoDescrizione" Title="Trattamento" />
                                 <PropertyColumn Property="x => x.TipoPernottamentoDescrizione" Title="Pernottamento" />
+
+                                @if (QueryYear.HasValue)
+                                {
+                                    <PropertyColumn Property="x => x.MatchingDatesCount" Title="N. Partenze" CellStyle="text-align: center; font-weight: bold; width: 100px;" HeaderStyle="text-align: center; width: 100px;" />
+                                }
+
                                 <PropertyColumn Property="x => x.TipoAvvicinamentoDescrizione" Title="Avvicinamento" />
 
                             @if (_isSuperAdmin)
@@ -258,9 +268,14 @@
         {
             // Determine filter: SuperAdmin passes null (all), others pass their AziendaId
             int? filterAziendaId = _isSuperAdmin ? null : _session?.AziendaId;
-            bool? onlyCompleted = QueryFilter == "completed" ? true : null;
+            // Logic for onlyCompleted:
+            // "completed" -> true
+            // "not_done"  -> false
+            // other       -> null
+            bool? onlyCompleted = QueryFilter == "completed" ? true : (QueryFilter == "not_done" ? false : null);
+            bool? futureOnly = QueryFilter == "future" ? true : null;
 
-            _allItems = await ViaggiService.GetAllAsync(filterAziendaId, QueryYear, onlyCompleted);
+            _allItems = await ViaggiService.GetAllAsync(filterAziendaId, QueryYear, onlyCompleted, futureOnly);
             
             // Filter is now handled by SQL.
             // _allItems contains only visible records.
@@ -338,7 +353,8 @@
 
             foreach (var countryGroup in countries)
             {
-                var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, countryGroup.Count());
+                int count = QueryYear.HasValue ? countryGroup.Sum(x => x.MatchingDatesCount) : countryGroup.Count();
+                var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, count);
 
                 var types = countryGroup
                     .GroupBy(x => x.TipoViaggioDescrizione ?? "Altro")
@@ -346,11 +362,13 @@
 
                 foreach (var typeGroup in types)
                 {
-                    var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeGroup.Count());
+                    int typeCount = QueryYear.HasValue ? typeGroup.Sum(x => x.MatchingDatesCount) : typeGroup.Count();
+                    var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeCount);
 
                     foreach (var trip in typeGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
+                        var tripCount = QueryYear.HasValue ? trip.MatchingDatesCount : (int?)null;
+                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState, tripCount);
                         
                         // Add dummy to enable expansion
                         tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", DisplayText = "Caricamento...", Type = "Dummy" });
@@ -378,7 +396,8 @@
 
             foreach (var typeGroup in types)
             {
-                 var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeGroup.Count());
+                 int typeCount = QueryYear.HasValue ? typeGroup.Sum(x => x.MatchingDatesCount) : typeGroup.Count();
+                 var typeNode = CreateNode(typeGroup.Key, "Type", Icons.Material.Filled.Category, null, expandedState, typeCount);
 
                 var countries = typeGroup
                     .GroupBy(x => x.NazioneNome ?? "Sconosciuta")
@@ -386,11 +405,13 @@
 
                 foreach (var countryGroup in countries)
                 {
-                    var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, countryGroup.Count());
+                    int countryCount = QueryYear.HasValue ? countryGroup.Sum(x => x.MatchingDatesCount) : countryGroup.Count();
+                    var countryNode = CreateNode(countryGroup.Key, "Country", Icons.Material.Filled.Public, null, expandedState, countryCount);
 
                     foreach (var trip in countryGroup.OrderBy(t => t.DescrizioneBreve))
                     {
-                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState);
+                        var tripCount = QueryYear.HasValue ? trip.MatchingDatesCount : (int?)null;
+                        var tripNode = CreateNode(trip.DescrizioneBreve, "Trip", Icons.Material.Filled.FlightTakeoff, trip.Id, expandedState, tripCount);
                         
                         tripNode.Children.Add(new ViaggiTreeItem { Title = "Caricamento...", DisplayText = "Caricamento...", Type = "Dummy" });
                         
@@ -485,7 +506,9 @@
         {
             try
             {
-                var dates = await ViaggiService.GetDatesByTripIdAsync(item.RelatedId.Value);
+                bool? onlyCompleted = QueryFilter == "completed" ? true : (QueryFilter == "not_done" ? false : null);
+                bool? futureOnly = QueryFilter == "future" ? true : null;
+                var dates = await ViaggiService.GetDatesByTripIdAsync(item.RelatedId.Value, QueryYear, onlyCompleted, futureOnly);
                 item.Children.Clear(); // Remove dummy
 
                 foreach (var d in dates)

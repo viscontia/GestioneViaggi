@@ -10,9 +10,26 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
+@inject IStatusBarService StatusBarService
 @inject ITenantContext TenantContext
+@inject NavigationManager Navigation
 @attribute [Authorize]
 @implements IDisposable
+
+@if (QueryYear.HasValue)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="my-2" Icon="@Icons.Material.Filled.FilterList">
+    <div class="d-flex align-center justify-space-between">
+        <MudText>
+            <b>Filtro Attivo:</b> Anno Creazione @QueryYear.Value
+        </MudText>
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="ResetFilters"
+            StartIcon="@Icons.Material.Filled.Clear">
+            Mostra Tutto
+        </MudButton>
+    </div>
+</MudAlert>
+}
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -195,6 +212,9 @@ else
     private int _selectedAziendaId; // Filtro per SuperAdmin
     private bool _isSuperAdmin;
 
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? QueryYear { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("ana_clienti");
@@ -216,8 +236,14 @@ else
             }
             _currentAziendaId = aziendaId.Value;
         }
+    }
 
-        await LoadDataAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(_errorMessage))
+        {
+            await LoadDataAsync();
+        }
     }
 
     public void Dispose()
@@ -240,7 +266,7 @@ else
             // Per SuperAdmin senza filtro, passa null (GetAll).
             int? filterId = _selectedAziendaId > 0 ? _selectedAziendaId : _currentAziendaId;
 
-            _items = await ClienteService.GetAllAsync(filterId);
+            _items = await ClienteService.GetAllAsync(filterId, QueryYear);
             ApplyFilters();
         }
         catch (Exception ex)
@@ -408,9 +434,14 @@ else
                 CloseButton = true,
                 MaxWidth = MaxWidth.Large,
                 FullWidth = true,
-                NoHeader = true // Sticky header inside dialog content handles it
+                NoHeader = true
             };
 
         await DialogService.ShowAsync<TravelStatsDialog>("Statistiche Viaggi", parameters, options);
+    }
+
+    private void ResetFilters()
+    {
+        Navigation.NavigateTo("/anagrafiche/clienti");
     }
 }

@@ -9,7 +9,7 @@ namespace GestioneViaggi.Services.CRUD;
 public interface IClienteService
 {
     // CRUD Operations
-    Task<List<Cliente>> GetAllAsync(int? aziendaFk);
+    Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null);
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
     Task<Cliente?> GetDetailAsync(int clienteId);
     Task<Cliente> CreateAsync(Cliente cliente);

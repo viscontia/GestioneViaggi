@@ -53,7 +53,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         return result;
     }
 
-    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null)
+    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null, bool? futureOnly = null)
     {
         // Override to include JOINs for descriptions
         try
@@ -66,7 +66,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                        tr.tipo_trattamento_descrizione,
                        p.ana_tipo_pernottamento_descrizione,
                        a.tipo_avvicinamento_descrizione,
-                       az.ragione_sociale as azienda_nome
+                       az.ragione_sociale as azienda_nome,
+                       (
+                            SELECT COUNT(1) 
+                            FROM ana_date_viaggi d 
+                            WHERE d.viaggio_id_fk = v.viaggio_id 
+                            AND (@filterYear IS NULL OR EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear)
+                            AND (@onlyCompleted IS NULL 
+                                OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
+                                OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
+                            AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
+                       ) as matching_dates_count
                 FROM ana_viaggi v
                 LEFT JOIN eba_countries c ON v.viaggio_nazione_fk = c.country_id
                 LEFT JOIN ana_tipo_viaggi t ON v.viaggio_tipo_viaggio_fk = t.tipo_viaggi_id
@@ -79,7 +89,10 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     SELECT 1 FROM ana_date_viaggi d 
                     WHERE d.viaggio_id_fk = v.viaggio_id 
                     AND EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear
-                    AND (@onlyCompleted IS NULL OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y'))
+                    AND (@onlyCompleted IS NULL 
+                        OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
+                        OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
+                    AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
                 ))
                 ORDER BY c.name, t.tipo_viaggi_descrizione, v.viaggio_descrizione_breve";
 
@@ -102,13 +115,24 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                 Value = (object?)onlyCompleted ?? DBNull.Value,
                 IsNullable = true
             });
+            command.Parameters.Add(new NpgsqlParameter("futureOnly", NpgsqlDbType.Boolean)
+            {
+                Value = (object?)futureOnly ?? DBNull.Value,
+                IsNullable = true
+            });
 
             await using var reader = await command.ExecuteReaderAsync();
 
             var list = new List<AnaViaggi>();
             while (await reader.ReadAsync())
             {
-                list.Add(MapFromReader(reader));
+                var item = MapFromReader(reader);
+                // Map the transient count
+                if (HasColumn(reader, "matching_dates_count"))
+                {
+                    item.MatchingDatesCount = reader.GetInt32(reader.GetOrdinal("matching_dates_count"));
+                }
+                list.Add(item);
             }
             return list;
         }
@@ -405,15 +429,31 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         return false;
     }
 
-    public async Task<List<AnaDataViaggio>> GetDatesByTripIdAsync(int tripId)
+    public async Task<List<AnaDataViaggio>> GetDatesByTripIdAsync(int tripId, int? filterYear = null, bool? onlyCompleted = null, bool? futureOnly = null)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM get_datetrips_fromtrip(@id)";
+
+            // Modified to filter manually since the function get_datetrips_fromtrip is simple
+            // Or we can filter in C# easily since typically trips don't have thousands of dates
+            // But doing it in SQL is cleaner if we modify the SQL or just WHERE clause on result
+            // Since get_datetrips_fromtrip returns a set, we can select from it.
+
+            var sql = @"
+                SELECT * FROM get_datetrips_fromtrip(@id) d
+                WHERE (@filterYear IS NULL OR EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear)
+                AND (@onlyCompleted IS NULL 
+                    OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
+                    OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
+                AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
+                ORDER BY d.data_viaggio_data_inizio DESC";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", tripId);
+            command.Parameters.Add(new NpgsqlParameter("filterYear", NpgsqlDbType.Integer) { Value = (object?)filterYear ?? DBNull.Value, IsNullable = true });
+            command.Parameters.Add(new NpgsqlParameter("onlyCompleted", NpgsqlDbType.Boolean) { Value = (object?)onlyCompleted ?? DBNull.Value, IsNullable = true });
+            command.Parameters.Add(new NpgsqlParameter("futureOnly", NpgsqlDbType.Boolean) { Value = (object?)futureOnly ?? DBNull.Value, IsNullable = true });
 
             await using var reader = await command.ExecuteReaderAsync();
             var list = new List<AnaDataViaggio>();
@@ -675,3 +715,4 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         return result;
     }
 }
+

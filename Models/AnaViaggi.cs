@@ -111,4 +111,7 @@ public class AnaViaggi : BaseEntity, IValidatableObject
             yield return new ValidationResult("Il numero di notti non può essere superiore al numero di giorni (controllare)", new[] { nameof(NumeroNotti) });
         }
     }
+    // === Transient UI Properties ===
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public int MatchingDatesCount { get; set; }
 }

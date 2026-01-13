@@ -170,7 +170,7 @@ public class ClienteRepository(
         }
     }
 
-    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk)
+    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null)
     {
         try
         {
@@ -227,10 +227,12 @@ public class ClienteRepository(
                 LEFT JOIN ana_geo_comuni com_res ON c.cliente_comune_residenza_fk = com_res.comune_id
                 LEFT JOIN ana_geo_province prov_res ON com_res.comune_provincia_fk = prov_res.provincia_id
                 WHERE (@aziendaFk::integer IS NULL OR c.azienda_fk = @aziendaFk)
+                  AND (@filterYear::integer IS NULL OR EXTRACT(YEAR FROM c.created) = @filterYear)
                 ORDER BY a.ragione_sociale, c.cliente_cognome, c.cliente_nome";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("aziendaFk", (object?)aziendaFk ?? DBNull.Value);
+            command.Parameters.AddWithValue("filterYear", (object?)filterYear ?? DBNull.Value);
 
             await using var reader = await command.ExecuteReaderAsync();
 

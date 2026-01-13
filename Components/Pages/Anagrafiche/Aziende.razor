@@ -12,8 +12,23 @@
 @inject ISnackbar Snackbar
 @inject ILogger<Aziende> Logger
 @inject IStatusBarService StatusBarService
+@inject NavigationManager Navigation
 @attribute [Authorize]
 @implements IDisposable
+
+@if (QueryYear.HasValue)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="my-2" Icon="@Icons.Material.Filled.FilterList">
+        <div class="d-flex align-center justify-space-between">
+            <MudText>
+                <b>Filtro Attivo:</b> Anno Creazione @QueryYear.Value
+            </MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="ResetFilters" StartIcon="@Icons.Material.Filled.Clear">
+                Mostra Tutto
+            </MudButton>
+        </div>
+    </MudAlert>
+}
 
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
@@ -124,6 +139,9 @@ else
     private string _searchString = string.Empty;
     private bool _isSuperAdmin = false;
 
+    [SupplyParameterFromQuery(Name = "year")]
+    public int? QueryYear { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("ana_aziende");
@@ -140,8 +158,14 @@ else
                 return;
             }
         }
+    }
 
-        await LoadDataAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+         if (string.IsNullOrEmpty(_errorMessage))
+         {
+             await LoadDataAsync();
+         }
     }
 
     public void Dispose()
@@ -154,7 +178,7 @@ else
         try
         {
             _errorMessage = string.Empty;
-            _items = await Service.GetAllAsync();
+            _items = await Service.GetAllAsync(QueryYear);
         }
         catch (Exception ex)
         {
@@ -313,5 +337,10 @@ else
                 Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
             }
         }
+    }
+
+    private void ResetFilters()
+    {
+        Navigation.NavigateTo("/anagrafiche/aziende");
     }
 }
