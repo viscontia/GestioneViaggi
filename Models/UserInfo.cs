@@ -9,6 +9,8 @@ public class UserInfo
     public string? RoleCode { get; set; }
     public string? RoleName { get; set; }
     public int? AziendaId { get; set; }
+    public string? RagioneSocialeAzienda { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
 
     public string FullName => $"{Nome} {Cognome}".Trim();

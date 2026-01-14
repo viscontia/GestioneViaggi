@@ -1,0 +1,222 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject IRoleService RoleService
+@inject IUserService UserService
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Utente" : "Nuovo Utente")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@User">
+            <!-- Email -->
+            <MudTextField @ref="_firstField" Value="@User.Email"
+                ValueChanged="@((string val) => HandleEmailChanged(val))" For="@(() => User.Email)" Label="Email"
+                Variant="Variant.Outlined" Immediate="true" Required="true" RequiredError="Email è obbligatoria"
+                MaxLength="100" tabindex="1" Class="mb-3" Adornment="Adornment.End" AdornmentText="*"
+                AdornmentColor="Color.Error" OnKeyDown="@HandleKeyDown" />
+
+            <!-- Nome -->
+            <MudTextField Value="@User.Nome" ValueChanged="@((string val) => HandleNomeChanged(val))"
+                For="@(() => User.Nome)" Label="Nome" Variant="Variant.Outlined" Immediate="true" Required="true"
+                RequiredError="Nome è obbligatorio" MaxLength="100" tabindex="2" Class="mb-3 uppercase-input"
+                Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
+
+            <!-- Cognome -->
+            <MudTextField Value="@User.Cognome" ValueChanged="@((string val) => HandleCognomeChanged(val))"
+                For="@(() => User.Cognome)" Label="Cognome" Variant="Variant.Outlined" Immediate="true" Required="true"
+                RequiredError="Cognome è obbligatorio" MaxLength="100" tabindex="3" Class="mb-3 uppercase-input"
+                Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
+
+            <!-- Password -->
+            <MudTextField @bind-Value="_password"
+                Label="@(IsEditMode ? "Nuova Password (lascia vuoto per non cambiare)" : "Password")"
+                Variant="Variant.Outlined" InputType="InputType.Password" Required="@(!IsEditMode)"
+                RequiredError="Password è obbligatoria per nuovi utenti" tabindex="4" Class="mb-3"
+                Adornment="@(!IsEditMode ? Adornment.End : Adornment.None)" AdornmentText="@(!IsEditMode ? "*" : null)"
+                AdornmentColor="Color.Error" />
+
+            <!-- Ruolo -->
+            <MudSelect T="string" Label="Ruolo" Value="@User.RoleCode" ValueChanged="@HandleRoleChanged"
+                Variant="Variant.Outlined" Required="true" RequiredError="Ruolo obbligatorio"
+                AnchorOrigin="Origin.BottomCenter" Class="mb-3" tabindex="5" Adornment="Adornment.End" AdornmentText="*"
+                AdornmentColor="Color.Error">
+                @foreach (var role in _roles)
+                {
+                    <MudSelectItem Value="@role.RoleCode">@role.RoleName</MudSelectItem>
+                }
+            </MudSelect>
+
+            <!-- Azienda (Visibile solo se non SuperAdmin) -->
+            @if (ShouldShowAziendaSelection())
+            {
+                <AziendaSelect @bind-SelectedAziendaId="User.AziendaId" Required="true" ShowAllOption="false"
+                    Class="mb-3" />
+            }
+
+            <!-- Is Active Switch -->
+            <MudSwitch @bind-Value="User.IsActive" Label="Utente Attivo" Color="Color.Success" Class="mb-3"
+                tabindex="7" />
+
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+    private List<RoleInfo> _roles = new();
+    private string? _password;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public UserInfo User { get; set; } = new UserInfo();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _roles = await RoleService.GetRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento ruoli: {ex.Message}", Severity.Error);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
+            }
+
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try
+                {
+                    await _firstField.FocusAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Errore focus: {ex.Message}");
+                }
+            }
+        }
+    }
+
+    private void HandleEmailChanged(string value)
+    {
+        User.Email = value ?? string.Empty;
+    }
+
+    private void HandleNomeChanged(string value)
+    {
+        User.Nome = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleCognomeChanged(string value)
+    {
+        User.Cognome = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleRoleChanged(string roleCode)
+    {
+        User.RoleCode = roleCode;
+        // Logic check: if role is superadmin, clear azienda
+        if (roleCode == "superadmin")
+        {
+            User.AziendaId = null;
+        }
+    }
+
+    private bool ShouldShowAziendaSelection()
+    {
+        return !string.IsNullOrEmpty(User.RoleCode) && User.RoleCode != "superadmin";
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await HandleSubmit();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+
+            // Password check for create mode
+            if (!IsEditMode && string.IsNullOrWhiteSpace(_password))
+            {
+                Snackbar.Add("La password è obbligatoria per i nuovi utenti.", Severity.Error);
+                return;
+            }
+
+            // Azienda check
+            if (ShouldShowAziendaSelection() && !User.AziendaId.HasValue)
+            {
+                Snackbar.Add("Selezionare un'azienda per questo ruolo.", Severity.Error);
+                return;
+            }
+
+            if (_form.IsValid)
+            {
+                try
+                {
+                    if (IsEditMode)
+                    {
+                        await UserService.UpdateUserAsync(User, _password);
+                    }
+                    else
+                    {
+                        // Safe bang because validation passed
+                        await UserService.CreateUserAsync(User, _password!);
+                    }
+                    MudDialog?.Close(DialogResult.Ok(User));
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add(ex.Message, Severity.Error);
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,186 @@
+@page "/amministrazione/roles"
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "superadmin")]
+@inject IRoleService RoleService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<EnterpriseDataGrid T="RoleInfo"
+                    Title="Gestione Ruoli"
+                    Items="@_roles"
+                    SearchFunction="@SearchFunc"
+                    @bind-SelectedItem="_selectedItem">
+
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@OpenCreateDialog">
+            Nuovo Ruolo
+        </MudButton>
+    </ToolBarActions>
+
+    <Columns>
+        <PropertyColumn Property="x => x.RoleName" Title="Nome Ruolo" />
+        <PropertyColumn Property="x => x.RoleCode" Title="Codice" />
+        
+        <TemplateColumn Title="Tipo">
+             <CellTemplate>
+                @if (context.Item.IsSystem)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Lock">Sistema</MudChip>
+                }
+                else
+                {
+                     <MudChip T="string" Color="Color.Default" Size="Size.Small">Custom</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+
+        <TemplateColumn CellClass="d-flex justify-end ActionColumn">
+            <CellTemplate>
+                <MudTooltip Text="Modifica Ruolo">
+                    <MudIconButton Size="@Size.Small"
+                                   Icon="@Icons.Material.Outlined.Edit"
+                                   OnClick="@(() => OpenEditDialog(context.Item))" />
+                </MudTooltip>
+                
+                <MudTooltip Text="Elimina Ruolo">
+                    <MudIconButton Size="@Size.Small"
+                                   Icon="@Icons.Material.Outlined.Delete"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DeleteRole(context.Item))" />
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</EnterpriseDataGrid>
+
+@code {
+    private List<RoleInfo> _roles = new();
+    private RoleInfo? _selectedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            _roles = await RoleService.GetRolesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il caricamento dei ruoli: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool SearchFunc(RoleInfo role, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (role.RoleName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (role.RoleCode.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["IsEditMode"] = false };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Nuovo Ruolo", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is RoleInfo newRole)
+        {
+            // Logic moved here for centralization and error handling
+            try
+            {
+               await RoleService.CreateRoleAsync(newRole);
+               await LoadRoles();
+               Snackbar.Add("Ruolo creato con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+               Snackbar.Add($"Errore creazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(RoleInfo role)
+    {
+        // Clone to allow cancel
+        var roleClone = new RoleInfo 
+        { 
+             RoleId = role.RoleId, 
+             RoleCode = role.RoleCode, 
+             RoleName = role.RoleName, 
+             IsSystem = role.IsSystem 
+        };
+        var parameters = new DialogParameters { ["IsEditMode"] = true, ["Role"] = roleClone };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Modifica Ruolo", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is RoleInfo updatedRole)
+        {
+            try
+            {
+                await RoleService.UpdateRoleAsync(updatedRole);
+                await LoadRoles();
+                Snackbar.Add("Ruolo aggiornato con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore aggiornamento: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteRole(RoleInfo role)
+    {
+        if (role == null) return;
+
+        var parameters = new DialogParameters 
+        { 
+            ["ContentText"] = $"Sei sicuro di voler eliminare il ruolo '{role.RoleName}'? L'operazione fallirà se il ruolo è assegnato a degli utenti.",
+            ["ButtonText"] = "Elimina",
+            ["Color"] = Color.Error
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, BackdropClick = false };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina Ruolo", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            try
+            {
+                // Ensure parameters are valid
+                if (string.IsNullOrWhiteSpace(role.RoleCode)) throw new InvalidOperationException("Codice Ruolo non valido");
+                
+                await RoleService.DeleteRoleAsync(role.RoleCode);
+                await LoadRoles();
+                Snackbar.Add("Ruolo eliminato con successo", Severity.Success);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Specifically catch our mapped service exceptions
+                Snackbar.Add(ex.Message, Severity.Warning);
+            }
+            catch (Exception ex)
+            {
+                // Catch unexpected crashes
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

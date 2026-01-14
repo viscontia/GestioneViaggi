@@ -9,7 +9,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
-        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete">Elimina</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="@Color" StartIcon="@Icons.Material.Filled.Delete">@ButtonText</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -18,6 +18,8 @@
 
     [Parameter] public string Title { get; set; } = "Attenzione";
     [Parameter] public string ContentText { get; set; } = "Sei sicuro?";
+    [Parameter] public string ButtonText { get; set; } = "Elimina";
+    [Parameter] public Color Color { get; set; } = Color.Error;
 
     void Submit() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();

@@ -1,0 +1,111 @@
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Modifica Ruolo" : "Nuovo Ruolo")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Role">
+            <!-- Codice Ruolo (Editabile solo se nuovo) -->
+            <MudTextField @ref="_firstField" @bind-Value="Role.RoleCode"
+                For="@(() => Role.RoleCode)" Label="Codice Ruolo" Variant="Variant.Outlined" Immediate="true"
+                Required="true" RequiredError="Codice è obbligatorio" MaxLength="50" tabindex="1" Class="mb-3"
+                Disabled="@IsEditMode" Adornment="@(!IsEditMode ? Adornment.End : Adornment.None)"
+                AdornmentText="@(!IsEditMode ? "*" : null)" AdornmentColor="Color.Error" OnKeyDown="@HandleKeyDown"
+                Validation="@(new Func<string, string?>(ValidateCode))" />
+
+            <!-- Nome Ruolo -->
+            <MudTextField @bind-Value="Role.RoleName"
+                For="@(() => Role.RoleName)" Label="Nome Ruolo" Variant="Variant.Outlined" Immediate="true"
+                Required="true" RequiredError="Nome è obbligatorio" MaxLength="100" tabindex="2" Class="mb-3"
+                Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error"
+                OnKeyDown="@HandleKeyDown" />
+
+            <!-- Ruolo di Sistema (Switch) -->
+            <MudSwitch T="bool" @bind-Value="Role.IsSystem" 
+                       Label="Ruolo di Sistema" 
+                       Color="Color.Error" 
+                       Class="mb-3" />
+
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter]
+    private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public RoleInfo Role { get; set; } = new RoleInfo();
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); } catch { }
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try { await _firstField.FocusAsync(); } catch { }
+            }
+        }
+    }
+
+    private string? ValidateCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return "Il codice è obbligatorio";
+        if (code.Contains(" ")) return "Il codice non può contenere spazi";
+        return null;
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await HandleSubmit();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+
+            if (_form.IsValid)
+            {
+                // Return data to parent. Parent handles Service calls.
+                Role.RoleCode = Role.RoleCode?.Trim().ToLower() ?? string.Empty; 
+                Role.RoleName = Role.RoleName?.Trim() ?? string.Empty;
+                
+                MudDialog?.Close(DialogResult.Ok(Role));
+            }
+        }
+    }
+}

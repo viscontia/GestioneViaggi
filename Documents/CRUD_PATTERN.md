@@ -1228,3 +1228,37 @@ dotnet build -f net9.0-maccatalyst
 ```
 
 ✅ **Build Status**: Completata con successo (0 errori)
+
+## 🚨 Troubleshooting & Common Pitfalls
+
+Se incontri problemi "inspiegabili" durante lo sviluppo, verifica questi tre punti critici:
+
+### 1. Crash UI "An unhandled error has occurred" (Blazor Circuit Death)
+**Sintomo:** L'app si blocca completamente con una barra gialla in basso ("Reload") appena provi ad aprirne un Dialog o eseguire un'azione.
+**Causa Frequente:** Discrepanza dei parametri tra Componente Padre e il Dialog.
+**Esempio:**
+- Padre chiama: `DialogService.Show<MyDialog>("Titolo", new DialogParameters { ["Color"] = Color.Error })`
+- Dialog (`MyDialog.razor`): **NON** ha dichiarato `[Parameter] public Color Color { get; set; }`
+**Soluzione:** Verifica che **ogni chiave** passata nei `DialogParameters` abbia una corrispettiva property `[Parameter]` nel componente destinazione. Blazor lancia un'eccezione critica di rendering se provi a passare parametri sconosciuti.
+
+### 2. Operazioni DB "Silenziosi" (Nessun errore, nessuna modifica)
+**Sintomo:** Il codice C# completa l'esecuzione senza eccezioni (es. "Ruolo aggiornato"), ma i dati sul DB non cambiano (0 row affected reali, ma non rilevati).
+**Causa Frequente:** Trigger `BEFORE UPDATE` o `BEFORE DELETE` mal implementati.
+**Regola Aurea:**
+- Un trigger `BEFORE UPDATE` deve restituire **`NEW`**.
+- Un trigger `BEFORE DELETE` deve restituire **`OLD`**.
+- Se restituisci `NULL` in un trigger `BEFORE`, l'operazione viene **annullata silenziosamente** da PostgreSQL, senza sollevare errori.
+
+### 3. Debugging in Ambiente MAUI (No Console)
+**Problema:** In ambiente MacCatalyst/iOS, `Console.WriteLine` non è sempre visibile e il debugger potrebbe non agganciarsi ai crash profondi.
+**Soluzione ("Black Box Logger"):**
+Se l'app crasha senza log, inserisci una scrittura su file temporaneo nel blocco `catch` più esterno:
+```csharp
+try {
+    // codice a rischio
+} catch (Exception ex) {
+    var logPath = "/Users/tuo_utente/crash.txt";
+    System.IO.File.AppendAllTextAttribute(logPath, `${DateTime.Now}: ${ex}`);
+}
+```
+Questo è spesso l'unico modo per vedere lo StackTrace di un crash di rendering o di avvio.

@@ -1,0 +1,169 @@
+@page "/amministrazione/users"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "superadmin")]
+@inject IUserService UserService
+@inject IRoleService RoleService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<EnterpriseDataGrid T="UserInfo" Title="Gestione Utenti" Items="@_users" SearchFunction="@SearchFunc"
+    @bind-SelectedItem="_selectedItem">
+
+    <ToolBarActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+            OnClick="@OpenCreateDialog">
+            Nuovo Utente
+        </MudButton>
+    </ToolBarActions>
+
+    <Columns>
+        <PropertyColumn Property="x => x.Email" Title="Email" />
+        <PropertyColumn Property="x => x.Nome" Title="Nome" />
+        <PropertyColumn Property="x => x.Cognome" Title="Cognome" />
+        <PropertyColumn Property="x => x.RoleName" Title="Ruolo" />
+        <PropertyColumn Property="x => x.RoleCode" Title="Codice Ruolo" />
+        <PropertyColumn Property="x => x.RagioneSocialeAzienda" Title="Azienda" />
+
+        <TemplateColumn Title="Stato">
+            <CellTemplate>
+                @if (context.Item.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Attivo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Disabilitato</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+
+        <PropertyColumn Property="x => x.LastLoginAt" Title="Ultimo Accesso" Format="dd/MM/yyyy HH:mm" />
+
+        <TemplateColumn CellClass="d-flex justify-end ActionColumn">
+            <CellTemplate>
+                <MudTooltip Text="Modifica Utente">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit"
+                        OnClick="@(() => OpenEditDialog(context.Item))" />
+                </MudTooltip>
+
+                <MudTooltip Text="Elimina Utente">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error"
+                        OnClick="@(() => DeleteUser(context.Item))" />
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</EnterpriseDataGrid>
+
+@code {
+    private List<UserInfo> _users = new();
+    private UserInfo? _selectedItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            _users = await UserService.GetUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il caricamento degli utenti: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private bool SearchFunc(UserInfo user, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (user.Email.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (user.Nome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.Cognome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.RoleName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (user.RagioneSocialeAzienda?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["IsEditMode"] = false };
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick =
+            false
+            };
+
+        var dialog = await DialogService.ShowAsync<UserDialog>("Nuovo Utente", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadUsers();
+            Snackbar.Add("Utente creato con successo", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(UserInfo user)
+    {
+        var parameters = new DialogParameters { ["IsEditMode"] = true, ["User"] = user };
+        var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick =
+            false
+            };
+
+        var dialog = await DialogService.ShowAsync<UserDialog>("Modifica Utente", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadUsers();
+            Snackbar.Add("Utente aggiornato con successo", Severity.Success);
+        }
+    }
+
+    private async Task DeleteUser(UserInfo user)
+    {
+        var parameters = new DialogParameters
+            {
+                ["ContentText"] = $"Sei sicuro di voler eliminare l'utente {user.Email}? Questa operazione è irreversibile.",
+                ["ButtonText"] = "Elimina",
+                ["Color"] = Color.Error
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, BackdropClick = false };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina Utente", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            try
+            {
+                await UserService.DeleteUserAsync(user.UserId);
+                await LoadUsers();
+                Snackbar.Add("Utente eliminato con successo", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

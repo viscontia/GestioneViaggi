@@ -115,6 +115,9 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaViaggiService>();
         builder.Services.AddScoped<TipoAvvicinamentoService>();
 
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IRoleService, RoleService>();
+
         // ==========================================================
         // STATISTICS SERVICES
         // ==========================================================
@@ -143,7 +146,7 @@ public static class MauiProgram
         builder.Services.AddTransient<OracleDateViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiAlloggiImportService>();
-        
+
         // Tool Documentazione DB
         builder.Services.AddScoped<GestioneViaggi.Services.Tools.IDatabaseDocumentationService, GestioneViaggi.Services.Tools.DatabaseDocumentationService>();
 

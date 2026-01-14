@@ -132,6 +132,17 @@
     </MudNavLink>
 
     <AuthorizeView Roles="superadmin">
+        <MudNavGroup Title="Amministrazione" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="false">
+             <MudNavLink Icon="@Icons.Material.Filled.People"
+                        OnClick="@(() => OpenTab("/amministrazione/users", "Gestione Utenti", "people"))">
+                <span style="font-size: 17px !important;">Gestione Utenti</span>
+            </MudNavLink>
+             <MudNavLink Icon="@Icons.Material.Filled.Badge"
+                        OnClick="@(() => OpenTab("/amministrazione/roles", "Gestione Ruoli", "badge"))">
+                <span style="font-size: 17px !important;">Gestione Ruoli</span>
+            </MudNavLink>
+        </MudNavGroup>
+
         <MudNavGroup Title="Utilità" Icon="@Icons.Material.Filled.Build" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.ImportExport"
                         OnClick="@(() => OpenTab("/tools/oracle-import", "Importazione Dati da Oracle", "import_export"))">
