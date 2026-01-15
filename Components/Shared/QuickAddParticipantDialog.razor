@@ -1,0 +1,184 @@
+
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AnaViaggiService ViaggiService
+@inject MovClientiViaggiService MovClientiService
+@inject MovClientiAlloggiService AlloggiService
+@inject TipoPartecipanteService TipoPartecipanteService
+@inject TipoAlloggioService TipoAlloggioService
+@inject IClienteService ClienteService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+            <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
+                
+                <MudText Typo="Typo.h6" Class="mb-4" Color="Color.Primary">⚡️ Iscrizione Veloce</MudText>
+
+                <!-- STEP 1: CONTEXT SELECTION -->
+                <MudCard Elevation="0" Outlined="true" Class="pa-3 mb-4 bg-light">
+                    <!-- 1. Select Viaggio (Only Future?) -->
+                    <MudSelect T="int" Label="Seleziona Viaggio" Value="_selectedViaggioId" ValueChanged="OnViaggioChanged"
+                               Required="true" AdornmentIcon="@Icons.Material.Filled.FlightTakeoff" Class="mb-3" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach(var v in _viaggiList) 
+                        {
+                            <MudSelectItem Value="@v.Id">@v.DescrizioneBreve</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <!-- 2. Select Date -->
+                    <MudSelect T="int" Label="Seleziona Data" @bind-Value="_selectedDataId" 
+                               Disabled="@(_selectedViaggioId == 0)" Required="true" 
+                               AdornmentIcon="@Icons.Material.Filled.CalendarMonth" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach(var d in _dateList)
+                        {
+                            <MudSelectItem Value="@d.Id">Dal @d.DataInizio?.ToString("dd/MM/yyyy") al @d.DataFine?.ToString("dd/MM/yyyy")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudCard>
+
+                <!-- STEP 2: PARTICIPANT DATA -->
+                @if (_selectedDataId > 0)
+                {
+                    <MudAutocomplete T="Cliente" Label="Cliente" @bind-Value="@_selectedCliente"
+                                     SearchFunc="@SearchClienti" ToStringFunc="@(x => x == null ? null : $"{x.Cognome} {x.Nome}")"
+                                     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
+                                     Required="true" RequiredError="Selezionare un cliente" Class="mb-3" />
+
+                    <MudGrid Spacing="2">
+                         <MudItem xs="6">
+                             <MudSelect T="int" Label="Ruolo" @bind-Value="_currentEntity.TipoPartecipanteIdFk" Required="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                                 @foreach(var t in _tipoPartecipanti)
+                                 {
+                                     <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
+                                 }
+                             </MudSelect>
+                         </MudItem>
+                         <MudItem xs="6" Class="d-flex align-center">
+                             <MudCheckBox @bind-Value="@_hasDog" Label="Con Cane" Color="Color.Warning" Dense="true" />
+                         </MudItem>
+                    </MudGrid>
+
+                    <MudDivider Class="my-4" />
+
+                    <!-- Accommodation -->
+                    <div class="d-flex align-center justify-space-between mb-2">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>🏠 Alloggio</b></MudText>
+                        <MudSwitch @bind-Value="@_wantsAccommodation" Label="@(_wantsAccommodation ? "Sì" : "No")" Color="Color.Success" Size="Size.Small" />
+                    </div>
+
+                    @if (_wantsAccommodation)
+                    {
+                         <MudSelect T="int" Label="Tipo Sistemazione" @bind-Value="_currentAlloggio.TipoAlloggioIdFk" 
+                                    Required="@_wantsAccommodation" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mb-3">
+                             @foreach(var t in _tipoAlloggi)
+                             {
+                                 <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
+                             }
+                         </MudSelect>
+                    }
+                }
+
+            </MudForm>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(!_isValid)">Inserisci</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    // Lists
+    private List<GestioneViaggi.Models.AnaViaggi> _viaggiList = new();
+    private List<GestioneViaggi.Models.AnaDataViaggio> _dateList = new();
+    private List<TipoPartecipante> _tipoPartecipanti = new();
+    private List<TipoAlloggio> _tipoAlloggi = new();
+
+    // Selection
+    private int _selectedViaggioId;
+    private int _selectedDataId;
+    private Cliente? _selectedCliente;
+
+    // Entity
+    private MovClientiViaggi _currentEntity = new();
+    private MovClientiAlloggi _currentAlloggio = new();
+    private bool _hasDog;
+    private bool _wantsAccommodation = true;
+
+    // UI State
+    private MudForm _form = default!;
+    private bool _isValid;
+
+    protected override async Task OnInitializedAsync()
+    {
+         // Load Lookups
+        _tipoPartecipanti = (await TipoPartecipanteService.GetAllAsync()).ToList();
+        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
+
+        // Load Future Viaggi (Optimized)
+        var allViaggi = await ViaggiService.GetAllAsync(null, DateTime.Now.Year, false, true); 
+        _viaggiList = allViaggi.OrderBy(x => x.DescrizioneBreve).ToList();
+    }
+
+    private async Task OnViaggioChanged(int viaggioId)
+    {
+        _selectedViaggioId = viaggioId;
+        _selectedDataId = 0;
+        
+        // Load Dates for this Trip
+        var dates = await ViaggiService.GetDatesByTripIdAsync(viaggioId, null, false, true); // Future Only
+        _dateList = dates.ToList();
+    }
+
+    private async Task<IEnumerable<Cliente>> SearchClienti(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return new List<Cliente>();
+
+        // Find AziendaFK from selected voyage
+        var trip = _viaggiList.FirstOrDefault(v => v.Id == _selectedViaggioId);
+        int aziendaId = trip?.AziendaId ?? 0;
+
+        return await ClienteService.SearchAsync(value, aziendaId); 
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        try
+        {
+            _currentEntity.ViaggioIdFk = _selectedViaggioId;
+            _currentEntity.DataViaggioIdFk = _selectedDataId;
+            _currentEntity.ClienteIdFk = _selectedCliente!.ClienteId;
+            _currentEntity.MovClienteViaggioCaneSino = _hasDog ? "Y" : "N";
+
+            await MovClientiService.AddParticipantAsync(_currentEntity);
+
+            if (_wantsAccommodation && _currentAlloggio.TipoAlloggioIdFk > 0)
+            {
+                _currentAlloggio.ViaggioIdFk = _selectedViaggioId;
+                _currentAlloggio.DataViaggioIdFk = _selectedDataId;
+                _currentAlloggio.ClienteId1Fk = _selectedCliente.ClienteId;
+                await AlloggiService.AddAccommodationAsync(_currentAlloggio);
+            }
+
+            Snackbar.Add("Inserimento completato!", Severity.Success);
+            
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

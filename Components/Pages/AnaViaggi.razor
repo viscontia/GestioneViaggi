@@ -100,6 +100,13 @@
                                         Nuova Data
                                     </MudButton>
                                 }
+                                @if (_selectedTreeItem?.Type == "Date")
+                                {
+                                    <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Group"
+                                        OnClick="OpenParticipantManagerFromTree" Class="ml-2">
+                                        Gestione Partecipanti
+                                    </MudButton>
+                                }
                             </ToolBarActions>
 
                             <Columns>
@@ -660,6 +667,52 @@
             {
                 await OpenEditDialog(trip, true);
             }
+        }
+    }
+
+    private async Task OpenParticipantManagerFromTree()
+    {
+        if (_selectedTreeItem?.Type == "Date" && _selectedTreeItem.RelatedId.HasValue && _selectedTreeItem.ParentId.HasValue)
+        {
+            var dataId = _selectedTreeItem.RelatedId.Value;
+            var tripId = _selectedTreeItem.ParentId.Value;
+
+            var trip = _allItems.FirstOrDefault(x => x.Id == tripId);
+            var title = "Gestione Partecipanti"; // Fallback
+            if (trip != null)
+            {
+                 // We don't have the specific date details easily here without fetching, 
+                 // but we can pass at least the Trip Name.
+                 // OR we can fetch the date details quickly here since we are in an event handler (safe).
+                 // Actually, let's just use the tree node title if it has it?
+                 // The tree node for Date has Title "Dal dd/MM/yyyy al ...".
+                 // _selectedTreeItem.Title contains this!
+                 if (_selectedTreeItem != null)
+                 {
+                     title = $"{trip.DescrizioneBreve} ({_selectedTreeItem.Title.Split('-')[0].Trim()})";
+                 }
+            }
+
+            var parameters = new DialogParameters
+            {
+                ["DataViaggioId"] = dataId,
+                ["ViaggioId"] = tripId,
+                ["AziendaId"] = trip?.AziendaId ?? 0,
+                ["HeaderTitle"] = title
+            };
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Large, // Wide for side-by-side
+                FullWidth = true,
+                BackdropClick = false
+            };
+            
+            await DialogService.ShowAsync<ViaggioPartecipantiManagerDialog>("", parameters, options);
+            // No need to reload Main Grid, as participants are specific to sub-entity. 
+            // Unless we want to update the "Count" in the tree? 
+            // Tree counts might be stale. Re-expanding node might refresh? 
+            // For now, acceptable.
         }
     }
 

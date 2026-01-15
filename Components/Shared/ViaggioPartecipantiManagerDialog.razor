@@ -1,0 +1,578 @@
+
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Models.DTOs
+@using MudBlazor
+@using System.IO
+@inject MovClientiViaggiService MovClientiService
+@inject MovClientiAlloggiService AlloggiService
+@inject AnaViaggiService ViaggiService
+@inject TipoPartecipanteService TipoPartecipanteService
+@inject TipoAlloggioService TipoAlloggioService
+@inject IClienteService ClienteService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@_headerTitle</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4" Style="height: 80vh; overflow-y: hidden;">
+            <MudGrid Style="height: 100%;">
+                
+                <!-- LEFT PANEL: LIST (60%) -->
+                <MudItem xs="12" md="7" Style="height: 100%; overflow-y: auto;">
+                    <MudPaper Elevation="0" Class="pa-2 h-100 d-flex flex-column">
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.h6">
+                                Partecipanti Iscritti 
+                                @if (!string.IsNullOrEmpty(_summaryTitle)) 
+                                { 
+                                    <span style="font-size:0.8em; opacity:0.6;">(@_summaryTitle)</span> 
+                                }
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" 
+                                       StartIcon="@Icons.Material.Filled.Add" OnClick="ResetForm">
+                                Nuovo
+                            </MudButton>
+                        </div>
+                        
+                        @if (_isLoadingList)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+                        }
+                        else
+                        {
+                            <MudTable Items="@_participants" Dense="true" Hover="true" Striped="true" Bordered="true" 
+                                      FixedHeader="true" Height="calc(100% - 100px)"
+                                      GroupBy="@_groupDefinition"
+                                      GroupHeaderStyle="background-color:var(--mud-palette-background-grey)"
+                                      MultiSelection="false"
+                                      RowStyleFunc="@RowStyleHelper">
+                                <HeaderContent>
+                                    <MudTh>Nominativo</MudTh>
+                                    <MudTh>Ruolo</MudTh>
+                                    <MudTh>Note/Cane</MudTh>
+                                    <MudTh Style="width: 100px;">Azioni</MudTh>
+                                </HeaderContent>
+                                <GroupHeaderTemplate>
+                                    <MudTh Class="mud-table-cell-custom-group" colspan="5" Style="border-top: 16px solid var(--mud-palette-surface); border-bottom: none; background-color: var(--mud-palette-background-grey);">
+                                        @{
+                                            // Find the Pilot for this group (if Key > 0)
+                                            // context.Key is the GroupingKey (int)
+                                            var key = (int)context.Key!; 
+                                            var pilot = context.Items.FirstOrDefault(x => x.ClienteId == key);
+                                        }
+
+                                        @if (pilot != null)
+                                        {
+                                            // --- PILOT HEADER ---
+                                            <div class="d-flex align-center justify-space-between width-100 py-1">
+                                                <div class="d-flex align-center gap-2">
+                                                    <!-- Icon -->
+                                                    <MudIcon Icon="@Icons.Material.Filled.SportsMotorsports" Color="Color.Primary" Size="Size.Small"/>
+                                                    
+                                                    <!-- Name -->
+                                                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">
+                                                        <b>@pilot.Nominativo</b>
+                                                    </MudText>
+                                                    
+                                                    <!-- Role Badge -->
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Class="ml-2">@pilot.Ruolo</MudChip>
+
+                                                    <!-- Vehicle Details -->
+                                                    @if (!string.IsNullOrEmpty(pilot.MezzoDettagli))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" Class="ml-2" Icon="@Icons.Material.Filled.DirectionsCar">
+                                                            @pilot.MezzoDettagli
+                                                        </MudChip>
+                                                    }
+
+                                                    <!-- Info Icons -->
+                                                    @if (!string.IsNullOrEmpty(pilot.Note))
+                                                    {
+                                                        <MudTooltip Text="@pilot.Note">
+                                                            <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Small" Color="Color.Info" />
+                                                        </MudTooltip>
+                                                    }
+                                                    @if (pilot.CaneSino == "Y")
+                                                    {
+                                                         <MudTooltip Text="Viaggia con Cane">
+                                                            <MudIcon Icon="@Icons.Material.Filled.Pets" Size="Size.Small" Color="Color.Warning" />
+                                                        </MudTooltip>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(pilot.Intolleranze))
+                                                    {
+                                                         <MudTooltip Text="@($"Intolleranze: {pilot.Intolleranze}")">
+                                                            <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" Color="Color.Error" />
+                                                        </MudTooltip>
+                                                    }
+                                                </div>
+
+                                                <!-- ACTIONS (Visible in Header) -->
+                                                <div>
+                                                     <MudTooltip Text="Modifica Pilota">
+                                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => LoadForEdit(pilot))" />
+                                                     </MudTooltip>
+                                                     <MudTooltip Text="Rimuovi Pilota">
+                                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteParticipant(pilot))" />
+                                                     </MudTooltip>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            // --- GENERIC GROUP / ORPHANS ---
+                                            <div class="d-flex align-center gap-2 py-1">
+                                                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" Color="Color.Default" />
+                                                <MudText Typo="Typo.subtitle2" Color="Color.Default">
+                                                    @("Altri Partecipanti / Non Assegnati")
+                                                </MudText>
+                                            </div>
+                                        }
+                                    </MudTh>
+                                </GroupHeaderTemplate>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Nominativo" Style="padding-left: 80px; padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid var(--mud-palette-divider-light);">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Size="Size.Small" Class="mr-2" Color="Color.Default" Style="opacity: 0.5; font-size: 1rem;"/>
+                                            <MudText Typo="Typo.body2">@context.Nominativo</MudText>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="Ruolo" Style="padding-top: 4px; padding-bottom: 4px;">
+                                        @context.Ruolo
+                                    </MudTd>
+                                     <MudTd DataLabel="Note">
+                                        @if (!string.IsNullOrEmpty(context.Note))
+                                        {
+                                            <MudTooltip Text="@context.Note">
+                                                <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Small" Color="Color.Info" />
+                                            </MudTooltip>
+                                        }
+                                        @if (!string.IsNullOrEmpty(context.Intolleranze))
+                                        {
+                                            <MudTooltip Text="@($"Intolleranze: {context.Intolleranze}")">
+                                                <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Small" Color="Color.Error" />
+                                            </MudTooltip>
+                                        }
+                                        @if (context.CaneSino == "Y")
+                                        {
+                                             <MudTooltip Text="Viaggia con Cane">
+                                                <MudIcon Icon="@Icons.Material.Filled.Pets" Size="Size.Small" Color="Color.Warning" />
+                                            </MudTooltip>
+                                        }
+                                    </MudTd>
+                                    <MudTd DataLabel="Azioni">
+                                        <div class="d-flex gap-2">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => LoadForEdit(context))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteParticipant(context))" />
+                                        </div>
+                                    </MudTd>
+                                </RowTemplate>
+                                <PagerContent>
+                                    <MudTablePager />
+                                </PagerContent>
+                            </MudTable>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- RIGHT PANEL: EDIT/ADD (40%) -->
+                <MudItem xs="12" md="5" Style="height: 100%; overflow-y: auto; border-left: 1px solid var(--mud-palette-divider);">
+                    <MudPaper Elevation="0" Class="pa-4 h-100">
+                         <MudText Typo="Typo.h6" Class="mb-4">@(_isEditMode ? "Modifica Partecipante" : "Nuovo Inserimento")</MudText>
+
+                         <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
+                            
+                            <!-- 1. Selection Cliente -->
+                            <MudAutocomplete T="Cliente" Label="Cliente" @bind-Value="_selectedCliente"
+                                             SearchFunc="@SearchClienti" ToStringFunc="@(x => x == null ? null : $"{x.Cognome} {x.Nome}")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
+                                             AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
+                                             Required="true" RequiredError="Selezionare un cliente"
+                                             Disabled="@_isEditMode" Class="mb-3" />
+
+                             <!-- 2. Trip Config -->
+                             <MudGrid Spacing="2">
+                                 <MudItem xs="6">
+                                     <MudSelect T="int" Label="Ruolo" @bind-Value="_currentEntity.TipoPartecipanteIdFk" Required="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                                         @foreach(var t in _tipoPartecipanti)
+                                         {
+                                             <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
+                                         }
+                                     </MudSelect>
+                                 </MudItem>
+                                 <MudItem xs="6" Class="d-flex align-center">
+                                     <MudCheckBox @bind-Value="@_hasDog" Label="Con Cane" Color="Color.Warning" Dense="true" />
+                                 </MudItem>
+                             </MudGrid>
+
+                             <!-- Pilot Selection (Visible only if NOT Pilot) -->
+                             @if (_currentEntity.TipoPartecipanteIdFk > 0 && !IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                             {
+                                 <MudSelect T="int?" Label="Assegnato al Veicolo di" @bind-Value="_currentEntity.ClientePilotaIdFk" 
+                                            Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                                            Clearable="true" AdornmentIcon="@Icons.Material.Filled.SportsMotorsports">
+                                     @foreach(var p in _participants.Where(x => IsPilot(x.TipoPartecipanteId)))
+                                     {
+                                         <MudSelectItem T="int?" Value="@p.ClienteId">@p.Nominativo</MudSelectItem>
+                                     }
+                                 </MudSelect>
+                             }
+
+                             <MudTextField @bind-Value="_currentEntity.MovClienteViaggioNote" Label="Note Viaggio" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" Class="mt-3" />
+
+                             <!-- Vehicle Config (Visible only if Pilot) -->
+                             @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                             {
+                                 <MudDivider Class="my-4" />
+                                 <div class="d-flex align-center gap-2 mb-2">
+                                     <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" />
+                                     <MudText Typo="Typo.subtitle1" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
+                                 </div>
+                                 
+                                 <MudGrid Spacing="2">
+                                     <MudItem xs="6">
+                                         <MarcaVeicoloSelect SelectedId="@_currentEntity.AnaMezziIdFk"
+                                                             SelectedIdChanged="@OnMarcaChanged"
+                                                             Label="Marca" Required="false" />
+                                     </MudItem>
+                                     <MudItem xs="6">
+                                         <MezzoModelloSelect @ref="_modelloSelect"
+                                                             SelectedId="@_currentEntity.MezzoModelloIdFk"
+                                                             SelectedIdChanged="@((int? val) => _currentEntity.MezzoModelloIdFk = val)"
+                                                             MarcaId="@_currentEntity.AnaMezziIdFk"
+                                                             Label="Modello" Required="false"
+                                                             Disabled="@(!_currentEntity.AnaMezziIdFk.HasValue)" />
+                                     </MudItem>
+                                     <MudItem xs="6">
+                                         <MudTextField @bind-Value="_currentEntity.MovClienteViaggioTargaMezzo" 
+                                                       Label="Targa" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                                       Class="uppercase-input" />
+                                     </MudItem>
+                                     <MudItem xs="6">
+                                         <MudNumericField @bind-Value="_currentEntity.MovClienteViaggioScontovalTotale" 
+                                                          Label="Sconto Totale (€)" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                                          Min="0" HideSpinButtons="true" Format="N2" />
+                                     </MudItem>
+                                 </MudGrid>
+                             }
+
+                             <MudDivider Class="my-4" />
+
+                             <!-- 3. Accommodation Config -->
+                             <div class="d-flex align-center justify-space-between mb-2">
+                                <MudText Typo="Typo.subtitle1" Color="Color.Primary"><b>🏠 Alloggio</b></MudText>
+                                <MudSwitch @bind-Value="@_wantsAccommodation" Label="@(_wantsAccommodation ? "Richiesto" : "No")" Color="Color.Success" />
+                             </div>
+
+                             @if (_wantsAccommodation)
+                             {
+                                 <MudPaper Class="pa-3" Outlined="true" Style="background-color: var(--mud-palette-background-grey);">
+                                     <MudSelect T="int" Label="Tipo Sistemazione" @bind-Value="_currentAlloggio.TipoAlloggioIdFk" 
+                                                Required="@_wantsAccommodation" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mb-3">
+                                         @foreach(var t in _tipoAlloggi)
+                                         {
+                                             <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
+                                         }
+                                     </MudSelect>
+
+                                     @* Logic for roommates would go here. For now, simplistic view. *@
+                                     <MudText Typo="Typo.caption">Per i compagni di stanza, usa la gestione avanzata o inseriscili successivamente.</MudText>
+                                 </MudPaper>
+                             }
+
+                             <!-- Actions -->
+                             <div class="d-flex justify-end mt-6 gap-2">
+                                 @if (_isEditMode)
+                                 {
+                                     <MudButton Variant="Variant.Outlined" OnClick="ResetForm">Annulla Modifica</MudButton>
+                                 }
+                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(!_isValid)">
+                                     @(_isEditMode ? "Aggiorna" : "Salva e Nuovo")
+                                 </MudButton>
+                             </div>
+
+                         </MudForm>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int DataViaggioId { get; set; }
+    [Parameter] public int ViaggioId { get; set; }
+    [Parameter] public int AziendaId { get; set; }
+
+    // Models
+    private MovClientiViaggi _currentEntity = new();
+    private MovClientiAlloggi _currentAlloggio = new();
+    private Cliente? _selectedCliente;
+    
+    // Lists & Lookups
+    private List<ParticipantsViewDTO> _participants = new(); // Mapping from SP result
+    private List<TipoPartecipante> _tipoPartecipanti = new();
+    private List<TipoAlloggio> _tipoAlloggi = new();
+
+    // UI State
+    private MudForm _form = default!;
+    private bool _isValid;
+    private bool _isLoadingList = true;
+    private bool _isEditMode = false;
+    private bool _hasDog = false;
+    private bool _wantsAccommodation = true; // Default true (90% case)
+
+    // DTO for List
+    // DTO for List is now in Models.DTOs namespace
+
+
+    [Parameter] public string? HeaderTitle { get; set; }
+
+    private string _summaryTitle = "";
+    private string _headerTitle = "Caricamento..."; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(HeaderTitle))
+            {
+                _headerTitle = HeaderTitle;
+            }
+            else
+            {
+                 // Fallback to async load only if strictly necessary (should be avoided now)
+                await LoadHeaderInfoAsync();
+            }
+            
+            await LoadLookupsAsync();
+            await LoadListAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore inizializzazione: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadHeaderInfoAsync()
+    {
+        try 
+        {
+            // Fallback: use optimized query if no title passed
+            _headerTitle = await MovClientiService.GetTripHeaderStringAsync(ViaggioId, DataViaggioId);
+        }
+        catch (Exception ex)
+        {
+            _headerTitle = $"ERR: {ex.Message}";
+            // Console.WriteLine($"Error loading header info: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        _tipoPartecipanti = (await TipoPartecipanteService.GetAllAsync()).ToList();
+        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
+    }
+
+    private async Task LoadListAsync()
+    {
+        _isLoadingList = true;
+        try
+        {
+            var rawList = await MovClientiService.GetParticipantsViewAsync(DataViaggioId);
+            _participants = rawList.ToList();
+            
+            // Fetch Summary Title from DB Function
+            _summaryTitle = await MovClientiService.GetParticipantsSummaryAsync(DataViaggioId);
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento lista: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingList = false;
+        }
+    }
+
+    private bool IsPilot(int tipoId)
+    {
+        // Infer based on description or cached ID if possible. 
+        // For robustness, look for "PILOTA" in description
+        var type = _tipoPartecipanti.FirstOrDefault(x => x.Id == tipoId);
+        return type != null && type.Descrizione.Contains("PILOTA", StringComparison.OrdinalIgnoreCase);
+    }
+    
+    // Cache Pilot Type ID for UI highlighting
+    private int _idPilota => _tipoPartecipanti.FirstOrDefault(x => x.Descrizione.Contains("PILOTA", StringComparison.OrdinalIgnoreCase))?.Id ?? 0;
+
+    private TableGroupDefinition<ParticipantsViewDTO> _groupDefinition = new()
+    {
+        GroupName = "Equipaggio",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = (e) => e.GroupingKey
+    };
+
+    private string RowStyleHelper(ParticipantsViewDTO item, int index)
+    {
+        // Hide row if it's the Pilot (Grouping Key matches Client ID)
+        if (item.GroupingKey > 0 && item.GroupingKey == item.ClienteId)
+        {
+            return "display:none;";
+        }
+        return "";
+    }
+
+    private async Task<IEnumerable<Cliente>> SearchClienti(string value, CancellationToken token)
+    {
+        // Wrapper to call ClienteService search
+        if (string.IsNullOrEmpty(value)) return new List<Cliente>();
+        return await ClienteService.SearchAsync(value, AziendaId); 
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        if (_selectedCliente == null)
+        {
+            Snackbar.Add("Selezionare un cliente", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            // 1. Save Movimento Viaggio
+            _currentEntity.ViaggioIdFk = ViaggioId;
+            _currentEntity.DataViaggioIdFk = DataViaggioId;
+            _currentEntity.ClienteIdFk = _selectedCliente.ClienteId;
+            _currentEntity.MovClienteViaggioCaneSino = _hasDog ? "Y" : "N";
+
+            // If Role is Link Pilot, ensure we haven't accidentally set a Parent Pilot (Circular/Invalid)
+            if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+            {
+                _currentEntity.ClientePilotaIdFk = null;
+            }
+
+            if (_isEditMode)
+            {
+                await MovClientiService.UpdateParticipantAsync(_currentEntity);
+                Snackbar.Add("Partecipante aggiornato", Severity.Success);
+            }
+            else
+            {
+                await MovClientiService.AddParticipantAsync(_currentEntity);
+                Snackbar.Add("Partecipante aggiunto", Severity.Success);
+            }
+
+            // 2. Save Accommodation (If requested)
+            if (_wantsAccommodation && _currentAlloggio.TipoAlloggioIdFk > 0)
+            {
+                _currentAlloggio.ViaggioIdFk = ViaggioId;
+                _currentAlloggio.DataViaggioIdFk = DataViaggioId;
+                _currentAlloggio.ClienteId1Fk = _selectedCliente.ClienteId;
+                
+                await AlloggiService.AddAccommodationAsync(_currentAlloggio);
+                Snackbar.Add("Alloggio assegnato", Severity.Success);
+            }
+
+            // 3. Reset for next entry (if not editing)
+            if (_isEditMode)
+            {
+                ResetForm();
+            }
+            else
+            {
+                // Keep some settings like Role? Maybe.
+                // Reset Client
+                _selectedCliente = null;
+                _currentEntity = new MovClientiViaggi 
+                { 
+                    TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role
+                }; 
+                _currentAlloggio = new MovClientiAlloggi();
+                _hasDog = false;
+            }
+
+            await LoadListAsync(); // Refresh Grid
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"Errore salvataggio: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadForEdit(ParticipantsViewDTO item)
+    {
+        try 
+        {
+            _isEditMode = true;
+            
+            // Fetch full entity
+            var list = await MovClientiService.GetByDateIdAsync(item.DataId);
+            var entity = list.FirstOrDefault(x => x.ClienteIdFk == item.ClienteId);
+
+            if (entity != null)
+            {
+                _currentEntity = entity;
+            }
+            
+            // Fetch Client for Autocomplete
+            _selectedCliente = await ClienteService.GetByIdAsync(item.ClienteId, AziendaId);
+            
+            _hasDog = _currentEntity.MovClienteViaggioCaneSino == "Y";
+            
+            _wantsAccommodation = false; // Reset to false on edit logic
+        }
+        catch (Exception ex)
+        {
+            _isEditMode = false; // Revert state
+            Snackbar.Add($"CRITICAL ERROR LoadForEdit: {ex.Message} {ex.StackTrace}", Severity.Error);
+        }
+    }
+
+    private void ResetForm()
+    {
+        _isEditMode = false;
+        _currentEntity = new MovClientiViaggi();
+        _selectedCliente = null;
+        _hasDog = false;
+        _wantsAccommodation = true;
+    }
+
+    private MezzoModelloSelect _modelloSelect = default!;
+
+    private void OnMarcaChanged(int? marcaId)
+    {
+        _currentEntity.AnaMezziIdFk = marcaId;
+        _currentEntity.MezzoModelloIdFk = null; // Reset Model when Brand changes
+        // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally 
+        // via OnParametersSet, but we ensure the local state is consistent.
+    }
+
+    private async Task DeleteParticipant(ParticipantsViewDTO item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+           "Conferma", 
+           $"Rimuovere {item.Nominativo} dal viaggio?", 
+           yesText: "Rimuovi", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
+            await LoadListAsync();
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

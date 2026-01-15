@@ -16,6 +16,7 @@
 @inject StatisticYearService StatYear
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 @if (!_isLoaded)
 {
@@ -326,9 +327,13 @@ else
                                OnClick="@(() => NavigateToSection("/amministrazione/roles", "Gestione Ruoli", "badge"))">
                         Gestisci Ruoli
                     </MudButton>
-                     <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.VpnKey"
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.VpnKey"
                                OnClick="@(() => NavigateToSection("/amministrazione/accessi", "Gestione Accessi", "vpn_key"))">
                         Gestione Accessi
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
+                               OnClick="OpenQuickAddDialog">
+                        Iscrizione Veloce
                     </MudButton>
                 </MudStack>
             </MudPaper>
@@ -621,5 +626,25 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         // If future year and value is 0, show 0 increment instead of negative
         if (_selectedYear > _currentYear && stats.MainValue == 0) return 0;
         return stats.Increment;
+    }
+
+    private async Task OpenQuickAddDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.QuickAddParticipantDialog>("Iscrizione Veloce", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Maybe refresh stats if we want?
+            await LoadStatsAsync();
+        }
     }
 }

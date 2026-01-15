@@ -26,4 +26,5 @@ public interface IClienteService
     Task<IEnumerable<ClienteTravelHistory>> GetTravelHistoryAsync(int clienteId, int aziendaFk);
     Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
     Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId);
+    Task<List<Cliente>> SearchAsync(string searchTerm, int aziendaFk);
 }

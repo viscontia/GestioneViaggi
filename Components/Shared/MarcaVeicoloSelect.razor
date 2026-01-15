@@ -6,19 +6,10 @@
 @using MudBlazor
 @inject MarcaVeicoloService MarcaVeicoloService
 
-<BaseEntitySelect TItem="MarcaVeicolo"
-                  Value="_selectedItem"
-                  ValueChanged="OnValueChanged"
-                  SearchFunc="SearchFunc"
-                  ToStringFunc="@(x => x?.Descrizione?.ToUpperInvariant())"
-                  Label="@Label"
-                  Required="@Required"
-                  RequiredError="@RequiredError"
-                  Disabled="@Disabled"
-                  Class="@($"{Class} uppercase-input")"
-                  HelperText="@HelperText"
-                  AutoFocus="@AutoFocus"
-                  AdditionalAttributes="AdditionalAttributes" />
+<BaseEntitySelect TItem="MarcaVeicolo" Value="_selectedItem" ValueChanged="OnValueChanged" SearchFunc="SearchFunc"
+    ToStringFunc="@(x => x?.Descrizione?.ToUpperInvariant())" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText"
+    AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
 
 @code {
     private List<MarcaVeicolo>? _items;
@@ -85,7 +76,6 @@
     {
         try
         {
-            // Il service restituisce già ordinato per descrizione
             _items = await MarcaVeicoloService.GetAllAsync();
             UpdateSelection();
         }
@@ -110,6 +100,7 @@
         if (string.IsNullOrEmpty(value))
             return _items;
 
-        return _items.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+        return _items.Where(x => !string.IsNullOrEmpty(x.Descrizione) && x.Descrizione.Contains(value,
+        StringComparison.InvariantCultureIgnoreCase));
     }
 }

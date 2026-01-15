@@ -121,14 +121,22 @@
             return;
         }
 
+        var headerTitle = "Gestione Partecipanti";
+        if (Trip != null && date.DataInizio.HasValue && date.DataFine.HasValue)
+        {
+             headerTitle = $"{Trip.DescrizioneBreve} (Dal {date.DataInizio.Value:dd/MM/yyyy} al {date.DataFine.Value:dd/MM/yyyy})";
+        }
+
         var parameters = new DialogParameters 
         { 
-            ["Trip"] = Trip,
-            ["Date"] = date
+            ["DataViaggioId"] = date.Id,
+            ["ViaggioId"] = TripId,
+            ["AziendaId"] = AziendaId,
+            ["HeaderTitle"] = headerTitle
         };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true };
 
-        await DialogService.ShowAsync<ViaggioPartecipantiDialog>("Partecipanti", parameters, options);
+        await DialogService.ShowAsync<ViaggioPartecipantiManagerDialog>("", parameters, options);
     }
 
     private async Task DeleteDate(AnaDataViaggio date)

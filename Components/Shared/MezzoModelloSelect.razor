@@ -1,0 +1,124 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Microsoft.AspNetCore.Components
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject MezzoModelloService MezzoModelloService
+
+<BaseEntitySelect TItem="MezzoModello" Value="_selectedItem" ValueChanged="OnValueChanged" SearchFunc="SearchFunc"
+    ToStringFunc="@(x => x?.Descrizione?.ToUpperInvariant())" Label="@Label" Required="@Required"
+    RequiredError="@RequiredError" Disabled="@Disabled" Class="@($"{Class} uppercase-input")" HelperText="@HelperText"
+    AutoFocus="@AutoFocus" AdditionalAttributes="AdditionalAttributes" />
+
+@code {
+    private List<MezzoModello>? _allMetaItems;
+    private MezzoModello? _selectedItem;
+
+    [Parameter]
+    public int? SelectedId { get; set; }
+
+    [Parameter]
+    public EventCallback<int?> SelectedIdChanged { get; set; }
+
+    [Parameter]
+    public int? MarcaId { get; set; }
+
+    [Parameter]
+    public string Label { get; set; } = "Modello Veicolo";
+
+    [Parameter]
+    public bool Required { get; set; } = false;
+
+    [Parameter]
+    public string RequiredError { get; set; } = "Il modello è obbligatorio";
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public string Class { get; set; } = "mb-3";
+
+    [Parameter]
+    public string HelperText { get; set; } = "Seleziona il modello del veicolo";
+
+    [Parameter]
+    public bool AutoFocus { get; set; } = false;
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        try
+        {
+            UpdateSelection();
+        }
+        catch (Exception ex)
+        {
+            var logPath = System.IO.Path.Combine(FileSystem.AppDataDirectory, "crash_log.txt");
+            System.IO.File.AppendAllText(logPath, $"{DateTime.Now}: MezzoModelloSelect OnParametersSet Error: {ex.Message}\n");
+        }
+    }
+
+    private void UpdateSelection()
+    {
+        if (_allMetaItems == null) return;
+
+        if (SelectedId.HasValue)
+        {
+            if (_selectedItem?.Id != SelectedId.Value)
+            {
+                _selectedItem = _allMetaItems.FirstOrDefault(x => x.Id == SelectedId.Value);
+            }
+        }
+        else
+        {
+            _selectedItem = null;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _allMetaItems = await MezzoModelloService.GetAllAsync();
+            UpdateSelection();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Errore caricamento modelli veicoli: {ex.Message}");
+            _allMetaItems = new List<MezzoModello>();
+        }
+    }
+
+    private async Task OnValueChanged(MezzoModello item)
+    {
+        _selectedItem = item;
+        await SelectedIdChanged.InvokeAsync(item?.Id);
+    }
+
+    private async Task<IEnumerable<MezzoModello>> SearchFunc(string value, CancellationToken token)
+    {
+        if (_allMetaItems == null)
+            return Enumerable.Empty<MezzoModello>();
+
+        // Filter by Brand (MarcaId) if set
+        var query = _allMetaItems.AsEnumerable();
+
+        if (MarcaId.HasValue && MarcaId.Value > 0)
+        {
+            query = query.Where(x => x.MarcaIdFk == MarcaId.Value);
+        }
+
+        if (string.IsNullOrEmpty(value))
+            return query;
+
+        return query.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+}
