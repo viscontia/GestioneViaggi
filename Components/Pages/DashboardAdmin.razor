@@ -6,7 +6,6 @@
 @layout DashboardLayout
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
-@inject StatisticCountAziende StatAziende
 @inject StatisticCountClienti StatClienti
 @inject StatisticCountViaggi StatViaggi
 @inject StatisticCountViaggiFatti StatViaggiFatti
@@ -91,36 +90,22 @@
         </MudStack>
     </MudPaper>
 
+
+
     <!-- Stats Cards -->
+    <style>
+        @@media(min-width:1280px) {
+            .col-lg-5-custom {
+                flex: 0 0 20%;
+                max-width: 20%;
+            }
+        }
+    </style>
     <MudGrid>
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Large" Color="Color.Primary" />
-                        <MudStack Spacing="0" AlignItems="AlignItems.End">
-                            <MudChip T="string" Size="Size.Large"
-                                Color="@(GetTrendColor(_statsAziende?.PercentageChange ?? 0))" Variant="Variant.Text"
-                                Icon="@(GetTrendIcon(_statsAziende?.PercentageChange ?? 0))">
-                                @(_statsAziende?.PercentageChange.ToString("+0.#;-0.#;0"))%
-                            </MudChip>
-                            <MudText Typo="Typo.body1" Color="@(GetTrendColor(_statsAziende?.PercentageChange ?? 0))"
-                                Style="font-weight: bold" Class="mr-2">
-                                @(_statsAziende?.Increment.ToString("+0;-0;0"))
-                            </MudText>
-                        </MudStack>
-                    </MudStack>
-                    <MudText Typo="Typo.h4">@(_statsAziende?.MainValue ?? 0)</MudText>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Aziende Totali</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
-                        </MudText>
-                    </MudStack>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+
+        <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
+            <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+            @onclick="@(() => NavigateTo($"/anagrafiche/clienti?year={_selectedYear}"))">
                 <MudStack Spacing="2">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Success" />
@@ -137,16 +122,17 @@
                         </MudStack>
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Clienti Totali</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Clienti Totali</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
                     </MudStack>
                 </MudStack>
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
+        <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
+            <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+            @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}"))">
                 <MudStack Spacing="2">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large" Color="Color.Info" />
@@ -163,33 +149,34 @@
                         </MudStack>
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi Totali</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Viaggi Totali</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
                     </MudStack>
                 </MudStack>
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" sm="6" md="4" lg="2">
+        <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
             <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
                 <MudStack Spacing="2">
                     <MudIcon Icon="@Icons.Material.Filled.EuroSymbol" Size="Size.Large" Color="Color.Tertiary" />
                     <MudText Typo="Typo.h4">@(_statsRevenue?.MainValue ?? 0)</MudText>
-                    <MudText Typo="Typo.body2">Fatturato</MudText>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary" />
-                        <MudStack Spacing="0" AlignItems="AlignItems.End">
-                            <MudChip T="string" Size="Size.Large"
-                                Color="@(GetTrendColor(_statsViaggiFatti?.PercentageChange ?? 0))"
-                                Variant="Variant.Text" Icon="@(GetTrendIcon(_statsViaggiFatti?.PercentageChange ?? 0))">
-                                @(_statsViaggiFatti?.PercentageChange.ToString("+0.#;-0.#;0"))%
+                        <MudText Typo="Typo.body2">Fatturato</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
+                <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+                @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}&filter=completed"))">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary" />
+                            <MudStack Spacing="0" AlignItems="AlignItems.End">
+                                <MudChip T="string" Size="Size.Large"
+                                    Color="@(GetTrendColor(_statsViaggiFatti?.PercentageChange ?? 0))"
+                                    Variant="Variant.Text" Icon="@(GetTrendIcon(_statsViaggiFatti?.PercentageChange ?? 0))">
+                                    @(_statsViaggiFatti?.PercentageChange.ToString("+0.#;-0.#;0"))%
                             </MudChip>
                             <MudText Typo="Typo.body1"
                                 Color="@(GetTrendColor(_statsViaggiFatti?.PercentageChange ?? 0))"
@@ -199,25 +186,25 @@
                         </MudStack>
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggiFatti?.MainValue ?? 0)</MudText>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi fatti @_selectedYear</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">fino al
-                            @GetEffectiveEndDate().ToString("dd/MM/yyyy")</MudText>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Viaggi fatti @_selectedYear</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">fino al
+                                @GetEffectiveEndDate().ToString("dd/MM/yyyy")</MudText>
+                        </MudStack>
                     </MudStack>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="6" md="4" lg="2">
-            <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Warning" />
-                        <MudStack Spacing="0" AlignItems="AlignItems.End">
-                            <MudChip T="string" Size="Size.Large"
-                                Color="@(GetTrendColor(_statsViaggiDaFare?.PercentageChange ?? 0))"
-                                Variant="Variant.Text"
-                                Icon="@(GetTrendIcon(_statsViaggiDaFare?.PercentageChange ?? 0))">
-                                @(_statsViaggiDaFare?.PercentageChange.ToString("+0.#;-0.#;0"))%
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
+                <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="OnPartenzeDaFareClick">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Warning" />
+                            <MudStack Spacing="0" AlignItems="AlignItems.End">
+                                <MudChip T="string" Size="Size.Large"
+                                    Color="@(GetTrendColor(_statsViaggiDaFare?.PercentageChange ?? 0))"
+                                    Variant="Variant.Text"
+                                    Icon="@(GetTrendIcon(_statsViaggiDaFare?.PercentageChange ?? 0))">
+                                    @(_statsViaggiDaFare?.PercentageChange.ToString("+0.#;-0.#;0"))%
                             </MudChip>
                             <MudText Typo="Typo.body1"
                                 Color="@(GetTrendColor(_statsViaggiDaFare?.PercentageChange ?? 0))"
@@ -227,54 +214,53 @@
                         </MudStack>
                     </MudStack>
                     <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.body2">Viaggi da fare @_selectedYear</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">fino al 31/12/@_selectedYear</MudText>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Viaggi da fare @_selectedYear</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">fino al 31/12/@_selectedYear</MudText>
+                        </MudStack>
                     </MudStack>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
 
-    <!-- Quick Actions -->
-    <MudPaper Elevation="2" Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
-        <MudStack Row="true" Spacing="2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
-                Nuovo Viaggio
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
-                Gestisci Partecipanti
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.TableView"
-                OnClick="@(() => Navigation.NavigateTo("/demogrid"))">
-                Visualizza Nazioni
-            </MudButton>
-        </MudStack>
-    </MudPaper>
+        <!-- Quick Actions -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                    Nuovo Viaggio
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
+                    Gestisci Partecipanti
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.TableView"
+                    OnClick="@(() => NavigateTo("/demogrid"))">
+                    Visualizza Nazioni
+                </MudButton>
+            </MudStack>
+        </MudPaper>
 
-    <!-- Recent Activity -->
-    <MudPaper Elevation="2" Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-4">Attività Recente</MudText>
-        <MudList T="string">
-            <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                <MudText>Viaggio "Safari Kenya" completato - 2 ore fa</MudText>
-            </MudListItem>
-            <MudListItem T="string" Icon="@Icons.Material.Filled.Edit" IconColor="Color.Info">
-                <MudText>Modificato itinerario "Islanda 2025" - 5 ore fa</MudText>
-            </MudListItem>
-            <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" IconColor="Color.Primary">
-                <MudText>Nuovo partecipante aggiunto a "Dolomiti Adventure" - 1 giorno fa</MudText>
-            </MudListItem>
-        </MudList>
-    </MudPaper>
+        <!-- Recent Activity -->
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Attività Recente</MudText>
+            <MudList T="string">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    <MudText>Viaggio "Safari Kenya" completato - 2 ore fa</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Edit" IconColor="Color.Info">
+                    <MudText>Modificato itinerario "Islanda 2025" - 5 ore fa</MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" IconColor="Color.Primary">
+                    <MudText>Nuovo partecipante aggiunto a "Dolomiti Adventure" - 1 giorno fa</MudText>
+                </MudListItem>
+            </MudList>
+        </MudPaper>
 
-</MudStack>
+    </MudStack>
 
-@code {
+    @code {
     private Models.UserInfo? _currentUser;
     private ComparisonMode _comparisonMode = ComparisonMode.FullYear;
-    private StatisticResult? _statsAziende;
     private StatisticResult? _statsClienti;
     private StatisticResult? _statsViaggi;
     private StatisticResult? _statsRevenue;
@@ -357,12 +343,13 @@
         // SECURITY FIX: Pass aziendaId to all statistics for multi-tenant filtering
         var tasks = new Task[]
         {
-Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
 Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
 Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
 Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
-Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
-Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode))
+Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, aziendaId,
+_comparisonMode)),
+Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, aziendaId,
+_comparisonMode))
         };
 
         await Task.WhenAll(tasks);
@@ -387,4 +374,23 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         < 0 => Icons.Material.Filled.TrendingDown,
         _ => Icons.Material.Filled.TrendingFlat
     };
+
+    private void NavigateTo(string url)
+    {
+        Navigation.NavigateTo(url);
+    }
+
+    private void OnPartenzeDaFareClick()
+    {
+        string route = $"/ana-viaggi?year={_selectedYear}";
+        if (_selectedYear == _currentYear)
+        {
+            route += "&filter=future";
+        }
+        else if (_selectedYear < _currentYear)
+        {
+            route += "&filter=not_done";
+        }
+        Navigation.NavigateTo(route);
+    }
 }

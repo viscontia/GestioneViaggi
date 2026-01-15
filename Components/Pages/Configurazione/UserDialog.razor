@@ -43,11 +43,11 @@
 
             <!-- Password -->
             <MudTextField @bind-Value="_password"
-                Label="@(IsEditMode ? "Nuova Password (lascia vuoto per non cambiare)" : "Password")"
-                Variant="Variant.Outlined" InputType="InputType.Password" Required="@(!IsEditMode)"
+                Label="@(IsEditMode ? "Nuova Password (lascia vuoto per non cambiare)" : "Password *")"
+                Variant="Variant.Outlined" InputType="@_passwordInputType" Required="@(!IsEditMode)"
                 RequiredError="Password è obbligatoria per nuovi utenti" tabindex="5" Class="mb-3"
-                Adornment="@(!IsEditMode ? Adornment.End : Adornment.None)" AdornmentText="@(!IsEditMode ? "*" : null)"
-                AdornmentColor="Color.Error" />
+                Adornment="Adornment.End" AdornmentIcon="@_passwordIcon" OnAdornmentClick="TogglePasswordVisibility"
+                AdornmentAriaLabel="Mostra Password" />
 
             <!-- Ruolo -->
             <MudSelect T="string" Label="Ruolo" Value="@User.RoleCode" ValueChanged="@HandleRoleChanged"
@@ -63,9 +63,9 @@
             <!-- Azienda (Visibile solo se non SuperAdmin) -->
             @if (ShouldShowAziendaSelection())
             {
-                <AziendaSelect Value="@(User.AziendaId ?? 0)" 
-                               ValueChanged="@((int val) => User.AziendaId = val == 0 ? null : val)"
-                               Required="true" ShowAllOption="false" Class="mb-3" />
+                <AziendaSelect Value="@(User.AziendaId ?? 0)"
+                    ValueChanged="@((int val) => User.AziendaId = val == 0 ? null : val)" Required="true"
+                    ShowAllOption="false" Class="mb-3" />
             }
 
             <!-- Is Active Switch -->
@@ -226,5 +226,15 @@
                 }
             }
         }
+    }
+
+    private bool _passwordVisible;
+    private InputType _passwordInputType => _passwordVisible ? InputType.Text : InputType.Password;
+    private string _passwordIcon => _passwordVisible ? Icons.Material.Filled.Visibility :
+    Icons.Material.Filled.VisibilityOff;
+
+    private void TogglePasswordVisibility()
+    {
+        _passwordVisible = !_passwordVisible;
     }
 }
