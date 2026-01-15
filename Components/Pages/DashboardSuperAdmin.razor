@@ -314,14 +314,21 @@ else
             <MudPaper Elevation="2" Class="pa-4">
                 <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
                 <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Business">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Business"
+                               OnClick="@(() => NavigateToSection("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
                         Gestisci Aziende
                     </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People"
+                               OnClick="@(() => NavigateToSection("/amministrazione/users", "Gestione Utenti", "people"))">
                         Gestisci Utenti
                     </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Settings">
-                        Configurazione Sistema
+                    <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Badge"
+                               OnClick="@(() => NavigateToSection("/amministrazione/roles", "Gestione Ruoli", "badge"))">
+                        Gestisci Ruoli
+                    </MudButton>
+                     <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.VpnKey"
+                               OnClick="@(() => Snackbar.Add("Funzione in sviluppo", Severity.Info))">
+                        Gestione Accessi
                     </MudButton>
                 </MudStack>
             </MudPaper>

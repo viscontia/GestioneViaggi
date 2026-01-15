@@ -180,6 +180,9 @@
     [SupplyParameterFromQuery(Name = "filter")]
     public string? QueryFilter { get; set; }
 
+    [SupplyParameterFromQuery(Name = "action")]
+    public string? QueryAction { get; set; }
+
     // Helper class for Tree structure
     public class ViaggiTreeItem
     {
@@ -207,6 +210,16 @@
         }
 
         public override int GetHashCode() => HashCode.Combine(Title, Type);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && QueryAction == "new")
+        {
+            // Allow UI to settle
+            await Task.Delay(100);
+            await OpenCreateDialog();
+        }
     }
 
     protected override async Task OnParametersSetAsync()

@@ -2,7 +2,7 @@
 @using GestioneViaggi.Services.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Statistics
-@attribute [Authorize]
+@using GestioneViaggi.Services.CRUD
 @layout DashboardLayout
 @inject IAuthenticationService AuthService
 @inject NavigationManager Navigation
@@ -12,6 +12,7 @@
 @inject StatisticCountViaggiDaFare StatViaggiDaFare
 @inject StatisticRevenue StatRevenue
 @inject StatisticYearService StatYear
+@inject ISnackbar Snackbar
 
 <MudStack Spacing="4">
 
@@ -227,15 +228,17 @@
         <MudPaper Elevation="2" Class="pa-4">
             <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
             <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="@(() => NavigateTo("/ana-viaggi?action=new"))">
                     Nuovo Viaggio
                 </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People">
-                    Gestisci Partecipanti
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Event"
+                    OnClick="OnNuovaPartenzaClick">
+                    Nuova Partenza
                 </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.TableView"
-                    OnClick="@(() => NavigateTo("/demogrid"))">
-                    Visualizza Nazioni
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People"
+                    OnClick="@(() => Snackbar.Add("Funzione in sviluppo", Severity.Info))">
+                    Gestisci Partecipanti
                 </MudButton>
             </MudStack>
         </MudPaper>
@@ -392,5 +395,65 @@ _comparisonMode))
             route += "&filter=not_done";
         }
         Navigation.NavigateTo(route);
+    }
+
+    [Inject] public IDialogService DialogService { get; set; }
+    [Inject] public AnaViaggiService ViaggiService { get; set; }
+
+    private async Task OnNuovaPartenzaClick()
+    {
+        var parameters = new DialogParameters
+            {
+                ["AziendaId"] = _currentUser?.AziendaId ?? 0
+            };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.NuovaPartenzaDialog>("Nuova Partenza",
+        parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int viaggioId)
+        {
+            // Trip selected, now fetch entity and open AnaViaggiDialog in Add Date mode
+            try
+            {
+                var trip = await ViaggiService.GetByIdAsync(viaggioId);
+                if (trip != null)
+                {
+                    var editParams = new DialogParameters
+                        {
+                            ["Entity"] = trip,
+                            ["IsEditMode"] = true,
+                            ["AziendaFk"] = _currentUser?.AziendaId ?? 0,
+                            ["StartOnDatesTab"] = true, // Go to dates
+                            ["AutoOpenAddDate"] = true // Open add dialog immediately
+                        };
+
+                    var editOptions = new DialogOptions
+                        {
+                            CloseButton = true,
+                            MaxWidth = MaxWidth.Medium,
+                            FullWidth = true,
+                            BackdropClick = false
+                        };
+
+                    var editDialog = await DialogService.ShowAsync<AnaViaggiDialog>("Nuova Partenza - INSERIMENTO", editParams,
+                    editOptions);
+                    var editResult = await editDialog.Result;
+
+                    if (editResult != null && !editResult.Canceled)
+                    {
+                        Snackbar.Add("Partenza inserita con successo!", Severity.Success);
+                        // Refresh stats
+                        await LoadStatsAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore apertura viaggio: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

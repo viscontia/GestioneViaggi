@@ -1,0 +1,40 @@
+@using Microsoft.AspNetCore.Components
+@using MudBlazor
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Models
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-0">
+            <MudText Class="mb-4">Seleziona il viaggio per cui vuoi inserire una nuova partenza pianificata.</MudText>
+            
+            <ViaggiSelect @bind-SelectedId="_selectedViaggioId" AziendaId="AziendaId" 
+                          Label="Seleziona Viaggio" Required="true" AutoFocus="true" />
+            
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(_selectedViaggioId == null || _selectedViaggioId == 0)">
+            Procedi
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int AziendaId { get; set; }
+
+    private int? _selectedViaggioId;
+
+    private void Submit()
+    {
+        if (_selectedViaggioId.HasValue && _selectedViaggioId > 0)
+        {
+            MudDialog.Close(DialogResult.Ok(_selectedViaggioId.Value));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
