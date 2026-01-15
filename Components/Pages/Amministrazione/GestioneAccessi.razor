@@ -1,0 +1,129 @@
+@page "/amministrazione/accessi"
+@using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "superadmin")]
+@layout DashboardLayout
+@inject AuditLoginService AuditService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-4">Gestione Accessi</MudText>
+
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText>Pulizia Storico Accessi</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudSelect T="int" Label="Mantieni ultimi" Variant="Variant.Outlined" @bind-Value="_daysToKeep"
+                    Dense="true" Style="width: 150px;">
+                    <MudSelectItem Value="30">30 giorni</MudSelectItem>
+                    <MudSelectItem Value="60">60 giorni</MudSelectItem>
+                    <MudSelectItem Value="90">90 giorni</MudSelectItem>
+                    <MudSelectItem Value="120">120 giorni</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep"
+                    OnClick="OnCleanupClick">
+                    Cancellazione Storico
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <MudDataGrid Items="@_audits" Filterable="true" SortMode="SortMode.Multiple" QuickFilter="@_quickFilter">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Storico Login</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Cerca ovunque..." Adornment="Adornment.Start"
+                Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0">
+            </MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.CreatedAt" Title="Data" Sortable="true" Format="dd/MM/yyyy HH:mm:ss" />
+            <PropertyColumn Property="x => x.Email" Title="Email" Sortable="true" />
+            <PropertyColumn Property="x => x.FullName" Title="Nome" Sortable="true" />
+            <PropertyColumn Property="x => x.EventType" Title="Esito" Sortable="true">
+                <CellTemplate>
+                    @if (context.Item.EventType == "LOGIN_SUCCESS")
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small">Successo</MudChip>
+                    }
+                    else if (context.Item.EventType == "LOGIN_FAIL")
+                    {
+                        <MudChip Color="Color.Error" Size="Size.Small">Fallito</MudChip>
+                    }
+                    else if (context.Item.EventType == "LOCKOUT")
+                    {
+                        <MudChip Color="Color.Warning" Size="Size.Small">Lockout</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Size="Size.Small">@context.Item.EventType</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Ip" Title="IP" Sortable="true" />
+            <PropertyColumn Property="x => x.UserAgent" Title="User Agent" Sortable="true" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="AuditLoginDTO" />
+        </PagerContent>
+    </MudDataGrid>
+</MudContainer>
+
+@code {
+    private List<AuditLoginDTO> _audits = new();
+    private int _daysToKeep = 30; // Default
+    private string _searchString = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            _audits = await AuditService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento dati: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnCleanupClick()
+    {
+        bool? result = await DialogService.ShowMessageBox(
+        "Conferma Pulizia",
+        $"Sei sicuro di voler eliminare tutti i log di accesso più vecchi di {_daysToKeep} giorni?",
+        yesText: "Sì, cancella", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                int deleted = await AuditService.CleanupAsync(_daysToKeep);
+                Snackbar.Add($"Pulizia completata. Rimossi {deleted} record.", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante la pulizia: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private Func<AuditLoginDTO, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if ($"{x.Email} {x.FullName} {x.Ip} {x.EventType} {x.UserAgent}".Contains(_searchString,
+    StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    };
+}
