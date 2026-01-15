@@ -52,7 +52,8 @@ public class UserService : IUserService
                     AziendaId = reader.IsDBNull(reader.GetOrdinal("azienda_id")) ? null : reader.GetInt32(reader.GetOrdinal("azienda_id")),
                     RagioneSocialeAzienda = reader.IsDBNull(reader.GetOrdinal("ragione_sociale")) ? null : reader.GetString(reader.GetOrdinal("ragione_sociale")),
                     IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
-                    LastLoginAt = reader.IsDBNull(reader.GetOrdinal("last_login_at")) ? null : reader.GetDateTime(reader.GetOrdinal("last_login_at"))
+                    LastLoginAt = reader.IsDBNull(reader.GetOrdinal("last_login_at")) ? null : reader.GetDateTime(reader.GetOrdinal("last_login_at")),
+                    DataNascita = reader.IsDBNull(reader.GetOrdinal("data_nascita")) ? null : reader.GetDateTime(reader.GetOrdinal("data_nascita"))
                 });
             }
 
@@ -82,13 +83,14 @@ public class UserService : IUserService
     {
         try
         {
-            await ExecuteCommandAsync("CALL sp_app_create_user(@p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id)",
+            await ExecuteCommandAsync("CALL sp_app_create_user(@p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_data_nascita::date)",
                 ("p_email", user.Email),
                 ("p_password", password),
                 ("p_nome", user.Nome),
                 ("p_cognome", user.Cognome),
                 ("p_role_code", user.RoleCode ?? string.Empty),
-                ("p_azienda_id", (object?)user.AziendaId ?? DBNull.Value)
+                ("p_azienda_id", (object?)user.AziendaId ?? DBNull.Value),
+                ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value)
             );
         }
         catch (PostgresException ex) when (ex.Message.Contains("USER_ALREADY_EXISTS"))
@@ -106,7 +108,7 @@ public class UserService : IUserService
     {
         try
         {
-            await ExecuteCommandAsync("CALL sp_app_update_user(@p_user_id, @p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id, @p_is_active)",
+            await ExecuteCommandAsync("CALL sp_app_update_user(@p_user_id, @p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_is_active, @p_data_nascita::date)",
                ("p_user_id", user.UserId),
                ("p_email", user.Email),
                ("p_password", (object?)password ?? DBNull.Value),
@@ -114,7 +116,8 @@ public class UserService : IUserService
                ("p_cognome", user.Cognome),
                ("p_role_code", user.RoleCode ?? string.Empty),
                ("p_azienda_id", (object?)user.AziendaId ?? DBNull.Value),
-               ("p_is_active", user.IsActive)
+               ("p_is_active", user.IsActive),
+               ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value)
            );
         }
         catch (PostgresException ex) when (ex.Message.Contains("EMAIL_ALREADY_EXISTS"))
@@ -136,9 +139,21 @@ public class UserService : IUserService
                 ("p_user_id", userId)
             );
         }
-        catch (PostgresException ex) when (ex.Message.Contains("USER_HAS_DEPENDENCIES"))
+        catch (PostgresException ex)
         {
-            throw new InvalidOperationException("Impossibile eliminare l'utente: ci sono dati collegati (es. Audit, Loghi, ecc.).");
+            _logger.LogError(ex, "PG Error deleting user: {Code} - {Message}", ex.SqlState, ex.Message);
+
+            if (ex.Message.Contains("USER_HAS_OPERATIONAL_DATA"))
+            {
+                throw new InvalidOperationException("Impossibile eliminare l'utente: risulta autore o revisore di Dati Operativi (Loghi, Viaggi, Clienti).\n\nSi consiglia di DISABILITARE l'utente invece di cancellarlo, per preservare lo storico.");
+            }
+
+            if (ex.Message.Contains("USER_HAS_DEPENDENCIES") || ex.SqlState == "23503")
+            {
+                throw new InvalidOperationException("Impossibile eliminare l'utente: ci sono dati collegati che impediscono la cancellazione.");
+            }
+
+            throw new InvalidOperationException($"Errore Database: {ex.Message}");
         }
         catch (Exception ex)
         {

@@ -36,18 +36,23 @@
                 RequiredError="Cognome è obbligatorio" MaxLength="100" tabindex="3" Class="mb-3 uppercase-input"
                 Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
 
+            <!-- Data di Nascita -->
+            <MudDatePicker Label="Data di Nascita" @bind-Date="User.DataNascita" Variant="Variant.Outlined"
+                Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                Culture="@(new System.Globalization.CultureInfo("it-IT"))" Class="mb-3" tabindex="4" />
+
             <!-- Password -->
             <MudTextField @bind-Value="_password"
                 Label="@(IsEditMode ? "Nuova Password (lascia vuoto per non cambiare)" : "Password")"
                 Variant="Variant.Outlined" InputType="InputType.Password" Required="@(!IsEditMode)"
-                RequiredError="Password è obbligatoria per nuovi utenti" tabindex="4" Class="mb-3"
+                RequiredError="Password è obbligatoria per nuovi utenti" tabindex="5" Class="mb-3"
                 Adornment="@(!IsEditMode ? Adornment.End : Adornment.None)" AdornmentText="@(!IsEditMode ? "*" : null)"
                 AdornmentColor="Color.Error" />
 
             <!-- Ruolo -->
             <MudSelect T="string" Label="Ruolo" Value="@User.RoleCode" ValueChanged="@HandleRoleChanged"
                 Variant="Variant.Outlined" Required="true" RequiredError="Ruolo obbligatorio"
-                AnchorOrigin="Origin.BottomCenter" Class="mb-3" tabindex="5" Adornment="Adornment.End" AdornmentText="*"
+                AnchorOrigin="Origin.BottomCenter" Class="mb-3" tabindex="6" Adornment="Adornment.End" AdornmentText="*"
                 AdornmentColor="Color.Error">
                 @foreach (var role in _roles)
                 {
@@ -58,13 +63,14 @@
             <!-- Azienda (Visibile solo se non SuperAdmin) -->
             @if (ShouldShowAziendaSelection())
             {
-                <AziendaSelect @bind-SelectedAziendaId="User.AziendaId" Required="true" ShowAllOption="false"
-                    Class="mb-3" />
+                <AziendaSelect Value="@(User.AziendaId ?? 0)" 
+                               ValueChanged="@((int val) => User.AziendaId = val == 0 ? null : val)"
+                               Required="true" ShowAllOption="false" Class="mb-3" />
             }
 
             <!-- Is Active Switch -->
-            <MudSwitch @bind-Value="User.IsActive" Label="Utente Attivo" Color="Color.Success" Class="mb-3"
-                tabindex="7" />
+            <MudSwitch T="bool" @bind-Value="User.IsActive" Label="Utente Attivo" Color="Color.Success" Class="mb-3"
+                tabindex="8" />
 
         </MudForm>
     </DialogContent>
@@ -154,15 +160,17 @@
     {
         User.RoleCode = roleCode;
         // Logic check: if role is superadmin, clear azienda
-        if (roleCode == "superadmin")
+        if (string.Equals(roleCode, "superadmin", StringComparison.OrdinalIgnoreCase))
         {
             User.AziendaId = null;
         }
+        StateHasChanged();
     }
 
     private bool ShouldShowAziendaSelection()
     {
-        return !string.IsNullOrEmpty(User.RoleCode) && User.RoleCode != "superadmin";
+        // Show by default (null/empty). Hide ONLY if explicitly SuperAdmin.
+        return string.IsNullOrEmpty(User.RoleCode) || !User.RoleCode.Equals("superadmin", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Dispose()

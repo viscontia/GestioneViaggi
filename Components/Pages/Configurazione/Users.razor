@@ -43,19 +43,9 @@
 
         <PropertyColumn Property="x => x.LastLoginAt" Title="Ultimo Accesso" Format="dd/MM/yyyy HH:mm" />
 
-        <TemplateColumn CellClass="d-flex justify-end ActionColumn">
-            <CellTemplate>
-                <MudTooltip Text="Modifica Utente">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Edit"
-                        OnClick="@(() => OpenEditDialog(context.Item))" />
-                </MudTooltip>
-
-                <MudTooltip Text="Elimina Utente">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Outlined.Delete" Color="Color.Error"
-                        OnClick="@(() => DeleteUser(context.Item))" />
-                </MudTooltip>
-            </CellTemplate>
-        </TemplateColumn>
+        <EnterpriseActionsColumn T="UserInfo"
+                                 OnEdit="@OpenEditDialog"
+                                 OnDelete="@DeleteUser" />
     </Columns>
 </EnterpriseDataGrid>
 

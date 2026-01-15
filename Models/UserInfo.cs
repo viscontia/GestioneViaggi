@@ -11,6 +11,7 @@ public class UserInfo
     public int? AziendaId { get; set; }
     public string? RagioneSocialeAzienda { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTime? DataNascita { get; set; }
     public DateTime? LastLoginAt { get; set; }
 
     public string FullName => $"{Nome} {Cognome}".Trim();
