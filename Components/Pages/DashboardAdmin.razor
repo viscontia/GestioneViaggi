@@ -397,8 +397,8 @@ _comparisonMode))
         Navigation.NavigateTo(route);
     }
 
-    [Inject] public IDialogService DialogService { get; set; }
-    [Inject] public AnaViaggiService ViaggiService { get; set; }
+    [Inject] public IDialogService DialogService { get; set; } = default!;
+    [Inject] public AnaViaggiService ViaggiService { get; set; } = default!;
 
     private async Task OnNuovaPartenzaClick()
     {

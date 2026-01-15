@@ -12,6 +12,7 @@ using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Services;
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
 
@@ -79,6 +80,7 @@ public static class MauiProgram
         // ==========================================================
         // REPOSITORIES
         // ==========================================================
+        builder.Services.AddScoped<AuditLoginService>();
         builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 
         // ==========================================================
