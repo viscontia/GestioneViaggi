@@ -185,13 +185,13 @@
 
                          <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
                             
-                            <!-- 1. Selection Cliente -->
-                            <MudAutocomplete T="Cliente" Label="Cliente" @bind-Value="_selectedCliente"
-                                             SearchFunc="@SearchClienti" ToStringFunc="@(x => x == null ? null : $"{x.Cognome} {x.Nome}")"
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
-                                             AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
-                                             Required="true" RequiredError="Selezionare un cliente"
-                                             Disabled="@_isEditMode" Class="mb-3" />
+                             <!-- 1. Selection Cliente -->
+                             <ClienteSelect @bind-SelectedCliente="_selectedCliente"
+                                            AziendaId="@AziendaId"
+                                            Required="true" 
+                                            RequiredError="Selezionare un cliente"
+                                            Disabled="@_isEditMode" 
+                                            Class="mb-3" />
 
                              <!-- 2. Trip Config -->
                              <MudGrid Spacing="2">
@@ -432,12 +432,7 @@
         return "";
     }
 
-    private async Task<IEnumerable<Cliente>> SearchClienti(string value, CancellationToken token)
-    {
-        // Wrapper to call ClienteService search
-        if (string.IsNullOrEmpty(value)) return new List<Cliente>();
-        return await ClienteService.SearchAsync(value, AziendaId); 
-    }
+
 
     private async Task SaveAsync()
     {

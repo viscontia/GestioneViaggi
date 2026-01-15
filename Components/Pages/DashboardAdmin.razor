@@ -240,6 +240,10 @@
                     OnClick="@(() => NavigateTo($"/ana-viaggi?year={_currentYear}&filter=future"))">
                     Gestisci Partecipanti
                 </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
+                    OnClick="OpenQuickAddDialog">
+                    Iscrizione Veloce
+                </MudButton>
             </MudStack>
         </MudPaper>
 
@@ -454,6 +458,26 @@ _comparisonMode))
             {
                 Snackbar.Add($"Errore apertura viaggio: {ex.Message}", Severity.Error);
             }
+            }
+        }
+
+
+    private async Task OpenQuickAddDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.QuickAddParticipantDialog>("Iscrizione Veloce", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadStatsAsync();
         }
     }
 }

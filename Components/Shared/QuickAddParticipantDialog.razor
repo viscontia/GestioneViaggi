@@ -1,7 +1,8 @@
-
+@using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@inject IAuthenticationService AuthService
 @inject AnaViaggiService ViaggiService
 @inject MovClientiViaggiService MovClientiService
 @inject MovClientiAlloggiService AlloggiService
@@ -13,7 +14,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
             <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
                 
                 <MudText Typo="Typo.h6" Class="mb-4" Color="Color.Primary">⚡️ Iscrizione Veloce</MudText>
@@ -43,11 +44,11 @@
                 <!-- STEP 2: PARTICIPANT DATA -->
                 @if (_selectedDataId > 0)
                 {
-                    <MudAutocomplete T="Cliente" Label="Cliente" @bind-Value="@_selectedCliente"
-                                     SearchFunc="@SearchClienti" ToStringFunc="@(x => x == null ? null : $"{x.Cognome} {x.Nome}")"
-                                     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
-                                     AdornmentIcon="@Icons.Material.Filled.Search" AdornmentColor="Color.Primary"
-                                     Required="true" RequiredError="Selezionare un cliente" Class="mb-3" />
+                    <ClienteSelect @bind-SelectedCliente="@_selectedCliente"
+                                   AziendaId="@_currentAziendaId"
+                                   Required="true" 
+                                   RequiredError="Selezionare un cliente"
+                                   Class="mb-3" />
 
                     <MudGrid Spacing="2">
                          <MudItem xs="6">
@@ -123,7 +124,9 @@
         _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
 
         // Load Future Viaggi (Optimized)
-        var allViaggi = await ViaggiService.GetAllAsync(null, DateTime.Now.Year, false, true); 
+        // SECURITY: Filter by user's company
+        var user = await AuthService.GetCurrentUserAsync();
+        var allViaggi = await ViaggiService.GetAllAsync(user?.AziendaId, DateTime.Now.Year, false, true); 
         _viaggiList = allViaggi.OrderBy(x => x.DescrizioneBreve).ToList();
     }
 
@@ -137,16 +140,7 @@
         _dateList = dates.ToList();
     }
 
-    private async Task<IEnumerable<Cliente>> SearchClienti(string value, CancellationToken token)
-    {
-        if (string.IsNullOrEmpty(value)) return new List<Cliente>();
-
-        // Find AziendaFK from selected voyage
-        var trip = _viaggiList.FirstOrDefault(v => v.Id == _selectedViaggioId);
-        int aziendaId = trip?.AziendaId ?? 0;
-
-        return await ClienteService.SearchAsync(value, aziendaId); 
-    }
+    private int _currentAziendaId => _viaggiList.FirstOrDefault(v => v.Id == _selectedViaggioId)?.AziendaId ?? 0;
 
     private async Task SaveAsync()
     {
