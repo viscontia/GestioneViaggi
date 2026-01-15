@@ -40,14 +40,12 @@
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        try
-        {
-            await DatabaseConnectionManager.DisposePoolAsync();
-            Logger.LogInformation("Database connection pool disposed");
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error disposing database connection pool");
-        }
+        // Singleton services should NOT be disposed here.
+        // DatabaseConnectionManager is a Singleton application-wide service.
+        // SessionManager handles its own lifecycle or is stateless enough.
+
+        // We only log the disposal of the initializer component.
+        Logger.LogInformation("AppInitializer disposed (page reload/navigation)");
+        await Task.CompletedTask;
     }
 }
