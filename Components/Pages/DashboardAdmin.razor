@@ -237,7 +237,7 @@
                     Nuova Partenza
                 </MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.People"
-                    OnClick="@(() => Snackbar.Add("Funzione in sviluppo", Severity.Info))">
+                    OnClick="@(() => NavigateTo($"/ana-viaggi?year={_currentYear}&filter=future"))">
                     Gestisci Partecipanti
                 </MudButton>
             </MudStack>
