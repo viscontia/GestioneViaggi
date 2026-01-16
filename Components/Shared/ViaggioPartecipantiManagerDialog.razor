@@ -18,9 +18,9 @@
         <MudText Typo="Typo.h6">@_headerTitle</MudText>
     </TitleContent>
     <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4" Style="height: 80vh; overflow-y: hidden;">
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-3" Style="height: 88vh; overflow-y: hidden;">
             <MudGrid Style="height: 100%;">
-                
+
                 <!-- LEFT PANEL: LIST (60%) -->
                 <MudItem xs="12" md="7" Style="height: 100%; overflow-y: auto;">
                     <MudPaper Elevation="0" Class="pa-2 h-100 d-flex flex-column">
@@ -180,8 +180,8 @@
 
                 <!-- RIGHT PANEL: EDIT/ADD (40%) -->
                 <MudItem xs="12" md="5" Style="height: 100%; overflow-y: auto; border-left: 1px solid var(--mud-palette-divider);">
-                    <MudPaper Elevation="0" Class="pa-4 h-100">
-                         <MudText Typo="Typo.h6" Class="mb-4">@(_isEditMode ? "Modifica Partecipante" : "Nuovo Inserimento")</MudText>
+                    <MudPaper Elevation="0" Class="pa-3 h-100">
+                         <MudText Typo="Typo.h6" Class="mb-3">@(_isEditMode ? "Modifica Partecipante" : "Nuovo Inserimento")</MudText>
 
                          <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
                             
@@ -196,7 +196,9 @@
                              <!-- 2. Trip Config -->
                              <MudGrid Spacing="2">
                                  <MudItem xs="6">
-                                     <MudSelect T="int" Label="Ruolo" @bind-Value="_currentEntity.TipoPartecipanteIdFk" Required="true" Margin="Margin.Dense" Variant="Variant.Outlined">
+                                     <MudSelect T="int" Label="Ruolo" Value="_currentEntity.TipoPartecipanteIdFk"
+                                                Required="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                                                ValueChanged="@OnRoleChanged">
                                          @foreach(var t in _tipoPartecipanti)
                                          {
                                              <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
@@ -226,10 +228,10 @@
                              <!-- Vehicle Config (Visible only if Pilot) -->
                              @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
                              {
-                                 <MudDivider Class="my-4" />
+                                 <MudDivider Class="my-3" />
                                  <div class="d-flex align-center gap-2 mb-2">
-                                     <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" />
-                                     <MudText Typo="Typo.subtitle1" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
+                                     <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Small" />
+                                     <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
                                  </div>
                                  
                                  <MudGrid Spacing="2">
@@ -259,32 +261,104 @@
                                  </MudGrid>
                              }
 
-                             <MudDivider Class="my-4" />
+                             <MudDivider Class="my-3" />
 
                              <!-- 3. Accommodation Config -->
                              <div class="d-flex align-center justify-space-between mb-2">
-                                <MudText Typo="Typo.subtitle1" Color="Color.Primary"><b>🏠 Alloggio</b></MudText>
-                                <MudSwitch @bind-Value="@_wantsAccommodation" Label="@(_wantsAccommodation ? "Richiesto" : "No")" Color="Color.Success" />
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Hotel" Color="Color.Primary" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Alloggio</b></MudText>
+                                </div>
+                                <MudSwitch @bind-Value="@_wantsAccommodation"
+                                           Label="@(_wantsAccommodation ? "Assegna camera" : "No")"
+                                           Color="Color.Success" />
                              </div>
 
                              @if (_wantsAccommodation)
                              {
                                  <MudPaper Class="pa-3" Outlined="true" Style="background-color: var(--mud-palette-background-grey);">
-                                     <MudSelect T="int" Label="Tipo Sistemazione" @bind-Value="_currentAlloggio.TipoAlloggioIdFk" 
-                                                Required="@_wantsAccommodation" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mb-3">
-                                         @foreach(var t in _tipoAlloggi)
-                                         {
-                                             <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
-                                         }
-                                     </MudSelect>
 
-                                     @* Logic for roommates would go here. For now, simplistic view. *@
-                                     <MudText Typo="Typo.caption">Per i compagni di stanza, usa la gestione avanzata o inseriscili successivamente.</MudText>
+                                     <!-- Tipo Alloggio Select con Badge Supplemento -->
+                                     <div class="mb-3">
+                                         <MudSelect T="int" Label="Tipo Camera"
+                                                   @bind-Value="_currentAlloggio.TipoAlloggioIdFk"
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                   Required="@_wantsAccommodation">
+                                             @foreach(var tipo in _tipoAlloggi)
+                                             {
+                                                 <MudSelectItem Value="@tipo.Id">
+                                                     <div class="d-flex align-center justify-space-between width-100">
+                                                         <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
+                                                         @if (tipo.Supplemento)
+                                                         {
+                                                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                                 + Supplemento
+                                                             </MudChip>
+                                                         }
+                                                     </div>
+                                                 </MudSelectItem>
+                                             }
+                                         </MudSelect>
+                                     </div>
+
+                                     <!-- Validazione Occupanti -->
+                                     @if (_currentAlloggio.TipoAlloggioIdFk > 0)
+                                     {
+                                         var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
+                                         var currentGroupSize = GetCurrentGroupSize();
+
+                                         @if (selectedTipo != null)
+                                         {
+                                             <div class="d-flex align-center gap-2 mb-2">
+                                                 @if (currentGroupSize <= selectedTipo.NumeroOccupanti)
+                                                 {
+                                                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                                     <MudText Typo="Typo.body2" Color="Color.Success">
+                                                         Occupanti: @currentGroupSize/@selectedTipo.NumeroOccupanti ✓
+                                                     </MudText>
+                                                 }
+                                                 else
+                                                 {
+                                                     <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Small" />
+                                                     <MudText Typo="Typo.body2" Color="Color.Error">
+                                                         Troppi occupanti! @currentGroupSize/@selectedTipo.NumeroOccupanti
+                                                     </MudText>
+                                                 }
+                                             </div>
+
+                                             <!-- Warning Supplemento -->
+                                             @if (selectedTipo.Supplemento)
+                                             {
+                                                 <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-1">
+                                                     💡 Questa camera prevede un supplemento aggiuntivo
+                                                 </MudAlert>
+                                             }
+
+                                             <!-- Lista Occupanti Preview -->
+                                             <MudText Typo="Typo.caption" Class="mb-1 mt-1">Occupanti camera:</MudText>
+                                             <MudList T="string" Dense="true" Class="pa-0">
+                                                 @if (_selectedCliente != null)
+                                                 {
+                                                     <MudListItem T="string" Dense="true" Class="pa-1">
+                                                         <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                                         @($"{_selectedCliente.Cognome} {_selectedCliente.Nome}")
+                                                         <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                                             @GetRoleDescription(_currentEntity.TipoPartecipanteIdFk)
+                                                         </MudChip>
+                                                     </MudListItem>
+                                                 }
+                                             </MudList>
+                                         }
+                                     }
+
+                                     <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.7;">
+                                         ⚠️ Per camere separate, disattiva questa opzione
+                                     </MudText>
                                  </MudPaper>
                              }
 
                              <!-- Actions -->
-                             <div class="d-flex justify-end mt-6 gap-2">
+                             <div class="d-flex justify-end mt-4 gap-2">
                                  @if (_isEditMode)
                                  {
                                      <MudButton Variant="Variant.Outlined" OnClick="ResetForm">Annulla Modifica</MudButton>
@@ -447,7 +521,21 @@
 
         try
         {
-            // 1. Save Movimento Viaggio
+            // 1. Validazione Alloggio (se richiesto)
+            if (_wantsAccommodation && _currentAlloggio.TipoAlloggioIdFk > 0)
+            {
+                var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
+                var groupSize = GetCurrentGroupSize();
+
+                if (selectedTipo != null && groupSize > selectedTipo.NumeroOccupanti)
+                {
+                    Snackbar.Add($"⚠️ Troppi occupanti ({groupSize}) per camera {selectedTipo.Descrizione} (max {selectedTipo.NumeroOccupanti})",
+                                 Severity.Error);
+                    return;
+                }
+            }
+
+            // 2. Save Movimento Viaggio
             _currentEntity.ViaggioIdFk = ViaggioId;
             _currentEntity.DataViaggioIdFk = DataViaggioId;
             _currentEntity.ClienteIdFk = _selectedCliente.ClienteId;
@@ -470,15 +558,52 @@
                 Snackbar.Add("Partecipante aggiunto", Severity.Success);
             }
 
-            // 2. Save Accommodation (If requested)
+            // 3. Save Accommodation (Se richiesto E valido)
             if (_wantsAccommodation && _currentAlloggio.TipoAlloggioIdFk > 0)
             {
+                // Raccogli tutti i clienti del gruppo
+                var roommates = new List<int?> { _selectedCliente.ClienteId };
+
+                // Se è un pilota, cerca eventuali passeggeri già esistenti
+                if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                {
+                    var passengers = _participants
+                        .Where(p => p.GroupingKey == _selectedCliente.ClienteId && p.ClienteId != _selectedCliente.ClienteId)
+                        .Select(p => (int?)p.ClienteId)
+                        .ToList();
+                    roommates.AddRange(passengers);
+                }
+
                 _currentAlloggio.ViaggioIdFk = ViaggioId;
                 _currentAlloggio.DataViaggioIdFk = DataViaggioId;
-                _currentAlloggio.ClienteId1Fk = _selectedCliente.ClienteId;
-                
-                await AlloggiService.AddAccommodationAsync(_currentAlloggio);
-                Snackbar.Add("Alloggio assegnato", Severity.Success);
+                _currentAlloggio.ClienteId1Fk = roommates.ElementAtOrDefault(0);
+                _currentAlloggio.ClienteId2Fk = roommates.ElementAtOrDefault(1);
+                _currentAlloggio.ClienteId3Fk = roommates.ElementAtOrDefault(2);
+                _currentAlloggio.ClienteId4Fk = roommates.ElementAtOrDefault(3);
+                _currentAlloggio.ClienteId5Fk = roommates.ElementAtOrDefault(4);
+                _currentAlloggio.ClienteId6Fk = roommates.ElementAtOrDefault(5);
+
+                // Update o Insert in base a se l'alloggio esiste già
+                if (_isEditMode && _currentAlloggio.MovClientiAlloggioPk > 0)
+                {
+                    await AlloggiService.UpdateAccommodationAsync(_currentAlloggio);
+                }
+                else
+                {
+                    await AlloggiService.AddAccommodationAsync(_currentAlloggio);
+                }
+
+                var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
+                var msg = selectedTipo?.Supplemento == true
+                    ? (_isEditMode ? "Alloggio aggiornato (con supplemento)" : "Alloggio assegnato (con supplemento)")
+                    : (_isEditMode ? "Alloggio aggiornato" : "Alloggio assegnato");
+                Snackbar.Add(msg, Severity.Success);
+            }
+            else if (_isEditMode && !_wantsAccommodation && _currentAlloggio.MovClientiAlloggioPk > 0)
+            {
+                // Se in edit mode l'utente ha disattivato l'alloggio, rimuovi quello esistente
+                await AlloggiService.RemoveAccommodationAsync(_currentAlloggio.MovClientiAlloggioPk);
+                Snackbar.Add("Alloggio rimosso", Severity.Info);
             }
 
             // 3. Reset for next entry (if not editing)
@@ -509,10 +634,10 @@
 
     private async Task LoadForEdit(ParticipantsViewDTO item)
     {
-        try 
+        try
         {
             _isEditMode = true;
-            
+
             // Fetch full entity
             var list = await MovClientiService.GetByDateIdAsync(item.DataId);
             var entity = list.FirstOrDefault(x => x.ClienteIdFk == item.ClienteId);
@@ -521,13 +646,32 @@
             {
                 _currentEntity = entity;
             }
-            
+
             // Fetch Client for Autocomplete
             _selectedCliente = await ClienteService.GetByIdAsync(item.ClienteId, AziendaId);
-            
+
             _hasDog = _currentEntity.MovClienteViaggioCaneSino == "Y";
-            
-            _wantsAccommodation = false; // Reset to false on edit logic
+
+            // Fetch existing accommodation for this client
+            var alloggi = await AlloggiService.GetByDateIdAsync(item.DataId);
+            var existingAlloggio = alloggi.FirstOrDefault(a =>
+                a.ClienteId1Fk == item.ClienteId ||
+                a.ClienteId2Fk == item.ClienteId ||
+                a.ClienteId3Fk == item.ClienteId ||
+                a.ClienteId4Fk == item.ClienteId ||
+                a.ClienteId5Fk == item.ClienteId ||
+                a.ClienteId6Fk == item.ClienteId);
+
+            if (existingAlloggio != null)
+            {
+                _currentAlloggio = existingAlloggio;
+                _wantsAccommodation = true; // Cliente ha già un alloggio
+            }
+            else
+            {
+                _currentAlloggio = new MovClientiAlloggi();
+                _wantsAccommodation = false; // Nessun alloggio assegnato
+            }
         }
         catch (Exception ex)
         {
@@ -551,8 +695,26 @@
     {
         _currentEntity.AnaMezziIdFk = marcaId;
         _currentEntity.MezzoModelloIdFk = null; // Reset Model when Brand changes
-        // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally 
+        // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally
         // via OnParametersSet, but we ensure the local state is consistent.
+    }
+
+    private void OnRoleChanged(int newRoleId)
+    {
+        _currentEntity.TipoPartecipanteIdFk = newRoleId;
+
+        // Auto-suggest accommodation type when role changes
+        if (_wantsAccommodation && !_isEditMode)
+        {
+            var groupSize = GetCurrentGroupSize();
+            var suggestedType = SuggestAccommodationType(groupSize);
+            if (suggestedType > 0)
+            {
+                _currentAlloggio.TipoAlloggioIdFk = suggestedType;
+            }
+        }
+
+        StateHasChanged();
     }
 
     private async Task DeleteParticipant(ParticipantsViewDTO item)
@@ -570,4 +732,55 @@
     }
 
     private void Close() => MudDialog.Cancel();
+
+    // ============================================
+    // ACCOMMODATION HELPER METHODS
+    // ============================================
+
+    private int GetCurrentGroupSize()
+    {
+        // Conta pilota + passeggeri già associati
+        if (_isEditMode && _currentEntity.ClienteIdFk > 0)
+        {
+            // In edit mode: conta il gruppo esistente
+            if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+            {
+                // Se è un pilota, conta se stesso + i suoi passeggeri
+                return 1 + _participants.Count(p => p.GroupingKey == _currentEntity.ClienteIdFk && p.ClienteId != _currentEntity.ClienteIdFk);
+            }
+            else
+            {
+                // Se è un passeggero, conta solo se stesso
+                return 1;
+            }
+        }
+
+        // In insert mode: solo il cliente corrente
+        return 1;
+    }
+
+    private string GetRoleDescription(int tipoPartecipanteId)
+    {
+        return _tipoPartecipanti.FirstOrDefault(t => t.Id == tipoPartecipanteId)?.Descrizione ?? "?";
+    }
+
+    private int SuggestAccommodationType(int participantsCount)
+    {
+        // Caso speciale: 2 persone → Matrimoniale
+        if (participantsCount == 2)
+        {
+            var matrimoniale = _tipoAlloggi
+                .FirstOrDefault(t => t.Descrizione.Contains("MATRIMONIALE", StringComparison.OrdinalIgnoreCase));
+            if (matrimoniale != null) return matrimoniale.Id;
+        }
+
+        // Caso generale: Trova il più piccolo che contiene tutti
+        var suitable = _tipoAlloggi
+            .Where(t => t.NumeroOccupanti >= participantsCount)
+            .OrderBy(t => t.NumeroOccupanti)
+            .ThenBy(t => t.Supplemento ? 1 : 0) // Preferisci senza supplemento
+            .FirstOrDefault();
+
+        return suitable?.Id ?? 0;
+    }
 }
