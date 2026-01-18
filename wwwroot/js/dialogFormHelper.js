@@ -1,7 +1,7 @@
 // Gestione TAB personalizzata per i MudDialog form
 // Risolve il problema del FocusTrap che blocca la navigazione TAB nei dialog
 window.dialogFormHelper = {
-    setupTabNavigation: function (dialogSelector = '.mud-dialog-content') {
+    setupTabNavigation: function (dialogSelector = '.mud-dialog-content', skipAutoFocus = false) {
         // Retry mechanism per aspettare che MudBlazor renderizzi gli input
         const trySetup = (attempts = 0) => {
             if (attempts > 20) {
@@ -20,7 +20,7 @@ window.dialogFormHelper = {
 
             // Trova tutti gli input, select, numeric fields all'interno del dialog
             // MudBlazor wrappa gli input in div con classe .mud-input-slot
-            const allInputs = dialogContent.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])');
+            const allInputs = dialogContent.querySelectorAll('input:not([type="hidden"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled])');
 
             if (allInputs.length === 0) {
                 // Gli input non sono ancora pronti, riprova tra 100ms
@@ -28,8 +28,19 @@ window.dialogFormHelper = {
                 return;
             }
 
-            // Filtra solo gli input visibili e focusabili
+            // Filtra solo gli input visibili e focusabili, escludendo elementi ausiliari di MudBlazor
             const fields = Array.from(allInputs).filter(input => {
+                // Escludi se è figlio di un button o di elementi MudBlazor ausiliari
+                if (input.closest('button, .mud-input-adornment, .mud-picker-calendar')) {
+                    return false;
+                }
+                
+                // Escludi se ha attributo tabindex negativo
+                const tabIndex = input.getAttribute('tabindex');
+                if (tabIndex && parseInt(tabIndex) < 0) {
+                    return false;
+                }
+                
                 const rect = input.getBoundingClientRect();
                 return rect.width > 0 && rect.height > 0; // Solo elementi visibili
             });
@@ -65,12 +76,14 @@ window.dialogFormHelper = {
                 field.addEventListener('keydown', tabHandler);
             });
 
-            // Focus automatico sul primo campo
-            if (fields.length > 0) {
+            // Focus automatico sul primo campo (SOLO se non è un refresh)
+            if (fields.length > 0 && !skipAutoFocus) {
                 setTimeout(() => {
                     fields[0].focus();
                     console.log('Dialog TAB navigation setup complete - focus set on first field');
                 }, 150);
+            } else if (skipAutoFocus) {
+                console.log('Dialog TAB navigation setup complete - auto-focus skipped (refresh mode)');
             }
         };
 

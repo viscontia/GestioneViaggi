@@ -251,19 +251,32 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
-        // NEW DB-CENTRIC METHODS (FASE 2)
-
         /// <summary>
-        /// Restituisce partecipanti ordinati correttamente: cognome pilota, pilota prima dei passeggeri, cognome passeggeri
-        /// Sostituisce: GetSortedParticipants() LINQ in UI (17 righe)
+        /// DB Function: get_participants_sorted(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Partecipanti ordinati per: cognome pilota → pilota prima dei passeggeri → cognome passeggeri
         /// </summary>
         public async Task<IEnumerable<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>> GetParticipantsSortedAsync(int dataViaggioId)
         {
             try
             {
                 using var conn = await _connectionManager.GetConnectionAsync();
-                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(
-                    "SELECT * FROM get_participants_sorted(@dataId)",
+                // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(@"
+                    SELECT 
+                        viaggio_id as ViaggioId,
+                        data_id as DataId,
+                        cliente_id as ClienteId,
+                        nominativo as Nominativo,
+                        tipo_partecipante_id as TipoPartecipanteId,
+                        ruolo as Ruolo,
+                        note as Note,
+                        cane_sino as CaneSino,
+                        intolleranze as Intolleranze,
+                        mezzo_dettagli as MezzoDettagli,
+                        cliente_pilota_id as ClientePilotaId,
+                        grouping_key as GroupingKey
+                    FROM get_participants_sorted(@dataId)",
                     new { dataId = dataViaggioId });
             }
             catch (PostgresException ex)
@@ -277,8 +290,9 @@ namespace GestioneViaggi.Services.CRUD
         }
 
         /// <summary>
-        /// Restituisce solo partecipanti senza camera assegnata
-        /// Sostituisce: GetParticipantsWithoutAccommodation() in UI (12 righe)
+        /// DB Function: get_participants_without_accommodation(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Solo partecipanti senza camera assegnata (LEFT JOIN atomico con mov_clienti_alloggi)
         /// </summary>
         public async Task<IEnumerable<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>> GetParticipantsWithoutAccommodationAsync(int dataViaggioId)
         {
@@ -292,6 +306,30 @@ namespace GestioneViaggi.Services.CRUD
             catch (PostgresException ex)
             {
                 throw new InvalidOperationException($"Errore durante il caricamento partecipanti senza camera: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto. Riprova.", ex);
+            }
+        }
+
+        /// <summary>
+        /// DB Function: get_participants_count(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Conteggio totale partecipanti (più efficiente di Count() in memoria)
+        /// </summary>
+        public async Task<int> GetParticipantsCountAsync(int dataViaggioId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QuerySingleAsync<int>(
+                    "SELECT get_participants_count(@dataId)",
+                    new { dataId = dataViaggioId });
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante il conteggio partecipanti: {ex.MessageText}", ex);
             }
             catch (Exception ex)
             {

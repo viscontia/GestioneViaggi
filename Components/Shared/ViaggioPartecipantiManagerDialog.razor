@@ -12,6 +12,7 @@
 @inject IClienteService ClienteService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IJSRuntime JS
 
 <MudDialog>
     <TitleContent>
@@ -37,7 +38,7 @@
                             </MudText>
                             <div class="d-flex gap-2">
                                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Hotel" OnClick="OpenAdvancedAccommodation">
+                                           StartIcon="@Icons.Material.Filled.Hotel" OnClick="@(() => OpenAdvancedAccommodation(null))">
                                     Gestione Alloggi
                                 </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
@@ -60,7 +61,7 @@
                                         <TabContent>
                                             <div class="d-flex align-center gap-1">
                                                 <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
-                                                <MudText Typo="Typo.body2">Partecipanti (@_participants.Count)</MudText>
+                                                <MudText Typo="Typo.body2">Partecipanti (@_participantsCount)</MudText>
                                             </div>
                                         </TabContent>
                                         <ChildContent>
@@ -77,7 +78,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                @foreach (var participant in GetSortedParticipants())
+                                                @foreach (var participant in _participants)
                                                 {
                                                     var isPilot = participant.ClienteId == participant.GroupingKey;
                                                     // Stile riga: 
@@ -203,19 +204,15 @@
                                         <TabContent>
                                             <div class="d-flex align-center gap-1">
                                                 <MudIcon Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" />
-                                                <MudText Typo="Typo.body2">Alloggi (@_existingRooms.Count)</MudText>
+                                                <MudText Typo="Typo.body2">Alloggi (@_roomsCount)</MudText>
                                             </div>
                                         </TabContent>
                                         <ChildContent>
-                                        @{
-                                            var participantsWithoutRoom = GetParticipantsWithoutAccommodation();
-                                        }
-
                                             <!-- Warning Partecipanti Senza Camera -->
-                                        @if (participantsWithoutRoom.Any())
+                                        @if (_participantsWithoutRoom.Any())
                                         {
                                                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Style="padding: 8px;">
-                                                        <b>⚠️ @participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(participantsWithoutRoom.Count > 3 ? $" +{participantsWithoutRoom.Count - 3} altri" : "")
+                                                        <b>⚠️ @_participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", _participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(_participantsWithoutRoom.Count > 3 ? $" +{_participantsWithoutRoom.Count - 3} altri" : "")
                                                     </MudAlert>
                                         }
 
@@ -310,14 +307,9 @@
                                  <!-- 2. Trip Config -->
                                  <MudGrid Spacing="2">
                                      <MudItem xs="6">
-                                         <MudSelect T="int" Label="Ruolo" Value="_currentEntity.TipoPartecipanteIdFk"
-                                                    Required="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                                                    ValueChanged="@OnRoleChanged">
-                                            @foreach (var t in _tipoPartecipanti)
-                                        {
-                                                 <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
-                                        }
-                                     </MudSelect>
+                                         <TipoPartecipanteSelect SelectedId="@(_currentEntity.TipoPartecipanteIdFk == 0 ? (int?)null : _currentEntity.TipoPartecipanteIdFk)"
+                                                                 SelectedIdChanged="@OnRoleChangedAsync"
+                                                                 Required="true" />
                                  </MudItem>
                                  <MudItem xs="6" Class="d-flex align-center">
                                      <MudCheckBox @bind-Value="@_hasDog" Label="Con Cane" Color="Color.Warning" Dense="true" />
@@ -358,9 +350,9 @@
                                              <MezzoModelloSelect @ref="_modelloSelect"
                                                                  SelectedId="@_currentEntity.MezzoModelloIdFk"
                                                                  SelectedIdChanged="@((int? val) => _currentEntity.MezzoModelloIdFk = val)"
+                                                                 SelectedItemChanged="OnMezzoModelloChanged"
                                                                  MarcaId="@_currentEntity.AnaMezziIdFk"
-                                                                 Label="Modello" Required="false"
-                                                                 Disabled="@(!_currentEntity.AnaMezziIdFk.HasValue)" />
+                                                                 Label="Modello" Required="false" />
                                          </MudItem>
                                          <MudItem xs="6">
                                              <MudTextField @bind-Value="_currentEntity.MovClienteViaggioTargaMezzo" 
@@ -554,10 +546,15 @@
     private Cliente? _selectedCliente;
 
     // Lists & Lookups
-    private List<ParticipantsViewDTO> _participants = new(); // Mapping from SP result
+    private List<ParticipantsViewDTO> _participants = new(); // Mapping from SP result (già ordinati dal DB)
+    private List<ParticipantsViewDTO> _participantsWithoutRoom = new(); // NEW DB-CENTRIC: Caricati da get_participants_without_accommodation()
     private List<TipoPartecipante> _tipoPartecipanti = new();
     private List<TipoAlloggio> _tipoAlloggi = new();
     private List<RoomCardViewModel> _existingRooms = new(); // Camere già create per questo viaggio
+
+    // Counters from DB
+    private int _participantsCount = 0; // DB: get_participants_count() - più efficiente di _participants.Count
+    private int _roomsCount = 0; // DB: get_rooms_count() - più efficiente di _existingRooms.Count
 
     // UI State
     private MudForm _form = default!;
@@ -568,6 +565,7 @@
     private bool _wantsAccommodation = true; // Default true (90% case)
     private bool _assignToExistingRoom = false; // Se true, assegna a camera esistente
     private int? _selectedExistingRoomId = null; // ID camera esistente selezionata
+    private bool _needsTabRefresh = false; // Flag per richiedere refresh Tab navigation dopo render
 
     // DTO for List
     // DTO for List is now in Models.DTOs namespace
@@ -627,14 +625,30 @@
         _isLoadingList = true;
         try
         {
-            var rawList = await MovClientiService.GetParticipantsViewAsync(DataViaggioId);
+            // DB: get_participants_sorted(p_data_viaggio_id)
+            // → Returns: Partecipanti ordinati per cognome pilota, pilota prima dei passeggeri, cognome passeggeri
+            var rawList = await MovClientiService.GetParticipantsSortedAsync(DataViaggioId);
             _participants = rawList.ToList();
 
-            // Fetch Summary Title from DB Function
+            // DB: get_participants_count(p_data_viaggio_id)
+            // → Returns: Conteggio totale partecipanti (più efficiente di _participants.Count)
+            _participantsCount = await MovClientiService.GetParticipantsCountAsync(DataViaggioId);
+
+            // DB: get_participants_without_accommodation(p_data_viaggio_id)
+            // → Returns: Solo partecipanti senza camera assegnata (LEFT JOIN atomico)
+            var withoutRoom = await MovClientiService.GetParticipantsWithoutAccommodationAsync(DataViaggioId);
+            _participantsWithoutRoom = withoutRoom.ToList();
+
+            // DB: get_viaggio_partecipanti_summary(p_data_viaggio_id)
+            // → Returns: String riepilogo (es. "3 Piloti, 5 Passeggeri")
             _summaryTitle = await MovClientiService.GetParticipantsSummaryAsync(DataViaggioId);
 
             // Reload rooms after participants list changes
             await LoadRoomsAsync();
+
+            // DB: get_rooms_count(p_data_viaggio_id)
+            // → Returns: Conteggio totale camere (più efficiente di _existingRooms.Count)
+            _roomsCount = await AlloggiService.GetRoomsCountAsync(DataViaggioId);
         }
         catch (Exception ex)
         {
@@ -674,26 +688,6 @@
         }
         return "";
     }
-
-    private IEnumerable<ParticipantsViewDTO> GetSortedParticipants()
-    {
-        // Ordina: prima per cognome del pilota, poi per ogni pilota i suoi passeggeri ordinati per cognome-nome
-        return _participants
-            .OrderBy(p =>
-            {
-                // Se è un pilota, usa il suo cognome
-                if (p.ClienteId == p.GroupingKey)
-                    return p.Nominativo;
-
-                // Se è un passeggero, trova il cognome del pilota
-                var pilot = _participants.FirstOrDefault(x => x.ClienteId == p.GroupingKey);
-                return pilot?.Nominativo ?? "ZZZZZ"; // Partecipanti non assegnati vanno alla fine
-            })
-            .ThenBy(p => p.ClienteId == p.GroupingKey ? 0 : 1) // Prima il pilota, poi i passeggeri
-            .ThenBy(p => p.Nominativo); // Poi ordina i passeggeri per cognome-nome
-    }
-
-
 
     private async Task SaveAsync()
     {
@@ -737,33 +731,23 @@
             {
                 if (_assignToExistingRoom && _selectedExistingRoomId.HasValue)
                 {
-                    // Opzione 1: Aggiungi a camera esistente
                     var existingRoom = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId.Value);
                     if (existingRoom != null)
                     {
-                        // Trova il primo slot libero e aggiungi il cliente
-                        var roomEntity = existingRoom.RoomEntity;
+                        // DB: sp_assign_to_first_free_slot(p_alloggio_pk, p_cliente_id)
+                        // → Returns: TRUE se assegnato con successo, FALSE se camera piena
+                        // → Gestisce atomicamente: find first free slot + update + validation capacity
+                        bool success = await AlloggiService.AssignToFirstFreeSlotAsync(_selectedExistingRoomId.Value, _selectedCliente.ClienteId);
 
-                        if (!roomEntity.ClienteId1Fk.HasValue)
-                            roomEntity.ClienteId1Fk = _selectedCliente.ClienteId;
-                        else if (!roomEntity.ClienteId2Fk.HasValue)
-                            roomEntity.ClienteId2Fk = _selectedCliente.ClienteId;
-                        else if (!roomEntity.ClienteId3Fk.HasValue)
-                            roomEntity.ClienteId3Fk = _selectedCliente.ClienteId;
-                        else if (!roomEntity.ClienteId4Fk.HasValue)
-                            roomEntity.ClienteId4Fk = _selectedCliente.ClienteId;
-                        else if (!roomEntity.ClienteId5Fk.HasValue)
-                            roomEntity.ClienteId5Fk = _selectedCliente.ClienteId;
-                        else if (!roomEntity.ClienteId6Fk.HasValue)
-                            roomEntity.ClienteId6Fk = _selectedCliente.ClienteId;
+                        if (success)
+                        {
+                            Snackbar.Add($"Partecipante aggiunto alla camera {existingRoom.RoomType}", Severity.Success);
+                        }
                         else
                         {
                             Snackbar.Add("Errore: camera già piena!", Severity.Error);
                             return;
                         }
-
-                        await AlloggiService.UpdateAccommodationAsync(roomEntity);
-                        Snackbar.Add($"Partecipante aggiunto alla camera {existingRoom.RoomType}", Severity.Success);
                     }
                 }
                 else if (!_assignToExistingRoom && _currentAlloggio.TipoAlloggioIdFk > 0)
@@ -809,21 +793,24 @@
             }
             else
             {
-                // Keep some settings like Role? Maybe.
-                // Reset Client
+                // Reset completo del form per nuovo inserimento
                 _selectedCliente = null;
                 _currentEntity = new MovClientiViaggi
                     {
-                        TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role
+                        TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role per velocizzare inserimenti multipli
                     };
                 _currentAlloggio = new MovClientiAlloggi();
                 _hasDog = false;
+                _wantsAccommodation = true; // Reset al default
                 _assignToExistingRoom = false;
                 _selectedExistingRoomId = null;
             }
 
             await LoadListAsync(); // Refresh Grid
             StateHasChanged(); // Force UI refresh
+            
+            // Setta il focus sul campo Cliente per continuare l'inserimento
+            await SetFocusOnClienteFieldAsync();
         }
         catch (Exception ex)
         {
@@ -894,7 +881,54 @@
         await LoadListAsync();
     }
 
+    private async Task RefreshTabNavigationAsync()
+    {
+        try 
+        {
+            // Small delay to allow Blazor to update DOM
+            await Task.Delay(100);
+            // Passa skipAutoFocus: true per evitare il salto al primo campo durante i refresh
+            await JS.InvokeVoidAsync("window.dialogFormHelper.setupTabNavigation", ".mud-dialog-content", true);
+        }
+        catch { /* Ignore JS errors */ }
+    }
+
+    private async Task SetFocusOnClienteFieldAsync()
+    {
+        try
+        {
+            // Delay per permettere a Blazor di aggiornare il DOM dopo StateHasChanged
+            await Task.Delay(150);
+            // Cerca il primo input del MudAutocomplete (campo Cliente) e setta il focus
+            await JS.InvokeVoidAsync("eval", @"
+                const clienteInput = document.querySelector('.mud-dialog-content input[type=""text""]');
+                if (clienteInput) {
+                    clienteInput.focus();
+                    clienteInput.select();
+                }
+            ");
+        }
+        catch { /* Ignore JS errors */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || _needsTabRefresh)
+        {
+            _needsTabRefresh = false;
+            await RefreshTabNavigationAsync();
+        }
+    }
+
     private MezzoModelloSelect _modelloSelect = default!;
+
+    private void OnMezzoModelloChanged(MezzoModello? m)
+    {
+        if (m != null && m.MarcaIdFk != _currentEntity.AnaMezziIdFk)
+        {
+            _currentEntity.AnaMezziIdFk = m.MarcaIdFk;
+        }
+    }
 
     private void OnMarcaChanged(int? marcaId)
     {
@@ -904,9 +938,9 @@
                                                 // via OnParametersSet, but we ensure the local state is consistent.
     }
 
-    private void OnRoleChanged(int newRoleId)
+    private async Task OnRoleChangedAsync(int? newRoleId)
     {
-        _currentEntity.TipoPartecipanteIdFk = newRoleId;
+        _currentEntity.TipoPartecipanteIdFk = newRoleId ?? 0;
 
         // Auto-suggest accommodation type when role changes
         if (_wantsAccommodation && !_isEditMode)
@@ -919,7 +953,10 @@
             }
         }
 
+        // CRITICAL: Set flag to refresh Tab navigation AFTER DOM updates
+        _needsTabRefresh = true;
         StateHasChanged();
+        // OnAfterRenderAsync will now call RefreshTabNavigationAsync()
     }
 
     private async Task DeleteParticipant(ParticipantsViewDTO item)
@@ -931,6 +968,8 @@
         {
             // SCENARIO A: Nessun alloggio - elimina direttamente
             await ConfirmAndDeleteParticipant(item);
+            // Force refresh dopo la chiusura del dialog
+            StateHasChanged();
         }
         else if (room.CurrentOccupants == 1)
         {
@@ -944,6 +983,8 @@
             {
                 await DeleteParticipantAndRoom(item, room);
             }
+            // Force refresh dopo la chiusura del dialog (anche se annullato)
+            StateHasChanged();
         }
         else
         {
@@ -959,6 +1000,8 @@
                 $"3. Riassegnare gli altri occupanti se necessario\n" +
                 $"4. Poi potrai eliminare il partecipante",
                 yesText: "OK");
+            // Force refresh dopo la chiusura del dialog informativo
+            StateHasChanged();
         }
     }
 
@@ -976,6 +1019,7 @@
                 await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
                 Snackbar.Add($"{item.Nominativo} rimosso dal viaggio", Severity.Success);
                 await LoadListAsync();
+                StateHasChanged(); // Force UI refresh della grid
             }
             catch (Exception ex)
             {
@@ -995,19 +1039,21 @@
 
             Snackbar.Add($"{item.Nominativo} e camera {room.RoomType} eliminati", Severity.Success);
             await LoadListAsync();
+            StateHasChanged(); // Force UI refresh della grid
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
             // Ricarica per mostrare lo stato reale dopo eventuale rollback
             await LoadListAsync();
+            StateHasChanged(); // Force UI refresh anche in caso di errore
         }
     }
 
     private async Task EditRoom(RoomCardViewModel room)
     {
-        // Apri il dialog avanzato per modificare la camera
-        await OpenAdvancedAccommodation();
+        // Apri il dialog avanzato per modificare la camera, puntando direttamente a quella selezionata
+        await OpenAdvancedAccommodation(room.RoomId);
     }
 
     private async Task DeleteRoom(RoomCardViewModel room)
@@ -1074,14 +1120,15 @@
         // else: null = Annulla, non fare nulla
     }
 
-    private async Task OpenAdvancedAccommodation()
+    private async Task OpenAdvancedAccommodation(int? autoOpenRoomId = null)
     {
         var parameters = new DialogParameters
         {
             { "DataViaggioId", DataViaggioId },
             { "ViaggioId", ViaggioId },
             { "AziendaId", AziendaId },
-            { "ViaggioTitle", _headerTitle }
+            { "ViaggioTitle", _headerTitle },
+            { "AutoOpenRoomId", autoOpenRoomId }
         };
 
         var options = new DialogOptions
@@ -1170,103 +1217,31 @@
     {
         try
         {
-            var allRooms = await AlloggiService.GetByDateIdAsync(DataViaggioId);
+            // DB: get_rooms_with_occupants(p_data_viaggio_id)
+            // → Returns: Camere con occupanti aggregati (ARRAY_AGG di nomi e IDs)
+            // → Elimina necessità di loop su 6 slot + lookup partecipanti in memoria
+            var roomsDto = await AlloggiService.GetRoomsWithOccupantsAsync(DataViaggioId);
+
             _existingRooms.Clear();
-
-            foreach (var room in allRooms)
+            foreach (var dto in roomsDto)
             {
-                var tipoAlloggio = _tipoAlloggi.FirstOrDefault(t => t.Id == room.TipoAlloggioIdFk);
-                if (tipoAlloggio == null) continue;
-
-                var occupants = new List<string>();
-                var occupantIds = new List<int>();
-
-                // Raccogli tutti gli occupanti
-                if (room.ClienteId1Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId1Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-                if (room.ClienteId2Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId2Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-                if (room.ClienteId3Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId3Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-                if (room.ClienteId4Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId4Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-                if (room.ClienteId5Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId5Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-                if (room.ClienteId6Fk.HasValue)
-                {
-                    var client = _participants.FirstOrDefault(p => p.ClienteId == room.ClienteId6Fk.Value);
-                    if (client != null)
-                    {
-                        occupants.Add(client.Nominativo);
-                        occupantIds.Add(client.ClienteId);
-                    }
-                }
-
                 _existingRooms.Add(new RoomCardViewModel
-                    {
-                        RoomId = room.MovClientiAlloggioPk,
-                        RoomType = tipoAlloggio.Descrizione,
-                        MaxOccupants = tipoAlloggio.NumeroOccupanti,
-                        CurrentOccupants = occupants.Count,
-                        OccupantNames = occupants,
-                        OccupantIds = occupantIds,
-                        HasSupplement = tipoAlloggio.Supplemento,
-                        RoomEntity = room
-                    });
+                {
+                    RoomId = dto.AlloggioPk,
+                    RoomType = dto.TipoAlloggio,
+                    MaxOccupants = dto.MaxOccupants,
+                    CurrentOccupants = dto.CurrentOccupants,
+                    OccupantNames = dto.OccupantNames.ToList(),
+                    OccupantIds = dto.OccupantIds.ToList(),
+                    HasSupplement = dto.HasSupplement,
+                    RoomEntity = new MovClientiAlloggi() // TODO: Remove when all SaveAsync refactored
+                });
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore caricamento camere: {ex.Message}", Severity.Error);
         }
-    }
-
-    private List<ParticipantsViewDTO> GetParticipantsWithoutAccommodation()
-    {
-        // Ottieni tutti gli ID dei partecipanti già assegnati a camere
-        var assignedClientIds = _existingRooms
-            .SelectMany(r => r.OccupantIds)
-            .ToHashSet();
-
-        // Filtra i partecipanti non assegnati
-        return _participants
-            .Where(p => !assignedClientIds.Contains(p.ClienteId))
-            .ToList();
     }
 
     // Helper class for room visualization

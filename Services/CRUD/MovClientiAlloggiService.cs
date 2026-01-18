@@ -172,19 +172,28 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
-        // NEW DB-CENTRIC METHODS (FASE 2)
-
         /// <summary>
-        /// Restituisce tutte le camere con occupanti aggregati (nomi e IDs in array)
-        /// Sostituisce: LoadRoomsAsync() in UI (88 righe di logica complessa)
+        /// DB Function: get_rooms_with_occupants(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Camere con array aggregati di occupanti (ARRAY_AGG di nomi e IDs, DISTINCT applicato)
+        ///         Elimina necessità di loop su 6 slot ClienteIdXFk + lookup partecipanti in memoria
         /// </summary>
         public async Task<IEnumerable<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>> GetRoomsWithOccupantsAsync(int dataViaggioId)
         {
             try
             {
                 using var conn = await _connectionManager.GetConnectionAsync();
-                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>(
-                    "SELECT * FROM get_rooms_with_occupants(@dataId)",
+                // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>(@"
+                    SELECT 
+                        alloggio_pk as AlloggioPk,
+                        tipo_alloggio as TipoAlloggio,
+                        max_occupants as MaxOccupants,
+                        current_occupants as CurrentOccupants,
+                        occupant_names as OccupantNames,
+                        occupant_ids as OccupantIds,
+                        has_supplement as HasSupplement
+                    FROM get_rooms_with_occupants(@dataId)",
                     new { dataId = dataViaggioId });
             }
             catch (PostgresException ex)
@@ -198,10 +207,11 @@ namespace GestioneViaggi.Services.CRUD
         }
 
         /// <summary>
-        /// Assegna un cliente al primo slot libero di una camera
-        /// Sostituisce: Logica if-else cascata in SaveAsync() (16 righe)
+        /// DB Stored Procedure: sp_assign_to_first_free_slot(p_alloggio_pk INTEGER, p_cliente_id INTEGER)
+        /// Input: ID camera, ID cliente da assegnare
+        /// Output: BOOLEAN - TRUE se assegnato con successo, FALSE se camera piena
+        /// Logica: Trova primo slot libero (ClienteId1Fk...ClienteId6Fk), valida capacità, assegna atomicamente
         /// </summary>
-        /// <returns>True se assegnato con successo, False se camera piena</returns>
         public async Task<bool> AssignToFirstFreeSlotAsync(int alloggioPk, int clienteId)
         {
             try
@@ -222,6 +232,30 @@ namespace GestioneViaggi.Services.CRUD
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Si è verificato un errore imprevisto durante l'assegnazione. Riprova.", ex);
+            }
+        }
+
+        /// <summary>
+        /// DB Function: get_rooms_count(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Conteggio totale camere (più efficiente di Count() in memoria)
+        /// </summary>
+        public async Task<int> GetRoomsCountAsync(int dataViaggioId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QuerySingleAsync<int>(
+                    "SELECT get_rooms_count(@dataId)",
+                    new { dataId = dataViaggioId });
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante il conteggio camere: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto. Riprova.", ex);
             }
         }
     }
