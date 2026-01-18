@@ -171,5 +171,58 @@ namespace GestioneViaggi.Services.CRUD
                 throw new InvalidOperationException("Si è verificato un errore imprevisto durante il caricamento degli alloggi. Riprova.", ex);
             }
         }
+
+        // NEW DB-CENTRIC METHODS (FASE 2)
+
+        /// <summary>
+        /// Restituisce tutte le camere con occupanti aggregati (nomi e IDs in array)
+        /// Sostituisce: LoadRoomsAsync() in UI (88 righe di logica complessa)
+        /// </summary>
+        public async Task<IEnumerable<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>> GetRoomsWithOccupantsAsync(int dataViaggioId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>(
+                    "SELECT * FROM get_rooms_with_occupants(@dataId)",
+                    new { dataId = dataViaggioId });
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante il caricamento camere con occupanti: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto durante il caricamento camere. Riprova.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Assegna un cliente al primo slot libero di una camera
+        /// Sostituisce: Logica if-else cascata in SaveAsync() (16 righe)
+        /// </summary>
+        /// <returns>True se assegnato con successo, False se camera piena</returns>
+        public async Task<bool> AssignToFirstFreeSlotAsync(int alloggioPk, int clienteId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QuerySingleAsync<bool>(
+                    "SELECT sp_assign_to_first_free_slot(@pk, @clienteId)",
+                    new { pk = alloggioPk, clienteId });
+            }
+            catch (PostgresException ex) when (ex.Message.Contains("Camera non trovata"))
+            {
+                throw new InvalidOperationException($"Camera non trovata: ID {alloggioPk}", ex);
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante l'assegnazione alla camera: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto durante l'assegnazione. Riprova.", ex);
+            }
+        }
     }
 }

@@ -180,14 +180,21 @@ namespace GestioneViaggi.Services.CRUD
                         v.cliente_pilota_id_fk as ClientePilotaId,
                         CASE
                             WHEN v.cliente_pilota_id_fk IS NOT NULL AND v.cliente_pilota_id_fk > 0 THEN v.cliente_pilota_id_fk
-                            WHEN tp.tipo_partecipante_descrizione LIKE '%PILOTA%' THEN v.cliente_id_fk
+                            WHEN tp.tipo_partecipante_pilota = true THEN v.cliente_id_fk
                             ELSE 0
                         END as GroupingKey
                     FROM mov_clienti_viaggi v
                     JOIN ana_clienti c ON v.cliente_id_fk = c.cliente_id
                     JOIN ana_tipo_partecipante tp ON v.tipo_partecipante_id_fk = tp.tipo_partecipante_id
                     WHERE v.data_viaggio_id_fk = @dataId
-                    ORDER BY c.cliente_cognome, c.cliente_nome";
+                    ORDER BY
+                        CASE
+                            WHEN v.cliente_pilota_id_fk IS NOT NULL AND v.cliente_pilota_id_fk > 0 THEN v.cliente_pilota_id_fk
+                            WHEN tp.tipo_partecipante_pilota = true THEN v.cliente_id_fk
+                            ELSE 0
+                        END,
+                        c.cliente_cognome,
+                        c.cliente_nome";
 
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(sql, new { dataId = dataViaggioId });
             }
@@ -241,6 +248,54 @@ namespace GestioneViaggi.Services.CRUD
             catch (Exception ex)
             {
                 throw new InvalidOperationException("Si è verificato un errore imprevisto durante il caricamento dell'intestazione. Riprova.", ex);
+            }
+        }
+
+        // NEW DB-CENTRIC METHODS (FASE 2)
+
+        /// <summary>
+        /// Restituisce partecipanti ordinati correttamente: cognome pilota, pilota prima dei passeggeri, cognome passeggeri
+        /// Sostituisce: GetSortedParticipants() LINQ in UI (17 righe)
+        /// </summary>
+        public async Task<IEnumerable<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>> GetParticipantsSortedAsync(int dataViaggioId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(
+                    "SELECT * FROM get_participants_sorted(@dataId)",
+                    new { dataId = dataViaggioId });
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante il caricamento partecipanti ordinati: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto durante il caricamento partecipanti. Riprova.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Restituisce solo partecipanti senza camera assegnata
+        /// Sostituisce: GetParticipantsWithoutAccommodation() in UI (12 righe)
+        /// </summary>
+        public async Task<IEnumerable<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>> GetParticipantsWithoutAccommodationAsync(int dataViaggioId)
+        {
+            try
+            {
+                using var conn = await _connectionManager.GetConnectionAsync();
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(
+                    "SELECT * FROM get_participants_without_accommodation(@dataId)",
+                    new { dataId = dataViaggioId });
+            }
+            catch (PostgresException ex)
+            {
+                throw new InvalidOperationException($"Errore durante il caricamento partecipanti senza camera: {ex.MessageText}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Si è verificato un errore imprevisto. Riprova.", ex);
             }
         }
     }

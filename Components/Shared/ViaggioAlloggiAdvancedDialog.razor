@@ -1,0 +1,682 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Models.DTOs
+@using MudBlazor
+@inject MovClientiAlloggiService AlloggiService
+@inject MovClientiViaggiService MovClientiService
+@inject TipoAlloggioService TipoAlloggioService
+@inject IClienteService ClienteService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Hotel" Class="mr-2" />
+            Gestione Avanzata Alloggi - @_viaggioTitle
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-3" Style="height: 88vh; overflow-y: hidden;">
+            <MudGrid Style="height: 100%;">
+
+                <!-- LEFT PANEL: ASSIGNED ROOMS (60%) -->
+                <MudItem xs="12" md="7" Style="height: 100%; overflow-y: auto;">
+                    <MudPaper Elevation="0" Class="pa-2 h-100">
+                        <div class="d-flex align-center justify-space-between mb-3">
+                            <MudText Typo="Typo.h6">
+                                Camere Assegnate
+                                @if (_rooms.Any()) { <span style="font-size:0.8em; opacity:0.6;">(@_rooms.Count camere)</span> }
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNewRoom">
+                                Nuova Camera
+                            </MudButton>
+                        </div>
+
+                        @if (_isLoadingRooms)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+                        }
+                        else if (!_rooms.Any())
+                        {
+                            <MudAlert Severity="Severity.Info" Class="mt-4">
+                                Nessuna camera assegnata. Usa "Nuova Camera" per iniziare.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            @foreach (var room in _rooms)
+                            {
+                                <MudCard Class="mb-3" Outlined="true">
+                                    <MudCardHeader>
+                                        <CardHeaderContent>
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Hotel"
+                                                         Color="@GetRoomStatusColor(room)"
+                                                         Size="Size.Medium" />
+                                                <div>
+                                                    <MudText Typo="Typo.h6">@room.TipoDescrizione</MudText>
+                                                    <div class="d-flex align-center gap-2">
+                                                        <MudChip T="string" Size="Size.Small"
+                                                                 Color="@GetRoomStatusColor(room)"
+                                                                 Variant="Variant.Text">
+                                                            @GetRoomStatusIcon(room) @room.Occupanti.Count/@room.MaxOccupanti
+                                                        </MudChip>
+                                                        @if (room.HasSupplemento)
+                                                        {
+                                                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                                💰 Supplemento
+                                                            </MudChip>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardHeaderContent>
+                                        <CardHeaderActions>
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                           Color="Color.Primary"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => EditRoom(room))" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                           Color="Color.Error"
+                                                           Size="Size.Small"
+                                                           OnClick="@(() => DeleteRoom(room))" />
+                                        </CardHeaderActions>
+                                    </MudCardHeader>
+                                    <MudCardContent>
+                                        @if (room.Occupanti.Any())
+                                        {
+                                            <MudList T="string" Dense="true" Class="pa-0">
+                                                @foreach (var occupant in room.Occupanti)
+                                                {
+                                                    <MudListItem T="string" Dense="true" Class="pa-1">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                                        @occupant.Nominativo
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text" Class="ml-2">
+                                                            @occupant.Ruolo
+                                                        </MudChip>
+                                                    </MudListItem>
+                                                }
+                                            </MudList>
+                                        }
+                                        else
+                                        {
+                                            <MudText Typo="Typo.body2" Color="Color.Error" Class="ml-2">
+                                                ⚠️ Camera vuota
+                                            </MudText>
+                                        }
+                                    </MudCardContent>
+                                </MudCard>
+                            }
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- RIGHT PANEL: ACTIONS (40%) -->
+                <MudItem xs="12" md="5" Style="height: 100%; overflow-y: auto; border-left: 1px solid var(--mud-palette-divider);">
+                    <MudPaper Elevation="0" Class="pa-3 h-100">
+
+                        <!-- Unassigned Participants Section -->
+                        <MudText Typo="Typo.h6" Class="mb-2">
+                            👥 Partecipanti Senza Alloggio
+                            @if (_unassignedParticipants.Any()) { <span style="font-size:0.8em; opacity:0.6;">(@_unassignedParticipants.Count)</span> }
+                        </MudText>
+
+                        @if (_isLoadingParticipants)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-2" />
+                        }
+                        else if (!_unassignedParticipants.Any())
+                        {
+                            <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                                ✓ Tutti i partecipanti hanno un alloggio
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudPaper Class="pa-2 mb-3" Outlined="true" Style="max-height: 200px; overflow-y: auto;">
+                                <MudTextField @bind-Value="_searchFilter"
+                                              Placeholder="Cerca partecipante..."
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Search"
+                                              Margin="Margin.Dense"
+                                              Variant="Variant.Outlined"
+                                              Class="mb-2" />
+
+                                @foreach (var participant in GetFilteredUnassignedParticipants())
+                                {
+                                    <MudCheckBox @bind-Value="@_selectedParticipantIds[participant.ClienteId]"
+                                                 Label="@participant.Nominativo"
+                                                 Dense="true"
+                                                 Color="Color.Primary" />
+                                }
+                            </MudPaper>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       FullWidth="true"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       OnClick="CreateRoomFromSelected"
+                                       Disabled="@(!_selectedParticipantIds.Values.Any(v => v))">
+                                Crea Camera con Selezionati
+                            </MudButton>
+                        }
+
+                        <MudDivider Class="my-4" />
+
+                        <!-- Create/Edit Room Form -->
+                        @if (_isEditingRoom)
+                        {
+                            <MudText Typo="Typo.h6" Class="mb-3">
+                                @(_currentRoom.MovClientiAlloggioPk > 0 ? "✏️ Modifica Camera" : "➕ Nuova Camera")
+                            </MudText>
+
+                            <MudSelect T="int" Label="Tipo Camera"
+                                       @bind-Value="_currentRoom.TipoAlloggioIdFk"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Required="true"
+                                       Class="mb-3">
+                                @foreach (var tipo in _tipoAlloggi)
+                                {
+                                    <MudSelectItem Value="@tipo.Id">
+                                        <div class="d-flex align-center justify-space-between width-100">
+                                            <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
+                                            @if (tipo.Supplemento)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                    + Supplemento
+                                                </MudChip>
+                                            }
+                                        </div>
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <!-- Occupants Management -->
+                            @if (_currentRoom.TipoAlloggioIdFk > 0)
+                            {
+                                var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentRoom.TipoAlloggioIdFk);
+                                var currentOccupantsCount = _currentRoomOccupants.Count;
+
+                                <div class="mb-2">
+                                    <MudText Typo="Typo.subtitle2" Class="mb-2">Occupanti Attuali</MudText>
+
+                                    <div class="d-flex align-center gap-2 mb-2">
+                                        @if (selectedTipo != null)
+                                        {
+                                            @if (currentOccupantsCount <= selectedTipo.NumeroOccupanti)
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                                                <MudText Typo="Typo.body2" Color="Color.Success">
+                                                    @currentOccupantsCount/@selectedTipo.NumeroOccupanti occupanti
+                                                </MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Small" />
+                                                <MudText Typo="Typo.body2" Color="Color.Error">
+                                                    Troppi occupanti! @currentOccupantsCount/@selectedTipo.NumeroOccupanti
+                                                </MudText>
+                                            }
+                                        }
+                                    </div>
+
+                                    @if (_currentRoomOccupants.Any())
+                                    {
+                                        <MudPaper Class="pa-2 mb-2" Outlined="true">
+                                            @foreach (var occupant in _currentRoomOccupants)
+                                            {
+                                                <div class="d-flex align-center justify-space-between mb-1">
+                                                    <div class="d-flex align-center">
+                                                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                                        <MudText Typo="Typo.body2">@occupant.Nominativo</MudText>
+                                                    </div>
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                                   Size="Size.Small"
+                                                                   Color="Color.Error"
+                                                                   OnClick="@(() => RemoveOccupant(occupant.ClienteId))" />
+                                                </div>
+                                            }
+                                        </MudPaper>
+                                    }
+
+                                    <!-- Add Occupant -->
+                                    @if (selectedTipo != null && currentOccupantsCount < selectedTipo.NumeroOccupanti)
+                                    {
+                                        <MudSelect T="int?" Label="Aggiungi Occupante"
+                                                   @bind-Value="_selectedOccupantToAdd"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   Clearable="true"
+                                                   Class="mb-2">
+                                            @foreach (var participant in GetAvailableParticipants())
+                                            {
+                                                <MudSelectItem Value="@((int?)participant.ClienteId)">
+                                                    @participant.Nominativo
+                                                    @if (IsParticipantInAnotherRoom(participant.ClienteId))
+                                                    {
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                            Già assegnato
+                                                        </MudChip>
+                                                    }
+                                                </MudSelectItem>
+                                            }
+                                        </MudSelect>
+
+                                        @if (_selectedOccupantToAdd.HasValue)
+                                        {
+                                            <MudButton Variant="Variant.Outlined"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       FullWidth="true"
+                                                       OnClick="AddSelectedOccupant">
+                                                Aggiungi
+                                            </MudButton>
+                                        }
+                                    }
+                                </div>
+                            }
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-end gap-2 mt-4">
+                                <MudButton Variant="Variant.Outlined" OnClick="CancelEdit">
+                                    Annulla
+                                </MudButton>
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           OnClick="SaveRoom"
+                                           Disabled="@(!CanSaveRoom())">
+                                    @(_currentRoom.MovClientiAlloggioPk > 0 ? "Aggiorna" : "Crea Camera")
+                                </MudButton>
+                            </div>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int DataViaggioId { get; set; }
+    [Parameter] public int ViaggioId { get; set; }
+    [Parameter] public int AziendaId { get; set; }
+    [Parameter] public string ViaggioTitle { get; set; } = "";
+
+    // Room ViewModel
+    public class RoomViewModel
+    {
+        public int AlloggioPk { get; set; }
+        public int TipoAlloggioIdFk { get; set; }
+        public string TipoDescrizione { get; set; } = "";
+        public int MaxOccupanti { get; set; }
+        public List<OccupantViewModel> Occupanti { get; set; } = new();
+        public bool HasSupplemento { get; set; }
+    }
+
+    public class OccupantViewModel
+    {
+        public int ClienteId { get; set; }
+        public string Nominativo { get; set; } = "";
+        public string Ruolo { get; set; } = "";
+    }
+
+    // State
+    private List<RoomViewModel> _rooms = new();
+    private List<ParticipantsViewDTO> _allParticipants = new();
+    private List<ParticipantsViewDTO> _unassignedParticipants = new();
+    private List<TipoAlloggio> _tipoAlloggi = new();
+
+    private bool _isLoadingRooms = true;
+    private bool _isLoadingParticipants = true;
+    private bool _isEditingRoom = false;
+
+    private MovClientiAlloggi _currentRoom = new();
+    private List<OccupantViewModel> _currentRoomOccupants = new();
+    private Dictionary<int, bool> _selectedParticipantIds = new();
+    private int? _selectedOccupantToAdd;
+    private string _searchFilter = "";
+    private string _viaggioTitle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _viaggioTitle = ViaggioTitle;
+        await LoadLookupsAsync();
+        await LoadDataAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        // Load participants first, then rooms (rooms need participants data)
+        await LoadParticipantsAsync();
+        await LoadRoomsAsync();
+    }
+
+    private async Task LoadRoomsAsync()
+    {
+        _isLoadingRooms = true;
+        try
+        {
+            var alloggi = await AlloggiService.GetByDateIdAsync(DataViaggioId);
+            _rooms.Clear();
+
+            foreach (var alloggio in alloggi)
+            {
+                var tipoAlloggio = _tipoAlloggi.FirstOrDefault(t => t.Id == alloggio.TipoAlloggioIdFk);
+                if (tipoAlloggio == null) continue;
+
+                var room = new RoomViewModel
+                {
+                    AlloggioPk = alloggio.MovClientiAlloggioPk,
+                    TipoAlloggioIdFk = alloggio.TipoAlloggioIdFk,
+                    TipoDescrizione = tipoAlloggio.Descrizione,
+                    MaxOccupanti = tipoAlloggio.NumeroOccupanti,
+                    HasSupplemento = tipoAlloggio.Supplemento
+                };
+
+                // Load occupants
+                var clientIds = new[] { alloggio.ClienteId1Fk, alloggio.ClienteId2Fk, alloggio.ClienteId3Fk,
+                                       alloggio.ClienteId4Fk, alloggio.ClienteId5Fk, alloggio.ClienteId6Fk }
+                    .Where(id => id.HasValue && id.Value > 0)
+                    .Select(id => id!.Value)
+                    .ToList();
+
+                foreach (var clientId in clientIds)
+                {
+                    var participant = _allParticipants.FirstOrDefault(p => p.ClienteId == clientId);
+                    if (participant != null)
+                    {
+                        room.Occupanti.Add(new OccupantViewModel
+                        {
+                            ClienteId = participant.ClienteId,
+                            Nominativo = participant.Nominativo,
+                            Ruolo = participant.Ruolo
+                        });
+                    }
+                }
+
+                _rooms.Add(room);
+            }
+
+            // Update unassigned participants after rooms are loaded
+            UpdateUnassignedParticipants();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento camere: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingRooms = false;
+        }
+    }
+
+    private async Task LoadParticipantsAsync()
+    {
+        _isLoadingParticipants = true;
+        try
+        {
+            _allParticipants = (await MovClientiService.GetParticipantsViewAsync(DataViaggioId)).ToList();
+            // Don't call UpdateUnassignedParticipants here - rooms are not loaded yet
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento partecipanti: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoadingParticipants = false;
+        }
+    }
+
+    private void UpdateUnassignedParticipants()
+    {
+        var assignedClientIds = _rooms.SelectMany(r => r.Occupanti.Select(o => o.ClienteId)).ToHashSet();
+        _unassignedParticipants = _allParticipants.Where(p => !assignedClientIds.Contains(p.ClienteId)).ToList();
+
+        // Update selection dictionary
+        _selectedParticipantIds = _unassignedParticipants.ToDictionary(p => p.ClienteId, p => false);
+    }
+
+    private IEnumerable<ParticipantsViewDTO> GetFilteredUnassignedParticipants()
+    {
+        if (string.IsNullOrWhiteSpace(_searchFilter))
+            return _unassignedParticipants;
+
+        return _unassignedParticipants.Where(p =>
+            p.Nominativo.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private IEnumerable<ParticipantsViewDTO> GetAvailableParticipants()
+    {
+        var currentOccupantIds = _currentRoomOccupants.Select(o => o.ClienteId).ToHashSet();
+
+        // Ottieni gli ID dei partecipanti assegnati ad ALTRE camere (non quella corrente)
+        var otherRoomsOccupantIds = _rooms
+            .Where(r => r.AlloggioPk != _currentRoom.MovClientiAlloggioPk) // Solo altre camere
+            .SelectMany(r => r.Occupanti.Select(o => o.ClienteId))
+            .ToHashSet();
+
+        return _allParticipants.Where(p =>
+            !currentOccupantIds.Contains(p.ClienteId) &&      // Non già nella camera corrente
+            !otherRoomsOccupantIds.Contains(p.ClienteId));    // Non già in altre camere
+    }
+
+    private bool IsParticipantInAnotherRoom(int clienteId)
+    {
+        return _rooms.Any(r =>
+            r.AlloggioPk != _currentRoom.MovClientiAlloggioPk &&
+            r.Occupanti.Any(o => o.ClienteId == clienteId));
+    }
+
+    private void CreateNewRoom()
+    {
+        _isEditingRoom = true;
+        _currentRoom = new MovClientiAlloggi
+        {
+            ViaggioIdFk = ViaggioId,
+            DataViaggioIdFk = DataViaggioId
+        };
+        _currentRoomOccupants.Clear();
+        _selectedOccupantToAdd = null;
+    }
+
+    private void CreateRoomFromSelected()
+    {
+        CreateNewRoom();
+
+        var selectedIds = _selectedParticipantIds.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
+        foreach (var clientId in selectedIds)
+        {
+            var participant = _allParticipants.FirstOrDefault(p => p.ClienteId == clientId);
+            if (participant != null)
+            {
+                _currentRoomOccupants.Add(new OccupantViewModel
+                {
+                    ClienteId = participant.ClienteId,
+                    Nominativo = participant.Nominativo,
+                    Ruolo = participant.Ruolo
+                });
+            }
+        }
+
+        // Auto-suggest room type
+        var suggestedType = SuggestAccommodationType(_currentRoomOccupants.Count);
+        if (suggestedType > 0)
+        {
+            _currentRoom.TipoAlloggioIdFk = suggestedType;
+        }
+
+        StateHasChanged();
+    }
+
+    private void EditRoom(RoomViewModel room)
+    {
+        _isEditingRoom = true;
+
+        // Load existing room data
+        var existingAlloggio = _rooms.FirstOrDefault(r => r.AlloggioPk == room.AlloggioPk);
+        if (existingAlloggio != null)
+        {
+            _currentRoom = new MovClientiAlloggi
+            {
+                MovClientiAlloggioPk = room.AlloggioPk,
+                ViaggioIdFk = ViaggioId,
+                DataViaggioIdFk = DataViaggioId,
+                TipoAlloggioIdFk = room.TipoAlloggioIdFk
+            };
+
+            _currentRoomOccupants = room.Occupanti.Select(o => new OccupantViewModel
+            {
+                ClienteId = o.ClienteId,
+                Nominativo = o.Nominativo,
+                Ruolo = o.Ruolo
+            }).ToList();
+        }
+
+        _selectedOccupantToAdd = null;
+    }
+
+    private async Task DeleteRoom(RoomViewModel room)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Eliminare questa camera? Gli occupanti verranno liberati e potranno essere riassegnati.",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await AlloggiService.RemoveAccommodationAsync(room.AlloggioPk);
+                Snackbar.Add("Camera eliminata con successo", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private void AddSelectedOccupant()
+    {
+        if (!_selectedOccupantToAdd.HasValue) return;
+
+        var participant = _allParticipants.FirstOrDefault(p => p.ClienteId == _selectedOccupantToAdd.Value);
+        if (participant != null && !_currentRoomOccupants.Any(o => o.ClienteId == participant.ClienteId))
+        {
+            _currentRoomOccupants.Add(new OccupantViewModel
+            {
+                ClienteId = participant.ClienteId,
+                Nominativo = participant.Nominativo,
+                Ruolo = participant.Ruolo
+            });
+        }
+
+        _selectedOccupantToAdd = null;
+    }
+
+    private void RemoveOccupant(int clienteId)
+    {
+        _currentRoomOccupants.RemoveAll(o => o.ClienteId == clienteId);
+    }
+
+    private bool CanSaveRoom()
+    {
+        if (_currentRoom.TipoAlloggioIdFk <= 0) return false;
+        if (!_currentRoomOccupants.Any()) return false;
+
+        var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentRoom.TipoAlloggioIdFk);
+        if (selectedTipo == null) return false;
+
+        return _currentRoomOccupants.Count <= selectedTipo.NumeroOccupanti;
+    }
+
+    private async Task SaveRoom()
+    {
+        if (!CanSaveRoom()) return;
+
+        try
+        {
+            // Map occupants to ClienteId fields
+            _currentRoom.ClienteId1Fk = _currentRoomOccupants.ElementAtOrDefault(0)?.ClienteId;
+            _currentRoom.ClienteId2Fk = _currentRoomOccupants.ElementAtOrDefault(1)?.ClienteId;
+            _currentRoom.ClienteId3Fk = _currentRoomOccupants.ElementAtOrDefault(2)?.ClienteId;
+            _currentRoom.ClienteId4Fk = _currentRoomOccupants.ElementAtOrDefault(3)?.ClienteId;
+            _currentRoom.ClienteId5Fk = _currentRoomOccupants.ElementAtOrDefault(4)?.ClienteId;
+            _currentRoom.ClienteId6Fk = _currentRoomOccupants.ElementAtOrDefault(5)?.ClienteId;
+
+            if (_currentRoom.MovClientiAlloggioPk > 0)
+            {
+                await AlloggiService.UpdateAccommodationAsync(_currentRoom);
+                Snackbar.Add("Camera aggiornata con successo", Severity.Success);
+            }
+            else
+            {
+                await AlloggiService.AddAccommodationAsync(_currentRoom);
+                Snackbar.Add("Camera creata con successo", Severity.Success);
+            }
+
+            CancelEdit();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void CancelEdit()
+    {
+        _isEditingRoom = false;
+        _currentRoom = new();
+        _currentRoomOccupants.Clear();
+        _selectedOccupantToAdd = null;
+    }
+
+    private int SuggestAccommodationType(int participantsCount)
+    {
+        if (participantsCount == 2)
+        {
+            var matrimoniale = _tipoAlloggi
+                .FirstOrDefault(t => t.Descrizione.Contains("MATRIMONIALE", StringComparison.OrdinalIgnoreCase));
+            if (matrimoniale != null) return matrimoniale.Id;
+        }
+
+        var suitable = _tipoAlloggi
+            .Where(t => t.NumeroOccupanti >= participantsCount)
+            .OrderBy(t => t.NumeroOccupanti)
+            .ThenBy(t => t.Supplemento ? 1 : 0)
+            .FirstOrDefault();
+
+        return suitable?.Id ?? 0;
+    }
+
+    private Color GetRoomStatusColor(RoomViewModel room)
+    {
+        if (room.Occupanti.Count == 0) return Color.Error;
+        if (room.Occupanti.Count == room.MaxOccupanti) return Color.Success;
+        return Color.Warning;
+    }
+
+    private string GetRoomStatusIcon(RoomViewModel room)
+    {
+        if (room.Occupanti.Count == 0) return "❌";
+        if (room.Occupanti.Count == room.MaxOccupanti) return "✓";
+        return "⚠️";
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

@@ -602,11 +602,13 @@
         var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Nuovo Viaggio", parameters, options);
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data != null)
+        // Refresh se il dialog è stato confermato (non cancellato)
+        if (result != null && !result.Canceled)
         {
             try
             {
                 await LoadDataAsync();
+                Snackbar.Add("Dati aggiornati", Severity.Success);
             }
             catch (Exception ex)
             {
@@ -644,7 +646,8 @@
         var dialog = await DialogService.ShowAsync<AnaViaggiDialog>("Modifica Viaggio", parameters, options);
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled && result.Data != null)
+        // Refresh se il dialog è stato confermato (non cancellato)
+        if (result != null && !result.Canceled)
         {
             try
             {

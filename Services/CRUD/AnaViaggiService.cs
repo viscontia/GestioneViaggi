@@ -75,7 +75,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                             AND (@onlyCompleted IS NULL 
                                 OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
                                 OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
-                            AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
+                            AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio >= CURRENT_DATE))
                        ) as matching_dates_count
                 FROM ana_viaggi v
                 LEFT JOIN eba_countries c ON v.viaggio_nazione_fk = c.country_id
@@ -92,7 +92,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     AND (@onlyCompleted IS NULL 
                         OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
                         OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
-                    AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
+                    AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio >= CURRENT_DATE))
                 ))
                 ORDER BY c.name, t.tipo_viaggi_descrizione, v.viaggio_descrizione_breve";
 
@@ -446,7 +446,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                 AND (@onlyCompleted IS NULL 
                     OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
                     OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
-                AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio > CURRENT_DATE))
+                AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio >= CURRENT_DATE))
                 ORDER BY d.data_viaggio_data_inizio DESC";
 
             await using var command = new NpgsqlCommand(sql, connection);

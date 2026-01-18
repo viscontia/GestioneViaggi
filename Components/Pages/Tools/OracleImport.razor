@@ -7,6 +7,7 @@
 @inject OracleDateViaggiImportService DateViaggiImportService
 @inject OracleMovClientiViaggiImportService MovClientiViaggiImportService
 @inject OracleMovClientiAlloggiImportService MovClientiAlloggiImportService
+@inject ExcelAnaMezziModelliImportService AnaMezziModelliImportService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -29,6 +30,7 @@
                     <MudSelectItem Value="@("ana_date_viaggi")">ana_date_viaggi</MudSelectItem>
                     <MudSelectItem Value="@("mov_clienti_viaggi")">mov_clienti_viaggi</MudSelectItem>
                     <MudSelectItem Value="@("mov_clienti_alloggi")">mov_clienti_alloggi</MudSelectItem>
+                    <MudSelectItem Value="@("ana_mezzi_modelli")">ana_mezzi_modelli</MudSelectItem>
                 </MudSelect>
             </MudItem>
 
@@ -44,8 +46,8 @@
                 </MudFileUpload>
                 @if (_selectedFile != null)
                 {
-                    <MudText Typo="Typo.caption" Class="mt-2">File selezionato: <b>@_selectedFile.Name</b>
-                        (@(_selectedFile.Size / 1024) KB)</MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2">File selezionato: <b>@_selectedFile.Name</b>
+                            (@(_selectedFile.Size / 1024) KB)</MudText>
                 }
             </MudItem>
 
@@ -76,34 +78,34 @@
                             StartIcon="@Icons.Material.Filled.PlayArrow"
                             OnClick="@(() => RunImport(false))"
                             Disabled="@(_isBusy)">
-                     @(_isBusy ? "Elaborazione in corso..." : "Avvia Importazione Reale")
+                    @(_isBusy ? "Elaborazione in corso..." : "Avvia Importazione Reale")
                  </MudButton>
             </MudItem>
         </MudGrid>
-        
+
         <!-- Progress Bar -->
         @if (_isBusy)
         {
-            <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="my-4" />
-            <MudText Typo="Typo.body2" Align="Align.Center">@_statusMessage</MudText>
+                <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="my-4" />
+                <MudText Typo="Typo.body2" Align="Align.Center">@_statusMessage</MudText>
         }
-        
+
         <!-- Duplicates Report -->
         @if (_duplicates.Any())
         {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">
-                Rilevati @_duplicates.Count record duplicati (Violazione Vincolo Unicità).
-                <br/>
-                Questi record verrebbero saltati o causerebbero errori.
-            </MudAlert>
-            <MudPaper Class="mt-2 pa-2" Elevation="0" Style="max-height: 200px; overflow-y: auto; background-color: #fff3e0;">
-                 <ul style="list-style-type: circle; padding-left: 20px;">
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mt-4">
+                    Rilevati @_duplicates.Count record duplicati (Violazione Vincolo Unicità).
+                    <br/>
+                    Questi record verrebbero saltati o causerebbero errori.
+                </MudAlert>
+                <MudPaper Class="mt-2 pa-2" Elevation="0" Style="max-height: 200px; overflow-y: auto; background-color: #fff3e0;">
+                     <ul style="list-style-type: circle; padding-left: 20px;">
                     @foreach (var dup in _duplicates)
                     {
-                        <li><MudText Typo="Typo.caption">@dup</MudText></li>
+                                <li><MudText Typo="Typo.caption">@dup</MudText></li>
                     }
-                </ul>
-            </MudPaper>
+                    </ul>
+                </MudPaper>
         }
 
         <!-- Log Output -->
@@ -123,7 +125,7 @@
     private IBrowserFile? _selectedFile;
     private bool _keepPk = true; // Forced true for legacy migration
     private bool _backupEnabled = true; // Default true
-    
+
     private bool _isBusy = false;
     private string _statusMessage = "";
     private string _logOutput = "";
@@ -143,13 +145,14 @@
 
     private async Task RunImport(bool dryRun)
     {
-        if (_selectedTable != "ana_clienti" && 
-            _selectedTable != "ana_viaggi" && 
-            _selectedTable != "ana_date_viaggi" && 
+        if (_selectedTable != "ana_clienti" &&
+            _selectedTable != "ana_viaggi" &&
+            _selectedTable != "ana_date_viaggi" &&
             _selectedTable != "mov_clienti_viaggi" &&
-            _selectedTable != "mov_clienti_alloggi")
+            _selectedTable != "mov_clienti_alloggi" &&
+            _selectedTable != "ana_mezzi_modelli")
         {
-            await DialogService.ShowMessageBox("Funzione non disponibile", 
+            await DialogService.ShowMessageBox("Funzione non disponibile",
                 $"L'importazione per la tabella '{_selectedTable}' non è ancora stata implementata.");
             return;
         }
@@ -161,26 +164,26 @@
         }
 
         string actionName = dryRun ? "SIMULAZIONE" : "IMPORTAZIONE REALE";
-        
-        bool? confirm = await DialogService.ShowMessageBox($"Conferma {actionName}", 
-            dryRun 
+
+        bool? confirm = await DialogService.ShowMessageBox($"Conferma {actionName}",
+            dryRun
                 ? "Vuoi avviare una scansione per rilevare eventuali duplicati?\nIl database NON verrà modificato."
-                : $"Stai per sovrascrivere la tabella '{_selectedTable}'.\nOperazione IRREVERSIBILE (se backup fallisce).\n\nProcedere?", 
+                : $"Stai per sovrascrivere la tabella '{_selectedTable}'.\nOperazione IRREVERSIBILE (se backup fallisce).\n\nProcedere?",
             yesText: "SI, Procedi", cancelText: "Annulla");
-        
+
         if (confirm != true) return;
 
         _isBusy = true;
         _logOutput = ""; // Clear log
         _duplicates.Clear(); // Clear previous results
-        
+
         AddLog($"--- INIZIO {actionName} ---");
         AddLog($"Tabella target: {_selectedTable}");
         AddLog($"File sorgente: {_selectedFile.Name}");
 
         // Save file to temporary path
         var tempFile = Path.Combine(FileSystem.CacheDirectory, _selectedFile.Name);
-        
+
         try
         {
             AddLog("Upload file in cache...");
@@ -200,6 +203,7 @@
                 if (_selectedTable == "ana_date_viaggi") await DateViaggiImportService.BackupTableAsync(_selectedTable);
                 if (_selectedTable == "mov_clienti_viaggi") await MovClientiViaggiImportService.BackupTableAsync(_selectedTable);
                 if (_selectedTable == "mov_clienti_alloggi") await MovClientiAlloggiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "ana_mezzi_modelli") await AnaMezziModelliImportService.BackupTableAsync(_selectedTable);
                 AddLog("Backup completato (Tabella suffix _BAK).");
             }
 
@@ -224,7 +228,15 @@
             {
                 result = await MovClientiViaggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
             }
-            else // mov_clienti_alloggi
+            else if (_selectedTable == "mov_clienti_alloggi")
+            {
+                result = await MovClientiAlloggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else if (_selectedTable == "ana_mezzi_modelli")
+            {
+                result = await AnaMezziModelliImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else
             {
                 result = await MovClientiAlloggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
             }
@@ -232,14 +244,14 @@
             AddLog($"--- {actionName} COMPLETATA ---");
             AddLog($"Record letti da Excel: {result.RecordsRead}");
             AddLog($"Record processati (scritti/simulati): {result.RecordsWritten}");
-            
+
             if (result.DuplicateDetails.Any())
             {
                 _duplicates = result.DuplicateDetails;
                 AddLog($"!!! IMPORTANTE: Trovati {result.DuplicateDetails.Count} duplicati/conflitti.");
-                foreach(var d in result.DuplicateDetails.Take(5)) AddLog($"  -> {d}");
+                foreach (var d in result.DuplicateDetails.Take(5)) AddLog($"  -> {d}");
                 if (result.DuplicateDetails.Count > 5) AddLog($"  -> ... e altri {result.DuplicateDetails.Count - 5}");
-                
+
                 Snackbar.Add($"Rilevati {result.DuplicateDetails.Count} duplicati.", Severity.Warning);
             }
             else
@@ -267,7 +279,8 @@
                     if (_selectedTable == "ana_date_viaggi") await DateViaggiImportService.RestoreTableAsync(_selectedTable);
                     if (_selectedTable == "mov_clienti_viaggi") await MovClientiViaggiImportService.RestoreTableAsync(_selectedTable);
                     if (_selectedTable == "mov_clienti_alloggi") await MovClientiAlloggiImportService.RestoreTableAsync(_selectedTable);
-                    
+                    if (_selectedTable == "ana_mezzi_modelli") await AnaMezziModelliImportService.RestoreTableAsync(_selectedTable);
+
                     AddLog("ROLLBACK RIUSCITO. La tabella è stata ripristinata dal backup.");
                     Snackbar.Add("Rollback completato.", Severity.Warning);
                 }
