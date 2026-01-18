@@ -29,19 +29,19 @@ textarea {
     border-radius: 8px !important;
 }
 
-/* HEADER LIGHT - Ultra specifico */
+/* HEADER - Theme Aware */
 .mud-table-container .mud-table .mud-table-head .mud-table-row .mud-table-cell,
 .mud-table .mud-table-head .mud-table-row .mud-table-cell,
 .mud-table-head .mud-table-row .mud-table-cell {
-    background-color: #F7F8FA !important;
-    color: #6B7280 !important;
+    background-color: var(--mud-palette-background) !important;
+    color: var(--mud-palette-text-secondary) !important;
     font-size: 13px !important;
     font-weight: 500 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     padding: 10px 16px !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.04) !important;
+    border-bottom: 1px solid var(--mud-palette-table-lines) !important;
+    box-shadow: inset 0 -1px 0 var(--mud-palette-table-lines) !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 
@@ -52,53 +52,53 @@ textarea {
     font-weight: 600;
 }
 
-/* BODY ROWS LIGHT - Base state */
+/* BODY ROWS - Theme Aware */
 .mud-table-container .mud-table .mud-table-body .mud-table-row,
 .mud-table .mud-table-body .mud-table-row,
 .mud-table-body .mud-table-row {
-    background-color: #FFFFFF !important;
+    background-color: var(--mud-palette-surface) !important;
     transition: background-color 0.15s ease !important;
 }
 
-/* CELLS LIGHT */
+/* CELLS - Theme Aware */
 .mud-table-container .mud-table .mud-table-body .mud-table-row .mud-table-cell,
 .mud-table .mud-table-body .mud-table-row .mud-table-cell,
 .mud-table-body .mud-table-row .mud-table-cell {
-    background-color: #FFFFFF !important;
-    color: #111827 !important;
+    background-color: var(--mud-palette-surface) !important;
+    color: var(--mud-palette-text-primary) !important;
     font-size: 15px !important;
     font-weight: 400 !important;
     padding: 14px 16px !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+    border-bottom: 1px solid var(--mud-palette-table-lines) !important;
     line-height: 1.5 !important;
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 
-/* HOVER LIGHT (non selezionata) */
+/* HOVER - Theme Aware */
 .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
 .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
 .mud-table-body .mud-table-row:hover:not(.mud-selected) {
-    background-color: #F9FAFB !important;
+    background-color: var(--mud-palette-action-default-hover) !important;
 }
 
 .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
 .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
 .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell {
-    background-color: #F9FAFB !important;
+    background-color: var(--mud-palette-action-default-hover) !important;
 }
 
-/* SELECTED ROW LIGHT */
+/* SELECTED ROW - Theme Aware */
 .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected,
 .mud-table .mud-table-body .mud-table-row.mud-selected,
 .mud-table-body .mud-table-row.mud-selected {
-    background-color: rgba(14, 165, 233, 0.08) !important;
+    background-color: rgba(var(--mud-palette-info-rgb), 0.12) !important;
 }
 
 .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
 .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
 .mud-table-body .mud-table-row.mud-selected .mud-table-cell {
-    background-color: rgba(14, 165, 233, 0.08) !important;
-    color: #111827 !important;
+    background-color: rgba(var(--mud-palette-info-rgb), 0.12) !important;
+    color: var(--mud-palette-text-primary) !important;
 }
 
 /* ========================================== */
@@ -106,6 +106,9 @@ textarea {
 /* ========================================== */
 
 /* HEADER DARK - Ultra specifico */
+.mud-theme-dark .mud-table-container .mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.mud-theme-dark .mud-table .mud-table-head .mud-table-row .mud-table-cell,
+.mud-theme-dark .mud-table-head .mud-table-row .mud-table-cell,
 .theme-dark .mud-table-container .mud-table .mud-table-head .mud-table-row .mud-table-cell,
 .theme-dark .mud-table .mud-table-head .mud-table-row .mud-table-cell,
 .theme-dark .mud-table-head .mud-table-row .mud-table-cell {
@@ -122,6 +125,9 @@ textarea {
 }
 
 /* BODY ROWS DARK - Base state */
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row,
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row,
+.mud-theme-dark .mud-table-body .mud-table-row,
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row,
 .theme-dark .mud-table .mud-table-body .mud-table-row,
 .theme-dark .mud-table-body .mud-table-row {
@@ -130,6 +136,9 @@ textarea {
 }
 
 /* CELLS DARK */
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row .mud-table-cell,
+.mud-theme-dark .mud-table-body .mud-table-row .mud-table-cell,
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row .mud-table-cell,
 .theme-dark .mud-table .mud-table-body .mud-table-row .mud-table-cell,
 .theme-dark .mud-table-body .mud-table-row .mud-table-cell {
@@ -144,12 +153,18 @@ textarea {
 }
 
 /* HOVER DARK (non selezionata) */
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
+.mud-theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected),
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
 .theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected),
 .theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) {
     background-color: #35383F !important;
 }
 
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
+.mud-theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
 .theme-dark .mud-table .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell,
 .theme-dark .mud-table-body .mud-table-row:hover:not(.mud-selected) .mud-table-cell {
@@ -157,12 +172,18 @@ textarea {
 }
 
 /* SELECTED ROW DARK */
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected,
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected,
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected,
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected,
 .theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected,
 .theme-dark .mud-table-body .mud-table-row.mud-selected {
     background-color: rgba(14, 165, 233, 0.15) !important;
 }
 
+.mud-theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.mud-theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
+.mud-theme-dark .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
 .theme-dark .mud-table-container .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
 .theme-dark .mud-table .mud-table-body .mud-table-row.mud-selected .mud-table-cell,
 .theme-dark .mud-table-body .mud-table-row.mud-selected .mud-table-cell {

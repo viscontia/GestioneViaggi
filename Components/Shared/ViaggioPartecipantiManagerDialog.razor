@@ -28,11 +28,11 @@
                             <MudText Typo="Typo.h6">
                                 @if (!string.IsNullOrEmpty(_summaryTitle))
                                 {
-                                    <span>@_summaryTitle</span>
+                                        <span>@_summaryTitle</span>
                                 }
                                 else
                                 {
-                                    <span>Gestione Viaggio</span>
+                                        <span>Gestione Viaggio</span>
                                 }
                             </MudText>
                             <div class="d-flex gap-2">
@@ -49,80 +49,112 @@
 
                         @if (_isLoadingList)
                         {
-                            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
                         }
                         else
                         {
-                            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-2" Centered="true">
+                                <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-2" Centered="true">
 
-                                <!-- TAB 1: PARTECIPANTI -->
-                                <MudTabPanel>
-                                    <TabContent>
-                                        <div class="d-flex align-center gap-1">
-                                            <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
-                                            <MudText Typo="Typo.body2">Partecipanti (@_participants.Count)</MudText>
-                                        </div>
-                                    </TabContent>
-                                    <ChildContent>
-                                        <MudSimpleTable Dense="true" Hover="true" Striped="true" Bordered="true"
-                                                        FixedHeader="true" Style="font-size: 0.875rem;">
-                                            <thead>
-                                                <tr>
-                                                    <th style="padding: 4px 8px; width: 30px;"></th>
-                                                    <th style="padding: 4px 8px; min-width: 180px;">Nominativo</th>
-                                                    <th style="padding: 4px 8px; min-width: 150px;">Ruolo</th>
-                                                    <th style="padding: 4px 8px; min-width: 200px;">Veicolo</th>
-                                                    <th style="padding: 4px 8px; width: 80px; text-align: center;">Info</th>
-                                                    <th style="padding: 4px 8px; width: 100px; text-align: center;">Azioni</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
+                                    <!-- TAB 1: PARTECIPANTI -->
+                                    <MudTabPanel>
+                                        <TabContent>
+                                            <div class="d-flex align-center gap-1">
+                                                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                                <MudText Typo="Typo.body2">Partecipanti (@_participants.Count)</MudText>
+                                            </div>
+                                        </TabContent>
+                                        <ChildContent>
+                                            <MudSimpleTable Dense="true" Hover="true" Striped="true" Bordered="true"
+                                                            FixedHeader="true" Style="font-size: 15px;">
+                                                <thead>
+                                                    <tr>
+                                                        <th style="padding: 4px 8px; width: 30px;"></th>
+                                                        <th style="padding: 4px 8px; min-width: 180px;">Nominativo</th>
+                                                        <th style="padding: 4px 8px; min-width: 150px;">Ruolo</th>
+                                                        <th style="padding: 4px 8px; min-width: 200px;">Veicolo</th>
+                                                        <th style="padding: 4px 8px; width: 80px; text-align: center;">Info</th>
+                                                        <th style="padding: 4px 8px; width: 100px; text-align: center;">Azioni</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
                                                 @foreach (var participant in GetSortedParticipants())
                                                 {
                                                     var isPilot = participant.ClienteId == participant.GroupingKey;
-                                                    var rowStyle = isPilot ? "background-color: var(--mud-palette-background-grey); font-weight: 600;" : "";
+                                                    // Stile riga: 
+                                                    // - Pilota: Sfondo Tinta Primary molto leggero (funziona sia Light che Dark)
+                                                    // - Passeggero: Sfondo standard
+                                                    var rowStyle = isPilot 
+                                                        ? "background-color: rgba(var(--mud-palette-primary-rgb), 0.04); border-top: 2px solid var(--mud-palette-divider); font-weight: 600;" 
+                                                        : "background-color: transparent;";
 
                                                     <tr style="@rowStyle">
                                                         <!-- Icona Tipo -->
                                                         <td style="padding: 4px 8px; text-align: center;">
                                                             @if (isPilot)
                                                             {
-                                                                <MudIcon Icon="@Icons.Material.Filled.SportsMotorsports" Color="Color.Primary" Size="Size.Small" Style="font-size: 1rem;" />
+                                                                <MudIcon Icon="@Icons.Material.Filled.SportsMotorsports" Color="Color.Primary" Size="Size.Small" Style="font-size: 1.1rem;" />
                                                             }
                                                             else
                                                             {
-                                                                <MudIcon Icon="@Icons.Material.Filled.SubdirectoryArrowRight" Color="Color.Default" Size="Size.Small" Style="opacity: 0.5; font-size: 0.8rem;" />
+                                                                 // Icona o spazio per passeggero (Gestito nell'indentazione del nome)
                                                             }
                                                         </td>
 
                                                         <!-- Nominativo -->
                                                         <td style="padding: 4px 8px;">
-                                                            @if (!isPilot)
+                                                            @if (isPilot)
                                                             {
-                                                                <MudText Typo="Typo.body2">
-                                                                    <span style="opacity: 0.3; margin-right: 4px;">...</span>@participant.Nominativo
+                                                                <MudText Typo="Typo.body1" Color="Color.Primary" Style="font-weight: 700;">
+                                                                    @participant.Nominativo
                                                                 </MudText>
                                                             }
                                                             else
                                                             {
-                                                                <MudText Typo="Typo.body2" Style="color: var(--mud-palette-primary);">
-                                                                    @participant.Nominativo
-                                                                </MudText>
+                                                                // Indentazione visiva per i passeggeri
+                                                                <div class="d-flex align-center">
+                                                                    <!-- Linea guida visiva -->
+                                                                    <div style="
+                                                                        width: 20px; 
+                                                                        height: 24px; 
+                                                                        margin-left: 8px; 
+                                                                        border-left: 2px solid var(--mud-palette-divider); 
+                                                                        border-bottom: 2px solid var(--mud-palette-divider);
+                                                                        border-bottom-left-radius: 8px;
+                                                                        margin-right: 8px;
+                                                                        opacity: 0.5;">
+                                                                    </div>
+                                                                    <MudText Typo="Typo.body1" Style="color: var(--mud-palette-text-primary);">
+                                                                        @participant.Nominativo
+                                                                    </MudText>
+                                                                </div>
                                                             }
                                                         </td>
 
                                                         <!-- Ruolo -->
                                                         <td style="padding: 4px 8px;">
-                                                            <MudText Typo="Typo.body2">@participant.Ruolo</MudText>
+                                                            @if (isPilot)
+                                                            {
+                                                                // Pilota: Evidenziato con Chip Filled per massimo contrasto
+                                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text" Style="font-weight: 600; border-radius: 4px;">
+                                                                    @GetDisplayRole(participant.Ruolo)
+                                                                </MudChip>
+                                                            }
+                                                            else
+                                                            {
+                                                                // Passeggero: Testo light e ruolo semplificato
+                                                                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); white-space: nowrap;">
+                                                                    @GetDisplayRole(participant.Ruolo)
+                                                                </MudText>
+                                                            }
                                                         </td>
 
                                                         <!-- Veicolo -->
                                                         <td style="padding: 4px 8px;">
-                                                            @if (!string.IsNullOrEmpty(participant.MezzoDettagli))
+                                                            @if (isPilot && !string.IsNullOrEmpty(participant.MezzoDettagli))
                                                             {
                                                                 <div class="d-flex align-center gap-1">
-                                                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" Color="Color.Secondary" Style="font-size: 0.8rem;" />
-                                                                    <MudText Typo="Typo.body2" Style="font-size: 0.8rem;">@participant.MezzoDettagli</MudText>
+                                                                    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" Color="Color.Secondary" Style="font-size: 0.9rem;" />
+                                                                    <MudText Typo="Typo.body2" Style="font-size: 0.95rem; font-weight: 500;">@participant.MezzoDettagli</MudText>
                                                                 </div>
                                                             }
                                                         </td>
@@ -161,32 +193,33 @@
                                                     </tr>
                                                 }
                                             </tbody>
-                                        </MudSimpleTable>
-                                    </ChildContent>
-                                </MudTabPanel>
 
-                                <!-- TAB 2: ALLOGGI -->
-                                <MudTabPanel>
-                                    <TabContent>
-                                        <div class="d-flex align-center gap-1">
-                                            <MudIcon Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" />
-                                            <MudText Typo="Typo.body2">Alloggi (@_existingRooms.Count)</MudText>
-                                        </div>
-                                    </TabContent>
-                                    <ChildContent>
+                                            </MudSimpleTable>
+                                        </ChildContent>
+                                    </MudTabPanel>
+
+                                    <!-- TAB 2: ALLOGGI -->
+                                    <MudTabPanel>
+                                        <TabContent>
+                                            <div class="d-flex align-center gap-1">
+                                                <MudIcon Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" />
+                                                <MudText Typo="Typo.body2">Alloggi (@_existingRooms.Count)</MudText>
+                                            </div>
+                                        </TabContent>
+                                        <ChildContent>
                                         @{
                                             var participantsWithoutRoom = GetParticipantsWithoutAccommodation();
                                         }
 
-                                        <!-- Warning Partecipanti Senza Camera -->
+                                            <!-- Warning Partecipanti Senza Camera -->
                                         @if (participantsWithoutRoom.Any())
                                         {
-                                            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Style="padding: 8px;">
-                                                <b>⚠️ @participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(participantsWithoutRoom.Count > 3 ? $" +{participantsWithoutRoom.Count - 3} altri" : "")
-                                            </MudAlert>
+                                                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Style="padding: 8px;">
+                                                        <b>⚠️ @participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(participantsWithoutRoom.Count > 3 ? $" +{participantsWithoutRoom.Count - 3} altri" : "")
+                                                    </MudAlert>
                                         }
 
-                                        <!-- Sezione Alloggi Assegnati - Raggruppata per Tipo -->
+                                            <!-- Sezione Alloggi Assegnati - Raggruppata per Tipo -->
                                         @if (_existingRooms.Any())
                                         {
                                             var roomsByType = _existingRooms
@@ -198,63 +231,63 @@
                                                 var groupRooms = roomGroup.OrderBy(r => string.Join(", ", r.OccupantNames)).ToList();
                                                 var hasSupplementInGroup = groupRooms.Any(r => r.HasSupplement);
 
-                                                <!-- Header Tipologia -->
-                                                <div style="background-color: var(--mud-palette-background); padding: 4px 8px; margin-top: 4px; border-left: 3px solid var(--mud-palette-primary); border-radius: 4px;">
-                                                    <MudText Typo="Typo.caption" Style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">
+                                                            <!-- Header Tipologia -->
+                                                            <div style="background-color: var(--mud-palette-background); padding: 4px 8px; margin-top: 4px; border-left: 3px solid var(--mud-palette-primary); border-radius: 4px;">
+                                                                <MudText Typo="Typo.caption" Style="font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">
                                                         @roomGroup.Key (@groupRooms.Count)
                                                         @if (hasSupplementInGroup)
                                                         {
-                                                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" Color="Color.Warning" Style="font-size: 0.75rem; margin-left: 4px;" />
+                                                                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Small" Color="Color.Warning" Style="font-size: 0.75rem; margin-left: 4px;" />
                                                         }
-                                                    </MudText>
-                                                </div>
+                                                                </MudText>
+                                                            </div>
 
-                                                <!-- Camere del gruppo -->
-                                                <MudSimpleTable Dense="true" Style="font-size: 0.75rem; margin-bottom: 8px;">
-                                                    <tbody>
+                                                            <!-- Camere del gruppo -->
+                                                            <MudSimpleTable Dense="true" Style="font-size: 0.75rem; margin-bottom: 8px;">
+                                                                <tbody>
                                                         @foreach (var room in groupRooms)
                                                         {
-                                                            <tr style="border-bottom: 1px solid var(--mud-palette-divider-light);">
-                                                                <td style="padding: 4px 8px; width: 50px; text-align: center;">
-                                                                    <MudIcon Icon="@room.StatusIcon" Size="Size.Small" Color="@room.StatusColor" Style="font-size: 0.9rem;" />
-                                                                </td>
-                                                                <td style="padding: 4px 8px; width: 70px; text-align: center;">
-                                                                    <MudChip T="string" Size="Size.Small" Color="@room.StatusColor" Variant="Variant.Text" Style="font-size: 0.65rem; height: 18px; padding: 0 6px;">
+                                                                            <tr style="border-bottom: 1px solid var(--mud-palette-divider-light);">
+                                                                                <td style="padding: 4px 8px; width: 50px; text-align: center;">
+                                                                                    <MudIcon Icon="@room.StatusIcon" Size="Size.Small" Color="@room.StatusColor" Style="font-size: 0.9rem;" />
+                                                                                </td>
+                                                                                <td style="padding: 4px 8px; width: 70px; text-align: center;">
+                                                                                    <MudChip T="string" Size="Size.Small" Color="@room.StatusColor" Variant="Variant.Text" Style="font-size: 0.65rem; height: 18px; padding: 0 6px;">
                                                                         @room.StatusText
-                                                                    </MudChip>
-                                                                </td>
-                                                                <td style="padding: 4px 8px;">
+                                                                                    </MudChip>
+                                                                                </td>
+                                                                                <td style="padding: 4px 8px;">
                                                                     @if (room.OccupantNames.Any())
                                                                     {
-                                                                        <span>@string.Join(", ", room.OccupantNames)</span>
+                                                                                            <span>@string.Join(", ", room.OccupantNames)</span>
                                                                     }
                                                                     else
                                                                     {
-                                                                        <span style="opacity: 0.5; font-style: italic;">vuota</span>
+                                                                                            <span style="opacity: 0.5; font-style: italic;">vuota</span>
                                                                     }
-                                                                </td>
-                                                                <td style="padding: 4px 8px; width: 100px; text-align: center;">
-                                                                    <div class="d-flex align-center justify-center gap-1">
-                                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => EditRoom(room))" Style="width: 28px; height: 28px;" />
-                                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteRoom(room))" Style="width: 28px; height: 28px;" />
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
+                                                                                </td>
+                                                                                <td style="padding: 4px 8px; width: 100px; text-align: center;">
+                                                                                    <div class="d-flex align-center justify-center gap-1">
+                                                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => EditRoom(room))" Style="width: 28px; height: 28px;" />
+                                                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteRoom(room))" Style="width: 28px; height: 28px;" />
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
                                                         }
-                                                    </tbody>
-                                                </MudSimpleTable>
+                                                                </tbody>
+                                                            </MudSimpleTable>
                                             }
                                         }
                                         else
                                         {
-                                            <MudAlert Severity="Severity.Info" Dense="true">
-                                                Nessuna camera assegnata per questo viaggio
-                                            </MudAlert>
+                                                    <MudAlert Severity="Severity.Info" Dense="true">
+                                                        Nessuna camera assegnata per questo viaggio
+                                                    </MudAlert>
                                         }
-                                    </ChildContent>
-                                </MudTabPanel>
+                                        </ChildContent>
+                                    </MudTabPanel>
 
-                            </MudTabs>
+                                </MudTabs>
                         }
                     </MudPaper>
                 </MudItem>
@@ -264,26 +297,26 @@
                     <MudPaper Elevation="0" Class="pa-3 h-100">
                          <MudText Typo="Typo.h6" Class="mb-3">@(_isEditMode ? "Modifica Partecipante" : "Nuovo Inserimento")</MudText>
 
-                         <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
-                            
-                             <!-- 1. Selection Cliente -->
-                             <ClienteSelect @bind-SelectedCliente="_selectedCliente"
-                                            AziendaId="@AziendaId"
-                                            Required="true" 
-                                            RequiredError="Selezionare un cliente"
-                                            Disabled="@_isEditMode" 
-                                            Class="mb-3" />
+                             <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
 
-                             <!-- 2. Trip Config -->
-                             <MudGrid Spacing="2">
-                                 <MudItem xs="6">
-                                     <MudSelect T="int" Label="Ruolo" Value="_currentEntity.TipoPartecipanteIdFk"
-                                                Required="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                                                ValueChanged="@OnRoleChanged">
-                                         @foreach(var t in _tipoPartecipanti)
-                                         {
-                                             <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
-                                         }
+                                 <!-- 1. Selection Cliente -->
+                                 <ClienteSelect @bind-SelectedCliente="_selectedCliente"
+                                                AziendaId="@AziendaId"
+                                                Required="true" 
+                                                RequiredError="Selezionare un cliente"
+                                                Disabled="@_isEditMode" 
+                                                Class="mb-3" />
+
+                                 <!-- 2. Trip Config -->
+                                 <MudGrid Spacing="2">
+                                     <MudItem xs="6">
+                                         <MudSelect T="int" Label="Ruolo" Value="_currentEntity.TipoPartecipanteIdFk"
+                                                    Required="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                                                    ValueChanged="@OnRoleChanged">
+                                            @foreach (var t in _tipoPartecipanti)
+                                        {
+                                                 <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
+                                        }
                                      </MudSelect>
                                  </MudItem>
                                  <MudItem xs="6" Class="d-flex align-center">
@@ -292,209 +325,209 @@
                              </MudGrid>
 
                              <!-- Pilot Selection (Visible only if NOT Pilot) -->
-                             @if (_currentEntity.TipoPartecipanteIdFk > 0 && !IsPilot(_currentEntity.TipoPartecipanteIdFk))
-                             {
-                                 <MudSelect T="int?" Label="Assegnato al Veicolo di" @bind-Value="_currentEntity.ClientePilotaIdFk" 
-                                            Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
-                                            Clearable="true" AdornmentIcon="@Icons.Material.Filled.SportsMotorsports">
-                                     @foreach(var p in _participants.Where(x => IsPilot(x.TipoPartecipanteId)))
-                                     {
-                                         <MudSelectItem T="int?" Value="@p.ClienteId">@p.Nominativo</MudSelectItem>
-                                     }
-                                 </MudSelect>
-                             }
+                            @if (_currentEntity.TipoPartecipanteIdFk > 0 && !IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                            {
+                                     <MudSelect T="int?" Label="Assegnato al Veicolo di" @bind-Value="_currentEntity.ClientePilotaIdFk" 
+                                                Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2"
+                                                Clearable="true" AdornmentIcon="@Icons.Material.Filled.SportsMotorsports">
+                                    @foreach (var p in _participants.Where(x => IsPilot(x.TipoPartecipanteId)))
+                                    {
+                                                 <MudSelectItem T="int?" Value="@p.ClienteId">@p.Nominativo</MudSelectItem>
+                                    }
+                                     </MudSelect>
+                            }
 
                              <MudTextField @bind-Value="_currentEntity.MovClienteViaggioNote" Label="Note Viaggio" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" Class="mt-3" />
 
                              <!-- Vehicle Config (Visible only if Pilot) -->
-                             @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
-                             {
-                                 <MudDivider Class="my-3" />
-                                 <div class="d-flex align-center gap-2 mb-2">
-                                     <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Small" />
-                                     <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
-                                 </div>
-                                 
-                                 <MudGrid Spacing="2">
-                                     <MudItem xs="6">
-                                         <MarcaVeicoloSelect SelectedId="@_currentEntity.AnaMezziIdFk"
-                                                             SelectedIdChanged="@OnMarcaChanged"
-                                                             Label="Marca" Required="false" />
-                                     </MudItem>
-                                     <MudItem xs="6">
-                                         <MezzoModelloSelect @ref="_modelloSelect"
-                                                             SelectedId="@_currentEntity.MezzoModelloIdFk"
-                                                             SelectedIdChanged="@((int? val) => _currentEntity.MezzoModelloIdFk = val)"
-                                                             MarcaId="@_currentEntity.AnaMezziIdFk"
-                                                             Label="Modello" Required="false"
-                                                             Disabled="@(!_currentEntity.AnaMezziIdFk.HasValue)" />
-                                     </MudItem>
-                                     <MudItem xs="6">
-                                         <MudTextField @bind-Value="_currentEntity.MovClienteViaggioTargaMezzo" 
-                                                       Label="Targa" Variant="Variant.Outlined" Margin="Margin.Dense" 
-                                                       Class="uppercase-input" />
-                                     </MudItem>
-                                     <MudItem xs="6">
-                                         <MudNumericField @bind-Value="_currentEntity.MovClienteViaggioScontovalTotale" 
-                                                          Label="Sconto Totale (€)" Variant="Variant.Outlined" Margin="Margin.Dense" 
-                                                          Min="0" HideSpinButtons="true" Format="N2" />
-                                     </MudItem>
-                                 </MudGrid>
-                             }
+                            @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                            {
+                                     <MudDivider Class="my-3" />
+                                     <div class="d-flex align-center gap-2 mb-2">
+                                         <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Small" />
+                                         <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
+                                     </div>
 
-                             @if (!_isEditMode)
-                             {
-                                 <MudDivider Class="my-3" />
+                                     <MudGrid Spacing="2">
+                                         <MudItem xs="6">
+                                             <MarcaVeicoloSelect SelectedId="@_currentEntity.AnaMezziIdFk"
+                                                                 SelectedIdChanged="@OnMarcaChanged"
+                                                                 Label="Marca" Required="false" />
+                                         </MudItem>
+                                         <MudItem xs="6">
+                                             <MezzoModelloSelect @ref="_modelloSelect"
+                                                                 SelectedId="@_currentEntity.MezzoModelloIdFk"
+                                                                 SelectedIdChanged="@((int? val) => _currentEntity.MezzoModelloIdFk = val)"
+                                                                 MarcaId="@_currentEntity.AnaMezziIdFk"
+                                                                 Label="Modello" Required="false"
+                                                                 Disabled="@(!_currentEntity.AnaMezziIdFk.HasValue)" />
+                                         </MudItem>
+                                         <MudItem xs="6">
+                                             <MudTextField @bind-Value="_currentEntity.MovClienteViaggioTargaMezzo" 
+                                                           Label="Targa" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                                           Class="uppercase-input" />
+                                         </MudItem>
+                                         <MudItem xs="6">
+                                             <MudNumericField @bind-Value="_currentEntity.MovClienteViaggioScontovalTotale" 
+                                                              Label="Sconto Totale (€)" Variant="Variant.Outlined" Margin="Margin.Dense" 
+                                                              Min="0" HideSpinButtons="true" Format="N2" />
+                                         </MudItem>
+                                     </MudGrid>
+                            }
 
-                                 <!-- 3. Accommodation Config (Solo in INSERT mode) -->
-                                 <div class="d-flex align-center justify-space-between mb-2">
-                                    <div class="d-flex align-center gap-2">
-                                        <MudIcon Icon="@Icons.Material.Filled.Hotel" Color="Color.Primary" Size="Size.Small" />
-                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Alloggio</b></MudText>
-                                    </div>
-                                    <MudSwitch @bind-Value="@_wantsAccommodation"
-                                               Label="@(_wantsAccommodation ? "Assegna camera" : "No")"
-                                               Color="Color.Success" />
-                                 </div>
+                            @if (!_isEditMode)
+                            {
+                                     <MudDivider Class="my-3" />
 
-                             @if (_wantsAccommodation)
-                             {
-                                 <MudPaper Class="pa-3" Outlined="true" Style="background-color: var(--mud-palette-background-grey);">
+                                     <!-- 3. Accommodation Config (Solo in INSERT mode) -->
+                                     <div class="d-flex align-center justify-space-between mb-2">
+                                        <div class="d-flex align-center gap-2">
+                                            <MudIcon Icon="@Icons.Material.Filled.Hotel" Color="Color.Primary" Size="Size.Small" />
+                                            <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Alloggio</b></MudText>
+                                        </div>
+                                        <MudSwitch @bind-Value="@_wantsAccommodation"
+                                                   Label="@(_wantsAccommodation ? "Assegna camera" : "No")"
+                                                   Color="Color.Success" />
+                                     </div>
 
-                                     <!-- Scelta: Camera Esistente o Nuova -->
-                                     <MudRadioGroup @bind-Value="_assignToExistingRoom" Class="mb-3">
-                                         <MudRadio T="bool" Value="true" Color="Color.Primary" Dense="true">
-                                             <div class="d-flex align-center gap-1">
-                                                 <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Size="Size.Small" />
-                                                 <span>Aggiungi a camera esistente</span>
-                                             </div>
-                                         </MudRadio>
-                                         <MudRadio T="bool" Value="false" Color="Color.Primary" Dense="true">
-                                             <div class="d-flex align-center gap-1">
-                                                 <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
-                                                 <span>Crea nuova camera</span>
-                                             </div>
-                                         </MudRadio>
-                                     </MudRadioGroup>
+                                @if (_wantsAccommodation)
+                                {
+                                         <MudPaper Class="pa-3" Outlined="true" Style="background-color: var(--mud-palette-background-grey);">
 
-                                     @if (_assignToExistingRoom)
-                                     {
-                                         <!-- Opzione 1: Seleziona Camera Esistente -->
-                                         var availableRooms = _existingRooms.Where(r => r.HasSpace).ToList();
-
-                                         @if (availableRooms.Any())
-                                         {
-                                             <MudSelect T="int?" Label="Seleziona Camera"
-                                                       @bind-Value="_selectedExistingRoomId"
-                                                       Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                       Required="true">
-                                                 @foreach(var room in availableRooms)
-                                                 {
-                                                     <MudSelectItem T="int?" Value="@room.RoomId">
-                                                         <div class="d-flex align-center justify-space-between width-100">
-                                                             <span>@room.RoomType - @string.Join(", ", room.OccupantNames)</span>
-                                                             <MudChip T="string" Size="Size.Small" Color="@room.StatusColor" Variant="Variant.Text">
-                                                                 @room.StatusText
-                                                             </MudChip>
-                                                         </div>
-                                                     </MudSelectItem>
-                                                 }
-                                             </MudSelect>
-
-                                             @if (_selectedExistingRoomId.HasValue)
-                                             {
-                                                 var selectedRoom = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId.Value);
-                                                 @if (selectedRoom != null)
-                                                 {
-                                                     <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
-                                                         Camera: <b>@selectedRoom.RoomType</b><br/>
-                                                         Occupanti attuali: @string.Join(", ", selectedRoom.OccupantNames)<br/>
-                                                         Dopo assegnazione: @(selectedRoom.CurrentOccupants + 1)/@selectedRoom.MaxOccupants
-                                                     </MudAlert>
-
-                                                     @if (selectedRoom.HasSupplement)
-                                                     {
-                                                         <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
-                                                             💡 Questa camera prevede un supplemento aggiuntivo
-                                                         </MudAlert>
-                                                     }
-                                                 }
-                                             }
-                                         }
-                                         else
-                                         {
-                                             <MudAlert Severity="Severity.Warning" Dense="true">
-                                                 Nessuna camera disponibile con posti liberi. Crea una nuova camera.
-                                             </MudAlert>
-                                         }
-                                     }
-                                     else
-                                     {
-                                         <!-- Opzione 2: Crea Nuova Camera -->
-                                         <MudSelect T="int" Label="Tipo Camera"
-                                                   @bind-Value="_currentAlloggio.TipoAlloggioIdFk"
-                                                   Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                   Required="true">
-                                             @foreach(var tipo in _tipoAlloggi)
-                                             {
-                                                 <MudSelectItem Value="@tipo.Id">
-                                                     <div class="d-flex align-center justify-space-between width-100">
-                                                         <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
-                                                         @if (tipo.Supplemento)
-                                                         {
-                                                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
-                                                                 + Supplemento
-                                                             </MudChip>
-                                                         }
+                                             <!-- Scelta: Camera Esistente o Nuova -->
+                                             <MudRadioGroup @bind-Value="_assignToExistingRoom" Class="mb-3">
+                                                 <MudRadio T="bool" Value="true" Color="Color.Primary" Dense="true">
+                                                     <div class="d-flex align-center gap-1">
+                                                         <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Size="Size.Small" />
+                                                         <span>Aggiungi a camera esistente</span>
                                                      </div>
-                                                 </MudSelectItem>
-                                             }
-                                         </MudSelect>
+                                                 </MudRadio>
+                                                 <MudRadio T="bool" Value="false" Color="Color.Primary" Dense="true">
+                                                     <div class="d-flex align-center gap-1">
+                                                         <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
+                                                         <span>Crea nuova camera</span>
+                                                     </div>
+                                                 </MudRadio>
+                                             </MudRadioGroup>
 
-                                         @if (_currentAlloggio.TipoAlloggioIdFk > 0)
-                                         {
-                                             var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
-                                             @if (selectedTipo != null)
-                                             {
-                                                 <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
-                                                     Nuova camera: <b>@selectedTipo.Descrizione</b><br/>
-                                                     Primo occupante: @(_selectedCliente != null ? $"{_selectedCliente.Cognome} {_selectedCliente.Nome}" : "...")<br/>
-                                                     Capacità: 1/@selectedTipo.NumeroOccupanti
-                                                 </MudAlert>
+                                        @if (_assignToExistingRoom)
+                                        {
+                                                     <!-- Opzione 1: Seleziona Camera Esistente -->
+                                            var availableRooms = _existingRooms.Where(r => r.HasSpace).ToList();
 
-                                                 @if (selectedTipo.Supplemento)
-                                                 {
-                                                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
-                                                         💡 Questa camera prevede un supplemento aggiuntivo
-                                                     </MudAlert>
-                                                 }
-                                             }
-                                         }
-                                     }
+                                            @if (availableRooms.Any())
+                                            {
+                                                             <MudSelect T="int?" Label="Seleziona Camera"
+                                                @bind-Value="_selectedExistingRoomId"
+                                                                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                                       Required="true">
+                                                    @foreach (var room in availableRooms)
+                                                    {
+                                                                         <MudSelectItem T="int?" Value="@room.RoomId">
+                                                                             <div class="d-flex align-center justify-space-between width-100">
+                                                                                 <span>@room.RoomType - @string.Join(", ", room.OccupantNames)</span>
+                                                                                 <MudChip T="string" Size="Size.Small" Color="@room.StatusColor" Variant="Variant.Text">
+                                                                    @room.StatusText
+                                                                                 </MudChip>
+                                                                             </div>
+                                                                         </MudSelectItem>
+                                                    }
+                                                             </MudSelect>
 
-                                     <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.7;">
-                                         💡 Usa "Gestione Alloggi" per modifiche avanzate
-                                     </MudText>
-                                 </MudPaper>
-                             }
-                             }
-                             else
-                             {
-                                 <!-- In EDIT mode, mostra solo info alloggio corrente -->
-                                 <MudDivider Class="my-3" />
-                                 <MudAlert Severity="Severity.Info" Dense="true">
-                                     <b>Per modificare gli alloggi, usa il pulsante "Gestione Alloggi"</b>
-                                 </MudAlert>
-                             }
+                                                @if (_selectedExistingRoomId.HasValue)
+                                                {
+                                                    var selectedRoom = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId.Value);
+                                                    @if (selectedRoom != null)
+                                                    {
+                                                                             <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                                                                                 Camera: <b>@selectedRoom.RoomType</b><br/>
+                                                                                 Occupanti attuali: @string.Join(", ", selectedRoom.OccupantNames)<br/>
+                                                                                 Dopo assegnazione: @(selectedRoom.CurrentOccupants + 1)/@selectedRoom.MaxOccupants
+                                                                             </MudAlert>
+
+                                                        @if (selectedRoom.HasSupplement)
+                                                        {
+                                                                                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                                                                                         💡 Questa camera prevede un supplemento aggiuntivo
+                                                                                     </MudAlert>
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                             <MudAlert Severity="Severity.Warning" Dense="true">
+                                                                 Nessuna camera disponibile con posti liberi. Crea una nuova camera.
+                                                             </MudAlert>
+                                            }
+                                        }
+                                        else
+                                        {
+                                                     <!-- Opzione 2: Crea Nuova Camera -->
+                                                     <MudSelect T="int" Label="Tipo Camera"
+                                            @bind-Value="_currentAlloggio.TipoAlloggioIdFk"
+                                                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                               Required="true">
+                                                @foreach (var tipo in _tipoAlloggi)
+                                                {
+                                                                 <MudSelectItem Value="@tipo.Id">
+                                                                     <div class="d-flex align-center justify-space-between width-100">
+                                                                         <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
+                                                            @if (tipo.Supplemento)
+                                                            {
+                                                                                 <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                                                                     + Supplemento
+                                                                                 </MudChip>
+                                                            }
+                                                                     </div>
+                                                                 </MudSelectItem>
+                                                }
+                                                     </MudSelect>
+
+                                            @if (_currentAlloggio.TipoAlloggioIdFk > 0)
+                                            {
+                                                var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
+                                                @if (selectedTipo != null)
+                                                {
+                                                                     <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
+                                                                         Nuova camera: <b>@selectedTipo.Descrizione</b><br/>
+                                                                         Primo occupante: @(_selectedCliente != null ? $"{_selectedCliente.Cognome} {_selectedCliente.Nome}" : "...")<br/>
+                                                                         Capacità: 1/@selectedTipo.NumeroOccupanti
+                                                                     </MudAlert>
+
+                                                    @if (selectedTipo.Supplemento)
+                                                    {
+                                                                             <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                                                                                 💡 Questa camera prevede un supplemento aggiuntivo
+                                                                             </MudAlert>
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                             <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.7;">
+                                                 💡 Usa "Gestione Alloggi" per modifiche avanzate
+                                             </MudText>
+                                         </MudPaper>
+                                }
+                            }
+                            else
+                            {
+                                     <!-- In EDIT mode, mostra solo info alloggio corrente -->
+                                     <MudDivider Class="my-3" />
+                                     <MudAlert Severity="Severity.Info" Dense="true">
+                                         <b>Per modificare gli alloggi, usa il pulsante "Gestione Alloggi"</b>
+                                     </MudAlert>
+                            }
 
                              <!-- Actions -->
                              <div class="d-flex justify-end mt-4 gap-2">
-                                 @if (_isEditMode)
-                                 {
-                                     <MudButton Variant="Variant.Outlined" OnClick="@(async () => await ResetForm())">Annulla Modifica</MudButton>
-                                 }
+                                @if (_isEditMode)
+                                {
+                                         <MudButton Variant="Variant.Outlined" OnClick="@(async () => await ResetForm())">Annulla Modifica</MudButton>
+                                }
                                  <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(!_isValid)">
-                                     @(_isEditMode ? "Aggiorna" : "Salva e Nuovo")
+                                    @(_isEditMode ? "Aggiorna" : "Salva e Nuovo")
                                  </MudButton>
                              </div>
 
@@ -519,7 +552,7 @@
     private MovClientiViaggi _currentEntity = new();
     private MovClientiAlloggi _currentAlloggio = new();
     private Cliente? _selectedCliente;
-    
+
     // Lists & Lookups
     private List<ParticipantsViewDTO> _participants = new(); // Mapping from SP result
     private List<TipoPartecipante> _tipoPartecipanti = new();
@@ -543,7 +576,7 @@
     [Parameter] public string? HeaderTitle { get; set; }
 
     private string _summaryTitle = "";
-    private string _headerTitle = "Caricamento..."; 
+    private string _headerTitle = "Caricamento...";
 
     protected override async Task OnInitializedAsync()
     {
@@ -555,10 +588,10 @@
             }
             else
             {
-                 // Fallback to async load only if strictly necessary (should be avoided now)
+                // Fallback to async load only if strictly necessary (should be avoided now)
                 await LoadHeaderInfoAsync();
             }
-            
+
             await LoadLookupsAsync();
             await LoadListAsync();
             await LoadRoomsAsync();
@@ -571,7 +604,7 @@
 
     private async Task LoadHeaderInfoAsync()
     {
-        try 
+        try
         {
             // Fallback: use optimized query if no title passed
             _headerTitle = await MovClientiService.GetTripHeaderStringAsync(ViaggioId, DataViaggioId);
@@ -603,7 +636,7 @@
             // Reload rooms after participants list changes
             await LoadRoomsAsync();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Snackbar.Add($"Errore caricamento lista: {ex.Message}", Severity.Error);
         }
@@ -624,13 +657,13 @@
     private int _idPilota => _tipoPartecipanti.FirstOrDefault(x => x.Pilota)?.Id ?? 0;
 
     private TableGroupDefinition<ParticipantsViewDTO> _groupDefinition = new()
-    {
-        GroupName = "Equipaggio",
-        Indentation = false,
-        Expandable = true,
-        IsInitiallyExpanded = true,
-        Selector = (e) => e.GroupingKey
-    };
+        {
+            GroupName = "Equipaggio",
+            Indentation = false,
+            Expandable = true,
+            IsInitiallyExpanded = true,
+            Selector = (e) => e.GroupingKey
+        };
 
     private string RowStyleHelper(ParticipantsViewDTO item, int index)
     {
@@ -780,9 +813,9 @@
                 // Reset Client
                 _selectedCliente = null;
                 _currentEntity = new MovClientiViaggi
-                {
-                    TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role
-                };
+                    {
+                        TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role
+                    };
                 _currentAlloggio = new MovClientiAlloggi();
                 _hasDog = false;
                 _assignToExistingRoom = false;
@@ -792,7 +825,7 @@
             await LoadListAsync(); // Refresh Grid
             StateHasChanged(); // Force UI refresh
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Snackbar.Add($"Errore salvataggio: {ex.Message}", Severity.Error);
         }
@@ -867,8 +900,8 @@
     {
         _currentEntity.AnaMezziIdFk = marcaId;
         _currentEntity.MezzoModelloIdFk = null; // Reset Model when Brand changes
-        // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally
-        // via OnParametersSet, but we ensure the local state is consistent.
+                                                // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally
+                                                // via OnParametersSet, but we ensure the local state is consistent.
     }
 
     private void OnRoleChanged(int newRoleId)
@@ -1052,11 +1085,11 @@
         };
 
         var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.ExtraExtraLarge,
-            FullWidth = true,
-            CloseButton = true
-        };
+            {
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+                FullWidth = true,
+                CloseButton = true
+            };
 
         var dialog = await DialogService.ShowAsync<ViaggioAlloggiAdvancedDialog>(
             "Gestione Avanzata Alloggi",
@@ -1098,6 +1131,14 @@
 
         // In insert mode: solo il cliente corrente
         return 1;
+    }
+
+    private string GetDisplayRole(string role)
+    {
+        if (string.IsNullOrEmpty(role)) return "";
+        if (role.Contains("PASSEGGERO", StringComparison.OrdinalIgnoreCase))
+            return "PASSEGGERO";
+        return role;
     }
 
     private string GetRoleDescription(int tipoPartecipanteId)
@@ -1197,16 +1238,16 @@
                 }
 
                 _existingRooms.Add(new RoomCardViewModel
-                {
-                    RoomId = room.MovClientiAlloggioPk,
-                    RoomType = tipoAlloggio.Descrizione,
-                    MaxOccupants = tipoAlloggio.NumeroOccupanti,
-                    CurrentOccupants = occupants.Count,
-                    OccupantNames = occupants,
-                    OccupantIds = occupantIds,
-                    HasSupplement = tipoAlloggio.Supplemento,
-                    RoomEntity = room
-                });
+                    {
+                        RoomId = room.MovClientiAlloggioPk,
+                        RoomType = tipoAlloggio.Descrizione,
+                        MaxOccupants = tipoAlloggio.NumeroOccupanti,
+                        CurrentOccupants = occupants.Count,
+                        OccupantNames = occupants,
+                        OccupantIds = occupantIds,
+                        HasSupplement = tipoAlloggio.Supplemento,
+                        RoomEntity = room
+                    });
             }
         }
         catch (Exception ex)
