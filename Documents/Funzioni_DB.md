@@ -60,6 +60,8 @@
 | `fn_app_get_geo_regioni_itas_lookup` | Lookup regioni per combobox | - | `jsonb` | - |
 | `fn_app_get_tipo_sede_by_id` | Recupera un singolo tipo sede per ID con tutti i dettagli | `p_tipo_sede_id integer` | `TABLE(tipo_sede_id integer, ...)` | - |
 | `fn_app_health_check` | - | - | `json` | `Services/Authentication/AuthenticationService.cs` |
+| `fn_app_list_roles` | Restituisce lista ruoli paginata per tenant | `p_tenant_id text, ...` | `jsonb` | `Services/Security/RoleService.cs` |
+| `fn_app_list_users` | Restituisce lista utenti paginata con filtri | `p_tenant_id text, ...` | `jsonb` | `Services/Security/UserService.cs` |
 | `fn_app_login` | Login con auto-detect tenant | `p_email citext, p_password text` | `jsonb` | - |
 | `fn_app_login_text` | - | `p_email text, p_password text` | `jsonb` | `Services/Authentication/AuthenticationService.cs` |
 | `fn_app_login_text_debug` | - | `p_email text, p_password text` | `jsonb` | - |
@@ -74,6 +76,7 @@
 | `fn_app_update_geo_ita_ripgeo` | Aggiorna ripartizione geografica esistente | `p_data jsonb` | `jsonb` | - |
 | `fn_app_update_geo_province` | Aggiorna provincia esistente | `p_data jsonb` | `jsonb` | - |
 | `fn_app_update_geo_regioni_ita` | Aggiorna regione esistente | `p_data jsonb` | `jsonb` | - |
+| `fn_check_email_unique_across_companies` | Verifica unicità email attraverso tutti i tenant | `p_email text` | `boolean` | `Services/Security/UserService.cs` |
 | `fn_get_logo_field_help` | - | `field_name text` | `text` | - |
 | `fn_get_menu_breadcrumbs` | Recupera breadcrumbs path per menu specifico | `p_menu_id uuid` | `jsonb` | - |
 | `fn_is_pec_domain` | - | `p_email text` | `boolean` | - |
@@ -101,6 +104,7 @@
 | `get_customer_nationality` | - | `p_cliente_id integer` | `text` | - |
 | `get_datetrips_fromtrip` | - | `p_viaggio_id integer` | `TABLE(data_viaggio_id integer, viaggio_id_fk integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_exist_travel_customer_by_year` | - | `p_cliente_id integer` | `TABLE(anno integer)` | - |
+| `get_mezzo_by_pilot` | Recupera dettagli mezzo associato a un pilota per un viaggio | `p_viaggio_id integer, ...` | `text` | `Services/CRUD/MovClientiViaggiService.cs` |
 | `get_participants_count` | Conteggio totale partecipanti per data viaggio. Più efficiente di Count() in memoria su collection caricata. | `p_data_viaggio_id integer` | `integer` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
 | `get_participants_sorted` | Restituisce partecipanti ordinati per: cognome pilota → pilota prima dei passeggeri → cognome passeggeri. Elimina necessità di ordinamento LINQ in memoria. | `p_data_viaggio_id integer` | `TABLE(viaggio_id integer, data_id integer, cliente_id integer, nominativo text, tipo_partecipante_id integer, ruolo text, note text, cane_sino varchar(1), intolleranze text, mezzo_dettagli text, cliente_pilota_id integer, grouping_key integer)` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
 | `get_participants_without_accommodation` | Restituisce solo partecipanti senza camera assegnata tramite LEFT JOIN atomico con mov_clienti_alloggi. Elimina necessità di join in memoria tra partecipanti e camere. | `p_data_viaggio_id integer` | `TABLE(viaggio_id integer, data_id integer, cliente_id integer, nominativo text, tipo_partecipante_id integer, ruolo text, note text, cane_sino varchar(1), intolleranze text, mezzo_dettagli text, cliente_pilota_id integer, grouping_key integer)` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
@@ -110,11 +114,24 @@
 | `get_totmezzi_dataviaggio` | - | `p_viaggio_id integer, p_data_viaggio_id integer` | `integer` | - |
 | `get_travel_passengers` | - | `p_data_viaggio_id integer, p_exclude_client_id integer` | `TABLE(nominativo text, ruolo text)` | - |
 | `get_viaggio_partecipanti` | - | `p_data_viaggio_id integer` | `TABLE(gruppo_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
+| `get_viaggio_partecipanti_summary` | Restituisce riepilogo testuale partecipanti per tooltip/export | `p_data_viaggio_id integer` | `text` | - |
 | `hash_password` | - | `p_password text` | `character varying` | - |
 | `request_password_reset_retool` | Procedura principale per Retool con messaggi italiani | `p_email character varying, ...` | `void` | - |
 | `reset_password_with_token` | Esegue reset password con token e invalida tutti i token utente | `p_token character varying, ...` | `character varying` | - |
 | `set_user_context` | Imposta contesto completo utente: tenant, azienda e ruolo | `p_user_id uuid` | `TABLE(tenant_id text, azienda_id integer, ...)` | - |
 | `sp_ana_aziende_smtp_test_connection` | - | `p_smtp_id uuid` | `TABLE(success boolean, message text, ...)` | - |
+| `sp_app_create_role` | Crea nuovo ruolo applicativo | `p_role_code text, ...` | - | `Services/Security/RoleService.cs` |
+| `sp_app_create_user` | Crea nuovo utente | `p_email text, ...` | - | `Services/Security/UserService.cs` |
+| `sp_app_delete_role` | Elimina ruolo esistente | `p_role_code text` | - | `Services/Security/RoleService.cs` |
+| `sp_app_delete_user` | Elimina utente | `p_user_id uuid` | - | `Services/Security/UserService.cs` |
+| `sp_app_update_role` | Aggiorna ruolo esistente | `p_role_code text, ...` | - | `Services/Security/RoleService.cs` |
+| `sp_app_update_user` | Aggiorna dati utente | `p_user_id uuid, ...` | - | `Services/Security/UserService.cs` |
+| `sp_mov_clienti_alloggi_create` | Crea associazione cliente-alloggio | `p_viaggio_id integer, ...` | `integer` | `Services/CRUD/MovClientiAlloggiService.cs` |
+| `sp_mov_clienti_alloggi_delete` | Elimina associazione cliente-alloggio | `p_pk integer` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
+| `sp_mov_clienti_alloggi_update` | Aggiorna associazione cliente-alloggio | `p_pk integer, ...` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
+| `sp_mov_clienti_viaggi_create` | Iscrive partecipante al viaggio | `p_viaggio_id integer, ...` | `void` | `Services/CRUD/MovClientiViaggiService.cs` |
+| `sp_mov_clienti_viaggi_delete` | Rimuove partecipante dal viaggio (con cleanup alloggi) | `p_viaggio_id integer, ...` | `void` | `Services/CRUD/MovClientiViaggiService.cs` |
+| `sp_mov_clienti_viaggi_update` | Aggiorna dati iscrizione partecipante | `p_viaggio_id integer, ...` | `void` | `Services/CRUD/MovClientiViaggiService.cs` |
 | `sp_remove_client_from_room` | Rimuove cliente da camera, compattando slot e eliminando camera se vuota | `p_room_id integer, p_cliente_id integer` | `void` | `SqlScripts/92_Create_Room_Consistency_Functions.sql` |
 | `sp_resolve_room_violation_move` | Sposta superstiti in nuova camera e pulisce vecchia | `p_old_room_id integer, p_new_tipo integer, p_survivors integer[]` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
 | `sp_resolve_room_violation_park` | Rimuove superstiti da camera lasciandoli senza alloggio | `p_room_id integer, p_survivors integer[]` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
