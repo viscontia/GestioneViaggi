@@ -97,10 +97,14 @@
         }
     }
 
+    [Parameter]
+    public EventCallback<MezzoModello?> SelectedItemChanged { get; set; }
+
     private async Task OnValueChanged(MezzoModello item)
     {
         _selectedItem = item;
         await SelectedIdChanged.InvokeAsync(item?.Id);
+        await SelectedItemChanged.InvokeAsync(item);
     }
 
     private async Task<IEnumerable<MezzoModello>> SearchFunc(string value, CancellationToken token)
@@ -108,17 +112,20 @@
         if (_allMetaItems == null)
             return Enumerable.Empty<MezzoModello>();
 
-        // Filter by Brand (MarcaId) if set
         var query = _allMetaItems.AsEnumerable();
 
+        // Applica SEMPRE il filtro Marca se presente
         if (MarcaId.HasValue && MarcaId.Value > 0)
         {
             query = query.Where(x => x.MarcaIdFk == MarcaId.Value);
         }
 
-        if (string.IsNullOrEmpty(value))
-            return query;
+        // Se c'è testo di ricerca, filtra ulteriormente per descrizione
+        if (!string.IsNullOrEmpty(value))
+        {
+            query = query.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+        }
 
-        return query.Where(x => x.Descrizione.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+        return query;
     }
 }

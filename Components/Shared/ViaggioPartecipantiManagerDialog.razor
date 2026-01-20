@@ -37,10 +37,6 @@
                                 }
                             </MudText>
                             <div class="d-flex gap-2">
-                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Hotel" OnClick="@(() => OpenAdvancedAccommodation(null))">
-                                    Gestione Alloggi
-                                </MudButton>
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                            StartIcon="@Icons.Material.Filled.Add" OnClick="@(async () => await ResetForm())">
                                     Nuovo
@@ -378,6 +374,7 @@
                                             <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Alloggio</b></MudText>
                                         </div>
                                         <MudSwitch @bind-Value="@_wantsAccommodation"
+                                                   @bind-Value:after="@OnWantsAccommodationChangedAsync"
                                                    Label="@(_wantsAccommodation ? "Assegna camera" : "No")"
                                                    Color="Color.Success" />
                                      </div>
@@ -387,18 +384,12 @@
                                          <MudPaper Class="pa-3" Outlined="true" Style="background-color: var(--mud-palette-background-grey);">
 
                                              <!-- Scelta: Camera Esistente o Nuova -->
-                                             <MudRadioGroup @bind-Value="_assignToExistingRoom" Class="mb-3">
+                                             <MudRadioGroup @bind-Value="_assignToExistingRoom" @bind-Value:after="@OnAssignToExistingRoomChangedAsync" Class="mb-3">
                                                  <MudRadio T="bool" Value="true" Color="Color.Primary" Dense="true">
-                                                     <div class="d-flex align-center gap-1">
-                                                         <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Size="Size.Small" />
-                                                         <span>Aggiungi a camera esistente</span>
-                                                     </div>
+                                                     Aggiungi a camera esistente
                                                  </MudRadio>
                                                  <MudRadio T="bool" Value="false" Color="Color.Primary" Dense="true">
-                                                     <div class="d-flex align-center gap-1">
-                                                         <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" />
-                                                         <span>Crea nuova camera</span>
-                                                     </div>
+                                                     Crea nuova camera
                                                  </MudRadio>
                                              </MudRadioGroup>
 
@@ -498,7 +489,7 @@
                                         }
 
                                              <MudText Typo="Typo.caption" Class="mt-2" Style="opacity: 0.7;">
-                                                 💡 Usa "Gestione Alloggi" per modifiche avanzate
+                                                 💡 Usa il TAB "Alloggi" per gestire le camere
                                              </MudText>
                                          </MudPaper>
                                 }
@@ -508,7 +499,7 @@
                                      <!-- In EDIT mode, mostra solo info alloggio corrente -->
                                      <MudDivider Class="my-3" />
                                      <MudAlert Severity="Severity.Info" Dense="true">
-                                         <b>Per modificare gli alloggi, usa il pulsante "Gestione Alloggi"</b>
+                                         <b>Per modificare gli alloggi, usa il TAB "Alloggi"</b>
                                      </MudAlert>
                             }
 
@@ -726,7 +717,7 @@
             }
 
             // 3. Save Accommodation (Solo in INSERT mode, non in EDIT)
-            // In EDIT mode, usa "Gestione Alloggi" per modificare le camere
+            // In EDIT mode, usa il TAB "Alloggi" per modificare le camere
             if (_wantsAccommodation && !_isEditMode)
             {
                 if (_assignToExistingRoom && _selectedExistingRoomId.HasValue)
@@ -793,12 +784,25 @@
             }
             else
             {
-                // Reset completo del form per nuovo inserimento
+                // Reset COMPLETO del form per nuovo inserimento
                 _selectedCliente = null;
+                
+                // CRITICAL: Reset di TUTTI i campi dell'entità (incluso il ruolo)
                 _currentEntity = new MovClientiViaggi
-                    {
-                        TipoPartecipanteIdFk = _currentEntity.TipoPartecipanteIdFk // Keep role per velocizzare inserimenti multipli
-                    };
+                {
+                    ViaggioIdFk = 0,
+                    DataViaggioIdFk = 0,
+                    ClienteIdFk = 0,
+                    TipoPartecipanteIdFk = 0, // Reset anche il ruolo
+                    AnaMezziIdFk = null,
+                    MezzoModelloIdFk = null,
+                    MovClienteViaggioScontovalTotale = null,
+                    MovClienteViaggioTargaMezzo = null,
+                    MovClienteViaggioCaneSino = "N",
+                    MovClienteViaggioNote = null,
+                    ClientePilotaIdFk = null
+                };
+                
                 _currentAlloggio = new MovClientiAlloggi();
                 _hasDog = false;
                 _wantsAccommodation = true; // Reset al default
@@ -942,21 +946,24 @@
     {
         _currentEntity.TipoPartecipanteIdFk = newRoleId ?? 0;
 
-        // Auto-suggest accommodation type when role changes
-        if (_wantsAccommodation && !_isEditMode)
-        {
-            var groupSize = GetCurrentGroupSize();
-            var suggestedType = SuggestAccommodationType(groupSize);
-            if (suggestedType > 0)
-            {
-                _currentAlloggio.TipoAlloggioIdFk = suggestedType;
-            }
-        }
-
         // CRITICAL: Set flag to refresh Tab navigation AFTER DOM updates
         _needsTabRefresh = true;
         StateHasChanged();
         // OnAfterRenderAsync will now call RefreshTabNavigationAsync()
+    }
+
+    private Task OnWantsAccommodationChangedAsync()
+    {
+        _needsTabRefresh = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnAssignToExistingRoomChangedAsync()
+    {
+        _needsTabRefresh = true;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task DeleteParticipant(ParticipantsViewDTO item)
@@ -995,8 +1002,8 @@
                 "Impossibile Eliminare",
                 $"❌ {item.Nominativo} è assegnato a una camera con altri occupanti:\n\n• {otherOccupants}\n\n" +
                 $"Prima devi:\n" +
-                $"1. Aprire 'Gestione Alloggi'\n" +
-                $"2. Rimuovere il partecipante dalla camera\n" +
+                $"1. Andare nel TAB 'Alloggi'\n" +
+                $"2. Modificare/eliminare la camera\n" +
                 $"3. Riassegnare gli altri occupanti se necessario\n" +
                 $"4. Poi potrai eliminare il partecipante",
                 yesText: "OK");
@@ -1012,19 +1019,63 @@
            $"Rimuovere {item.Nominativo} dal viaggio?",
            yesText: "Rimuovi", cancelText: "Annulla");
 
-        if (result == true)
+        if (result != true) return;
+
+        try
         {
-            try
+            // 2. Controllo Coerenza Alloggio
+            var consistency = await AlloggiService.CheckRoomConsistencyOnDeleteAsync(item.DataId, item.ClienteId);
+
+            if (consistency.ViolationDetected)
             {
-                await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
-                Snackbar.Add($"{item.Nominativo} rimosso dal viaggio", Severity.Success);
-                await LoadListAsync();
-                StateHasChanged(); // Force UI refresh della grid
+                // Prepara nomi superstiti per display
+                string survivorNames = "";
+                if (consistency.SurvivorIds != null && consistency.SurvivorIds.Length > 0)
+                {
+                   // Trova nomi dalla lista locale
+                   var names = _participants
+                       .Where(p => consistency.SurvivorIds.Contains(p.ClienteId))
+                       .Select(p => p.Nominativo)
+                       .ToList();
+                   survivorNames = string.Join(", ", names);
+                }
+
+                // Apre Dialog Risoluzione
+                var parameters = new DialogParameters
+                {
+                    { "ViolationData", consistency },
+                    { "SurvivorNames", survivorNames }
+                };
+                var dialog = await DialogService.ShowAsync<RoomViolationDialog>("Conflitto Alloggio", parameters);
+                var dialogResult = await dialog.Result;
+
+                if (dialogResult == null || dialogResult.Canceled || dialogResult.Data == null) return; // Annullata operazione intera
+
+                var resolution = (RoomViolationDialog.RoomViolationResolutionResult)dialogResult.Data;
+
+                // Applica Risoluzione
+                if (resolution?.ResolutionType == RoomViolationDialog.ResolutionOption.MoveToNewRoom)
+                {
+                    await AlloggiService.ResolveRoomViolationMoveAsync(consistency.RoomId, resolution.NewRoomTypeId, consistency.SurvivorIds ?? Array.Empty<int>());
+                }
+                else
+                {
+                    await AlloggiService.ResolveRoomViolationParkAsync(consistency.RoomId, consistency.SurvivorIds ?? Array.Empty<int>());
+                }
+                
+                Snackbar.Add("Conflitto alloggio risolto. Procedo con eliminazione.", Severity.Info);
             }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
-            }
+
+            // 3. Eliminazione Finale (DB procedure updated to be safe and clean old rooms)
+            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
+            
+            Snackbar.Add($"{item.Nominativo} rimosso dal viaggio", Severity.Success);
+            await LoadListAsync();
+            StateHasChanged(); 
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
         }
     }
 

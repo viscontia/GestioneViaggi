@@ -150,6 +150,7 @@ public static class MauiProgram
         builder.Services.AddTransient<OracleDateViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiViaggiImportService>();
         builder.Services.AddTransient<OracleMovClientiAlloggiImportService>();
+        builder.Services.AddTransient<ExcelAnaMezziImportService>();
         builder.Services.AddTransient<ExcelAnaMezziModelliImportService>();
 
 

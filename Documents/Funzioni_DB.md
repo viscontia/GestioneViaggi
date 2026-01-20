@@ -6,6 +6,7 @@
 | `can_access_azienda` | Determina se utente corrente può accedere a specifica azienda basato sul ruolo | `target_azienda_id integer` | `boolean` | - |
 | `check_possible_duplicate_travels` | Identifica potenziali duplicati dei viaggi basandosi su parole chiave nella descrizione | `p_description text, p_azienda_id integer` | `TABLE(viaggio_id integer, viaggio_descrizione_breve character varying, matching_words text)` | `Services/CRUD/AnaViaggiService.cs` |
 | `check_reset_rate_limit` | Verifica numero tentativi reset negli ultimi 15 minuti per email | `p_email character varying` | `integer` | - |
+| `chk_room_consistency_on_delete` | Verifica violazioni capacità camera prima di cancellazione partecipante | `p_data_viaggio_id integer, p_cliente_id_to_remove integer` | `TABLE(violation_detected boolean, ...)` | `Services/CRUD/MovClientiAlloggiService.cs` |
 | `cleanup_expired_tokens` | Pulizia automatica token scaduti e dati obsoleti per ottimizzazione | - | `integer` | - |
 | `current_azienda` | Restituisce ID azienda corrente per ruoli azienda-specifici | - | `integer` | - |
 | `current_role` | Restituisce ruolo attivo della sessione | - | `text` | - |
@@ -100,8 +101,12 @@
 | `get_customer_nationality` | - | `p_cliente_id integer` | `text` | - |
 | `get_datetrips_fromtrip` | - | `p_viaggio_id integer` | `TABLE(data_viaggio_id integer, viaggio_id_fk integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_exist_travel_customer_by_year` | - | `p_cliente_id integer` | `TABLE(anno integer)` | - |
-| `get_participants_count` | - | `p_data_viaggio_id integer` | `integer` | - |
+| `get_participants_count` | Conteggio totale partecipanti per data viaggio. Più efficiente di Count() in memoria su collection caricata. | `p_data_viaggio_id integer` | `integer` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
+| `get_participants_sorted` | Restituisce partecipanti ordinati per: cognome pilota → pilota prima dei passeggeri → cognome passeggeri. Elimina necessità di ordinamento LINQ in memoria. | `p_data_viaggio_id integer` | `TABLE(viaggio_id integer, data_id integer, cliente_id integer, nominativo text, tipo_partecipante_id integer, ruolo text, note text, cane_sino varchar(1), intolleranze text, mezzo_dettagli text, cliente_pilota_id integer, grouping_key integer)` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
+| `get_participants_without_accommodation` | Restituisce solo partecipanti senza camera assegnata tramite LEFT JOIN atomico con mov_clienti_alloggi. Elimina necessità di join in memoria tra partecipanti e camere. | `p_data_viaggio_id integer` | `TABLE(viaggio_id integer, data_id integer, cliente_id integer, nominativo text, tipo_partecipante_id integer, ruolo text, note text, cane_sino varchar(1), intolleranze text, mezzo_dettagli text, cliente_pilota_id integer, grouping_key integer)` | `Services/CRUD/MovClientiViaggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
 | `get_reset_stats` | Genera statistiche sistema reset password per periodo specificato | `p_days integer` | `character varying` | - |
+| `get_rooms_count` | Conteggio totale camere per data viaggio. Più efficiente di Count() in memoria su collection caricata. | `p_data_viaggio_id integer` | `integer` | `Services/CRUD/MovClientiAlloggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
+| `get_rooms_with_occupants` | Restituisce camere con occupanti aggregati tramite ARRAY_AGG (nomi e IDs). Elimina necessità di loop su 6 slot ClienteIdXFk + lookup partecipanti in memoria. Gestisce duplicati con DISTINCT. | `p_data_viaggio_id integer` | `TABLE(alloggio_pk integer, tipo_alloggio text, max_occupants integer, current_occupants integer, occupant_names text[], occupant_ids integer[], has_supplement boolean)` | `Services/CRUD/MovClientiAlloggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
 | `get_totmezzi_dataviaggio` | - | `p_viaggio_id integer, p_data_viaggio_id integer` | `integer` | - |
 | `get_travel_passengers` | - | `p_data_viaggio_id integer, p_exclude_client_id integer` | `TABLE(nominativo text, ruolo text)` | - |
 | `get_viaggio_partecipanti` | - | `p_data_viaggio_id integer` | `TABLE(gruppo_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
@@ -110,6 +115,10 @@
 | `reset_password_with_token` | Esegue reset password con token e invalida tutti i token utente | `p_token character varying, ...` | `character varying` | - |
 | `set_user_context` | Imposta contesto completo utente: tenant, azienda e ruolo | `p_user_id uuid` | `TABLE(tenant_id text, azienda_id integer, ...)` | - |
 | `sp_ana_aziende_smtp_test_connection` | - | `p_smtp_id uuid` | `TABLE(success boolean, message text, ...)` | - |
+| `sp_remove_client_from_room` | Rimuove cliente da camera, compattando slot e eliminando camera se vuota | `p_room_id integer, p_cliente_id integer` | `void` | `SqlScripts/92_Create_Room_Consistency_Functions.sql` |
+| `sp_resolve_room_violation_move` | Sposta superstiti in nuova camera e pulisce vecchia | `p_old_room_id integer, p_new_tipo integer, p_survivors integer[]` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
+| `sp_resolve_room_violation_park` | Rimuove superstiti da camera lasciandoli senza alloggio | `p_room_id integer, p_survivors integer[]` | `void` | `Services/CRUD/MovClientiAlloggiService.cs` |
+| `sp_assign_to_first_free_slot` | Assegna cliente al primo slot libero di una camera in modo atomico. Trova automaticamente ClienteIdXFk libero (1-6), valida capacità massima, esegue UPDATE. Elimina necessità di logica if-else a cascata in C#. | `p_alloggio_pk integer, p_cliente_id integer` | `boolean` (TRUE se assegnato, FALSE se camera piena) | `Services/CRUD/MovClientiAlloggiService.cs`, `Components/Shared/ViaggioPartecipantiManagerDialog.razor` |
 | `validate_codice_fiscale` | - | `cf text` | `boolean` | - |
 | `validate_partita_iva` | - | `piva text` | `boolean` | - |
 | `validate_reset_token` | Valida token di reset verificando validità, scadenza e stato attivo | `p_token character varying` | `character varying` | - |

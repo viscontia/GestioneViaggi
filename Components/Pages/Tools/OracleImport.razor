@@ -8,6 +8,7 @@
 @inject OracleMovClientiViaggiImportService MovClientiViaggiImportService
 @inject OracleMovClientiAlloggiImportService MovClientiAlloggiImportService
 @inject ExcelAnaMezziModelliImportService AnaMezziModelliImportService
+@inject ExcelAnaMezziImportService AnaMezziImportService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
@@ -30,6 +31,7 @@
                     <MudSelectItem Value="@("ana_date_viaggi")">ana_date_viaggi</MudSelectItem>
                     <MudSelectItem Value="@("mov_clienti_viaggi")">mov_clienti_viaggi</MudSelectItem>
                     <MudSelectItem Value="@("mov_clienti_alloggi")">mov_clienti_alloggi</MudSelectItem>
+                    <MudSelectItem Value="@("ana_mezzi")">ana_mezzi</MudSelectItem>
                     <MudSelectItem Value="@("ana_mezzi_modelli")">ana_mezzi_modelli</MudSelectItem>
                 </MudSelect>
             </MudItem>
@@ -150,6 +152,7 @@
             _selectedTable != "ana_date_viaggi" &&
             _selectedTable != "mov_clienti_viaggi" &&
             _selectedTable != "mov_clienti_alloggi" &&
+            _selectedTable != "ana_mezzi" &&
             _selectedTable != "ana_mezzi_modelli")
         {
             await DialogService.ShowMessageBox("Funzione non disponibile",
@@ -203,6 +206,7 @@
                 if (_selectedTable == "ana_date_viaggi") await DateViaggiImportService.BackupTableAsync(_selectedTable);
                 if (_selectedTable == "mov_clienti_viaggi") await MovClientiViaggiImportService.BackupTableAsync(_selectedTable);
                 if (_selectedTable == "mov_clienti_alloggi") await MovClientiAlloggiImportService.BackupTableAsync(_selectedTable);
+                if (_selectedTable == "ana_mezzi") await AnaMezziImportService.BackupTableAsync(_selectedTable);
                 if (_selectedTable == "ana_mezzi_modelli") await AnaMezziModelliImportService.BackupTableAsync(_selectedTable);
                 AddLog("Backup completato (Tabella suffix _BAK).");
             }
@@ -231,6 +235,10 @@
             else if (_selectedTable == "mov_clienti_alloggi")
             {
                 result = await MovClientiAlloggiImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
+            }
+            else if (_selectedTable == "ana_mezzi")
+            {
+                result = await AnaMezziImportService.ImportFromExcelAsync(tempFile, _selectedTable, dryRun);
             }
             else if (_selectedTable == "ana_mezzi_modelli")
             {

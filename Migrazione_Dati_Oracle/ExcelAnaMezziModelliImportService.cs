@@ -174,6 +174,8 @@ public class ExcelAnaMezziModelliImportService
         int mezzoFk = Convert.ToInt32(row["MEZZO_MODELLO_MEZZO_FK"]);
         int? tipoFk = GetInt(row, "MEZZO_MODELLO_TIPO_FK");
 
+        // Usa ON CONFLICT sulla coppia (descrizione, marca) per gestire duplicati logici
+        // Il UNIQUE INDEX idx_mezzi_modelli_unique_descrizione_marca previene duplicati
         var sql = @"
             INSERT INTO ana_mezzi_modelli (
                 mezzo_modello_id,
@@ -186,9 +188,8 @@ public class ExcelAnaMezziModelliImportService
                 @mezzoFk,
                 @tipoFk
             )
-            ON CONFLICT (mezzo_modello_id) DO UPDATE SET
-                mezzo_modello_descrizione = EXCLUDED.mezzo_modello_descrizione,
-                mezzo_modello_mezzo_fk = EXCLUDED.mezzo_modello_mezzo_fk,
+            ON CONFLICT (mezzo_modello_descrizione, mezzo_modello_mezzo_fk)
+            DO UPDATE SET
                 mezzo_modello_tipo_fk = EXCLUDED.mezzo_modello_tipo_fk;
         ";
 

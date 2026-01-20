@@ -4,16 +4,19 @@ using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Npgsql;
 using System.Data;
+using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.CRUD
 {
     public class MovClientiAlloggiService
     {
         private readonly IDatabaseConnectionManager _connectionManager;
+        private readonly Microsoft.Extensions.Logging.ILogger<MovClientiAlloggiService> _logger;
 
-        public MovClientiAlloggiService(IDatabaseConnectionManager connectionManager)
+        public MovClientiAlloggiService(IDatabaseConnectionManager connectionManager, Microsoft.Extensions.Logging.ILogger<MovClientiAlloggiService> logger)
         {
             _connectionManager = connectionManager;
+            _logger = logger;
         }
 
         public async Task<int> AddAccommodationAsync(MovClientiAlloggi entity)
@@ -255,8 +258,95 @@ namespace GestioneViaggi.Services.CRUD
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("Si è verificato un errore imprevisto. Riprova.", ex);
+                _logger.LogError(ex, "Errore generico durante il conteggio camere");
+                throw;
             }
         }
+
+    
+    // --- Room Consistency & Violation Handling ---
+
+    public class RoomConsistencyCheckResult
+    {
+        public bool ViolationDetected { get; set; }
+        public int RoomId { get; set; }
+        public string? RoomTypeDesc { get; set; }
+        public int RequiredSeats { get; set; }
+        public int CurrentOccupantsCount { get; set; }
+        public int RemainingOccupantsCount { get; set; }
+        public int[]? SurvivorIds { get; set; }
+    }
+
+    public async Task<RoomConsistencyCheckResult> CheckRoomConsistencyOnDeleteAsync(int dataViaggioId, int clienteIdToRemove)
+    {
+        try
+        {
+            using var conn = await _connectionManager.GetConnectionAsync();
+            
+            // Use aliases to map snake_case columns to PascalCase properties automatically with Dapper
+            var sql = @"
+                SELECT 
+                    violation_detected as ViolationDetected,
+                    room_id as RoomId,
+                    room_type_desc as RoomTypeDesc,
+                    required_seats as RequiredSeats,
+                    current_occupants_count as CurrentOccupantsCount,
+                    remaining_occupants_count as RemainingOccupantsCount,
+                    survivor_ids as SurvivorIds
+                FROM chk_room_consistency_on_delete(@dataId, @clienteId)";
+
+            return await conn.QuerySingleOrDefaultAsync<RoomConsistencyCheckResult>(sql, new 
+            { 
+                dataId = dataViaggioId, 
+                clienteId = clienteIdToRemove 
+            }) ?? new RoomConsistencyCheckResult { ViolationDetected = false };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore during check room consistency for Client {ClientId}", clienteIdToRemove);
+            throw;
+        }
+    }
+
+    public async Task ResolveRoomViolationMoveAsync(int oldRoomId, int newTipoAlloggioId, int[] survivorIds)
+    {
+        try
+        {
+            using var conn = await _connectionManager.GetConnectionAsync();
+            var sql = "SELECT sp_resolve_room_violation_move(@oldRoomId, @newTipo, @survivors)";
+            
+            await conn.ExecuteAsync(sql, new 
+            { 
+                oldRoomId = oldRoomId, 
+                newTipo = newTipoAlloggioId, 
+                survivors = survivorIds 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore resolving violation (MOVE) for Room {RoomId}", oldRoomId);
+            throw;
+        }
+    }
+
+    public async Task ResolveRoomViolationParkAsync(int roomId, int[] survivorIds)
+    {
+        try
+        {
+            using var conn = await _connectionManager.GetConnectionAsync();
+            var sql = "SELECT sp_resolve_room_violation_park(@roomId, @survivors)";
+            
+            await conn.ExecuteAsync(sql, new 
+            { 
+                roomId = roomId, 
+                survivors = survivorIds 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore resolving violation (PARK) for Room {RoomId}", roomId);
+            throw;
+        }
+    }
     }
 }
