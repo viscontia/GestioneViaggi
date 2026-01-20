@@ -259,11 +259,8 @@
                                                                                             <span style="opacity: 0.5; font-style: italic;">vuota</span>
                                                                     }
                                                                                 </td>
-                                                                                <td style="padding: 4px 8px; width: 100px; text-align: center;">
-                                                                                    <div class="d-flex align-center justify-center gap-1">
-                                                                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => EditRoom(room))" Style="width: 28px; height: 28px;" />
-                                                                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteRoom(room))" Style="width: 28px; height: 28px;" />
-                                                                                    </div>
+                                                                                <td style="padding: 4px 8px; width: 50px; text-align: center;">
+                                                                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteRoom(room))" Style="width: 28px; height: 28px;" />
                                                                                 </td>
                                                                             </tr>
                                                         }
@@ -1028,11 +1025,10 @@
 
             if (consistency.ViolationDetected)
             {
-                // Prepara nomi superstiti per display
+                // Prepara messaggio con nomi superstiti
                 string survivorNames = "";
                 if (consistency.SurvivorIds != null && consistency.SurvivorIds.Length > 0)
                 {
-                   // Trova nomi dalla lista locale
                    var names = _participants
                        .Where(p => consistency.SurvivorIds.Contains(p.ClienteId))
                        .Select(p => p.Nominativo)
@@ -1040,30 +1036,17 @@
                    survivorNames = string.Join(", ", names);
                 }
 
-                // Apre Dialog Risoluzione
-                var parameters = new DialogParameters
-                {
-                    { "ViolationData", consistency },
-                    { "SurvivorNames", survivorNames }
-                };
-                var dialog = await DialogService.ShowAsync<RoomViolationDialog>("Conflitto Alloggio", parameters);
-                var dialogResult = await dialog.Result;
-
-                if (dialogResult == null || dialogResult.Canceled || dialogResult.Data == null) return; // Annullata operazione intera
-
-                var resolution = (RoomViolationDialog.RoomViolationResolutionResult)dialogResult.Data;
-
-                // Applica Risoluzione
-                if (resolution?.ResolutionType == RoomViolationDialog.ResolutionOption.MoveToNewRoom)
-                {
-                    await AlloggiService.ResolveRoomViolationMoveAsync(consistency.RoomId, resolution.NewRoomTypeId, consistency.SurvivorIds ?? Array.Empty<int>());
-                }
-                else
-                {
-                    await AlloggiService.ResolveRoomViolationParkAsync(consistency.RoomId, consistency.SurvivorIds ?? Array.Empty<int>());
-                }
-                
-                Snackbar.Add("Conflitto alloggio risolto. Procedo con eliminazione.", Severity.Info);
+                // Mostra errore: l'utente deve gestire manualmente dal TAB Alloggi
+                await DialogService.ShowMessageBox(
+                    "Conflitto Alloggio",
+                    $"❌ Impossibile eliminare {item.Nominativo}.\n\n" +
+                    $"Questa camera ha altri occupanti: {survivorNames}\n\n" +
+                    $"Per risolvere:\n" +
+                    $"1. Vai al TAB 'Alloggi'\n" +
+                    $"2. Modifica/elimina la camera\n" +
+                    $"3. Poi riprova a eliminare il partecipante",
+                    yesText: "OK");
+                return; // Blocca l'eliminazione
             }
 
             // 3. Eliminazione Finale (DB procedure updated to be safe and clean old rooms)
@@ -1099,12 +1082,6 @@
             await LoadListAsync();
             StateHasChanged(); // Force UI refresh anche in caso di errore
         }
-    }
-
-    private async Task EditRoom(RoomCardViewModel room)
-    {
-        // Apri il dialog avanzato per modificare la camera, puntando direttamente a quella selezionata
-        await OpenAdvancedAccommodation(room.RoomId);
     }
 
     private async Task DeleteRoom(RoomCardViewModel room)
@@ -1169,38 +1146,6 @@
             }
         }
         // else: null = Annulla, non fare nulla
-    }
-
-    private async Task OpenAdvancedAccommodation(int? autoOpenRoomId = null)
-    {
-        var parameters = new DialogParameters
-        {
-            { "DataViaggioId", DataViaggioId },
-            { "ViaggioId", ViaggioId },
-            { "AziendaId", AziendaId },
-            { "ViaggioTitle", _headerTitle },
-            { "AutoOpenRoomId", autoOpenRoomId }
-        };
-
-        var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.ExtraExtraLarge,
-                FullWidth = true,
-                CloseButton = true
-            };
-
-        var dialog = await DialogService.ShowAsync<ViaggioAlloggiAdvancedDialog>(
-            "Gestione Avanzata Alloggi",
-            parameters,
-            options);
-
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            // Refresh data after closing advanced dialog
-            await LoadListAsync();
-        }
     }
 
     private void Close() => MudDialog.Cancel();
