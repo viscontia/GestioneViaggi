@@ -61,10 +61,10 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; }
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter] public MovClientiAlloggiService.RoomConsistencyCheckResult ViolationData { get; set; }
-    [Parameter] public string SurvivorNames { get; set; }
+    [Parameter] public MovClientiAlloggiService.RoomConsistencyCheckResult ViolationData { get; set; } = default!;
+    [Parameter] public string SurvivorNames { get; set; } = default!;
 
     private List<TipoAlloggio> _tipoAlloggi = new();
     private ResolutionOption _selectedOption = ResolutionOption.MoveToNewRoom;

@@ -259,7 +259,8 @@
                                                                                             <span style="opacity: 0.5; font-style: italic;">vuota</span>
                                                                     }
                                                                                 </td>
-                                                                                <td style="padding: 4px 8px; width: 50px; text-align: center;">
+                                                                                <td style="padding: 4px 8px; width: 80px; text-align: center;">
+                                                                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => EditRoom(room))" Style="width: 28px; height: 28px; margin-right: 4px;" />
                                                                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteRoom(room))" Style="width: 28px; height: 28px;" />
                                                                                 </td>
                                                                             </tr>
@@ -1084,6 +1085,11 @@
         }
     }
 
+    private async Task EditRoom(RoomCardViewModel room)
+    {
+        await OpenAdvancedAccommodation(room.RoomId);
+    }
+
     private async Task DeleteRoom(RoomCardViewModel room)
     {
         // Prima conferma: elimina solo camera o anche partecipanti?
@@ -1149,6 +1155,38 @@
     }
 
     private void Close() => MudDialog.Cancel();
+
+    private async Task OpenAdvancedAccommodation(int? autoOpenRoomId = null)
+    {
+        var parameters = new DialogParameters
+        {
+            { "DataViaggioId", DataViaggioId },
+            { "ViaggioId", ViaggioId },
+            { "AziendaId", AziendaId },
+            { "ViaggioTitle", _headerTitle },
+            { "AutoOpenRoomId", autoOpenRoomId }
+        };
+
+        var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+        var dialog = await DialogService.ShowAsync<ViaggioAlloggiAdvancedDialog>(
+            "Gestione Avanzata Alloggi",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Refresh data after closing advanced dialog
+            await LoadListAsync();
+        }
+    }
 
     // ============================================
     // ACCOMMODATION HELPER METHODS
