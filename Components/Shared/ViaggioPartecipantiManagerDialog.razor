@@ -37,6 +37,26 @@
                                 }
                             </MudText>
                             <div class="d-flex gap-2">
+                                <MudButtonGroup Color="Color.Primary" Variant="Variant.Filled">
+                                    <MudButton StartIcon="@Icons.Material.Filled.Print" Variant="Variant.Filled" Color="Color.Primary">Stampe</MudButton>
+                                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
+                                        <ActivatorContent>
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowDropDown" Style="min-width: 32px; padding: 0;" />
+                                        </ActivatorContent>
+                                        <ChildContent>
+                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Scheda Data Viaggio"))">
+                                                <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Scheda Data Viaggio</MudText>
+                                            </MudMenuItem>
+                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Dettaglio Data Viaggio"))">
+                                                <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Dettaglio Data Viaggio</MudText>
+                                            </MudMenuItem>
+                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Rooming List"))">
+                                                <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Rooming List</MudText>
+                                            </MudMenuItem>
+                                        </ChildContent>
+                                    </MudMenu>
+                                </MudButtonGroup>
+
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                            StartIcon="@Icons.Material.Filled.Add" OnClick="@(async () => await ResetForm())">
                                     Nuovo
@@ -601,6 +621,11 @@
             _headerTitle = $"ERR: {ex.Message}";
             // Console.WriteLine($"Error loading header info: {ex.Message}");
         }
+    }
+
+    private void ShowDevelopmentMessage(string featureName)
+    {
+        Snackbar.Add($"Funzionalità in corso di sviluppo", Severity.Info);
     }
 
     private async Task LoadLookupsAsync()
