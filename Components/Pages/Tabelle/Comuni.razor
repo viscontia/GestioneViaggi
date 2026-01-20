@@ -38,19 +38,25 @@ else
         <PropertyColumn Property="x => x.CodIstat" Title="Cod. ISTAT" HeaderClass="col-sm justify-center"
             CellClass="col-sm" CellStyle="text-align: center;" />
 
-        <PropertyColumn Property="x => x.PrefTel" Title="Pref.Tel." HeaderClass="col-xs justify-center"
-            CellClass="col-xs" CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.PrefTel" HeaderClass="col-xs justify-center" CellClass="col-xs" CellStyle="text-align: center;">
+            <HeaderTemplate>
+                <div style="line-height: 1.2; text-align: center;">PREF<br />TEL.</div>
+            </HeaderTemplate>
+        </PropertyColumn>
 
         <PropertyColumn Property="x => x.Cap" Title="CAP" HeaderClass="col-xs justify-center" CellClass="col-xs"
             CellStyle="text-align: center;" />
 
-        <PropertyColumn Property="x => x.CodFiscale" Title="Cod.Fisc." HeaderClass="col-xs justify-center"
-            CellClass="col-xs" CellStyle="text-align: center;" />
+        <PropertyColumn Property="x => x.CodFiscale" HeaderClass="col-xs justify-center" CellClass="col-xs" CellStyle="text-align: center;">
+            <HeaderTemplate>
+                 <div style="line-height: 1.2; text-align: center;">COD.<br />FISC.</div>
+            </HeaderTemplate>
+        </PropertyColumn>
 
         <PropertyColumn Property="x => x.NumAbitanti" Title="Abitanti" Format="N0" HeaderClass="col-md justify-end"
             CellClass="col-md" CellStyle="text-align: right;" />
 
-        <TemplateColumn Title="Estero" HeaderClass="col-xs justify-center" CellClass="col-xs"
+        <TemplateColumn Title="Estero" HeaderClass="col-sm justify-center" CellClass="col-sm"
             CellStyle="text-align: center;">
             <CellTemplate>
                 <MudCheckBox Value="@context.Item.ComuneEstero" ReadOnly="true" Color="Color.Primary" Size="Size.Small"
