@@ -8,6 +8,7 @@
 | `check_reset_rate_limit` | Verifica numero tentativi reset negli ultimi 15 minuti per email | `p_email character varying` | `integer` | - |
 | `chk_room_consistency_on_delete` | Verifica violazioni capacità camera prima di cancellazione partecipante | `p_data_viaggio_id integer, p_cliente_id_to_remove integer` | `TABLE(violation_detected boolean, ...)` | `Services/CRUD/MovClientiAlloggiService.cs` |
 | `cleanup_expired_tokens` | Pulizia automatica token scaduti e dati obsoleti per ottimizzazione | - | `integer` | - |
+| `cleanup_business_events` | Elimina vecchi log degli eventi di business mantenendo solo gli ultimi N giorni | `p_days_to_keep integer` | `void` | `Services/Shared/RecentActivityService.cs` |
 | `current_azienda` | Restituisce ID azienda corrente per ruoli azienda-specifici | - | `integer` | - |
 | `current_role` | Restituisce ruolo attivo della sessione | - | `text` | - |
 | `current_user_id` | - | - | `uuid` | - |
@@ -80,6 +81,7 @@
 | `fn_get_logo_field_help` | - | `field_name text` | `text` | - |
 | `fn_get_menu_breadcrumbs` | Recupera breadcrumbs path per menu specifico | `p_menu_id uuid` | `jsonb` | - |
 | `fn_is_pec_domain` | - | `p_email text` | `boolean` | - |
+| `fn_log_business_event` | Registra un evento nella tabella ana_business_events (chiamata dai trigger) | `p_event_type varchar, p_description text, ...` | `void` | - |
 | `fn_logo_calculate_hash` | - | `p_binary_data bytea` | `character varying` | - |
 | `fn_logo_setup_master_detail_relation` | - | - | `jsonb` | - |
 | `fn_logo_update_access_stats` | - | `p_logo_id uuid` | `void` | - |

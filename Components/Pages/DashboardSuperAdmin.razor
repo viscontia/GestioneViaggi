@@ -17,6 +17,7 @@
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject Services.Shared.IRecentActivityService ActivityService
 
 @if (!_isLoaded)
 {
@@ -357,6 +358,38 @@ else
                 </MudStack>
             </MudPaper>
 
+            <!-- Recent Activity (SuperAdmin sees ALL) -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h6">Attività Recenti (Globale)</MudText>
+                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="LoadActivitiesAsync" />
+                </MudStack>
+                
+                @if (_activities == null)
+                {
+                     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                }
+                else if (_activities.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna attività recente registrata.</MudText>
+                }
+                else
+                {
+                    <MudList T="string" Dense="true">
+                        @foreach (var item in _activities)
+                        {
+                            <MudListItem T="string" Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
+                                <MudText Typo="Typo.body2">@item.Description</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    <strong>@item.CreatedBy</strong> - @item.TimeAgo 
+                                    @if(item.AziendaId.HasValue) { <span class="ml-2">(Az. @item.AziendaId)</span> }
+                                </MudText>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudPaper>
+
             <!-- Info Note -->
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
                 Hai accesso completo a tutte le funzionalità e dati del sistema. Usa i permessi di SuperAdmin con
@@ -377,6 +410,8 @@ else
     private StatisticResult? _statsRevenue;
     private StatisticResult? _statsViaggiFatti;
     private StatisticResult? _statsViaggiDaFare;
+
+    private List<GestioneViaggi.Models.DTOs.ActivityLogItem>? _activities;
 
     private int _selectedYear = DateTime.Now.Year;
     private int _currentYear = DateTime.Now.Year;
@@ -415,6 +450,8 @@ else
         }
 
         await LoadStatsAsync();
+        await LoadActivitiesAsync();
+
 
         // FIX RENDER: MacCatalyst needs a delay to properly re-render interactive elements after navigation
         await Task.Delay(150);
@@ -666,4 +703,40 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
             await LoadStatsAsync();
         }
     }
+
+
+    private async Task LoadActivitiesAsync()
+    {
+        // SuperAdmin: No Company Filter (null), No User Filter (null) -> ALL
+        _activities = await ActivityService.GetRecentActivitiesAsync(null, null);
+        StateHasChanged();
+    }
+
+    private string GetActivityIcon(string eventType) => eventType switch
+    {
+        "VIAGGIO_CREATED" => Icons.Material.Filled.AddCircle,
+        "VIAGGIO_UPDATED" => Icons.Material.Filled.Edit,
+        "VIAGGIO_DELETED" => Icons.Material.Filled.Delete,
+        "PARTECIPANTE_ADDED" => Icons.Material.Filled.PersonAdd,
+        "PARTECIPANTE_UPDATED" => Icons.Material.Filled.Edit,
+        "PARTECIPANTE_REMOVED" => Icons.Material.Filled.PersonRemove,
+        "CLIENTE_CREATED" => Icons.Material.Filled.PersonAddAlt1,
+        "CLIENTE_UPDATED" => Icons.Material.Filled.ManageAccounts,
+        "CLIENTE_DELETED" => Icons.Material.Filled.PersonOff,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private Color GetActivityColor(string eventType) => eventType switch
+    {
+        "VIAGGIO_CREATED" => Color.Success,
+        "VIAGGIO_UPDATED" => Color.Warning,
+        "VIAGGIO_DELETED" => Color.Error,
+        "PARTECIPANTE_ADDED" => Color.Info,
+        "PARTECIPANTE_UPDATED" => Color.Warning,
+        "PARTECIPANTE_REMOVED" => Color.Error,
+        "CLIENTE_CREATED" => Color.Success,
+        "CLIENTE_UPDATED" => Color.Warning,
+        "CLIENTE_DELETED" => Color.Error,
+        _ => Color.Default
+    };
 }

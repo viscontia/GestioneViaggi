@@ -1,0 +1,75 @@
+@page "/tools/event-maintenance"
+@using GestioneViaggi.Services.Shared
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "superadmin")]
+@inject IRecentActivityService ActivityService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h5" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.CleaningServices" Class="mr-2" />
+            Manutenzione Eventi di Sistema
+        </MudText>
+        
+        <MudDivider Class="mb-6" />
+
+        <MudText Class="mb-4">
+            Questa procedura permette di eliminare i log delle attività obsolete dal database per recuperare spazio e mantenere le prestazioni.
+            L'operazione è irreversibile.
+        </MudText>
+
+        <MudForm>
+            <MudNumericField @bind-Value="_daysToKeep" Label="Giorni da mantenere" 
+                             HelperText="Tutti gli eventi più vecchi di questi giorni verranno eliminati" 
+                             Min="30" Max="3650" Variant="Variant.Outlined" Class="mb-6" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Error" 
+                       StartIcon="@Icons.Material.Filled.DeleteForever" 
+                       OnClick="ExecuteCleanup" Disabled="_cleaning">
+                @if (_cleaning)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                    <MudText Class="ms-2">Pulizia in corso...</MudText>
+                }
+                else
+                {
+                    <MudText>Esegui Pulizia Storico</MudText>
+                }
+            </MudButton>
+        </MudForm>
+
+        @if (_lastResult != null)
+        {
+            <MudAlert Severity="Severity.Success" Class="mt-6">
+                @_lastResult
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private int _daysToKeep = 90;
+    private bool _cleaning = false;
+    private string? _lastResult;
+
+    private async Task ExecuteCleanup()
+    {
+        _cleaning = true;
+        _lastResult = null;
+        StateHasChanged();
+
+        var deletedCount = await ActivityService.CleanupActivitiesAsync(_daysToKeep);
+
+        _cleaning = false;
+        if (deletedCount >= 0)
+        {
+            _lastResult = $"Pulizia completata con successo. Eliminati {deletedCount} record.";
+            Snackbar.Add(_lastResult, Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Si è verificato un errore durante la pulizia.", Severity.Error);
+        }
+    }
+}

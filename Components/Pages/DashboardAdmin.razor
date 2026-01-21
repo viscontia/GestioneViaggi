@@ -12,6 +12,7 @@
 @inject StatisticCountViaggiDaFare StatViaggiDaFare
 @inject StatisticRevenue StatRevenue
 @inject StatisticYearService StatYear
+@inject Services.Shared.IRecentActivityService ActivityService
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="4">
@@ -267,19 +268,33 @@
         </MudPaper>
 
         <!-- Recent Activity -->
+        <!-- Recent Activity -->
         <MudPaper Elevation="2" Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-4">Attività Recente</MudText>
-            <MudList T="string">
-                <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                    <MudText>Viaggio "Safari Kenya" completato - 2 ore fa</MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Edit" IconColor="Color.Info">
-                    <MudText>Modificato itinerario "Islanda 2025" - 5 ore fa</MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.PersonAdd" IconColor="Color.Primary">
-                    <MudText>Nuovo partecipante aggiunto a "Dolomiti Adventure" - 1 giorno fa</MudText>
-                </MudListItem>
-            </MudList>
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                <MudText Typo="Typo.h6">Attività Recenti</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="LoadActivitiesAsync" />
+            </MudStack>
+            
+            @if (_activities == null)
+            {
+                 <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            }
+            else if (_activities.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna attività recente registrata.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var item in _activities)
+                    {
+                        <MudListItem T="string" Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
+                            <MudText Typo="Typo.body2">@item.Description</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@item.TimeAgo - @item.CreatedBy</MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
         </MudPaper>
 
     </MudStack>
@@ -296,7 +311,10 @@
     private int _selectedYear = DateTime.Now.Year;
     private int _currentYear = DateTime.Now.Year;
     private List<int> _pastYears = new();
+
     private List<int> _futureYears = new();
+    
+    private List<GestioneViaggi.Models.DTOs.ActivityLogItem>? _activities;
 
     protected override async Task OnInitializedAsync()
     {
@@ -331,6 +349,7 @@
         }
 
         await LoadStatsAsync();
+        await LoadActivitiesAsync();
     }
 
     private string GetYearLabel()
@@ -499,4 +518,46 @@ _comparisonMode))
             await LoadStatsAsync();
         }
     }
+
+    
+    private async Task LoadActivitiesAsync()
+    {
+        // For Standard Admins/Users: Filter by Azienda AND specific Username
+        string? usernameFilter = _currentUser?.Username;
+        
+        // If the user happens to be a SuperAdmin accessing this dashboard, maybe show all?
+        // But request says "Ogni utente vede solo le attività che ha svolto LUI".
+        // Assuming this dashboard is for personal/company scope.
+        
+        _activities = await ActivityService.GetRecentActivitiesAsync(_currentUser?.AziendaId, usernameFilter);
+        StateHasChanged();
+    }
+
+    private string GetActivityIcon(string eventType) => eventType switch
+    {
+        "VIAGGIO_CREATED" => Icons.Material.Filled.AddCircle,
+        "VIAGGIO_UPDATED" => Icons.Material.Filled.Edit,
+        "VIAGGIO_DELETED" => Icons.Material.Filled.Delete,
+        "PARTECIPANTE_ADDED" => Icons.Material.Filled.PersonAdd,
+        "PARTECIPANTE_UPDATED" => Icons.Material.Filled.Edit,
+        "PARTECIPANTE_REMOVED" => Icons.Material.Filled.PersonRemove,
+        "CLIENTE_CREATED" => Icons.Material.Filled.PersonAddAlt1,
+        "CLIENTE_UPDATED" => Icons.Material.Filled.ManageAccounts,
+        "CLIENTE_DELETED" => Icons.Material.Filled.PersonOff,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private Color GetActivityColor(string eventType) => eventType switch
+    {
+        "VIAGGIO_CREATED" => Color.Success,
+        "VIAGGIO_UPDATED" => Color.Warning,
+        "VIAGGIO_DELETED" => Color.Error,
+        "PARTECIPANTE_ADDED" => Color.Info,
+        "PARTECIPANTE_UPDATED" => Color.Warning,
+        "PARTECIPANTE_REMOVED" => Color.Error,
+        "CLIENTE_CREATED" => Color.Success,
+        "CLIENTE_UPDATED" => Color.Warning,
+        "CLIENTE_DELETED" => Color.Error,
+        _ => Color.Default
+    };
 }

@@ -152,6 +152,8 @@ public static class MauiProgram
         builder.Services.AddTransient<OracleMovClientiAlloggiImportService>();
         builder.Services.AddTransient<ExcelAnaMezziImportService>();
         builder.Services.AddTransient<ExcelAnaMezziModelliImportService>();
+        
+        builder.Services.AddScoped<Services.Shared.IRecentActivityService, Services.Shared.RecentActivityService>();
 
 
         // Tool Documentazione DB
