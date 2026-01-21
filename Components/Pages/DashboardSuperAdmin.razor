@@ -338,6 +338,25 @@ else
                 </MudStack>
             </MudPaper>
 
+            <!-- Stampe per i Viaggi -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Stampe per i Viaggi</MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Description"
+                               OnClick="@(() => Snackbar.Add("Funzionalità in sviluppo", Severity.Info))">
+                        Stampa Scheda Data Viaggio
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.ListAlt"
+                               OnClick="@(() => Snackbar.Add("Funzionalità in sviluppo", Severity.Info))">
+                        Stampa Dettaglio Data Viaggio
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Hotel"
+                               OnClick="@(() => Snackbar.Add("Funzionalità in sviluppo", Severity.Info))">
+                        Stampa Rooming List
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+
             <!-- Info Note -->
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
                 Hai accesso completo a tutte le funzionalità e dati del sistema. Usa i permessi di SuperAdmin con

@@ -100,11 +100,6 @@
     </ItemGroup>
 
     <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->
-    <ItemGroup>
-        <MauiAsset Include="$(NuGetPackageRoot)questpdf\2024.3.0\runtimes\any\native\LatoFont\*.ttf">
-            <Link>LatoFont\%(Filename)%(Extension)</Link>
-            <LogicalName>LatoFont/%(Filename)%(Extension)</LogicalName>
-        </MauiAsset>
-    </ItemGroup>
+    <!-- QuestPDF fonts inclusion removed due to version mismatch and build errors -->
 
 </Project>
