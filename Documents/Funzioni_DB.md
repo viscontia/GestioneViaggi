@@ -141,3 +141,8 @@
 | `validate_codice_fiscale` | - | `cf text` | `boolean` | - |
 | `validate_partita_iva` | - | `piva text` | `boolean` | - |
 | `validate_reset_token` | Valida token di reset verificando validità, scadenza e stato attivo | `p_token character varying` | `character varying` | - |
+
+## Implementazioni Service-Side (Logica Applicativa)
+| Componente | Funzionalità | Descrizione | Files Coinvolti |
+| :--- | :--- | :--- | :--- |
+| `ComuneService` | Decodifica Geografica | Esegue JOIN su `ana_geo_province`, `ana_geo_regioni_ita` per recuperare Sigla Provincia e Nome Regione direttamente in fase di SELECT. | `Services/CRUD/ComuneService.cs`, `Components/Shared/ClienteDialog.razor` |

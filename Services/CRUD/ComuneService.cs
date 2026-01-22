@@ -38,10 +38,13 @@ public class ComuneService : BaseCrudService<Comune>
                     c.comune_ripgeo_fk,
                     c.comune_capoluogo_fk,
                     p.provincia_descrizione,
+                    p.provincia_sigla,
                     r.ripgeo_descrizione,
+                    reg.regione_descrizione,
                     cap.capoluogo_descrizione
                 FROM ana_geo_comuni c
                 LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
+                LEFT JOIN ana_geo_regioni_ita reg ON p.regione_id_fk = reg.regione_id
                 LEFT JOIN ana_geo_ita_ripgeo r ON c.comune_ripgeo_fk = r.ripgeo_id
                 LEFT JOIN ana_geo_capoluogo cap ON c.comune_capoluogo_fk = cap.capoluogo_id
                 ORDER BY c.comune_descrizione ASC";
@@ -60,6 +63,59 @@ public class ComuneService : BaseCrudService<Comune>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei comuni");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Override di GetByIdAsync per includere i JOIN (necessari per la visualizzazione dettagliata)
+    /// </summary>
+    public override async Task<Comune?> GetByIdAsync(int id)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            // Stessa query di GetAll ma filtrata per ID, senza ORDER BY
+            var sql = @"
+                SELECT
+                    c.comune_id,
+                    c.comune_descrizione,
+                    c.comune_istat,
+                    c.comune_preftel,
+                    c.comune_cap,
+                    c.comune_codfisc,
+                    c.comune_num_abitanti,
+                    c.comune_link,
+                    c.comune_estero,
+                    c.comune_provincia_fk,
+                    c.comune_ripgeo_fk,
+                    c.comune_capoluogo_fk,
+                    p.provincia_descrizione,
+                    p.provincia_sigla,
+                    r.ripgeo_descrizione,
+                    reg.regione_descrizione,
+                    cap.capoluogo_descrizione
+                FROM ana_geo_comuni c
+                LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
+                LEFT JOIN ana_geo_regioni_ita reg ON p.regione_id_fk = reg.regione_id
+                LEFT JOIN ana_geo_ita_ripgeo r ON c.comune_ripgeo_fk = r.ripgeo_id
+                LEFT JOIN ana_geo_capoluogo cap ON c.comune_capoluogo_fk = cap.capoluogo_id
+                WHERE c.comune_id = @id";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("id", id);
+            
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReaderWithJoins(reader);
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero del comune {Id}", id);
             throw;
         }
     }
@@ -190,7 +246,9 @@ public class ComuneService : BaseCrudService<Comune>
     {
         var comune = MapFromReader(reader);
         comune.ProvinciaDescrizione = ReadNullableString(reader, "provincia_descrizione");
+        comune.ProvinciaSigla = ReadNullableString(reader, "provincia_sigla");
         comune.RipGeoDescrizione = ReadNullableString(reader, "ripgeo_descrizione");
+        comune.RegioneDescrizione = ReadNullableString(reader, "regione_descrizione");
         comune.CapoluogoDescrizione = ReadNullableString(reader, "capoluogo_descrizione");
         return comune;
     }

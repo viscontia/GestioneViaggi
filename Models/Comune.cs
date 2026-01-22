@@ -50,7 +50,9 @@ public class Comune : BaseEntity, IValidatableObject
 
     // Campi non salvati nel DB, solo per visualizzazione nella grid
     public string? ProvinciaDescrizione { get; set; }
+    public string? ProvinciaSigla { get; set; }
     public string? RipGeoDescrizione { get; set; }
+    public string? RegioneDescrizione { get; set; }
     public string? CapoluogoDescrizione { get; set; }
 
     /// <summary>

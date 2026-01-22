@@ -54,7 +54,7 @@
                     var variant = isActive ? Variant.Filled : Variant.Text;
 
                     <MudPaper Elevation="@(isActive ? 2 : 0)" Class="d-flex align-center pa-2 rounded-lg cursor-pointer"
-                        Style="@(isActive ? "background-color: var(--mud-palette-primary); color: white;" : "background-color: white;")"
+                        Style="@(isActive ? "background-color: var(--mud-palette-primary); color: white;" : "background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary);")"
                     @onclick="@(() => OnTabChanged(TabManager.ActiveTabs.ToList().IndexOf(tab)))">
 
                         @if (!string.IsNullOrEmpty(tab.Icon))

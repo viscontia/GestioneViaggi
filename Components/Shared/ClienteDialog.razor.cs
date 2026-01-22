@@ -101,6 +101,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        // Carica i dettagli del Comune di Residenza per la visualizzazione/validazione
         if (Entity.ComuneResidenzaFk > 0 && Entity.ComuneResidenza == null)
         {
             try
@@ -109,7 +110,20 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "Impossibile caricare il comune di residenza per validazione");
+                Logger.LogWarning(ex, "Impossibile caricare il comune di residenza");
+            }
+        }
+
+        // Carica i dettagli del Comune di Nascita per la visualizzazione
+        if (Entity.ComuneNascitaFk > 0 && Entity.ComuneNascita == null)
+        {
+            try
+            {
+                Entity.ComuneNascita = await ComuneService.GetByIdAsync(Entity.ComuneNascitaFk);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Impossibile caricare il comune di nascita");
             }
         }
     }

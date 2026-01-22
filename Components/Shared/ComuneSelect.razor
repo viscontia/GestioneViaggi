@@ -76,6 +76,11 @@
             if (_selectedComune?.Id != SelectedComuneId.Value)
             {
                 _selectedComune = _allComuni.FirstOrDefault(c => c.Id == SelectedComuneId.Value);
+                // Propaga al genitore se abbiamo risolto l'oggetto
+                if (_selectedComune != null)
+                {
+                    SelectedComuneChanged.InvokeAsync(_selectedComune);
+                }
             }
         }
         else

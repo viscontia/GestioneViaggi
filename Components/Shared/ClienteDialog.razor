@@ -107,8 +107,35 @@
                                         HelperText="Es: 15/03/1990" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <ComuneSelect @bind-SelectedComuneId="ComuneNascitaIdProxy" Label="Comune di Nascita" Required="true"
-                                        RequiredError="Obbligatorio" />
+                                    <MudGrid Spacing="1">
+                                        <MudItem xs="12">
+                                            <ComuneSelect @bind-SelectedComuneId="ComuneNascitaIdProxy" 
+                                                          @bind-SelectedComune="Entity.ComuneNascita"
+                                                          Label="Comune di Nascita" Required="true"
+                                                          RequiredError="Obbligatorio" />
+                                        </MudItem>
+                                        <!-- Dettagli Geografici Nascita -->
+                                        <MudItem xs="3">
+                                            <MudTextField Value="@(Entity.ComuneNascita?.Cap)" Label="CAP" ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="5">
+                                            <MudTextField Value="@(Entity.ComuneNascita?.RegioneDescrizione)" Label="Regione" ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="2">
+                                            <MudTextField Value="@(Entity.ComuneNascita?.ProvinciaSigla)" Label="Prov." ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="2">
+                                            <MudTextField Value="@(Entity.ComuneNascita?.ComuneEstero == true ? "ESTERO" : "IT")" Label="Naz." ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                    </MudGrid>
                                 </MudItem>
                             </MudGrid>
                         </MudTabPanel>
@@ -120,10 +147,36 @@
                                     <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-1 fw-bold">Residenza</MudText>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
-                                    @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
-                                        RequiredError="Obbligatorio" />
+                                    <MudGrid Spacing="1">
+                                        <MudItem xs="12">
+                                            <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
+                                            @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
+                                                RequiredError="Obbligatorio" />
+                                        </MudItem>
+                                        <!-- Dettagli Geografici Residenza -->
+                                        <MudItem xs="3">
+                                            <MudTextField Value="@(Entity.ComuneResidenza?.Cap)" Label="CAP" ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="5">
+                                            <MudTextField Value="@(Entity.ComuneResidenza?.RegioneDescrizione)" Label="Regione" ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="2">
+                                            <MudTextField Value="@(Entity.ComuneResidenza?.ProvinciaSigla)" Label="Prov." ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                        <MudItem xs="2">
+                                            <MudTextField Value="@(Entity.ComuneResidenza?.ComuneEstero == true ? "ESTERO" : "IT")" Label="Naz." ReadOnly="true" 
+                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense" 
+                                                          Style="pointer-events: none;" />
+                                        </MudItem>
+                                    </MudGrid>
                                 </MudItem>
+
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_indirizzoField" @bind-Value="Entity.IndirizzoResidenza" For="@(() => Entity.IndirizzoResidenza)"
                                         Label="Indirizzo" Variant="Variant.Outlined" MaxLength="100"
