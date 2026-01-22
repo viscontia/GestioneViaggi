@@ -13,7 +13,7 @@
         </MudText>
     </TitleContent>
     <DialogContent>
-        <div style="height: 600px; overflow-y: auto;" class="pr-4">
+        <div style="height: 800px; overflow-y: auto;" class="pr-4">
             <MudForm @ref="_form" Model="@Entity">
                 <MudGrid Spacing="4">
                     <!-- FOTO CLIENTE (Colonna Sinistra) -->
@@ -54,7 +54,8 @@
 
                 <!-- FORM DATI (Colonna Destra - Layout a Schede) -->
                 <MudItem xs="12" sm="8" md="9" Style="position:relative; z-index:5;">
-                    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
+                             ActivePanelIndexChanged="OnTabChanged">
                         
                         <!-- TAB 1: GENERALE -->
                         <MudTabPanel Text="Generale" Icon="@Icons.Material.Filled.Person" IconColor="@GetTabColor("Generale")">
@@ -116,7 +117,7 @@
                         <MudTabPanel Text="Residenza & Contatti" Icon="@Icons.Material.Filled.HomeWork" IconColor="@GetTabColor("Residenza")">
                             <MudGrid Spacing="12" Class="mt-12">
                                 <MudItem xs="12">
-                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-1">Residenza</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-1 fw-bold">Residenza</MudText>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
@@ -130,7 +131,7 @@
                                 </MudItem>
 
                                 <MudItem xs="12" Class="mt-2">
-                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-1">Contatti</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-1 fw-bold">Contatti</MudText>
                                 </MudItem>
                                 <MudItem xs="12">
                                     <MudTextField @ref="_emailField" @bind-Value="Entity.Email" For="@(() => Entity.Email)" Label="Email"

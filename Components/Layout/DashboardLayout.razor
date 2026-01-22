@@ -121,7 +121,16 @@
     {
         if (firstRender)
         {
-            // _isDarkMode = await _mudThemeProvider!.GetSystemDarkModeAsync();
+            // Controlla se c'è una preferenza salvata
+            if (Preferences.ContainsKey("is_dark_mode"))
+            {
+                _isDarkMode = Preferences.Get("is_dark_mode", false);
+            }
+            else
+            {
+                // Altrimenti usa il default di sistema
+                // _isDarkMode = await _mudThemeProvider!.GetSystemDarkModeAsync();
+            }
             StateHasChanged();
         }
     }
@@ -134,6 +143,8 @@
     void DarkModeToggle()
     {
         _isDarkMode = !_isDarkMode;
+        // Salva la preferenza (funziona anche in Hybrid)
+        Preferences.Set("is_dark_mode", _isDarkMode);
     }
 
     MudTheme _theme = new MudTheme()

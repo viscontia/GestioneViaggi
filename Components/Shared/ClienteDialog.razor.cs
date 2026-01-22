@@ -128,6 +128,18 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         }
     }
 
+    private async Task OnTabChanged(int index)
+    {
+        // Rilancia il setup della navigazione TAB quando cambi scheda
+        // Necessario perché i campi delle tab nascoste non erano visibili al primo caricamento
+        try
+        {
+            await Task.Delay(200); // Dai tempo al render
+            await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".mud-dialog-content", true);
+        }
+        catch { }
+    }
+
     private async Task Submit()
     {
         if (_form == null) return;
