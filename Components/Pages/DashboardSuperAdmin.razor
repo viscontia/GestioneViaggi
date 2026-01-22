@@ -332,6 +332,10 @@ else
                                OnClick="@(() => NavigateToSection("/amministrazione/accessi", "Gestione Accessi", "vpn_key"))">
                         Gestione Accessi
                     </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.PersonAdd"
+                               OnClick="OpenNewClientDialog">
+                        Nuovo Cliente
+                    </MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
                                OnClick="OpenQuickAddDialog">
                         Iscrizione Veloce
@@ -684,6 +688,34 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         // If future year and value is 0, show 0 increment instead of negative
         if (_selectedYear > _currentYear && stats.MainValue == 0) return 0;
         return stats.Increment;
+    }
+
+    private async Task OpenNewClientDialog()
+    {
+        // For SuperAdmin, we pass 0 as AziendaFk to enable the internal AziendaSelect logic of the dialog
+        var parameters = new DialogParameters<GestioneViaggi.Components.Shared.ClienteDialog>
+        {
+            { x => x.Entity, new GestioneViaggi.Models.Cliente() },
+            { x => x.IsEditMode, false },
+            { x => x.AziendaFk, 0 } 
+        };
+
+        var options = new DialogOptions
+        {
+            BackdropClick = false,
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.ClienteDialog>("Nuovo Cliente", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadStatsAsync();
+            await LoadActivitiesAsync();
+        }
     }
 
     private async Task OpenQuickAddDialog()

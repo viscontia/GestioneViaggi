@@ -172,7 +172,7 @@
                     HelperText="IBAN del conto corrente" />
 
                 <!-- Tipo Documento -->
-                <MudSelect @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
+                <MudSelect T="string" @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
                     Label="Tipo Documento" Variant="Variant.Outlined" Required="true"
                     RequiredError="Il tipo di documento è obbligatorio" Class="mb-3">
                     <MudSelectItem Value="@("CI")">Carta d'Identità</MudSelectItem>

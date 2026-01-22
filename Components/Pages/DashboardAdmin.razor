@@ -241,6 +241,10 @@
                     OnClick="@(() => NavigateTo($"/ana-viaggi?year={_currentYear}&filter=future"))">
                     Gestisci Partecipanti
                 </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.PersonAdd"
+                    OnClick="OpenNewClientDialog">
+                    Nuovo Cliente
+                </MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
                     OnClick="OpenQuickAddDialog">
                     Iscrizione Veloce
@@ -507,6 +511,33 @@ _comparisonMode))
             }
         }
 
+
+    private async Task OpenNewClientDialog()
+    {
+        var parameters = new DialogParameters<GestioneViaggi.Components.Shared.ClienteDialog>
+        {
+            { x => x.Entity, new GestioneViaggi.Models.Cliente() },
+            { x => x.IsEditMode, false },
+            { x => x.AziendaFk, _currentUser?.AziendaId ?? 0 }
+        };
+
+        var options = new DialogOptions
+        {
+            BackdropClick = false,
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.ClienteDialog>("Nuovo Cliente", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadStatsAsync();
+            await LoadActivitiesAsync();
+        }
+    }
 
     private async Task OpenQuickAddDialog()
     {

@@ -19,8 +19,9 @@ window.dialogFormHelper = {
             }
 
             // Trova tutti gli input, select, numeric fields all'interno del dialog
-            // MudBlazor wrappa gli input in div con classe .mud-input-slot
-            const allInputs = dialogContent.querySelectorAll('input:not([type="hidden"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled])');
+            // MudSelect usa un div con classe .mud-input-slot e tabindex="0" OPPURE un input readonly
+            // Rimossa esclusione readonly perché MudSelect usa input readonly nascosti o visibili che devono ricevere focus
+            const allInputs = dialogContent.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), .mud-input-slot[tabindex="0"]:not([disabled])');
 
             if (allInputs.length === 0) {
                 // Gli input non sono ancora pronti, riprova tra 100ms
