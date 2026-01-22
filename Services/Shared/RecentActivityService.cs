@@ -29,13 +29,24 @@ public class RecentActivityService : IRecentActivityService
                 SELECT event_id, event_type, description, entity_table, entity_id, azienda_id, created_at, created_by
                 FROM ana_business_events
                 WHERE (@aziendaId IS NULL OR azienda_id = @aziendaId OR azienda_id IS NULL)
-                  AND (@usernameFilter IS NULL OR created_by = @usernameFilter)
+                  AND (@usernameFilter IS NULL OR LOWER(created_by) = LOWER(@usernameFilter))
                 ORDER BY created_at DESC
                 LIMIT @limit";
 
             await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("aziendaId", (object?)aziendaId ?? DBNull.Value);
-            command.Parameters.AddWithValue("usernameFilter", (object?)usernameFilter ?? DBNull.Value);
+            
+            command.Parameters.Add(new NpgsqlParameter("aziendaId", NpgsqlTypes.NpgsqlDbType.Integer) 
+            { 
+                Value = (object?)aziendaId ?? DBNull.Value,
+                IsNullable = true
+            });
+            
+            command.Parameters.Add(new NpgsqlParameter("usernameFilter", NpgsqlTypes.NpgsqlDbType.Varchar) 
+            { 
+                Value = (object?)usernameFilter ?? DBNull.Value,
+                IsNullable = true 
+            });
+            
             command.Parameters.AddWithValue("limit", limit);
 
             await using var reader = await command.ExecuteReaderAsync();

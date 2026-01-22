@@ -285,15 +285,22 @@
             }
             else
             {
-                <MudList T="string" Dense="true">
-                    @foreach (var item in _activities)
-                    {
-                        <MudListItem T="string" Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
-                            <MudText Typo="Typo.body2">@item.Description</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@item.TimeAgo - @item.CreatedBy</MudText>
-                        </MudListItem>
-                    }
-                </MudList>
+                <div style="max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                    <MudList T="string" Dense="true">
+                        @foreach (var item in _activities)
+                        {
+                            <MudListItem Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
+                                <div class="d-flex flex-column">
+                                    <MudText Typo="Typo.body2">@item.Description</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @item.TimeAgo - @item.CreatedBy
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                    </MudList>
+                </div>
             }
         </MudPaper>
 
@@ -489,6 +496,7 @@ _comparisonMode))
                         Snackbar.Add("Partenza inserita con successo!", Severity.Success);
                         // Refresh stats
                         await LoadStatsAsync();
+                        await LoadActivitiesAsync();
                     }
                 }
             }
@@ -516,6 +524,7 @@ _comparisonMode))
         if (result != null && !result.Canceled)
         {
             await LoadStatsAsync();
+            await LoadActivitiesAsync();
         }
     }
 
@@ -529,7 +538,7 @@ _comparisonMode))
         // But request says "Ogni utente vede solo le attività che ha svolto LUI".
         // Assuming this dashboard is for personal/company scope.
         
-        _activities = await ActivityService.GetRecentActivitiesAsync(_currentUser?.AziendaId, usernameFilter);
+        _activities = await ActivityService.GetRecentActivitiesAsync(_currentUser?.AziendaId, usernameFilter, 100);
         StateHasChanged();
     }
 
@@ -538,6 +547,9 @@ _comparisonMode))
         "VIAGGIO_CREATED" => Icons.Material.Filled.AddCircle,
         "VIAGGIO_UPDATED" => Icons.Material.Filled.Edit,
         "VIAGGIO_DELETED" => Icons.Material.Filled.Delete,
+        "DATA_VIAGGIO_CREATED" => Icons.Material.Filled.DateRange,
+        "DATA_VIAGGIO_UPDATED" => Icons.Material.Filled.EventAvailable,
+        "DATA_VIAGGIO_DELETED" => Icons.Material.Filled.EventBusy,
         "PARTECIPANTE_ADDED" => Icons.Material.Filled.PersonAdd,
         "PARTECIPANTE_UPDATED" => Icons.Material.Filled.Edit,
         "PARTECIPANTE_REMOVED" => Icons.Material.Filled.PersonRemove,
@@ -552,6 +564,9 @@ _comparisonMode))
         "VIAGGIO_CREATED" => Color.Success,
         "VIAGGIO_UPDATED" => Color.Warning,
         "VIAGGIO_DELETED" => Color.Error,
+        "DATA_VIAGGIO_CREATED" => Color.Success,
+        "DATA_VIAGGIO_UPDATED" => Color.Warning,
+        "DATA_VIAGGIO_DELETED" => Color.Error,
         "PARTECIPANTE_ADDED" => Color.Info,
         "PARTECIPANTE_UPDATED" => Color.Warning,
         "PARTECIPANTE_REMOVED" => Color.Error,

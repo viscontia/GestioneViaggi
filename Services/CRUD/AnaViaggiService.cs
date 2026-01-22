@@ -598,7 +598,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     {
         await using var connection = await _databaseService.GetConnectionAsync();
 
-        // 0. Pre-Delete Validation: Check for existing dependencies
+        // 0. Pre-Delete Validation (Keep existing logic)
         var checkSql = @"
             SELECT 
                 (SELECT COUNT(1) FROM mov_clienti_viaggi WHERE data_viaggio_id_fk = @id) as clienti_count,

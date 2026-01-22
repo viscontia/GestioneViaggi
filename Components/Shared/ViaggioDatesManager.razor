@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
 
 <MudDataGrid T="AnaDataViaggio" Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true">
     <ToolBarContent>
@@ -82,6 +83,8 @@
     [Inject] AnaViaggiService ViaggiService { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
+    [Inject] AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+
     [Parameter] public List<AnaDataViaggio> Dates { get; set; } = new();
 
     // Live Mode: when true, actions are executed directly on DB and list is refreshed.
@@ -141,6 +144,9 @@
 
     private async Task DeleteDate(AnaDataViaggio date)
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name;
+
         if (IsLiveMode && Dates.Count == 1)
         {
             // Orphaned Trip Scenario

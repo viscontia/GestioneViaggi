@@ -39,7 +39,12 @@ DECLARE
     v_user varchar;
     v_desc text;
 BEGIN
-    v_user := COALESCE(NEW.updated_by, NEW.created_by, current_user);
+    BEGIN
+        v_user := current_setting('my.app_user', true);
+    EXCEPTION WHEN OTHERS THEN
+        v_user := NULL;
+    END;
+    v_user := COALESCE(v_user, NEW.updated_by, NEW.created_by, current_user);
     
     IF (TG_OP = 'INSERT') THEN
         v_desc := 'Creato nuovo viaggio: ' || NEW.viaggio_descrizione_breve;
@@ -55,7 +60,7 @@ BEGIN
         END IF;
         RETURN NEW;
     ELSIF (TG_OP = 'DELETE') THEN
-        v_user := current_user;
+        -- v_user is already set from session above
         v_desc := 'Eliminato viaggio: ' || OLD.viaggio_descrizione_breve;
         PERFORM public.fn_log_business_event('VIAGGIO_DELETED', v_desc, 'ana_viaggi', OLD.viaggio_id, OLD.azienda_id, v_user);
         RETURN OLD;
@@ -80,7 +85,12 @@ BEGIN
     SELECT COALESCE(cliente_nome || ' ' || cliente_cognome, 'Cliente ' || cliente_id) INTO v_nominativo
     FROM ana_clienti WHERE cliente_id = COALESCE(NEW.cliente_id_fk, OLD.cliente_id_fk);
 
-    v_user := COALESCE(NEW.created_by, current_user);
+    BEGIN
+        v_user := current_setting('my.app_user', true);
+    EXCEPTION WHEN OTHERS THEN
+        v_user := NULL;
+    END;
+    v_user := COALESCE(v_user, NEW.updated_by, NEW.created_by, current_user);
 
     IF (TG_OP = 'INSERT') THEN
         PERFORM public.fn_log_business_event(
@@ -104,7 +114,7 @@ BEGIN
         );
         RETURN NEW;
     ELSIF (TG_OP = 'DELETE') THEN
-         v_user := current_user; -- On delete we might not have the user in OLD record in the way we want
+         -- On delete we rely on session user as we might not have it in OLD
          PERFORM public.fn_log_business_event(
             'PARTECIPANTE_REMOVED', 
             'Rimosso ' || v_nominativo || ' dal viaggio "' || v_viaggio_desc || '"', 

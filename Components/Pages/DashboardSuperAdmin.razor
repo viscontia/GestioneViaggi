@@ -375,18 +375,20 @@ else
                 }
                 else
                 {
-                    <MudList T="string" Dense="true">
-                        @foreach (var item in _activities)
-                        {
-                            <MudListItem T="string" Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
-                                <MudText Typo="Typo.body2">@item.Description</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    <strong>@item.CreatedBy</strong> - @item.TimeAgo 
-                                    @if(item.AziendaId.HasValue) { <span class="ml-2">(Az. @item.AziendaId)</span> }
-                                </MudText>
-                            </MudListItem>
-                        }
-                    </MudList>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <MudList T="string" Dense="true">
+                            @foreach (var item in _activities)
+                            {
+                                <MudListItem T="string" Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
+                                    <MudText Typo="Typo.body2">@item.Description</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <strong>@item.CreatedBy</strong> - @item.TimeAgo 
+                                        @if(item.AziendaId.HasValue) { <span class="ml-2">(Az. @item.AziendaId)</span> }
+                                    </MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </div>
                 }
             </MudPaper>
 
@@ -701,6 +703,7 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         {
             // Maybe refresh stats if we want?
             await LoadStatsAsync();
+            await LoadActivitiesAsync();
         }
     }
 
@@ -708,7 +711,7 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
     private async Task LoadActivitiesAsync()
     {
         // SuperAdmin: No Company Filter (null), No User Filter (null) -> ALL
-        _activities = await ActivityService.GetRecentActivitiesAsync(null, null);
+        _activities = await ActivityService.GetRecentActivitiesAsync(null, null, 100);
         StateHasChanged();
     }
 
@@ -717,6 +720,9 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         "VIAGGIO_CREATED" => Icons.Material.Filled.AddCircle,
         "VIAGGIO_UPDATED" => Icons.Material.Filled.Edit,
         "VIAGGIO_DELETED" => Icons.Material.Filled.Delete,
+        "DATA_VIAGGIO_CREATED" => Icons.Material.Filled.DateRange,
+        "DATA_VIAGGIO_UPDATED" => Icons.Material.Filled.EventAvailable,
+        "DATA_VIAGGIO_DELETED" => Icons.Material.Filled.EventBusy,
         "PARTECIPANTE_ADDED" => Icons.Material.Filled.PersonAdd,
         "PARTECIPANTE_UPDATED" => Icons.Material.Filled.Edit,
         "PARTECIPANTE_REMOVED" => Icons.Material.Filled.PersonRemove,
@@ -731,6 +737,9 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
         "VIAGGIO_CREATED" => Color.Success,
         "VIAGGIO_UPDATED" => Color.Warning,
         "VIAGGIO_DELETED" => Color.Error,
+        "DATA_VIAGGIO_CREATED" => Color.Success,
+        "DATA_VIAGGIO_UPDATED" => Color.Warning,
+        "DATA_VIAGGIO_DELETED" => Color.Error,
         "PARTECIPANTE_ADDED" => Color.Info,
         "PARTECIPANTE_UPDATED" => Color.Warning,
         "PARTECIPANTE_REMOVED" => Color.Error,
