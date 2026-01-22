@@ -52,188 +52,174 @@
                         <MudText Typo="Typo.caption" Class="mt-2 text-center" Color="Color.Secondary">Max 5MB<br/>.jpg, .png</MudText>
                     </MudItem>
 
-                    <!-- FORM DATI (Colonna Destra) -->
-                    <MudItem xs="12" sm="8" md="9">
+                <!-- FORM DATI (Colonna Destra - Layout a Schede) -->
+                <MudItem xs="12" sm="8" md="9" Style="position:relative; z-index:5;">
+                    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                        
+                        <!-- TAB 1: GENERALE -->
+                        <MudTabPanel Text="Generale" Icon="@Icons.Material.Filled.Person" IconColor="@GetTabColor("Generale")">
+                            <MudGrid Spacing="12" Class="mt-12">
+                                <!-- Azienda - Solo per SuperAdmin -->
+                                @if (IsSuperAdmin)
+                                {
+                                    <MudItem xs="12">
+                                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" />
+                                    </MudItem>
+                                }
 
-                <!-- DATI ANAGRAFICI -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">
-                    <strong>Dati Anagrafici</strong>
-                </MudText>
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect @ref="_titoloField" @bind-Value="Entity.Titolo" For="@(() => Entity.Titolo)" Label="Titolo"
+                                        Variant="Variant.Outlined" Required="true" RequiredError="Obbligatorio">
+                                        <MudSelectItem Value="@("Sig.")">Sig.</MudSelectItem>
+                                        <MudSelectItem Value="@("Sig.ra")">Sig.ra</MudSelectItem>
+                                        <MudSelectItem Value="@("Dott.")">Dott.</MudSelectItem>
+                                        <MudSelectItem Value="@("Dott.ssa")">Dott.ssa</MudSelectItem>
+                                        <MudSelectItem Value="@("Ing.")">Ing.</MudSelectItem>
+                                        <MudSelectItem Value="@("Avv.")">Avv.</MudSelectItem>
+                                        <MudSelectItem Value="@("Prof.")">Prof.</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="8">
+                                    <MudRadioGroup @bind-Value="Entity.Sesso" Required="true" Class="mt-3">
+                                        <MudRadio Value="'M'" Color="Color.Primary">Maschio</MudRadio>
+                                        <MudRadio Value="'F'" Color="Color.Secondary">Femmina</MudRadio>
+                                    </MudRadioGroup>
+                                </MudItem>
 
-                <!-- Azienda - Solo per SuperAdmin -->
-                @if (IsSuperAdmin)
-                {
-                    <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" Class="mb-3" />
-                }
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @ref="_cognomeField" @bind-Value="Entity.Cognome" For="@(() => Entity.Cognome)" Label="Cognome"
+                                        Variant="Variant.Outlined" Immediate="true" Required="true"
+                                        RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input"
+                                        Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @ref="_nomeField" @bind-Value="Entity.Nome" For="@(() => Entity.Nome)" Label="Nome"
+                                        Variant="Variant.Outlined" Immediate="true" Required="true" 
+                                        RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input" 
+                                        Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
+                                </MudItem>
 
-                <!-- Titolo -->
-                <MudSelect @ref="_titoloField" @bind-Value="Entity.Titolo" For="@(() => Entity.Titolo)" Label="Titolo"
-                    Variant="Variant.Outlined" Required="true" RequiredError="Il titolo è obbligatorio" Class="mb-3">
-                    <MudSelectItem Value="@("Sig.")">Sig.</MudSelectItem>
-                    <MudSelectItem Value="@("Sig.ra")">Sig.ra</MudSelectItem>
-                    <MudSelectItem Value="@("Dott.")">Dott.</MudSelectItem>
-                    <MudSelectItem Value="@("Dott.ssa")">Dott.ssa</MudSelectItem>
-                    <MudSelectItem Value="@("Ing.")">Ing.</MudSelectItem>
-                    <MudSelectItem Value="@("Avv.")">Avv.</MudSelectItem>
-                    <MudSelectItem Value="@("Prof.")">Prof.</MudSelectItem>
-                </MudSelect>
+                                <MudItem xs="12" sm="6">
+                                    <MudDatePicker @ref="_dataNascitaField" @bind-Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
+                                        Label="Data di Nascita" Variant="Variant.Outlined" Editable="true"
+                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        HelperText="Es: 15/03/1990" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <ComuneSelect @bind-SelectedComuneId="ComuneNascitaIdProxy" Label="Comune di Nascita" Required="true"
+                                        RequiredError="Obbligatorio" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                <!-- Cognome - OBBLIGATORIO -->
-                <MudTextField @bind-Value="Entity.Cognome" For="@(() => Entity.Cognome)" Label="Cognome"
-                    Variant="Variant.Outlined" Immediate="true" Required="true"
-                    RequiredError="Il cognome è obbligatorio" MaxLength="50" Class="mb-3 uppercase-input"
-                    Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
+                        <!-- TAB 2: RESIDENZA & CONTATTI -->
+                        <MudTabPanel Text="Residenza & Contatti" Icon="@Icons.Material.Filled.HomeWork" IconColor="@GetTabColor("Residenza")">
+                            <MudGrid Spacing="12" Class="mt-12">
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-1">Residenza</MudText>
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
+                                    @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
+                                        RequiredError="Obbligatorio" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @ref="_indirizzoField" @bind-Value="Entity.IndirizzoResidenza" For="@(() => Entity.IndirizzoResidenza)"
+                                        Label="Indirizzo" Variant="Variant.Outlined" MaxLength="100"
+                                        Class="uppercase-input" HelperText="Via e numero civico" />
+                                </MudItem>
 
-                <!-- Nome - OBBLIGATORIO -->
-                <MudTextField @bind-Value="Entity.Nome" For="@(() => Entity.Nome)" Label="Nome"
-                    Variant="Variant.Outlined" Immediate="true" Required="true" RequiredError="Il nome è obbligatorio"
-                    MaxLength="50" Class="mb-3 uppercase-input" Adornment="Adornment.End" AdornmentText="*"
-                    AdornmentColor="Color.Error" />
+                                <MudItem xs="12" Class="mt-2">
+                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-1">Contatti</MudText>
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @ref="_emailField" @bind-Value="Entity.Email" For="@(() => Entity.Email)" Label="Email"
+                                        Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="100"
+                                        HelperText="Email principale" Immediate="true" DebounceInterval="800"
+                                        Validation="@(async (string e) => await ValidateEmailAsync(e))" />
+                                </MudItem>
+                                <MudItem xs="4" sm="3">
+                                    <MudTextField @ref="_prefTelField" @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
+                                        Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39" />
+                                </MudItem>
+                                <MudItem xs="8" sm="9">
+                                    <MudTextField @ref="_telefonoField" @bind-Value="Entity.Telefono" For="@(() => Entity.Telefono)" Label="Telefono"
+                                        Variant="Variant.Outlined" MaxLength="15" InputType="InputType.Telephone" Immediate="true"
+                                        Validation="@((string val) => ValidateTelefono(val))" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                <!-- Sesso - OBBLIGATORIO -->
-                <MudRadioGroup @bind-Value="Entity.Sesso" Required="true" Class="mb-3">
-                    <MudRadio Value="'M'" Color="Color.Primary">Maschio</MudRadio>
-                    <MudRadio Value="'F'" Color="Color.Secondary">Femmina</MudRadio>
-                </MudRadioGroup>
+                        <!-- TAB 3: DOCUMENTI -->
+                        <MudTabPanel Text="Documenti" Icon="@Icons.Material.Filled.Badge" IconColor="@GetTabColor("Documenti")">
+                            <MudGrid Spacing="12" Class="mt-12">
+                                <MudItem xs="12" sm="4">
+                                    <MudSelect T="string" @ref="_tipoDocField" @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
+                                        Label="Tipo Doc." Variant="Variant.Outlined" Required="true"
+                                        RequiredError="Obbligatorio">
+                                        <MudSelectItem Value="@("CI")">Carta d'Identità</MudSelectItem>
+                                        <MudSelectItem Value="@("Passaporto")">Passaporto</MudSelectItem>
+                                        <MudSelectItem Value="@("Patente")">Patente</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="12" sm="8">
+                                    <MudTextField @ref="_docNumeroField" @bind-Value="Entity.DocumentoNumero" For="@(() => Entity.DocumentoNumero)"
+                                        Label="Numero Documento" Variant="Variant.Outlined" MaxLength="50" Class="uppercase-input" />
+                                </MudItem>
 
-                <!-- Data di Nascita -->
-                <!-- NOTA: Editable con Mask abilitato per input da tastiera (es: digitare 15031990 -> 15/03/1990) -->
-                <!-- In MAUI Blazor Hybrid, il problema del cursore è minimo rispetto a Blazor Server -->
-                <MudDatePicker @bind-Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
-                    Label="Data di Nascita" Variant="Variant.Outlined"
-                    Editable="true"
-                    Mask="@(new DateMask("dd/MM/yyyy"))"
-                    DateFormat="dd/MM/yyyy"
-                    Placeholder="gg/mm/aaaa"
-                    Class="mb-3"
-                    HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
+                                <MudItem xs="12">
+                                    <MudTextField @ref="_docRilDaField" @bind-Value="Entity.DocumentoRilasciatoDa" For="@(() => Entity.DocumentoRilasciatoDa)"
+                                        Label="Rilasciato Da" Variant="Variant.Outlined" MaxLength="100" Class="uppercase-input" />
+                                </MudItem>
 
-                <!-- Comune di Nascita - OBBLIGATORIO -->
-                <ComuneSelect @bind-SelectedComuneId="ComuneNascitaIdProxy" Label="Comune di Nascita" Required="true"
-                    RequiredError="Il comune di nascita è obbligatorio" Class="mb-3" />
+                                <MudItem xs="12" sm="6">
+                                    <MudDatePicker @ref="_docRilDataField" @bind-Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
+                                        Label="Data Rilascio" Variant="Variant.Outlined" Editable="true"
+                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudDatePicker @ref="_docScadenzaField" @bind-Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
+                                        Label="Data Scadenza" Variant="Variant.Outlined" Editable="true"
+                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Validation="@((DateTime? d) => ValidateDataScadenza(d))" />
+                                </MudItem>
 
-                <MudDivider Class="my-4" />
+                                <MudItem xs="12">
+                                    <MudDivider Class="my-2" />
+                                </MudItem>
+                                
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @ref="_cfField" @bind-Value="Entity.CodiceFiscale" For="@(() => Entity.CodiceFiscale)"
+                                        Label="Codice Fiscale" Variant="Variant.Outlined" MaxLength="16" Class="uppercase-input"
+                                        Immediate="true" DebounceInterval="800"
+                                        Validation="@(async (string cf) => await ValidateCodiceFiscaleAsync(cf))" />
+                                </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudTextField @ref="_ibanField" @bind-Value="Entity.Iban" For="@(() => Entity.Iban)" Label="IBAN"
+                                        Variant="Variant.Outlined" MaxLength="34" Class="uppercase-input" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                <!-- RESIDENZA -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">
-                    <strong>Residenza</strong>
-                </MudText>
+                        <!-- TAB 4: ALTRO -->
+                        <MudTabPanel Text="Altro" Icon="@Icons.Material.Filled.Note" IconColor="@GetTabColor("Altro")">
+                            <MudGrid Spacing="12" Class="mt-12">
+                                <MudItem xs="12">
+                                    <MudTextField @ref="_intolleranzaField" @bind-Value="Entity.Intolleranza" For="@(() => Entity.Intolleranza)"
+                                        Label="Intolleranze/Allergie" Variant="Variant.Outlined" Lines="3" Class="uppercase-input"
+                                        HelperText="Indicare eventuali intolleranze o allergie alimentari" />
+                                </MudItem>
+                                <MudItem xs="12">
+                                    <MudTextField @ref="_noteField" @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
+                                        Variant="Variant.Outlined" Lines="5" Class="uppercase-input"
+                                        HelperText="Note aggiuntive sul cliente" />
+                                </MudItem>
+                            </MudGrid>
+                        </MudTabPanel>
 
-                <!-- Comune di Residenza - OBBLIGATORIO -->
-                <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
-                @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
-                    RequiredError="Il comune di residenza è obbligatorio" Class="mb-3" />
-
-                <!-- Indirizzo di Residenza -->
-                <MudTextField @bind-Value="Entity.IndirizzoResidenza" For="@(() => Entity.IndirizzoResidenza)"
-                    Label="Indirizzo di Residenza" Variant="Variant.Outlined" MaxLength="100"
-                    Class="mb-3 uppercase-input" HelperText="Via, numero civico" />
-
-                <MudDivider Class="my-4" />
-
-                <!-- CONTATTI -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">
-                    <strong>Contatti</strong>
-                </MudText>
-
-                <!-- Email -->
-                <MudTextField @bind-Value="Entity.Email" For="@(() => Entity.Email)" Label="Email"
-                    Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="100" Class="mb-3"
-                    HelperText="Email principale del cliente" Immediate="true" DebounceInterval="800"
-                    Validation="@(async (string e) => await ValidateEmailAsync(e))" />
-
-                <!-- Prefisso Internazionale -->
-                <MudTextField @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
-                    Label="Prefisso Internazionale" Variant="Variant.Outlined" MaxLength="5" Class="mb-3"
-                    HelperText="Es: +39" Placeholder="+39" />
-
-                <!-- Telefono -->
-                <MudTextField @bind-Value="Entity.Telefono" For="@(() => Entity.Telefono)" Label="Telefono"
-                    Variant="Variant.Outlined" MaxLength="15" Class="mb-3" HelperText="Numero di telefono"
-                    InputType="InputType.Telephone" Immediate="true"
-                    Validation="@((string val) => ValidateTelefono(val))" />
-
-                <MudDivider Class="my-4" />
-
-                <!-- DOCUMENTI -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">
-                    <strong>Documenti</strong>
-                </MudText>
-
-                <!-- Codice Fiscale -->
-                <MudTextField @bind-Value="Entity.CodiceFiscale" For="@(() => Entity.CodiceFiscale)"
-                    Label="Codice Fiscale" Variant="Variant.Outlined" MaxLength="16" Class="mb-3 uppercase-input"
-                    HelperText="16 caratteri alfanumerici" Immediate="true" DebounceInterval="800"
-                    Validation="@(async (string cf) => await ValidateCodiceFiscaleAsync(cf))" />
-
-                <!-- IBAN -->
-                <MudTextField @bind-Value="Entity.Iban" For="@(() => Entity.Iban)" Label="IBAN"
-                    Variant="Variant.Outlined" MaxLength="34" Class="mb-3 uppercase-input"
-                    HelperText="IBAN del conto corrente" />
-
-                <!-- Tipo Documento -->
-                <MudSelect T="string" @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
-                    Label="Tipo Documento" Variant="Variant.Outlined" Required="true"
-                    RequiredError="Il tipo di documento è obbligatorio" Class="mb-3">
-                    <MudSelectItem Value="@("CI")">Carta d'Identità</MudSelectItem>
-                    <MudSelectItem Value="@("Passaporto")">Passaporto</MudSelectItem>
-                    <MudSelectItem Value="@("Patente")">Patente</MudSelectItem>
-                </MudSelect>
-
-                <!-- Numero Documento -->
-                <MudTextField @bind-Value="Entity.DocumentoNumero" For="@(() => Entity.DocumentoNumero)"
-                    Label="Numero Documento" Variant="Variant.Outlined" MaxLength="50" Class="mb-3 uppercase-input"
-                    HelperText="Numero del documento identificativo" />
-
-                <!-- Rilasciato Da -->
-                <MudTextField @bind-Value="Entity.DocumentoRilasciatoDa" For="@(() => Entity.DocumentoRilasciatoDa)"
-                    Label="Rilasciato Da" Variant="Variant.Outlined" MaxLength="100" Class="mb-3 uppercase-input"
-                    HelperText="Ente rilasciante" />
-
-                <!-- Data Rilascio -->
-                <!-- NOTA: Editable con Mask abilitato per input da tastiera -->
-                <MudDatePicker @bind-Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
-                    Label="Data Rilascio Documento"
-                    Variant="Variant.Outlined"
-                    Editable="true"
-                    Mask="@(new DateMask("dd/MM/yyyy"))"
-                    DateFormat="dd/MM/yyyy"
-                    Placeholder="gg/mm/aaaa"
-                    Class="mb-3"
-                    Validation="@((DateTime? d) => ValidateDataRilascio(d))"
-                    HelperText="Digitare la data o selezionare dal calendario" />
-
-                <!-- Data Scadenza -->
-                <!-- NOTA: Editable con Mask abilitato per input da tastiera -->
-                <MudDatePicker @bind-Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
-                    Label="Data Scadenza Documento"
-                    Variant="Variant.Outlined"
-                    Editable="true"
-                    Mask="@(new DateMask("dd/MM/yyyy"))"
-                    DateFormat="dd/MM/yyyy"
-                    Placeholder="gg/mm/aaaa"
-                    Class="mb-3"
-                    Validation="@((DateTime? d) => ValidateDataScadenza(d))"
-                    HelperText="Digitare la data o selezionare dal calendario" />
-
-                <MudDivider Class="my-4" />
-
-                <!-- NOTE -->
-                <MudText Typo="Typo.subtitle1" Class="mb-2">
-                    <strong>Informazioni Aggiuntive</strong>
-                </MudText>
-
-                <!-- Intolleranze -->
-                <MudTextField @bind-Value="Entity.Intolleranza" For="@(() => Entity.Intolleranza)"
-                    Label="Intolleranze/Allergie" Variant="Variant.Outlined" Lines="2" Class="mb-3 uppercase-input"
-                    HelperText="Indicare eventuali intolleranze o allergie alimentari" />
-
-                <!-- Note -->
-                <MudTextField @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
-                    Variant="Variant.Outlined" Lines="3" Class="mb-3 uppercase-input"
-                    HelperText="Note aggiuntive sul cliente" />
-
-                    </MudItem>
+                    </MudTabs>
+                </MudItem>
                 </MudGrid>
             </MudForm>
         </div>

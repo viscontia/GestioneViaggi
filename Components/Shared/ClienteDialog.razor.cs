@@ -30,11 +30,26 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     private MudForm? _form;
     private MudSelect<string>? _titoloField;
+    private MudTextField<string>? _cognomeField, _nomeField;
+    private MudDatePicker? _dataNascitaField;
+    
+    // Tab 2
+    private MudTextField<string>? _indirizzoField, _emailField, _prefTelField, _telefonoField;
+
+    // Tab 3
+    private MudSelect<string>? _tipoDocField;
+    private MudTextField<string>? _docNumeroField, _docRilDaField, _cfField, _ibanField;
+    private MudDatePicker? _docRilDataField, _docScadenzaField;
+
+    // Tab 4
+    private MudTextField<string>? _intolleranzaField, _noteField;
+
     private MudFileUpload<IBrowserFile>? _fileUpload;
     private string? _photoPreviewUrl;
     private const long MaxFileSize = 1024 * 1024 * 5; // 5MB
 
     private bool _isSaving = false;
+    private bool _validationRequested = false;
 
     // NOTA: DateMask configurato con formato dd/MM/yyyy
     // Permette input da tastiera (es: digitare 15031990 auto-formatta in 15/03/1990)
@@ -131,6 +146,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
         try
         {
+            _validationRequested = true;
             await _form.Validate();
 
             if (!_form.IsValid)
@@ -403,5 +419,62 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         {
             Snackbar.Add($"Errore durante il download: {ex.Message}", Severity.Error);
         }
+    }
+
+    private MudBlazor.Color GetTabColor(string tabName)
+    {
+        bool hasError = false;
+
+        switch (tabName)
+        {
+            case "Generale":
+                hasError = CheckSelects(_titoloField)
+                           || CheckFields(_cognomeField, _nomeField) 
+                           || CheckDatePickers(_dataNascitaField)
+                           || (IsSuperAdmin && _validationRequested && Entity.AziendaFk == 0)
+                           || (_validationRequested && ComuneNascitaIdProxy == null);
+                break;
+            case "Residenza":
+                hasError = CheckFields(_indirizzoField, _emailField, _prefTelField, _telefonoField)
+                           || (_validationRequested && ComuneResidenzaIdProxy == null);
+                break;
+            case "Documenti":
+                hasError = CheckFields(_docNumeroField, _docRilDaField, _cfField, _ibanField)
+                           || CheckSelects(_tipoDocField)
+                           || CheckDatePickers(_docRilDataField, _docScadenzaField);
+                break;
+            case "Altro":
+                hasError = CheckFields(_intolleranzaField, _noteField);
+                break;
+        }
+
+        return hasError ? MudBlazor.Color.Error : MudBlazor.Color.Default;
+    }
+
+    private static bool CheckFields(params MudTextField<string>?[] fields)
+    {
+        foreach (var f in fields)
+        {
+            if (f != null && f.Error) return true;
+        }
+        return false;
+    }
+
+    private static bool CheckDatePickers(params MudDatePicker?[] fields)
+    {
+        foreach (var f in fields)
+        {
+            if (f != null && f.Error) return true;
+        }
+        return false;
+    }
+
+    private static bool CheckSelects(params MudSelect<string>?[] fields)
+    {
+        foreach (var f in fields)
+        {
+            if (f != null && f.Error) return true;
+        }
+        return false;
     }
 }
