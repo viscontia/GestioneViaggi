@@ -19,7 +19,6 @@ public partial class TravelDataSelectorDialog
     private List<AnaDataViaggio>? _dates;
     private List<TravelTreeData>? _treeData;
     private TravelTreeNode? _selectedTreeNode;
-    private HashSet<int> _expandedYears = new();
     private int _activeTabIndex = 0;
 
     // Loading States
@@ -64,7 +63,6 @@ public partial class TravelDataSelectorDialog
         _dates = null;
         _treeData = null;
         _selectedTreeNode = null;
-        _expandedYears.Clear();
 
         if (_selectedAziendaId > 0)
         {
@@ -81,21 +79,6 @@ public partial class TravelDataSelectorDialog
     {
         _selectedTripId = tripId;
         _selectedDateId = null;
-
-        // Sincronizza con TreeView
-        if (_selectedTripId.HasValue && _treeData != null)
-        {
-            var firstDateForTrip = _treeData
-                .Where(x => x.ViaggioId == _selectedTripId.Value)
-                .OrderBy(x => x.DataInizio)
-                .FirstOrDefault();
-
-            if (firstDateForTrip != null)
-            {
-                // Espandi l'anno nella TreeView
-                _expandedYears.Add(firstDateForTrip.Anno);
-            }
-        }
 
         await LoadDatesAsync();
     }
@@ -133,13 +116,6 @@ public partial class TravelDataSelectorDialog
             _treeData = await ViaggiService.GetTravelTreeDataAsync(
                 _selectedAziendaId > 0 ? _selectedAziendaId : null
             );
-
-            // Espandi automaticamente l'anno corrente
-            var currentYear = DateTime.Today.Year;
-            if (_treeData != null && _treeData.Any(x => x.Anno == currentYear))
-            {
-                _expandedYears.Add(currentYear);
-            }
         }
         catch (Exception ex)
         {
@@ -190,9 +166,6 @@ public partial class TravelDataSelectorDialog
                 DisplayText = GetDateDisplayText(matchingData),
                 Status = matchingData.GetStatus()
             };
-
-            // Espandi l'anno
-            _expandedYears.Add(matchingData.Anno);
         }
     }
 
@@ -239,8 +212,6 @@ public partial class TravelDataSelectorDialog
                     DisplayText = GetDateDisplayText(matchingData),
                     Status = matchingData.GetStatus()
                 };
-
-                _expandedYears.Add(matchingData.Anno);
             }
         }
     }

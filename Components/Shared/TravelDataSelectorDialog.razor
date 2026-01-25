@@ -124,8 +124,8 @@
                                         };
                                         var dateCountForYear = _treeData.Count(x => x.Anno == anno);
 
-                                        <MudTreeViewItem Value="@yearNode" Icon="@Icons.Material.Filled.CalendarMonth"
-                                                       CanExpand="true" Expanded="@(_expandedYears.Contains(anno))">
+                                        <MudTreeViewItem Value="@yearNode" Icon="@Icons.Material.Filled.Folder"
+                                                       CanExpand="true">
                                             <Content>
                                                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@anno</MudText>
@@ -146,7 +146,7 @@
                                                     };
                                                     var dateCountForViaggio = viaggioGroup.Count();
 
-                                                    <MudTreeViewItem Value="@viaggioNode" Icon="@Icons.Material.Filled.Luggage"
+                                                    <MudTreeViewItem Value="@viaggioNode" Icon="@Icons.Material.Filled.FolderOpen"
                                                                    CanExpand="true">
                                                         <Content>
                                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -168,7 +168,7 @@
                                                                     Status = status
                                                                 };
 
-                                                                <MudTreeViewItem Value="@dataNode" Icon="@status.GetIcon()">
+                                                                <MudTreeViewItem Value="@dataNode" Icon="@Icons.Material.Filled.Description">
                                                                     <Content>
                                                                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                                             <MudIcon Icon="@status.GetIcon()"
