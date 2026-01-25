@@ -26,7 +26,6 @@
                               ValueChanged="OnAziendaSelected"
                               Required="true"
                               ShowAllOption="false"
-                              Disabled="@_isLoading"
                               Label="Azienda *" />
             }
 
@@ -43,8 +42,7 @@
                                         SelectedIdChanged="OnTripSelectedFromCombobox"
                                         AziendaId="_selectedAziendaId"
                                         Label="Seleziona Viaggio *"
-                                        Required="true"
-                                        Disabled="@_isLoading" />
+                                        Required="true" />
 
                             @* Loading Date *@
                             @if (_isLoadingDates)
@@ -56,7 +54,7 @@
                             <MudSelect T="int?" Label="Seleziona Data Partenza *"
                                      Value="_selectedDateId"
                                      ValueChanged="OnDateSelectedFromCombobox"
-                                     Disabled="@(!_selectedTripId.HasValue || _isLoadingDates || _isLoading)"
+                                     Disabled="@(!_selectedTripId.HasValue || _isLoadingDates)"
                                      Required="true" RequiredError="Seleziona una data"
                                      Variant="Variant.Outlined"
                                      AnchorOrigin="Origin.BottomCenter">
@@ -68,7 +66,7 @@
                                         <MudSelectItem Value="@((int?)date.Id)">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                 <MudIcon Icon="@status.GetIcon()"
-                                                       Color="@Enum.Parse<Color>(status.GetColor())"
+                                                       Color="@GetStatusColor(status)"
                                                        Size="Size.Small" />
                                                 <MudText>
                                                     @date.DataInizio?.ToString("dd/MM/yyyy")
@@ -77,7 +75,7 @@
                                                         <text> - @date.DataFine.Value.ToString("dd/MM/yyyy")</text>
                                                     }
                                                 </MudText>
-                                                <MudChip Size="Size.Small" Color="@Enum.Parse<Color>(status.GetColor())">
+                                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(status)">
                                                     @status.GetLabel()
                                                 </MudChip>
                                             </MudStack>
@@ -113,7 +111,7 @@
                             }
                             else if (_treeData != null && _treeData.Any())
                             {
-                                <MudTreeView T="TravelTreeNode" @bind-SelectedValue="_selectedTreeNode"
+                                <MudTreeView T="TravelTreeNode" SelectedValue="_selectedTreeNode"
                                            SelectedValueChanged="OnTreeNodeSelected"
                                            Hover="true" Dense="true">
                                     @foreach (var anno in _treeData.Select(x => x.Anno).Distinct().OrderByDescending(x => x))
@@ -166,11 +164,11 @@
                                                                     <Content>
                                                                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                                                             <MudIcon Icon="@status.GetIcon()"
-                                                                                   Color="@Enum.Parse<Color>(status.GetColor())"
+                                                                                   Color="@GetStatusColor(status)"
                                                                                    Size="Size.Small" />
                                                                             <MudText>@GetDateDisplayText(data)</MudText>
-                                                                            <MudChip Size="Size.Small"
-                                                                                   Color="@Enum.Parse<Color>(status.GetColor())">
+                                                                            <MudChip T="string" Size="Size.Small"
+                                                                                   Color="@GetStatusColor(status)">
                                                                                 @status.GetLabel()
                                                                             </MudChip>
                                                                         </MudStack>
@@ -204,11 +202,11 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Disabled="@_isLoading">Annulla</MudButton>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
         <MudButton Color="Color.Primary"
                  Variant="Variant.Filled"
                  OnClick="Submit"
-                 Disabled="@(!IsValid() || _isLoading)"
+                 Disabled="@(!IsValid())"
                  StartIcon="@Icons.Material.Filled.Print">
             @GetActionButtonText()
         </MudButton>

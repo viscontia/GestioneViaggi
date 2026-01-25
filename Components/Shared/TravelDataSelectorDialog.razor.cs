@@ -23,7 +23,6 @@ public partial class TravelDataSelectorDialog
     private int _activeTabIndex = 0;
 
     // Loading States
-    private bool _isLoading;
     private bool _isLoadingDates;
     private bool _isLoadingTree;
 
@@ -295,5 +294,10 @@ public partial class TravelDataSelectorDialog
             PrintType.CustomReport => "Genera",
             _ => "Stampa"
         };
+    }
+
+    private MudBlazor.Color GetStatusColor(TravelStatus status)
+    {
+        return Enum.Parse<MudBlazor.Color>(status.GetColor());
     }
 }
