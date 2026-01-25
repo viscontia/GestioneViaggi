@@ -1,0 +1,216 @@
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Models
+@using MudBlazor
+@inject AnaViaggiService ViaggiService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Print" />
+            <MudText Typo="Typo.h6">@GetDialogTitle()</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Azienda Selection (Solo SuperAdmin) *@
+            @if (IsSuperAdmin)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                    <MudText Typo="Typo.body2">
+                        <strong>SuperAdmin:</strong> Seleziona prima l'azienda per visualizzare i viaggi disponibili
+                    </MudText>
+                </MudAlert>
+
+                <AziendaSelect Value="_selectedAziendaId"
+                              ValueChanged="OnAziendaSelected"
+                              Required="true"
+                              ShowAllOption="false"
+                              Disabled="@_isLoading"
+                              Label="Azienda *" />
+            }
+
+            @* Tab per modalità di selezione *@
+            @if (_canShowSelectors)
+            {
+                <MudTabs ActivePanelIndex="_activeTabIndex"
+                       ActivePanelIndexChanged="OnTabChanged"
+                       Elevation="2" Rounded="true" ApplyEffectsToContainer="true">
+                    <MudTabPanel Text="Ricerca Rapida" Icon="@Icons.Material.Filled.Search">
+                        <MudStack Spacing="3" Class="pa-4">
+                            @* Combobox Viaggio *@
+                            <ViaggiSelect SelectedId="_selectedTripId"
+                                        SelectedIdChanged="OnTripSelectedFromCombobox"
+                                        AziendaId="_selectedAziendaId"
+                                        Label="Seleziona Viaggio *"
+                                        Required="true"
+                                        Disabled="@_isLoading" />
+
+                            @* Loading Date *@
+                            @if (_isLoadingDates)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-2" />
+                            }
+
+                            @* Combobox Data Viaggio *@
+                            <MudSelect T="int?" Label="Seleziona Data Partenza *"
+                                     Value="_selectedDateId"
+                                     ValueChanged="OnDateSelectedFromCombobox"
+                                     Disabled="@(!_selectedTripId.HasValue || _isLoadingDates || _isLoading)"
+                                     Required="true" RequiredError="Seleziona una data"
+                                     Variant="Variant.Outlined"
+                                     AnchorOrigin="Origin.BottomCenter">
+                                @if (_dates != null)
+                                {
+                                    foreach (var date in _dates)
+                                    {
+                                        var status = GetDateStatus(date);
+                                        <MudSelectItem Value="@((int?)date.Id)">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                <MudIcon Icon="@status.GetIcon()"
+                                                       Color="@Enum.Parse<Color>(status.GetColor())"
+                                                       Size="Size.Small" />
+                                                <MudText>
+                                                    @date.DataInizio?.ToString("dd/MM/yyyy")
+                                                    @if (date.DataFine.HasValue)
+                                                    {
+                                                        <text> - @date.DataFine.Value.ToString("dd/MM/yyyy")</text>
+                                                    }
+                                                </MudText>
+                                                <MudChip Size="Size.Small" Color="@Enum.Parse<Color>(status.GetColor())">
+                                                    @status.GetLabel()
+                                                </MudChip>
+                                            </MudStack>
+                                        </MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+
+                            @* Preview Info *@
+                            @if (_selectedDateId.HasValue && _selectedDate != null)
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text">
+                                    <MudStack Row="true" Spacing="4">
+                                        <MudText Typo="Typo.caption">
+                                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" />
+                                            @_selectedDate.TotClienti partecipanti
+                                        </MudText>
+                                        <MudText Typo="Typo.caption">
+                                            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" />
+                                            @_selectedDate.TotMezzi veicoli
+                                        </MudText>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </MudTabPanel>
+
+                    <MudTabPanel Text="Per Anno" Icon="@Icons.Material.Filled.CalendarMonth">
+                        <MudStack Spacing="2" Class="pa-4">
+                            @if (_isLoadingTree)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-2" />
+                            }
+                            else if (_treeData != null && _treeData.Any())
+                            {
+                                <MudTreeView T="TravelTreeNode" @bind-SelectedValue="_selectedTreeNode"
+                                           SelectedValueChanged="OnTreeNodeSelected"
+                                           Hover="true" Dense="true">
+                                    @foreach (var anno in _treeData.Select(x => x.Anno).Distinct().OrderByDescending(x => x))
+                                    {
+                                        var yearNode = new TravelTreeNode
+                                        {
+                                            Type = TravelTreeNodeType.Year,
+                                            Year = anno,
+                                            DisplayText = anno.ToString()
+                                        };
+
+                                        <MudTreeViewItem Value="@yearNode" Icon="@Icons.Material.Filled.CalendarMonth"
+                                                       CanExpand="true" Expanded="@(_expandedYears.Contains(anno))">
+                                            <Content>
+                                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@anno</MudText>
+                                            </Content>
+                                            <ChildContent>
+                                                @foreach (var viaggioGroup in _treeData.Where(x => x.Anno == anno)
+                                                    .GroupBy(x => new { x.ViaggioId, x.ViaggioDescrizione })
+                                                    .OrderBy(g => g.Key.ViaggioDescrizione))
+                                                {
+                                                    var viaggioNode = new TravelTreeNode
+                                                    {
+                                                        Type = TravelTreeNodeType.Viaggio,
+                                                        Year = anno,
+                                                        ViaggioId = viaggioGroup.Key.ViaggioId,
+                                                        DisplayText = viaggioGroup.Key.ViaggioDescrizione
+                                                    };
+
+                                                    <MudTreeViewItem Value="@viaggioNode" Icon="@Icons.Material.Filled.Luggage"
+                                                                   CanExpand="true">
+                                                        <Content>
+                                                            <MudText>@viaggioGroup.Key.ViaggioDescrizione</MudText>
+                                                        </Content>
+                                                        <ChildContent>
+                                                            @foreach (var data in viaggioGroup.OrderBy(x => x.DataInizio))
+                                                            {
+                                                                var status = data.GetStatus();
+                                                                var dataNode = new TravelTreeNode
+                                                                {
+                                                                    Type = TravelTreeNodeType.DataViaggio,
+                                                                    Year = anno,
+                                                                    ViaggioId = viaggioGroup.Key.ViaggioId,
+                                                                    DataViaggioId = data.DataViaggioId,
+                                                                    DisplayText = GetDateDisplayText(data),
+                                                                    Status = status
+                                                                };
+
+                                                                <MudTreeViewItem Value="@dataNode" Icon="@status.GetIcon()">
+                                                                    <Content>
+                                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                                            <MudIcon Icon="@status.GetIcon()"
+                                                                                   Color="@Enum.Parse<Color>(status.GetColor())"
+                                                                                   Size="Size.Small" />
+                                                                            <MudText>@GetDateDisplayText(data)</MudText>
+                                                                            <MudChip Size="Size.Small"
+                                                                                   Color="@Enum.Parse<Color>(status.GetColor())">
+                                                                                @status.GetLabel()
+                                                                            </MudChip>
+                                                                        </MudStack>
+                                                                    </Content>
+                                                                </MudTreeViewItem>
+                                                            }
+                                                        </ChildContent>
+                                                    </MudTreeViewItem>
+                                                }
+                                            </ChildContent>
+                                        </MudTreeViewItem>
+                                    }
+                                </MudTreeView>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info">
+                                    Nessun viaggio disponibile per l'azienda selezionata.
+                                </MudAlert>
+                            }
+                        </MudStack>
+                    </MudTabPanel>
+                </MudTabs>
+            }
+            else if (IsSuperAdmin && _selectedAziendaId == 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true">
+                    Seleziona un'azienda per continuare
+                </MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="@_isLoading">Annulla</MudButton>
+        <MudButton Color="Color.Primary"
+                 Variant="Variant.Filled"
+                 OnClick="Submit"
+                 Disabled="@(!IsValid() || _isLoading)"
+                 StartIcon="@Icons.Material.Filled.Print">
+            @GetActionButtonText()
+        </MudButton>
+    </DialogActions>
+</MudDialog>

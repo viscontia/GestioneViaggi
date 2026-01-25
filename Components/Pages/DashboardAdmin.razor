@@ -612,11 +612,13 @@ _comparisonMode))
     {
         var parameters = new DialogParameters
         {
-            ["AziendaId"] = _currentUser?.AziendaId ?? 0
+            ["AziendaId"] = _currentUser?.AziendaId ?? 0,
+            ["IsSuperAdmin"] = false,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.TravelDataSheet
         };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.SelectDataViaggioDialog>("Stampa Scheda Data Viaggio", parameters, options);
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.TravelDataSelectorDialog>("Stampa Scheda Data Viaggio", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)

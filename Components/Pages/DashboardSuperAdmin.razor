@@ -784,18 +784,16 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
 
     private async Task OnStampaSchedaViaggioClick()
     {
-        // SuperAdmin can select any company? Dialog uses passed ID. If 0 passed to SelectDataViaggioDialog, assumes All or needs handling?
-        // Our SelectDataViaggioDialog uses ViaggiSelect with AziendaId.
-        // If we pass 0, ViaggiSelect (assuming standard behavior) might show all or nothing.
-        // Let's assume 0 shows all for SuperAdmin if ViaggiSelect supports it.
-        
+        // SuperAdmin: deve selezionare prima l'azienda nel dialog
         var parameters = new DialogParameters
         {
-            ["AziendaId"] = 0 
+            ["AziendaId"] = 0, // 0 = nessuna azienda preselezionata, SuperAdmin dovrà scegliere
+            ["IsSuperAdmin"] = true,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.TravelDataSheet
         };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.SelectDataViaggioDialog>("Stampa Scheda Data Viaggio", parameters, options);
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.TravelDataSelectorDialog>("Stampa Scheda Data Viaggio", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)

@@ -714,5 +714,48 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
         return result;
     }
+
+    /// <summary>
+    /// Recupera dati per TreeView: viaggi e date raggruppati per anno
+    /// </summary>
+    /// <param name="aziendaId">ID azienda (0 o null per tutte - solo SuperAdmin)</param>
+    /// <returns>Lista di TravelTreeData ordinata per anno DESC, viaggio ASC, data ASC</returns>
+    public async Task<List<TravelTreeData>> GetTravelTreeDataAsync(int? aziendaId = null)
+    {
+        var result = new List<TravelTreeData>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM get_viaggi_grouped_by_year(@aziendaId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.Add(new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
+            {
+                Value = aziendaId.HasValue && aziendaId.Value > 0 ? aziendaId.Value : (object)DBNull.Value,
+                IsNullable = true
+            });
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new TravelTreeData
+                {
+                    Anno = ReadInt(reader, "anno"),
+                    ViaggioId = ReadInt(reader, "viaggio_id"),
+                    ViaggioDescrizione = reader.GetString(reader.GetOrdinal("viaggio_descrizione")),
+                    DataViaggioId = ReadInt(reader, "data_viaggio_id"),
+                    DataInizio = ReadNullableDateTime(reader, "data_inizio"),
+                    DataFine = ReadNullableDateTime(reader, "data_fine"),
+                    EffettuatoSino = reader.GetString(reader.GetOrdinal("effettuato_sino"))[0]
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero dati TreeView per azienda {AziendaId}", aziendaId);
+            throw;
+        }
+        return result;
+    }
 }
 
