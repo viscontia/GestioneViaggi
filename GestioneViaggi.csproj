@@ -59,6 +59,7 @@
 
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*" />
+<!-- MauiAsset Include="Resources\Fonts\*" LogicalName="%(Filename)%(Extension)" / -->
 
         <!-- Raw Assets -->
         <MauiAsset Include="Resources\Raw\**" LogicalName="%(Filename)%(Extension)" />

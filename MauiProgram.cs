@@ -13,6 +13,7 @@ using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services;
+using GestioneViaggi.Services.Printing; // Add namespace
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
 
@@ -32,6 +33,10 @@ public static class MauiProgram
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                fonts.AddFont("Lato-Regular.ttf", "Lato");
+                fonts.AddFont("Lato-Bold.ttf", "LatoBold");
+                fonts.AddFont("Lato-Italic.ttf", "LatoItalic");
+                fonts.AddFont("Lato-BoldItalic.ttf", "LatoBoldItalic");
             });
 
         // ==========================================================
@@ -158,6 +163,9 @@ public static class MauiProgram
 
         // Tool Documentazione DB
         builder.Services.AddScoped<GestioneViaggi.Services.Tools.IDatabaseDocumentationService, GestioneViaggi.Services.Tools.DatabaseDocumentationService>();
+
+        // Printing Services
+        builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
 
         return builder.Build();
     }

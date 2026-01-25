@@ -1,11 +1,14 @@
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Navigation
+@using GestioneViaggi.Services.Printing
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IAuthenticationService AuthService
 
 @inject NavigationManager Navigation
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject ITravelPrintService PrintService
 
 <MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
@@ -121,10 +124,12 @@
 
 
 
-    <MudNavLink Icon="@Icons.Material.Filled.Print"
-                OnClick="@(() => OpenTab("/stampe", "Stampe", "print"))">
-        <MudText Typo="Typo.body1">Stampe</MudText>
-    </MudNavLink>
+    <MudNavGroup Title="Stampe" Icon="@Icons.Material.Filled.Print" Expanded="false">
+        <MudNavLink Icon="@Icons.Material.Filled.Description"
+                    OnClick="@OpenStampaSchedaDataViaggio">
+            <MudText Typo="Typo.body1">Stampa Scheda Data Viaggio</MudText>
+        </MudNavLink>
+    </MudNavGroup>
 
 
 
@@ -203,5 +208,85 @@
 
         // Force reload to login page (this will destroy all components and tabs)
         Navigation.NavigateTo("/login", forceLoad: true);
+    }
+
+    private async Task OpenStampaSchedaDataViaggio()
+    {
+        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio da Stampare", new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int dataViaggioId)
+        {
+            try
+            {
+                var data = await PrintService.GetPrintDataAsync(dataViaggioId);
+
+                // STANDARD: Save to Downloads
+                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+                // Create descriptive filename using viaggio_descrizione_breve
+                var safeTitle = SanitizeFileName(data.Header.DescrizioneBreve, maxLength: 40);
+                var dateStart = data.Header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
+                var dateEnd = data.Header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
+                var fileName = $"{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";
+                var filePath = Path.Combine(targetFolder, fileName);
+
+                // STANDARD: Overwrite check
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                await GestioneViaggi.Services.Printing.ViaggiPrinter.GeneratePdfAsync(data, filePath);
+
+                // STANDARD: Confirmation and Open
+                bool? confirm = await DialogService.ShowMessageBox(
+                    "Stampa Completata",
+                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                    yesText: "Sì, Apri", cancelText: "No");
+
+                if (confirm == true)
+                {
+                    // STANDARD: Cross-Platform Open
+#if MACCATALYST
+                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Scheda Viaggio",
+                        File = new ReadOnlyFile(filePath)
+                    });
+#endif
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private string SanitizeFileName(string fileName, int maxLength = 50)
+    {
+        // Remove invalid characters
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sanitized = new string(fileName.Where(c => !invalidChars.Contains(c)).ToArray());
+
+        // Replace common problematic characters
+        sanitized = sanitized.Replace("/", "-").Replace("\\", "-").Replace(":", "-");
+
+        // Trim and limit length
+        sanitized = sanitized.Trim();
+        if (sanitized.Length > maxLength)
+        {
+            sanitized = sanitized.Substring(0, maxLength).TrimEnd();
+        }
+
+        return string.IsNullOrWhiteSpace(sanitized) ? "Viaggio" : sanitized;
     }
 }

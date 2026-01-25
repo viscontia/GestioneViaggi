@@ -24,20 +24,63 @@ builder
 ```
 
 ## 3. Gestione Font (Critical)
-Su MacCatalyst, i font non vengono sempre caricati automaticamente dal bundle.
+Su MacCatalyst e altre piattaforme, QuestPDF necessità di accesso diretto allo stream del file font.
 **Best Practice:**
-1. Includere i font (es. Lato) in `Resources/Fonts`.
-2. Nel servizio di generazione PDF, implementare un **fallback** che:
-   - Controlla se i font sono nella `BaseDirectory`.
-   - Se mancano, li cerca in `Resources` e li **copia** nella `BaseDirectory`.
-   - Registra manualmente i font con `FontManager.RegisterFont(stream)`.
+
+1. **Inclusione nel Progetto**:
+   In `GestioneViaggi.csproj`, includere i font sia come `MauiFont` (per la UI) sia come `MauiAsset` (per l'accesso stream):
+   ```xml
+   <MauiFont Include="Resources\Fonts\*" />
+   <MauiAsset Include="Resources\Fonts\*" LogicalName="%(Filename)%(Extension)" />
+   ```
+
+2. **Inizializzazione Thread-Safe**:
+   Utilizzare un pattern `SemaphoreSlim` statico per registrare i font una sola volta all'avvio del servizio di stampa.
+
+3. **Caricamento Stream**:
+   Usare `FileSystem.OpenAppPackageFileAsync` per leggere il font dal pacchetto app.
 
 ```csharp
-// Esempio registrazione manuale
-foreach (var fontFile in fontFiles)
+private static bool _questPdfInitialized = false;
+private static readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
+
+private async Task EnsureQuestPdfInitializedAsync()
 {
-    using var stream = File.OpenRead(fontFile);
-    QuestPDF.Drawing.FontManager.RegisterFont(stream);
+    if (_questPdfInitialized) return;
+
+    await _initLock.WaitAsync();
+    try
+    {
+        if (_questPdfInitialized) return;
+
+        // Configurazione Base
+        QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+
+        // Registrazione Font da Asset
+        var fonts = new[] { "Lato-Regular.ttf", "Lato-Bold.ttf", "Lato-Italic.ttf" };
+        foreach (var font in fonts)
+        {
+            try
+            {
+                using var stream = await FileSystem.OpenAppPackageFileAsync(font);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                ms.Position = 0; // Reset position
+                QuestPDF.Drawing.FontManager.RegisterFont(ms);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[QuestPDF] Failed to load font {font}: {ex.Message}");
+            }
+        }
+        
+        _questPdfInitialized = true;
+    }
+    finally
+    {
+        _initLock.Release();
+    }
 }
 ```
 
