@@ -36,35 +36,28 @@ public class TravelPrintService : ITravelPrintService
                 throw new Exception($"Nessun viaggio trovato con ID {dataViaggioId}");
             }
 
-            // Get viaggio_descrizione_breve directly from ana_viaggi for file naming
-            var descBreveSql = "SELECT viaggio_descrizione_breve FROM ana_viaggi WHERE viaggio_id = @ViaggioId";
-            var descBreve = await conn.QueryFirstOrDefaultAsync<string>(descBreveSql, new { ViaggioId = (int)headerRaw.viaggio_id }) ?? "";
-
             var header = new TravelHeaderInfo
             {
                 DataViaggioId = (int)headerRaw.data_viaggio_id,
                 ViaggioId = (int)headerRaw.viaggio_id,
-                Titolo = (string)headerRaw.titolo,
-                Descrizione = (string)headerRaw.descrizione_estesa, // Using descrizione_estesa as strictly mapped
-                DescrizioneBreve = descBreve, // Direct from ana_viaggi for file naming
-                Destinazione = (string)headerRaw.nazione,
+                Titolo = (string)headerRaw.titolo ?? "N/D",
+                Descrizione = (string)headerRaw.descrizione_estesa ?? "", // Using descrizione_estesa as strictly mapped
+                DescrizioneBreve = (string)headerRaw.titolo ?? "N/D", // Using titolo (viaggio_descrizione_breve) for file naming
+                Destinazione = (string)headerRaw.nazione ?? "",
                 DataInizio = (DateTime?)headerRaw.data_inizio,
                 DataFine = (DateTime?)headerRaw.data_fine,
-                Note = (string)headerRaw.note_data_viaggio,
+                Note = (string)headerRaw.note_data_viaggio ?? "",
                 // Characteristics
-                TipoViaggio = (string)headerRaw.tipo,
-                Giorni = (int)headerRaw.giorni,
-                Notti = (int)headerRaw.notti,
-                Trattamento = (string)headerRaw.trattamento,
-                PastiSacco = (string)headerRaw.pasti_al_sacco == "Y" || (string)headerRaw.pasti_al_sacco == "S",
-                Km = (int)headerRaw.km
+                TipoViaggio = (string)headerRaw.tipo ?? "",
+                Giorni = (int?)headerRaw.giorni ?? 0,
+                Notti = (int?)headerRaw.notti ?? 0,
+                Trattamento = (string)headerRaw.trattamento ?? "",
+                PastiSacco = ((string)headerRaw.pasti_al_sacco ?? "N") == "Y" || ((string)headerRaw.pasti_al_sacco ?? "N") == "S",
+                Km = (int?)headerRaw.km ?? 0
             };
 
             // 1b. Fetch Company Info
-            // We need to find the AziendaId for this trip. 
-            // Since get_all_travel_detail doesn't return it (according to schema check), we fetch it from ana_viaggi.
-            var aziendaIdSql = "SELECT azienda_id FROM ana_viaggi WHERE viaggio_id = @ViaggioId";
-            int aziendaId = await conn.QueryFirstOrDefaultAsync<int>(aziendaIdSql, new { ViaggioId = header.ViaggioId });
+            int aziendaId = (int?)headerRaw.azienda_id ?? 0;
 
             if (aziendaId > 0)
             {
@@ -75,11 +68,11 @@ public class TravelPrintService : ITravelPrintService
                 {
                     data.Company = new CompanyPrintInfo
                     {
-                        RagioneSociale = (string)companyRaw.ragione_sociale,
-                        Telefono = (string)companyRaw.telefono,
-                        Email = (string)companyRaw.email, // This maps to PEC in the function
-                        SitoWeb = (string)companyRaw.sito_web,
-                        Piva = (string)companyRaw.piva,
+                        RagioneSociale = (string)companyRaw.ragione_sociale ?? "",
+                        Telefono = (string)companyRaw.telefono ?? "",
+                        Email = (string)companyRaw.email ?? "", // This maps to PEC in the function
+                        SitoWeb = (string)companyRaw.sito_web ?? "",
+                        Piva = (string)companyRaw.piva ?? "",
                         LogoData = companyRaw.logo_data != null ? (byte[])companyRaw.logo_data : Array.Empty<byte>()
                     };
                 }
@@ -91,19 +84,19 @@ public class TravelPrintService : ITravelPrintService
 
             var participants = participantsRaw.Select(p => new ParticipantPrintInfo
             {
-                ViaggioId = (int)p.viaggio_id,
-                DataId = (int)p.data_id,
-                ClienteId = (int)p.cliente_id,
-                Nominativo = (string)p.nominativo,
-                TipoPartecipanteId = (int)p.tipo_partecipante_id,
-                Ruolo = (string)p.ruolo,
+                ViaggioId = (int?)p.viaggio_id ?? 0,
+                DataId = (int?)p.data_id ?? 0,
+                ClienteId = (int?)p.cliente_id ?? 0,
+                Nominativo = (string)p.nominativo ?? "N/D",
+                TipoPartecipanteId = (int?)p.tipo_partecipante_id ?? 0,
+                Ruolo = (string)p.ruolo ?? "",
                 Note = p.note as string ?? string.Empty,
-                CaneSino = (string)p.cane_sino,
+                CaneSino = (string)p.cane_sino ?? "N",
                 Intolleranze = p.intolleranze as string ?? string.Empty,
                 MezzoDettagli = p.mezzo_dettagli as string ?? string.Empty,
                 ClientePilotaId = p.cliente_pilota_id as int?,
-                GroupingKey = (int)p.grouping_key,
-                IsPilot = (bool)p.is_pilot,
+                GroupingKey = (int?)p.grouping_key ?? 0,
+                IsPilot = (bool?)p.is_pilot ?? false,
                 
                 // Personal Details - fixed column names to match SQL query
                 Telefono = p.telefono as string ?? string.Empty,
@@ -123,9 +116,9 @@ public class TravelPrintService : ITravelPrintService
 
             if (statsRaw != null)
             {
-                data.Header.TotalParticipants = (int)statsRaw.total_participants;
-                data.Header.TotalCrews = (int)statsRaw.total_crews;
-                data.Header.TotalVehicles = (int)statsRaw.total_vehicles;
+                data.Header.TotalParticipants = (int?)statsRaw.total_participants ?? 0;
+                data.Header.TotalCrews = (int?)statsRaw.total_crews ?? 0;
+                data.Header.TotalVehicles = (int?)statsRaw.total_vehicles ?? 0;
             }
 
             return data;

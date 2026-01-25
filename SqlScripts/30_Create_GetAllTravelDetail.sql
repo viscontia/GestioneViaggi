@@ -7,6 +7,7 @@ DROP FUNCTION IF EXISTS get_all_travel_detail(integer);
 CREATE OR REPLACE FUNCTION get_all_travel_detail(p_data_viaggio_id integer) RETURNS TABLE (
         data_viaggio_id integer,
         viaggio_id integer,
+        azienda_id integer,
         titolo text,
         descrizione_estesa text,
         tipo text,
@@ -34,6 +35,7 @@ CREATE OR REPLACE FUNCTION get_all_travel_detail(p_data_viaggio_id integer) RETU
     ) LANGUAGE plpgsql AS $function$ BEGIN RETURN QUERY
 SELECT dv.data_viaggio_id,
     av.viaggio_id,
+    av.azienda_id,
     av.viaggio_descrizione_breve::text as titolo,
     av.viaggio_descrizione_estesa::text,
     atv.tipo_viaggi_descrizione::text as tipo,

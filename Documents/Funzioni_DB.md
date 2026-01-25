@@ -98,7 +98,7 @@
 | `fn_validate_security_port_consistency` | - | `p_security_method character varying, ...` | `text` | - |
 | `generate_reset_token` | Genera token sicuro univoco per reset password | - | `character varying` | - |
 | `get_all_participants_travel` | - | `p_data_viaggio_id integer` | `TABLE(nominativo text)` | - |
-| `get_all_travel_detail` | - | `p_data_viaggio_id integer` | `TABLE(data_viaggio_id integer, viaggio_id integer, ...)` | - |
+| `get_all_travel_detail` | Restituisce tutti i dettagli di un singolo viaggio (Data Viaggio) incrociando ana_date_viaggi, ana_viaggi e vari lookup (tipo viaggio, nazione, trattamento, pernottamento, avvicinamento) | `p_data_viaggio_id integer` | `TABLE(data_viaggio_id integer, viaggio_id integer, azienda_id integer, titolo text, descrizione_estesa text, tipo text, nazione text, data_inizio date, data_fine date, effettuato_sino char, km integer, giorni integer, notti integer, trattamento text, pernottamento text, costi vari integer, pasti_al_sacco char, tipo_avvicinamento text, note_viaggio text, note_data_viaggio text, link text)` | `Services/Printing/TravelPrintService.cs` |
 | `get_client_travel_history` | - | `p_cliente_id integer, p_azienda_id integer` | `TABLE(data_viaggio_id integer, titolo text, ...)` | - |
 | `get_cliente_detail` | - | `p_cliente_id integer` | `TABLE(cliente_id integer, ...)` | - |
 | `get_company_print_info` | Recupera dati intestazione azienda (Ragione Sociale, Tel, PEC, Sito) per stampe | `p_azienda_id integer` | `TABLE(ragione_sociale text, telefono text, email text, sito_web text, piva text, logo_data bytea)` | `Services/Printing/TravelPrintService.cs` |
