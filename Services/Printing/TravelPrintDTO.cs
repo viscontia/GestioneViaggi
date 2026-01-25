@@ -7,6 +7,7 @@ public class TravelPrintDTO
     public TravelHeaderInfo Header { get; set; } = new();
     public List<ParticipantPrintInfo> Participants { get; set; } = new();
     public CompanyPrintInfo Company { get; set; } = new();
+    public List<VehicleGroupInfo> VehicleGroups { get; set; } = new();
 }
 
 public class TravelHeaderInfo
@@ -88,7 +89,7 @@ public class ParticipantPrintInfo
     public DateTime? DataNascita { get; set; }
     public string LuogoNascita { get; set; } = string.Empty;
     
-    public string LuogoDataNascitaFormatted 
+    public string LuogoDataNascitaFormatted
     {
         get
         {
@@ -98,4 +99,45 @@ public class ParticipantPrintInfo
              return u + d;
         }
     }
+}
+
+public class PilotVehicleInfo
+{
+    // Maps to result of get_pilots_grouped_by_vehicle
+    public int ViaggioId { get; set; }
+    public int DataId { get; set; }
+    public int ClienteId { get; set; }
+    public string Nominativo { get; set; } = string.Empty;
+    public string Marca { get; set; } = string.Empty;
+    public string Modello { get; set; } = string.Empty;
+    public string Targa { get; set; } = string.Empty;
+
+    // Personal Details
+    public string Telefono { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Residenza { get; set; } = string.Empty;
+    public string CodiceFiscale { get; set; } = string.Empty;
+    public DateTime? DataNascita { get; set; }
+    public string LuogoNascita { get; set; } = string.Empty;
+
+    public string LuogoDataNascitaFormatted
+    {
+        get
+        {
+             var u = !string.IsNullOrEmpty(LuogoNascita) ? LuogoNascita : "";
+             var d = DataNascita.HasValue ? DataNascita.Value.ToString("dd/MM/yy") : "";
+             if(!string.IsNullOrEmpty(u) && !string.IsNullOrEmpty(d)) return $"{u}\n{d}";
+             return u + d;
+        }
+    }
+}
+
+public class VehicleGroupInfo
+{
+    public string Marca { get; set; } = string.Empty;
+    public string Modello { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public List<PilotVehicleInfo> Pilots { get; set; } = new();
+
+    public string DisplayName => $"{Marca} {Modello} ({Count})";
 }

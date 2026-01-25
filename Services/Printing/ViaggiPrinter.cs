@@ -48,7 +48,7 @@ public class ViaggiPrinter
                 page.Footer().Element(footer => ComposeFooter(footer));
             });
 
-            // CONTENT PAGE(S)
+            // CONTENT PAGE(S) - Participants by Crew
             container.Page(page =>
             {
                 page.Size(PageSizes.A4.Landscape());
@@ -60,6 +60,22 @@ public class ViaggiPrinter
                 page.Content().Element(content => ComposeContent(content, data.Participants));
                 page.Footer().Element(footer => ComposeFooter(footer));
             });
+
+            // VEHICLES PAGE - Pilots grouped by Vehicle Brand/Model
+            if (data.VehicleGroups != null && data.VehicleGroups.Any())
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(1, Unit.Centimetre);
+                    page.PageColor(QuestPDF.Helpers.Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+
+                    page.Header().Element(header => ComposePageHeader(header, data));
+                    page.Content().Element(content => ComposeVehiclesPage(content, data.VehicleGroups));
+                    page.Footer().Element(footer => ComposeFooter(footer));
+                });
+            }
         })
         .GeneratePdf(outputPath);
     }
@@ -331,6 +347,78 @@ public class ViaggiPrinter
                     globalIndex++;
                 }
             });
+        });
+    }
+
+    private static void ComposeVehiclesPage(IContainer container, List<VehicleGroupInfo> vehicleGroups)
+    {
+        container.Column(column =>
+        {
+            column.Item().PaddingBottom(10).Text("Piloti raggruppati per Veicolo")
+                .FontSize(16).Bold().FontColor(BrandColors.Primary);
+
+            foreach (var group in vehicleGroups)
+            {
+                // Group Header with Count
+                column.Item().PaddingTop(15).PaddingBottom(5)
+                    .Background(BrandColors.LightGray)
+                    .Border(1).BorderColor(BrandColors.Accent)
+                    .Padding(8)
+                    .Text(group.DisplayName)
+                    .FontSize(14).Bold().FontColor(BrandColors.Accent);
+
+                // Pilots Table for this group
+                column.Item().Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.ConstantColumn(25); // #
+                        columns.RelativeColumn(2);  // Nominativo
+                        columns.RelativeColumn(2);  // Contatti
+                        columns.RelativeColumn(2);  // Residenza
+                        columns.RelativeColumn(2);  // Dati Personali
+                        columns.RelativeColumn(1);  // Targa
+                    });
+
+                    // Table Header
+                    table.Header(header =>
+                    {
+                        header.Cell().Element(HeaderCellStyle).Text("#");
+                        header.Cell().Element(HeaderCellStyle).Text("Pilota");
+                        header.Cell().Element(HeaderCellStyle).Text("Contatti");
+                        header.Cell().Element(HeaderCellStyle).Text("Residenza");
+                        header.Cell().Element(HeaderCellStyle).Text("Dati Personali");
+                        header.Cell().Element(HeaderCellStyle).Text("Targa");
+                    });
+
+                    int index = 1;
+                    foreach (var pilot in group.Pilots)
+                    {
+                        // Row for each pilot
+                        table.Cell().Element(BodyCellStyle).AlignCenter().Text(index.ToString()).FontSize(FontSizeSmall);
+
+                        table.Cell().Element(BodyCellStyle).Text(pilot.Nominativo).Bold();
+
+                        table.Cell().Element(BodyCellStyle).Text(text =>
+                        {
+                            if (!string.IsNullOrEmpty(pilot.Telefono)) text.Line(pilot.Telefono).FontSize(FontSizeSmall);
+                            if (!string.IsNullOrEmpty(pilot.Email)) text.Span(pilot.Email).FontSize(FontSizeSmall).FontColor(Colors.Blue.Medium);
+                        });
+
+                        table.Cell().Element(BodyCellStyle).Text(pilot.Residenza).FontSize(FontSizeSmall);
+
+                        table.Cell().Element(BodyCellStyle).Text(text =>
+                        {
+                            if (!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Line(pilot.CodiceFiscale).FontSize(FontSizeSmall).Bold();
+                            text.Span(pilot.LuogoDataNascitaFormatted).FontSize(FontSizeSmall);
+                        });
+
+                        table.Cell().Element(BodyCellStyle).Text(pilot.Targa).FontSize(FontSizeSmall);
+
+                        index++;
+                    }
+                });
+            }
         });
     }
 

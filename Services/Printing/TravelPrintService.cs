@@ -121,6 +121,41 @@ public class TravelPrintService : ITravelPrintService
                 data.Header.TotalVehicles = (int?)statsRaw.total_vehicles ?? 0;
             }
 
+            // 4. Fetch Pilots Grouped by Vehicle
+            var vehicleSql = "SELECT * FROM get_pilots_grouped_by_vehicle(@DataViaggioId)";
+            var pilotsRaw = await conn.QueryAsync<dynamic>(vehicleSql, new { DataViaggioId = dataViaggioId });
+
+            var pilotsList = pilotsRaw.Select(p => new PilotVehicleInfo
+            {
+                ViaggioId = (int?)p.viaggio_id ?? 0,
+                DataId = (int?)p.data_id ?? 0,
+                ClienteId = (int?)p.cliente_id ?? 0,
+                Nominativo = (string)p.nominativo ?? "N/D",
+                Marca = (string)p.marca ?? "N/D",
+                Modello = (string)p.modello ?? "N/D",
+                Targa = (string)p.targa ?? "",
+                Telefono = (string)p.telefono ?? "",
+                Email = (string)p.email ?? "",
+                Residenza = (string)p.residenza ?? "",
+                CodiceFiscale = (string)p.codice_fiscale ?? "",
+                DataNascita = p.data_nascita as DateTime?,
+                LuogoNascita = (string)p.luogo_nascita ?? ""
+            }).ToList();
+
+            // Group by Marca and Modello
+            data.VehicleGroups = pilotsList
+                .GroupBy(p => new { p.Marca, p.Modello })
+                .Select(g => new VehicleGroupInfo
+                {
+                    Marca = g.Key.Marca,
+                    Modello = g.Key.Modello,
+                    Count = g.Count(),
+                    Pilots = g.ToList()
+                })
+                .OrderBy(g => g.Marca)
+                .ThenBy(g => g.Modello)
+                .ToList();
+
             return data;
         }
         catch (Exception ex)
