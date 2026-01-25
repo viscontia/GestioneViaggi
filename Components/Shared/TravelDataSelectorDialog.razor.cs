@@ -136,7 +136,7 @@ public partial class TravelDataSelectorDialog
 
             // Espandi automaticamente l'anno corrente
             var currentYear = DateTime.Today.Year;
-            if (_treeData.Any(x => x.Anno == currentYear))
+            if (_treeData != null && _treeData.Any(x => x.Anno == currentYear))
             {
                 _expandedYears.Add(currentYear);
             }

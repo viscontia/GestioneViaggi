@@ -122,11 +122,15 @@
                                             Year = anno,
                                             DisplayText = anno.ToString()
                                         };
+                                        var dateCountForYear = _treeData.Count(x => x.Anno == anno);
 
                                         <MudTreeViewItem Value="@yearNode" Icon="@Icons.Material.Filled.CalendarMonth"
                                                        CanExpand="true" Expanded="@(_expandedYears.Contains(anno))">
                                             <Content>
-                                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@anno</MudText>
+                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@anno</MudText>
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@dateCountForYear</MudChip>
+                                                </MudStack>
                                             </Content>
                                             <ChildContent>
                                                 @foreach (var viaggioGroup in _treeData.Where(x => x.Anno == anno)
@@ -140,11 +144,15 @@
                                                         ViaggioId = viaggioGroup.Key.ViaggioId,
                                                         DisplayText = viaggioGroup.Key.ViaggioDescrizione
                                                     };
+                                                    var dateCountForViaggio = viaggioGroup.Count();
 
                                                     <MudTreeViewItem Value="@viaggioNode" Icon="@Icons.Material.Filled.Luggage"
                                                                    CanExpand="true">
                                                         <Content>
-                                                            <MudText>@viaggioGroup.Key.ViaggioDescrizione</MudText>
+                                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                                                <MudText>@viaggioGroup.Key.ViaggioDescrizione</MudText>
+                                                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@dateCountForViaggio</MudChip>
+                                                            </MudStack>
                                                         </Content>
                                                         <ChildContent>
                                                             @foreach (var data in viaggioGroup.OrderBy(x => x.DataInizio))
