@@ -19,7 +19,12 @@ public partial class TravelDataSelectorDialog
     private List<AnaDataViaggio>? _dates;
     private List<TravelTreeData>? _treeData;
     private TravelTreeNode? _selectedTreeNode;
+    private int? _yearToExpandByDefault;
     private int _activeTabIndex = 0;
+
+    // TreeView expansion state tracking
+    private Dictionary<int, bool> _yearExpansionState = new();
+    private Dictionary<string, bool> _viaggioExpansionState = new();
 
     // Loading States
     private bool _isLoadingDates;
@@ -63,6 +68,9 @@ public partial class TravelDataSelectorDialog
         _dates = null;
         _treeData = null;
         _selectedTreeNode = null;
+        _yearToExpandByDefault = null;
+        _yearExpansionState.Clear();
+        _viaggioExpansionState.Clear();
 
         if (_selectedAziendaId > 0)
         {
@@ -116,6 +124,22 @@ public partial class TravelDataSelectorDialog
             _treeData = await ViaggiService.GetTravelTreeDataAsync(
                 _selectedAziendaId > 0 ? _selectedAziendaId : null
             );
+
+            // Determina l'anno da espandere automaticamente
+            if (_treeData != null && _treeData.Any())
+            {
+                var currentYear = DateTime.Today.Year;
+                _yearToExpandByDefault = _treeData.Any(x => x.Anno == currentYear)
+                    ? currentYear
+                    : _treeData.Select(x => x.Anno).Max(); // Altrimenti l'anno più recente
+
+                // Inizializza lo stato di espansione degli anni
+                _yearExpansionState.Clear();
+                foreach (var anno in _treeData.Select(x => x.Anno).Distinct())
+                {
+                    _yearExpansionState[anno] = anno == _yearToExpandByDefault;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -172,8 +196,19 @@ public partial class TravelDataSelectorDialog
     private async Task OnTreeNodeSelected(TravelTreeNode? node)
     {
         _selectedTreeNode = node;
+        
+        if (node == null) return;
 
-        if (node?.Type == TravelTreeNodeType.DataViaggio && node.DataViaggioId.HasValue)
+        if (node.Type == TravelTreeNodeType.Year && node.Year.HasValue)
+        {
+            ToggleYearExpansion(node.Year.Value);
+        }
+        else if (node.Type == TravelTreeNodeType.Viaggio && node.ViaggioId.HasValue && node.Year.HasValue)
+        {
+            var key = GetViaggioKey(node.Year.Value, node.ViaggioId.Value);
+            ToggleViaggioExpansion(key);
+        }
+        else if (node.Type == TravelTreeNodeType.DataViaggio && node.DataViaggioId.HasValue)
         {
             // Selezione da TreeView: sincronizza con Combobox
             var viaggioId = node.ViaggioId;
@@ -270,5 +305,46 @@ public partial class TravelDataSelectorDialog
     private MudBlazor.Color GetStatusColor(TravelStatus status)
     {
         return Enum.Parse<MudBlazor.Color>(status.GetColor());
+    }
+
+    private bool IsYearExpanded(int year)
+    {
+        return _yearExpansionState.TryGetValue(year, out var expanded) && expanded;
+    }
+
+    private void ToggleYearExpansion(int year)
+    {
+        if (_yearExpansionState.ContainsKey(year))
+        {
+            _yearExpansionState[year] = !_yearExpansionState[year];
+        }
+        else
+        {
+            _yearExpansionState[year] = true;
+        }
+        StateHasChanged();
+    }
+
+    private bool IsViaggioExpanded(string viaggioKey)
+    {
+        return _viaggioExpansionState.TryGetValue(viaggioKey, out var expanded) && expanded;
+    }
+
+    private void ToggleViaggioExpansion(string viaggioKey)
+    {
+        if (_viaggioExpansionState.ContainsKey(viaggioKey))
+        {
+            _viaggioExpansionState[viaggioKey] = !_viaggioExpansionState[viaggioKey];
+        }
+        else
+        {
+            _viaggioExpansionState[viaggioKey] = true;
+        }
+        StateHasChanged();
+    }
+
+    private string GetViaggioKey(int year, int viaggioId)
+    {
+        return $"{year}_{viaggioId}";
     }
 }

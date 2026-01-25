@@ -123,69 +123,66 @@
                                             DisplayText = anno.ToString()
                                         };
                                         var dateCountForYear = _treeData.Count(x => x.Anno == anno);
+                                        var currentYear = anno;
+                                        var isYearExpanded = IsYearExpanded(currentYear);
 
-                                        <MudTreeViewItem Value="@yearNode" Icon="@Icons.Material.Filled.Folder"
-                                                       CanExpand="true">
-                                            <Content>
-                                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">@anno</MudText>
-                                                    <MudChip T="string" Size="Size.Small" Color="Color.Default">@dateCountForYear</MudChip>
-                                                </MudStack>
-                                            </Content>
+                                        <MudTreeViewItem Value="@yearNode"
+                                                       Text="@($"{anno} ({dateCountForYear})")"
+                                                       Icon="@Icons.Material.Filled.Folder"
+                                                       IconExpanded="@Icons.Material.Filled.FolderOpen"
+                                                       IconColor="Color.Warning"
+                                                       CanExpand="true"
+                                                       Expanded="@isYearExpanded"
+                                                       ExpandedChanged="@(() => ToggleYearExpansion(currentYear))">
                                             <ChildContent>
-                                                @foreach (var viaggioGroup in _treeData.Where(x => x.Anno == anno)
-                                                    .GroupBy(x => new { x.ViaggioId, x.ViaggioDescrizione })
-                                                    .OrderBy(g => g.Key.ViaggioDescrizione))
-                                                {
-                                                    var viaggioNode = new TravelTreeNode
+                                                    @foreach (var viaggioGroup in _treeData.Where(x => x.Anno == anno)
+                                                        .GroupBy(x => new { x.ViaggioId, x.ViaggioDescrizione })
+                                                        .OrderBy(g => g.Key.ViaggioDescrizione))
                                                     {
-                                                        Type = TravelTreeNodeType.Viaggio,
-                                                        Year = anno,
-                                                        ViaggioId = viaggioGroup.Key.ViaggioId,
-                                                        DisplayText = viaggioGroup.Key.ViaggioDescrizione
-                                                    };
-                                                    var dateCountForViaggio = viaggioGroup.Count();
+                                                        var viaggioNode = new TravelTreeNode
+                                                        {
+                                                            Type = TravelTreeNodeType.Viaggio,
+                                                            Year = anno,
+                                                            ViaggioId = viaggioGroup.Key.ViaggioId,
+                                                            DisplayText = viaggioGroup.Key.ViaggioDescrizione
+                                                        };
+                                                        var dateCountForViaggio = viaggioGroup.Count();
+                                                        var viaggioKey = GetViaggioKey(anno, viaggioGroup.Key.ViaggioId);
+                                                        var isViaggioExpanded = IsViaggioExpanded(viaggioKey);
 
-                                                    <MudTreeViewItem Value="@viaggioNode" Icon="@Icons.Material.Filled.FolderOpen"
-                                                                   CanExpand="true">
-                                                        <Content>
-                                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                                <MudText>@viaggioGroup.Key.ViaggioDescrizione</MudText>
-                                                                <MudChip T="string" Size="Size.Small" Color="Color.Default">@dateCountForViaggio</MudChip>
-                                                            </MudStack>
-                                                        </Content>
-                                                        <ChildContent>
-                                                            @foreach (var data in viaggioGroup.OrderBy(x => x.DataInizio))
-                                                            {
-                                                                var status = data.GetStatus();
-                                                                var dataNode = new TravelTreeNode
-                                                                {
-                                                                    Type = TravelTreeNodeType.DataViaggio,
-                                                                    Year = anno,
-                                                                    ViaggioId = viaggioGroup.Key.ViaggioId,
-                                                                    DataViaggioId = data.DataViaggioId,
-                                                                    DisplayText = GetDateDisplayText(data),
-                                                                    Status = status
-                                                                };
+                                                        <MudTreeViewItem Value="@viaggioNode"
+                                                                       Text="@($"{viaggioGroup.Key.ViaggioDescrizione} ({dateCountForViaggio})")"
+                                                                       Icon="@Icons.Material.Filled.Folder"
+                                                                       IconExpanded="@Icons.Material.Filled.FolderOpen"
+                                                                       IconColor="Color.Warning"
+                                                                       CanExpand="true"
+                                                                       Expanded="@isViaggioExpanded"
+                                                                       ExpandedChanged="@(() => ToggleViaggioExpansion(viaggioKey))">
+                                                            <ChildContent>
 
-                                                                <MudTreeViewItem Value="@dataNode" Icon="@Icons.Material.Filled.Description">
-                                                                    <Content>
-                                                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                                            <MudIcon Icon="@status.GetIcon()"
-                                                                                   Color="@GetStatusColor(status)"
-                                                                                   Size="Size.Small" />
-                                                                            <MudText>@GetDateDisplayText(data)</MudText>
-                                                                            <MudChip T="string" Size="Size.Small"
-                                                                                   Color="@GetStatusColor(status)">
-                                                                                @status.GetLabel()
-                                                                            </MudChip>
-                                                                        </MudStack>
-                                                                    </Content>
-                                                                </MudTreeViewItem>
-                                                            }
-                                                        </ChildContent>
-                                                    </MudTreeViewItem>
-                                                }
+                                                                    @foreach (var data in viaggioGroup.OrderBy(x => x.DataInizio))
+                                                                    {
+                                                                        var status = data.GetStatus();
+                                                                        var dataNode = new TravelTreeNode
+                                                                        {
+                                                                            Type = TravelTreeNodeType.DataViaggio,
+                                                                            Year = anno,
+                                                                            ViaggioId = viaggioGroup.Key.ViaggioId,
+                                                                            DataViaggioId = data.DataViaggioId,
+                                                                            DisplayText = GetDateDisplayText(data),
+                                                                            Status = status
+                                                                        };
+
+                                                                        <MudTreeViewItem Value="@dataNode"
+                                                                                       Text="@GetDateDisplayText(data)"
+                                                                                       Icon="@Icons.Material.Filled.InsertDriveFile"
+                                                                                       IconColor="@GetStatusColor(status)" />
+                                                                    }
+
+                                                            </ChildContent>
+                                                        </MudTreeViewItem>
+                                                    }
+
                                             </ChildContent>
                                         </MudTreeViewItem>
                                     }

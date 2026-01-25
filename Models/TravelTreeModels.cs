@@ -32,6 +32,7 @@ public class TravelTreeNode
     public int? DataViaggioId { get; set; }
     public string DisplayText { get; set; } = string.Empty;
     public TravelStatus? Status { get; set; }
+    public bool IsExpanded { get; set; }
 
     // For equality comparison in MudTreeView
     public override bool Equals(object? obj)
