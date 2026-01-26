@@ -183,7 +183,7 @@ public class RoomingListPrinter
                         }
 
                         // PARTICIPANT BOX
-                        contentCol.Item().PaddingTop(5).Column(partCol =>
+                        contentCol.Item().ShowEntire().PaddingTop(5).Column(partCol =>
                         {
                             // Linea 1: Nome (età) - Nato il [data] a [luogo] e residente a [città] in [indirizzo]
                             partCol.Item().Text(text =>

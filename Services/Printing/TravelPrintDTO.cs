@@ -89,6 +89,17 @@ public class ParticipantPrintInfo
     public DateTime? DataNascita { get; set; }
     public string LuogoNascita { get; set; } = string.Empty;
     
+    // Detailed Info (Scheda Dettagliata)
+    public string Nazionalita { get; set; } = string.Empty;
+    public string TipoDocumento { get; set; } = string.Empty;
+    public string NumeroDocumento { get; set; } = string.Empty;
+    public string EnteRilascio { get; set; } = string.Empty;
+    public DateTime? DataRilascio { get; set; }
+    public DateTime? DataScadenza { get; set; }
+
+    public string DataRilascioFormatted => DataRilascio.HasValue ? DataRilascio.Value.ToString("dd/MM/yyyy") : "";
+    public string DataScadenzaFormatted => DataScadenza.HasValue ? DataScadenza.Value.ToString("dd/MM/yyyy") : "";
+
     public string LuogoDataNascitaFormatted
     {
         get

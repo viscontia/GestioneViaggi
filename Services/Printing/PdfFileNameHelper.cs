@@ -10,12 +10,13 @@ public static class PdfFileNameHelper
     /// </summary>
     /// <param name="header">Informazioni header del viaggio</param>
     /// <returns>Nome file nel formato: SchedaViaggio_{Titolo}_Dal_{DataInizio}_al_{DataFine}.pdf</returns>
-    public static string GetTravelSheetFileName(TravelHeaderInfo header)
+    public static string GetTravelSheetFileName(TravelHeaderInfo header, bool detailed = false)
     {
         var safeTitle = SanitizeFileName(header.DescrizioneBreve, maxLength: 40);
         var dateStart = header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
         var dateEnd = header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
-        return $"SchedaViaggio_{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";
+        var prefix = detailed ? "SchedaViaggioDettaglio" : "SchedaViaggio";
+        return $"{prefix}_{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";
     }
 
     /// <summary>

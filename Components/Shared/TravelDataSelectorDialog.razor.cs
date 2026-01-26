@@ -294,6 +294,7 @@ public partial class TravelDataSelectorDialog
         return PrintType switch
         {
             PrintType.TravelDataSheet => "Stampa Scheda",
+            PrintType.TravelDataSheetDetailed => "Stampa Dettaglio",
             PrintType.PassengerList => "Stampa Lista",
             PrintType.RoomingList => "Stampa Rooming List",
             PrintType.InvoiceReport => "Genera Report",

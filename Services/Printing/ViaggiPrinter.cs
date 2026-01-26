@@ -257,10 +257,10 @@ public class ViaggiPrinter
                     var passengers = members.Where(m => m != pilot).OrderBy(m => m.Nominativo).ToList();
 
                     // ROW - ONE PER CREW
-                    table.Cell().Element(BodyCellStyle).AlignCenter().Text(globalIndex.ToString()).FontSize(FontSizeSmall);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().AlignCenter().Text(globalIndex.ToString()).FontSize(FontSizeSmall);
 
                     // Pilota/Guida
-                    table.Cell().Element(BodyCellStyle).Text(text =>
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(text =>
                     {
                         if (pilot != null)
                         {
@@ -289,7 +289,7 @@ public class ViaggiPrinter
                     });
 
                     // Passeggeri (Horizontal list in cell)
-                    table.Cell().Element(BodyCellStyle).Text(text =>
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(text =>
                     {
                         if (passengers.Any())
                         {
@@ -311,7 +311,7 @@ public class ViaggiPrinter
                     });
 
                     // Contatti (Pilota Only)
-                    table.Cell().Element(BodyCellStyle).Text(text => 
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(text => 
                     {
                          if(pilot != null)
                          {
@@ -321,10 +321,10 @@ public class ViaggiPrinter
                     });
 
                     // Residenza (Pilota Only)
-                    table.Cell().Element(BodyCellStyle).Text(pilot?.Residenza ?? "").FontSize(FontSizeSmall);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(pilot?.Residenza ?? "").FontSize(FontSizeSmall);
 
                     // Dati Personali (Pilota Only)
-                    table.Cell().Element(BodyCellStyle).Text(text => 
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(text => 
                     {
                         if(pilot != null)
                         {
@@ -335,14 +335,14 @@ public class ViaggiPrinter
 
                     // Mezzo (Combined or Pilot's)
                     var vehicleInfo = pilot?.MezzoDettagli ?? members.FirstOrDefault(m => !string.IsNullOrEmpty(m.MezzoDettagli))?.MezzoDettagli ?? "";
-                    table.Cell().Element(BodyCellStyle).Text(vehicleInfo).FontSize(8);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(vehicleInfo).FontSize(8);
 
                     // Note (Combined)
                     var allNotes = members.Where(m => !string.IsNullOrWhiteSpace(m.Note)).Select(m => $"{m.Nominativo}: {m.Note}");
                     var allIntolerance = members.Where(m => !string.IsNullOrWhiteSpace(m.Intolleranze)).Select(m => $"[!] {m.Nominativo}: {m.Intolleranze}");
                     var combinedNotes = string.Join("\n", allIntolerance.Concat(allNotes));
 
-                    table.Cell().Element(BodyCellStyle).Text(combinedNotes).FontSize(8).FontColor(BrandColors.Accent);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(combinedNotes).FontSize(8).FontColor(BrandColors.Accent);
 
                     globalIndex++;
                 }
@@ -462,6 +462,183 @@ public class ViaggiPrinter
                     x.TotalPages();
                 });
             });
+        });
+    }
+    public static async Task GenerateDetailedPdfAsync(TravelPrintDTO data, string outputPath)
+    {
+        QuestPDF.Settings.EnableDebugging = false;
+        await PdfUtils.EnsureQuestPdfInitializedAsync();
+
+        Document.Create(container =>
+        {
+            // COVER PAGE (Identical)
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1, Unit.Centimetre);
+                page.PageColor(QuestPDF.Helpers.Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+
+                page.Content().Element(content => ComposeCover(content, data));
+                page.Footer().Element(footer => ComposeFooter(footer));
+            });
+
+            // CONTENT PAGE(S) - Detailed Participants List
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1, Unit.Centimetre);
+                page.PageColor(QuestPDF.Helpers.Colors.White);
+                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+
+                page.Header().Element(header => ComposePageHeader(header, data));
+                page.Content().Element(content => ComposeDetailedContent(content, data.Participants));
+                page.Footer().Element(footer => ComposeFooter(footer));
+            });
+        })
+        .GeneratePdf(outputPath);
+    }
+
+    private static void ComposeDetailedContent(IContainer container, List<ParticipantPrintInfo> participants)
+    {
+        container.Column(column =>
+        {
+             column.Item().PaddingBottom(10).Text("Elenco Partecipanti Dettagliato")
+                .FontSize(16).Bold().FontColor(BrandColors.Primary);
+
+            // Group by Crew
+            var crews = participants.GroupBy(p => p.GroupingKey)
+                .OrderBy(g =>
+                {
+                    var pilot = g.FirstOrDefault(m => m.IsPilot) ?? g.FirstOrDefault(m => m.ClienteId == g.Key);
+                    return pilot?.Nominativo ?? "ZZZZ";
+                }).ToList();
+
+            foreach (var crew in crews)
+            {
+                var members = crew.ToList();
+                var pilot = members.FirstOrDefault(m => m.IsPilot) ?? members.FirstOrDefault(m => m.ClienteId == m.GroupingKey);
+                var passengers = members.Where(m => m != pilot).OrderBy(m => m.Nominativo).ToList();
+
+                column.Item().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(10)
+                .Row(row => 
+                {
+                    row.RelativeItem().Column(c => 
+                    {
+                        // PILOTA
+                        if(pilot != null)
+                        {
+                            c.Item().ShowEntire().Column(pilotCol => 
+                            {
+                                pilotCol.Item().PaddingBottom(2).Text(text => 
+                                {
+                                    text.Span("Pilota: ").Bold();
+                                    text.Span(pilot.Nominativo).Bold().FontSize(11).FontColor(BrandColors.Primary);
+                                    if(pilot.DataNascita.HasValue)
+                                    {
+                                        var age = DateTime.Today.Year - pilot.DataNascita.Value.Year;
+                                        if (pilot.DataNascita.Value.Date > DateTime.Today.AddYears(-age)) age--;
+                                        text.Span($" ({age} Anni)");
+                                    }
+                                });
+
+                                 // Pilot Details Line 1: Tel, Email, CF
+                                pilotCol.Item().Text(text => 
+                                {
+                                    if(!string.IsNullOrEmpty(pilot.Telefono)) text.Span($"Telefono: {pilot.Telefono}   ");
+                                    if(!string.IsNullOrEmpty(pilot.Email)) text.Span($"Email: {pilot.Email}   ");
+                                    if(!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Span($"Codice Fiscale: {pilot.CodiceFiscale}");
+                                });
+
+                                // Pilot Details Line 2: Residenza
+                                if(!string.IsNullOrEmpty(pilot.Residenza))
+                                {
+                                    pilotCol.Item().Text($"Residenza: {pilot.Residenza}");
+                                }
+
+                                // Pilot Details Line 3: Nato a
+                                if(!string.IsNullOrEmpty(pilot.LuogoDataNascitaFormatted))
+                                {
+                                   pilotCol.Item().Text(text => 
+                                    {
+                                        text.Span("Nato a: ");
+                                        text.Span(pilot.LuogoDataNascitaFormatted.Replace("\n", " in Data: "));
+                                    });
+                                }
+                                
+                                // DOCUMENT DETAILS
+                                if(!string.IsNullOrEmpty(pilot.TipoDocumento) || !string.IsNullOrEmpty(pilot.NumeroDocumento))
+                                {
+                                    pilotCol.Item().PaddingTop(2).Text(text => 
+                                    {
+                                        text.Span("Documento: ").Bold();
+                                        text.Span($"{pilot.TipoDocumento} nr. {pilot.NumeroDocumento}");
+                                        if(pilot.DataScadenza.HasValue) text.Span($" Scad. {pilot.DataScadenzaFormatted}");
+                                        if(!string.IsNullOrEmpty(pilot.Nazionalita)) text.Span($" ({pilot.Nazionalita})");
+                                    });
+                                }
+
+                                // Pilot Vehicle & Dog
+                                var veh = pilot.MezzoDettagli;
+                                if(!string.IsNullOrEmpty(veh)) pilotCol.Item().PaddingTop(2).Text($"Mezzo: {veh}").Italic();
+                                if(pilot.CaneSino == "Y" || pilot.CaneSino == "S") pilotCol.Item().Text("Cane: SI").Bold().FontColor(BrandColors.Accent);
+                            });
+                        }
+
+                        // PASSEGGERI
+                        foreach(var pax in passengers)
+                        {
+                             c.Item().ShowEntire().PaddingTop(10).PaddingLeft(20).Column(pc => 
+                             {
+                                pc.Item().Text(text => 
+                                {
+                                    text.Span("Accompagnatore: ").Bold();
+                                    text.Span(pax.Nominativo).SemiBold().FontSize(10);
+                                     if(pax.DataNascita.HasValue)
+                                    {
+                                        var age = DateTime.Today.Year - pax.DataNascita.Value.Year;
+                                        if (pax.DataNascita.Value.Date > DateTime.Today.AddYears(-age)) age--;
+                                        text.Span($" ({age} Anni)");
+                                    }
+                                });
+
+                                // Pax Details
+                                pc.Item().Text(text => 
+                                {
+                                    if(!string.IsNullOrEmpty(pax.Telefono)) text.Span($"Telefono: {pax.Telefono}   ");
+                                    if(!string.IsNullOrEmpty(pax.Email)) text.Span($"Email: {pax.Email}   ");
+                                    if(!string.IsNullOrEmpty(pax.CodiceFiscale)) text.Span($"Codice Fiscale: {pax.CodiceFiscale}");
+                                });
+
+                                // Pax Residenza & Nato a
+                                if(!string.IsNullOrEmpty(pax.Residenza)) pc.Item().Text($"Residenza: {pax.Residenza}");
+                                 if(!string.IsNullOrEmpty(pax.LuogoDataNascitaFormatted))
+                                {
+                                    pc.Item().Text(text => 
+                                    {
+                                        text.Span("Nato a: ");
+                                        text.Span(pax.LuogoDataNascitaFormatted.Replace("\n", " in Data: "));
+                                    });
+                                }
+
+                                // Pax Document
+                                if(!string.IsNullOrEmpty(pax.TipoDocumento) || !string.IsNullOrEmpty(pax.NumeroDocumento))
+                                {
+                                    pc.Item().PaddingTop(1).Text(text => 
+                                    {
+                                        text.Span("Documento: ").Bold();
+                                        text.Span($"{pax.TipoDocumento} nr. {pax.NumeroDocumento}");
+                                        if(pax.DataScadenza.HasValue) text.Span($" Scad. {pax.DataScadenzaFormatted}");
+                                        if(!string.IsNullOrEmpty(pax.Nazionalita)) text.Span($" ({pax.Nazionalita})");
+                                    });
+                                }
+                                
+                                if(pax.CaneSino == "Y" || pax.CaneSino == "S") pc.Item().Text("Cane: SI").Bold().FontColor(BrandColors.Accent);
+                             });
+                        }
+                    });
+                });
+            }
         });
     }
 }

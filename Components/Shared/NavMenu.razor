@@ -130,6 +130,10 @@
                     OnClick="@OpenStampaSchedaDataViaggio">
             <MudText Typo="Typo.body1">Stampa Scheda Data Viaggio</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.Description"
+                    OnClick="@OpenStampaDettaglioDataViaggio">
+            <MudText Typo="Typo.body1">Stampa Dettaglio Data Viaggio</MudText>
+        </MudNavLink>
         <MudNavLink Icon="@Icons.Material.Filled.Hotel"
                     OnClick="@OpenStampaRoomingList">
             <MudText Typo="Typo.body1">Stampa Rooming List</MudText>
@@ -261,6 +265,64 @@
                     await Launcher.Default.OpenAsync(new OpenFileRequest
                     {
                         Title = "Scheda Viaggio",
+                        File = new ReadOnlyFile(filePath)
+                    });
+#endif
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenStampaDettaglioDataViaggio()
+    {
+        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio (Stampa Dettagliata)", new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        });
+
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int dataViaggioId)
+        {
+            try
+            {
+                var data = await PrintService.GetPrintDataAsync(dataViaggioId);
+
+                // STANDARD: Save to Downloads
+                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+                // Create descriptive filename
+                var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
+                var filePath = Path.Combine(targetFolder, fileName);
+
+                // STANDARD: Overwrite check
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                await GestioneViaggi.Services.Printing.ViaggiPrinter.GenerateDetailedPdfAsync(data, filePath);
+
+                // STANDARD: Confirmation and Open
+                bool? confirm = await DialogService.ShowMessageBox(
+                    "Stampa Completata",
+                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                    yesText: "Sì, Apri", cancelText: "No");
+
+                if (confirm == true)
+                {
+                    // STANDARD: Cross-Platform Open
+#if MACCATALYST
+                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Scheda Dettaglio",
                         File = new ReadOnlyFile(filePath)
                     });
 #endif

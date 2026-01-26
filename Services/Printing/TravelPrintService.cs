@@ -104,7 +104,15 @@ public class TravelPrintService : ITravelPrintService
                 Residenza = p.residenza as string ?? string.Empty,
                 CodiceFiscale = p.codice_fiscale as string ?? string.Empty,
                 DataNascita = p.data_nascita as DateTime?,
-                LuogoNascita = p.luogo_nascita as string ?? string.Empty
+                LuogoNascita = p.luogo_nascita as string ?? string.Empty,
+
+                // Detailed Info
+                Nazionalita = p.nazionalita as string ?? string.Empty,
+                TipoDocumento = p.tipo_documento as string ?? string.Empty,
+                NumeroDocumento = p.numero_documento as string ?? string.Empty,
+                EnteRilascio = p.rilasciato_da as string ?? string.Empty,
+                DataRilascio = p.data_rilascio as DateTime?,
+                DataScadenza = p.data_scadenza as DateTime?
             }).ToList();
 
             data.Header = header;
