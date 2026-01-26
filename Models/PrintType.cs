@@ -16,9 +16,9 @@ public enum PrintType
     PassengerList,
 
     /// <summary>
-    /// Lista alloggi e camere
+    /// Rooming List - Lista alloggi con dati anagrafici e documenti
     /// </summary>
-    AccommodationList,
+    RoomingList,
 
     /// <summary>
     /// Report fatturazione
@@ -42,7 +42,7 @@ public static class PrintTypeExtensions
         {
             PrintType.TravelDataSheet => "Scheda Data Viaggio",
             PrintType.PassengerList => "Lista Passeggeri",
-            PrintType.AccommodationList => "Lista Alloggi",
+            PrintType.RoomingList => "Rooming List",
             PrintType.InvoiceReport => "Report Fatturazione",
             PrintType.CustomReport => "Report Personalizzato",
             _ => printType.ToString()
@@ -55,7 +55,7 @@ public static class PrintTypeExtensions
         {
             PrintType.TravelDataSheet => "@Icons.Material.Filled.Article",
             PrintType.PassengerList => "@Icons.Material.Filled.People",
-            PrintType.AccommodationList => "@Icons.Material.Filled.Hotel",
+            PrintType.RoomingList => "@Icons.Material.Filled.Hotel",
             PrintType.InvoiceReport => "@Icons.Material.Filled.Receipt",
             PrintType.CustomReport => "@Icons.Material.Filled.Description",
             _ => "@Icons.Material.Filled.Print"

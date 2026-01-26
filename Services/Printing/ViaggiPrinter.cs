@@ -118,7 +118,7 @@ public class ViaggiPrinter
             });
 
             // DATES SECTION (Prominent display)
-            mainColumn.Item().PaddingTop(25).Row(dateRow =>
+            mainColumn.Item().PaddingTop(15).Row(dateRow =>
             {
                 dateRow.RelativeItem().Column(dc =>
                 {
@@ -127,15 +127,15 @@ public class ViaggiPrinter
                 });
             });
 
-            // CHARACTERISTICS SECTION (Expanded Interlinear)
-            mainColumn.Item().PaddingTop(20).Column(c =>
+            // CHARACTERISTICS SECTION (Expanded Interlinear) - Reduced padding to fit on one page
+            mainColumn.Item().PaddingTop(12).Column(c =>
             {
-                c.Item().PaddingBottom(10).Text("Caratteristiche del Viaggio:").FontSize(16).Bold().Underline();
-                
+                c.Item().PaddingBottom(8).Text("Caratteristiche del Viaggio:").FontSize(16).Bold().Underline();
+
                 c.Item().Border(1).BorderColor(BrandColors.Accent).Row(r =>
                 {
-                    // LEFT: Details Table with Padding - increased space to prevent truncation
-                    r.RelativeItem(4).Padding(10).Table(table =>
+                    // LEFT: Details Table with Padding - reduced to prevent page break
+                    r.RelativeItem(4).Padding(8).Table(table =>
                     {
                         table.ColumnsDefinition(cols =>
                         {
@@ -144,9 +144,9 @@ public class ViaggiPrinter
                         });
 
                         void AddRow(string label, string val) {
-                            // Increased vertical padding for better spacing
-                            table.Cell().PaddingVertical(8).Text(label).SemiBold().FontSize(12);
-                            table.Cell().PaddingVertical(8).Text(val).FontSize(12);
+                            // Reduced vertical padding to fit on one page
+                            table.Cell().PaddingVertical(5).Text(label).SemiBold().FontSize(12);
+                            table.Cell().PaddingVertical(5).Text(val).FontSize(12);
                         }
 
                         AddRow("Tipo del Viaggio:", data.Header.TipoViaggio);
@@ -158,19 +158,19 @@ public class ViaggiPrinter
                     });
 
                     // RIGHT: Big Totals
-                    r.RelativeItem(1).BorderLeft(1).BorderColor(BrandColors.Accent).Column(stats => 
+                    r.RelativeItem(1).BorderLeft(1).BorderColor(BrandColors.Accent).Column(stats =>
                     {
                         void BigStat(IContainer cnt, string number, string label)
                         {
-                            cnt.Column(statCol => 
+                            cnt.Column(statCol =>
                             {
                                 statCol.Item().AlignCenter().Text(number).FontSize(36).Bold().FontColor(BrandColors.Text);
                                 statCol.Item().AlignCenter().Text(label.ToUpper()).FontSize(12).SemiBold();
                             });
                         }
 
-                        stats.Item().PaddingVertical(20).Element(e => BigStat(e, data.Header.TotalVehicles.ToString(), "MEZZI"));
-                        stats.Item().BorderTop(1).BorderColor(BrandColors.Accent).PaddingVertical(20).Element(e => BigStat(e, data.Header.TotalParticipants.ToString(), "PERSONE"));
+                        stats.Item().PaddingVertical(15).Element(e => BigStat(e, data.Header.TotalVehicles.ToString(), "MEZZI"));
+                        stats.Item().BorderTop(1).BorderColor(BrandColors.Accent).PaddingVertical(15).Element(e => BigStat(e, data.Header.TotalParticipants.ToString(), "PERSONE"));
                     });
                 });
             });
@@ -178,7 +178,7 @@ public class ViaggiPrinter
             // Note footer on cover
              if (!string.IsNullOrWhiteSpace(data.Header.Note))
             {
-                mainColumn.Item().PaddingTop(20).BorderTop(1).BorderColor(Colors.Grey.Lighten2).PaddingTop(5).Text(text =>
+                mainColumn.Item().PaddingTop(15).BorderTop(1).BorderColor(Colors.Grey.Lighten2).PaddingTop(5).Text(text =>
                 {
                     text.Span("Note: ").Bold();
                     text.Span(data.Header.Note).Italic();

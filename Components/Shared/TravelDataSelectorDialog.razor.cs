@@ -295,7 +295,7 @@ public partial class TravelDataSelectorDialog
         {
             PrintType.TravelDataSheet => "Stampa Scheda",
             PrintType.PassengerList => "Stampa Lista",
-            PrintType.AccommodationList => "Stampa Alloggi",
+            PrintType.RoomingList => "Stampa Rooming List",
             PrintType.InvoiceReport => "Genera Report",
             PrintType.CustomReport => "Genera",
             _ => "Stampa"

@@ -9,6 +9,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject ITravelPrintService PrintService
+@inject IRoomingListPrintService RoomingListPrintService
 
 <MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
@@ -129,6 +130,10 @@
                     OnClick="@OpenStampaSchedaDataViaggio">
             <MudText Typo="Typo.body1">Stampa Scheda Data Viaggio</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.Hotel"
+                    OnClick="@OpenStampaRoomingList">
+            <MudText Typo="Typo.body1">Stampa Rooming List</MudText>
+        </MudNavLink>
     </MudNavGroup>
 
 
@@ -229,11 +234,8 @@
                 // STANDARD: Save to Downloads
                 var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
-                // Create descriptive filename using viaggio_descrizione_breve
-                var safeTitle = SanitizeFileName(data.Header.DescrizioneBreve, maxLength: 40);
-                var dateStart = data.Header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
-                var dateEnd = data.Header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
-                var fileName = $"{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";
+                // Create descriptive filename
+                var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
                 var filePath = Path.Combine(targetFolder, fileName);
 
                 // STANDARD: Overwrite check
@@ -271,22 +273,61 @@
         }
     }
 
-    private string SanitizeFileName(string fileName, int maxLength = 50)
+    private async Task OpenStampaRoomingList()
     {
-        // Remove invalid characters
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new string(fileName.Where(c => !invalidChars.Contains(c)).ToArray());
-
-        // Replace common problematic characters
-        sanitized = sanitized.Replace("/", "-").Replace("\\", "-").Replace(":", "-");
-
-        // Trim and limit length
-        sanitized = sanitized.Trim();
-        if (sanitized.Length > maxLength)
+        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio per Rooming List", new DialogOptions
         {
-            sanitized = sanitized.Substring(0, maxLength).TrimEnd();
-        }
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        });
 
-        return string.IsNullOrWhiteSpace(sanitized) ? "Viaggio" : sanitized;
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int dataViaggioId)
+        {
+            try
+            {
+                var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
+
+                // STANDARD: Save to Downloads
+                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+                // Create descriptive filename
+                var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
+                var filePath = Path.Combine(targetFolder, fileName);
+
+                // STANDARD: Overwrite check
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
+
+                // STANDARD: Confirmation and Open
+                bool? confirm = await DialogService.ShowMessageBox(
+                    "Stampa Completata",
+                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                    yesText: "Sì, Apri", cancelText: "No");
+
+                if (confirm == true)
+                {
+                    // STANDARD: Cross-Platform Open
+#if MACCATALYST
+                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Rooming List",
+                        File = new ReadOnlyFile(filePath)
+                    });
+#endif
+                }
+            }
+            catch(Exception ex)
+            {
+                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

@@ -14,6 +14,7 @@
 @inject StatisticYearService StatYear
 @inject Services.Shared.IRecentActivityService ActivityService
 @inject Services.Printing.ITravelPrintService PrintService
+@inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="4">
@@ -266,7 +267,7 @@
                     Stampa Dettaglio Data Viaggio
                 </MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Hotel"
-                           OnClick="@(() => Snackbar.Add("Funzionalità in sviluppo", Severity.Info))">
+                           OnClick="OnStampaRoomingListClick">
                     Stampa Rooming List
                 </MudButton>
             </MudStack>
@@ -630,11 +631,8 @@ _comparisonMode))
                 // STANDARD: Save to Downloads
                 var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
-                // Create descriptive filename using viaggio_descrizione_breve
-                var safeTitle = SanitizeFileName(data.Header.DescrizioneBreve, maxLength: 40);
-                var dateStart = data.Header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
-                var dateEnd = data.Header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
-                var fileName = $"{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";
+                // Create descriptive filename
+                var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
                 var filePath = Path.Combine(targetFolder, fileName);
 
                 // STANDARD: Overwrite check
@@ -672,22 +670,64 @@ _comparisonMode))
         }
     }
 
-    private string SanitizeFileName(string fileName, int maxLength = 50)
+    private async Task OnStampaRoomingListClick()
     {
-        // Remove invalid characters
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new string(fileName.Where(c => !invalidChars.Contains(c)).ToArray());
-
-        // Replace common problematic characters
-        sanitized = sanitized.Replace("/", "-").Replace("\\", "-").Replace(":", "-");
-
-        // Trim and limit length
-        sanitized = sanitized.Trim();
-        if (sanitized.Length > maxLength)
+        var parameters = new DialogParameters
         {
-            sanitized = sanitized.Substring(0, maxLength).TrimEnd();
-        }
+            ["AziendaId"] = _currentUser?.AziendaId ?? 0,
+            ["IsSuperAdmin"] = false,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.RoomingList
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        return string.IsNullOrWhiteSpace(sanitized) ? "Viaggio" : sanitized;
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.TravelDataSelectorDialog>("Stampa Rooming List", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int dataViaggioId)
+        {
+            try
+            {
+                var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
+
+                // STANDARD: Save to Downloads
+                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+                // Create descriptive filename
+                var fileName = Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
+                var filePath = Path.Combine(targetFolder, fileName);
+
+                // STANDARD: Overwrite check
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
+
+                // STANDARD: Confirmation and Open
+                bool? confirm = await DialogService.ShowMessageBox(
+                    "Stampa Completata",
+                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                    yesText: "Sì, Apri", cancelText: "No");
+
+                if (confirm == true)
+                {
+                    // STANDARD: Cross-Platform Open
+#if MACCATALYST
+                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Rooming List",
+                        File = new ReadOnlyFile(filePath)
+                    });
+#endif
+                }
+            }
+            catch(Exception ex)
+            {
+                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 
 <MudDialog>
     <TitleContent>
@@ -50,7 +51,7 @@
                                             <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Dettaglio Data Viaggio"))">
                                                 <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Dettaglio Data Viaggio</MudText>
                                             </MudMenuItem>
-                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Rooming List"))">
+                                            <MudMenuItem OnClick="OnStampaRoomingListClick">
                                                 <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Rooming List</MudText>
                                             </MudMenuItem>
                                         </ChildContent>
@@ -626,6 +627,59 @@
     private void ShowDevelopmentMessage(string featureName)
     {
         Snackbar.Add($"Funzionalità in corso di sviluppo", Severity.Info);
+    }
+
+    private async Task OnStampaRoomingListClick()
+    {
+        if (DataViaggioId <= 0)
+        {
+            Snackbar.Add("Impossibile stampare: ID Viaggio non valido", Severity.Error);
+            return;
+        }
+
+        try
+        {
+            var data = await RoomingListPrintService.GetRoomingListDataAsync(DataViaggioId);
+
+            // Save to Downloads
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+
+            // Create descriptive filename
+            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
+            var filePath = Path.Combine(targetFolder, fileName);
+
+            // Overwrite check
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+
+            await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
+
+            // Confirmation and Open
+            bool? confirm = await DialogService.ShowMessageBox(
+                "Stampa Completata",
+                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                yesText: "Sì, Apri", cancelText: "No");
+
+            if (confirm == true)
+            {
+                // Cross-Platform Open
+#if MACCATALYST
+                System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    Title = "Rooming List",
+                    File = new ReadOnlyFile(filePath)
+                });
+#endif
+            }
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task LoadLookupsAsync()

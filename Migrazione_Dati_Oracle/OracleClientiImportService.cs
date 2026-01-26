@@ -187,6 +187,12 @@ public class OracleClientiImportService
         int? comuneNasFk = GetInt(row, "CLIENTE_COMUNE_NASCITA_FK") ?? 0;
         DateTime? dataNascita = GetDate(row, "CLIENTE_DATA_NASCITA");
 
+        string? tipoDoc = GetString(row, "CLIENTE_TIPODOC_IDENTITA");
+        string? numDoc = GetString(row, "CLIENTE_DOCUMENTO_NUMERO");
+        string? rilascioDa = GetString(row, "CLIENTE_DOCUMENTO_RILASCIATO_DA");
+        DateTime? dataRilascio = GetDate(row, "CLIENTE_DOCUMENTO_RILASCIATO_DATA");
+        DateTime? dataScadenza = GetDate(row, "CLIENTE_DOCUMENTO_RILASCIATO_SCADENZA");
+
         var sql = @"
             INSERT INTO ana_clienti (
                 cliente_id, cliente_titolo, cliente_cognome, cliente_nome, cliente_sesso,
@@ -195,6 +201,9 @@ public class OracleClientiImportService
                 cliente_preftelint, cliente_telefono, cliente_email, 
                 cliente_codicefiscale, cliente_iban,
                 cliente_note, cliente_intolleranza,
+                cliente_tipodoc_identita, cliente_documento_numero,
+                cliente_documento_rilasciato_da, cliente_documento_rilasciato_data,
+                cliente_documento_rilasciato_scadenza,
                 azienda_fk, created_by, created, updated_by, updated
             ) VALUES (
                 @id, @titolo, @cognome, @nome, @sesso,
@@ -203,6 +212,9 @@ public class OracleClientiImportService
                 @prefTel, @tel, @email,
                 @cf, @iban,
                 @note, @intolleranza,
+                @tipoDoc, @numDoc,
+                @rilascioDa, @dataRilascio,
+                @dataScadenza,
                 @azienda, @createdBy, @created, NULL, NULL
             )
             ON CONFLICT (cliente_id) DO UPDATE SET
@@ -221,6 +233,11 @@ public class OracleClientiImportService
                 cliente_iban = EXCLUDED.cliente_iban,
                 cliente_note = EXCLUDED.cliente_note,
                 cliente_intolleranza = EXCLUDED.cliente_intolleranza,
+                cliente_tipodoc_identita = EXCLUDED.cliente_tipodoc_identita,
+                cliente_documento_numero = EXCLUDED.cliente_documento_numero,
+                cliente_documento_rilasciato_da = EXCLUDED.cliente_documento_rilasciato_da,
+                cliente_documento_rilasciato_data = EXCLUDED.cliente_documento_rilasciato_data,
+                cliente_documento_rilasciato_scadenza = EXCLUDED.cliente_documento_rilasciato_scadenza,
                 azienda_fk = EXCLUDED.azienda_fk,
                 created_by = EXCLUDED.created_by,
                 created = EXCLUDED.created,
@@ -246,6 +263,12 @@ public class OracleClientiImportService
         cmd.Parameters.AddWithValue("iban", (object?)GetString(row, "CLIENTE_IBAN") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("note", (object?)GetString(row, "CLIENTE_NOTE") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("intolleranza", (object?)GetString(row, "CLIENTE_INTOLLERANZA") ?? DBNull.Value);
+
+        cmd.Parameters.AddWithValue("tipoDoc", (object?)tipoDoc ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("numDoc", (object?)numDoc ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("rilascioDa", (object?)rilascioDa ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("dataRilascio", (object?)dataRilascio ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("dataScadenza", (object?)dataScadenza ?? DBNull.Value);
 
         cmd.Parameters.AddWithValue("azienda", aziendaFk);
         cmd.Parameters.AddWithValue("createdBy", createdBy);

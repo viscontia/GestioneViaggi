@@ -141,3 +141,101 @@ public class VehicleGroupInfo
 
     public string DisplayName => $"{Marca} {Modello} ({Count})";
 }
+
+// ==================== ROOMING LIST DTOs ====================
+
+public class RoomingListPrintDTO
+{
+    public TravelHeaderInfo Header { get; set; } = new();
+    public CompanyPrintInfo Company { get; set; } = new();
+    public List<RoomTypeGroup> RoomGroups { get; set; } = new();
+    public int TotalRooms { get; set; }
+    public int TotalParticipants { get; set; }
+}
+
+public class RoomTypeGroup
+{
+    public int TipoAlloggioId { get; set; }
+    public string TipoAlloggioDescrizione { get; set; } = string.Empty;
+    public int MaxOccupanti { get; set; }
+    public int RoomCount { get; set; }
+    public List<RoomingListParticipant> Participants { get; set; } = new();
+
+    public string DisplayHeader => $"{TipoAlloggioDescrizione} (Max {MaxOccupanti} pers.)";
+}
+
+public class RoomingListParticipant
+{
+    // Identificatori
+    public int ClienteId { get; set; }
+    public int RoomId { get; set; }
+
+    // Dati anagrafici base
+    public string Nominativo { get; set; } = string.Empty;
+    public int Eta { get; set; }
+    public DateTime? DataNascita { get; set; }
+    public string LuogoNascita { get; set; } = string.Empty;
+
+    // Residenza
+    public string IndirizzoResidenza { get; set; } = string.Empty;
+    public string CittaResidenza { get; set; } = string.Empty;
+    public string ResidenzaCompleta { get; set; } = string.Empty;
+
+    // Nazionalità
+    public string CountryCode { get; set; } = string.Empty;
+    public string CountryName { get; set; } = string.Empty;
+    public string Nationality { get; set; } = string.Empty;
+
+    // Documento
+    public string TipoDocumento { get; set; } = string.Empty;
+    public string NumeroDocumento { get; set; } = string.Empty;
+    public string EnteRilascio { get; set; } = string.Empty;
+    public DateTime? DataRilascio { get; set; }
+    public DateTime? DataScadenza { get; set; }
+
+    // Intolleranze
+    public string Intolleranze { get; set; } = string.Empty;
+
+    // Tipo Camera (for grouping)
+    public int TipoAlloggioId { get; set; }
+    public string TipoAlloggioDescrizione { get; set; } = string.Empty;
+    public int MaxOccupanti { get; set; }
+
+    // Formatted strings for PDF
+    public string DataNascitaFormatted => DataNascita.HasValue ? DataNascita.Value.ToString("dd/MM/yyyy") : "";
+    public string DataRilascioFormatted => DataRilascio.HasValue ? DataRilascio.Value.ToString("dd/MM/yyyy") : "";
+    public string DataScadenzaFormatted => DataScadenza.HasValue ? DataScadenza.Value.ToString("dd/MM/yyyy") : "";
+
+    public string InformazioniCompleteFormatted
+    {
+        get
+        {
+            var parts = new List<string>();
+
+            // Nome (età) - Nato il [data] a [luogo] e residente a [città] in [indirizzo]
+            var natoIl = DataNascita.HasValue ? $"il {DataNascitaFormatted}" : "";
+            var natoA = !string.IsNullOrEmpty(LuogoNascita) ? $"a {LuogoNascita}" : "";
+            var residente = !string.IsNullOrEmpty(ResidenzaCompleta) ? $"e residente a {ResidenzaCompleta}" : "";
+
+            parts.Add($"{Nominativo} ({Eta} Anni) - Nato {natoIl} {natoA} {residente}");
+
+            // Nazionalità [code] - [name] Tipo Doc.: [tipo] Num. [num] Ril.da: [ente] Il: [data] Scad.: [data]
+            var nazionalita = !string.IsNullOrEmpty(CountryCode) ? $"Nazionalità {CountryCode} - {CountryName}" : "";
+            var tipoDoc = !string.IsNullOrEmpty(TipoDocumento) ? $"Tipo Doc.: {TipoDocumento}" : "";
+            var numDoc = !string.IsNullOrEmpty(NumeroDocumento) ? $"Num. {NumeroDocumento}" : "";
+            var rilDa = !string.IsNullOrEmpty(EnteRilascio) ? $"Ril.da: {EnteRilascio}" : "";
+            var rilIl = DataRilascio.HasValue ? $"Il: {DataRilascioFormatted}" : "";
+            var scad = DataScadenza.HasValue ? $"Scad.: {DataScadenzaFormatted}" : "";
+
+            parts.Add($"{nazionalita} {tipoDoc} {numDoc} {rilDa} {rilIl} {scad}");
+
+            // Intolleranze (se presenti)
+            if (!string.IsNullOrEmpty(Intolleranze))
+            {
+                parts.Add($"** INT. ALIMENTARE: {Intolleranze.ToUpper()} **");
+            }
+
+            return string.Join("\n", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+        }
+    }
+}

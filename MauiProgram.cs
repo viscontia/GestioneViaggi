@@ -166,6 +166,7 @@ public static class MauiProgram
 
         // Printing Services
         builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
+        builder.Services.AddScoped<IRoomingListPrintService, RoomingListPrintService>();
 
         return builder.Build();
     }
