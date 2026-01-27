@@ -300,6 +300,9 @@
             // Filter is now handled by SQL.
             // _allItems contains only visible records.
 
+            // Apply selected sorting to the list before binding to grid/tree
+            ApplySorting();
+
             // Await the async build to ensure children are loaded
             await BuildTreeAsync(expandedState);
             
@@ -351,6 +354,8 @@
     private async Task OnSortChanged(int value)
     {
         _sortOption = value;
+        ApplySorting(); // Re-sort the main list
+        _filteredItems = new List<AnaViaggiEntity>(_allItems); // Update grid
         await BuildTreeAsync(null); 
         StateHasChanged();
     }
@@ -446,6 +451,26 @@
                 }
                 _treeItems.Add(typeNode);
             }
+        }
+    }
+
+    private void ApplySorting()
+    {
+        if (_sortOption == 0) // Nazione -> Tipo
+        {
+            _allItems = _allItems
+                .OrderBy(x => x.NazioneNome)
+                .ThenBy(x => x.TipoViaggioDescrizione)
+                .ThenBy(x => x.DescrizioneBreve)
+                .ToList();
+        }
+        else // Tipo -> Nazione
+        {
+            _allItems = _allItems
+                .OrderBy(x => x.TipoViaggioDescrizione)
+                .ThenBy(x => x.NazioneNome)
+                .ThenBy(x => x.DescrizioneBreve)
+                .ToList();
         }
     }
 
