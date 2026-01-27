@@ -146,7 +146,8 @@
 | `validate_codice_fiscale` | - | `cf text` | `boolean` | - |
 | `validate_partita_iva` | - | `piva text` | `boolean` | - |
 | `validate_reset_token` | Valida token di reset verificando validità, scadenza e stato attivo | `p_token character varying` | `character varying` | - |
-
+| `fn_get_monthly_trend` | Calcola trend mensile (conteggio records) per una tabella e anno specifici. Supporta: `ana_viaggi`, `ana_clienti`, `ana_aziende`, `ana_date_viaggi`. | `p_table_name text, p_year integer, p_azienda_id integer DEFAULT NULL, p_date_column TEXT DEFAULT 'created'` | `TABLE(month_num integer, count_val bigint)` | `Services/CRUD/StatisticBase.cs`, `Statistics/StatisticCountViaggiDaFare.cs` |
+    
 ## Implementazioni Service-Side (Logica Applicativa)
 | Componente | Funzionalità | Descrizione | Files Coinvolti |
 | :--- | :--- | :--- | :--- |

@@ -1,5 +1,6 @@
 @page "/dashboard-admin"
 @using GestioneViaggi.Services.Authentication
+@using MudBlazor
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Statistics
 @using GestioneViaggi.Services.CRUD
@@ -125,7 +126,47 @@
                             </MudText>
                         </MudStack>
                     </MudStack>
-                    <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
+                        <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
+                        @if (_statsClienti?.TrendData?.Any(x => x > 0) == true)
+                        {
+                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                    @{
+                                        var data = _statsClienti.TrendData;
+                                        var max = data.Any() ? data.Max() : 1;
+                                        if (max == 0) max = 1;
+                                        var barWidth = 120.0 / 12.0; 
+                                        var gap = 2.0;
+                                        barWidth -= gap;
+                                        
+                                        for (int i = 0; i < 12; i++)
+                                        {
+                                            var val = (i < data.Count) ? data[i] : 0;
+                                            var height = (val / max) * 50.0;
+                                            var x = i * (barWidth + gap);
+                                            var y = 50.0 - height;
+                                            var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                            var toolTip = $"{monthName}: {val}";
+
+                                            <!-- Background Bar (Placeholder) -->
+                                            <rect x="@x" y="0" width="@barWidth" height="50" fill="#f0f0f0" rx="2">
+                                                <title>@toolTip</title>
+                                            </rect>
+                                            
+                                            <!-- Data Bar -->
+                                            @if (val > 0)
+                                            {
+                                                <rect x="@x" y="@y" width="@barWidth" height="@height" fill="@Colors.Green.Default" rx="2">
+                                                    <title>@toolTip</title>
+                                                </rect>
+                                            }
+                                        }
+                                    }
+                                </svg>
+                            </MudPaper>
+                        }
+                    </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Clienti Totali</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
@@ -152,7 +193,47 @@
                             </MudText>
                         </MudStack>
                     </MudStack>
-                    <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
+                        <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
+                        @if (_statsViaggi?.TrendData?.Any(x => x > 0) == true)
+                        {
+                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                    @{
+                                        var data = _statsViaggi.TrendData;
+                                        var max = data.Any() ? data.Max() : 1;
+                                        if (max == 0) max = 1;
+                                        var barWidth = 120.0 / 12.0; 
+                                        var gap = 2.0;
+                                        barWidth -= gap;
+                                        
+                                        for (int i = 0; i < 12; i++)
+                                        {
+                                            var val = (i < data.Count) ? data[i] : 0;
+                                            var height = (val / max) * 50.0;
+                                            var x = i * (barWidth + gap);
+                                            var y = 50.0 - height;
+                                            var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                            var toolTip = $"{monthName}: {val}";
+                                            
+                                            <!-- Background Bar (Placeholder) -->
+                                            <rect x="@x" y="0" width="@barWidth" height="50" fill="#f0f0f0" rx="2">
+                                                <title>@toolTip</title>
+                                            </rect>
+                                            
+                                            <!-- Data Bar -->
+                                            @if (val > 0)
+                                            {
+                                                <rect x="@x" y="@y" width="@barWidth" height="@height" fill="@Colors.Blue.Default" rx="2">
+                                                    <title>@toolTip</title>
+                                                </rect>
+                                            }
+                                        }
+                                    }
+                                </svg>
+                            </MudPaper>
+                        }
+                    </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Viaggi Totali</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
@@ -217,7 +298,79 @@
                             </MudText>
                         </MudStack>
                     </MudStack>
-                    <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
+                        <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
+                        @if (_statsViaggiDaFare?.TrendData?.Any(x => x > 0) == true)
+                        {
+                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                    @{
+                                        var data = _statsViaggiDaFare.TrendData;
+                                        // Ensure we have 12 points
+                                        var points = new List<double>();
+                                        for(int i=0; i<12; i++) points.Add((i < data.Count) ? data[i] : 0);
+                                        
+                                        var max = points.Any() ? points.Max() : 1;
+                                        if (max == 0) max = 1;
+
+                                        // Bar Layout Constants
+                                        double slotWidth = 10.0; // 120 / 12
+                                        double gap = 2.0;
+                                        double barWidth = slotWidth - gap; // 8.0
+                                        
+                                        // Build line points based on BAR CENTERS
+                                        var sb = new System.Text.StringBuilder();
+                                        for (int i = 0; i < 12; i++)
+                                        {
+                                            var val = points[i];
+                                            // Center of the bar: (i * 10) + (8 / 2) = i*10 + 4
+                                            var x = (i * slotWidth) + (barWidth / 2.0); 
+                                            // Y scaling: 
+                                            // Top Margin = 8 (safer for radius)
+                                            // Bottom Margin = 5
+                                            // Height = 50. Available = 50 - 8 - 5 = 37.
+                                            // y = 45 - (val/max * 37)
+                                            var y = 45.0 - ((val / max) * 37.0);
+                                            
+                                            sb.Append($"{x.ToString(System.Globalization.CultureInfo.InvariantCulture)},{y.ToString(System.Globalization.CultureInfo.InvariantCulture)} ");
+                                        }
+                                        var polylinePoints = sb.ToString();
+                                    }
+                                    <!-- 1. Background Ghost Bars -->
+                                    @for(int i=0; i<12; i++)
+                                    {
+                                         var x = (i * slotWidth);
+                                         var val = points[i];
+                                         var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                         var toolTip = $"{monthName}: {val}";
+                                         <rect x="@x" y="0" width="@barWidth" height="50" fill="#f5f5f5" rx="2">
+                                             <title>@toolTip</title>
+                                         </rect>
+                                    }
+
+                                    <!-- 2. Trend Line -->
+                                    <polyline points="@polylinePoints" fill="none" stroke="@Colors.Orange.Darken1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    
+                                    <!-- 3. Dots -->
+                                    @for (int i = 0; i < 12; i++)
+                                    {
+                                        var val = points[i];
+                                        var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                        var toolTip = $"{monthName}: {val}";
+
+                                        if (val > 0.01) // Strict check
+                                        {
+                                            var x = (i * slotWidth) + (barWidth / 2.0);
+                                            var y = 45.0 - ((val / max) * 37.0);
+                                            <circle cx="@x.ToString(System.Globalization.CultureInfo.InvariantCulture)" cy="@y.ToString(System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="@Colors.Orange.Darken1">
+                                                <title>@toolTip</title>
+                                            </circle>
+                                        }
+                                    }
+                                </svg>
+                            </MudPaper>
+                        }
+                    </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Viaggi da fare @_selectedYear</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">fino al 31/12/@_selectedYear</MudText>

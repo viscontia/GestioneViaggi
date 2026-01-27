@@ -83,12 +83,15 @@ public class StatisticCountClienti : StatisticBase
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
             var result = StatisticResult.CreateCumulative(totalCount, currentYearCount);
+            result.TrendData = await GetMonthlyTrendFromDbAsync("ana_clienti", year, aziendaId); // Default created
             result.PercentageChange = percentageChange; // Override with Flow percentage
             result.ReferenceFlowValue = flowPrev;
             return result;
         }
 
-        return StatisticResult.CreateCumulative(totalCount, currentYearCount);
+        var res = StatisticResult.CreateCumulative(totalCount, currentYearCount);
+        res.TrendData = await GetMonthlyTrendFromDbAsync("ana_clienti", year, aziendaId); 
+        return res;
     }
 
     private double CalculatePercentage(long current, long previous)

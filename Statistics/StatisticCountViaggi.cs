@@ -78,6 +78,8 @@ public class StatisticCountViaggi : StatisticBase
         }
 
         var result = StatisticResult.CreateCumulative(totalCount, yearCount);
+        result.TrendData = await GetMonthlyTrendFromDbAsync("ana_viaggi", year, aziendaId);
+
          if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
              result.PercentageChange = percentageChange;

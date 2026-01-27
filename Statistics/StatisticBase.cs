@@ -36,6 +36,36 @@ public abstract class StatisticBase
             throw;
         }
     }
+    protected async Task<List<double>> GetMonthlyTrendFromDbAsync(string tableName, int year, int? aziendaId, string dateColumn = "created")
+    {
+        var trend = new List<double>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand("SELECT count_val FROM fn_get_monthly_trend(@table_name, @year, @azienda_id, @date_column)", connection);
+            
+            command.Parameters.AddWithValue("table_name", tableName);
+            command.Parameters.AddWithValue("year", year);
+            command.Parameters.AddWithValue("azienda_id", aziendaId ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("date_column", dateColumn);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                trend.Add(reader.GetInt64(0)); // count_val is BIGINT -> long -> but List is double for chart
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching monthly trend for {Table} Year {Year}", tableName, year);
+            // Fallback: return empty list logic handled by caller or initialization
+        }
+
+        // Ensure we always have 12 items even if DB fails or returns partial (though function ensures 12)
+        while (trend.Count < 12) trend.Add(0);
+
+        return trend;
+    }
 }
 
 public class StatisticResult
@@ -46,6 +76,7 @@ public class StatisticResult
     public long Increment => MainValue - PreviousYearValue;
     public double PercentageChange { get; set; }
     public long? ReferenceFlowValue { get; set; } // Holds the comparative flow value for PoP Hybrid mode
+    public List<double> TrendData { get; set; } = new(); // Holds monthly trend data (Jan-Dec)
 
     public static StatisticResult Create(long mainValue, long currentPeriod, long previousPeriod)
     {

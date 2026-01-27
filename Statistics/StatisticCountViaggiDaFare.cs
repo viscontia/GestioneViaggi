@@ -24,12 +24,19 @@ public class StatisticCountViaggiDaFare : StatisticBase
              DateTime prevTo = new DateTime(year - 1, 12, 31);
              previousCount = await GetPeriodCountAsync(prevFrom, prevTo, aziendaId, onlyNotPerformed: false);
         }
+        
         else
         {
              previousCount = await GetCountForYearAsync(year - 1, aziendaId);
         }
 
-        return StatisticResult.Create(currentCount, currentCount, previousCount);
+        var result = StatisticResult.Create(currentCount, currentCount, previousCount);
+        
+        // Fetch Trend Data for Line Chart (Scheduled Trips per Month)
+        // Table: ana_date_viaggi, Column: data_viaggio_data_inizio
+        result.TrendData = await GetMonthlyTrendFromDbAsync("ana_date_viaggi", year, aziendaId, "data_viaggio_data_inizio");
+
+        return result;
     }
 
     private async Task<long> GetCountForYearAsync(int year, int? aziendaId)

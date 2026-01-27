@@ -52,6 +52,8 @@ public class StatisticCountAziende : StatisticBase
         }
 
         var result = StatisticResult.CreateCumulative(totalCountAtYear, yearCount);
+        result.TrendData = await GetMonthlyTrendFromDbAsync("ana_aziende", year, null, "data_creazione");
+
         if (comparisonMode == ComparisonMode.PeriodOverPeriod && year == DateTime.Now.Year)
         {
              result.PercentageChange = percentageChange;
