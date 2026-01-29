@@ -1,0 +1,645 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@using GestioneViaggi.Validation.Syntax
+@using GestioneViaggi.Validation.Semantic
+@inject TipoFornitoreService TipoFornitoreService
+@inject ComuneService ComuneService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? $"Modifica Fornitore: {Entity.RagioneSociale}" : "Nuovo Fornitore")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_debugError))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">
+                Errore: @_debugError
+            </MudAlert>
+        }
+        <MudForm @ref="_form" Model="@Entity">
+            <MudGrid Spacing="2">
+                <!-- RIGA 0: Azienda (solo SuperAdmin) -->
+                @if (IsSuperAdmin)
+                {
+                    <MudItem xs="12">
+                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" />
+                    </MudItem>
+                }
+
+                <!-- RIGA 1: Ragione Sociale e Nome Breve -->
+                <MudItem xs="12" sm="8">
+                    <MudTextField @ref="_firstField" Value="@Entity.RagioneSociale"
+                        ValueChanged="@((string val) => HandleRagioneSocialeChanged(val))"
+                        Label="Ragione Sociale"
+                        Variant="Variant.Outlined" Required="true" RequiredError="Obbligatorio"
+                        MaxLength="100" Immediate="true" Class="uppercase-input" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Value="@Entity.NomeBreve"
+                        ValueChanged="@((string val) => HandleNomeBreveChanged(val))"
+                        Label="Nome Breve"
+                        Variant="Variant.Outlined" MaxLength="50" HelperText="Es: Hotel Roma"
+                        Class="uppercase-input" />
+                </MudItem>
+
+                <!-- RIGA 2: Tipo Fornitore e Priorità -->
+                <MudItem xs="12" sm="8">
+                    <MudSelect T="int" Label="Tipo Fornitore" @bind-Value="Entity.TipoFornitoreFk"
+                        Variant="Variant.Outlined" Required="true" RequiredError="Obbligatorio" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var tipo in _tipiFornitore)
+                        {
+                            <MudSelectItem Value="@tipo.Id">@tipo.Descrizione</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                     <MudNumericField @bind-Value="Entity.Priorita" Label="Priorità (1-10)" 
+                        Variant="Variant.Outlined" Min="1" Max="10" />
+                </MudItem>
+
+                <!-- RIGA 3: Attivo (Switch) -->
+                <MudItem xs="12">
+                    <MudSwitch @bind-Value="Entity.Attivo" Color="Color.Primary" Label="Fornitore Attivo" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                     <MudDivider Class="my-2"/>
+                     <MudText Typo="Typo.subtitle2" Color="Color.Primary">Contatti & Sede</MudText>
+                </MudItem>
+
+                <!-- RIGA 4: Comune e Indirizzo -->
+                <MudItem xs="12" sm="6">
+                    <MudGrid Spacing="1">
+                        <MudItem xs="12">
+                            <ComuneSelect @bind-SelectedComuneId="Entity.ComuneFk"
+                                          @bind-SelectedComune="Entity.Comune"
+                                          Label="Comune (Sede)"
+                                          Required="false" />
+                        </MudItem>
+                        <!-- Dettagli Geografici -->
+                        <MudItem xs="3">
+                            <MudTextField Value="@(Entity.Comune?.Cap)" Label="CAP" ReadOnly="true"
+                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                          Style="pointer-events: none;" />
+                        </MudItem>
+                        <MudItem xs="5">
+                            <MudTextField Value="@(Entity.Comune?.RegioneDescrizione)" Label="Regione" ReadOnly="true"
+                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                          Style="pointer-events: none;" />
+                        </MudItem>
+                        <MudItem xs="2">
+                            <MudTextField Value="@(Entity.Comune?.ProvinciaSigla)" Label="Prov." ReadOnly="true"
+                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                          Style="pointer-events: none;" />
+                        </MudItem>
+                        <MudItem xs="2">
+                            <MudTextField Value="@(Entity.Comune?.ComuneEstero == true ? "ESTERO" : "IT")" Label="Naz." ReadOnly="true"
+                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                          Style="pointer-events: none;" />
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Value="@Entity.Indirizzo"
+                        ValueChanged="@((string val) => HandleIndirizzoChanged(val))"
+                        Label="Indirizzo"
+                        Variant="Variant.Outlined" MaxLength="100" Class="uppercase-input" />
+                </MudItem>
+
+                <!-- RIGA 5: Telefono -->
+                <MudItem xs="4" sm="3">
+                    <MudTextField @bind-Value="Entity.TelefonoPrefisso" Label="Prefisso"
+                        Variant="Variant.Outlined" MaxLength="5" Placeholder="+39" />
+                </MudItem>
+                <MudItem xs="8" sm="5">
+                    <MudTextField @bind-Value="Entity.TelefonoNumero" Label="Telefono"
+                        Variant="Variant.Outlined" MaxLength="20" InputType="InputType.Telephone"
+                        Immediate="true" DebounceInterval="800"
+                        Validation="@((string val) => ValidateTelefono(val))" />
+                </MudItem>
+                 <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="Entity.SitoWeb" Label="Sito Web"
+                        Variant="Variant.Outlined" MaxLength="100" InputType="InputType.Url"
+                        Immediate="true" DebounceInterval="800"
+                        Validation="@((string val) => ValidateSitoWeb(val))" />
+                </MudItem>
+
+                <!-- RIGA 6: Email e PEC -->
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Entity.Email" Label="Email"
+                        Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="100"
+                        Immediate="true" DebounceInterval="800"
+                        Validation="@((string val) => ValidateEmail(val))" />
+                </MudItem>
+                 <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="Entity.Pec" Label="PEC"
+                        Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="100"
+                        Immediate="true" DebounceInterval="800"
+                        Validation="@((string val) => ValidatePec(val))" />
+                </MudItem>
+
+                <MudItem xs="12">
+                     <MudDivider Class="my-2"/>
+                     <MudText Typo="Typo.subtitle2" Color="Color.Primary">Dati Fiscali</MudText>
+                </MudItem>
+
+                <!-- RIGA 6.5: Tipo Fornitore (Italia/Estero) -->
+                <MudItem xs="12">
+                    <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Tipo Fornitore</MudText>
+                        <MudRadioGroup @bind-Value="Entity.FornitoreEstero" T="bool">
+                            <MudRadio Value="false" Color="Color.Primary">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Italiano</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">P.IVA e/o Codice Fiscale italiani</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                            <MudRadio Value="true" Color="Color.Secondary">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" />
+                                    <div>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Estero</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">VAT Number europeo (es: FR12345678901)</MudText>
+                                    </div>
+                                </div>
+                            </MudRadio>
+                        </MudRadioGroup>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- ========== SEZIONE CONDIZIONALE: FORNITORI ITALIANI ========== -->
+                @if (!Entity.FornitoreEstero)
+                {
+                    <!-- RIGA 7a: P.IVA, CF, SDI (ITALIA) -->
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                            <MudText Typo="Typo.caption">
+                                <strong>Obbligatorio:</strong> Inserire almeno Partita IVA o Codice Fiscale.<br/>
+                                <strong>Codice SDI:</strong> Se non noto, lasciare il valore predefinito "0000000".
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="Entity.PartitaIva" Label="Partita IVA"
+                            Variant="Variant.Outlined" MaxLength="11"
+                            Mask="@(new PatternMask("00000000000"))"
+                            Immediate="true" DebounceInterval="800"
+                            Validation="@((string val) => ValidatePartitaIvaItaliana(val))"
+                            HelperText="11 cifre numeriche" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField Value="@Entity.CodiceFiscale"
+                            ValueChanged="@((string val) => HandleCodiceFiscaleChanged(val))"
+                            Label="Codice Fiscale"
+                            Variant="Variant.Outlined" MaxLength="16" Class="uppercase-input"
+                            Immediate="true" DebounceInterval="800"
+                            Validation="@((string val) => ValidateCodiceFiscale(val))"
+                            HelperText="11-16 caratteri alfanumerici" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudTextField Value="@Entity.CodiceSdi"
+                            ValueChanged="@((string val) => HandleCodiceSdiChanged(val))"
+                            Label="Codice SDI"
+                            Variant="Variant.Outlined" MaxLength="7" Class="uppercase-input"
+                            Immediate="true" DebounceInterval="800"
+                            Validation="@((string val) => ValidateCodiceSdi(val))"
+                            HelperText="7 caratteri (default: 0000000)" />
+                    </MudItem>
+                }
+                <!-- ========== SEZIONE CONDIZIONALE: FORNITORI ESTERI ========== -->
+                else
+                {
+                    <!-- RIGA 7b: VAT Number, CF opzionale (ESTERO) -->
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                            <MudText Typo="Typo.caption">
+                                <strong>VAT Number obbligatorio:</strong> Formato [Codice Paese][Numero] (es: FR12345678901, DE123456789).<br/>
+                                <strong>Codice SDI:</strong> Impostato automaticamente a "XXXXXXX" per fornitori esteri.
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Value="@Entity.PartitaIva"
+                            ValueChanged="@((string val) => HandleVatNumberChanged(val))"
+                            Label="VAT Number *"
+                            Variant="Variant.Outlined" MaxLength="20" Class="uppercase-input"
+                            Required="true" RequiredError="Obbligatorio"
+                            Immediate="true" DebounceInterval="800"
+                            Validation="@((string val) => ValidateVatNumber(val))"
+                            HelperText="Es: FR12345678901, DE123456789"
+                            Adornment="Adornment.Start"
+                            AdornmentIcon="@Icons.Material.Filled.Public" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField Value="@Entity.CodiceFiscale"
+                            ValueChanged="@((string val) => HandleCodiceFiscaleChanged(val))"
+                            Label="Codice Fiscale Estero (opzionale)"
+                            Variant="Variant.Outlined" MaxLength="16" Class="uppercase-input"
+                            HelperText="Se disponibile" />
+                    </MudItem>
+
+                    <!-- SDI automatico per esteri - solo visualizzazione -->
+                    <MudItem xs="12" sm="12">
+                        <MudTextField Value="@("XXXXXXX")" Label="Codice SDI (Automatico)"
+                            Variant="Variant.Outlined" ReadOnly="true" Disabled="true"
+                            HelperText="Valore fisso per fornitori esteri" />
+                    </MudItem>
+                }
+
+                <!-- RIGA 8: Note -->
+                <MudItem xs="12">
+                    <MudTextField Value="@Entity.Note"
+                        ValueChanged="@((string val) => HandleNoteChanged(val))"
+                        Label="Note"
+                        Variant="Variant.Outlined" Lines="3" Class="uppercase-input" />
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="Color.Primary">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public AnaFornitore Entity { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+    [Parameter] public int AziendaFk { get; set; }
+    [Parameter] public bool IsSuperAdmin { get; set; }
+    
+    // UI State
+    private MudForm _form = default!;
+    private MudTextField<string>? _firstField;
+    private List<AnaTipoFornitore> _tipiFornitore = new();
+    private string? _debugError;
+
+    protected override void OnInitialized()
+    {
+        // Inizializza azienda_fk se non in edit mode
+        if (!IsEditMode)
+        {
+            Entity.AziendaFk = AziendaFk;
+            Entity.Priorita = 5;
+            Entity.Attivo = true;
+            Entity.TelefonoPrefisso = "+39";
+            Entity.FornitoreEstero = false; // Default: Italia
+            Entity.CodiceSdi = "0000000"; // Default SDI per italiani
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine($"[AnaFornitoriEditDialog] OnInitializedAsync Start. AziendaFk: {AziendaFk}, EditMode: {IsEditMode}");
+        try
+        {
+            await LoadTipiFornitore();
+            Console.WriteLine($"[AnaFornitoriEditDialog] Tipi loaded: {_tipiFornitore.Count}");
+
+            // Load Comune navigation property if editing existing entity
+            if (IsEditMode && Entity.ComuneFk.HasValue && Entity.ComuneFk.Value > 0 && Entity.Comune == null)
+            {
+                try
+                {
+                    Entity.Comune = await ComuneService.GetByIdAsync(Entity.ComuneFk.Value);
+                    Console.WriteLine($"[AnaFornitoriEditDialog] Comune loaded: {Entity.Comune?.Nome}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AnaFornitoriEditDialog] Error loading comune: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _debugError = ex.ToString();
+            Console.WriteLine($"[AnaFornitoriEditDialog] ERROR: {ex}");
+            Snackbar.Add("Errore inizializzazione finestra", Severity.Error);
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation tra i campi della form
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            // Focus automatico sul primo campo
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup dei listener JavaScript per la navigazione TAB
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+    private async Task LoadTipiFornitore()
+    {
+        try 
+        {
+            int? filter = AziendaFk > 0 ? AziendaFk : null;
+            _tipiFornitore = await TipoFornitoreService.GetAllAsync(filter);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Errore caricamento tipi fornitore", Severity.Error);
+        }
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            // Validazione aggiuntiva: almeno P.IVA o CF per italiani
+            if (!Entity.FornitoreEstero)
+            {
+                if (string.IsNullOrWhiteSpace(Entity.PartitaIva) && string.IsNullOrWhiteSpace(Entity.CodiceFiscale))
+                {
+                    Snackbar.Add("Per fornitori italiani è obbligatorio inserire almeno Partita IVA o Codice Fiscale", Severity.Warning);
+                    return;
+                }
+            }
+            else
+            {
+                // VAT Number obbligatorio per esteri
+                if (string.IsNullOrWhiteSpace(Entity.PartitaIva))
+                {
+                    Snackbar.Add("Per fornitori esteri il VAT Number è obbligatorio", Severity.Warning);
+                    return;
+                }
+            }
+
+            // Normalizza i dati prima del salvataggio
+            NormalizeEntity();
+            MudDialog?.Close(DialogResult.Ok(Entity));
+        }
+        else
+        {
+            Snackbar.Add("Impossibile salvare: ci sono errori di validazione. Controlla i campi evidenziati.", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    // ========== HANDLERS PER CONVERSIONE AUTOMATICA IN MAIUSCOLO ==========
+
+    private void HandleRagioneSocialeChanged(string value)
+    {
+        Entity.RagioneSociale = value?.ToUpper() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void HandleNomeBreveChanged(string value)
+    {
+        Entity.NomeBreve = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleIndirizzoChanged(string value)
+    {
+        Entity.Indirizzo = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleCodiceFiscaleChanged(string value)
+    {
+        Entity.CodiceFiscale = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleCodiceSdiChanged(string value)
+    {
+        Entity.CodiceSdi = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleVatNumberChanged(string value)
+    {
+        Entity.PartitaIva = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleNoteChanged(string value)
+    {
+        Entity.Note = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    // ========== VALIDATORI INLINE ==========
+
+    // ========== VALIDAZIONI CONDIZIONALI ==========
+
+    private IEnumerable<string> ValidatePartitaIvaItaliana(string? value)
+    {
+        // Solo per fornitori italiani
+        if (Entity.FornitoreEstero)
+            yield break;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // Opzionale se c'è CF
+            if (!string.IsNullOrWhiteSpace(Entity.CodiceFiscale))
+                yield break;
+            else
+                yield return "P.IVA o CF obbligatori";
+        }
+        else
+        {
+            var result = ItalianFiscalValidator.CheckPartitaIva(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateVatNumber(string? value)
+    {
+        // Solo per fornitori esteri
+        if (!Entity.FornitoreEstero)
+            yield break;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return "VAT Number obbligatorio";
+        }
+        else
+        {
+            var result = EuropeanVatValidator.CheckVatNumber(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateCodiceFiscale(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            // Per italiani: opzionale se c'è P.IVA
+            if (!Entity.FornitoreEstero && string.IsNullOrWhiteSpace(Entity.PartitaIva))
+                yield return "P.IVA o CF obbligatori";
+
+            yield break; // Altrimenti opzionale
+        }
+
+        // Se fornito, valida sintassi (anche per esteri)
+        var result = ItalianFiscalValidator.CheckCodiceFiscale(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateCodiceSdi(string? value)
+    {
+        // Solo per fornitori italiani
+        if (Entity.FornitoreEstero)
+            yield break;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break; // Sarà impostato a default nel service
+        }
+
+        var result = CodeValidator.CheckCodiceSdi(value, allowSpecialValues: true);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateEmail(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break; // Campo opzionale
+        }
+
+        var result = EmailValidator.CheckEmail(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidatePec(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break; // Campo opzionale
+        }
+
+        var result = EmailValidatorPEC.CheckPec(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateTelefono(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break; // Campo opzionale
+        }
+
+        // Concatena prefisso + numero per validazione completa
+        string fullNumber = $"{Entity.TelefonoPrefisso ?? ""}{value}".Trim();
+
+        if (string.IsNullOrWhiteSpace(fullNumber))
+        {
+            yield break;
+        }
+
+        var result = PhoneValidator.CheckTelefonoItaly(fullNumber);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    private IEnumerable<string> ValidateSitoWeb(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield break; // Campo opzionale
+        }
+
+        var result = WebsiteValidator.CheckWebsite(value);
+        if (!result.IsValid)
+        {
+            yield return result.ErrorMessage;
+        }
+    }
+
+    // ========== NORMALIZZAZIONE DATI ==========
+
+    /// <summary>
+    /// Normalizza i dati del fornitore prima del salvataggio
+    /// </summary>
+    private void NormalizeEntity()
+    {
+        // Trim e Uppercase per campi testo
+        Entity.RagioneSociale = Entity.RagioneSociale?.Trim().ToUpperInvariant() ?? string.Empty;
+        Entity.NomeBreve = Entity.NomeBreve?.Trim().ToUpperInvariant();
+        Entity.Indirizzo = Entity.Indirizzo?.Trim().ToUpperInvariant();
+        Entity.CodiceFiscale = Entity.CodiceFiscale?.Trim().ToUpperInvariant();
+        Entity.PartitaIva = Entity.PartitaIva?.Trim().ToUpperInvariant();
+        Entity.Note = Entity.Note?.Trim().ToUpperInvariant();
+
+        // Lowercase per email e pec
+        Entity.Email = Entity.Email?.Trim().ToLowerInvariant();
+        Entity.Pec = Entity.Pec?.Trim().ToLowerInvariant();
+
+        // Lowercase per sito web
+        Entity.SitoWeb = Entity.SitoWeb?.Trim().ToLowerInvariant();
+
+        // Trim semplice per telefono
+        Entity.TelefonoPrefisso = Entity.TelefonoPrefisso?.Trim();
+        Entity.TelefonoNumero = Entity.TelefonoNumero?.Trim();
+
+        // Gestione automatica SDI (sarà gestita anche dal service, doppia sicurezza)
+        if (Entity.FornitoreEstero)
+        {
+            Entity.CodiceSdi = "XXXXXXX";
+        }
+        else if (string.IsNullOrWhiteSpace(Entity.CodiceSdi))
+        {
+            Entity.CodiceSdi = "0000000";
+        }
+
+        Entity.CodiceSdi = Entity.CodiceSdi?.Trim().ToUpperInvariant();
+    }
+}
