@@ -1,0 +1,247 @@
+@page "/tabelle/tipi-fornitore"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject TipoFornitoreService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@inject ITenantContext TenantContext
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="AnaTipoFornitore"
+                        Items="@_items"
+                        Title="Tipi Fornitore"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+             @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+             @if (_isSuperAdmin)
+            {
+                <PropertyColumn Property="x => x.AziendaFk" Title="Az.ID" />
+            }
+
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" 
+                            HeaderStyle="min-width: 200px;"
+                            CellStyle="min-width: 200px;" />
+            
+            <PropertyColumn Property="x => x.Categoria" Title="Categoria" />
+            
+            <PropertyColumn Property="x => x.ContoContabileDefault" Title="Conto Contabile" />
+
+            <EnterpriseActionsColumn T="AnaTipoFornitore"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<AnaTipoFornitore> _items = new();
+    private AnaTipoFornitore? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    private int? _currentAziendaId;
+    private int _selectedAziendaId; 
+    private bool _isSuperAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_tipo_fornitore");
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null; 
+        }
+        else
+        {
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!aziendaId.HasValue)
+            {
+                _errorMessage = "Impossibile determinare l'azienda corrente";
+                return;
+            }
+            _currentAziendaId = aziendaId.Value;
+        }
+
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+             int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) : _currentAziendaId;
+            _items = (await Service.GetAllAsync(filterId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(AnaTipoFornitore item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Categoria?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        // Strict Multi-Tenancy: SuperAdmin MUST select a company. No Global Types.
+        if (_isSuperAdmin && _selectedAziendaId == 0)
+        {
+             Snackbar.Add("Selezionare un'Azienda specifica per creare un nuovo Tipo Fornitore", Severity.Warning);
+             return;
+        }
+
+        var targetAziendaId = _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0);
+        
+        var parameters = new DialogParameters<AnaTipoFornitoreDialog>
+        {
+            { x => x.Entity, new AnaTipoFornitore() { AziendaFk = targetAziendaId } },
+            { x => x.IsEditMode, false }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AnaTipoFornitoreDialog>("Nuovo Tipo Fornitore", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is AnaTipoFornitore newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                 await LoadDataAsync();
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(AnaTipoFornitore item)
+    {
+        var editEntity = new AnaTipoFornitore 
+        { 
+            Id = item.Id, 
+            Descrizione = item.Descrizione,
+            Categoria = item.Categoria,
+            ContoContabileDefault = item.ContoContabileDefault,
+            AziendaFk = item.AziendaFk
+        };
+
+        var parameters = new DialogParameters<AnaTipoFornitoreDialog>
+        {
+            { x => x.Entity, editEntity },
+            { x => x.IsEditMode, true }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AnaTipoFornitoreDialog>("Modifica Tipo Fornitore", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is AnaTipoFornitore updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                 await LoadDataAsync();
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(AnaTipoFornitore item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo tipo fornitore? ({item.Descrizione})" }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare (probabilmente in uso)", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

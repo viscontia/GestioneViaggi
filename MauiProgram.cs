@@ -26,6 +26,9 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
+        // Configura Dapper per mappare snake_case del DB su PascalCase del C#
+        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
@@ -123,6 +126,11 @@ public static class MauiProgram
         builder.Services.AddScoped<TipoAvvicinamentoService>();
         builder.Services.AddScoped<MovClientiViaggiService>();
         builder.Services.AddScoped<MovClientiAlloggiService>();
+        builder.Services.AddScoped<AnaFornitoriService>();
+        builder.Services.AddScoped<TipoFornitoreService>();
+        builder.Services.AddScoped<AnaValuteService>();
+        builder.Services.AddScoped<MovTransazioniService>();
+        builder.Services.AddScoped<AnaTassiCambioService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();

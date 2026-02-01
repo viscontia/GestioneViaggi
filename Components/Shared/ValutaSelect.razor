@@ -1,0 +1,75 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AnaValuteService ValuteService
+
+@* 
+    COMPONENT: ValutaSelect
+    DESC: Dropdown per la selezione della valuta (ISO 4217).
+    AUTORE: Antigravity
+*@
+
+<MudSelect T="int" 
+           Label="@Label" 
+           Value="@SelectedValutaId" 
+           ValueChanged="OnValueChanged"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Variant="Variant.Outlined" 
+           AnchorOrigin="Origin.BottomCenter"
+           Dense="true"
+           Clearable="@Clearable"
+           Disabled="@Disabled">
+    @if (_valute != null)
+    {
+        @foreach (var valuta in _valute)
+        {
+            <MudSelectItem Value="@valuta.ValutaId">
+                @($"{valuta.ValutaCodiceIso} - {valuta.ValutaDescrizione}")
+            </MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public int SelectedValutaId { get; set; }
+    [Parameter] public EventCallback<int> SelectedValutaIdChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Valuta";
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
+    [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; } = false;
+
+    private IEnumerable<AnaValute> _valute = new List<AnaValute>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadValute();
+    }
+
+    private async Task LoadValute()
+    {
+        _valute = await ValuteService.GetAllValuteAsync();
+        
+        // Se non c'è una selezione e abbiamo dei dati, pre-selezioniamo EUR se presente
+        if (SelectedValutaId == 0 && _valute.Any())
+        {
+             // Logica opzionale: cerchiamo EUR o primo elemento
+             var eur = _valute.FirstOrDefault(v => v.ValutaCodiceIso == "EUR");
+             if (eur != null)
+             {
+                 // Nota: Non scateniamo l'evento qui per evitare loop o side effect, 
+                 // ma idealmente il chiamante gestisce il default. 
+                 // Tuttavia, per UX, spesso si vuole che il form nasca con "EUR".
+                 // Lasciamo al parent la responsabilità o implementiamo un AutoSelectDefault parameter?
+                 // Per ora lasciamo pulito.
+             }
+        }
+    }
+
+    private async Task OnValueChanged(int value)
+    {
+        SelectedValutaId = value;
+        await SelectedValutaIdChanged.InvokeAsync(value);
+    }
+}

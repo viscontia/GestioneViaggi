@@ -1,0 +1,320 @@
+@page "/ana-fornitori"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject AnaFornitoriService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@inject ITenantContext TenantContext
+@inject NavigationManager Navigation
+@attribute [Authorize]
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="AnaFornitore"
+                        Items="@_items"
+                        Title="Gestione Anagrafica Fornitori"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+             @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo Fornitore
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <TemplateColumn SortBy="@(x => x.Attivo)" HeaderStyle="text-align:center; width: 80px;" CellStyle="text-align:center;">
+                <HeaderTemplate>
+                    <MudText Typo="Typo.caption" Style="font-weight: 600; text-transform: uppercase;">STATO</MudText>
+                </HeaderTemplate>
+                <CellTemplate>
+                    @if (context.Item.Attivo)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Filled">ATTIVO</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Filled">INATTIVO</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            @if (_isSuperAdmin)
+            {
+                 @* Explicitly showing AziendaFk or related name would be better, but grid doesn't have JOIN for Azienda Name yet. 
+                    Adding ID for now. *@
+                 <PropertyColumn Property="x => x.AziendaFk" Title="Az.ID" />
+            }
+
+            <PropertyColumn Property="x => x.RagioneSociale" Title="Ragione Sociale" />
+            
+            <PropertyColumn Property="x => x.NomeBreve" Title="Nome Breve" />
+
+            <PropertyColumn Property="x => x.TipoFornitoreDescrizione" Title="Tipo" />
+
+            <TemplateColumn Title="Contatti">
+                <CellTemplate>
+                   <MudStack Spacing="0">
+                        @if (!string.IsNullOrWhiteSpace(context.Item.TelefonoNumero))
+                        {
+                            <MudText Typo="Typo.caption">
+                                <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="mr-1"/> 
+                                @(context.Item.TelefonoPrefisso) @context.Item.TelefonoNumero
+                            </MudText>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(context.Item.Email))
+                        {
+                             <MudText Typo="Typo.caption">
+                                <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Class="mr-1"/> 
+                                @context.Item.Email
+                            </MudText>
+                        }
+                   </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+
+             <TemplateColumn Title="Località">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.ComuneDescrizione))
+                    {
+                         <MudText Typo="Typo.caption">
+                                @context.Item.ComuneDescrizione (@context.Item.ProvinciaSigla)
+                        </MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <EnterpriseActionsColumn T="AnaFornitore"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<AnaFornitore> _items = new();
+    private AnaFornitore? _selectedItem;
+    private string _errorMessage = string.Empty;
+    
+    // SuperAdmin Logic
+    private int? _currentAziendaId;
+    private int _selectedAziendaId; // 0 = All
+    private bool _isSuperAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_fornitori");
+        
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null; 
+        }
+        else
+        {
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!aziendaId.HasValue)
+            {
+                _errorMessage = "Impossibile determinare l'azienda corrente";
+                return;
+            }
+            _currentAziendaId = aziendaId.Value;
+        }
+
+        await LoadDataAsync();
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) : _currentAziendaId;
+            
+            // NOTE: Service.GetAllAsync now returns everything if filter is null for SuperAdmin.
+            // If we want "All", pass null. If specific, pass ID.
+            
+            _items = (await Service.GetAllAsync(filterId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(AnaFornitore item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (item.RagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.NomeBreve?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.PartitaIva?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.TipoFornitoreDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        // Enforce company selection for SuperAdmin
+        if (_isSuperAdmin && _selectedAziendaId == 0)
+        {
+            Snackbar.Add("Selezionare una Azienda prima di inserire un nuovo Fornitore", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters<AnaFornitoriEditDialog>
+        {
+            { x => x.Entity, new AnaFornitore() },
+            { x => x.IsEditMode, false },
+            { x => x.AziendaFk, _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0) },
+            { x => x.IsSuperAdmin, _isSuperAdmin }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Nuovo Fornitore", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is AnaFornitore newItem)
+        {
+            try
+            {
+                var created = await Service.CreateAsync(newItem);
+                await LoadDataAsync();
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(AnaFornitore item)
+    {
+        var editEntity = new AnaFornitore 
+        { 
+            Id = item.Id,
+            AziendaFk = item.AziendaFk,
+            RagioneSociale = item.RagioneSociale,
+            NomeBreve = item.NomeBreve,
+            Indirizzo = item.Indirizzo,
+            ComuneFk = item.ComuneFk,
+            TelefonoPrefisso = item.TelefonoPrefisso,
+            TelefonoNumero = item.TelefonoNumero,
+            Email = item.Email,
+            Pec = item.Pec,
+            SitoWeb = item.SitoWeb,
+            CodiceSdi = item.CodiceSdi,
+            PartitaIva = item.PartitaIva,
+            CodiceFiscale = item.CodiceFiscale,
+            TipoFornitoreFk = item.TipoFornitoreFk,
+            Attivo = item.Attivo,
+            Priorita = item.Priorita,
+            Note = item.Note
+        };
+
+        var parameters = new DialogParameters<AnaFornitoriEditDialog>
+        {
+            { x => x.Entity, editEntity },
+            { x => x.IsEditMode, true },
+            { x => x.AziendaFk, item.AziendaFk },
+            { x => x.IsSuperAdmin, _isSuperAdmin }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Modifica Fornitore", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is AnaFornitore updatedItem)
+        {
+            try
+            {
+                var updated = await Service.UpdateAsync(updatedItem);
+                await LoadDataAsync(); 
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DeleteItem(AnaFornitore item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo fornitore? ({item.RagioneSociale})" }
+        };
+
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled)
+        {
+            try
+            {
+                var success = await Service.DeleteAsync(item.Id);
+                if (success)
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Impossibile eliminare", Severity.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

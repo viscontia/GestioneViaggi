@@ -29,6 +29,11 @@
             <MudText Typo="Typo.body1">Anagrafica Clienti</MudText>
         </MudNavLink>
 
+        <MudNavLink Icon="@Icons.Material.Filled.Store"
+                    OnClick="@(() => OpenTab("/ana-fornitori", "Anagrafica Fornitori", "store"))">
+            <MudText Typo="Typo.body1">Anagrafica Fornitori</MudText>
+        </MudNavLink>
+
         <MudNavLink Icon="@Icons.Material.Filled.FlightTakeoff"
                     OnClick="@(() => OpenTab("/ana-viaggi", "Anagrafica Viaggi e Date", "flight_takeoff"))">
             <MudText Typo="Typo.body1">Anagrafica Viaggi e Date</MudText>
@@ -121,9 +126,32 @@
             </MudNavLink>
         </MudNavGroup>
 
+        <!-- Tabelle Contabili -->
+        <MudNavGroup Title="Tabelle Contabili" Icon="@Icons.Material.Filled.Calculate" Expanded="false">
+             <MudNavLink Icon="@Icons.Material.Filled.Category"
+                        OnClick="@(() => OpenTab("/tabelle/tipi-fornitore", "Tipi Fornitore", "table"))">
+                <MudText Typo="Typo.body1">Tipi Fornitore</MudText>
+            </MudNavLink>
+             <MudNavLink Icon="@Icons.Material.Filled.AttachMoney"
+                        OnClick="@(() => OpenTab("/tabelle/valute", "Valute", "table"))">
+                <MudText Typo="Typo.body1">Valute</MudText>
+            </MudNavLink>
+             <MudNavLink Icon="@Icons.Material.Filled.Timeline"
+                        OnClick="@(() => OpenTab("/tabelle/tassi-cambio", "Storico Tassi", "table"))">
+                <MudText Typo="Typo.body1">Storico Tassi</MudText>
+            </MudNavLink>
+        </MudNavGroup>
+
     </MudNavGroup>
 
 
+
+    <MudNavGroup Title="Contabilità" Icon="@Icons.Material.Filled.AttachMoney" Expanded="false">
+        <MudNavLink Icon="@Icons.Material.Filled.ReceiptLong"
+                    OnClick="@(() => OpenTab("/movimenti", "Movimenti", "receipt_long"))">
+            <MudText Typo="Typo.body1">Movimenti</MudText>
+        </MudNavLink>
+    </MudNavGroup>
 
     <MudNavGroup Title="Stampe" Icon="@Icons.Material.Filled.Print" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Description"

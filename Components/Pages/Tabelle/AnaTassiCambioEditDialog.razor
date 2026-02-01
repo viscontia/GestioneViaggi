@@ -1,0 +1,189 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using Microsoft.JSInterop
+@inject AnaTassiCambioService TassiService
+@inject AnaValuteService ValuteService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm Model="@Tasso" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
+             <MudGrid>
+                <!-- Fonte -->
+                <MudItem xs="12">
+                    <MudTextField Label="Fonte" 
+                                  Value="@Tasso.TassoFonte"
+                                  ValueChanged="@((string s) => Tasso.TassoFonte = s?.ToUpper() ?? string.Empty)"
+                                  @ref="_firstField"
+                                  Variant="Variant.Outlined" 
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Source"
+                                  Class="uppercase-input"
+                                  tabindex="1" />
+                </MudItem>
+
+                <!-- Valute -->
+                <MudItem xs="12" sm="6">
+                     <MudSelect T="int" Label="Da Valuta" 
+                                @bind-Value="Tasso.TassoValutaDaId"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Filled.CurrencyExchange"
+                                Required="true" RequiredError="Valuta obbligatoria"
+                                Variant="Variant.Outlined"
+                                AnchorOrigin="Origin.BottomCenter"
+                                tabindex="2">
+                        @foreach (var valuta in _valute)
+                        {
+                            <MudSelectItem Value="@valuta.ValutaId">@valuta.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                     <MudSelect T="int" Label="A Valuta" 
+                                @bind-Value="Tasso.TassoValutaAId"
+                                Adornment="Adornment.Start"
+                                AdornmentIcon="@Icons.Material.Filled.CurrencyExchange"
+                                Required="true" RequiredError="Valuta obbligatoria"
+                                Variant="Variant.Outlined"
+                                AnchorOrigin="Origin.BottomCenter"
+                                tabindex="3">
+                        @foreach (var valuta in _valute)
+                        {
+                            <MudSelectItem Value="@valuta.ValutaId">@valuta.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Data e Valore -->
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Validità" 
+                                   @bind-Date="_dataValidita" 
+                                   Variant="Variant.Outlined"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))"
+                                   DateFormat="dd/MM/yyyy"
+                                   Required="true"
+                                   tabindex="4" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                     <MudNumericField Label="Tasso di Cambio" 
+                                      @bind-Value="Tasso.TassoValore" 
+                                      Variant="Variant.Outlined" 
+                                      Min="0" 
+                                      Format="N6"
+                                      Required="true"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Numbers"
+                                      tabindex="5" />
+                </MudItem>
+
+                <!-- Note -->
+                <MudItem xs="12">
+                    <MudTextField Label="Note" 
+                                  Value="@Tasso.TassoNote"
+                                  ValueChanged="@((string s) => Tasso.TassoNote = s?.ToUpper() ?? string.Empty)"
+                                  Variant="Variant.Outlined"
+                                  Lines="3"
+                                  Class="uppercase-input"
+                                  tabindex="6" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AnaTassiCambio Tasso { get; set; } = new();
+
+    private MudForm _form = default!;
+    private MudTextField<string>? _firstField;
+    private IEnumerable<AnaValute> _valute = new List<AnaValute>();
+    private DateTime? _dataValidita;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _valute = await ValuteService.GetAllValuteAsync();
+        
+        if (Tasso.TassoId == 0)
+        {
+            _dataValidita = DateTime.Today;
+        }
+        else
+        {
+            _dataValidita = Tasso.TassoDataValidita;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+                
+                if (_firstField != null)
+                {
+                    await Task.Delay(300);
+                    await _firstField.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+
+        if (Tasso.TassoValutaDaId == Tasso.TassoValutaAId)
+        {
+            Snackbar.Add("La valuta di origine e destinazione non possono coincidere.", Severity.Warning);
+            return;
+        }
+
+        if (_dataValidita.HasValue)
+        {
+            Tasso.TassoDataValidita = _dataValidita.Value;
+        }
+
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (Tasso.TassoId == 0)
+                {
+                    await TassiService.CreateAsync(Tasso);
+                    Snackbar.Add("Tasso creato con successo", Severity.Success);
+                }
+                else
+                {
+                    await TassiService.UpdateAsync(Tasso);
+                    Snackbar.Add("Tasso aggiornato con successo", Severity.Success);
+                }
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

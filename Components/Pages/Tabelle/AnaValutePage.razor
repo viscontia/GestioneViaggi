@@ -1,0 +1,143 @@
+@page "/tabelle/valute"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@inject AnaValuteService ValuteService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="AnaValute"
+                        Title="Gestione Valute"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add" 
+                       OnClick="@OpenCreateDialog">
+                Nuova Valuta
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.ValutaCodiceIso" Title="Codice ISO" />
+            <PropertyColumn Property="x => x.ValutaDescrizione" Title="Descrizione" />
+            <PropertyColumn Property="x => x.ValutaSimbolo" Title="Simbolo" />
+             <PropertyColumn Property="x => x.ValutaAttiva" Title="Attiva">
+                 <CellTemplate>
+                    @if (context.Item.ValutaAttiva)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.ValutaIsBase" Title="Base">
+                 <CellTemplate>
+                    @if (context.Item.ValutaIsBase)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <EnterpriseActionsColumn T="AnaValute" OnEdit="@OpenEditDialog" OnDelete="@DeleteValuta" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaValute> _items = new List<AnaValute>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await ValuteService.GetAllValuteAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaValuteEditDialog>("Nuova Valuta", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaValute item)
+    {
+        var parameters = new DialogParameters { ["Valuta"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaValuteEditDialog>("Modifica Valuta", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteValuta(AnaValute item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Valuta", 
+            $"Sei sicuro di voler eliminare la valuta {item.ValutaCodiceIso}?", 
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await ValuteService.DeleteAsync(item.ValutaId);
+                Snackbar.Add("Valuta eliminata", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+        }
+
+
+    private bool SearchFunc(AnaValute valuta, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (valuta.ValutaCodiceIso?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (valuta.ValutaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (valuta.ValutaSimbolo?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+}
+}

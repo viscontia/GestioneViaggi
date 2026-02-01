@@ -1,0 +1,66 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@inject AnaFornitoriService FornitoriService
+@inject ITenantContext TenantContext
+
+@* 
+    COMPONENT: FornitoreSelect
+    DESC: Dropdown per la selezione di un Fornitore.
+*@
+
+<MudSelect T="int" 
+           Label="@Label" 
+           Value="@SelectedFornitoreId" 
+           ValueChanged="OnValueChanged"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Variant="Variant.Outlined" 
+           AnchorOrigin="Origin.BottomCenter"
+           Dense="true"
+           Clearable="@Clearable"
+           Disabled="@Disabled">
+    @if (_fornitori != null)
+    {
+        @foreach (var f in _fornitori)
+        {
+            <MudSelectItem Value="@f.Id">
+                @f.RagioneSociale
+            </MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public int SelectedFornitoreId { get; set; }
+    [Parameter] public EventCallback<int> SelectedFornitoreIdChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Fornitore";
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
+    [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; } = false;
+
+    private IEnumerable<AnaFornitore> _fornitori = new List<AnaFornitore>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+        if (aziendaId.HasValue && aziendaId.Value > 0)
+        {
+            _fornitori = await FornitoriService.GetAllAsync(aziendaId.Value);
+        }
+    }
+
+    private async Task OnValueChanged(int value)
+    {
+        SelectedFornitoreId = value;
+        await SelectedFornitoreIdChanged.InvokeAsync(value);
+    }
+}

@@ -1,0 +1,127 @@
+@page "/tabelle/tassi-cambio"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@inject AnaTassiCambioService TassiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="AnaTassiCambio"
+                        Title="Storico Tassi di Cambio"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add" 
+                       OnClick="@OpenCreateDialog">
+                Nuovo Tasso
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.TassoDataValidita" Title="Data Validità" Format="dd/MM/yyyy" Sortable="true" />
+            <PropertyColumn Property="x => x.ValutaDaCodice" Title="Da Valuta" />
+            <PropertyColumn Property="x => x.ValutaACodice" Title="A Valuta" />
+            <PropertyColumn Property="x => x.TassoValore" Title="Tasso" Format="N6" />
+            <PropertyColumn Property="x => x.TassoFonte" Title="Fonte" />
+            <PropertyColumn Property="x => x.TassoNote" Title="Note" />
+            
+            <EnterpriseActionsColumn T="AnaTassiCambio" OnEdit="@OpenEditDialog" OnDelete="@DeleteTasso" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaTassiCambio> _items = new List<AnaTassiCambio>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await TassiService.GetAllEnrichedAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaTassiCambioEditDialog>("Nuovo Tasso", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaTassiCambio item)
+    {
+        var parameters = new DialogParameters { ["Tasso"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaTassiCambioEditDialog>("Modifica Tasso", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteTasso(AnaTassiCambio item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Tasso", 
+            $"Sei sicuro di voler eliminare il tasso del {item.TassoDataValidita:dd/MM/yyyy}?", 
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await TassiService.DeleteAsync(item.TassoId);
+                Snackbar.Add("Tasso eliminato", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool SearchFunc(AnaTassiCambio item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (item.ValutaDaCodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        
+        if (item.ValutaACodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (item.TassoFonte?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        
+        if (item.TassoNote?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+}

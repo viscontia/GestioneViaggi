@@ -1,0 +1,158 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@inject MovTransazioniService TransazioniService
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+
+<MudDialog>
+    <DialogContent>
+        <MudForm Model="@Transazione" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
+            <MudGrid>
+                <!-- RIGA 1: Data e Tipo -->
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Transazione" 
+                                   @bind-Date="_dataTransazione" 
+                                   Required="true" 
+                                   RequiredError="Data obbligatoria"
+                                   Variant="Variant.Outlined" 
+                                   AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudSelect T="string" Label="Tipo Movimento" @bind-Value="Transazione.TransazioneTipoMovimento" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@("USCITA")">Uscita (Spesa)</MudSelectItem>
+                        <MudSelectItem Value="@("ENTRATA")">Entrata (Incasso)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <!-- RIGA 2: Fornitore e Causale -->
+                <MudItem xs="12" sm="6">
+                    <FornitoreSelect @bind-SelectedFornitoreId="Transazione.TransazioneFornitoreId" Required="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Causale" 
+                                  @bind-Value="Transazione.TransazioneCausale" 
+                                  Required="true" 
+                                  RequiredError="Causale obbligatoria"
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <!-- RIGA 3: Importo e Valuta -->
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="Transazione.TransazioneImporto" 
+                                     Label="Importo" 
+                                     Format="N2" 
+                                     Variant="Variant.Outlined" 
+                                     Required="true" 
+                                     Adornment="Adornment.Start" 
+                                     AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                </MudItem>
+                <MudItem xs="6">
+                    <ValutaSelect @bind-SelectedValutaId="Transazione.TransazioneValutaId" Required="true" />
+                </MudItem>
+
+                <!-- RIGA 4: Stato e Documento -->
+                 <MudItem xs="6">
+                    <MudSelect T="string" Label="Stato Pagamento" @bind-Value="Transazione.TransazioneStato" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
+                        <MudSelectItem Value="@("PAGATO")">Pagato</MudSelectItem>
+                        <MudSelectItem Value="@("PARZIALMENTE_PAGATO")">Parzialmente Pagato</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField Label="N. Documento / Fattura" 
+                                  @bind-Value="Transazione.TransazioneNumeroDocumento" 
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                <!-- RIGA 5: Note -->
+                <MudItem xs="12">
+                    <MudTextField Label="Note" 
+                                  @bind-Value="Transazione.TransazioneNote" 
+                                  Variant="Variant.Outlined" 
+                                  Lines="2" />
+                </MudItem>
+
+            </MudGrid>
+            
+            @if(Transazione.TransazioneId > 0 && Transazione.TransazioneImportoEur.HasValue)
+            {
+                 <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
+                     Controvalore calcolato: <b>@Transazione.TransazioneImportoEur?.ToString("N2") EUR</b>
+                 </MudAlert>
+            }
+
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public MovTransazioni Transazione { get; set; } = new();
+
+    private MudForm _form = default!;
+    private DateTime? _dataTransazione;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Init dates from model
+        if (Transazione.TransazioneId == 0)
+        {
+            _dataTransazione = DateTime.Today;
+            Transazione.TransazioneStato = "DA_PAGARE";
+            Transazione.TransazioneTipoMovimento = "USCITA";
+            // Pre-select azienda from context
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (aziendaId.HasValue)
+            {
+                Transazione.TransazioneAziendaId = aziendaId.Value;
+            }
+        }
+        else
+        {
+            _dataTransazione = Transazione.TransazioneData;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+
+        if (_form.IsValid)
+        {
+            // Sync UI dates back to model
+            if (_dataTransazione.HasValue) 
+                Transazione.TransazioneData = _dataTransazione.Value;
+
+            try
+            {
+                if (Transazione.TransazioneId == 0)
+                {
+                    // Ensure created properties
+                    Transazione.CreatedBy = "System"; // TODO: Get Real User
+                    await TransazioniService.CreateAsync(Transazione);
+                    Snackbar.Add("Transazione creata con successo", Severity.Success);
+                }
+                else
+                {
+                    // Ensure updated properties
+                    Transazione.UpdatedBy = "System";
+                    await TransazioniService.UpdateAsync(Transazione);
+                    Snackbar.Add("Transazione aggiornata con successo", Severity.Success);
+                }
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}
