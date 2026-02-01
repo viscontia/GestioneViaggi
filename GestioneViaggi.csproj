@@ -72,6 +72,7 @@
         <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
         <PackageReference Include="HarfBuzzSharp" Version="7.3.0.2" />
         <PackageReference Include="HarfBuzzSharp.NativeAssets.MacCatalyst" Version="7.3.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
         <PackageReference Include="SkiaSharp" Version="2.88.8" />
         <PackageReference Include="SkiaSharp.HarfBuzz" Version="2.88.8" />
         <PackageReference Include="SkiaSharp.NativeAssets.MacCatalyst" Version="2.88.8" />

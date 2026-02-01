@@ -75,7 +75,15 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     @TassoNote,
                     NOW(),
                     @CreatedBy
-                ) RETURNING tasso_id";
+                ) 
+                ON CONFLICT (tasso_valuta_da_fk, tasso_valuta_a_fk, tasso_data_validita)
+                DO UPDATE SET
+                    tasso_valore = EXCLUDED.tasso_valore,
+                    tasso_fonte = EXCLUDED.tasso_fonte,
+                    tasso_note = EXCLUDED.tasso_note,
+                    updated_at = NOW(),
+                    updated_by = EXCLUDED.created_by
+                RETURNING tasso_id";
 
             entity.TassoId = await conn.ExecuteScalarAsync<int>(sql, entity);
             return entity;

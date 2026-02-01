@@ -2,7 +2,9 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Services.Shared
 @inject AnaTassiCambioService TassiService
+@inject IExchangeRateService ExchangeRateService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -21,6 +23,13 @@
                        StartIcon="@Icons.Material.Filled.Add" 
                        OnClick="@OpenCreateDialog">
                 Nuovo Tasso
+            </MudButton>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Secondary" 
+                       StartIcon="@Icons.Material.Filled.CloudSync" 
+                       OnClick="@UpdateRatesFromInternet"
+                       Class="ml-2">
+                Aggiorna Tassi
             </MudButton>
         </ToolBarActions>
         <Columns>
@@ -55,6 +64,34 @@
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task UpdateRatesFromInternet()
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Aggiornamento Tassi", 
+            "Vuoi aggiornare i tassi di cambio da Internet (Frankfurter API)?\nVerranno inseriti i tassi validi per la data odierna.", 
+            yesText: "Aggiorna", cancelText: "Annulla");
+
+        if (confirm == true)
+        {
+            _loading = true;
+            StateHasChanged(); // Force UI update to show loading state
+            try
+            {
+                await ExchangeRateService.UpdateAllRatesAsync();
+                Snackbar.Add("Tassi aggiornati con successo.", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore aggiornamento: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                _loading = false; // LoadDataAsync sets it, but good to ensure
+            }
         }
     }
 

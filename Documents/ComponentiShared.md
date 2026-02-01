@@ -258,3 +258,19 @@ Restituisce la lista degli anni (in formato intero, ordinati decrescenti) in cui
 **Return**: `TABLE`
 - `anno`: Anno del viaggio (INTEGER).
 *   **File Script**: `SqlScripts/32_Create_GetExistTravelCustomerByYear.sql`
+
+---
+
+## Servizi Shared (Backend Logic)
+
+### ExchangeRateService
+Servizio per l'aggiornamento automatico dei tassi di cambio.
+*   **Interfaccia**: `IExchangeRateService`
+*   **Implementazione**: `Services/Shared/ExchangeRateService.cs`
+*   **Fonte Dati**: API Pubblica Frankfurter (`https://api.frankfurter.app`) basata su dati BCE.
+*   **Funzionalità**:
+    *   `CheckInternetConnectionAsync()`: Verifica la connettività internet (ping su endpoint API).
+    *   `UpdateAllRatesAsync()`: Aggiorna i tassi di cambio per tutte le valute attive nel sistema rispetto all'EUR (Data odierna).
+    *   `UpdateRateAsync(string isoCode)`: Aggiorna il tasso di cambio per una specifica valuta (es. "USD").
+*   **Dipendenze**: `HttpClient`, `AnaValuteService`, `AnaTassiCambioService`.
+

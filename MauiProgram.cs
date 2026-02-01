@@ -3,6 +3,7 @@ using SkiaSharp.Views.Maui.Controls.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
+using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
 using GestioneViaggi.Components;
 using GestioneViaggi.Components.Shared;
@@ -175,6 +176,10 @@ public static class MauiProgram
         // Printing Services
         builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
         builder.Services.AddScoped<IRoomingListPrintService, RoomingListPrintService>();
+
+        // Exchange Rate Service
+        builder.Services.AddHttpClient();
+        builder.Services.AddScoped<Services.Shared.IExchangeRateService, Services.Shared.ExchangeRateService>();
 
         return builder.Build();
     }
