@@ -804,17 +804,15 @@ textarea {
 }
 
 /* ========================================== */
-/* 14. DATAGRID RESIZE FIX (MAUI/WEBVIEW)    */
-/* ========================================== */
-/* DEBUG MODE - RED HANDLES */
+/* FIX RESIZE (MAUI/WEBVIEW) */
 .mud-table-resizable-stepper {
-    width: 20px !important; /* Molto largo per debug */
-    background-color: rgba(255, 0, 0, 0.2) !important; /* RED DEBUG VISIBILITY */
-    z-index: 1000 !important;
+    width: 10px !important;
+    background-color: transparent !important;
+    z-index: 100 !important;
     touch-action: none !important;
     -webkit-user-drag: none !important;
     cursor: col-resize !important;
-    right: -10px !important; /* Centrato */
+    right: -5px !important;
     height: 100% !important;
     position: absolute !important;
 }
