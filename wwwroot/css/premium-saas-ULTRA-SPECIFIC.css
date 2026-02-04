@@ -800,6 +800,32 @@ textarea {
 .mud-navmenu *,
 .mud-drawer .mud-navmenu *,
 .mud-drawer-content .mud-navmenu * {
+    font-size: 15px !important;
+}
+
+/* ========================================== */
+/* 14. DATAGRID RESIZE FIX (MAUI/WEBVIEW)    */
+/* ========================================== */
+/* DEBUG MODE - RED HANDLES */
+.mud-table-resizable-stepper {
+    width: 20px !important; /* Molto largo per debug */
+    background-color: rgba(255, 0, 0, 0.2) !important; /* RED DEBUG VISIBILITY */
+    z-index: 1000 !important;
+    touch-action: none !important;
+    -webkit-user-drag: none !important;
+    cursor: col-resize !important;
+    right: -10px !important; /* Centrato */
+    height: 100% !important;
+    position: absolute !important;
+}
+
+/* Evita che il testo della testata blocchi l'evento */
+.mud-table-column-resizing .mud-table-cell {
+    user-select: none;
+}
+
+.mud-drawer .mud-navmenu *,
+.mud-drawer-content .mud-navmenu * {
     font-size: 16px !important;
 }
 

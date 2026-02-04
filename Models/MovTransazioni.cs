@@ -92,6 +92,9 @@ namespace GestioneViaggi.Models
         [NotMapped]
         public string? ViaggioDescrizione { get; set; }
 
+        [NotMapped]
+        public DateTime? DataViaggioInizio { get; set; }
+
         /// <summary>
         /// Restituisce l'importo formattato con simbolo valuta (se disponibile)
         /// </summary>

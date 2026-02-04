@@ -1,5 +1,6 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using Microsoft.Extensions.Logging
 @inject AnaViaggiService ViaggioService
 @inject ILogger<ViaggioSelect> Logger
 
@@ -45,7 +46,7 @@
         // Imposta il viaggio selezionato se presente
         if (SelectedViaggioId.HasValue && SelectedViaggioId.Value > 0)
         {
-            _selectedViaggio = _allViaggi.FirstOrDefault(v => v.ViaggioId == SelectedViaggioId.Value);
+            _selectedViaggio = _allViaggi.FirstOrDefault(v => v.Id == SelectedViaggioId.Value);
         }
     }
 
@@ -94,6 +95,6 @@
     private async Task OnValueChanged(AnaViaggi? viaggio)
     {
         _selectedViaggio = viaggio;
-        await SelectedViaggioIdChanged.InvokeAsync(viaggio?.ViaggioId);
+        await SelectedViaggioIdChanged.InvokeAsync(viaggio?.Id);
     }
 }

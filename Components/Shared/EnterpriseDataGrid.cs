@@ -29,6 +29,10 @@ namespace GestioneViaggi.Components.Shared
             Class = "enterprise-grid";
             SelectOnRowClick = true;
 
+            // Column resizing
+            ColumnResizeMode = MudBlazor.ResizeMode.Container;
+            HorizontalScrollbar = true;
+
             // Toolbar
             ToolBarContent = BuildToolbar;
 

@@ -12,76 +12,136 @@
 <AppBreadcrumbs />
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <EnterpriseDataGrid T="MovTransazioni"
-                        Title="Gestione Movimenti"
-                        Items="@_items"
-                        SearchFunction="@Search"
-                        @bind-SelectedItem="_selectedItem">
-        
-        <ToolBarActions>
-            @if (_isSuperAdmin)
-            {
-                <div style="min-width: 250px;" class="mr-4">
-                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
-                        ValueChanged="@OnAziendaFilterChanged" />
-                </div>
-            }
+    <div style="width: 100%; overflow-x: auto;">
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@OpenCreateDialog">
-                Nuova Transazione
-            </MudButton>
-        </ToolBarActions>
 
-        <Columns>
-            @if (_isSuperAdmin)
-            {
-                <PropertyColumn Property="x => x.AziendaCodice" Sortable="true"
-                                CellStyle="width: 55px; max-width: 55px; white-space: nowrap; text-align: center;"
-                                HeaderStyle="width: 55px; max-width: 55px; text-align: center;">
-                    <HeaderTemplate>
-                        <div style="line-height: 1.1;">Cod.<br/>Az.</div>
-                    </HeaderTemplate>
-                </PropertyColumn>
-            }
-
-            <PropertyColumn Property="x => x.TransazioneData" Title="Data" Format="dd/MM/yyyy" Sortable="true" />
+        <EnterpriseDataGrid T="MovTransazioni"
+                            Title="Gestione Movimenti"
+                            Items="@_items"
+                            SearchFunction="@Search"
+                            ColumnResizeMode="ResizeMode.Column"
+                            Breakpoint="Breakpoint.None"
+                            FixedHeader="false"
+                            @bind-SelectedItem="_selectedItem">
             
-            <PropertyColumn Property="x => x.TransazioneTipoMovimento" Title="Tipo">
-                <CellTemplate>
-                    @if (context.Item.TransazioneTipoMovimento == "ENTRATA")
-                    {
-                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Entrata</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip Color="Color.Error" Size="Size.Small" Variant="Variant.Text">Uscita</MudChip>
-                    }
-                </CellTemplate>
-            </PropertyColumn>
+            <ToolBarActions>
+                @if (_isSuperAdmin)
+                {
+                    <div style="min-width: 250px;" class="mr-4">
+                        <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                            ValueChanged="@OnAziendaFilterChanged" />
+                    </div>
+                }
 
-            <PropertyColumn Property="x => x.FornitoreRagioneSociale" Title="Fornitore" />
-            <PropertyColumn Property="x => x.TransazioneCausale" Title="Causale" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog">
+                    Nuova Transazione
+                </MudButton>
+            </ToolBarActions>
 
-            <PropertyColumn Property="x => x.TransazioneImporto" Title="Importo Orig." CellStyle="font-weight:bold;">
-                <CellTemplate>
-                    @context.Item.ImportoFormattato
-                </CellTemplate>
-            </PropertyColumn>
+            <Columns>
+                @if (_isSuperAdmin)
+                {
+                    <PropertyColumn Property="x => x.AziendaCodice" Sortable="true"
+                                    CellStyle="white-space: nowrap; text-align: center; padding: 8px 6px;"
+                                    HeaderStyle="text-align: center; padding: 8px 6px; width: 80px; min-width: 60px;">
+                        <HeaderTemplate>
+                            <div style="line-height: 1.1;">Cod.<br/>Az.</div>
+                        </HeaderTemplate>
+                    </PropertyColumn>
+                }
 
-            <PropertyColumn Property="x => x.TransazioneImportoEur" Title="Importo (EUR)" Format="N2" />
+                <PropertyColumn Property="x => x.TransazioneData" Title="Data" Format="dd/MM/yyyy" Sortable="true"
+                                CellStyle="padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 120px; min-width: 100px;" />
 
-             <PropertyColumn Property="x => x.TransazioneStato" Title="Stato">
-                <CellTemplate>
-                    <StatusBadge Status="@context.Item.TransazioneStato" />
-                </CellTemplate>
-            </PropertyColumn>
+                <PropertyColumn Property="x => x.TransazioneTipoMovimento" Title="Tipo"
+                                CellStyle="padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;">
+                    <CellTemplate>
+                        <div style="width: 100%; pointer-events: none;">
+                            @if (context.Item.TransazioneTipoMovimento == "ENTRATA")
+                            {
+                                <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Entrata</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip Color="Color.Error" Size="Size.Small" Variant="Variant.Text">Uscita</MudChip>
+                            }
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
 
-            <EnterpriseActionsColumn T="MovTransazioni" OnEdit="@OpenEditDialog" OnDelete="@DeleteTransazione" />
-        </Columns>
-    </EnterpriseDataGrid>
+                <PropertyColumn Property="x => x.ViaggioDescrizione" Title="Viaggio" Sortable="true"
+                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
+                    <CellTemplate>
+                        <div title="@context.Item.ViaggioDescrizione" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
+                            @(context.Item.ViaggioDescrizione ?? "-")
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.DataViaggioInizio" Title="Data Viaggio" Format="dd/MM/yyyy" Sortable="true"
+                                CellStyle="padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 120px; min-width: 100px;">
+                    <CellTemplate>
+                        <div style="pointer-events: none;">
+                            @(context.Item.DataViaggioInizio.HasValue ? context.Item.DataViaggioInizio.Value.ToString("dd/MM/yyyy") : "-")
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.FornitoreRagioneSociale" Title="Fornitore"
+                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
+                    <CellTemplate>
+                        <div title="@context.Item.FornitoreRagioneSociale" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
+                            @context.Item.FornitoreRagioneSociale
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.TransazioneCausale" Title="Causale"
+                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
+                    <CellTemplate>
+                        <div title="@context.Item.TransazioneCausale" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
+                            @context.Item.TransazioneCausale
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.TransazioneImporto" Title="Importo Orig."
+                                CellStyle="font-weight:bold; padding: 8px 6px; text-align: right;"
+                                HeaderStyle="padding: 8px 6px; text-align: right; width: 120px; min-width: 100px;">
+                    <CellTemplate>
+                        <div style="pointer-events: none;">
+                            @context.Item.ImportoFormattato
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.TransazioneImportoEur" Title="Importo (EUR)" Format="N2"
+                                CellStyle="padding: 8px 6px; text-align: right;"
+                                HeaderStyle="padding: 8px 6px; text-align: right; width: 120px; min-width: 100px;" />
+
+                 <PropertyColumn Property="x => x.TransazioneStato" Title="Stato"
+                                  CellStyle="padding: 8px 6px;"
+                                  HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;">
+                    <CellTemplate>
+                        <div style="pointer-events: none;">
+                            <StatusBadge Status="@context.Item.TransazioneStato" />
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <EnterpriseActionsColumn T="MovTransazioni" OnEdit="@OpenEditDialog" OnDelete="@DeleteTransazione" />
+            </Columns>
+        </EnterpriseDataGrid>
+    </div>
 </MudContainer>
 
 @code {
@@ -221,13 +281,14 @@
     private Func<MovTransazioni, string, bool> Search => (t, searchString) =>
     {
         if (string.IsNullOrWhiteSpace(searchString)) return true;
-        
-        // Cerca in Fornitore, Causale, Tipo
+
+        // Cerca in Fornitore, Causale, Tipo, Viaggio
         if (t.FornitoreRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneCausale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneTipoMovimento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneNumeroDocumento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        
+        if (t.ViaggioDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+
         return false;
     };
 }

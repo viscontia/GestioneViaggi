@@ -5,32 +5,37 @@
 @inject AnaFornitoriService FornitoriService
 @inject ITenantContext TenantContext
 
-@* 
+@*
     COMPONENT: FornitoreSelect
-    DESC: Dropdown per la selezione di un Fornitore.
+    DESC: Autocomplete per la selezione di un Fornitore con ricerca testuale.
 *@
 
-<MudSelect T="int" 
-           Label="@Label" 
-           Value="@SelectedFornitoreId" 
-           ValueChanged="OnValueChanged"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Variant="Variant.Outlined" 
-           AnchorOrigin="Origin.BottomCenter"
-           Dense="true"
-           Clearable="@Clearable"
-           Disabled="@Disabled">
-    @if (_fornitori != null)
-    {
-        @foreach (var f in _fornitori)
+<MudAutocomplete T="AnaFornitore"
+                 Label="@Label"
+                 Value="@_selectedFornitore"
+                 ValueChanged="@OnFornitoreChanged"
+                 SearchFunc="@SearchFornitori"
+                 ToStringFunc="@(f => f?.RagioneSociale?.ToUpperInvariant())"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Variant="Variant.Outlined"
+                 Dense="true"
+                 Clearable="@Clearable"
+                 Disabled="@Disabled"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="false"
+                 CoerceValue="false"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 Class="uppercase-input">
+    <ItemTemplate Context="fornitore">
+        <MudText Typo="Typo.body2">@fornitore.RagioneSociale</MudText>
+        @if (!string.IsNullOrEmpty(fornitore.NomeBreve))
         {
-            <MudSelectItem Value="@f.Id">
-                @f.RagioneSociale
-            </MudSelectItem>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@fornitore.NomeBreve</MudText>
         }
-    }
-</MudSelect>
+    </ItemTemplate>
+</MudAutocomplete>
 
 @code {
     [Parameter] public int SelectedFornitoreId { get; set; }
@@ -42,25 +47,90 @@
     [Parameter] public bool Clearable { get; set; } = false;
     [Parameter] public bool Disabled { get; set; } = false;
 
-    private IEnumerable<AnaFornitore> _fornitori = new List<AnaFornitore>();
+    /// <summary>
+    /// AziendaId esplicito per filtrare i fornitori.
+    /// Se specificato, ha precedenza sul TenantContext.
+    /// Utile per SuperAdmin che deve selezionare l'azienda prima di vedere i fornitori.
+    /// </summary>
+    [Parameter] public int? AziendaId { get; set; }
+
+    private List<AnaFornitore> _fornitori = new List<AnaFornitore>();
+    private AnaFornitore? _selectedFornitore;
+    private int? _lastLoadedAziendaId;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
     }
 
-    private async Task LoadData()
+    protected override async Task OnParametersSetAsync()
     {
-        var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
-        if (aziendaId.HasValue && aziendaId.Value > 0)
+        // Ricarica i fornitori se l'AziendaId è cambiata
+        if (AziendaId != _lastLoadedAziendaId)
         {
-            _fornitori = await FornitoriService.GetAllAsync(aziendaId.Value);
+            await LoadData();
+        }
+
+        // Aggiorna il fornitore selezionato quando cambia l'ID
+        UpdateSelectedFornitore();
+    }
+
+    private void UpdateSelectedFornitore()
+    {
+        if (_fornitori == null || _fornitori.Count == 0) return;
+
+        if (SelectedFornitoreId > 0)
+        {
+            if (_selectedFornitore?.Id != SelectedFornitoreId)
+            {
+                _selectedFornitore = _fornitori.FirstOrDefault(f => f.Id == SelectedFornitoreId);
+            }
+        }
+        else
+        {
+            _selectedFornitore = null;
         }
     }
 
-    private async Task OnValueChanged(int value)
+    private async Task LoadData()
     {
-        SelectedFornitoreId = value;
-        await SelectedFornitoreIdChanged.InvokeAsync(value);
+        // Usa AziendaId parametro se specificato, altrimenti TenantContext
+        int? aziendaId = AziendaId ?? await TenantContext.GetCurrentAziendaIdAsync();
+
+        if (aziendaId.HasValue && aziendaId.Value > 0)
+        {
+            var result = await FornitoriService.GetAllAsync(aziendaId.Value);
+            _fornitori = result.ToList();
+            _lastLoadedAziendaId = aziendaId;
+            UpdateSelectedFornitore();
+        }
+        else
+        {
+            _fornitori = new List<AnaFornitore>();
+            _selectedFornitore = null;
+            _lastLoadedAziendaId = null;
+        }
+    }
+
+    private async Task OnFornitoreChanged(AnaFornitore? fornitore)
+    {
+        _selectedFornitore = fornitore;
+        await SelectedFornitoreIdChanged.InvokeAsync(fornitore?.Id ?? 0);
+    }
+
+    private async Task<IEnumerable<AnaFornitore>> SearchFornitori(string value, CancellationToken token)
+    {
+        if (_fornitori == null || _fornitori.Count == 0)
+            return Enumerable.Empty<AnaFornitore>();
+
+        // Se non c'è testo di ricerca, mostra tutti
+        if (string.IsNullOrWhiteSpace(value))
+            return _fornitori;
+
+        // Cerca in RagioneSociale e NomeBreve
+        return _fornitori.Where(f =>
+            (f.RagioneSociale?.Contains(value, StringComparison.InvariantCultureIgnoreCase) == true) ||
+            (f.NomeBreve?.Contains(value, StringComparison.InvariantCultureIgnoreCase) == true)
+        );
     }
 }

@@ -248,7 +248,7 @@
 
     private void HandleCausaleChanged(string value)
     {
-        Transazione.TransazioneCausale = value?.ToUpper();
+        Transazione.TransazioneCausale = value?.ToUpper() ?? string.Empty;
         StateHasChanged();
     }
 

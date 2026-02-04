@@ -111,6 +111,26 @@ Componente specifico per la selezione dell'azienda (`Components/Shared/AziendaSe
     *   Supporto opzione "Tutte le Aziende" (Value=0) utile per SuperAdmin.
 *   **Parametri**: `ShowAllOption`, `Required`.
 
+### FornitoreSelect
+Componente autocomplete per la selezione di fornitori (`Components/Shared/FornitoreSelect.razor`).
+*   **Funzionalità**:
+    *   Carica i fornitori da `ana_fornitori` filtrati per azienda.
+    *   Ricerca testuale in tempo reale su Ragione Sociale e Nome Breve.
+    *   Supporta parametro `AziendaId` esplicito che ha precedenza sul `TenantContext`.
+    *   Ricarica automaticamente i fornitori quando cambia `AziendaId`.
+    *   Visualizza Ragione Sociale e Nome Breve (se presente) nel dropdown.
+*   **Parametri Chiave**:
+    *   `AziendaId` (int?, opzionale): ID azienda per filtrare i fornitori. Se non specificato, usa `TenantContext`.
+    *   `SelectedFornitoreId` (int): ID fornitore selezionato (binding).
+    *   `Required`, `Clearable`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <FornitoreSelect @bind-SelectedFornitoreId="@Entity.FornitoreId"
+                     AziendaId="@_currentAziendaId"
+                     Required="true" />
+    ```
+*   **Nota SuperAdmin**: Per il ruolo SuperAdmin è necessario passare esplicitamente `AziendaId` dopo la selezione dell'azienda, altrimenti il combobox rimane vuoto.
+
 ### Elenco Completo Componenti Select
 
 Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) disponibili in `Components/Shared`:
@@ -126,6 +146,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **CountryRegion** | `CountryRegionSelect` | `eba_countries_regions` | Name | Selezione regione mondiale (es. Europe, Asia). |
 | **CountrySubRegion** | `CountrySubRegionSelect` | `eba_countries_sub_regions` | Name | Selezione sotto-regione (es. Southern Europe). |
 | **FormaGiuridica** | `FormaGiuridicaSelect.razor` | `ana_forme_giuridiche` | Descrizione | Selezione forma giuridica azienda (SPA, SRL...). |
+| **FornitoreSelect** | `FornitoreSelect.razor` | `ana_fornitori` | Ragione Sociale | Selezione fornitore con ricerca testuale su Ragione Sociale e Nome Breve. Supporta parametro `AziendaId` esplicito. |
 | **MarcaVeicolo** | `MarcaVeicoloSelect.razor` | `ana_marche_veicoli` | Descrizione | Selezione marca veicolo (es. Fiat, BMW). |
 | **ProvinciaSelect** | `ProvinciaSelect.razor` | `ana_geo_province_ita` | Descrizione | Selezione provincia (sigla visualizzata). supporta filtro estero. |
 | **RegioneSelect** | `RegioneSelect.razor` | `ana_geo_regioni_ita` | Descrizione | Selezione regione amministrativa italiana. |
