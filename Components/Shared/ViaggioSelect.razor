@@ -1,0 +1,99 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AnaViaggiService ViaggioService
+@inject ILogger<ViaggioSelect> Logger
+
+<MudAutocomplete T="AnaViaggi"
+                 Label="@Label"
+                 Value="_selectedViaggio"
+                 ValueChanged="@OnValueChanged"
+                 SearchFunc="@SearchViaggi"
+                 ToStringFunc="@(v => v?.DescrizioneBreve ?? string.Empty)"
+                 Variant="Variant.Outlined"
+                 Clearable="@Clearable"
+                 Required="@Required"
+                 Disabled="@Disabled"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 AdornmentIcon="@Icons.Material.Filled.Landscape"
+                 AdornmentColor="Color.Primary">
+    <ItemTemplate Context="viaggio">
+        <MudText Typo="Typo.body2">@viaggio.DescrizioneBreve</MudText>
+        @if (!string.IsNullOrWhiteSpace(viaggio.NazioneNome))
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@viaggio.NazioneNome - @viaggio.NumeroGiorni giorni</MudText>
+        }
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public int? SelectedViaggioId { get; set; }
+    [Parameter] public EventCallback<int?> SelectedViaggioIdChanged { get; set; }
+    [Parameter] public int? AziendaId { get; set; }
+    [Parameter] public string Label { get; set; } = "Viaggio";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+
+    private AnaViaggi? _selectedViaggio;
+    private List<AnaViaggi> _allViaggi = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadViaggiAsync();
+
+        // Imposta il viaggio selezionato se presente
+        if (SelectedViaggioId.HasValue && SelectedViaggioId.Value > 0)
+        {
+            _selectedViaggio = _allViaggi.FirstOrDefault(v => v.ViaggioId == SelectedViaggioId.Value);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Ricarica se cambia l'azienda
+        if (AziendaId.HasValue)
+        {
+            await LoadViaggiAsync();
+        }
+    }
+
+    private async Task LoadViaggiAsync()
+    {
+        try
+        {
+            if (AziendaId.HasValue && AziendaId.Value > 0)
+            {
+                _allViaggi = await ViaggioService.GetAllAsync(aziendaId: AziendaId.Value);
+            }
+            else
+            {
+                _allViaggi = new List<AnaViaggi>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel caricamento viaggi");
+            _allViaggi = new List<AnaViaggi>();
+        }
+    }
+
+    private async Task<IEnumerable<AnaViaggi>> SearchViaggi(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return _allViaggi;
+        }
+
+        return _allViaggi.Where(v =>
+            v.DescrizioneBreve?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+            v.DescrizioneEstesa?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true ||
+            v.NazioneNome?.Contains(searchText, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task OnValueChanged(AnaViaggi? viaggio)
+    {
+        _selectedViaggio = viaggio;
+        await SelectedViaggioIdChanged.InvokeAsync(viaggio?.ViaggioId);
+    }
+}

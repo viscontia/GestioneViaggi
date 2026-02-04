@@ -1,0 +1,118 @@
+@using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Services.CRUD
+@inject AnaDateViaggiService DateViaggiService
+@inject ILogger<DataViaggioSelect> Logger
+
+<MudAutocomplete T="DataViaggioDTO"
+                 Label="@Label"
+                 Value="_selectedDataViaggio"
+                 ValueChanged="@OnValueChanged"
+                 SearchFunc="@SearchDateViaggi"
+                 ToStringFunc="@(d => d?.DisplayText ?? string.Empty)"
+                 Variant="Variant.Outlined"
+                 Clearable="@Clearable"
+                 Required="@Required"
+                 Disabled="@(Disabled || !ViaggioId.HasValue || ViaggioId.Value == 0)"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                 AdornmentColor="Color.Primary"
+                 HelperText="@(ViaggioId.HasValue && ViaggioId.Value > 0 ? string.Empty : "Seleziona prima un viaggio")">
+    <ItemTemplate Context="dataViaggio">
+        <MudText Typo="Typo.body2">@dataViaggio.DisplayText</MudText>
+        @if (!string.IsNullOrWhiteSpace(dataViaggio.Effettuato))
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @(dataViaggio.Effettuato == "Y" ? "Effettuato" : dataViaggio.Effettuato == "N" ? "Da effettuare" : "Parziale")
+            </MudText>
+        }
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public int? SelectedDataViaggioId { get; set; }
+    [Parameter] public EventCallback<int?> SelectedDataViaggioIdChanged { get; set; }
+    [Parameter] public int? ViaggioId { get; set; }
+    [Parameter] public string Label { get; set; } = "Data Viaggio";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+
+    private DataViaggioDTO? _selectedDataViaggio;
+    private List<DataViaggioDTO> _allDateViaggi = new();
+    private int? _currentViaggioId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ViaggioId.HasValue && ViaggioId.Value > 0)
+        {
+            await LoadDateViaggiAsync();
+
+            // Imposta la data viaggio selezionata se presente
+            if (SelectedDataViaggioId.HasValue && SelectedDataViaggioId.Value > 0)
+            {
+                _selectedDataViaggio = _allDateViaggi.FirstOrDefault(d => d.DataViaggioId == SelectedDataViaggioId.Value);
+            }
+        }
+        _currentViaggioId = ViaggioId;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Ricarica se cambia il viaggio
+        if (ViaggioId != _currentViaggioId)
+        {
+            _currentViaggioId = ViaggioId;
+            _selectedDataViaggio = null;
+            await SelectedDataViaggioIdChanged.InvokeAsync(null);
+
+            if (ViaggioId.HasValue && ViaggioId.Value > 0)
+            {
+                await LoadDateViaggiAsync();
+            }
+            else
+            {
+                _allDateViaggi = new List<DataViaggioDTO>();
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadDateViaggiAsync()
+    {
+        try
+        {
+            if (ViaggioId.HasValue && ViaggioId.Value > 0)
+            {
+                _allDateViaggi = (await DateViaggiService.GetByViaggioIdAsync(ViaggioId.Value)).ToList();
+            }
+            else
+            {
+                _allDateViaggi = new List<DataViaggioDTO>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nel caricamento date viaggi");
+            _allDateViaggi = new List<DataViaggioDTO>();
+        }
+    }
+
+    private async Task<IEnumerable<DataViaggioDTO>> SearchDateViaggi(string searchText, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return _allDateViaggi;
+        }
+
+        return _allDateViaggi.Where(d =>
+            d.DisplayText.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task OnValueChanged(DataViaggioDTO? dataViaggio)
+    {
+        _selectedDataViaggio = dataViaggio;
+        await SelectedDataViaggioIdChanged.InvokeAsync(dataViaggio?.DataViaggioId);
+    }
+}

@@ -132,6 +132,7 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaValuteService>();
         builder.Services.AddScoped<MovTransazioniService>();
         builder.Services.AddScoped<AnaTassiCambioService>();
+        builder.Services.AddScoped<AnaDateViaggiService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();

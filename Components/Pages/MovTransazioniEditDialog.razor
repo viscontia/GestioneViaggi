@@ -2,9 +2,12 @@
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
 @inject MovTransazioniService TransazioniService
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
+@inject IJSRuntime JS
+@implements IDisposable
 
 <MudDialog>
     <DialogContent>
@@ -12,11 +15,12 @@
             <MudGrid>
                 <!-- RIGA 1: Data e Tipo -->
                 <MudItem xs="6">
-                    <MudDatePicker Label="Data Transazione" 
-                                   @bind-Date="_dataTransazione" 
-                                   Required="true" 
+                    <MudDatePicker @ref="_firstField"
+                                   Label="Data Transazione"
+                                   @bind-Date="_dataTransazione"
+                                   Required="true"
                                    RequiredError="Data obbligatoria"
-                                   Variant="Variant.Outlined" 
+                                   Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
@@ -28,14 +32,18 @@
 
                 <!-- RIGA 2: Fornitore e Causale -->
                 <MudItem xs="12" sm="6">
-                    <FornitoreSelect @bind-SelectedFornitoreId="Transazione.TransazioneFornitoreId" Required="true" />
+                    <FornitoreSelect @bind-SelectedFornitoreId="Transazione.TransazioneFornitoreId"
+                                     AziendaId="@AziendaId"
+                                     Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="Causale" 
-                                  @bind-Value="Transazione.TransazioneCausale" 
-                                  Required="true" 
+                    <MudTextField Label="Causale"
+                                  Value="@Transazione.TransazioneCausale"
+                                  ValueChanged="@((string val) => HandleCausaleChanged(val))"
+                                  Required="true"
                                   RequiredError="Causale obbligatoria"
-                                  Variant="Variant.Outlined" />
+                                  Variant="Variant.Outlined"
+                                  Class="uppercase-input" />
                 </MudItem>
 
                 <!-- RIGA 3: Importo e Valuta -->
@@ -58,20 +66,53 @@
                         <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
                         <MudSelectItem Value="@("PAGATO")">Pagato</MudSelectItem>
                         <MudSelectItem Value="@("PARZIALMENTE_PAGATO")">Parzialmente Pagato</MudSelectItem>
+                        <MudSelectItem Value="@("ANNULLATO")">Annullato</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="6">
-                    <MudTextField Label="N. Documento / Fattura" 
-                                  @bind-Value="Transazione.TransazioneNumeroDocumento" 
-                                  Variant="Variant.Outlined" />
+                    <MudTextField Label="N. Documento / Fattura"
+                                  Value="@Transazione.TransazioneNumeroDocumento"
+                                  ValueChanged="@((string val) => HandleNumeroDocumentoChanged(val))"
+                                  Variant="Variant.Outlined"
+                                  Class="uppercase-input" />
                 </MudItem>
 
                 <!-- RIGA 5: Note -->
                 <MudItem xs="12">
-                    <MudTextField Label="Note" 
-                                  @bind-Value="Transazione.TransazioneNote" 
-                                  Variant="Variant.Outlined" 
-                                  Lines="2" />
+                    <MudTextField Label="Note"
+                                  Value="@Transazione.TransazioneNote"
+                                  ValueChanged="@((string val) => HandleNoteChanged(val))"
+                                  Variant="Variant.Outlined"
+                                  Lines="2"
+                                  Class="uppercase-input" />
+                </MudItem>
+
+                <!-- RIGA 6: Date Scadenza e Pagamento -->
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Scadenza"
+                                   @bind-Date="_dataScadenza"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Clearable="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Pagamento"
+                                   @bind-Date="_dataPagamento"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Clearable="true" />
+                </MudItem>
+
+                <!-- RIGA 7: Viaggio e Data Viaggio -->
+                <MudItem xs="6">
+                    <ViaggioSelect @bind-SelectedViaggioId="Transazione.TransazioneViaggioId"
+                                   AziendaId="@AziendaId"
+                                   Clearable="true" />
+                </MudItem>
+                <MudItem xs="6">
+                    <DataViaggioSelect @bind-SelectedDataViaggioId="Transazione.TransazioneDataViaggioId"
+                                       ViaggioId="@Transazione.TransazioneViaggioId"
+                                       Clearable="true" />
                 </MudItem>
 
             </MudGrid>
@@ -94,9 +135,13 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public MovTransazioni Transazione { get; set; } = new();
+    [Parameter] public int AziendaId { get; set; }
 
     private MudForm _form = default!;
+    private MudDatePicker? _firstField;
     private DateTime? _dataTransazione;
+    private DateTime? _dataScadenza;
+    private DateTime? _dataPagamento;
 
     protected override async Task OnInitializedAsync()
     {
@@ -106,17 +151,47 @@
             _dataTransazione = DateTime.Today;
             Transazione.TransazioneStato = "DA_PAGARE";
             Transazione.TransazioneTipoMovimento = "USCITA";
-            // Pre-select azienda from context
-            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
-            if (aziendaId.HasValue)
-            {
-                Transazione.TransazioneAziendaId = aziendaId.Value;
-            }
+            // Use AziendaId parameter (passed from parent page)
+            Transazione.TransazioneAziendaId = AziendaId;
         }
         else
         {
             _dataTransazione = Transazione.TransazioneData;
+            _dataScadenza = Transazione.TransazioneDataScadenza;
+            _dataPagamento = Transazione.TransazioneDataPagamento;
         }
+
+        await Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation tra i campi della form
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            // Focus automatico sul primo campo
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup dei listener JavaScript per la navigazione TAB
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -125,11 +200,24 @@
     {
         await _form.Validate();
 
+        // Validazione custom: Viaggio e DataViaggio devono essere entrambi presenti o entrambi assenti
+        bool viaggioPresente = Transazione.TransazioneViaggioId.HasValue && Transazione.TransazioneViaggioId.Value > 0;
+        bool dataViaggioPresente = Transazione.TransazioneDataViaggioId.HasValue && Transazione.TransazioneDataViaggioId.Value > 0;
+
+        if (viaggioPresente != dataViaggioPresente)
+        {
+            Snackbar.Add("Se si seleziona un Viaggio, è obbligatorio selezionare anche la Data Viaggio (e viceversa)", Severity.Warning);
+            return;
+        }
+
         if (_form.IsValid)
         {
             // Sync UI dates back to model
-            if (_dataTransazione.HasValue) 
+            if (_dataTransazione.HasValue)
                 Transazione.TransazioneData = _dataTransazione.Value;
+
+            Transazione.TransazioneDataScadenza = _dataScadenza;
+            Transazione.TransazioneDataPagamento = _dataPagamento;
 
             try
             {
@@ -154,5 +242,25 @@
                 Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
             }
         }
+    }
+
+    // ========== HANDLERS PER CONVERSIONE AUTOMATICA IN MAIUSCOLO ==========
+
+    private void HandleCausaleChanged(string value)
+    {
+        Transazione.TransazioneCausale = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleNumeroDocumentoChanged(string value)
+    {
+        Transazione.TransazioneNumeroDocumento = value?.ToUpper();
+        StateHasChanged();
+    }
+
+    private void HandleNoteChanged(string value)
+    {
+        Transazione.TransazioneNote = value?.ToUpper();
+        StateHasChanged();
     }
 }
