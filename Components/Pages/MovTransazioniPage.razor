@@ -1,3 +1,4 @@
+@page "/movimenti"
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.Authentication
@@ -15,19 +16,37 @@
                         Title="Gestione Movimenti"
                         Items="@_items"
                         SearchFunction="@Search"
-                        @bind-SelectedItem="_selectedItem"
-                        Loading="@_loading">
+                        @bind-SelectedItem="_selectedItem">
         
         <ToolBarActions>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Add" 
+            @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
                 Nuova Transazione
             </MudButton>
         </ToolBarActions>
 
         <Columns>
+            @if (_isSuperAdmin)
+            {
+                <PropertyColumn Property="x => x.AziendaCodice" Sortable="true"
+                                CellStyle="width: 55px; max-width: 55px; white-space: nowrap; text-align: center;"
+                                HeaderStyle="width: 55px; max-width: 55px; text-align: center;">
+                    <HeaderTemplate>
+                        <div style="line-height: 1.1;">Cod.<br/>Az.</div>
+                    </HeaderTemplate>
+                </PropertyColumn>
+            }
+
             <PropertyColumn Property="x => x.TransazioneData" Title="Data" Format="dd/MM/yyyy" Sortable="true" />
             
             <PropertyColumn Property="x => x.TransazioneTipoMovimento" Title="Tipo">
@@ -66,36 +85,91 @@
 </MudContainer>
 
 @code {
-    private IEnumerable<MovTransazioni> _items = new List<MovTransazioni>();
+    private List<MovTransazioni> _items = new();
     private MovTransazioni? _selectedItem;
-    private bool _loading = true;
+
+    // SuperAdmin Logic
+    private int? _currentAziendaId;
+    private int _selectedAziendaId; // 0 = All
+    private bool _isSuperAdmin;
 
     protected override async Task OnInitializedAsync()
     {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null;
+        }
+        else
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
         await LoadDataAsync();
     }
 
     private async Task LoadDataAsync()
     {
-        _loading = true;
-        try 
+        try
         {
-            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
-            if (aziendaId.HasValue && aziendaId.Value > 0)
+            if (_isSuperAdmin)
             {
-                _items = await TransazioniService.GetByAziendaAsync(aziendaId.Value);
+                if (_selectedAziendaId == 0)
+                {
+                    _items = (await TransazioniService.GetAllAsync()).ToList();
+                }
+                else
+                {
+                    _items = (await TransazioniService.GetByAziendaAsync(_selectedAziendaId)).ToList();
+                }
+            }
+            else
+            {
+                if (_currentAziendaId.HasValue && _currentAziendaId.Value > 0)
+                {
+                    _items = (await TransazioniService.GetByAziendaAsync(_currentAziendaId.Value)).ToList();
+                }
+                else
+                {
+                    _items = new List<MovTransazioni>();
+                    Snackbar.Add("Errore: nessuna azienda assegnata all'utente corrente", Severity.Error);
+                }
             }
         }
-        finally 
+        catch (Exception ex)
         {
-            _loading = false;
+            Snackbar.Add($"Errore nel caricamento delle transazioni: {ex.Message}", Severity.Error);
+            _items = new List<MovTransazioni>();
         }
     }
 
     private async Task OpenCreateDialog()
     {
+        // Enforce company selection for SuperAdmin
+        if (_isSuperAdmin && _selectedAziendaId == 0)
+        {
+            Snackbar.Add("Selezionare un'Azienda prima di inserire una nuova Transazione", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            ["Transazione"] = new MovTransazioni(),
+            ["AziendaId"] = _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0)
+        };
+
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
-        var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Nuova Transazione", options);
+        var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Nuova Transazione", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -106,7 +180,12 @@
 
     private async Task OpenEditDialog(MovTransazioni item)
     {
-        var parameters = new DialogParameters { ["Transazione"] = item };
+        var parameters = new DialogParameters
+        {
+            ["Transazione"] = item,
+            ["AziendaId"] = item.TransazioneAziendaId
+        };
+
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Modifica Transazione", parameters, options);
         var result = await dialog.Result;

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace GestioneViaggi.Models
 {
     [Table("mov_transazioni")]
-    public class MovTransazioni : BaseEntity
+    public class MovTransazioni
     {
         [Key]
         [Column("transazione_id")]
@@ -81,11 +81,14 @@ namespace GestioneViaggi.Models
         // === Navigation/Display Properties (NotMapped) ===
         
         [NotMapped]
+        public string? AziendaCodice { get; set; }
+
+        [NotMapped]
         public string? FornitoreRagioneSociale { get; set; }
 
         [NotMapped]
         public string? ValutaCodiceIso { get; set; }
-        
+
         [NotMapped]
         public string? ViaggioDescrizione { get; set; }
 

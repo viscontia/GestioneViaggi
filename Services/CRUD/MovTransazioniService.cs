@@ -17,6 +17,69 @@ public class MovTransazioniService
     }
 
     /// <summary>
+    /// Recupera tutte le transazioni di tutte le aziende, includendo dettagli Fornitore e Valuta.
+    /// Utilizzato da SuperAdmin per visualizzare tutto.
+    /// Ordinamento decrescente per Data Transazione.
+    /// </summary>
+    public async Task<IEnumerable<MovTransazioni>> GetAllAsync()
+    {
+        try
+        {
+            _logger.LogInformation("GetAllAsync: Recupero di tutte le transazioni...");
+            using var conn = await _dbService.GetConnectionAsync();
+
+            // Query semplice senza JOIN
+            string sql = @"SELECT * FROM mov_transazioni ORDER BY transazione_data DESC, created_at DESC";
+
+            var result = await conn.QueryAsync<MovTransazioni>(sql);
+            var resultList = result.ToList();
+
+            _logger.LogInformation("GetAllAsync: Recuperate {Count} transazioni", resultList.Count);
+
+            if (resultList.Count > 0)
+            {
+                // Carica dati correlati manualmente
+                foreach (var item in resultList)
+                {
+                    // Imposta azienda_id come codice
+                    item.AziendaCodice = item.TransazioneAziendaId.ToString();
+
+                    // Query per fornitore
+                    var fornitore = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT ragione_sociale FROM ana_fornitori WHERE fornitore_id = @Id",
+                        new { Id = item.TransazioneFornitoreId });
+                    if (fornitore != null)
+                        item.FornitoreRagioneSociale = fornitore.ragione_sociale;
+
+                    // Query per valuta
+                    var valuta = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT valuta_codice_iso FROM ana_valute WHERE valuta_id = @Id",
+                        new { Id = item.TransazioneValutaId });
+                    if (valuta != null)
+                        item.ValutaCodiceIso = valuta.valuta_codice_iso;
+
+                    // Query per viaggio (opzionale)
+                    if (item.TransazioneViaggioId.HasValue)
+                    {
+                        var viaggio = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT descrizione_breve FROM ana_viaggi WHERE viaggio_id = @Id",
+                            new { Id = item.TransazioneViaggioId.Value });
+                        if (viaggio != null)
+                            item.ViaggioDescrizione = viaggio.descrizione_breve;
+                    }
+                }
+            }
+
+            return resultList;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero di tutte le transazioni");
+            return Enumerable.Empty<MovTransazioni>();
+        }
+    }
+
+    /// <summary>
     /// Recupera tutte le transazioni per una data Azienda, includendo dettagli Fornitore e Valuta.
     /// Ordinamento decrescente per Data Transazione.
     /// </summary>
@@ -24,21 +87,55 @@ public class MovTransazioniService
     {
         try
         {
+            _logger.LogInformation("GetByAziendaAsync: Recupero transazioni per azienda {AziendaId}...", aziendaId);
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = @"
-                SELECT 
-                    t.*,
-                    f.ragione_sociale as FornitoreRagioneSociale,
-                    v.valuta_codice_iso as ValutaCodiceIso,
-                    vi.descrizione_breve as ViaggioDescrizione
-                FROM mov_transazioni t
-                JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
-                JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
-                LEFT JOIN ana_viaggi vi ON t.transazione_viaggio_id = vi.viaggio_id
-                WHERE t.transazione_azienda_id = @AziendaId
-                ORDER BY t.transazione_data DESC, t.created_at DESC";
 
-            return await conn.QueryAsync<MovTransazioni>(sql, new { AziendaId = aziendaId });
+            // Query semplice senza JOIN
+            string sql = @"
+                SELECT * FROM mov_transazioni
+                WHERE transazione_azienda_id = @AziendaId
+                ORDER BY transazione_data DESC, created_at DESC";
+
+            var result = await conn.QueryAsync<MovTransazioni>(sql, new { AziendaId = aziendaId });
+            var resultList = result.ToList();
+
+            _logger.LogInformation("GetByAziendaAsync: Recuperate {Count} transazioni per azienda {AziendaId}", resultList.Count, aziendaId);
+
+            if (resultList.Count > 0)
+            {
+                // Carica dati correlati manualmente
+                foreach (var item in resultList)
+                {
+                    // Imposta azienda_id come codice
+                    item.AziendaCodice = item.TransazioneAziendaId.ToString();
+
+                    // Query per fornitore
+                    var fornitore = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT ragione_sociale FROM ana_fornitori WHERE fornitore_id = @Id",
+                        new { Id = item.TransazioneFornitoreId });
+                    if (fornitore != null)
+                        item.FornitoreRagioneSociale = fornitore.ragione_sociale;
+
+                    // Query per valuta
+                    var valuta = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                        "SELECT valuta_codice_iso FROM ana_valute WHERE valuta_id = @Id",
+                        new { Id = item.TransazioneValutaId });
+                    if (valuta != null)
+                        item.ValutaCodiceIso = valuta.valuta_codice_iso;
+
+                    // Query per viaggio (opzionale)
+                    if (item.TransazioneViaggioId.HasValue)
+                    {
+                        var viaggio = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                            "SELECT descrizione_breve FROM ana_viaggi WHERE viaggio_id = @Id",
+                            new { Id = item.TransazioneViaggioId.Value });
+                        if (viaggio != null)
+                            item.ViaggioDescrizione = viaggio.descrizione_breve;
+                    }
+                }
+            }
+
+            return resultList;
         }
         catch (Exception ex)
         {
@@ -53,10 +150,10 @@ public class MovTransazioniService
         {
             using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
-                SELECT 
+                SELECT
                     t.*,
-                    f.ragione_sociale as FornitoreRagioneSociale,
-                    v.valuta_codice_iso as ValutaCodiceIso
+                    f.ragione_sociale as fornitore_ragione_sociale,
+                    v.valuta_codice_iso as valuta_codice_iso
                 FROM mov_transazioni t
                 JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
                 JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
