@@ -1,5 +1,11 @@
 -- Function per recuperare tutte le transazioni con dati correlati
-CREATE OR REPLACE FUNCTION fn_get_all_transazioni()
+-- Function per recuperare tutte le transazioni con dati correlati e filtri
+CREATE OR REPLACE FUNCTION fn_get_all_transazioni(
+    p_viaggio_id integer DEFAULT NULL,
+    p_data_viaggio_id integer DEFAULT NULL,
+    p_data_transazione date DEFAULT NULL,
+    p_solo_da_pagare boolean DEFAULT FALSE
+)
 RETURNS TABLE (
     transazione_id integer,
     transazione_azienda_id integer,
@@ -64,12 +70,28 @@ BEGIN
     JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
     LEFT JOIN ana_viaggi vi ON t.transazione_viaggio_id = vi.viaggio_id
     LEFT JOIN ana_date_viaggi dv ON t.transazione_data_viaggio_id = dv.data_viaggio_id
-    ORDER BY t.transazione_data DESC, t.created_at DESC;
+    WHERE 
+        (p_viaggio_id IS NULL OR t.transazione_viaggio_id = p_viaggio_id) AND
+        (p_data_viaggio_id IS NULL OR t.transazione_data_viaggio_id = p_data_viaggio_id) AND
+        (p_data_transazione IS NULL OR t.transazione_data = p_data_transazione) AND
+        (p_solo_da_pagare IS FALSE OR t.transazione_stato = 'DA_PAGARE')
+    ORDER BY 
+        t.transazione_azienda_id ASC, 
+        vi.viaggio_descrizione_breve ASC, 
+        dv.data_viaggio_data_inizio DESC, 
+        t.transazione_data DESC, 
+        t.created_at DESC;
 END;
 $$;
 
--- Function per recuperare transazioni di una specifica azienda
-CREATE OR REPLACE FUNCTION fn_get_transazioni_by_azienda(p_azienda_id integer)
+-- Function per recuperare transazioni di una specifica azienda con filtri
+CREATE OR REPLACE FUNCTION fn_get_transazioni_by_azienda(
+    p_azienda_id integer,
+    p_viaggio_id integer DEFAULT NULL,
+    p_data_viaggio_id integer DEFAULT NULL,
+    p_data_transazione date DEFAULT NULL,
+    p_solo_da_pagare boolean DEFAULT FALSE
+)
 RETURNS TABLE (
     transazione_id integer,
     transazione_azienda_id integer,
@@ -134,8 +156,17 @@ BEGIN
     JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
     LEFT JOIN ana_viaggi vi ON t.transazione_viaggio_id = vi.viaggio_id
     LEFT JOIN ana_date_viaggi dv ON t.transazione_data_viaggio_id = dv.data_viaggio_id
-    WHERE t.transazione_azienda_id = p_azienda_id
-    ORDER BY t.transazione_data DESC, t.created_at DESC;
+    WHERE 
+        t.transazione_azienda_id = p_azienda_id AND
+        (p_viaggio_id IS NULL OR t.transazione_viaggio_id = p_viaggio_id) AND
+        (p_data_viaggio_id IS NULL OR t.transazione_data_viaggio_id = p_data_viaggio_id) AND
+        (p_data_transazione IS NULL OR t.transazione_data = p_data_transazione) AND
+        (p_solo_da_pagare IS FALSE OR t.transazione_stato = 'DA_PAGARE')
+    ORDER BY 
+        vi.viaggio_descrizione_breve ASC, 
+        dv.data_viaggio_data_inizio DESC, 
+        t.transazione_data DESC, 
+        t.created_at DESC;
 END;
 $$;
 

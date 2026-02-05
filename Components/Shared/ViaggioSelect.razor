@@ -35,9 +35,12 @@
     [Parameter] public bool Required { get; set; }
     [Parameter] public bool Clearable { get; set; } = true;
     [Parameter] public bool Disabled { get; set; }
+    [Parameter] public IEnumerable<AnaViaggi>? CustomItems { get; set; }
 
     private AnaViaggi? _selectedViaggio;
     private List<AnaViaggi> _allViaggi = new();
+    private int? _previousAziendaId;
+    private int _previousCustomItemsCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,10 +55,34 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Ricarica se cambia l'azienda
-        if (AziendaId.HasValue)
+        // Determina se CustomItems è cambiato controllando il count
+        int currentCount = CustomItems?.Count() ?? 0;
+        bool customItemsChanged = currentCount != _previousCustomItemsCount;
+        bool aziendaChanged = AziendaId != _previousAziendaId;
+
+        if (customItemsChanged || aziendaChanged)
         {
+            _previousAziendaId = AziendaId;
+            _previousCustomItemsCount = currentCount;
+
             await LoadViaggiAsync();
+
+            // Ricontrolla se il viaggio selezionato è ancora valido
+            if (SelectedViaggioId.HasValue && SelectedViaggioId.Value > 0)
+            {
+                var newSelected = _allViaggi.FirstOrDefault(v => v.Id == SelectedViaggioId.Value);
+                if (newSelected != null && newSelected != _selectedViaggio)
+                {
+                    // Update only if different to prevent redundant updates
+                    _selectedViaggio = newSelected;
+                }
+                else if (newSelected == null && _selectedViaggio != null)
+                {
+                    // Viaggio non più disponibile, resetta la selezione
+                    // But DON'T invoke callback - parent already knows
+                    _selectedViaggio = null;
+                }
+            }
         }
     }
 
@@ -63,7 +90,11 @@
     {
         try
         {
-            if (AziendaId.HasValue && AziendaId.Value > 0)
+            if (CustomItems != null)
+            {
+                _allViaggi = CustomItems.ToList();
+            }
+            else if (AziendaId.HasValue && AziendaId.Value > 0)
             {
                 _allViaggi = await ViaggioService.GetAllAsync(aziendaId: AziendaId.Value);
             }
@@ -74,7 +105,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Errore nel caricamento viaggi");
+            Logger.LogError(ex, "ViaggioSelect: Errore nel caricamento viaggi");
             _allViaggi = new List<AnaViaggi>();
         }
     }

@@ -4,6 +4,7 @@
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Models.DTOs
 @inject MovTransazioniService TransazioniService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -13,6 +14,61 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <div style="width: 100%; overflow-x: auto;">
+        
+        <!-- DEBUG PANEL AT TOP -->
+
+
+        <!-- Filters Area -->
+        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap">
+             @if (_isSuperAdmin)
+            {
+                <div style="min-width: 200px;">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+
+            <div style="min-width: 200px;">
+                 <ViaggioSelect SelectedViaggioId="_filterViaggioId" 
+                               SelectedViaggioIdChanged="@OnViaggioFilterChanged"
+                               Label="Filtra Viaggio" 
+                               Clearable="true" 
+                               CustomItems="@_distinctViaggi"
+                               Disabled="@(!_distinctViaggi.Any())" />
+            </div>
+
+            <div style="min-width: 200px;">
+                <DataViaggioSelect SelectedDataViaggioId="_filterDataViaggioId" 
+                                  SelectedDataViaggioIdChanged="@OnDataViaggioFilterChanged"
+                                  ViaggioId="_filterViaggioId" 
+                                  Label="Filtra Data Viaggio" 
+                                  Clearable="true" 
+                                  CustomItems="@_distinctDateViaggi"
+                                  Disabled="@(!_filterViaggioId.HasValue)" />
+            </div>
+
+             <div style="min-width: 150px;">
+                <MudDatePicker Label="Data Movimento" 
+                               Date="_filterDataTransazione"
+                               DateChanged="@(EventCallback.Factory.Create<DateTime?>(this, OnDataTransazioneFilterChanged))"
+                               Clearable="true"
+                               Variant="Variant.Outlined" 
+                               Adornment="Adornment.End" 
+                               AdornmentIcon="@Icons.Material.Filled.Event" />
+            </div>
+
+            <div style="min-width: 150px;">
+               <MudCheckBox Value="_filterSoloDaPagare" 
+                            ValueChanged="@(EventCallback.Factory.Create<bool>(this, OnSoloDaPagareFilterChanged))"
+                            Label="Solo da Pagare" 
+                            Color="Color.Primary" 
+                            Dense="true" />
+            </div>
+            
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="@ClearFilters" Class="ml-auto">
+                Reset
+            </MudButton>
+        </MudPaper>
 
 
         <EnterpriseDataGrid T="MovTransazioni"
@@ -25,14 +81,6 @@
                             @bind-SelectedItem="_selectedItem">
             
             <ToolBarActions>
-                @if (_isSuperAdmin)
-                {
-                    <div style="min-width: 250px;" class="mr-4">
-                        <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
-                            ValueChanged="@OnAziendaFilterChanged" />
-                    </div>
-                }
-
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add"
@@ -148,6 +196,16 @@
     private List<MovTransazioni> _items = new();
     private MovTransazioni? _selectedItem;
 
+    // Filter properties
+
+    // Filter properties
+    private List<GestioneViaggi.Models.AnaViaggi> _distinctViaggi = new();
+    private List<DataViaggioDTO> _distinctDateViaggi = new();
+    private int? _filterViaggioId;
+    private int? _filterDataViaggioId;
+    private DateTime? _filterDataTransazione;
+    private bool _filterSoloDaPagare; // Replaces previous logic if any
+
     // SuperAdmin Logic
     private int? _currentAziendaId;
     private int _selectedAziendaId; // 0 = All
@@ -165,6 +223,8 @@
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
         }
+
+        await LoadFiltersDataAsync();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -175,6 +235,109 @@
     private async Task OnAziendaFilterChanged(int aziendaId)
     {
         _selectedAziendaId = aziendaId;
+
+        // Reset filters when company changes
+        _filterViaggioId = null;
+        _filterDataViaggioId = null;
+        _filterDataTransazione = null;
+        _filterSoloDaPagare = false;
+
+        await LoadFiltersDataAsync();
+        await LoadDataAsync();
+    }
+    
+    // --- Filtering Logic ---
+
+
+
+    private async Task LoadFiltersDataAsync()
+    {
+        int? aziendaIdTarget = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) : _currentAziendaId;
+
+        try
+        {
+            _distinctViaggi = (await TransazioniService.GetDistinctViaggiAsync(aziendaIdTarget)).ToList();
+            _distinctDateViaggi.Clear();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento filtri: {ex.Message}", Severity.Error);
+            _distinctViaggi = new List<GestioneViaggi.Models.AnaViaggi>();
+            _distinctDateViaggi = new List<DataViaggioDTO>();
+        }
+    }
+
+
+
+    private async Task ClearFilters()
+    {
+        _filterViaggioId = null;
+        _filterDataViaggioId = null;
+        _filterDataTransazione = null;
+        _filterSoloDaPagare = false;
+        _distinctDateViaggi.Clear();
+        StateHasChanged();
+        await LoadDataAsync();
+    }
+    
+    // Handlers for UI changes (to be wired up properly)
+    // Actually, I need to update the Razor part to use ValueChanged or Property setter logic correctly.
+    // I will update the razor markup in a simpler way: using @bind:after or manually handling ValueChanged.
+    // MudBlazor supports generic binding.
+    // BUT my `ViaggioSelect` uses `SelectedViaggioIdChanged`. 
+    // I will modify the bindings in the Razor markup to call `ApplyFilters` (or `OnFilterViaggioChanged`).
+
+    private async Task OnViaggioFilterChanged(int? id)
+    {
+        // Prevent redundant calls if the value hasn't actually changed
+        if (_filterViaggioId == id)
+            return;
+
+        _filterViaggioId = id;
+        _filterDataViaggioId = null; // Reset data viaggio filter when viaggio changes
+
+        try
+        {
+            if (id.HasValue)
+            {
+                _distinctDateViaggi = (await TransazioniService.GetDistinctDateViaggiAsync(id.Value)).ToList();
+            }
+            else
+            {
+                _distinctDateViaggi.Clear();
+            }
+
+            // StateHasChanged will be called by LoadDataAsync, no need to call it twice
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento date: {ex.Message}", Severity.Error);
+            _distinctDateViaggi = new List<DataViaggioDTO>();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task OnDataViaggioFilterChanged(int? id)
+    {
+        // Prevent redundant calls if the value hasn't actually changed
+        if (_filterDataViaggioId == id)
+            return;
+
+        _filterDataViaggioId = id;
+        await LoadDataAsync();
+    }
+
+    private async Task OnDataTransazioneFilterChanged(DateTime? date)
+    {
+        _filterDataTransazione = date;
+        await LoadDataAsync();
+    }
+
+    private async Task OnSoloDaPagareFilterChanged(bool val)
+    {
+        _filterSoloDaPagare = val;
         await LoadDataAsync();
     }
 
@@ -186,18 +349,21 @@
             {
                 if (_selectedAziendaId == 0)
                 {
-                    _items = (await TransazioniService.GetAllAsync()).ToList();
+                    _items = (await TransazioniService.GetAllAsync(
+                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
                 }
                 else
                 {
-                    _items = (await TransazioniService.GetByAziendaAsync(_selectedAziendaId)).ToList();
+                    _items = (await TransazioniService.GetByAziendaAsync(_selectedAziendaId,
+                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
                 }
             }
             else
             {
                 if (_currentAziendaId.HasValue && _currentAziendaId.Value > 0)
                 {
-                    _items = (await TransazioniService.GetByAziendaAsync(_currentAziendaId.Value)).ToList();
+                    _items = (await TransazioniService.GetByAziendaAsync(_currentAziendaId.Value,
+                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
                 }
                 else
                 {
@@ -205,11 +371,14 @@
                     Snackbar.Add("Errore: nessuna azienda assegnata all'utente corrente", Severity.Error);
                 }
             }
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore nel caricamento delle transazioni: {ex.Message}", Severity.Error);
             _items = new List<MovTransazioni>();
+            StateHasChanged();
         }
     }
 

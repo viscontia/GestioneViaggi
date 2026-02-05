@@ -1,6 +1,7 @@
 using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Models.DTOs;
 using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.CRUD;
@@ -17,22 +18,66 @@ public class MovTransazioniService
     }
 
     /// <summary>
-    /// Recupera tutte le transazioni di tutte le aziende, includendo dettagli Fornitore e Valuta.
-    /// Utilizzato da SuperAdmin per visualizzare tutto.
-    /// Ordinamento decrescente per Data Transazione.
+    /// Recupera i viaggi distinti che hanno transazioni
     /// </summary>
-    public async Task<IEnumerable<MovTransazioni>> GetAllAsync()
+    public async Task<IEnumerable<AnaViaggi>> GetDistinctViaggiAsync(int? aziendaId)
     {
         try
         {
-            _logger.LogInformation("GetAllAsync: Recupero di tutte le transazioni...");
             using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT * FROM fn_get_viaggi_with_transazioni(@AziendaId)";
+            var result = await conn.QueryAsync<AnaViaggi>(sql, new { AziendaId = aziendaId });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero viaggi con transazioni per azienda {AziendaId}", aziendaId);
+            return Enumerable.Empty<AnaViaggi>();
+        }
+    }
 
-            string sql = "SELECT * FROM fn_get_all_transazioni()";
+    /// <summary>
+    /// Recupera le date viaggio distinte che hanno transazioni per un dato viaggio
+    /// </summary>
+    public async Task<IEnumerable<DataViaggioDTO>> GetDistinctDateViaggiAsync(int viaggioId)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT * FROM fn_get_date_viaggi_with_transazioni(@ViaggioId)";
+            var result = await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero date viaggi con transazioni per viaggio {ViaggioId}", viaggioId);
+            return Enumerable.Empty<DataViaggioDTO>();
+        }
+    }
 
-            var result = await conn.QueryAsync<MovTransazioni>(sql);
+    /// <summary>
+    /// Recupera tutte le transazioni di tutte le aziende, con filtri opzionali.
+    /// Utilizzato da SuperAdmin per visualizzare tutto.
+    /// Ordinamento decrescente per Data Transazione.
+    /// </summary>
+    public async Task<IEnumerable<MovTransazioni>> GetAllAsync(
+        int? viaggioId = null,
+        int? dataViaggioId = null,
+        DateTime? dataTransazione = null,
+        bool soloDaPagare = false)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare)";
 
-            _logger.LogInformation("GetAllAsync: Recuperate {Count} transazioni", result.Count());
+            var result = await conn.QueryAsync<MovTransazioni>(sql, new
+            {
+                ViaggioId = viaggioId,
+                DataViaggioId = dataViaggioId,
+                DataTransazione = dataTransazione,
+                SoloDaPagare = soloDaPagare
+            });
 
             return result;
         }
@@ -44,21 +89,29 @@ public class MovTransazioniService
     }
 
     /// <summary>
-    /// Recupera tutte le transazioni per una data Azienda, includendo dettagli Fornitore e Valuta.
+    /// Recupera tutte le transazioni per una data Azienda, con filtri opzionali.
     /// Ordinamento decrescente per Data Transazione.
     /// </summary>
-    public async Task<IEnumerable<MovTransazioni>> GetByAziendaAsync(int aziendaId)
+    public async Task<IEnumerable<MovTransazioni>> GetByAziendaAsync(
+        int aziendaId,
+        int? viaggioId = null,
+        int? dataViaggioId = null,
+        DateTime? dataTransazione = null,
+        bool soloDaPagare = false)
     {
         try
         {
-            _logger.LogInformation("GetByAziendaAsync: Recupero transazioni per azienda {AziendaId}...", aziendaId);
             using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare)";
 
-            string sql = "SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId)";
-
-            var result = await conn.QueryAsync<MovTransazioni>(sql, new { AziendaId = aziendaId });
-
-            _logger.LogInformation("GetByAziendaAsync: Recuperate {Count} transazioni per azienda {AziendaId}", result.Count(), aziendaId);
+            var result = await conn.QueryAsync<MovTransazioni>(sql, new
+            {
+                AziendaId = aziendaId,
+                ViaggioId = viaggioId,
+                DataViaggioId = dataViaggioId,
+                DataTransazione = dataTransazione,
+                SoloDaPagare = soloDaPagare
+            });
 
             return result;
         }
