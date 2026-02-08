@@ -14,6 +14,7 @@ public class UserInfo
     public DateTime? DataNascita { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public int? ValutaDefaultId { get; set; }
+    public string ValutaCodiceIso { get; set; } = "EUR";
 
     public string FullName => $"{Nome} {Cognome}".Trim();
     public bool IsSuperAdmin => RoleCode?.ToLower() == "superadmin";

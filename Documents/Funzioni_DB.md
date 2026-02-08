@@ -9,8 +9,8 @@ Funzioni relative all'autenticazione, gestione utenti, ruoli e permessi.
 
 | Nome della Function | Scopo | Input | Output | Files Coinvolti |
 | :--- | :--- | :--- | :--- | :--- |
-| `fn_app_login` | Login con auto-detect tenant | `p_email citext, p_password text` | `jsonb` | - |
-| `fn_app_login_text` | - | `p_email text, p_password text` | `jsonb` | `Services/Authentication/AuthenticationService.cs` |
+| `fn_app_login` | Login con auto-detect tenant. Restituisce dati utente completi inclusi `valuta_default_id` e `valuta_codice_iso` tramite JOIN con `ana_valute`. | `p_email citext, p_password text` | `jsonb` (include: user_id, email, nome, cognome, role_code, role_name, azienda_id, valuta_default_id, **valuta_codice_iso**, last_login_at) | `Services/Authentication/AuthenticationService.cs`, `Models/UserInfo.cs` |
+| `fn_app_login_text` | Versione text-based di fn_app_login. Restituisce dati utente completi inclusi `valuta_default_id` e `valuta_codice_iso` tramite JOIN con `ana_valute`. | `p_email text, p_password text` | `jsonb` (include: user_id, email, nome, cognome, role_code, role_name, azienda_id, valuta_default_id, **valuta_codice_iso**, last_login_at) | `Services/Authentication/AuthenticationService.cs`, `Models/UserInfo.cs` |
 | `fn_app_login_text_debug` | - | `p_email text, p_password text` | `jsonb` | - |
 | `fn_app_profile` | - | `p_user_id uuid` | `jsonb` | - |
 | `fn_app_list_users` | Restituisce lista utenti paginata con filtri | `p_tenant_id text, ...` | `jsonb` | `Services/Security/UserService.cs` |
@@ -125,6 +125,9 @@ Funzioni per la gestione di valute e tassi di cambio.
 | :--- | :--- | :--- | :--- | :--- |
 | `fn_get_tasso_cambio` | Restituisce il tasso di cambio per una coppia di valute (ISO o ID) e una data specifica. **Logica avanzata**: se il tasso non esiste per la data richiesta, cerca il più recente disponibile. Se la coppia diretta non esiste, tenta il calcolo inverso (1/tasso). | `p_iso_da VARCHAR, p_iso_a VARCHAR, p_data DATE` (Overload: `p_valuta_da INT, ...`) | `NUMERIC(15,6)` | - |
 | `fn_calcola_importo_eur` | **Trigger Function**: Calcola automaticamente il controvalore in EUR per ogni transazione inserita o modificata in `mov_transazioni`, utilizzando il tasso di cambio della data transazione. | TRIGGER (NEW/OLD record) | TRIGGER `trg_calcola_importo_eur` | - |
+| `fn_get_fatturato_annuale` | Calcola il fatturato annuale (entrate) per un'azienda convertito nella valuta target. Filtra per tipo movimento 'ENTRATA' e stato != 'ANNULLATO'. Usa l'anno di `transazione_data_documento` (con fallback a `transazione_data`). **Conversione valuta**: applica il tasso di cambio alla data del documento usando `fn_get_tasso_cambio`. | `p_azienda_id INTEGER, p_anno INTEGER, p_valuta_target_id INTEGER` | `NUMERIC(15,2)` | `Statistics/StatisticRevenue.cs` |
+| `fn_get_fatturato_periodo` | Calcola il fatturato per un periodo specifico (date esatte) convertito nella valuta target. Utilizzato per confronti Period-over-Period. Filtra per tipo movimento 'ENTRATA' e stato != 'ANNULLATO'. **Conversione valuta**: applica il tasso di cambio alla data del documento. | `p_azienda_id INTEGER, p_data_inizio DATE, p_data_fine DATE, p_valuta_target_id INTEGER` | `NUMERIC(15,2)` | `Statistics/StatisticRevenue.cs` |
+| `fn_get_fatturato_mensile_trend` | Restituisce il trend mensile del fatturato per un anno specifico. Restituisce sempre 12 righe (gennaio-dicembre) con valore 0 per mesi senza entrate. **Conversione valuta**: applica il tasso di cambio alla data del documento per ogni transazione. | `p_azienda_id INTEGER, p_anno INTEGER, p_valuta_target_id INTEGER` | `TABLE(mese INTEGER, fatturato NUMERIC(15,2))` | `Statistics/StatisticRevenue.cs` |
 
 ---
 
