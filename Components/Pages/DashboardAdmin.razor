@@ -245,11 +245,68 @@
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
             <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
                 <MudStack Spacing="2">
-                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" Color="Color.Tertiary" />
-                    <MudText Typo="Typo.h4">@((_statsRevenue?.MainValue ?? 0).ToString("N0"))</MudText>
-                        <MudText Typo="Typo.body2">Fatturato @_selectedYear (@(_currentUser?.ValutaCodiceIso ?? "EUR"))</MudText>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" Color="Color.Tertiary" />
+                        <MudStack Spacing="0" AlignItems="AlignItems.End">
+                            <MudChip T="string" Size="Size.Large"
+                                Color="@(GetTrendColor(_statsRevenue?.PercentageChange ?? 0))" Variant="Variant.Text"
+                                Icon="@(GetTrendIcon(_statsRevenue?.PercentageChange ?? 0))">
+                                @(_statsRevenue?.PercentageChange.ToString("+0.#;-0.#;0"))%
+                            </MudChip>
+                            <MudText Typo="Typo.body1" Color="@(GetTrendColor(_statsRevenue?.PercentageChange ?? 0))"
+                                Style="font-weight: bold" Class="mr-2">
+                                @((_statsRevenue?.Increment ?? 0).ToString("+0;-0;0"))
+                            </MudText>
+                        </MudStack>
                     </MudStack>
-                </MudPaper>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
+                        <MudText Typo="Typo.h4">@((_statsRevenue?.MainValue ?? 0).ToString("N0"))</MudText>
+                        @if (_statsRevenue?.TrendData?.Any(x => x > 0) == true)
+                        {
+                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                    @{
+                                        var data = _statsRevenue.TrendData;
+                                        var max = data.Any() ? data.Max() : 1;
+                                        if (max == 0) max = 1;
+                                        var barWidth = 120.0 / 12.0;
+                                        var gap = 2.0;
+                                        barWidth -= gap;
+
+                                        for (int i = 0; i < 12; i++)
+                                        {
+                                            var val = (i < data.Count) ? data[i] : 0;
+                                            var height = (val / max) * 50.0;
+                                            var x = i * (barWidth + gap);
+                                            var y = 50.0 - height;
+                                            var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                            var toolTip = $"{monthName}: {val:N0}";
+
+                                            <!-- Background Bar (Placeholder) -->
+                                            <rect x="@x" y="0" width="@barWidth" height="50" fill="#f0f0f0" rx="2">
+                                                <title>@toolTip</title>
+                                            </rect>
+
+                                            <!-- Data Bar -->
+                                            @if (val > 0)
+                                            {
+                                                <rect x="@x" y="@y" width="@barWidth" height="@height" fill="@Colors.Purple.Default" rx="2">
+                                                    <title>@toolTip</title>
+                                                </rect>
+                                            }
+                                        }
+                                    }
+                                </svg>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2">Fatturato @_selectedYear (@(_currentUser?.ValutaCodiceIso ?? "EUR"))</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su @(_selectedYear - 1))
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
                 <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
