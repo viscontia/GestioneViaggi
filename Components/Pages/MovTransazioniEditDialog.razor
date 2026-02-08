@@ -331,19 +331,21 @@
             try
             {
                 string? warningMessage = null;
+                var session = await SessionManager.GetSessionAsync();
+                string currentUser = session?.User?.Username ?? "System";
 
                 if (Transazione.TransazioneId == 0)
                 {
-                    // Ensure created properties
-                    Transazione.CreatedBy = "System"; // TODO: Get Real User
+                    // Imposta l'utente che crea il record
+                    Transazione.CreatedBy = currentUser;
                     var (transazioneId, warning) = await TransazioniService.CreateAsync(Transazione);
                     warningMessage = warning;
                     Snackbar.Add("Transazione creata con successo", Severity.Success);
                 }
                 else
                 {
-                    // Ensure updated properties
-                    Transazione.UpdatedBy = "System";
+                    // Imposta l'utente che aggiorna il record
+                    Transazione.UpdatedBy = currentUser;
                     warningMessage = await TransazioniService.UpdateAsync(Transazione);
                     Snackbar.Add("Transazione aggiornata con successo", Severity.Success);
                 }
