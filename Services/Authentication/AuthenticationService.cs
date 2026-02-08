@@ -126,6 +126,9 @@ public class AuthenticationService : IAuthenticationService
                     AziendaId = userElement.TryGetProperty("azienda_id", out var aziendaProp) && aziendaProp.ValueKind != JsonValueKind.Null
                         ? aziendaProp.GetInt32()
                         : null,
+                    ValutaDefaultId = userElement.TryGetProperty("valuta_default_id", out var valutaProp) && valutaProp.ValueKind != JsonValueKind.Null
+                        ? valutaProp.GetInt32()
+                        : null,
                     LastLoginAt = ParseDateTime(userElement, "last_login_at")
                 };
 

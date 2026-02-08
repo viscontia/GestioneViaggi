@@ -45,6 +45,7 @@
     private AnaValute? _selectedValuta;
     private bool _isLoading = true;
     private bool _loaded = false;
+    private int _pendingValutaId = 0; // Memorizza il valore se arriva prima del caricamento
 
     protected override async Task OnInitializedAsync()
     {
@@ -53,11 +54,21 @@
 
     protected override void OnParametersSet()
     {
-        UpdateSelectedValuta();
+        // Se le valute non sono ancora caricate, memorizza il valore per dopo
+        if (!_loaded && SelectedValutaId > 0)
+        {
+            _pendingValutaId = SelectedValutaId;
+        }
+        else
+        {
+            UpdateSelectedValuta();
+        }
     }
 
     private void UpdateSelectedValuta()
     {
+        // Se le valute non sono ancora caricate, non fare nulla
+        // Il valore verrà impostato quando LoadValute() completerà
         if (!_loaded || _valute.Count == 0) return;
 
         if (SelectedValutaId > 0)
@@ -65,6 +76,8 @@
             if (_selectedValuta?.ValutaId != SelectedValutaId)
             {
                 _selectedValuta = _valute.FirstOrDefault(v => v.ValutaId == SelectedValutaId);
+                // Forza il re-render per aggiornare il componente MudAutocomplete
+                StateHasChanged();
             }
         }
         else
@@ -81,7 +94,17 @@
             var valute = await ValuteService.GetAllValuteAsync();
             _valute = valute?.ToList() ?? new List<AnaValute>();
             _loaded = true;
-            UpdateSelectedValuta();
+
+            // Se c'era un valore in attesa, applicalo ora che le valute sono caricate
+            if (_pendingValutaId > 0)
+            {
+                _selectedValuta = _valute.FirstOrDefault(v => v.ValutaId == _pendingValutaId);
+                _pendingValutaId = 0;
+            }
+            else
+            {
+                UpdateSelectedValuta();
+            }
         }
         catch (Exception ex)
         {

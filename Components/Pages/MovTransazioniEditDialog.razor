@@ -6,6 +6,7 @@
 @inject MovTransazioniService TransazioniService
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -181,6 +182,25 @@
             Transazione.TransazioneTipoMovimento = "USCITA";
             // Use AziendaId parameter (passed from parent page)
             Transazione.TransazioneAziendaId = AziendaId;
+
+            // Imposta la valuta di default dell'utente corrente
+            try
+            {
+                var session = await SessionManager.GetSessionAsync();
+                if (session?.User?.ValutaDefaultId.HasValue == true)
+                {
+                    Transazione.TransazioneValutaId = session.User.ValutaDefaultId.Value;
+                    System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Valuta default impostata: {session.User.ValutaDefaultId.Value}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Nessuna valuta default trovata per l'utente");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Errore recupero valuta default: {ex.Message}");
+            }
         }
         else
         {
