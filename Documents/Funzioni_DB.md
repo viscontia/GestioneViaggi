@@ -124,10 +124,30 @@ Funzioni per la gestione di valute e tassi di cambio.
 | Nome della Function | Scopo | Input | Output | Files Coinvolti |
 | :--- | :--- | :--- | :--- | :--- |
 | `fn_get_tasso_cambio` | Restituisce il tasso di cambio per una coppia di valute (ISO o ID) e una data specifica. **Logica avanzata**: se il tasso non esiste per la data richiesta, cerca il più recente disponibile. Se la coppia diretta non esiste, tenta il calcolo inverso (1/tasso). | `p_iso_da VARCHAR, p_iso_a VARCHAR, p_data DATE` (Overload: `p_valuta_da INT, ...`) | `NUMERIC(15,6)` | - |
-| `fn_calcola_importo_eur` | **Trigger Function**: Calcola automaticamente il controvalore in EUR per ogni transazione inserita o modificata in `mov_transazioni`, utilizzando il tasso di cambio della data transazione. | TRIGGER (NEW/OLD record) | TRIGGER `trg_calcola_importo_eur` | - |
+| `fn_validate_data_documento` | **Trigger Function** (2026-02-08): Valida che le transazioni in valuta estera (non EUR) abbiano obbligatoriamente la `transazione_data_documento` popolata. Blocca INSERT/UPDATE con messaggio esplicito se la validazione fallisce. Questo garantisce che il tasso di cambio possa essere recuperato correttamente dalla Frankfurter API usando la data del documento. | TRIGGER (NEW record) | TRIGGER `trg_validate_data_documento` (BEFORE INSERT OR UPDATE) | `SqlScripts/Migration_AddDataDocumentoConstraint.sql` |
+| `fn_calcola_importo_eur` | **Trigger Function** (Aggiornata 2026-02-08): Calcola automaticamente il controvalore in EUR per ogni transazione inserita o modificata in `mov_transazioni`. **IMPORTANTE**: Usa `transazione_data_documento` (non più `transazione_data`) per recuperare il tasso di cambio corretto. Cerca prima il tasso esatto per la data documento, poi fallback all'ultimo tasso disponibile, infine tenta il calcolo inverso. **Memorizza metadata**: popola automaticamente `transazione_tasso_cambio_applicato`, `transazione_tasso_fonte` (FRANKFURTER_API, FALLBACK_DB, INVERSO, EUR_BASE) e `transazione_tasso_data_validita` per storicizzazione completa. | TRIGGER (NEW/OLD record) | TRIGGER `trg_calcola_importo_eur` (BEFORE INSERT OR UPDATE OF transazione_importo, transazione_valuta_id, transazione_data_documento) | `SqlScripts/Migration_UpdateTriggerCalcolaImportoEur.sql`, `Services/CRUD/MovTransazioniService.cs` |
 | `fn_get_fatturato_annuale` | Calcola il fatturato annuale (entrate) per un'azienda convertito nella valuta target. Filtra per tipo movimento 'ENTRATA' e stato != 'ANNULLATO'. Usa l'anno di `transazione_data_documento` (con fallback a `transazione_data`). **Conversione valuta**: applica il tasso di cambio alla data del documento usando `fn_get_tasso_cambio`. | `p_azienda_id INTEGER, p_anno INTEGER, p_valuta_target_id INTEGER` | `NUMERIC(15,2)` | `Statistics/StatisticRevenue.cs` |
 | `fn_get_fatturato_periodo` | Calcola il fatturato per un periodo specifico (date esatte) convertito nella valuta target. Utilizzato per confronti Period-over-Period. Filtra per tipo movimento 'ENTRATA' e stato != 'ANNULLATO'. **Conversione valuta**: applica il tasso di cambio alla data del documento. | `p_azienda_id INTEGER, p_data_inizio DATE, p_data_fine DATE, p_valuta_target_id INTEGER` | `NUMERIC(15,2)` | `Statistics/StatisticRevenue.cs` |
 | `fn_get_fatturato_mensile_trend` | Restituisce il trend mensile del fatturato per un anno specifico. Restituisce sempre 12 righe (gennaio-dicembre) con valore 0 per mesi senza entrate. **Conversione valuta**: applica il tasso di cambio alla data del documento per ogni transazione. | `p_azienda_id INTEGER, p_anno INTEGER, p_valuta_target_id INTEGER` | `TABLE(mese INTEGER, fatturato NUMERIC(15,2))` | `Statistics/StatisticRevenue.cs` |
+
+### 📝 Note Implementative - Gestione Tassi di Cambio (2026-02-08)
+
+**Nuovi Campi Tabella `mov_transazioni`**:
+- `transazione_tasso_cambio_applicato` (NUMERIC(15,6)): Tasso effettivamente utilizzato per la conversione
+- `transazione_tasso_fonte` (VARCHAR(50)): Fonte del tasso (FRANKFURTER_API, FALLBACK_DB, FALLBACK_DB_INVERSO, EUR_BASE)
+- `transazione_tasso_data_validita` (DATE): Data di validità del tasso applicato
+
+**Flusso Automatico Recupero Tassi**:
+1. L'utente inserisce una transazione in valuta estera (es. USD) tramite UI
+2. `MovTransazioniService.CreateAsync()` chiama `ExchangeRateService.UpdateRateForDateAsync()` PRIMA del salvataggio
+3. Frankfurter API viene interrogata: `https://api.frankfurter.app/YYYY-MM-DD?from=EUR&to=USD` (timeout 5 secondi)
+4. Se API OK → tasso salvato in `ana_tassi_cambio` con fonte FRANKFURTER_API
+5. Se API timeout/errore → warning message generato per l'utente
+6. INSERT/UPDATE in `mov_transazioni` → trigger `trg_validate_data_documento` verifica data_documento presente
+7. Trigger `trg_calcola_importo_eur` calcola importo EUR e memorizza metadata tasso
+8. UI mostra toast SUCCESS + eventuale toast WARNING (5 sec) se usato fallback
+
+**File Documentazione Completa**: `Documents/Changelog_ExchangeRateIntegration.md`
 
 ---
 

@@ -38,6 +38,15 @@ namespace GestioneViaggi.Models
         [Column("transazione_importo_eur")]
         public decimal? TransazioneImportoEur { get; set; } // Calcolato dal DB
 
+        [Column("transazione_tasso_cambio_applicato")]
+        public decimal? TransazioneTassoCambioApplicato { get; set; }
+
+        [Column("transazione_tasso_fonte")]
+        public string? TransazioneTassoFonte { get; set; }
+
+        [Column("transazione_tasso_data_validita")]
+        public DateTime? TransazioneTassoDataValidita { get; set; }
+
         [Column("transazione_data")]
         [Required(ErrorMessage = "La Data Transazione è obbligatoria")]
         public DateTime TransazioneData { get; set; } = DateTime.Now;

@@ -330,20 +330,33 @@
 
             try
             {
+                string? warningMessage = null;
+
                 if (Transazione.TransazioneId == 0)
                 {
                     // Ensure created properties
                     Transazione.CreatedBy = "System"; // TODO: Get Real User
-                    await TransazioniService.CreateAsync(Transazione);
+                    var (transazioneId, warning) = await TransazioniService.CreateAsync(Transazione);
+                    warningMessage = warning;
                     Snackbar.Add("Transazione creata con successo", Severity.Success);
                 }
                 else
                 {
                     // Ensure updated properties
                     Transazione.UpdatedBy = "System";
-                    await TransazioniService.UpdateAsync(Transazione);
+                    warningMessage = await TransazioniService.UpdateAsync(Transazione);
                     Snackbar.Add("Transazione aggiornata con successo", Severity.Success);
                 }
+
+                // Mostra warning se il tasso di cambio è stato recuperato con fallback
+                if (!string.IsNullOrWhiteSpace(warningMessage))
+                {
+                    Snackbar.Add(warningMessage, Severity.Warning, config =>
+                    {
+                        config.VisibleStateDuration = 5000; // 5 secondi
+                    });
+                }
+
                 MudDialog.Close(DialogResult.Ok(true));
             }
             catch (Exception ex)

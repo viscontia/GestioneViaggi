@@ -2,6 +2,7 @@ using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Models.DTOs;
+using GestioneViaggi.Services.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.CRUD;
@@ -10,11 +11,19 @@ public class MovTransazioniService
 {
     private readonly IDatabaseService _dbService;
     private readonly ILogger<MovTransazioniService> _logger;
+    private readonly IExchangeRateService _exchangeRateService;
+    private readonly AnaValuteService _valuteService;
 
-    public MovTransazioniService(IDatabaseService dbService, ILogger<MovTransazioniService> logger)
+    public MovTransazioniService(
+        IDatabaseService dbService,
+        ILogger<MovTransazioniService> logger,
+        IExchangeRateService exchangeRateService,
+        AnaValuteService valuteService)
     {
         _dbService = dbService;
         _logger = logger;
+        _exchangeRateService = exchangeRateService;
+        _valuteService = valuteService;
     }
 
     /// <summary>
@@ -146,10 +155,43 @@ public class MovTransazioniService
         }
     }
 
-    public async Task<int> CreateAsync(MovTransazioni item)
+    public async Task<(int TransazioneId, string? WarningMessage)> CreateAsync(MovTransazioni item)
     {
+        string? warningMessage = null;
+
         try
         {
+            // =============================================
+            // STEP 1: Recupero automatico tasso di cambio se valuta != EUR
+            // =============================================
+            var valuta = await _valuteService.GetValutaByIdAsync(item.TransazioneValutaId);
+
+            if (valuta != null && !valuta.ValutaIsBase && item.TransazioneDataDocumento.HasValue)
+            {
+                _logger.LogInformation(
+                    "Recupero tasso di cambio per {ValutaIso} alla data documento {DataDoc}",
+                    valuta.ValutaCodiceIso,
+                    item.TransazioneDataDocumento.Value.ToString("yyyy-MM-dd"));
+
+                (bool success, string message) = await _exchangeRateService.UpdateRateForDateAsync(
+                    valuta.ValutaCodiceIso,
+                    item.TransazioneDataDocumento.Value);
+
+                if (!success)
+                {
+                    // API fallita o timeout - verrà usato il fallback dal DB
+                    warningMessage = message;
+                    _logger.LogWarning("Fallback: {Message}", message);
+                }
+                else
+                {
+                    _logger.LogInformation("Tasso aggiornato con successo: {Message}", message);
+                }
+            }
+
+            // =============================================
+            // STEP 2: Inserimento della transazione (il trigger calcolerà l'importo EUR)
+            // =============================================
             using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 INSERT INTO mov_transazioni (
@@ -167,6 +209,7 @@ public class MovTransazioniService
                     transazione_causale,
                     transazione_note,
                     transazione_numero_documento,
+                    transazione_data_documento,
                     created_at,
                     created_by
                 ) VALUES (
@@ -184,12 +227,16 @@ public class MovTransazioniService
                     @TransazioneCausale,
                     @TransazioneNote,
                     @TransazioneNumeroDocumento,
+                    @TransazioneDataDocumento,
                     NOW(),
                     @CreatedBy
                 ) RETURNING transazione_id";
 
-            // Nota: transazione_importo_eur è calcolato dal trigger DB
-            return await conn.ExecuteScalarAsync<int>(sql, item);
+            // Nota: transazione_importo_eur, tasso_cambio_applicato, tasso_fonte, tasso_data_validita
+            //       sono tutti calcolati automaticamente dal trigger trg_calcola_importo_eur
+            int transazioneId = await conn.ExecuteScalarAsync<int>(sql, item);
+
+            return (transazioneId, warningMessage);
         }
         catch (Exception ex)
         {
@@ -198,10 +245,43 @@ public class MovTransazioniService
         }
     }
 
-    public async Task UpdateAsync(MovTransazioni item)
+    public async Task<string?> UpdateAsync(MovTransazioni item)
     {
+        string? warningMessage = null;
+
         try
         {
+            // =============================================
+            // STEP 1: Recupero automatico tasso di cambio se valuta != EUR
+            // =============================================
+            var valuta = await _valuteService.GetValutaByIdAsync(item.TransazioneValutaId);
+
+            if (valuta != null && !valuta.ValutaIsBase && item.TransazioneDataDocumento.HasValue)
+            {
+                _logger.LogInformation(
+                    "Recupero tasso di cambio per {ValutaIso} alla data documento {DataDoc}",
+                    valuta.ValutaCodiceIso,
+                    item.TransazioneDataDocumento.Value.ToString("yyyy-MM-dd"));
+
+                (bool success, string message) = await _exchangeRateService.UpdateRateForDateAsync(
+                    valuta.ValutaCodiceIso,
+                    item.TransazioneDataDocumento.Value);
+
+                if (!success)
+                {
+                    // API fallita o timeout - verrà usato il fallback dal DB
+                    warningMessage = message;
+                    _logger.LogWarning("Fallback: {Message}", message);
+                }
+                else
+                {
+                    _logger.LogInformation("Tasso aggiornato con successo: {Message}", message);
+                }
+            }
+
+            // =============================================
+            // STEP 2: Aggiornamento della transazione (il trigger ricalcolerà l'importo EUR)
+            // =============================================
             using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 UPDATE mov_transazioni SET
@@ -218,11 +298,14 @@ public class MovTransazioniService
                     transazione_causale = @TransazioneCausale,
                     transazione_note = @TransazioneNote,
                     transazione_numero_documento = @TransazioneNumeroDocumento,
+                    transazione_data_documento = @TransazioneDataDocumento,
                     updated_at = NOW(),
                     updated_by = @UpdatedBy
                 WHERE transazione_id = @TransazioneId";
 
             await conn.ExecuteAsync(sql, item);
+
+            return warningMessage;
         }
         catch (Exception ex)
         {
