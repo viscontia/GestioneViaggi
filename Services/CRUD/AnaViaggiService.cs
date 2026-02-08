@@ -5,6 +5,8 @@ using Npgsql;
 using NpgsqlTypes;
 using GestioneViaggi.Models.DTOs;
 
+using GestioneViaggi.Services.Session;
+
 namespace GestioneViaggi.Services.CRUD;
 
 public class AnaViaggiService : BaseCrudService<AnaViaggi>
@@ -12,8 +14,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     protected override string TableName => "ana_viaggi";
     protected override string IdColumnName => "viaggio_id";
 
-    public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger)
-        : base(databaseService, logger)
+    public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger, ITenantContext tenantContext)
+        : base(databaseService, logger, tenantContext)
     {
     }
 
@@ -184,6 +186,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
     public override async Task<AnaViaggi> CreateAsync(AnaViaggi entity)
     {
+        await PopulateAuditFieldsAsync(entity, true);
         return await CreateAsyncInternal(entity, true);
     }
 
@@ -238,6 +241,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
     public override async Task<AnaViaggi> UpdateAsync(AnaViaggi entity)
     {
+        await PopulateAuditFieldsAsync(entity, false);
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -505,6 +509,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
         try
         {
+            await PopulateAuditFieldsAsync(trip, true);
             // 1. Insert Trip
             var sqlTrip = @"
                 INSERT INTO ana_viaggi (

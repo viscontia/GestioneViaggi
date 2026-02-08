@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using GestioneViaggi.Validation.Syntax;
 using GestioneViaggi.Validation.Semantic;
 
@@ -7,69 +8,90 @@ namespace GestioneViaggi.Models;
 /// <summary>
 /// Rappresenta un viaggio (tabella ana_viaggi)
 /// </summary>
-public class AnaViaggi : BaseEntity, IValidatableObject
+public class AnaViaggi : BaseEntity, IAuditable, IValidatableObject
 {
     // === Foreign Keys (Required) ===
 
+    [Column("nazione_id_fk")]
     [Required(ErrorMessage = "La Nazione è obbligatoria")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare una Nazione valida")]
     public int NazioneIdFk { get; set; }
 
+    [Column("tipo_viaggio_id_fk")]
     [Required(ErrorMessage = "Il Tipo Viaggio è obbligatorio")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare un Tipo Viaggio valido")]
     public int TipoViaggioIdFk { get; set; }
 
+    [Column("tipo_trattamento_id_fk")]
     [Required(ErrorMessage = "Il Tipo Trattamento è obbligatorio")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare un Tipo Trattamento valido")]
     public int TipoTrattamentoIdFk { get; set; }
 
+    [Column("tipo_pernottamento_id_fk")]
     [Required(ErrorMessage = "Il Tipo Pernottamento è obbligatorio")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare un Tipo Pernottamento valido")]
     public int TipoPernottamentoIdFk { get; set; }
 
+    [Column("tipo_avvicinamento_id_fk")]
     [Required(ErrorMessage = "Il Tipo Avvicinamento è obbligatorio")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare un Tipo Avvicinamento valido")]
     public int TipoAvvicinamentoIdFk { get; set; }
 
+    [Column("azienda_id")]
     [Required(ErrorMessage = "L'Azienda è obbligatoria")]
     [Range(1, int.MaxValue, ErrorMessage = "Selezionare un'Azienda valida")]
     public int AziendaId { get; set; }
 
     // === Text Fields ===
 
+    [Column("descrizione_breve")]
     [Required(ErrorMessage = "La descrizione breve è obbligatoria")]
     public string DescrizioneBreve { get; set; } = string.Empty;
 
+    [Column("descrizione_estesa")]
     [Required(ErrorMessage = "La descrizione estesa è obbligatoria")]
     public string DescrizioneEstesa { get; set; } = string.Empty;
 
+    [Column("note")]
     public string? Note { get; set; } // Opzionale
 
+    [Column("link")]
     public string? Link { get; set; } // Opzionale
 
     // === Numeric Fields ===
 
+    [Column("numero_giorni")]
     [Required(ErrorMessage = "Il numero di giorni è obbligatorio")]
     [Range(1, 365, ErrorMessage = "Numero giorni non valido (1-365)")]
     public int NumeroGiorni { get; set; }
 
+    [Column("numero_notti")]
     [Required(ErrorMessage = "Il numero di notti è obbligatorio")]
     [Range(0, 365, ErrorMessage = "Numero notti non valido (0-365)")]
     public int NumeroNotti { get; set; }
 
+    [Column("km")]
     [Required(ErrorMessage = "I Km sono obbligatori")]
     [Range(0, 100000, ErrorMessage = "Km non validi")]
     public int Km { get; set; }
 
     // === Other Fields ===
 
+    [Column("pasti_al_sacco")]
     [Required(ErrorMessage = "Il campo Pasti al sacco è obbligatorio")]
     public string PastiAlSacco { get; set; } = "N"; // 'Y' o 'N'
 
     // === Audit Fields ===
+    [Column("created_by")]
     public string? CreatedBy { get; set; }
+
+    [Column("created")]
     public DateTime? Created { get; set; }
+
+    [Column("updated_by")]
     public string? UpdatedBy { get; set; }
+
+    [Column("updated")]
     public DateTime? Updated { get; set; }
 
     // === Navigation Properties / DTO Fields ===

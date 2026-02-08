@@ -61,6 +61,11 @@ public class AziendaLogoService
 
         NormalizeEntityBeforeSave(entity);
 
+        var currentUser = await _tenantContext.GetCurrentUserAsync();
+        if (currentUser != null)
+        {
+            entity.CreatedBy = currentUser.UserId;
+        }
         entity.CreatedAt = DateTime.UtcNow;
 
         try
@@ -121,6 +126,11 @@ public class AziendaLogoService
 
         NormalizeEntityBeforeSave(entity);
 
+        var currentUser = await _tenantContext.GetCurrentUserAsync();
+        if (currentUser != null)
+        {
+            entity.UpdatedBy = currentUser.UserId;
+        }
         entity.UpdatedAt = DateTime.UtcNow;
 
         try

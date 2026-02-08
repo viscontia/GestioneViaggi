@@ -5,7 +5,7 @@ using GestioneViaggi.Validation.Syntax;
 namespace GestioneViaggi.Models
 {
     [Table("ana_fornitori")]
-    public class AnaFornitore : BaseEntity, IValidatableObject
+    public class AnaFornitore : BaseEntity, IAuditable, IValidatableObject
     {
         [Key]
         [Column("fornitore_id")]
@@ -82,14 +82,14 @@ namespace GestioneViaggi.Models
         public string? Note { get; set; }
 
         [Column("created_at")]
-        public DateTime? CreatedAt { get; set; }
+        public DateTime? Created { get; set; }
 
         [Column("created_by")]
         [MaxLength(50)]
         public string? CreatedBy { get; set; }
 
         [Column("updated_at")]
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? Updated { get; set; }
 
         [Column("updated_by")]
         [MaxLength(50)]

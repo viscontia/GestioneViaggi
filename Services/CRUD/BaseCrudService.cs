@@ -174,6 +174,29 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         EntityNormalizer.NormalizeNullableStrings(entity);
     }
 
+    /// <summary>
+    /// Popola automaticamente i campi di audit trail (created_by, created, updated_by, updated).
+    /// </summary>
+    protected async Task PopulateAuditFieldsAsync(T entity, bool isCreation)
+    {
+        if (entity is not IAuditable auditable)
+        {
+            return;
+        }
+
+        var user = _tenantContext != null ? await _tenantContext.GetCurrentUserAsync() : null;
+        var username = user?.Username ?? "SYSTEM";
+
+        if (isCreation)
+        {
+            auditable.CreatedBy = username;
+            auditable.Created = DateTime.UtcNow;
+        }
+
+        auditable.UpdatedBy = username;
+        auditable.Updated = DateTime.UtcNow;
+    }
+
     public virtual async Task<bool> DeleteAsync(int id)
     {
         try

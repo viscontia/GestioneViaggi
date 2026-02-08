@@ -4,16 +4,20 @@ using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
+using GestioneViaggi.Services.Session;
+
 namespace GestioneViaggi.Migrazione_Dati_Oracle;
 
 public class OracleMovClientiViaggiImportService
 {
     private readonly IDatabaseService _databaseService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<OracleMovClientiViaggiImportService> _logger;
 
-    public OracleMovClientiViaggiImportService(IDatabaseService databaseService, ILogger<OracleMovClientiViaggiImportService> logger)
+    public OracleMovClientiViaggiImportService(IDatabaseService databaseService, ITenantContext tenantContext, ILogger<OracleMovClientiViaggiImportService> logger)
     {
         _databaseService = databaseService;
+        _tenantContext = tenantContext;
         _logger = logger;
 
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
@@ -166,13 +170,8 @@ public class OracleMovClientiViaggiImportService
         int clienteId = Convert.ToInt32(row["CLIENTE_ID_FK"]);
 
         string oracleUser = row["CREATED_BY"]?.ToString() ?? "UNKNOWN";
-        // Note: created_by logic might be simpler here as table has its own created_by column.
-        // But requested to align logic. We use the same helper or simple default.
-        // Assuming created_by from Excel is valid username, or we map it. 
-        // For link tables usually user is passed through. Let's assume passed through unless mapping needed.
-        // Actually earlier analysis said: "NotNull enforced." 
-        // Let's stick to simple mapping or default "SYSTEM" if missing to satisfy NOT NULL.
-        string createdBy = !string.IsNullOrWhiteSpace(oracleUser) ? oracleUser : "SYSTEM";
+        string currentUser = (await _tenantContext.GetCurrentUserAsync())?.Username ?? "IMPORT_ORACLE";
+        string createdBy = !string.IsNullOrWhiteSpace(oracleUser) ? oracleUser : currentUser;
 
         var sql = @"
             INSERT INTO mov_clienti_viaggi (

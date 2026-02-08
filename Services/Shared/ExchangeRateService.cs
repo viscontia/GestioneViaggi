@@ -2,7 +2,11 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
+using Npgsql;
+using System.Text.Json;
 
 namespace GestioneViaggi.Services.Shared;
 
@@ -19,6 +23,7 @@ public class ExchangeRateService : IExchangeRateService
     private readonly HttpClient _httpClient;
     private readonly AnaValuteService _valuteService;
     private readonly AnaTassiCambioService _tassiService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<ExchangeRateService> _logger;
     private const string API_BASE_URL = "https://api.frankfurter.app";
     private const int API_TIMEOUT_SECONDS = 5;
@@ -27,12 +32,14 @@ public class ExchangeRateService : IExchangeRateService
         HttpClient httpClient,
         AnaValuteService valuteService,
         AnaTassiCambioService tassiService,
+        ITenantContext tenantContext,
         ILogger<ExchangeRateService> logger)
     {
         _httpClient = httpClient;
         _httpClient.Timeout = TimeSpan.FromSeconds(API_TIMEOUT_SECONDS);
         _valuteService = valuteService;
         _tassiService = tassiService;
+        _tenantContext = tenantContext;
         _logger = logger;
     }
 
@@ -222,7 +229,7 @@ public class ExchangeRateService : IExchangeRateService
             TassoValore = rateEurToTarget,
             TassoFonte = "FRANKFURTER_API",
             TassoNote = $"Aggiornamento automatico {DateTime.Now:dd/MM/yyyy HH:mm}",
-            CreatedBy = "SYSTEM"
+            CreatedBy = (await _tenantContext.GetCurrentUserAsync())?.Username ?? "SYSTEM"
         };
 
         // Uses UPSERT logic in service
@@ -240,7 +247,7 @@ public class ExchangeRateService : IExchangeRateService
             TassoValore = rateEurToTarget,
             TassoFonte = "FRANKFURTER_API",
             TassoNote = $"Recuperato automaticamente per data documento {date:dd/MM/yyyy} alle {DateTime.Now:HH:mm}",
-            CreatedBy = "SYSTEM"
+            CreatedBy = (await _tenantContext.GetCurrentUserAsync())?.Username ?? "SYSTEM"
         };
 
         // Uses UPSERT logic in service

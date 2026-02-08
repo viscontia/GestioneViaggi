@@ -53,6 +53,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
 
     public override async Task<AnaTassiCambio> CreateAsync(AnaTassiCambio entity)
     {
+        await PopulateAuditFieldsAsync(entity, true);
         try
         {
             using var conn = await _databaseService.GetConnectionAsync();
@@ -73,7 +74,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     @TassoValore,
                     @TassoFonte,
                     @TassoNote,
-                    NOW(),
+                    @Created,
                     @CreatedBy
                 ) 
                 ON CONFLICT (tasso_valuta_da_fk, tasso_valuta_a_fk, tasso_data_validita)
@@ -81,8 +82,8 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     tasso_valore = EXCLUDED.tasso_valore,
                     tasso_fonte = EXCLUDED.tasso_fonte,
                     tasso_note = EXCLUDED.tasso_note,
-                    updated_at = NOW(),
-                    updated_by = EXCLUDED.created_by
+                    updated_at = @Updated,
+                    updated_by = @UpdatedBy
                 RETURNING tasso_id";
 
             entity.TassoId = await conn.ExecuteScalarAsync<int>(sql, entity);
@@ -97,6 +98,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
 
     public override async Task<AnaTassiCambio> UpdateAsync(AnaTassiCambio entity)
     {
+        await PopulateAuditFieldsAsync(entity, false);
         try
         {
             using var conn = await _databaseService.GetConnectionAsync();
@@ -108,7 +110,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     tasso_valore = @TassoValore,
                     tasso_fonte = @TassoFonte,
                     tasso_note = @TassoNote,
-                    updated_at = NOW(),
+                    updated_at = @Updated,
                     updated_by = @UpdatedBy
                 WHERE tasso_id = @TassoId";
 

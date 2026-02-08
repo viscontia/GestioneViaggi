@@ -7,7 +7,7 @@ namespace GestioneViaggi.Models;
 /// <summary>
 /// Rappresenta un'azienda (tabella ana_aziende)
 /// </summary>
-public class Azienda : BaseEntity, IValidatableObject
+public class Azienda : BaseEntity, IAuditable, IValidatableObject
 {
     [Required(ErrorMessage = "La ragione sociale è obbligatoria")]
     [StringLength(255, ErrorMessage = "La ragione sociale non può superare i 255 caratteri")]
@@ -65,6 +65,27 @@ public class Azienda : BaseEntity, IValidatableObject
     public DateTime DataCreazione { get; set; }
 
     public DateTime? DataUltimaModifica { get; set; }
+
+    // === IAuditable Implementation ===
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? CreatedBy { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTime? Created 
+    { 
+        get => DataCreazione; 
+        set => DataCreazione = value ?? DateTime.UtcNow; 
+    }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? UpdatedBy { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTime? Updated 
+    { 
+        get => DataUltimaModifica; 
+        set => DataUltimaModifica = value; 
+    }
 
     // Campi di lookup per la grid (non salvati nel DB)
     public string? ReaProvinciaSigla { get; set; }

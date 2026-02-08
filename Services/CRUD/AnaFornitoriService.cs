@@ -96,6 +96,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         }
         // Else use provided entity.AziendaFk
 
+        await PopulateAuditFieldsAsync(entity, true);
         NormalizeEntityBeforeSave(entity);
         await ValidateDuplicatesAsync(entity, isUpdate: false);
 
@@ -122,7 +123,10 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                     attivo,
                     priorita,
                     note,
-                    created_by
+                    created_by,
+                    created_at,
+                    updated_by,
+                    updated_at
                 )
                 VALUES (
                     @aziendaFk,
@@ -143,13 +147,15 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                     @attivo,
                     @priorita,
                     @note,
-                    @createdBy
+                    @createdBy,
+                    @createdAt,
+                    @updatedBy,
+                    @updatedAt
                 )
                 RETURNING *";
 
             await using var command = new NpgsqlCommand(sql, connection);
             AddCommandParameters(command, entity);
-            AddNullableStringParameter(command, "createdBy", entity.CreatedBy);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -176,6 +182,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
     {
         // Validazione tenant: verifica accesso all'azienda
         await ValidateTenantAccessAsync(entity.AziendaFk);
+        await PopulateAuditFieldsAsync(entity, false);
         NormalizeEntityBeforeSave(entity);
         await ValidateDuplicatesAsync(entity, isUpdate: true);
 
@@ -202,14 +209,14 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                     attivo = @attivo,
                     priorita = @priorita,
                     note = @note,
-                    updated_by = @updatedBy
+                    updated_by = @updatedBy,
+                    updated_at = @updatedAt
                 WHERE fornitore_id = @id
                 RETURNING *";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", entity.Id);
             AddCommandParameters(command, entity);
-            AddNullableStringParameter(command, "updatedBy", entity.UpdatedBy);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -308,9 +315,9 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
             Priorita = reader.GetInt32(reader.GetOrdinal("priorita")),
             Note = ReadNullableString(reader, "note"),
-            CreatedAt = ReadNullableDateTime(reader, "created_at"),
+            Created = ReadNullableDateTime(reader, "created_at"),
             CreatedBy = ReadNullableString(reader, "created_by"),
-            UpdatedAt = ReadNullableDateTime(reader, "updated_at"),
+            Updated = ReadNullableDateTime(reader, "updated_at"),
             UpdatedBy = ReadNullableString(reader, "updated_by")
         };
     }
@@ -355,6 +362,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         command.Parameters.AddWithValue("priorita", entity.Priorita);
 
         AddNullableStringParameter(command, "note", entity.Note);
+
+        // Audit parameters
+        command.Parameters.AddWithValue("createdBy", (object?)entity.CreatedBy ?? DBNull.Value);
+        command.Parameters.AddWithValue("createdAt", (object?)entity.Created ?? DBNull.Value);
+        command.Parameters.AddWithValue("updatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+        command.Parameters.AddWithValue("updatedAt", (object?)entity.Updated ?? DBNull.Value);
     }
 
     /// <summary>

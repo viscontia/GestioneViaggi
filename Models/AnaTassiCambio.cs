@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace GestioneViaggi.Models;
 
 [Table("ana_tassi_cambio")]
-public class AnaTassiCambio : BaseEntity
+public class AnaTassiCambio : BaseEntity, IAuditable
 {
     [Key]
     [Column("tasso_id")]

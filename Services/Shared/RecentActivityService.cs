@@ -61,7 +61,7 @@ public class RecentActivityService : IRecentActivityService
                     EntityId = reader.GetInt32(reader.GetOrdinal("entity_id")),
                     AziendaId = reader.IsDBNull(reader.GetOrdinal("azienda_id")) ? null : reader.GetInt32(reader.GetOrdinal("azienda_id")),
                     CreatedAt = reader.GetDateTime(reader.GetOrdinal("created_at")),
-                    CreatedBy = reader.IsDBNull(reader.GetOrdinal("created_by")) ? "System" : reader.GetString(reader.GetOrdinal("created_by"))
+                    CreatedBy = reader.IsDBNull(reader.GetOrdinal("created_by")) ? null : reader.GetString(reader.GetOrdinal("created_by"))
                 });
             }
         }

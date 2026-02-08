@@ -114,14 +114,20 @@ public class TenantContext : ITenantContext
         return filter;
     }
 
+    public async Task<UserInfo?> GetCurrentUserAsync()
+    {
+        var session = await _sessionManager.GetSessionAsync();
+        return session?.User;
+    }
+
     public async Task ValidateAccessAsync(int aziendaId)
     {
         var canAccess = await CanAccessAziendaAsync(aziendaId);
         
         if (!canAccess)
         {
-            var session = await _sessionManager.GetSessionAsync();
-            var userEmail = session?.User?.Email ?? "UNKNOWN";
+            var session = await GetCurrentUserAsync();
+            var userEmail = session?.Email ?? "UNKNOWN";
             
             _logger.LogWarning("SECURITY: User {Email} attempted to access AziendaId={AziendaId} without permission", 
                 userEmail, aziendaId);

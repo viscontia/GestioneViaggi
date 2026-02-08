@@ -164,7 +164,7 @@ public class MovTransazioniService
             // =============================================
             // STEP 1: Recupero automatico tasso di cambio se valuta != EUR
             // =============================================
-            var valuta = await _valuteService.GetValutaByIdAsync(item.TransazioneValutaId);
+                var valuta = await _valuteService.GetByIdAsync(item.TransazioneValutaId);
 
             if (valuta != null && !valuta.ValutaIsBase && item.TransazioneDataDocumento.HasValue)
             {
@@ -254,7 +254,7 @@ public class MovTransazioniService
             // =============================================
             // STEP 1: Recupero automatico tasso di cambio se valuta != EUR
             // =============================================
-            var valuta = await _valuteService.GetValutaByIdAsync(item.TransazioneValutaId);
+                var valuta = await _valuteService.GetByIdAsync(item.TransazioneValutaId);
 
             if (valuta != null && !valuta.ValutaIsBase && item.TransazioneDataDocumento.HasValue)
             {

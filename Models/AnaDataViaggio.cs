@@ -6,7 +6,7 @@ namespace GestioneViaggi.Models;
 /// <summary>
 /// Rappresenta una data di un viaggio (tabella ana_date_viaggi)
 /// </summary>
-public class AnaDataViaggio : BaseEntity
+public class AnaDataViaggio : BaseEntity, IAuditable
 {
     // === Foreign Keys ===
     [Column("viaggio_id_fk")]
@@ -49,6 +49,19 @@ public class AnaDataViaggio : BaseEntity
     // === Tenant ===
     [Column("azienda_id")]
     public int AziendaId { get; set; }
+
+    // === Audit Fields ===
+    [Column("created_by")]
+    public string? CreatedBy { get; set; }
+
+    [Column("created")]
+    public DateTime? Created { get; set; }
+
+    [Column("updated_by")]
+    public string? UpdatedBy { get; set; }
+
+    [Column("updated")]
+    public DateTime? Updated { get; set; }
 
     // === Computed ===
     [Column("tot_mezzi")]

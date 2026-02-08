@@ -1,4 +1,5 @@
 namespace GestioneViaggi.Services.Session;
+using GestioneViaggi.Models;
 
 /// <summary>
 /// Interfaccia per gestire il contesto multi-tenant dell'applicazione.
@@ -32,6 +33,11 @@ public interface ITenantContext
     /// <param name="columnName">Nome della colonna FK (default: azienda_id_fk)</param>
     /// <param name="includeWhereKeyword">Se true, include "WHERE", altrimenti solo la condizione</param>
     Task<string> GetTenantFilterSqlAsync(string columnName = "azienda_id_fk", bool includeWhereKeyword = true);
+
+    /// <summary>
+    /// Restituisce le informazioni dell'utente corrente.
+    /// </summary>
+    Task<UserInfo?> GetCurrentUserAsync();
 
     /// <summary>
     /// Valida l'accesso e solleva UnauthorizedAccessException se l'utente non può accedere.

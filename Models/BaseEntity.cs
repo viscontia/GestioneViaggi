@@ -8,7 +8,7 @@ public abstract class BaseEntity
     /// <summary>
     /// ID univoco dell'entità (non visibile all'utente nelle UI)
     /// </summary>
-    public int Id { get; set; }
+    public virtual int Id { get; set; }
 
     /// <summary>
     /// Crea una shallow copy dell'entità per evitare modifiche accidentali all'oggetto originale.

@@ -9,7 +9,7 @@ public class ActivityLogItem
     public int EntityId { get; set; }
     public int? AziendaId { get; set; }
     public DateTime CreatedAt { get; set; }
-    public string CreatedBy { get; set; } = string.Empty;
+    public string? CreatedBy { get; set; }
 
     // Helper for UI
     public string TimeAgo
