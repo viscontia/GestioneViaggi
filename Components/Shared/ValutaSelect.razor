@@ -2,29 +2,38 @@
 @using GestioneViaggi.Services.CRUD
 @inject AnaValuteService ValuteService
 
-@* 
+@*
     COMPONENT: ValutaSelect
     DESC: Dropdown per la selezione della valuta (ISO 4217).
     AUTORE: Antigravity
+    FIX: Risolto crash in MAUI con rendering condizionale e gestione async corretta
 *@
 
-<MudSelect T="int" 
-           Label="@Label" 
-           Value="@SelectedValutaId" 
-           ValueChanged="OnValueChanged"
+<MudSelect T="int"
+           Label="@Label"
+           Value="@SelectedValutaId"
+           ValueChanged="@OnValueChanged"
+           Variant="Variant.Outlined"
+           Disabled="@_isLoading"
+           Class="@Class"
            Required="@Required"
            RequiredError="@RequiredError"
-           Variant="Variant.Outlined" 
-           AnchorOrigin="Origin.BottomCenter"
            Dense="true"
            Clearable="@Clearable"
-           Disabled="@Disabled">
-    @if (_valute != null)
+           Adornment="@(Required ? Adornment.End : Adornment.None)"
+           AdornmentText="@(Required ? "*" : "")"
+           AdornmentColor="Color.Error"
+           AnchorOrigin="Origin.BottomCenter">
+    @if (_isLoading)
+    {
+        <MudSelectItem Value="0">Caricamento...</MudSelectItem>
+    }
+    else
     {
         @foreach (var valuta in _valute)
         {
             <MudSelectItem Value="@valuta.ValutaId">
-                @($"{valuta.ValutaCodiceIso} - {valuta.ValutaDescrizione}")
+                @valuta.ValutaCodiceIso - @valuta.ValutaDescrizione
             </MudSelectItem>
         }
     }
@@ -33,14 +42,14 @@
 @code {
     [Parameter] public int SelectedValutaId { get; set; }
     [Parameter] public EventCallback<int> SelectedValutaIdChanged { get; set; }
-
     [Parameter] public string Label { get; set; } = "Valuta";
+    [Parameter] public string? Class { get; set; }
     [Parameter] public bool Required { get; set; } = false;
     [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
     [Parameter] public bool Clearable { get; set; } = false;
-    [Parameter] public bool Disabled { get; set; } = false;
 
-    private IEnumerable<AnaValute> _valute = new List<AnaValute>();
+    private List<AnaValute> _valute = new();
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,21 +58,20 @@
 
     private async Task LoadValute()
     {
-        _valute = await ValuteService.GetAllValuteAsync();
-        
-        // Se non c'è una selezione e abbiamo dei dati, pre-selezioniamo EUR se presente
-        if (SelectedValutaId == 0 && _valute.Any())
+        try
         {
-             // Logica opzionale: cerchiamo EUR o primo elemento
-             var eur = _valute.FirstOrDefault(v => v.ValutaCodiceIso == "EUR");
-             if (eur != null)
-             {
-                 // Nota: Non scateniamo l'evento qui per evitare loop o side effect, 
-                 // ma idealmente il chiamante gestisce il default. 
-                 // Tuttavia, per UX, spesso si vuole che il form nasca con "EUR".
-                 // Lasciamo al parent la responsabilità o implementiamo un AutoSelectDefault parameter?
-                 // Per ora lasciamo pulito.
-             }
+            _isLoading = true;
+            var valute = await ValuteService.GetAllValuteAsync();
+            _valute = valute?.ToList() ?? new List<AnaValute>();
+        }
+        catch (Exception ex)
+        {
+            _valute = new List<AnaValute>();
+            System.Diagnostics.Debug.WriteLine($"[ValutaSelect] Errore caricamento valute: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
 

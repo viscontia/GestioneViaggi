@@ -86,45 +86,72 @@
 
     private async Task OpenCreateDialog()
     {
-        var parameters = new DialogParameters { ["IsEditMode"] = false };
-        var options = new DialogOptions
-            {
-                CloseButton = true,
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                BackdropClick =
-            false
-            };
-
-        var dialog = await DialogService.ShowAsync<UserDialog>("Nuovo Utente", parameters, options);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
+        try
         {
-            await LoadUsers();
-            Snackbar.Add("Utente creato con successo", Severity.Success);
+            var parameters = new DialogParameters { ["IsEditMode"] = false };
+            var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    BackdropClick = false
+                };
+
+            var dialog = await DialogService.ShowAsync<UserDialog>("Nuovo Utente", parameters, options);
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante l'apertura del dialogo: {ex.Message}", Severity.Error);
         }
     }
 
     private async Task OpenEditDialog(UserInfo user)
     {
-        var parameters = new DialogParameters { ["IsEditMode"] = true, ["User"] = user };
-        var options = new DialogOptions
+        try
+        {
+            // Crea una copia dell'utente per evitare modifiche all'oggetto originale durante il binding
+            var userCopy = new UserInfo
             {
-                CloseButton = true,
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                BackdropClick =
-            false
+                UserId = user.UserId,
+                Email = user.Email,
+                Nome = user.Nome,
+                Cognome = user.Cognome,
+                RoleCode = user.RoleCode,
+                RoleName = user.RoleName,
+                AziendaId = user.AziendaId,
+                RagioneSocialeAzienda = user.RagioneSocialeAzienda,
+                IsActive = user.IsActive,
+                DataNascita = user.DataNascita,
+                LastLoginAt = user.LastLoginAt,
+                ValutaDefaultId = user.ValutaDefaultId
             };
 
-        var dialog = await DialogService.ShowAsync<UserDialog>("Modifica Utente", parameters, options);
-        var result = await dialog.Result;
+            var parameters = new DialogParameters { ["IsEditMode"] = true, ["User"] = userCopy };
+            var options = new DialogOptions
+                {
+                    CloseButton = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true,
+                    BackdropClick = false
+                };
 
-        if (result != null && !result.Canceled)
+            var dialog = await DialogService.ShowAsync<UserDialog>("Modifica Utente", parameters, options);
+            var result = await dialog.Result;
+
+            if (result != null && !result.Canceled)
+            {
+                await LoadUsers();
+            }
+        }
+        catch (Exception ex)
         {
-            await LoadUsers();
-            Snackbar.Add("Utente aggiornato con successo", Severity.Success);
+            Snackbar.Add($"Errore durante l'apertura del dialogo: {ex.Message}", Severity.Error);
         }
     }
 

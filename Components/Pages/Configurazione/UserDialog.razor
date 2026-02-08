@@ -64,9 +64,18 @@
             @if (ShouldShowAziendaSelection())
             {
                 <AziendaSelect Value="@(User.AziendaId ?? 0)"
-                    ValueChanged="@((int val) => User.AziendaId = val == 0 ? null : val)" Required="true"
+                    ValueChanged="@((int val) => HandleAziendaChanged(val))" Required="true"
                     ShowAllOption="false" Class="mb-3" />
             }
+
+            <!-- Valuta di Default -->
+            <ValutaSelect SelectedValutaId="@(User.ValutaDefaultId ?? 0)"
+                SelectedValutaIdChanged="@HandleValutaChanged"
+                Label="Valuta di Default"
+                Class="mb-3"
+                Required="true"
+                RequiredError="Valuta di default obbligatoria"
+                Clearable="false" />
 
             <!-- Is Active Switch -->
             <MudSwitch T="bool" @bind-Value="User.IsActive" Label="Utente Attivo" Color="Color.Success" Class="mb-3"
@@ -111,6 +120,15 @@
         }
     }
 
+    protected override void OnParametersSet()
+    {
+        if (User == null)
+        {
+            User = new UserInfo();
+        }
+        base.OnParametersSet();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -119,10 +137,7 @@
             {
                 await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
-            }
+            catch { }
 
             if (_firstField != null)
             {
@@ -131,12 +146,21 @@
                 {
                     await _firstField.FocusAsync();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Errore focus: {ex.Message}");
-                }
+                catch { }
             }
         }
+    }
+
+    private void HandleValutaChanged(int value)
+    {
+        User.ValutaDefaultId = value == 0 ? null : value;
+        StateHasChanged();
+    }
+
+    private void HandleAziendaChanged(int value)
+    {
+        User.AziendaId = value == 0 ? null : value;
+        StateHasChanged();
     }
 
     private void HandleEmailChanged(string value)
@@ -205,6 +229,13 @@
                 return;
             }
 
+            // Valuta check (obbligatorio)
+            if (!User.ValutaDefaultId.HasValue || User.ValutaDefaultId.Value == 0)
+            {
+                Snackbar.Add("Selezionare una valuta di default.", Severity.Error);
+                return;
+            }
+
             if (_form.IsValid)
             {
                 try
@@ -212,18 +243,28 @@
                     if (IsEditMode)
                     {
                         await UserService.UpdateUserAsync(User, _password);
+                        Snackbar.Add("Utente aggiornato con successo", Severity.Success);
                     }
                     else
                     {
                         // Safe bang because validation passed
                         await UserService.CreateUserAsync(User, _password!);
+                        Snackbar.Add("Utente creato con successo", Severity.Success);
                     }
                     MudDialog?.Close(DialogResult.Ok(User));
                 }
+                catch (InvalidOperationException ex)
+                {
+                    Snackbar.Add(ex.Message, Severity.Warning);
+                }
                 catch (Exception ex)
                 {
-                    Snackbar.Add(ex.Message, Severity.Error);
+                    Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
                 }
+            }
+            else
+            {
+                Snackbar.Add("Compilare tutti i campi obbligatori", Severity.Warning);
             }
         }
     }

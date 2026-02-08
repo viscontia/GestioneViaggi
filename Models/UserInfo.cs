@@ -13,6 +13,7 @@ public class UserInfo
     public bool IsActive { get; set; } = true;
     public DateTime? DataNascita { get; set; }
     public DateTime? LastLoginAt { get; set; }
+    public int? ValutaDefaultId { get; set; }
 
     public string FullName => $"{Nome} {Cognome}".Trim();
     public bool IsSuperAdmin => RoleCode?.ToLower() == "superadmin";

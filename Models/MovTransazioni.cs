@@ -62,6 +62,9 @@ namespace GestioneViaggi.Models
         [Column("transazione_numero_documento")]
         public string? TransazioneNumeroDocumento { get; set; }
 
+        [Column("transazione_data_documento")]
+        public DateTime? TransazioneDataDocumento { get; set; }
+
         [Column("transazione_fattura_fk")]
         public int? TransazioneFatturaFk { get; set; }
 

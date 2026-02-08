@@ -131,6 +131,29 @@ Componente autocomplete per la selezione di fornitori (`Components/Shared/Fornit
     ```
 *   **Nota SuperAdmin**: Per il ruolo SuperAdmin è necessario passare esplicitamente `AziendaId` dopo la selezione dell'azienda, altrimenti il combobox rimane vuoto.
 
+### ValutaSelect
+Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
+*   **Funzionalità**:
+    *   Carica le valute attive da `ana_valute`.
+    *   Visualizza codice ISO (es. EUR) e descrizione completa.
+    *   Supporta validazione con asterisco rosso quando `Required="true"`.
+*   **Parametri Chiave**:
+    *   `SelectedValutaId` (int): ID valuta selezionata (binding).
+    *   `Label` (string): Etichetta del campo (default: "Valuta").
+    *   `Required` (bool): Campo obbligatorio (mostra asterisco rosso).
+    *   `RequiredError` (string): Messaggio di errore personalizzato.
+    *   `Clearable` (bool): Permette di cancellare la selezione.
+    *   `Disabled` (bool): Disabilita il campo.
+*   **Utilizzo**:
+    ```razor
+    <ValutaSelect SelectedValutaId="@(Entity.ValutaId ?? 0)"
+                  SelectedValutaIdChanged="@((int val) => Entity.ValutaId = val == 0 ? null : val)"
+                  Label="Valuta"
+                  Required="true"
+                  RequiredError="Seleziona una valuta"
+                  Clearable="false" />
+    ```
+
 ### Elenco Completo Componenti Select
 
 Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) disponibili in `Components/Shared`:
@@ -156,7 +179,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
-| **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | ISO (EUR first) | Selezione valuta per transazioni. |
+| **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Supporta Required con asterisco rosso. |
 
 ---
 

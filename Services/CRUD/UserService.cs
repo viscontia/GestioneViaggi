@@ -53,7 +53,8 @@ public class UserService : IUserService
                     RagioneSocialeAzienda = reader.IsDBNull(reader.GetOrdinal("ragione_sociale")) ? null : reader.GetString(reader.GetOrdinal("ragione_sociale")),
                     IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
                     LastLoginAt = reader.IsDBNull(reader.GetOrdinal("last_login_at")) ? null : reader.GetDateTime(reader.GetOrdinal("last_login_at")),
-                    DataNascita = reader.IsDBNull(reader.GetOrdinal("data_nascita")) ? null : reader.GetDateTime(reader.GetOrdinal("data_nascita"))
+                    DataNascita = reader.IsDBNull(reader.GetOrdinal("data_nascita")) ? null : reader.GetDateTime(reader.GetOrdinal("data_nascita")),
+                    ValutaDefaultId = reader.IsDBNull(reader.GetOrdinal("valuta_default_id")) ? null : reader.GetInt32(reader.GetOrdinal("valuta_default_id"))
                 });
             }
 
@@ -83,14 +84,15 @@ public class UserService : IUserService
     {
         try
         {
-            await ExecuteCommandAsync("CALL sp_app_create_user(@p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_data_nascita::date)",
+            await ExecuteCommandAsync("CALL sp_app_create_user(@p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_data_nascita::date, @p_valuta_default_id::integer)",
                 ("p_email", user.Email),
                 ("p_password", password),
                 ("p_nome", user.Nome),
                 ("p_cognome", user.Cognome),
                 ("p_role_code", user.RoleCode ?? string.Empty),
                 ("p_azienda_id", (object?)user.AziendaId ?? DBNull.Value),
-                ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value)
+                ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value),
+                ("p_valuta_default_id", (object?)user.ValutaDefaultId ?? DBNull.Value)
             );
         }
         catch (PostgresException ex) when (ex.Message.Contains("USER_ALREADY_EXISTS"))
@@ -108,7 +110,7 @@ public class UserService : IUserService
     {
         try
         {
-            await ExecuteCommandAsync("CALL sp_app_update_user(@p_user_id, @p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_is_active, @p_data_nascita::date)",
+            await ExecuteCommandAsync("CALL sp_app_update_user(@p_user_id, @p_email, @p_password, @p_nome, @p_cognome, @p_role_code, @p_azienda_id::integer, @p_is_active, @p_data_nascita::date, @p_valuta_default_id::integer)",
                ("p_user_id", user.UserId),
                ("p_email", user.Email),
                ("p_password", (object?)password ?? DBNull.Value),
@@ -117,7 +119,8 @@ public class UserService : IUserService
                ("p_role_code", user.RoleCode ?? string.Empty),
                ("p_azienda_id", (object?)user.AziendaId ?? DBNull.Value),
                ("p_is_active", user.IsActive),
-               ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value)
+               ("p_data_nascita", (object?)user.DataNascita ?? DBNull.Value),
+               ("p_valuta_default_id", (object?)user.ValutaDefaultId ?? DBNull.Value)
            );
         }
         catch (PostgresException ex) when (ex.Message.Contains("EMAIL_ALREADY_EXISTS"))

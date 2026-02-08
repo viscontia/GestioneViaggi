@@ -60,7 +60,7 @@
                     <ValutaSelect @bind-SelectedValutaId="Transazione.TransazioneValutaId" Required="true" />
                 </MudItem>
 
-                <!-- RIGA 4: Stato e Documento -->
+                <!-- RIGA 4: Stato -->
                  <MudItem xs="6">
                     <MudSelect T="string" Label="Stato Pagamento" @bind-Value="Transazione.TransazioneStato" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                         <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
@@ -69,15 +69,28 @@
                         <MudSelectItem Value="@("ANNULLATO")">Annullato</MudSelectItem>
                     </MudSelect>
                 </MudItem>
+
+                <!-- RIGA 5: Numero Documento e Data Documento (vicini) -->
                 <MudItem xs="6">
                     <MudTextField Label="N. Documento / Fattura"
                                   Value="@Transazione.TransazioneNumeroDocumento"
                                   ValueChanged="@((string val) => HandleNumeroDocumentoChanged(val))"
                                   Variant="Variant.Outlined"
-                                  Class="uppercase-input" />
+                                  Class="uppercase-input"
+                                  Error="@_numeroDocumentoError"
+                                  ErrorText="@_numeroDocumentoErrorText" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker Label="Data Documento"
+                                   @bind-Date="_dataDocumento"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Clearable="true"
+                                   Error="@_dataDocumentoError"
+                                   ErrorText="@_dataDocumentoErrorText" />
                 </MudItem>
 
-                <!-- RIGA 5: Note -->
+                <!-- RIGA 7: Note -->
                 <MudItem xs="12">
                     <MudTextField Label="Note"
                                   Value="@Transazione.TransazioneNote"
@@ -87,23 +100,27 @@
                                   Class="uppercase-input" />
                 </MudItem>
 
-                <!-- RIGA 6: Date Scadenza e Pagamento -->
+                <!-- RIGA 8: Date Scadenza e Pagamento -->
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Scadenza"
                                    @bind-Date="_dataScadenza"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
-                                   Clearable="true" />
+                                   Clearable="true"
+                                   Error="@_dataScadenzaError"
+                                   ErrorText="@_dataScadenzaErrorText" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Pagamento"
                                    @bind-Date="_dataPagamento"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
-                                   Clearable="true" />
+                                   Clearable="true"
+                                   Error="@_dataPagamentoError"
+                                   ErrorText="@_dataPagamentoErrorText" />
                 </MudItem>
 
-                <!-- RIGA 7: Viaggio e Data Viaggio -->
+                <!-- RIGA 9: Viaggio e Data Viaggio -->
                 <MudItem xs="6">
                     <ViaggioSelect @bind-SelectedViaggioId="Transazione.TransazioneViaggioId"
                                    AziendaId="@AziendaId"
@@ -116,11 +133,11 @@
                 </MudItem>
 
             </MudGrid>
-            
-            @if(Transazione.TransazioneId > 0 && Transazione.TransazioneImportoEur.HasValue)
+
+            @if(Transazione.TransazioneId > 0 && Transazione.TransazioneImportoEur.HasValue && Transazione.ValutaCodiceIso != "EUR")
             {
                  <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
-                     Controvalore calcolato: <b>@Transazione.TransazioneImportoEur?.ToString("N2") EUR</b>
+                     Controvalore calcolato: <b>@Transazione.TransazioneImportoEur?.ToString("N2") EUR</b> (da @Transazione.TransazioneImporto.ToString("N2") @Transazione.ValutaCodiceIso)
                  </MudAlert>
             }
 
@@ -140,8 +157,19 @@
     private MudForm _form = default!;
     private MudDatePicker? _firstField;
     private DateTime? _dataTransazione;
+    private DateTime? _dataDocumento;
     private DateTime? _dataScadenza;
     private DateTime? _dataPagamento;
+
+    // Validation error flags
+    private bool _numeroDocumentoError = false;
+    private string _numeroDocumentoErrorText = string.Empty;
+    private bool _dataDocumentoError = false;
+    private string _dataDocumentoErrorText = string.Empty;
+    private bool _dataScadenzaError = false;
+    private string _dataScadenzaErrorText = string.Empty;
+    private bool _dataPagamentoError = false;
+    private string _dataPagamentoErrorText = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,6 +185,7 @@
         else
         {
             _dataTransazione = Transazione.TransazioneData;
+            _dataDocumento = Transazione.TransazioneDataDocumento;
             _dataScadenza = Transazione.TransazioneDataScadenza;
             _dataPagamento = Transazione.TransazioneDataPagamento;
         }
@@ -200,6 +229,18 @@
     {
         await _form.Validate();
 
+        // Reset error states
+        _numeroDocumentoError = false;
+        _numeroDocumentoErrorText = string.Empty;
+        _dataDocumentoError = false;
+        _dataDocumentoErrorText = string.Empty;
+        _dataScadenzaError = false;
+        _dataScadenzaErrorText = string.Empty;
+        _dataPagamentoError = false;
+        _dataPagamentoErrorText = string.Empty;
+
+        bool hasValidationErrors = false;
+
         // Validazione custom: Viaggio e DataViaggio devono essere entrambi presenti o entrambi assenti
         bool viaggioPresente = Transazione.TransazioneViaggioId.HasValue && Transazione.TransazioneViaggioId.Value > 0;
         bool dataViaggioPresente = Transazione.TransazioneDataViaggioId.HasValue && Transazione.TransazioneDataViaggioId.Value > 0;
@@ -210,12 +251,60 @@
             return;
         }
 
+        // Validazione: Numero Documento e Data Documento devono essere entrambi presenti o entrambi assenti
+        bool hasNumeroDocumento = !string.IsNullOrWhiteSpace(Transazione.TransazioneNumeroDocumento);
+        bool hasDataDocumento = _dataDocumento.HasValue;
+
+        if (hasNumeroDocumento && !hasDataDocumento)
+        {
+            _dataDocumentoError = true;
+            _dataDocumentoErrorText = "Se si inserisce il numero documento, è obbligatorio inserire anche la data documento";
+            hasValidationErrors = true;
+        }
+        else if (!hasNumeroDocumento && hasDataDocumento)
+        {
+            _numeroDocumentoError = true;
+            _numeroDocumentoErrorText = "Se si inserisce la data documento, è obbligatorio inserire anche il numero documento";
+            hasValidationErrors = true;
+        }
+
+        // Validazione: Data Scadenza >= Data Documento (se entrambi presenti)
+        if (_dataDocumento.HasValue && _dataScadenza.HasValue && _dataScadenza.Value < _dataDocumento.Value)
+        {
+            _dataScadenzaError = true;
+            _dataScadenzaErrorText = "La data scadenza deve essere maggiore o uguale alla data documento";
+            hasValidationErrors = true;
+        }
+
+        // Validazione: Data Pagamento >= Data Documento (se entrambi presenti)
+        if (_dataDocumento.HasValue && _dataPagamento.HasValue && _dataPagamento.Value < _dataDocumento.Value)
+        {
+            _dataPagamentoError = true;
+            _dataPagamentoErrorText = "La data pagamento deve essere maggiore o uguale alla data documento";
+            hasValidationErrors = true;
+        }
+
+        // Validazione: Data Pagamento >= Data Scadenza (se entrambi presenti)
+        if (_dataScadenza.HasValue && _dataPagamento.HasValue && _dataPagamento.Value < _dataScadenza.Value)
+        {
+            _dataPagamentoError = true;
+            _dataPagamentoErrorText = "La data pagamento deve essere maggiore o uguale alla data scadenza";
+            hasValidationErrors = true;
+        }
+
+        if (hasValidationErrors)
+        {
+            StateHasChanged();
+            return;
+        }
+
         if (_form.IsValid)
         {
             // Sync UI dates back to model
             if (_dataTransazione.HasValue)
                 Transazione.TransazioneData = _dataTransazione.Value;
 
+            Transazione.TransazioneDataDocumento = _dataDocumento;
             Transazione.TransazioneDataScadenza = _dataScadenza;
             Transazione.TransazioneDataPagamento = _dataPagamento;
 
