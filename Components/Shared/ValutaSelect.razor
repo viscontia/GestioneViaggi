@@ -7,37 +7,30 @@
     DESC: Dropdown per la selezione della valuta (ISO 4217).
     AUTORE: Antigravity
     FIX: Risolto crash in MAUI con rendering condizionale e gestione async corretta
+    FIX: Convertito da MudSelect a MudAutocomplete per gestire asterisco required + icona ricerca
 *@
 
-<MudSelect T="int"
-           Label="@Label"
-           Value="@SelectedValutaId"
-           ValueChanged="@OnValueChanged"
-           Variant="Variant.Outlined"
-           Disabled="@_isLoading"
-           Class="@Class"
-           Required="@Required"
-           RequiredError="@RequiredError"
-           Dense="true"
-           Clearable="@Clearable"
-           Adornment="@(Required ? Adornment.End : Adornment.None)"
-           AdornmentText="@(Required ? "*" : "")"
-           AdornmentColor="Color.Error"
-           AnchorOrigin="Origin.BottomCenter">
-    @if (_isLoading)
-    {
-        <MudSelectItem Value="0">Caricamento...</MudSelectItem>
-    }
-    else
-    {
-        @foreach (var valuta in _valute)
-        {
-            <MudSelectItem Value="@valuta.ValutaId">
-                @valuta.ValutaCodiceIso - @valuta.ValutaDescrizione
-            </MudSelectItem>
-        }
-    }
-</MudSelect>
+<MudAutocomplete T="AnaValute"
+                 Value="@_selectedValuta"
+                 ValueChanged="@OnValutaChanged"
+                 SearchFunc="@SearchValute"
+                 ToStringFunc="@(v => v != null ? $"{v.ValutaCodiceIso} - {v.ValutaDescrizione}" : string.Empty)"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Disabled="@_isLoading"
+                 Class="@GetCssClass()"
+                 Dense="true"
+                 Clearable="@Clearable"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 CoerceValue="false"
+                 Strict="false"
+                 OpenOnFocus="false"
+                 MaxItems="null" />
 
 @code {
     [Parameter] public int SelectedValutaId { get; set; }
@@ -49,11 +42,35 @@
     [Parameter] public bool Clearable { get; set; } = false;
 
     private List<AnaValute> _valute = new();
+    private AnaValute? _selectedValuta;
     private bool _isLoading = true;
+    private bool _loaded = false;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadValute();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedValuta();
+    }
+
+    private void UpdateSelectedValuta()
+    {
+        if (!_loaded || _valute.Count == 0) return;
+
+        if (SelectedValutaId > 0)
+        {
+            if (_selectedValuta?.ValutaId != SelectedValutaId)
+            {
+                _selectedValuta = _valute.FirstOrDefault(v => v.ValutaId == SelectedValutaId);
+            }
+        }
+        else
+        {
+            _selectedValuta = null;
+        }
     }
 
     private async Task LoadValute()
@@ -63,6 +80,8 @@
             _isLoading = true;
             var valute = await ValuteService.GetAllValuteAsync();
             _valute = valute?.ToList() ?? new List<AnaValute>();
+            _loaded = true;
+            UpdateSelectedValuta();
         }
         catch (Exception ex)
         {
@@ -75,9 +94,40 @@
         }
     }
 
-    private async Task OnValueChanged(int value)
+    private async Task OnValutaChanged(AnaValute? valuta)
     {
-        SelectedValutaId = value;
-        await SelectedValutaIdChanged.InvokeAsync(value);
+        _selectedValuta = valuta;
+        SelectedValutaId = valuta?.ValutaId ?? 0;
+        await SelectedValutaIdChanged.InvokeAsync(SelectedValutaId);
+    }
+
+    private async Task<IEnumerable<AnaValute>> SearchValute(string searchText, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+
+        if (!_loaded || _valute.Count == 0)
+            return Enumerable.Empty<AnaValute>();
+
+        // Se non c'è testo, mostra tutte le valute (sono poche)
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return _valute;
+        }
+
+        // Ricerca case-insensitive nel codice ISO o nella descrizione
+        return _valute
+            .Where(v => v.ValutaCodiceIso.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                        v.ValutaDescrizione.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private string GetCssClass()
+    {
+        var classes = Class ?? "";
+        if (Required)
+        {
+            classes += " required-field";
+        }
+        return classes.Trim();
     }
 }

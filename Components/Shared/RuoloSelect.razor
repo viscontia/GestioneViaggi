@@ -1,0 +1,129 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject IRoleService RoleService
+
+@*
+    COMPONENT: RuoloSelect
+    DESC: Dropdown per la selezione del ruolo utente.
+    AUTORE: Antigravity
+    FIX: Convertito da MudSelect a MudAutocomplete per gestire asterisco required + icona ricerca
+*@
+
+<MudAutocomplete T="RoleInfo"
+                 Value="@_selectedRole"
+                 ValueChanged="@OnRoleChanged"
+                 SearchFunc="@SearchRoles"
+                 ToStringFunc="@(r => r != null ? r.RoleName : string.Empty)"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Disabled="@_isLoading"
+                 Class="@GetCssClass()"
+                 Dense="true"
+                 Clearable="false"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 CoerceValue="false"
+                 Strict="false"
+                 OpenOnFocus="false"
+                 MaxItems="null" />
+
+@code {
+    [Parameter] public string? SelectedRoleCode { get; set; }
+    [Parameter] public EventCallback<string> SelectedRoleCodeChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Ruolo";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Ruolo obbligatorio";
+
+    private List<RoleInfo> _roles = new();
+    private RoleInfo? _selectedRole;
+    private bool _isLoading = true;
+    private bool _loaded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRoles();
+    }
+
+    protected override void OnParametersSet()
+    {
+        UpdateSelectedRole();
+    }
+
+    private void UpdateSelectedRole()
+    {
+        if (!_loaded || _roles.Count == 0) return;
+
+        if (!string.IsNullOrEmpty(SelectedRoleCode))
+        {
+            if (_selectedRole?.RoleCode != SelectedRoleCode)
+            {
+                _selectedRole = _roles.FirstOrDefault(r => r.RoleCode == SelectedRoleCode);
+            }
+        }
+        else
+        {
+            _selectedRole = null;
+        }
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            _isLoading = true;
+            _roles = await RoleService.GetRolesAsync();
+            _loaded = true;
+            UpdateSelectedRole();
+        }
+        catch (Exception ex)
+        {
+            _roles = new List<RoleInfo>();
+            System.Diagnostics.Debug.WriteLine($"[RuoloSelect] Errore caricamento ruoli: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnRoleChanged(RoleInfo? role)
+    {
+        _selectedRole = role;
+        SelectedRoleCode = role?.RoleCode ?? string.Empty;
+        await SelectedRoleCodeChanged.InvokeAsync(SelectedRoleCode);
+    }
+
+    private async Task<IEnumerable<RoleInfo>> SearchRoles(string searchText, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+
+        if (!_loaded || _roles.Count == 0)
+            return Enumerable.Empty<RoleInfo>();
+
+        // Se non c'è testo, mostra tutti i ruoli (sono pochi)
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return _roles;
+        }
+
+        // Ricerca case-insensitive nel nome del ruolo
+        return _roles
+            .Where(r => r.RoleName.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private string GetCssClass()
+    {
+        var classes = Class ?? "";
+        if (Required)
+        {
+            classes += " required-field";
+        }
+        return classes.Trim();
+    }
+}

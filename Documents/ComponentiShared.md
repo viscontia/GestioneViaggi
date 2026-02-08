@@ -133,25 +133,59 @@ Componente autocomplete per la selezione di fornitori (`Components/Shared/Fornit
 
 ### ValutaSelect
 Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
+*   **Implementazione**: Utilizza `MudAutocomplete<AnaValute>` invece di `MudSelect` per risolvere il problema di sovrapposizione tra asterisco required e freccia dropdown.
 *   **Funzionalità**:
-    *   Carica le valute attive da `ana_valute`.
-    *   Visualizza codice ISO (es. EUR) e descrizione completa.
-    *   Supporta validazione con asterisco rosso quando `Required="true"`.
+    *   Carica automaticamente le valute attive da `ana_valute` all'inizializzazione.
+    *   Visualizza codice ISO (es. "EUR") e descrizione completa nel formato: `EUR - Euro`.
+    *   Supporta ricerca testuale case-insensitive sia sul codice ISO che sulla descrizione.
+    *   Mostra icona di ricerca blu (AdornmentIcon) a destra del campo.
+    *   Supporta validazione con asterisco rosso nella label quando `Required="true"`.
+    *   L'asterisco e l'icona di ricerca sono entrambi visibili senza sovrapposizioni.
+    *   Gestisce automaticamente il binding bidirezionale tra `SelectedValutaId` (int) e l'oggetto `AnaValute` interno.
 *   **Parametri Chiave**:
-    *   `SelectedValutaId` (int): ID valuta selezionata (binding).
+    *   `SelectedValutaId` (int): ID valuta selezionata (binding). Usa 0 per nessuna selezione.
+    *   `SelectedValutaIdChanged` (EventCallback<int>): Evento scatenato al cambio selezione.
     *   `Label` (string): Etichetta del campo (default: "Valuta").
-    *   `Required` (bool): Campo obbligatorio (mostra asterisco rosso).
-    *   `RequiredError` (string): Messaggio di errore personalizzato.
-    *   `Clearable` (bool): Permette di cancellare la selezione.
-    *   `Disabled` (bool): Disabilita il campo.
+    *   `Required` (bool): Campo obbligatorio (mostra asterisco rosso nella label).
+    *   `RequiredError` (string): Messaggio di errore personalizzato (default: "Campo obbligatorio").
+    *   `Clearable` (bool): Permette di cancellare la selezione con pulsante X (default: false).
+    *   `Class` (string): Classi CSS aggiuntive.
+*   **Comportamento**:
+    *   Se non viene digitato testo, mostra tutte le valute disponibili (sono poche).
+    *   Durante la digitazione, filtra in tempo reale per codice ISO o descrizione.
+    *   Gestisce automaticamente gli stati di caricamento con `_isLoading`.
 *   **Utilizzo**:
     ```razor
-    <ValutaSelect SelectedValutaId="@(Entity.ValutaId ?? 0)"
-                  SelectedValutaIdChanged="@((int val) => Entity.ValutaId = val == 0 ? null : val)"
-                  Label="Valuta"
+    <ValutaSelect SelectedValutaId="@(User.ValutaDefaultId ?? 0)"
+                  SelectedValutaIdChanged="@HandleValutaChanged"
+                  Label="Valuta di Default"
                   Required="true"
-                  RequiredError="Seleziona una valuta"
-                  Clearable="false" />
+                  RequiredError="Valuta di default obbligatoria"
+                  Clearable="false"
+                  Class="mb-3" />
+    ```
+
+### RuoloSelect
+Componente per la selezione del ruolo utente (`Components/Shared/RuoloSelect.razor`).
+*   **Funzionalità**:
+    *   Carica i ruoli disponibili da `IRoleService`.
+    *   Visualizza il nome del ruolo (es. "Administrator", "User").
+    *   Supporta validazione con asterisco rosso quando `Required="true"`.
+    *   Utilizza `MudAutocomplete` per permettere ricerca e mostrare icona di ricerca + asterisco required.
+    *   Non è clearable (un utente deve sempre avere un ruolo).
+*   **Parametri Chiave**:
+    *   `SelectedRoleCode` (string): Codice ruolo selezionato (binding).
+    *   `Label` (string): Etichetta del campo (default: "Ruolo").
+    *   `Required` (bool): Campo obbligatorio (mostra asterisco rosso).
+    *   `RequiredError` (string): Messaggio di errore personalizzato.
+*   **Utilizzo**:
+    ```razor
+    <RuoloSelect SelectedRoleCode="@User.RoleCode"
+                 SelectedRoleCodeChanged="@HandleRoleChanged"
+                 Label="Ruolo"
+                 Class="mb-3"
+                 Required="true"
+                 RequiredError="Ruolo obbligatorio" />
     ```
 
 ### Elenco Completo Componenti Select
@@ -175,11 +209,12 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **RegioneSelect** | `RegioneSelect.razor` | `ana_geo_regioni_ita` | Descrizione | Selezione regione amministrativa italiana. |
 | **RepartoSelect** | `RepartoSelect.razor` | `ana_reparti` | NomeReparto | Assegnazione reparto interno (es. Amministrazione). |
 | **RipGeoSelect** | `RipGeoSelect.razor` | `ana_geo_ripartizioni_geo` | Descrizione | Selezione ripartizione geografica (Nord, Centro, Sud). |
+| **RuoloSelect** | `RuoloSelect.razor` | `IRoleService` | RoleName | Selezione ruolo utente (Administrator, User, ecc.). Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **SedeSelect** | `SedeSelect.razor` | `ana_sedi` | Tipologia + Indirizzo | Selezione sede operativa/legale di un'azienda. |
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
-| **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Supporta Required con asterisco rosso. |
+| **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 
 ---
 

@@ -4,7 +4,6 @@
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
-@inject IRoleService RoleService
 @inject IUserService UserService
 @inject ISnackbar Snackbar
 @implements IDisposable
@@ -50,15 +49,12 @@
                 AdornmentAriaLabel="Mostra Password" />
 
             <!-- Ruolo -->
-            <MudSelect T="string" Label="Ruolo" Value="@User.RoleCode" ValueChanged="@HandleRoleChanged"
-                Variant="Variant.Outlined" Required="true" RequiredError="Ruolo obbligatorio"
-                AnchorOrigin="Origin.BottomCenter" Class="mb-3" tabindex="6" Adornment="Adornment.End" AdornmentText="*"
-                AdornmentColor="Color.Error">
-                @foreach (var role in _roles)
-                {
-                    <MudSelectItem Value="@role.RoleCode">@role.RoleName</MudSelectItem>
-                }
-            </MudSelect>
+            <RuoloSelect SelectedRoleCode="@User.RoleCode"
+                SelectedRoleCodeChanged="@HandleRoleChanged"
+                Label="Ruolo"
+                Class="mb-3"
+                Required="true"
+                RequiredError="Ruolo obbligatorio" />
 
             <!-- Azienda (Visibile solo se non SuperAdmin) -->
             @if (ShouldShowAziendaSelection())
@@ -96,7 +92,6 @@
 @code {
     private MudForm? _form;
     private MudTextField<string>? _firstField;
-    private List<RoleInfo> _roles = new();
     private string? _password;
 
     [CascadingParameter]
@@ -107,18 +102,6 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _roles = await RoleService.GetRolesAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Errore caricamento ruoli: {ex.Message}", Severity.Error);
-        }
-    }
 
     protected override void OnParametersSet()
     {
