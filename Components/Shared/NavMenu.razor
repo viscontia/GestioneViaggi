@@ -153,7 +153,7 @@
         </MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Stampe" Icon="@Icons.Material.Filled.Print" Expanded="false">
+    <MudNavGroup Title="Stampe Viaggi" Icon="@Icons.Material.Filled.Print" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Description"
                     OnClick="@OpenStampaSchedaDataViaggio">
             <MudText Typo="Typo.body1">Stampa Scheda Data Viaggio</MudText>
@@ -165,6 +165,17 @@
         <MudNavLink Icon="@Icons.Material.Filled.Hotel"
                     OnClick="@OpenStampaRoomingList">
             <MudText Typo="Typo.body1">Stampa Rooming List</MudText>
+        </MudNavLink>
+    </MudNavGroup>
+
+    <MudNavGroup Title="Stampe Contabili" Icon="@Icons.Material.Filled.AccountBalance" Expanded="false">
+        <MudNavLink Icon="@Icons.Material.Filled.Receipt"
+                    OnClick="@OpenStampaMovimentiDialog">
+            <MudText Typo="Typo.body1">Elenco Movimenti Contabili</MudText>
+        </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.EventNote"
+                    OnClick="@(() => OnStampaSviluppo("Scadenziario"))">
+            <MudText Typo="Typo.body1">Scadenziario</MudText>
         </MudNavLink>
     </MudNavGroup>
 
@@ -419,5 +430,22 @@
                 Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
             }
         }
+    }
+
+    private void OnStampaSviluppo(string titolo)
+    {
+        Snackbar.Add($"{titolo}: Funzionalità in fase di sviluppo", Severity.Info);
+    }
+
+    private async Task OpenStampaMovimentiDialog()
+    {
+        var options = new DialogOptions 
+        { 
+            CloseOnEscapeKey = true, 
+            MaxWidth = MaxWidth.Large, 
+            FullWidth = true, 
+            BackdropClick = false 
+        };
+        await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Elenco Movimenti Contabili", options);
     }
 }

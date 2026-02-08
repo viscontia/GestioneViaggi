@@ -1,0 +1,28 @@
+@* Componente per la selezione dell'ordinamento nelle stampe *@
+@using MudBlazor
+
+<MudSelect T="string"
+           Label="@Label"
+           Value="@SelectedOrdinamento"
+           ValueChanged="@OnValueChanged"
+           Variant="Variant.Outlined"
+           AnchorOrigin="Origin.BottomCenter"
+           Dense="true">
+    <MudSelectItem Value="@("FORNITORE")">Fornitore</MudSelectItem>
+    <MudSelectItem Value="@("DATA_DOCUMENTO")">Data Documento</MudSelectItem>
+    <MudSelectItem Value="@("IMPORTO_ASC")">Importo (crescente)</MudSelectItem>
+    <MudSelectItem Value="@("IMPORTO_DESC")">Importo (decrescente)</MudSelectItem>
+    <MudSelectItem Value="@("TIPO_MOVIMENTO")">Tipo Movimento</MudSelectItem>
+</MudSelect>
+
+@code {
+    [Parameter] public string Label { get; set; } = "Ordina per";
+    [Parameter] public string SelectedOrdinamento { get; set; } = "DATA_DOCUMENTO";
+    [Parameter] public EventCallback<string> SelectedOrdinamentoChanged { get; set; }
+
+    private async Task OnValueChanged(string value)
+    {
+        SelectedOrdinamento = value;
+        await SelectedOrdinamentoChanged.InvokeAsync(value);
+    }
+}

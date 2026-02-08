@@ -1,0 +1,329 @@
+@* Dialog per la selezione filtri e stampa movimenti contabili *@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                
+                @* RIGA 1: Azienda e Fornitore *@
+                @if (_isSuperAdmin)
+                {
+                    <MudItem xs="12" sm="6">
+                        <AziendaSelect @bind-Value="_filtroAziendaIdInt" 
+                                       Label="Azienda" 
+                                       Clearable="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="@(_isSuperAdmin ? 6 : 12)">
+                    <FornitoreSelect @bind-SelectedFornitoreId="_filtroFornitoreIdInt"
+                                     AziendaId="@_aziendaIdEffettivo"
+                                     Clearable="true" />
+                </MudItem>
+
+                @* RIGA 2: Tipo Movimento e Stati *@
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Tipo Movimento" @bind-Value="_filtroTipoMovimento" 
+                               Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@((string?)null)">Tutti</MudSelectItem>
+                        <MudSelectItem Value="@("ENTRATA")">Entrata</MudSelectItem>
+                        <MudSelectItem Value="@("USCITA")">Uscita</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Stato" @bind-SelectedValues="_filtroStati" 
+                               MultiSelection="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
+                        <MudSelectItem Value="@("PAGATO")">Pagato</MudSelectItem>
+                        <MudSelectItem Value="@("PARZIALMENTE_PAGATO")">Parzialmente Pagato</MudSelectItem>
+                        <MudSelectItem Value="@("ANNULLATO")">Annullato</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                @* RIGA 3: Data Transazione Da/A *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @ref="_firstField" Label="Data Transazione Da" @bind-Date="_dataTransazioneDa" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Error="@_errorDataTransazione" ErrorText="Data Da deve essere <= Data A" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Transazione A" @bind-Date="_dataTransazioneA" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+
+                @* RIGA 4: Data Documento Da/A *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Documento Da" @bind-Date="_dataDocumentoDa" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Error="@_errorDataDocumento" ErrorText="Data Da deve essere <= Data A" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Documento A" @bind-Date="_dataDocumentoA" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+
+                @* RIGA 5: Importo Da/A *@
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_importoDa" 
+                                     Variant="Variant.Outlined" Format="N2"
+                                     Error="@_errorImporto" ErrorText="Importo Da deve essere <= Importo A" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Importo A" @bind-Value="_importoA" 
+                                     Variant="Variant.Outlined" Format="N2" />
+                </MudItem>
+
+                @* RIGA 6: Viaggio e Data Viaggio *@
+                <MudItem xs="12" sm="6">
+                    <ViaggioSelect @bind-SelectedViaggioId="_filtroViaggioId"
+                                   AziendaId="@_aziendaIdEffettivo"
+                                   Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <DataViaggioSelect @bind-SelectedDataViaggioId="_filtroDataViaggioId"
+                                       ViaggioId="@_filtroViaggioId"
+                                       Clearable="true" />
+                </MudItem>
+
+                @* RIGA 7: Valuta e Numero Documento *@
+                <MudItem xs="12" sm="6">
+                    <ValutaSelect @bind-SelectedValutaId="_filtroValutaIdInt" Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Numero Documento" @bind-Value="_filtroNumeroDocumento" 
+                                  Variant="Variant.Outlined" />
+                </MudItem>
+
+                @* RIGA 8: Checkbox opzioni *@
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="4" Class="flex-wrap">
+                        <MudCheckBox @bind-Value="_soloConDocumento" Label="Solo con documento" Dense="true" Color="Color.Primary" />
+                        <MudCheckBox @bind-Value="_soloScadute" Label="Solo scadute" Dense="true" Color="Color.Warning" />
+                        <MudCheckBox @bind-Value="_soloConFattura" Label="Solo con fattura" Dense="true" Color="Color.Primary" />
+                    </MudStack>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="4" Class="flex-wrap">
+                        <MudCheckBox T="bool" Value="_soloConViaggio" Label="Solo con viaggio" Dense="true" Color="Color.Primary" 
+                                     ValueChanged="@OnSoloConViaggioChanged" />
+                        <MudCheckBox T="bool" Value="_soloSenzaViaggio" Label="Solo senza viaggio" Dense="true" Color="Color.Primary"
+                                     ValueChanged="@OnSoloSenzaViaggioChanged" />
+                    </MudStack>
+                </MudItem>
+
+                @* RIGA 9: Ordinamento *@
+                <MudItem xs="12" sm="6">
+                    <OrdinamentoStampaSelect @bind-SelectedOrdinamento="_ordinamento" />
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
+            Reset
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+            Stampa
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private MudDatePicker? _firstField;
+
+    // Sessione e tenant
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_filtroAziendaId ?? 0) : (_currentAziendaId ?? 0);
+
+    // Filtri
+    private int _filtroAziendaIdInt;
+    private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+    private int _filtroFornitoreIdInt;
+    private int? _filtroFornitoreId => _filtroFornitoreIdInt > 0 ? _filtroFornitoreIdInt : null;
+    private string? _filtroTipoMovimento;
+    private IEnumerable<string> _filtroStati = new List<string>();
+    private int? _filtroViaggioId;
+    private int? _filtroDataViaggioId;
+    private int _filtroValutaIdInt;
+    private int? _filtroValutaId => _filtroValutaIdInt > 0 ? _filtroValutaIdInt : null;
+    private DateTime? _dataTransazioneDa;
+    private DateTime? _dataTransazioneA;
+    private DateTime? _dataDocumentoDa;
+    private DateTime? _dataDocumentoA;
+    private decimal? _importoDa;
+    private decimal? _importoA;
+    private string? _filtroNumeroDocumento;
+
+    // Checkbox
+    private bool _soloConDocumento;
+    private bool _soloScadute;
+    private bool _soloConViaggio;
+    private bool _soloSenzaViaggio;
+    private bool _soloConFattura;
+
+    // Ordinamento
+    private string _ordinamento = "DATA_DOCUMENTO";
+
+    // Errori validazione
+    private bool _errorDataTransazione;
+    private bool _errorDataDocumento;
+    private bool _errorImporto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Setup TAB navigation
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            // Focus sul primo campo
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ResetFiltri()
+    {
+        _filtroAziendaIdInt = 0;
+        _filtroFornitoreIdInt = 0;
+        _filtroTipoMovimento = null;
+        _filtroStati = new List<string>();
+        _filtroViaggioId = null;
+        _filtroDataViaggioId = null;
+        _filtroValutaIdInt = 0;
+        _dataTransazioneDa = null;
+        _dataTransazioneA = null;
+        _dataDocumentoDa = null;
+        _dataDocumentoA = null;
+        _importoDa = null;
+        _importoA = null;
+        _filtroNumeroDocumento = null;
+        _soloConDocumento = false;
+        _soloScadute = false;
+        _soloConViaggio = false;
+        _soloSenzaViaggio = false;
+        _soloConFattura = false;
+        _ordinamento = "DATA_DOCUMENTO";
+
+        // Reset errori
+        _errorDataTransazione = false;
+        _errorDataDocumento = false;
+        _errorImporto = false;
+
+        StateHasChanged();
+        Snackbar.Add("Filtri resettati", Severity.Info);
+    }
+
+    private void OnSoloConViaggioChanged(bool value)
+    {
+        _soloConViaggio = value;
+        if (value) _soloSenzaViaggio = false;
+        StateHasChanged();
+    }
+
+    private void OnSoloSenzaViaggioChanged(bool value)
+    {
+        _soloSenzaViaggio = value;
+        if (value) _soloConViaggio = false;
+        StateHasChanged();
+    }
+
+    private bool ValidaFiltri()
+    {
+        bool isValid = true;
+
+        // Reset errori
+        _errorDataTransazione = false;
+        _errorDataDocumento = false;
+        _errorImporto = false;
+
+        // Controllo Data Transazione Da <= A
+        if (_dataTransazioneDa.HasValue && _dataTransazioneA.HasValue && _dataTransazioneDa > _dataTransazioneA)
+        {
+            _errorDataTransazione = true;
+            isValid = false;
+        }
+
+        // Controllo Data Documento Da <= A
+        if (_dataDocumentoDa.HasValue && _dataDocumentoA.HasValue && _dataDocumentoDa > _dataDocumentoA)
+        {
+            _errorDataDocumento = true;
+            isValid = false;
+        }
+
+        // Controllo Importo Da <= A
+        if (_importoDa.HasValue && _importoA.HasValue && _importoDa > _importoA)
+        {
+            _errorImporto = true;
+            isValid = false;
+        }
+
+        // Controllo Viaggio obbligatorio se Data Viaggio selezionata
+        if (_filtroDataViaggioId.HasValue && !_filtroViaggioId.HasValue)
+        {
+            Snackbar.Add("Seleziona prima un Viaggio", Severity.Warning);
+            isValid = false;
+        }
+
+        StateHasChanged();
+        return isValid;
+    }
+
+    private void EseguiStampa()
+    {
+        if (!ValidaFiltri())
+        {
+            Snackbar.Add("Correggi gli errori nei filtri prima di procedere", Severity.Warning);
+            return;
+        }
+
+        // Per ora mostra solo messaggio di conferma
+        Snackbar.Add("Controlli formali superati. Funzionalità di stampa in sviluppo.", Severity.Success);
+        
+        // TODO: Implementare la chiamata al service e la generazione PDF
+        // var risultati = await StampaService.GetTransazioniPerStampaAsync(filtri);
+        // await PdfGenerator.GeneraReportMovimentiAsync(risultati);
+    }
+}

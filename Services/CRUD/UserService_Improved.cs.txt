@@ -1,0 +1,105 @@
+// SUGGERIMENTO: Versione migliorata di UserService con gestione errori più robusta
+// Questo è un file di esempio - NON sostituire il file originale fino a dopo aver eseguito la migrazione
+
+using GestioneViaggi.Models;
+using GestioneViaggi.Services.Database;
+using Microsoft.Extensions.Logging;
+using Npgsql;
+using System.Data;
+
+namespace GestioneViaggi.Services.CRUD;
+
+public class UserServiceImproved : IUserService
+{
+    private readonly IDatabaseService _databaseService;
+    private readonly ILogger<UserService> _logger;
+
+    public UserServiceImproved(IDatabaseService databaseService, ILogger<UserService> logger)
+    {
+        _databaseService = databaseService;
+        _logger = logger;
+    }
+
+    // Helper method per leggere colonne in modo sicuro
+    private static T? GetSafeValue<T>(NpgsqlDataReader reader, string columnName) where T : struct
+    {
+        try
+        {
+            var ordinal = reader.GetOrdinal(columnName);
+            if (reader.IsDBNull(ordinal))
+                return null;
+
+            return reader.GetFieldValue<T>(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            // Colonna non presente nel result set
+            return null;
+        }
+    }
+
+    private static string? GetSafeString(NpgsqlDataReader reader, string columnName)
+    {
+        try
+        {
+            var ordinal = reader.GetOrdinal(columnName);
+            return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            return null;
+        }
+    }
+
+    public async Task<List<UserInfo>> GetUsersAsync()
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_app_list_users()";
+
+            var result = new List<UserInfo>();
+            await using var command = new NpgsqlCommand(sql, connection);
+            await using var reader = await command.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                try
+                {
+                    result.Add(new UserInfo
+                    {
+                        UserId = reader.GetGuid(reader.GetOrdinal("user_id")),
+                        Email = reader.GetString(reader.GetOrdinal("email")),
+                        Nome = reader.GetString(reader.GetOrdinal("nome")),
+                        Cognome = reader.GetString(reader.GetOrdinal("cognome")),
+                        RoleCode = reader.GetString(reader.GetOrdinal("role_code")),
+                        RoleName = reader.GetString(reader.GetOrdinal("role_name")),
+                        AziendaId = GetSafeValue<int>(reader, "azienda_id"),
+                        RagioneSocialeAzienda = GetSafeString(reader, "ragione_sociale"),
+                        IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+                        LastLoginAt = GetSafeValue<DateTime>(reader, "last_login_at"),
+                        DataNascita = GetSafeValue<DateTime>(reader, "data_nascita"),
+                        ValutaDefaultId = GetSafeValue<int>(reader, "valuta_default_id")
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error reading user row, skipping. Check database schema alignment.");
+                    // Continue to next row instead of failing completely
+                }
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting users. Verify fn_app_list_users() includes all required columns: user_id, email, nome, cognome, role_code, role_name, azienda_id, ragione_sociale, is_active, last_login_at, data_nascita, valuta_default_id");
+            throw;
+        }
+    }
+
+    // Altri metodi rimangono uguali...
+    public Task CreateUserAsync(UserInfo user, string password) => throw new NotImplementedException();
+    public Task UpdateUserAsync(UserInfo user, string? password = null) => throw new NotImplementedException();
+    public Task DeleteUserAsync(Guid userId) => throw new NotImplementedException();
+}

@@ -215,6 +215,28 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
+| **OrdinamentoStampaSelect** | `OrdinamentoStampaSelect.razor` | - | - | Selezione ordinamento per le stampe contabili: Fornitore, Data Documento, Importo ASC/DESC, Tipo Movimento. |
+
+---
+
+## Componenti Dialog
+
+### StampaMovimentiDialog
+Dialog per la selezione filtri e stampa dei movimenti contabili (`Components/Shared/StampaMovimentiDialog.razor`).
+*   **Funzionalità**:
+    *   Filtri completi: Azienda, Fornitore, Tipo Movimento, Stato (multiselezione), Viaggio, Data Viaggio, Valuta.
+    *   Range Date: Transazione Da/A, Documento Da/A.
+    *   Range Importo: Da/A.
+    *   Numero Documento (ricerca parziale).
+    *   Checkbox: Solo con documento, Solo scadute, Solo con/senza viaggio, Solo con fattura.
+    *   Ordinamento tramite `OrdinamentoStampaSelect`.
+*   **Controlli Formali**:
+    *   Data Da <= Data A (transazione e documento).
+    *   Importo Da <= Importo A.
+    *   Viaggio obbligatorio se Data Viaggio selezionata.
+    *   Checkbox "con viaggio" / "senza viaggio" mutuamente esclusive.
+*   **Database**: Utilizza la function `fn_get_transazioni_per_stampa` per il filtraggio lato server.
+*   **Utilizzo**: Accessibile da NavMenu → Stampe Contabili → Elenco Movimenti Contabili.
 
 ---
 
