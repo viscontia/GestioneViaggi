@@ -17,7 +17,7 @@
 
 @code {
     [Parameter] public string Label { get; set; } = "Ordina per";
-    [Parameter] public string SelectedOrdinamento { get; set; } = "DATA_DOCUMENTO";
+    [Parameter] public string SelectedOrdinamento { get; set; } = "FORNITORE";
     [Parameter] public EventCallback<string> SelectedOrdinamentoChanged { get; set; }
 
     private async Task OnValueChanged(string value)

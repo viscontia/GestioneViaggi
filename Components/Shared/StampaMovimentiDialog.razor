@@ -177,7 +177,7 @@
     private bool _soloConFattura;
 
     // Ordinamento
-    private string _ordinamento = "DATA_DOCUMENTO";
+    private string _ordinamento = "FORNITORE";
 
     // Errori validazione
     private bool _errorDataTransazione;
@@ -245,7 +245,7 @@
         _soloConViaggio = false;
         _soloSenzaViaggio = false;
         _soloConFattura = false;
-        _ordinamento = "DATA_DOCUMENTO";
+        _ordinamento = "FORNITORE";
 
         // Reset errori
         _errorDataTransazione = false;
@@ -283,6 +283,7 @@
         if (_dataTransazioneDa.HasValue && _dataTransazioneA.HasValue && _dataTransazioneDa > _dataTransazioneA)
         {
             _errorDataTransazione = true;
+            Snackbar.Add("Data Transazione: la data inizio non può essere superiore alla data fine", Severity.Warning);
             isValid = false;
         }
 
@@ -290,6 +291,7 @@
         if (_dataDocumentoDa.HasValue && _dataDocumentoA.HasValue && _dataDocumentoDa > _dataDocumentoA)
         {
             _errorDataDocumento = true;
+            Snackbar.Add("Data Documento: la data inizio non può essere superiore alla data fine", Severity.Warning);
             isValid = false;
         }
 
@@ -297,13 +299,14 @@
         if (_importoDa.HasValue && _importoA.HasValue && _importoDa > _importoA)
         {
             _errorImporto = true;
+            Snackbar.Add("Importo: l'importo minimo non può essere superiore all'importo massimo", Severity.Warning);
             isValid = false;
         }
 
         // Controllo Viaggio obbligatorio se Data Viaggio selezionata
         if (_filtroDataViaggioId.HasValue && !_filtroViaggioId.HasValue)
         {
-            Snackbar.Add("Seleziona prima un Viaggio", Severity.Warning);
+            Snackbar.Add("Filtro Viaggio: selezionare prima un Viaggio per filtrare per Data Viaggio", Severity.Warning);
             isValid = false;
         }
 
