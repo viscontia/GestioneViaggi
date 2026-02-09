@@ -46,6 +46,13 @@ public class TransazionePrintItem
     public string ImportoFormatted => $"{Importo:N2} {ValutaCodiceIso}";
     public string ImportoTargetFormatted => $"{ImportoValutaTarget:N2} {ValutaTargetIso}";
     
+    // Saldo progressivo (calcolato dinamicamente nel Printer o nel Service)
+    public decimal SaldoProgressivo { get; set; }
+    public string SaldoProgressivoFormatted => $"{SaldoProgressivo:N2} {ValutaTargetIso}";
+    
+    // Indica se l'importo deve essere sottratto (Uscita) o sommato (Entrata)
+    public decimal ImportoAlgebricoTarget => TipoMovimento == "ENTRATA" ? ImportoValutaTarget : -ImportoValutaTarget;
+    
     public string StatoDisplay => Stato switch
     {
         "DA_PAGARE" => "Da Pagare",
@@ -73,15 +80,25 @@ public class SubTotaleItem
     public string? GruppoDisplay { get; set; }
     public int GruppoOrdine { get; set; }
     public string ValutaCodiceIso { get; set; } = "EUR";
+    
+    // Algebrico (Saldo)
     public decimal TotaleOriginale { get; set; }
     public decimal TotaleValutaTarget { get; set; }
+    
+    // Tripartizione
+    public decimal TotaleFatturatoTarget { get; set; }
+    public decimal TotalePagatoTarget { get; set; }
+    
     public string ValutaTargetIso { get; set; } = "EUR";
     public int ConteggioTransazioni { get; set; }
     public bool IsTotaleGenerale { get; set; }
 
     // Proprietà formattate
-    public string TotaleOriginaleFormatted => $"{TotaleOriginale:N2} {ValutaCodiceIso}";
-    public string TotaleTargetFormatted => $"{TotaleValutaTarget:N2} {ValutaTargetIso}";
+    public string TotaleOriginaleFormatted => $"{(TotaleOriginale >= 0 ? "" : "-")}{Math.Abs(TotaleOriginale):N2} {ValutaCodiceIso}";
+    public string TotaleTargetFormatted => $"{(TotaleValutaTarget >= 0 ? "" : "-")}{Math.Abs(TotaleValutaTarget):N2} {ValutaTargetIso}";
+    
+    public string TotaleFatturatoTargetFormatted => $"{TotaleFatturatoTarget:N2} {ValutaTargetIso}";
+    public string TotalePagatoTargetFormatted => $"{TotalePagatoTarget:N2} {ValutaTargetIso}";
 }
 
 /// <summary>

@@ -169,26 +169,27 @@ public class MovTransazioniPrinter
 
         column.Item().Table(table =>
         {
-            // Definizione colonne (pesi ricalibrati dalla versione Landscape)
+            // Definizione colonne (pesi ricalibrati dalla versione Landscape per inserire Saldo)
             table.ColumnsDefinition(columns =>
             {
                 columns.ConstantColumn(55);  // Data Doc
                 columns.ConstantColumn(55);  // Data Trans
-                columns.RelativeColumn(1.5f); // Fornitore
+                columns.RelativeColumn(1.3f); // Fornitore
                 columns.ConstantColumn(45);  // Tipo
-                columns.RelativeColumn(1.5f); // Causale
-                columns.RelativeColumn(1.5f); // Viaggio / Data
+                columns.RelativeColumn(1.1f); // Causale
+                columns.RelativeColumn(1.3f); // Viaggio / Data
                 columns.ConstantColumn(55);  // Stato
-                columns.ConstantColumn(70);  // Num. Doc
-                columns.ConstantColumn(85);  // Importo Orig.
-                columns.ConstantColumn(85);  // Importo Conv.
+                columns.ConstantColumn(65);  // Num. Doc
+                columns.ConstantColumn(80);  // Importo Orig.
+                columns.ConstantColumn(80);  // Importo Conv.
+                columns.ConstantColumn(85);  // Saldo Progressivo
             });
 
             // Header ripetibile (contiene Nome Gruppo + Intestazioni Colonne)
             table.Header(header =>
             {
                 // Riga 1: Nome Gruppo (Sfondo Verde)
-                header.Cell().ColumnSpan(10).Background(BrandColors.GroupHeader).Padding(4).Row(row =>
+                header.Cell().ColumnSpan(11).Background(BrandColors.GroupHeader).Padding(4).Row(row =>
                 {
                     var title = firstItem.GruppoDisplay ?? firstItem.GruppoChiave ?? "-";
                     row.RelativeItem().Text(title).FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
@@ -205,26 +206,43 @@ public class MovTransazioniPrinter
                 header.Cell().Background(BrandColors.Primary).Padding(3).Text("Viaggio / Data").Style(headerStyle);
                 header.Cell().Background(BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
                 header.Cell().Background(BrandColors.Primary).Padding(3).Text("Num. Doc").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Importo Orig.").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Importo Conv.").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imp. Orig.").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imp. Conv.").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Saldo Prog.").Style(headerStyle);
             });
 
-            // Righe transizioni
+            // Righe transizioni con calcolo saldo progressivo
             int rowIndex = 0;
+            decimal currentSaldo = 0;
             foreach (var item in groupItems)
             {
+                currentSaldo += item.ImportoAlgebricoTarget;
+                item.SaldoProgressivo = currentSaldo;
+
                 var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                var textColor = item.TipoMovimento == "USCITA" ? Colors.Red.Darken1 : Colors.Black;
                 
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Fornitore).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody).FontColor(textColor);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Causale ?? "-").FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight().Text(item.ImportoFormatted).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight().Text(item.ImportoTargetFormatted).FontSize(FontSizeBody).Bold();
+                
+                // Importo Originale (con segno se Uscita)
+                var sign = item.TipoMovimento == "USCITA" ? "-" : "";
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{sign}{item.Importo:N2} {item.ValutaCodiceIso}").FontSize(FontSizeBody).FontColor(textColor);
+                
+                // Importo Convertito (con segno se Uscita)
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{sign}{item.ImportoValutaTarget:N2} {item.ValutaTargetIso}").FontSize(FontSizeBody).Bold().FontColor(textColor);
+
+                // Saldo Progressivo
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+                    .Text(item.SaldoProgressivoFormatted).FontSize(FontSizeBody).Bold();
                 
                 rowIndex++;
             }
@@ -247,20 +265,39 @@ public class MovTransazioniPrinter
         
         if (!subtotali.Any()) return;
 
-        column.Item().Background(BrandColors.SubTotal).Padding(3).Column(subCol =>
+        column.Item().Background(BrandColors.SubTotal).Padding(4).Column(subCol =>
         {
             foreach (var sub in subtotali)
             {
                 subCol.Item().Row(row =>
                 {
-                    row.RelativeItem().Text($"Sub-totale {sub.GruppoDisplay} ({sub.ValutaCodiceIso}):")
-                        .FontSize(FontSizeBody).Bold();
-                    row.ConstantItem(100).AlignRight().Text(sub.TotaleOriginaleFormatted)
-                        .FontSize(FontSizeBody).Bold();
-                    row.ConstantItem(100).AlignRight().Text($"-> {sub.TotaleTargetFormatted}")
-                        .FontSize(FontSizeBody).Bold();
-                    row.ConstantItem(60).AlignRight().Text($"({sub.ConteggioTransazioni} mov.)")
-                        .FontSize(FontSizeSmall).Italic();
+                    row.RelativeItem().PaddingRight(10).Column(col => 
+                    {
+                        col.Item().Text($"Riepilogo {sub.GruppoDisplay} ({sub.ValutaCodiceIso}):").FontSize(FontSizeBody).Bold();
+                        col.Item().Text($"{sub.ConteggioTransazioni} movimenti inclusi").FontSize(FontSizeSmall).Italic();
+                    });
+
+                    row.ConstantItem(250).Table(t => 
+                    {
+                        t.ColumnsDefinition(c => 
+                        {
+                            c.RelativeColumn();
+                            c.ConstantColumn(100);
+                        });
+
+                        // Fatturato (+)
+                        t.Cell().Text("Totale Fatturato/Costi (+):").FontSize(FontSizeSmall);
+                        t.Cell().AlignRight().Text(sub.TotaleFatturatoTargetFormatted).FontSize(FontSizeSmall);
+
+                        // Pagato (-)
+                        t.Cell().Text("Totale Pagato/Acconti (-):").FontSize(FontSizeSmall);
+                        t.Cell().AlignRight().Text($"-{sub.TotalePagatoTargetFormatted}").FontSize(FontSizeSmall).FontColor(Colors.Red.Medium);
+
+                        // Saldo Finale
+                        t.Cell().BorderTop(0.5f).PaddingTop(2).Text("SALDO FINALE (Esposizione):").FontSize(FontSizeBody).Bold();
+                        t.Cell().BorderTop(0.5f).PaddingTop(2).AlignRight().Text(sub.TotaleTargetFormatted).FontSize(FontSizeBody).Bold()
+                            .FontColor(sub.TotaleValutaTarget > 0 ? BrandColors.Primary : Colors.Green.Darken2);
+                    });
                 });
             }
         });
@@ -274,7 +311,7 @@ public class MovTransazioniPrinter
 
         column.Item().Background(BrandColors.Total).Border(1).BorderColor(BrandColors.Primary).Padding(5).Column(totCol =>
         {
-            totCol.Item().Text("TOTALI GENERALI")
+            totCol.Item().Text("TOTALI GENERALI ALGEBRICI")
                 .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
             
             totCol.Item().PaddingTop(3);
@@ -283,12 +320,15 @@ public class MovTransazioniPrinter
             {
                 totCol.Item().Row(row =>
                 {
-                    row.RelativeItem().Text($"Totale {tot.ValutaCodiceIso}:")
+                    row.RelativeItem().Text($"Saldo Netto {tot.ValutaCodiceIso}:")
                         .FontSize(FontSizeBody).Bold();
-                    row.ConstantItem(120).AlignRight().Text(tot.TotaleOriginaleFormatted)
+                    
+                    row.ConstantItem(150).AlignRight().Text(tot.TotaleOriginaleFormatted)
                         .FontSize(FontSizeSubHeader).Bold();
-                    row.ConstantItem(120).AlignRight().Text($"-> {tot.TotaleTargetFormatted}")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Accent);
+                    
+                    row.ConstantItem(150).AlignRight().Text($"-> {tot.TotaleTargetFormatted}")
+                        .FontSize(FontSizeSubHeader).Bold().FontColor(tot.TotaleValutaTarget > 0 ? BrandColors.Accent : Colors.Green.Darken2);
+                    
                     row.ConstantItem(80).AlignRight().Text($"({tot.ConteggioTransazioni} mov.)")
                         .FontSize(FontSizeSmall);
                 });

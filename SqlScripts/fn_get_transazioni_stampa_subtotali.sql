@@ -1,7 +1,7 @@
 -- ============================================================================
 -- fn_get_transazioni_stampa_subtotali
 -- Restituisce i sub-totali aggregati per gruppo e valuta + totali generali.
--- Usa GROUPING SETS per calcolare sia i sub-totali che i totali generali.
+-- LOGICA ALGEBRICA: EMISSIONE (+) vs PAGAMENTO (-)
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION fn_get_transazioni_stampa_subtotali(
@@ -32,8 +32,10 @@ RETURNS TABLE (
     gruppo_display TEXT,
     gruppo_ordine INTEGER,
     valuta_codice_iso VARCHAR,
-    totale_valuta_originale NUMERIC,
-    totale_valuta_target NUMERIC,
+    totale_valuta_originale NUMERIC, -- Saldo Algebrico
+    totale_valuta_target NUMERIC,    -- Saldo Algebrico
+    totale_fatturato_target NUMERIC, -- Solo Entrate (Coste/Fatture) (+)
+    totale_pagato_target NUMERIC,    -- Solo Uscite (Pagamenti) (+)
     valuta_target_iso VARCHAR,
     conteggio_transazioni INTEGER,
     is_totale_generale BOOLEAN
@@ -63,7 +65,7 @@ BEGIN
                 WHEN p_ordinamento = 'FORNITORE' THEN f.ragione_sociale::TEXT
                 WHEN p_ordinamento = 'DATA_DOCUMENTO' THEN TO_CHAR(COALESCE(t.transazione_data_documento, t.transazione_data), 'YYYY-MM')
                 WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN t.transazione_tipo_movimento::TEXT
-                ELSE 'TUTTI'  -- Per IMPORTO_ASC/DESC c'è solo totale generale
+                ELSE 'TUTTI'
             END as grp_chiave,
             -- Display name
             CASE 
@@ -86,7 +88,7 @@ BEGIN
                     CASE t.transazione_tipo_movimento WHEN 'ENTRATA' THEN 1 ELSE 2 END
                 ELSE 0
             END as grp_ordine,
-            -- Importo convertito
+            -- Importo convertito (Valore Assoluto)
             CASE 
                 WHEN v.valuta_codice_iso = v_valuta_target_iso THEN t.transazione_importo
                 WHEN v_valuta_target_iso = 'EUR' THEN t.transazione_importo_eur
@@ -128,8 +130,15 @@ BEGIN
         MAX(tf.grp_display) as gruppo_display,
         MAX(tf.grp_ordine) as gruppo_ordine,
         tf.val_iso as valuta_codice_iso,
-        SUM(tf.transazione_importo)::NUMERIC as totale_valuta_originale,
-        SUM(tf.importo_target)::NUMERIC as totale_valuta_target,
+        -- Saldo Algebrico Originale (Fine a se stesso se ci sono valute diverse nello stesso gruppo, ma utile se il gruppo è per valuta)
+        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.transazione_importo ELSE -tf.transazione_importo END)::NUMERIC as totale_valuta_originale,
+        -- Saldo Algebrico Target (Il vero dato contabile)
+        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.importo_target ELSE -tf.importo_target END)::NUMERIC as totale_valuta_target,
+        -- Totale Fatturato (Solo Entrate)
+        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_fatturato_target,
+        -- Totale Pagato (Solo Uscite - espresso come valore positivo per chiarezza nel report)
+        SUM(CASE WHEN tf.transazione_tipo_movimento = 'USCITA' THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_pagato_target,
+        
         v_valuta_target_iso as valuta_target_iso,
         COUNT(*)::INTEGER as conteggio_transazioni,
         GROUPING(tf.grp_chiave) = 1 as is_totale_generale
@@ -139,17 +148,9 @@ BEGIN
         (tf.val_iso)                   -- Totali generali per valuta
     )
     ORDER BY 
-        is_totale_generale,  -- Prima i sub-totali, poi i totali generali
+        is_totale_generale,
         gruppo_ordine NULLS LAST,
         gruppo_chiave NULLS LAST,
         tf.val_iso;
 END;
 $function$;
-
--- Commenti
-COMMENT ON FUNCTION fn_get_transazioni_stampa_subtotali IS 
-'Restituisce i sub-totali aggregati per gruppo e valuta per la stampa PDF.
-Usa GROUPING SETS per calcolare:
-  - Sub-totali per ogni gruppo (fornitore/mese/tipo) e valuta
-  - Totali generali per valuta (is_totale_generale = true)
-Include conteggio transazioni per ogni aggregazione.';

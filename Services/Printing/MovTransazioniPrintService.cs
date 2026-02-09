@@ -130,6 +130,8 @@ public class MovTransazioniPrintService
                     valuta_codice_iso as ValutaCodiceIso,
                     totale_valuta_originale as TotaleOriginale,
                     totale_valuta_target as TotaleValutaTarget,
+                    totale_fatturato_target as TotaleFatturatoTarget,
+                    totale_pagato_target as TotalePagatoTarget,
                     valuta_target_iso as ValutaTargetIso,
                     conteggio_transazioni as ConteggioTransazioni,
                     is_totale_generale as IsTotaleGenerale
