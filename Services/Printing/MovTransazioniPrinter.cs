@@ -197,15 +197,16 @@ public class MovTransazioniPrinter
     {
         column.Item().Background(BrandColors.Primary).Padding(3).Row(row =>
         {
-            row.ConstantItem(65).Text("Data Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(65).Text("Data Trans").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.RelativeItem(2).Text("Fornitore").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(55).Text("Tipo").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.RelativeItem(2).Text("Causale").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(55).Text("Data Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(55).Text("Data Trans").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.RelativeItem(1.5f).Text("Fornitore").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(45).Text("Tipo").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.RelativeItem(1.5f).Text("Causale").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.RelativeItem(1.5f).Text("Viaggio / Data").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
             row.ConstantItem(55).Text("Stato").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(80).Text("Num. Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(90).AlignRight().Text("Importo Orig.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(90).AlignRight().Text("Importo Conv.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(70).Text("Num. Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(85).AlignRight().Text("Importo Orig.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            row.ConstantItem(85).AlignRight().Text("Importo Conv.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
         });
     }
 
@@ -215,15 +216,16 @@ public class MovTransazioniPrinter
         
         column.Item().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Row(row =>
         {
-            row.ConstantItem(65).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
-            row.ConstantItem(65).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
-            row.RelativeItem(2).Text(item.Fornitore).FontSize(FontSizeBody);
-            row.ConstantItem(55).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody);
-            row.RelativeItem(2).Text(item.Causale ?? "-").FontSize(FontSizeBody);
+            row.ConstantItem(55).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
+            row.ConstantItem(55).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
+            row.RelativeItem(1.5f).Text(item.Fornitore).FontSize(FontSizeBody);
+            row.ConstantItem(45).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody);
+            row.RelativeItem(1.5f).Text(item.Causale ?? "-").FontSize(FontSizeBody);
+            row.RelativeItem(1.5f).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
             row.ConstantItem(55).Text(item.StatoDisplay).FontSize(FontSizeBody);
-            row.ConstantItem(80).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
-            row.ConstantItem(90).AlignRight().Text(item.ImportoFormatted).FontSize(FontSizeBody);
-            row.ConstantItem(90).AlignRight().Text(item.ImportoTargetFormatted).FontSize(FontSizeBody).Bold();
+            row.ConstantItem(70).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
+            row.ConstantItem(85).AlignRight().Text(item.ImportoFormatted).FontSize(FontSizeBody);
+            row.ConstantItem(85).AlignRight().Text(item.ImportoTargetFormatted).FontSize(FontSizeBody).Bold();
         });
     }
 

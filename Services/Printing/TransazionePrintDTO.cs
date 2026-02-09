@@ -29,6 +29,16 @@ public class TransazionePrintItem
     public string? ViaggioDescrizione { get; set; }
     public DateTime? DataViaggioInizio { get; set; }
 
+    public string ViaggioFullDisplay
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(ViaggioDescrizione)) return "-";
+            var dataStr = DataViaggioInizio?.ToString("dd/MM/yyyy");
+            return string.IsNullOrEmpty(dataStr) ? ViaggioDescrizione : $"{ViaggioDescrizione} ({dataStr})";
+        }
+    }
+
     // Proprietà formattate per stampa
     public string DataDocumentoFormatted => DataDocumento?.ToString("dd/MM/yyyy") ?? "-";
     public string DataTransazioneFormatted => DataTransazione?.ToString("dd/MM/yyyy") ?? "-";
