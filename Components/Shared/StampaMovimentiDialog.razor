@@ -328,11 +328,8 @@
             Snackbar.Add("Correggi gli errori nei filtri prima di procedere", Severity.Warning);
             return;
         }
-
         try
         {
-            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
-
             // Recupera informazioni utente
             var sessionData = await SessionManager.GetSessionAsync();
             if (sessionData?.User == null)
@@ -362,14 +359,12 @@
             }
 
             // Costruisci DTO filtri
-            // Nota: se l'azienda è 0 (non selezionata) passa null per non filtrare
             var aziendaIdFiltro = _aziendaIdEffettivo > 0 ? _aziendaIdEffettivo : (int?)null;
             var filtri = new TransazioniFiltriDTO
             {
                 AziendaId = aziendaIdFiltro,
                 FornitoreId = _filtroFornitoreId,
                 TipoMovimento = _filtroTipoMovimento,
-                // IMPORTANTE: se l'array Stati è vuoto, passa null per non escludere tutti i record
                 Stati = _filtroStati?.Any() == true ? _filtroStati.ToArray() : null,
                 ViaggioId = _filtroViaggioId,
                 DataViaggioId = _filtroDataViaggioId,
@@ -403,6 +398,8 @@
                 Snackbar.Add("Nessuna transazione trovata con i filtri applicati", Severity.Warning);
                 return;
             }
+
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
 
             // Genera PDF in Downloads (Coerente con Dashboard/NavMenu)
             var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
