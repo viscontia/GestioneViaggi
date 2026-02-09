@@ -150,41 +150,10 @@ public class MovTransazioniPrinter
                 return;
             }
 
-            // Itera per ogni gruppo
-            string? currentGroup = null;
-            foreach (var item in data.Dettagli)
+            // Itera per ogni gruppo usando il raggruppamento del DTO
+            foreach (var group in data.DettagliRaggruppati)
             {
-                // Rottura di controllo: nuovo gruppo
-                if (item.GruppoChiave != currentGroup && item.GruppoChiave != null)
-                {
-                    // Se non è il primo gruppo, stampa sub-totali del gruppo precedente
-                    if (currentGroup != null)
-                    {
-                        ComposeGroupSubtotals(column, data, currentGroup);
-                        column.Item().PaddingVertical(3);
-                    }
-
-                    currentGroup = item.GruppoChiave;
-
-                    // Header del nuovo gruppo
-                    column.Item().Background(BrandColors.GroupHeader).Padding(4).Row(row =>
-                    {
-                        row.RelativeItem().Text(item.GruppoDisplay ?? item.GruppoChiave)
-                            .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
-                    });
-
-                    // Header tabella
-                    ComposeTableHeader(column);
-                }
-
-                // Riga transazione
-                ComposeTransactionRow(column, item);
-            }
-
-            // Sub-totali ultimo gruppo
-            if (currentGroup != null)
-            {
-                ComposeGroupSubtotals(column, data, currentGroup);
+                ComposeGroupTable(column, group.Key, group, data);
             }
 
             // Totali generali
@@ -193,41 +162,84 @@ public class MovTransazioniPrinter
         });
     }
 
-    private static void ComposeTableHeader(ColumnDescriptor column)
+    private static void ComposeGroupTable(ColumnDescriptor column, string? gruppoChiave, IEnumerable<TransazionePrintItem> groupItems, TransazioniPrintData data)
     {
-        column.Item().Background(BrandColors.Primary).Padding(3).Row(row =>
+        var firstItem = groupItems.FirstOrDefault();
+        if (firstItem == null) return;
+
+        column.Item().Table(table =>
         {
-            row.ConstantItem(55).Text("Data Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(55).Text("Data Trans").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.RelativeItem(1.5f).Text("Fornitore").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(45).Text("Tipo").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.RelativeItem(1.5f).Text("Causale").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.RelativeItem(1.5f).Text("Viaggio / Data").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(55).Text("Stato").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(70).Text("Num. Doc").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(85).AlignRight().Text("Importo Orig.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-            row.ConstantItem(85).AlignRight().Text("Importo Conv.").FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            // Definizione colonne (pesi ricalibrati dalla versione Landscape)
+            table.ColumnsDefinition(columns =>
+            {
+                columns.ConstantColumn(55);  // Data Doc
+                columns.ConstantColumn(55);  // Data Trans
+                columns.RelativeColumn(1.5f); // Fornitore
+                columns.ConstantColumn(45);  // Tipo
+                columns.RelativeColumn(1.5f); // Causale
+                columns.RelativeColumn(1.5f); // Viaggio / Data
+                columns.ConstantColumn(55);  // Stato
+                columns.ConstantColumn(70);  // Num. Doc
+                columns.ConstantColumn(85);  // Importo Orig.
+                columns.ConstantColumn(85);  // Importo Conv.
+            });
+
+            // Header ripetibile (contiene Nome Gruppo + Intestazioni Colonne)
+            table.Header(header =>
+            {
+                // Riga 1: Nome Gruppo (Sfondo Verde)
+                header.Cell().ColumnSpan(10).Background(BrandColors.GroupHeader).Padding(4).Row(row =>
+                {
+                    var title = firstItem.GruppoDisplay ?? firstItem.GruppoChiave ?? "-";
+                    row.RelativeItem().Text(title).FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                });
+
+                // Riga 2: Intestazioni Colonne (Sfondo Blu Navy)
+                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Trans").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Fornitore").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Tipo").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Viaggio / Data").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Num. Doc").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Importo Orig.").Style(headerStyle);
+                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Importo Conv.").Style(headerStyle);
+            });
+
+            // Righe transizioni
+            int rowIndex = 0;
+            foreach (var item in groupItems)
+            {
+                var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Fornitore).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Causale ?? "-").FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight().Text(item.ImportoFormatted).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight().Text(item.ImportoTargetFormatted).FontSize(FontSizeBody).Bold();
+                
+                rowIndex++;
+            }
         });
+
+        // Sub-totali del gruppo
+        if (gruppoChiave != null)
+        {
+            ComposeGroupSubtotals(column, data, gruppoChiave);
+        }
+
+        column.Item().PaddingVertical(3);
     }
 
-    private static void ComposeTransactionRow(ColumnDescriptor column, TransazionePrintItem item)
-    {
-        var bgColor = item.TransazioneId % 2 == 0 ? Colors.White : BrandColors.LightGray;
-        
-        column.Item().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Row(row =>
-        {
-            row.ConstantItem(55).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
-            row.ConstantItem(55).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
-            row.RelativeItem(1.5f).Text(item.Fornitore).FontSize(FontSizeBody);
-            row.ConstantItem(45).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody);
-            row.RelativeItem(1.5f).Text(item.Causale ?? "-").FontSize(FontSizeBody);
-            row.RelativeItem(1.5f).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
-            row.ConstantItem(55).Text(item.StatoDisplay).FontSize(FontSizeBody);
-            row.ConstantItem(70).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
-            row.ConstantItem(85).AlignRight().Text(item.ImportoFormatted).FontSize(FontSizeBody);
-            row.ConstantItem(85).AlignRight().Text(item.ImportoTargetFormatted).FontSize(FontSizeBody).Bold();
-        });
-    }
+
 
     private static void ComposeGroupSubtotals(ColumnDescriptor column, TransazioniPrintData data, string gruppoChiave)
     {
