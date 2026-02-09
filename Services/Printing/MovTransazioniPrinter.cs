@@ -58,29 +58,35 @@ public class MovTransazioniPrinter
     {
         container.Column(column =>
         {
-            // Riga principale: Logo/Azienda + Titolo + Data stampa
+            // 1. Riga Superiore: Logo/Azienda (Sinistra) + Info Stampa (Destra)
             column.Item().Row(row =>
             {
-                // Colonna sinistra: Azienda
-                row.RelativeItem(2).Column(col =>
+                // Sinistra: Logo/Azienda
+                row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text(data.Company.RagioneSociale)
-                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
-                    if (!string.IsNullOrEmpty(data.Company.Telefono))
-                        col.Item().Text($"Tel: {data.Company.Telefono}").FontSize(FontSizeSmall);
+                    if (data.Company.LogoData != null && data.Company.LogoData.Length > 0)
+                    {
+                        col.Item().MaxHeight(40).Image(data.Company.LogoData).FitArea();
+                    }
+                    else
+                    {
+                        col.Item().Text(data.Company.RagioneSociale)
+                            .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+                    }
+
+                    var infoParts = new List<string>();
+                    if (!string.IsNullOrEmpty(data.Company.RagioneSociale)) infoParts.Add(data.Company.RagioneSociale);
+                    if (!string.IsNullOrEmpty(data.Company.Piva)) infoParts.Add($"P.IVA: {data.Company.Piva}");
+                    if (!string.IsNullOrEmpty(data.Company.Telefono)) infoParts.Add(data.Company.Telefono);
+
+                    if (infoParts.Any())
+                    {
+                        col.Item().PaddingTop(2).Text(string.Join(" - ", infoParts)).FontSize(FontSizeSmall);
+                    }
                 });
 
-                // Colonna centrale: Titolo report
-                row.RelativeItem(3).AlignCenter().Column(col =>
-                {
-                    col.Item().Text("REPORT MOVIMENTI CONTABILI")
-                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
-                    col.Item().Text($"Ordinamento: {data.TipoOrdinamentoDisplay}")
-                        .FontSize(FontSizeSubHeader).FontColor(BrandColors.Secondary);
-                });
-
-                // Colonna destra: Data stampa
-                row.RelativeItem(2).AlignRight().Column(col =>
+                // Destra: Info Stampa
+                row.RelativeItem().AlignRight().Column(col =>
                 {
                     col.Item().Text($"Stampato il: {data.DataStampa:dd/MM/yyyy HH:mm}")
                         .FontSize(FontSizeSmall);
@@ -89,6 +95,16 @@ public class MovTransazioniPrinter
                     col.Item().Text($"Valuta target: {data.ValutaTargetCodiceIso}")
                         .FontSize(FontSizeSmall).Bold();
                 });
+            });
+
+            // 2. Riga Titolo: Centrata nel documento su un'unica riga
+            column.Item().PaddingVertical(10).AlignCenter().Column(col =>
+            {
+                col.Item().Text("STAMPA MOVIMENTI CONTABILI")
+                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
+                
+                col.Item().AlignCenter().Text($"Ordinamento: {data.TipoOrdinamentoDisplay}")
+                    .FontSize(10).FontColor(BrandColors.Secondary);
             });
 
             // Filtri applicati (se presenti)

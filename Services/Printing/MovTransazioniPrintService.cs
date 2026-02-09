@@ -213,13 +213,20 @@ public class MovTransazioniPrintService
             // Se la function non esiste, fallback a query diretta
             var sql = @"
                 SELECT 
-                    azienda_denominazione as RagioneSociale,
-                    azienda_telefono as Telefono,
-                    azienda_email as Email,
-                    azienda_sito_web as SitoWeb,
-                    azienda_partita_iva as Piva
-                FROM ana_aziende 
-                WHERE azienda_id = @AziendaId";
+                    a.azienda_denominazione as RagioneSociale,
+                    a.azienda_telefono as Telefono,
+                    a.azienda_email as Email,
+                    a.azienda_sito_web as SitoWeb,
+                    a.azienda_partita_iva as Piva,
+                    (SELECT al.binary_data 
+                     FROM ana_aziende_logo al 
+                     WHERE al.azienda_fk = a.azienda_id 
+                       AND al.logo_type = 'primary' 
+                       AND al.is_active = true 
+                       AND al.is_default = true 
+                     LIMIT 1) as LogoData
+                FROM ana_aziende a
+                WHERE a.azienda_id = @AziendaId";
             var company = await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(sql, new { AziendaId = aziendaId });
             return company ?? new CompanyPrintInfo();
         }
