@@ -100,7 +100,14 @@
         if (aziendaId.HasValue && aziendaId.Value > 0)
         {
             var result = await FornitoriService.GetAllAsync(aziendaId.Value);
-            _fornitori = result.ToList();
+            
+            // Inserisce l'opzione virtuale per la selezione globale (Stampa Tutti)
+            _fornitori = new List<AnaFornitore> 
+            { 
+                new AnaFornitore { Id = 0, RagioneSociale = "--- TUTTI I FORNITORI ---" } 
+            };
+            _fornitori.AddRange(result);
+
             _lastLoadedAziendaId = aziendaId;
             UpdateSelectedFornitore();
         }

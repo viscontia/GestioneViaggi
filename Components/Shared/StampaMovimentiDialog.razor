@@ -346,7 +346,11 @@
             string? fornitoreNome = null;
             string? valutaNome = null;
             
-            if (_filtroFornitoreId.HasValue)
+            if (_filtroFornitoreIdInt == 0)
+            {
+                fornitoreNome = "TUTTI I FORNITORI";
+            }
+            else if (_filtroFornitoreId.HasValue)
             {
                 var fornitore = await FornitoriService.GetByIdAsync(_filtroFornitoreId.Value);
                 fornitoreNome = fornitore?.RagioneSociale;
