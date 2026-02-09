@@ -3,11 +3,16 @@
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
 @using GestioneViaggi.Components.Shared
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
+@inject MovTransazioniPrintService PrintService
+@inject AnaFornitoriService FornitoriService
+@inject AnaValuteService ValuteService
 @inject IJSRuntime JS
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudDialog>
@@ -190,6 +195,8 @@
         if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            // Forza refresh del FornitoreSelect che ora riceverà l'AziendaId corretto
+            StateHasChanged();
         }
     }
 
@@ -314,7 +321,7 @@
         return isValid;
     }
 
-    private void EseguiStampa()
+    private async Task EseguiStampa()
     {
         if (!ValidaFiltri())
         {
@@ -322,11 +329,113 @@
             return;
         }
 
-        // Per ora mostra solo messaggio di conferma
-        Snackbar.Add("Controlli formali superati. Funzionalità di stampa in sviluppo.", Severity.Success);
-        
-        // TODO: Implementare la chiamata al service e la generazione PDF
-        // var risultati = await StampaService.GetTransazioniPerStampaAsync(filtri);
-        // await PdfGenerator.GeneraReportMovimentiAsync(risultati);
+        try
+        {
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
+
+            // Recupera informazioni utente
+            var sessionData = await SessionManager.GetSessionAsync();
+            if (sessionData?.User == null)
+            {
+                Snackbar.Add("Errore: sessione utente non valida", Severity.Error);
+                return;
+            }
+            var userInfo = sessionData.User;
+
+            // Recupera nomi per i filtri applicati
+            string? fornitoreNome = null;
+            string? valutaNome = null;
+            
+            if (_filtroFornitoreId.HasValue)
+            {
+                var fornitore = await FornitoriService.GetByIdAsync(_filtroFornitoreId.Value);
+                fornitoreNome = fornitore?.RagioneSociale;
+            }
+            if (_filtroValutaId.HasValue)
+            {
+                var valuta = await ValuteService.GetByIdAsync(_filtroValutaId.Value);
+                valutaNome = valuta?.ValutaCodiceIso;
+            }
+
+            // Costruisci DTO filtri
+            // Nota: se l'azienda è 0 (non selezionata) passa null per non filtrare
+            var aziendaIdFiltro = _aziendaIdEffettivo > 0 ? _aziendaIdEffettivo : (int?)null;
+            var filtri = new TransazioniFiltriDTO
+            {
+                AziendaId = aziendaIdFiltro,
+                FornitoreId = _filtroFornitoreId,
+                TipoMovimento = _filtroTipoMovimento,
+                // IMPORTANTE: se l'array Stati è vuoto, passa null per non escludere tutti i record
+                Stati = _filtroStati?.Any() == true ? _filtroStati.ToArray() : null,
+                ViaggioId = _filtroViaggioId,
+                DataViaggioId = _filtroDataViaggioId,
+                ValutaId = _filtroValutaId,
+                DataTransazioneDa = _dataTransazioneDa.HasValue ? DateOnly.FromDateTime(_dataTransazioneDa.Value).ToDateTime(TimeOnly.MinValue) : null,
+                DataTransazioneA = _dataTransazioneA.HasValue ? DateOnly.FromDateTime(_dataTransazioneA.Value).ToDateTime(TimeOnly.MinValue) : null,
+                DataDocumentoDa = _dataDocumentoDa.HasValue ? DateOnly.FromDateTime(_dataDocumentoDa.Value).ToDateTime(TimeOnly.MinValue) : null,
+                DataDocumentoA = _dataDocumentoA.HasValue ? DateOnly.FromDateTime(_dataDocumentoA.Value).ToDateTime(TimeOnly.MinValue) : null,
+                ImportoDa = _importoDa,
+                ImportoA = _importoA,
+                NumeroDocumento = _filtroNumeroDocumento,
+                SoloConDocumento = _soloConDocumento,
+                SoloScadute = _soloScadute,
+                SoloConViaggio = _soloConViaggio,
+                SoloSenzaViaggio = _soloSenzaViaggio,
+                SoloConFattura = _soloConFattura,
+                FornitoreNome = fornitoreNome,
+                ValutaNome = valutaNome
+            };
+
+            // Recupera dati per stampa
+            var printData = await PrintService.GetDataPerStampaAsync(
+                filtri,
+                _ordinamento,
+                userInfo.ValutaDefaultId,
+                userInfo.ValutaCodiceIso,
+                userInfo);
+
+            if (printData.Dettagli.Count == 0)
+            {
+                Snackbar.Add("Nessuna transazione trovata con i filtri applicati", Severity.Warning);
+                return;
+            }
+
+            // Genera PDF in Downloads (Coerente con Dashboard/NavMenu)
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetMovementReportFileName(filtri);
+            var outputPath = Path.Combine(targetFolder, fileName);
+            
+            if (System.IO.File.Exists(outputPath))
+            {
+                System.IO.File.Delete(outputPath);
+            }
+
+            await MovTransazioniPrinter.GeneratePdfAsync(printData, outputPath);
+
+            // Messaggio di conferma e apertura (Coerente con Dashboard/NavMenu)
+            bool? confirm = await DialogService.ShowMessageBox(
+                "Stampa Completata",
+                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                yesText: "Sì, Apri", cancelText: "No");
+
+            if (confirm == true)
+            {
+#if MACCATALYST
+                System.Diagnostics.Process.Start("open", $"\"{outputPath}\"");
+#else
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    Title = "Stampa Movimenti",
+                    File = new ReadOnlyFile(outputPath)
+                });
+#endif
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la generazione del PDF: {ex.Message}", Severity.Error);
+        }
     }
 }

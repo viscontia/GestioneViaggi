@@ -177,6 +177,7 @@ public static class MauiProgram
         // Printing Services
         builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
         builder.Services.AddScoped<IRoomingListPrintService, RoomingListPrintService>();
+        builder.Services.AddScoped<MovTransazioniPrintService>();
 
         // Exchange Rate Service
         builder.Services.AddHttpClient();

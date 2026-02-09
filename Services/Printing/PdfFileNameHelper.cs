@@ -6,6 +6,18 @@ namespace GestioneViaggi.Services.Printing;
 public static class PdfFileNameHelper
 {
     /// <summary>
+    /// Genera il nome file per la stampa "Movimenti Contabili"
+    /// </summary>
+    /// <param name="filtri">Filtri applicati</param>
+    /// <returns>Nome file nel formato: Movimenti_Fornitore_Data_HHmmss.pdf</returns>
+    public static string GetMovementReportFileName(TransazioniFiltriDTO filtri)
+    {
+        var fornitore = !string.IsNullOrEmpty(filtri.FornitoreNome) ? filtri.FornitoreNome : "Tutti";
+        var safeFornitore = SanitizeFileName(fornitore, maxLength: 30);
+        return $"Movimenti_{safeFornitore}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+    }
+
+    /// <summary>
     /// Genera il nome file per la stampa "Scheda Viaggio"
     /// </summary>
     /// <param name="header">Informazioni header del viaggio</param>

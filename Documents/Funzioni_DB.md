@@ -169,9 +169,41 @@ Funzioni di manutenzione, log, validazione e calcolo statistiche.
 
 ---
 
-## 8. Implementazioni Service-Side (Logica Applicativa)
+## 8. Contabilità - Stampe e Report
+
+Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_transazioni_stampa_dettaglio` | Estrae dettagli transazioni con chiave raggruppamento dinamica (FORNITORE/DATA_DOCUMENTO/TIPO_MOVIMENTO) e conversione valuta target. Calcola `gruppo_chiave`, `gruppo_display`, `gruppo_ordine` per control-break nel report PDF. Utilizza `fn_get_tasso_cambio` con tasso storicizzato basato su `transazione_data_documento`. | `p_azienda_id INT, p_fornitore_id INT, p_tipo_movimento VARCHAR, p_stati VARCHAR[], p_viaggio_id INT, p_data_viaggio_id INT, p_valuta_id INT, p_data_transazione_da DATE, p_data_transazione_a DATE, p_data_documento_da DATE, p_data_documento_a DATE, p_importo_da NUMERIC, p_importo_a NUMERIC, p_numero_documento VARCHAR, p_solo_con_documento BOOL, p_solo_scadute BOOL, p_solo_con_viaggio BOOL, p_solo_senza_viaggio BOOL, p_solo_con_fattura BOOL, p_ordinamento VARCHAR DEFAULT 'FORNITORE', p_valuta_target_id INT` | `TABLE(gruppo_chiave TEXT, gruppo_display TEXT, gruppo_ordine INT, transazione_id INT, transazione_data DATE, transazione_data_documento DATE, transazione_data_scadenza DATE, transazione_data_pagamento DATE, fornitore_ragione_sociale VARCHAR, transazione_tipo_movimento VARCHAR, transazione_causale VARCHAR, transazione_stato VARCHAR, transazione_numero_documento VARCHAR, valuta_codice_iso VARCHAR, transazione_importo NUMERIC, importo_valuta_target NUMERIC, valuta_target_iso VARCHAR, viaggio_descrizione VARCHAR, data_viaggio_data_inizio DATE)` | `Services/Printing/MovTransazioniPrintService.cs`, `SqlScripts/fn_get_transazioni_stampa_dettaglio.sql` |
+| `fn_get_transazioni_stampa_subtotali` | Calcola sub-totali aggregati per gruppo/valuta e totali generali usando GROUPING SETS. Fornisce totali in valuta originale e convertiti in valuta target. Il flag `is_totale_generale` distingue sub-totali di gruppo da totali complessivi. | (stessi parametri di `fn_get_transazioni_stampa_dettaglio`) | `TABLE(gruppo_chiave TEXT, gruppo_display TEXT, gruppo_ordine INT, valuta_codice_iso VARCHAR, totale_valuta_originale NUMERIC, totale_valuta_target NUMERIC, valuta_target_iso VARCHAR, conteggio_transazioni INT, is_totale_generale BOOL)` | `Services/Printing/MovTransazioniPrintService.cs`, `SqlScripts/fn_get_transazioni_stampa_subtotali.sql` |
+| `fn_get_transazioni_per_stampa` | Function base per estrazione transazioni con filtri. Restituisce dettagli transazioni con JOIN su fornitori, valute, viaggi. **Nota**: sostituita da `fn_get_transazioni_stampa_dettaglio` per report con raggruppamenti. | `p_azienda_id INT, p_fornitore_id INT, p_tipo_movimento VARCHAR, p_stati VARCHAR[], ...` | `TABLE(transazione_id INT, ...)` | `Services/CRUD/MovTransazioniService.cs` |
+
+### 📝 Note Implementative - Report PDF Transazioni (2026-02-09)
+
+**Architettura DB-Centric**:
+- Tutta la logica di raggruppamento, ordinamento e calcolo sub-totali è gestita nel DB
+- Il client C# si limita a chiamare le function e renderizzare il PDF
+- Conversione valuta utilizza tassi storici basati sulla data documento
+
+**Flusso Generazione Report**:
+1. Utente apre `StampaMovimentiDialog.razor` e seleziona filtri
+2. `MovTransazioniPrintService.GetDataPerStampaAsync()` chiama entrambe le function DB
+3. `MovTransazioniPrinter.GeneratePdfAsync()` genera PDF A4 landscape con QuestPDF
+4. PDF aperto automaticamente tramite `Launcher.OpenAsync()`
+
+**Ordinamenti Supportati**:
+- `FORNITORE`: Raggruppa per ragione sociale fornitore
+- `DATA_DOCUMENTO`: Raggruppa per mese/anno (es. "Febbraio 2026")
+- `TIPO_MOVIMENTO`: Raggruppa per Entrate/Uscite
+- `IMPORTO_ASC` / `IMPORTO_DESC`: Nessun raggruppamento, solo ordinamento
+
+---
+
+## 9. Implementazioni Service-Side (Logica Applicativa)
 Nota: Queste non sono funzioni DB, ma descrizioni di logica C# rilevante.
 
 | Componente | Funzionalità | Descrizione | Files Coinvolti |
 | :--- | :--- | :--- | :--- |
 | `ComuneService` | Decodifica Geografica | Esegue JOIN su `ana_geo_province`, `ana_geo_regioni_ita` per recuperare Sigla Provincia e Nome Regione. | `Services/CRUD/ComuneService.cs` |
+
