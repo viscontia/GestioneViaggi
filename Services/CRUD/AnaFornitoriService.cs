@@ -74,7 +74,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei fornitori");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -164,17 +164,10 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             }
             throw new Exception("Impossibile creare il fornitore");
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
-        {
-            _logger.LogError(ex, "Violazione constraint univoco durante inserimento fornitore");
-            throw new InvalidOperationException(
-                "Impossibile salvare: esiste già un fornitore con gli stessi dati fiscali per questa azienda"
-            );
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del fornitore");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -225,17 +218,10 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             }
             throw new Exception($"Fornitore con ID {entity.Id} non trovato");
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
-        {
-            _logger.LogError(ex, "Violazione constraint univoco durante aggiornamento fornitore");
-            throw new InvalidOperationException(
-                "Impossibile salvare: esiste già un fornitore con gli stessi dati fiscali per questa azienda"
-            );
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del fornitore");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -288,7 +274,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         catch(Exception ex)
         {
             _logger.LogError(ex, "Errore GetByIdAsync fornitore {Id}", id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

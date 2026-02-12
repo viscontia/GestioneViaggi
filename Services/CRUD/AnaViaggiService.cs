@@ -141,7 +141,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore recupero lista viaggi");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -180,7 +180,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore recupero viaggio per id {Id}", id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -235,7 +235,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore creazione viaggio");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -275,7 +275,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore aggiornamento viaggio {Id}", entity.Id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -349,7 +349,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'eliminazione del viaggio {Id} e delle sue date", id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

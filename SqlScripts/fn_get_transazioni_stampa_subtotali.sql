@@ -1,13 +1,13 @@
 -- ============================================================================
 -- fn_get_transazioni_stampa_subtotali
 -- Restituisce i sub-totali aggregati per gruppo e valuta + totali generali.
--- LOGICA ALGEBRICA: EMISSIONE (+) vs PAGAMENTO (-)
+-- LOGICA ALGEBRICA BASATA SU ana_tipi_causali.causale_segno
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION fn_get_transazioni_stampa_subtotali(
     p_azienda_id INTEGER DEFAULT NULL,
     p_fornitore_id INTEGER DEFAULT NULL,
-    p_tipo_movimento VARCHAR DEFAULT NULL,
+    p_causale_tipo_id INTEGER DEFAULT NULL,
     p_stati VARCHAR[] DEFAULT NULL,
     p_viaggio_id INTEGER DEFAULT NULL,
     p_data_viaggio_id INTEGER DEFAULT NULL,
@@ -34,8 +34,8 @@ RETURNS TABLE (
     valuta_codice_iso VARCHAR,
     totale_valuta_originale NUMERIC, -- Saldo Algebrico
     totale_valuta_target NUMERIC,    -- Saldo Algebrico
-    totale_fatturato_target NUMERIC, -- Solo Entrate (Coste/Fatture) (+)
-    totale_pagato_target NUMERIC,    -- Solo Uscite (Pagamenti) (+)
+    totale_fatturato_target NUMERIC, -- Somma dei soli addebiti (segno > 0)
+    totale_pagato_target NUMERIC,    -- Somma dei soli accrediti/pagamenti (segno < 0) - in valore assoluto
     valuta_target_iso VARCHAR,
     conteggio_transazioni INTEGER,
     is_totale_generale BOOLEAN
@@ -60,11 +60,14 @@ BEGIN
             t.*,
             f.ragione_sociale,
             v.valuta_codice_iso as val_iso,
+            c.causale_codice,
+            c.causale_descrizione,
+            c.causale_segno,
             -- Calcolo chiave raggruppamento
             CASE 
                 WHEN p_ordinamento = 'FORNITORE' THEN f.ragione_sociale::TEXT
                 WHEN p_ordinamento = 'DATA_DOCUMENTO' THEN TO_CHAR(COALESCE(t.transazione_data_documento, t.transazione_data), 'YYYY-MM')
-                WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN t.transazione_tipo_movimento::TEXT
+                WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN c.causale_descrizione::TEXT
                 ELSE 'TUTTI'
             END as grp_chiave,
             -- Display name
@@ -72,11 +75,7 @@ BEGIN
                 WHEN p_ordinamento = 'FORNITORE' THEN f.ragione_sociale::TEXT
                 WHEN p_ordinamento = 'DATA_DOCUMENTO' THEN 
                     INITCAP(TO_CHAR(COALESCE(t.transazione_data_documento, t.transazione_data), 'TMMonth YYYY'))
-                WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN 
-                    CASE t.transazione_tipo_movimento 
-                        WHEN 'ENTRATA' THEN 'Entrate' 
-                        WHEN 'USCITA' THEN 'Uscite' 
-                    END
+                WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN c.causale_descrizione::TEXT 
                 ELSE 'Totale Generale'
             END as grp_display,
             -- Ordine gruppo
@@ -85,7 +84,7 @@ BEGIN
                     EXTRACT(YEAR FROM COALESCE(t.transazione_data_documento, t.transazione_data))::INTEGER * 100 
                     + EXTRACT(MONTH FROM COALESCE(t.transazione_data_documento, t.transazione_data))::INTEGER
                 WHEN p_ordinamento = 'TIPO_MOVIMENTO' THEN 
-                    CASE t.transazione_tipo_movimento WHEN 'ENTRATA' THEN 1 ELSE 2 END
+                    CASE WHEN c.causale_segno > 0 THEN 1 ELSE 2 END
                 ELSE 0
             END as grp_ordine,
             -- Importo convertito (Valore Assoluto)
@@ -104,10 +103,11 @@ BEGIN
         FROM mov_transazioni t
         INNER JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
         INNER JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
-        WHERE 
+        INNER JOIN ana_tipi_causali c ON t.transazione_causale_tipo_id = c.causale_id
+        WHERE
             (p_azienda_id IS NULL OR t.transazione_azienda_id = p_azienda_id)
             AND (p_fornitore_id IS NULL OR t.transazione_fornitore_id = p_fornitore_id)
-            AND (p_tipo_movimento IS NULL OR t.transazione_tipo_movimento = p_tipo_movimento)
+            AND (p_causale_tipo_id IS NULL OR t.transazione_causale_tipo_id = p_causale_tipo_id)
             AND (p_stati IS NULL OR t.transazione_stato = ANY(p_stati))
             AND (p_viaggio_id IS NULL OR t.transazione_viaggio_id = p_viaggio_id)
             AND (p_data_viaggio_id IS NULL OR t.transazione_data_viaggio_id = p_data_viaggio_id)
@@ -130,22 +130,22 @@ BEGIN
         MAX(tf.grp_display) as gruppo_display,
         MAX(tf.grp_ordine) as gruppo_ordine,
         tf.val_iso as valuta_codice_iso,
-        -- Saldo Algebrico Originale (Fine a se stesso se ci sono valute diverse nello stesso gruppo, ma utile se il gruppo è per valuta)
-        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.transazione_importo ELSE -tf.transazione_importo END)::NUMERIC as totale_valuta_originale,
-        -- Saldo Algebrico Target (Il vero dato contabile)
-        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.importo_target ELSE -tf.importo_target END)::NUMERIC as totale_valuta_target,
-        -- Totale Fatturato (Solo Entrate)
-        SUM(CASE WHEN tf.transazione_tipo_movimento = 'ENTRATA' THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_fatturato_target,
-        -- Totale Pagato (Solo Uscite - espresso come valore positivo per chiarezza nel report)
-        SUM(CASE WHEN tf.transazione_tipo_movimento = 'USCITA' THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_pagato_target,
+        -- Saldo Algebrico Originale
+        SUM(tf.transazione_importo * tf.causale_segno)::NUMERIC as totale_valuta_originale,
+        -- Saldo Algebrico Target
+        SUM(tf.importo_target * tf.causale_segno)::NUMERIC as totale_valuta_target,
+        -- Totale Fatturato (Solo Addebiti, segno > 0)
+        SUM(CASE WHEN tf.causale_segno > 0 THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_fatturato_target,
+        -- Totale Pagato (Solo Accrediti/Pagamenti, segno < 0)
+        SUM(CASE WHEN tf.causale_segno < 0 THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_pagato_target,
         
         v_valuta_target_iso as valuta_target_iso,
         COUNT(*)::INTEGER as conteggio_transazioni,
         GROUPING(tf.grp_chiave) = 1 as is_totale_generale
     FROM transazioni_filtrate tf
     GROUP BY GROUPING SETS (
-        (tf.grp_chiave, tf.val_iso),  -- Sub-totali per gruppo e valuta
-        (tf.val_iso)                   -- Totali generali per valuta
+        (tf.grp_chiave, tf.val_iso),
+        (tf.val_iso)
     )
     ORDER BY 
         is_totale_generale,

@@ -25,10 +25,9 @@
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudSelect T="string" Label="Tipo Movimento" @bind-Value="Transazione.TransazioneTipoMovimento" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@("USCITA")">Uscita (Spesa)</MudSelectItem>
-                        <MudSelectItem Value="@("ENTRATA")">Entrata (Incasso)</MudSelectItem>
-                    </MudSelect>
+                    <CausaleSelect @bind-SelectedCausaleId="Transazione.TransazioneCausaleTipoId"
+                                   AziendaId="@AziendaId"
+                                   Required="true" />
                 </MudItem>
 
                 <!-- RIGA 2: Fornitore e Causale -->
@@ -179,7 +178,6 @@
         {
             _dataTransazione = DateTime.Today;
             Transazione.TransazioneStato = "DA_PAGARE";
-            Transazione.TransazioneTipoMovimento = "USCITA";
             // Use AziendaId parameter (passed from parent page)
             Transazione.TransazioneAziendaId = AziendaId;
 

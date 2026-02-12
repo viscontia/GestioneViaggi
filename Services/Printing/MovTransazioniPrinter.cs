@@ -17,13 +17,15 @@ public class MovTransazioniPrinter
     {
         public static readonly string Primary = "#2B3A42";    // Dark Slate
         public static readonly string Secondary = "#8D99AE";  // Cool Grey
-        public static readonly string Accent = "#E74C3C";     // Red
+        public static readonly string Accent = "#E74C3C";     // Red (Debito)
         public static readonly string Text = "#000000";
         public static readonly string LightGray = "#F0F0F0";
         public static readonly string Border = "#CCCCCC";
         public static readonly string GroupHeader = "#D5E8D4"; // Verde chiaro per rotture
         public static readonly string SubTotal = "#FFF2CC";    // Giallo chiaro per sub-totali
         public static readonly string Total = "#DAE8FC";       // Blu chiaro per totali generali
+        public static readonly string Success = "#27AE60";     // Verde (Pari/Credito piccolo)
+        public static readonly string Warning = "#F39C12";     // Arancione (Credito da recuperare)
     }
 
     // Costanti layout
@@ -31,6 +33,24 @@ public class MovTransazioniPrinter
     private const float FontSizeSubHeader = 11;
     private const float FontSizeBody = 8;
     private const float FontSizeSmall = 7;
+
+    /// <summary>
+    /// Determina il colore del saldo in base alla logica "Esposizione Finanziaria":
+    /// - ROSSO: Debito verso fornitore (saldo > 0)
+    /// - VERDE: Pari o credito minimo (saldo = 0 o leggermente negativo)
+    /// - ARANCIONE: Credito significativo da recuperare (saldo molto negativo)
+    /// </summary>
+    private static string GetSaldoColor(decimal saldo)
+    {
+        const decimal sogliaCredito = -10.0m; // Oltre -10 unità consideriamo il credito significativo
+
+        if (saldo > 0)
+            return BrandColors.Accent;      // ROSSO: Devo soldi al fornitore (DEBITO)
+        else if (saldo >= sogliaCredito)
+            return BrandColors.Success;     // VERDE: Pari o piccolo credito (OK)
+        else
+            return BrandColors.Warning;     // ARANCIONE: Credito significativo da recuperare
+    }
 
     public static async Task GeneratePdfAsync(TransazioniPrintData data, string outputPath)
     {
@@ -64,20 +84,20 @@ public class MovTransazioniPrinter
                 // Sinistra: Logo/Azienda
                 row.RelativeItem().Column(col =>
                 {
-                    if (data.Company.LogoData != null && data.Company.LogoData.Length > 0)
+                    if (data.Azienda.LogoData != null && data.Azienda.LogoData.Length > 0)
                     {
-                        col.Item().MaxHeight(40).Image(data.Company.LogoData).FitArea();
+                        col.Item().MaxHeight(40).Image(data.Azienda.LogoData).FitArea();
                     }
                     else
                     {
-                        col.Item().Text(data.Company.RagioneSociale)
+                        col.Item().Text(data.Azienda.RagioneSociale)
                             .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
                     }
 
                     var infoParts = new List<string>();
-                    if (!string.IsNullOrEmpty(data.Company.RagioneSociale)) infoParts.Add(data.Company.RagioneSociale);
-                    if (!string.IsNullOrEmpty(data.Company.Piva)) infoParts.Add($"P.IVA: {data.Company.Piva}");
-                    if (!string.IsNullOrEmpty(data.Company.Telefono)) infoParts.Add(data.Company.Telefono);
+                    if (!string.IsNullOrEmpty(data.Azienda.RagioneSociale)) infoParts.Add(data.Azienda.RagioneSociale);
+                    if (!string.IsNullOrEmpty(data.Azienda.Piva)) infoParts.Add($"P.IVA: {data.Azienda.Piva}");
+                    if (!string.IsNullOrEmpty(data.Azienda.Telefono)) infoParts.Add(data.Azienda.Telefono);
 
                     if (infoParts.Any())
                     {
@@ -159,6 +179,9 @@ public class MovTransazioniPrinter
             // Totali generali
             column.Item().PaddingTop(10);
             ComposeTotaliGenerali(column, data);
+
+            // Legenda colori
+            ComposeLegenda(column);
         });
     }
 
@@ -220,25 +243,27 @@ public class MovTransazioniPrinter
                 item.SaldoProgressivo = currentSaldo;
 
                 var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
-                var textColor = item.TipoMovimento == "USCITA" ? Colors.Red.Darken1 : Colors.Black;
+                var isDaPagare = item.Stato == "DA_PAGARE" || item.Stato == "PARZIALMENTE_PAGATO";
+                var rowTextColor = (item.TipoMovimento == "USCITA" || isDaPagare) ? BrandColors.Accent : BrandColors.Text;
                 
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataTransazioneFormatted).FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Fornitore).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody).FontColor(textColor);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody).FontColor(rowTextColor);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Causale ?? "-").FontSize(FontSizeBody);
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(FontSizeBody);
+                var stateCell = table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(FontSizeBody).FontColor(isDaPagare ? BrandColors.Accent : BrandColors.Text);
+                if (isDaPagare) stateCell.Bold();
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
                 
                 // Importo Originale (con segno se Uscita)
                 var sign = item.TipoMovimento == "USCITA" ? "-" : "";
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{sign}{item.Importo:N2} {item.ValutaCodiceIso}").FontSize(FontSizeBody).FontColor(textColor);
+                    .Text($"{sign}{item.Importo:N2} {item.ValutaCodiceIso}").FontSize(FontSizeBody).FontColor(rowTextColor);
                 
                 // Importo Convertito (con segno se Uscita)
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{sign}{item.ImportoValutaTarget:N2} {item.ValutaTargetIso}").FontSize(FontSizeBody).Bold().FontColor(textColor);
+                    .Text($"{sign}{item.ImportoValutaTarget:N2} {item.ValutaTargetIso}").FontSize(FontSizeBody).Bold().FontColor(rowTextColor);
 
                 // Saldo Progressivo
                 table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
@@ -296,7 +321,7 @@ public class MovTransazioniPrinter
                         // Saldo Finale
                         t.Cell().BorderTop(0.5f).PaddingTop(2).Text("SALDO FINALE (Esposizione):").FontSize(FontSizeBody).Bold();
                         t.Cell().BorderTop(0.5f).PaddingTop(2).AlignRight().Text(sub.TotaleTargetFormatted).FontSize(FontSizeBody).Bold()
-                            .FontColor(sub.TotaleValutaTarget > 0 ? BrandColors.Primary : Colors.Green.Darken2);
+                            .FontColor(GetSaldoColor(sub.TotaleValutaTarget));
                     });
                 });
             }
@@ -327,7 +352,7 @@ public class MovTransazioniPrinter
                         .FontSize(FontSizeSubHeader).Bold();
                     
                     row.ConstantItem(150).AlignRight().Text($"-> {tot.TotaleTargetFormatted}")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(tot.TotaleValutaTarget > 0 ? BrandColors.Accent : Colors.Green.Darken2);
+                        .FontSize(FontSizeSubHeader).Bold().FontColor(GetSaldoColor(tot.TotaleValutaTarget));
                     
                     row.ConstantItem(80).AlignRight().Text($"({tot.ConteggioTransazioni} mov.)")
                         .FontSize(FontSizeSmall);
@@ -343,10 +368,47 @@ public class MovTransazioniPrinter
                 row.RelativeItem().Text($"TOTALE COMPLESSIVO ({data.ValutaTargetCodiceIso}):")
                     .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
                 row.ConstantItem(150).AlignRight().Text($"{totaleComplessivo:N2} {data.ValutaTargetCodiceIso}")
-                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
+                    .FontSize(FontSizeHeader).Bold().FontColor(GetSaldoColor(totaleComplessivo));
                 row.ConstantItem(80).AlignRight().Text($"({conteggioComplessivo} mov.)")
                     .FontSize(FontSizeSmall);
             });
+        });
+    }
+
+    private static void ComposeLegenda(ColumnDescriptor column)
+    {
+        column.Item().PaddingTop(10).Border(1).BorderColor(BrandColors.Border).Background(BrandColors.LightGray).Padding(5).Column(legCol =>
+        {
+            legCol.Item().Text("LEGENDA COLORI SALDI")
+                .FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+
+            legCol.Item().PaddingTop(3).Row(row =>
+            {
+                // Icona ROSSO - Debito
+                row.ConstantItem(15).Height(10).Background(BrandColors.Accent);
+                row.ConstantItem(5); // Spazio
+                row.RelativeItem().Text("DEBITO: Importo ancora da pagare al fornitore (saldo positivo)")
+                    .FontSize(FontSizeSmall);
+            });
+
+            legCol.Item().PaddingTop(2).Row(row =>
+            {
+                // Icona VERDE - Pari/Credito
+                row.ConstantItem(15).Height(10).Background(BrandColors.Success);
+                row.ConstantItem(5); // Spazio
+                row.RelativeItem().Text("PARI/CREDITO: Pagamenti in regola o piccolo credito (saldo pari a zero o leggermente negativo)")
+                    .FontSize(FontSizeSmall);
+            });
+
+            legCol.Item().PaddingTop(2).Row(row =>
+            {
+                // Icona ARANCIONE - Credito da recuperare
+                row.ConstantItem(15).Height(10).Background(BrandColors.Warning);
+                row.ConstantItem(5); // Spazio
+                row.RelativeItem().Text("CREDITO DA RECUPERARE: Pagato in eccesso, importo significativo da recuperare dal fornitore (saldo molto negativo)")
+                    .FontSize(FontSizeSmall);
+            });
+
         });
     }
 

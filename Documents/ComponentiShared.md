@@ -187,6 +187,19 @@ Componente per la selezione del ruolo utente (`Components/Shared/RuoloSelect.raz
                  Required="true"
                  RequiredError="Ruolo obbligatorio" />
     ```
+ 
+### CausaleSelect
+Componente autocomplete per la selezione della causale contabile (`Components/Shared/CausaleSelect.razor`).
+*   **Funzionalità**:
+    *   Carica i tipi causali da `ana_tipi_causali` filtrati per azienda.
+    *   Visualizza la descrizione della causale (es. "Fattura passiva", "Nota di Credito").
+    *   Supporta ricerca testuale per codice o descrizione.
+    *   Validazione integrata con asterisco rosso.
+*   **Utilizzo**:
+    ```razor
+    <CausaleSelect @bind-SelectedCausaleId="@Entity.TransazioneCausaleTipoId"
+                   Required="true" />
+    ```
 
 ### Elenco Completo Componenti Select
 
@@ -195,6 +208,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | Componente | File | Tabella / Campo | Ordinamento | Scopo |
 |---|---|---|---|---|
 | **AziendaSelect** | `AziendaSelect.razor` | `ana_aziende` | Ragione Sociale | Selezione azienda per contesto multi-tenant. Include opzione "Tutte". |
+| **CausaleSelect** | `CausaleSelect.razor` | `ana_tipi_causali` | Descrizione | Selezione causale contabile con logica di segno algebrico. |
 | **CapoluogoSelect** | `CapoluogoSelect.razor` | `ana_geo_comuni` (flag capoluogo) | Descrizione | Selezione città capoluogo di provincia. |
 | **ComuneSelect** | `ComuneSelect.razor` | `ana_geo_comuni` | Nome | Ricerca completa comuni italiani ed esteri. |
 | **CountrySelect** | `CountrySelect.razor` | `eba_countries` | Name (Nome Paese) | Selezione nazione (standard ISO). |

@@ -59,7 +59,9 @@ public class MovTransazioniPrintService
                     transazione_data_scadenza as DataScadenza,
                     transazione_data_pagamento as DataPagamento,
                     fornitore_ragione_sociale as Fornitore,
-                    transazione_tipo_movimento as TipoMovimento,
+                    tipo_movimento_codice as TipoMovimentoCodice,
+                    tipo_movimento_descrizione as TipoMovimentoDescrizione,
+                    causale_segno as CausaleSegno,
                     transazione_causale as Causale,
                     transazione_stato as Stato,
                     transazione_numero_documento as NumeroDocumento,
@@ -72,7 +74,7 @@ public class MovTransazioniPrintService
                 FROM fn_get_transazioni_stampa_dettaglio(
                     @AziendaId,
                     @FornitoreId,
-                    @TipoMovimento,
+                    @CausaleTipoId,
                     @Stati,
                     @ViaggioId,
                     @DataViaggioId,
@@ -97,7 +99,7 @@ public class MovTransazioniPrintService
             {
                 AziendaId = filtri.AziendaId,
                 FornitoreId = filtri.FornitoreId,
-                TipoMovimento = filtri.TipoMovimento,
+                CausaleTipoId = filtri.CausaleTipoId,
                 Stati = filtri.Stati,
                 ViaggioId = filtri.ViaggioId,
                 DataViaggioId = filtri.DataViaggioId,
@@ -119,11 +121,10 @@ public class MovTransazioniPrintService
             });
 
             result.Dettagli = dettagli.ToList();
-            _logger.LogInformation("Recuperate {Count} transazioni", result.Dettagli.Count);
 
-            // 2. Recupera sub-totali
+            // 2. Recupera subtotali per gruppo
             var subtotaliSql = @"
-                SELECT 
+                SELECT
                     gruppo_chiave as GruppoChiave,
                     gruppo_display as GruppoDisplay,
                     gruppo_ordine as GruppoOrdine,
@@ -138,7 +139,7 @@ public class MovTransazioniPrintService
                 FROM fn_get_transazioni_stampa_subtotali(
                     @AziendaId,
                     @FornitoreId,
-                    @TipoMovimento,
+                    @CausaleTipoId,
                     @Stati,
                     @ViaggioId,
                     @DataViaggioId,
@@ -163,7 +164,7 @@ public class MovTransazioniPrintService
             {
                 AziendaId = filtri.AziendaId,
                 FornitoreId = filtri.FornitoreId,
-                TipoMovimento = filtri.TipoMovimento,
+                CausaleTipoId = filtri.CausaleTipoId,
                 Stati = filtri.Stati,
                 ViaggioId = filtri.ViaggioId,
                 DataViaggioId = filtri.DataViaggioId,
@@ -184,53 +185,38 @@ public class MovTransazioniPrintService
                 ValutaTargetId = valutaTargetId
             });
 
-            result.SubTotali = subtotali.ToList();
-            _logger.LogInformation("Recuperati {Count} sub-totali", result.SubTotali.Count);
+            result.Subtotali = subtotali.ToList();
 
-            // 3. Recupera informazioni azienda
-            result.Company = await GetCompanyInfoAsync(connection, filtri.AziendaId);
+            // 3. Calcola il totale generale
+            result.TotaleGeneraleValutaTarget = result.Subtotali.Where(s => s.IsTotaleGenerale).Sum(s => s.TotaleValutaTarget);
+
+            // 4. Se filtrato per azienda, recupera info azienda
+            if (filtri.AziendaId.HasValue)
+            {
+                result.Azienda = await GetAziendaInfoAsync(filtri.AziendaId.Value);
+            }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante estrazione dati stampa transazioni");
+            _logger.LogError(ex, "Errore durante il recupero dei dati per la stampa");
             throw;
         }
     }
 
-    private async Task<CompanyPrintInfo> GetCompanyInfoAsync(System.Data.IDbConnection connection, int? aziendaId)
+    private async Task<CompanyPrintInfo> GetAziendaInfoAsync(int aziendaId)
     {
-        if (!aziendaId.HasValue)
-            return new CompanyPrintInfo { RagioneSociale = "Tutte le Aziende" };
-
         try
         {
-            var sql = @"SELECT * FROM get_company_print_info(@AziendaId)";
-            var company = await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(sql, new { AziendaId = aziendaId });
-            return company ?? new CompanyPrintInfo();
+            using var connection = await _dbService.GetConnectionAsync();
+            string sql = "SELECT azienda_codice as Codice, azienda_ragione_sociale as RagioneSociale FROM ana_aziende WHERE azienda_id = @Id";
+            return await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(sql, new { Id = aziendaId }) ?? new CompanyPrintInfo();
         }
-        catch
+        catch (Exception ex)
         {
-            // Se la function non esiste, fallback a query diretta
-            var sql = @"
-                SELECT 
-                    a.azienda_denominazione as RagioneSociale,
-                    a.azienda_telefono as Telefono,
-                    a.azienda_email as Email,
-                    a.azienda_sito_web as SitoWeb,
-                    a.azienda_partita_iva as Piva,
-                    (SELECT al.binary_data 
-                     FROM ana_aziende_logo al 
-                     WHERE al.azienda_fk = a.azienda_id 
-                       AND al.logo_type = 'primary' 
-                       AND al.is_active = true 
-                       AND al.is_default = true 
-                     LIMIT 1) as LogoData
-                FROM ana_aziende a
-                WHERE a.azienda_id = @AziendaId";
-            var company = await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(sql, new { AziendaId = aziendaId });
-            return company ?? new CompanyPrintInfo();
+            _logger.LogError(ex, "Errore nel recupero info azienda {Id} per stampa", aziendaId);
+            return new CompanyPrintInfo();
         }
     }
 }
@@ -242,7 +228,7 @@ public class TransazioniFiltriDTO
 {
     public int? AziendaId { get; set; }
     public int? FornitoreId { get; set; }
-    public string? TipoMovimento { get; set; }
+    public int? CausaleTipoId { get; set; }
     public string[]? Stati { get; set; }
     public int? ViaggioId { get; set; }
     public int? DataViaggioId { get; set; }
@@ -265,6 +251,7 @@ public class TransazioniFiltriDTO
     public string? FornitoreNome { get; set; }
     public string? ValutaNome { get; set; }
     public string? ViaggioNome { get; set; }
+    public string? TipoMovimentoNome { get; set; }
 
     public FiltriApplicatiInfo ToFiltriApplicatiInfo()
     {
@@ -272,7 +259,7 @@ public class TransazioniFiltriDTO
         {
             Azienda = AziendaNome,
             Fornitore = FornitoreNome,
-            TipoMovimento = TipoMovimento,
+            TipoMovimento = TipoMovimentoNome,
             Valuta = ValutaNome,
             Viaggio = ViaggioNome,
             DataDocumentoDal = DataDocumentoDa?.ToString("dd/MM/yyyy"),

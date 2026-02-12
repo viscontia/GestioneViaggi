@@ -1,0 +1,153 @@
+@page "/tabelle/causali"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@inject AnaTipiCausaliService CausaliService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="AnaTipoCausale"
+                        Title="Gestione Causali Contabili"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.Add" 
+                       OnClick="@OpenCreateDialog">
+                Nuova Causale
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.CausaleCodice" Title="Codice" />
+            <PropertyColumn Property="x => x.CausaleDescrizione" Title="Descrizione" />
+            <PropertyColumn Property="x => x.CausaleSegno" Title="Segno">
+                <CellTemplate>
+                    @if (context.Item.CausaleSegno > 0)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">@context.Item.SegnoDisplay</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Error" Size="Size.Small" Variant="Variant.Text">@context.Item.SegnoDisplay</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.CausaleIsDocumento" Title="È Documento">
+                 <CellTemplate>
+                    @if (context.Item.CausaleIsDocumento)
+                    {
+                        <MudChip Color="Color.Info" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IsActive" Title="Attiva">
+                 <CellTemplate>
+                    @if (context.Item.IsActive)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <EnterpriseActionsColumn T="AnaTipoCausale" OnEdit="@OpenEditDialog" OnDelete="@DeleteCausale" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaTipoCausale> _items = new List<AnaTipoCausale>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await CausaliService.GetAllAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaTipiCausaliEditDialog>("Nuova Causale", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaTipoCausale item)
+    {
+        var parameters = new DialogParameters { ["Entity"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaTipiCausaliEditDialog>("Modifica Causale", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteCausale(AnaTipoCausale item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Causale", 
+            $"Sei sicuro di voler eliminare la causale {item.CausaleCodice} - {item.CausaleDescrizione}?", 
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await CausaliService.DeleteAsync(item.CausaleId);
+                Snackbar.Add("Causale eliminata", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool SearchFunc(AnaTipoCausale item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (item.CausaleCodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (item.CausaleDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+}

@@ -23,9 +23,9 @@ namespace GestioneViaggi.Models
         [Required(ErrorMessage = "Il Fornitore è obbligatorio")]
         public int TransazioneFornitoreId { get; set; }
 
-        [Column("transazione_tipo_movimento")]
-        [Required]
-        public string TransazioneTipoMovimento { get; set; } = "USCITA"; // ENTRATA o USCITA
+        [Column("transazione_causale_tipo_id")]
+        [Required(ErrorMessage = "La Causale Contabile è obbligatoria")]
+        public int TransazioneCausaleTipoId { get; set; }
 
         [Column("transazione_importo")]
         [Required(ErrorMessage = "L'importo è obbligatorio")]
@@ -100,6 +100,12 @@ namespace GestioneViaggi.Models
 
         [NotMapped]
         public string? ValutaCodiceIso { get; set; }
+
+        [NotMapped]
+        public string? CausaleDescrizione { get; set; }
+
+        [NotMapped]
+        public int? CausaleSegno { get; set; }
 
         [NotMapped]
         public string? ViaggioDescrizione { get; set; }

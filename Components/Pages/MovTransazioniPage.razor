@@ -15,15 +15,12 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <div style="width: 100%; overflow-x: auto;">
         
-        <!-- DEBUG PANEL AT TOP -->
-
-
         <!-- Filters Area -->
         <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap">
-             @if (_isSuperAdmin)
+            @if (_isSuperAdmin)
             {
                 <div style="min-width: 200px;">
-                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="false"
                         ValueChanged="@OnAziendaFilterChanged" />
                 </div>
             }
@@ -45,6 +42,14 @@
                                   Clearable="true" 
                                   CustomItems="@_distinctDateViaggi"
                                   Disabled="@(!_filterViaggioId.HasValue)" />
+            </div>
+
+            <div style="min-width: 180px;">
+                <CausaleSelect SelectedCausaleId="_filterCausaleTipoIdInt"
+                               SelectedCausaleIdChanged="@OnCausaleFilterChanged"
+                               AziendaId="@(_isSuperAdmin ? _selectedAziendaId : (_currentAziendaId ?? 0))"
+                               Label="Filtra Causale"
+                               Clearable="true" />
             </div>
 
              <div style="min-width: 150px;">
@@ -92,101 +97,84 @@
             <Columns>
                 @if (_isSuperAdmin)
                 {
-                    <PropertyColumn Property="x => x.AziendaCodice" Sortable="true"
+                    <PropertyColumn Property="x => x.AziendaCodice" Sortable="true" Title="Az."
                                     CellStyle="white-space: nowrap; text-align: center; padding: 8px 6px;"
                                     HeaderStyle="text-align: center; padding: 8px 6px; width: 80px; min-width: 60px;">
-                        <HeaderTemplate>
-                            <div style="line-height: 1.1;">Cod.<br/>Az.</div>
-                        </HeaderTemplate>
                     </PropertyColumn>
                 }
 
                 <PropertyColumn Property="x => x.TransazioneData" Title="Data" Format="dd/MM/yyyy" Sortable="true"
-                                CellStyle="padding: 8px 6px;"
-                                HeaderStyle="padding: 8px 6px; width: 120px; min-width: 100px;" />
+                                CellStyle="white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;" />
 
-                <PropertyColumn Property="x => x.TransazioneTipoMovimento" Title="Tipo"
+                <PropertyColumn Property="x => x.FornitoreRagioneSociale" Title="Fornitore"
+                                CellStyle="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 180px; min-width: 120px;" />
+
+                <PropertyColumn Property="x => x.CausaleDescrizione" Title="Causale Contabile"
                                 CellStyle="padding: 8px 6px;"
-                                HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;">
+                                HeaderStyle="padding: 8px 6px; width: 140px; min-width: 100px;">
                     <CellTemplate>
                         <div style="width: 100%; pointer-events: none;">
-                            @if (context.Item.TransazioneTipoMovimento == "ENTRATA")
+                            @if (context.Item.CausaleSegno > 0)
                             {
-                                <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Entrata</MudChip>
+                                <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">@context.Item.CausaleDescrizione</MudChip>
                             }
                             else
                             {
-                                <MudChip Color="Color.Error" Size="Size.Small" Variant="Variant.Text">Uscita</MudChip>
+                                <MudChip Color="Color.Error" Size="Size.Small" Variant="Variant.Text">@context.Item.CausaleDescrizione</MudChip>
                             }
                         </div>
                     </CellTemplate>
                 </PropertyColumn>
 
-                <PropertyColumn Property="x => x.ViaggioDescrizione" Title="Viaggio" Sortable="true"
-                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
+                <PropertyColumn Property="x => x.TransazioneCausale" Title="Descrizione" 
+                                CellStyle="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 220px; min-width: 150px;" />
+
+                <PropertyColumn Property="x => x.ImportoFormattato" Title="Importo"
+                                CellStyle="font-weight: bold; text-align: right; white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="text-align: right; padding: 8px 6px; width: 110px; min-width: 90px;" />
+
+                <PropertyColumn Property="x => x.TransazioneStato" Title="Stato"
+                                CellStyle="text-align: center; padding: 8px 6px;"
+                                HeaderStyle="text-align: center; padding: 8px 6px; width: 100px; min-width: 80px;">
                     <CellTemplate>
-                        <div title="@context.Item.ViaggioDescrizione" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
-                            @(context.Item.ViaggioDescrizione ?? "-")
+                        <div style="width: 100%; pointer-events: none;">
+                            <MudChip Color="@GetStatoColor(context.Item.TransazioneStato)" Size="Size.Small" Variant="Variant.Filled">
+                                @context.Item.TransazioneStato.Replace("_", " ")
+                            </MudChip>
                         </div>
                     </CellTemplate>
                 </PropertyColumn>
 
-                <PropertyColumn Property="x => x.DataViaggioInizio" Title="Data Viaggio" Format="dd/MM/yyyy" Sortable="true"
-                                CellStyle="padding: 8px 6px;"
-                                HeaderStyle="padding: 8px 6px; width: 120px; min-width: 100px;">
-                    <CellTemplate>
-                        <div style="pointer-events: none;">
-                            @(context.Item.DataViaggioInizio.HasValue ? context.Item.DataViaggioInizio.Value.ToString("dd/MM/yyyy") : "-")
-                        </div>
+                <PropertyColumn Property="x => x.TransazioneNumeroDocumento" Title="Doc. Num."
+                                CellStyle="white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;" />
+
+                <PropertyColumn Property="x => x.ViaggioDescrizione" Title="Viaggio"
+                                CellStyle="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 140px; min-width: 100px;" />
+
+                <TemplateColumn T="MovTransazioni" Tag="@("Actions")" Sortable="false" StickyLeft="true"
+                                HeaderClass="sticky-actions-column" CellClass="sticky-actions-column">
+                    <HeaderTemplate>
+                        <MudText Typo="Typo.caption"
+                            Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni</MudText>
+                    </HeaderTemplate>
+                    <CellTemplate Context="cellContext">
+                        <MudStack Row="true" Spacing="0" Justify="Justify.FlexEnd">
+                            <MudTooltip Text="Modifica">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
+                                    Class="inline-action-btn edit-btn" OnClick="@(() => OpenEditDialog(cellContext.Item))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Elimina">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Default"
+                                    Class="inline-action-btn delete-btn" OnClick="@(() => DeleteTransazione(cellContext.Item))" />
+                            </MudTooltip>
+                        </MudStack>
                     </CellTemplate>
-                </PropertyColumn>
-
-                <PropertyColumn Property="x => x.FornitoreRagioneSociale" Title="Fornitore"
-                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
-                    <CellTemplate>
-                        <div title="@context.Item.FornitoreRagioneSociale" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
-                            @context.Item.FornitoreRagioneSociale
-                        </div>
-                    </CellTemplate>
-                </PropertyColumn>
-
-                <PropertyColumn Property="x => x.TransazioneCausale" Title="Causale"
-                                CellStyle="padding: 8px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                                HeaderStyle="padding: 8px 6px; width: 200px; min-width: 150px;">
-                    <CellTemplate>
-                        <div title="@context.Item.TransazioneCausale" style="overflow: hidden; text-overflow: ellipsis; pointer-events: none;">
-                            @context.Item.TransazioneCausale
-                        </div>
-                    </CellTemplate>
-                </PropertyColumn>
-
-                <PropertyColumn Property="x => x.TransazioneImporto" Title="Importo Orig."
-                                CellStyle="font-weight:bold; padding: 8px 6px; text-align: right;"
-                                HeaderStyle="padding: 8px 6px; text-align: right; width: 120px; min-width: 100px;">
-                    <CellTemplate>
-                        <div style="pointer-events: none;">
-                            @context.Item.ImportoFormattato
-                        </div>
-                    </CellTemplate>
-                </PropertyColumn>
-
-                <PropertyColumn Property="x => x.TransazioneImportoEur" Title="Importo (EUR)" Format="N2"
-                                CellStyle="padding: 8px 6px; text-align: right;"
-                                HeaderStyle="padding: 8px 6px; text-align: right; width: 120px; min-width: 100px;" />
-
-                 <PropertyColumn Property="x => x.TransazioneStato" Title="Stato"
-                                  CellStyle="padding: 8px 6px;"
-                                  HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;">
-                    <CellTemplate>
-                        <div style="pointer-events: none;">
-                            <StatusBadge Status="@context.Item.TransazioneStato" />
-                        </div>
-                    </CellTemplate>
-                </PropertyColumn>
-
-                <EnterpriseActionsColumn T="MovTransazioni" OnEdit="@OpenEditDialog" OnDelete="@DeleteTransazione" />
+                </TemplateColumn>
             </Columns>
         </EnterpriseDataGrid>
     </div>
@@ -195,108 +183,80 @@
 @code {
     private List<MovTransazioni> _items = new();
     private MovTransazioni? _selectedItem;
-
-    // Filter properties
-
-    // Filter properties
-    private List<GestioneViaggi.Models.AnaViaggi> _distinctViaggi = new();
-    private List<DataViaggioDTO> _distinctDateViaggi = new();
+    private bool _isSuperAdmin;
+    private int _selectedAziendaId = 0; // 0 = Tutte
+    private int? _currentAziendaId;
+    
+    // UI Filters
     private int? _filterViaggioId;
     private int? _filterDataViaggioId;
     private DateTime? _filterDataTransazione;
-    private bool _filterSoloDaPagare; // Replaces previous logic if any
+    private bool _filterSoloDaPagare;
+    private int _filterCausaleTipoIdInt;
+    private int? _filterCausaleTipoId => _filterCausaleTipoIdInt > 0 ? _filterCausaleTipoIdInt : null;
 
-    // SuperAdmin Logic
-    private int? _currentAziendaId;
-    private int _selectedAziendaId; // 0 = All
-    private bool _isSuperAdmin;
+    // Cache per select
+    private List<GestioneViaggi.Models.AnaViaggi> _distinctViaggi = new();
+    private List<DataViaggioDTO> _distinctDateViaggi = new();
 
     protected override async Task OnInitializedAsync()
     {
         _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
-
-        if (_isSuperAdmin)
-        {
-            _currentAziendaId = null;
-        }
-        else
+        if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
         }
 
-        await LoadFiltersDataAsync();
-    }
-
-    protected override async Task OnParametersSetAsync()
-    {
+        // Carica dati iniziali
+        await LoadDistinctFiltersAsync();
         await LoadDataAsync();
     }
 
-    private async Task OnAziendaFilterChanged(int aziendaId)
+    private async Task LoadDistinctFiltersAsync()
     {
-        _selectedAziendaId = aziendaId;
-
-        // Reset filters when company changes
-        _filterViaggioId = null;
-        _filterDataViaggioId = null;
-        _filterDataTransazione = null;
-        _filterSoloDaPagare = false;
-
-        await LoadFiltersDataAsync();
-        await LoadDataAsync();
-    }
-    
-    // --- Filtering Logic ---
-
-
-
-    private async Task LoadFiltersDataAsync()
-    {
-        int? aziendaIdTarget = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) : _currentAziendaId;
-
         try
         {
-            _distinctViaggi = (await TransazioniService.GetDistinctViaggiAsync(aziendaIdTarget)).ToList();
-            _distinctDateViaggi.Clear();
-            StateHasChanged();
+            int? aziendaId = _isSuperAdmin 
+                ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) 
+                : _currentAziendaId;
+
+            _distinctViaggi = (await TransazioniService.GetDistinctViaggiAsync(aziendaId)).ToList();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore nel caricamento filtri: {ex.Message}", Severity.Error);
-            _distinctViaggi = new List<GestioneViaggi.Models.AnaViaggi>();
-            _distinctDateViaggi = new List<DataViaggioDTO>();
         }
     }
 
-
-
-    private async Task ClearFilters()
+    private Color GetStatoColor(string stato) => stato switch
     {
+        "PAGATO" => Color.Success,
+        "DA_PAGARE" => Color.Warning,
+        "PARZIALMENTE_PAGATO" => Color.Info,
+        "ANNULLATO" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task OnAziendaFilterChanged(int id)
+    {
+        if (_selectedAziendaId == id) return;
+        _selectedAziendaId = id;
+        
+        // Reset dipendenze
         _filterViaggioId = null;
         _filterDataViaggioId = null;
-        _filterDataTransazione = null;
-        _filterSoloDaPagare = false;
-        _distinctDateViaggi.Clear();
-        StateHasChanged();
+        _filterCausaleTipoIdInt = 0;
+        
+        await LoadDistinctFiltersAsync();
         await LoadDataAsync();
     }
-    
-    // Handlers for UI changes (to be wired up properly)
-    // Actually, I need to update the Razor part to use ValueChanged or Property setter logic correctly.
-    // I will update the razor markup in a simpler way: using @bind:after or manually handling ValueChanged.
-    // MudBlazor supports generic binding.
-    // BUT my `ViaggioSelect` uses `SelectedViaggioIdChanged`. 
-    // I will modify the bindings in the Razor markup to call `ApplyFilters` (or `OnFilterViaggioChanged`).
 
     private async Task OnViaggioFilterChanged(int? id)
     {
-        // Prevent redundant calls if the value hasn't actually changed
-        if (_filterViaggioId == id)
-            return;
-
+        if (_filterViaggioId == id) return;
         _filterViaggioId = id;
-        _filterDataViaggioId = null; // Reset data viaggio filter when viaggio changes
-
+        _filterDataViaggioId = null;
+        
         try
         {
             if (id.HasValue)
@@ -308,7 +268,6 @@
                 _distinctDateViaggi.Clear();
             }
 
-            // StateHasChanged will be called by LoadDataAsync, no need to call it twice
             await LoadDataAsync();
         }
         catch (Exception ex)
@@ -321,11 +280,15 @@
     
     private async Task OnDataViaggioFilterChanged(int? id)
     {
-        // Prevent redundant calls if the value hasn't actually changed
-        if (_filterDataViaggioId == id)
-            return;
-
+        if (_filterDataViaggioId == id) return;
         _filterDataViaggioId = id;
+        await LoadDataAsync();
+    }
+
+    private async Task OnCausaleFilterChanged(int id)
+    {
+        if (_filterCausaleTipoIdInt == id) return;
+        _filterCausaleTipoIdInt = id;
         await LoadDataAsync();
     }
 
@@ -341,21 +304,32 @@
         await LoadDataAsync();
     }
 
+    private async Task ClearFilters()
+    {
+        _filterViaggioId = null;
+        _filterDataViaggioId = null;
+        _filterDataTransazione = null;
+        _filterSoloDaPagare = false;
+        _filterCausaleTipoIdInt = 0;
+        _distinctDateViaggi.Clear();
+        await LoadDataAsync();
+    }
+
     private async Task LoadDataAsync()
     {
         try
         {
             if (_isSuperAdmin)
             {
-                if (_selectedAziendaId == 0)
+                if (_selectedAziendaId > 0)
                 {
-                    _items = (await TransazioniService.GetAllAsync(
-                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
+                    _items = (await TransazioniService.GetByAziendaAsync(_selectedAziendaId,
+                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare, _filterCausaleTipoId)).ToList();
                 }
                 else
                 {
-                    _items = (await TransazioniService.GetByAziendaAsync(_selectedAziendaId,
-                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
+                    _items = new List<MovTransazioni>();
+                    // Non mostriamo errori qui, aspettiamo che l'utente selezioni l'azienda
                 }
             }
             else
@@ -363,7 +337,7 @@
                 if (_currentAziendaId.HasValue && _currentAziendaId.Value > 0)
                 {
                     _items = (await TransazioniService.GetByAziendaAsync(_currentAziendaId.Value,
-                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare)).ToList();
+                        _filterViaggioId, _filterDataViaggioId, _filterDataTransazione, _filterSoloDaPagare, _filterCausaleTipoId)).ToList();
                 }
                 else
                 {
@@ -384,7 +358,6 @@
 
     private async Task OpenCreateDialog()
     {
-        // Enforce company selection for SuperAdmin
         if (_isSuperAdmin && _selectedAziendaId == 0)
         {
             Snackbar.Add("Selezionare un'Azienda prima di inserire una nuova Transazione", Severity.Warning);
@@ -451,10 +424,10 @@
     {
         if (string.IsNullOrWhiteSpace(searchString)) return true;
 
-        // Cerca in Fornitore, Causale, Tipo, Viaggio
+        // Cerca in Fornitore, Descrizione (Causale libera), Tipo (Causale contabile), Viaggio
         if (t.FornitoreRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneCausale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (t.TransazioneTipoMovimento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (t.CausaleDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneNumeroDocumento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.ViaggioDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
 

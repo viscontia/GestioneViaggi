@@ -12,6 +12,11 @@ public interface ITenantContext
     /// NULL se l'utente è SuperAdmin (accesso cross-tenant).
     /// </summary>
     Task<int?> GetCurrentAziendaIdAsync();
+    
+    /// <summary>
+    /// Restituisce l'AziendaId corrente. Se non disponibile (es. SuperAdmin senza contesto o utente senza azienda), solleva un'eccezione.
+    /// </summary>
+    Task<int> GetRequiredAziendaIdAsync();
 
     /// <summary>
     /// Verifica se l'utente corrente è SuperAdmin (accesso globale).

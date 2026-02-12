@@ -1,0 +1,155 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@inject AnaTipiCausaliService CausaliService
+@inject ITenantContext TenantContext
+
+@*
+    COMPONENT: CausaleSelect
+    DESC: Autocomplete per la selezione della causale contabile (Fattura, PG, NC...).
+    AUTORE: Antigravity
+*@
+
+<MudAutocomplete T="AnaTipoCausale"
+                 Value="@_selectedCausale"
+                 ValueChanged="@OnCausaleChanged"
+                 SearchFunc="@SearchCausali"
+                 ToStringFunc="@(c => c != null ? c.CausaleDescrizione : string.Empty)"
+                 Label="@Label"
+                 Variant="Variant.Outlined"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Disabled="@(_isLoading || Disabled)"
+                 Class="@GetCssClass()"
+                 Dense="true"
+                 Clearable="@Clearable"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="true"
+                 CoerceValue="false"
+                 Strict="false"
+                 OpenOnFocus="false"
+                 MaxItems="null" />
+
+@code {
+    [Parameter] public int SelectedCausaleId { get; set; }
+    [Parameter] public EventCallback<int> SelectedCausaleIdChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Causale Contabile";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Causale obbligatoria";
+    [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public int? AziendaId { get; set; }
+
+    private List<AnaTipoCausale> _causali = new();
+    private AnaTipoCausale? _selectedCausale;
+    private bool _isLoading = true;
+    private bool _loaded = false;
+    private int _pendingCausaleId = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCausali();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Se l'azienda cambia o la selezione cambia esternamente
+        if (!_loaded && SelectedCausaleId > 0)
+        {
+            _pendingCausaleId = SelectedCausaleId;
+        }
+        else
+        {
+            UpdateSelectedCausale();
+        }
+    }
+
+    private void UpdateSelectedCausale()
+    {
+        if (!_loaded || _causali.Count == 0) return;
+
+        if (SelectedCausaleId > 0)
+        {
+            if (_selectedCausale?.CausaleId != SelectedCausaleId)
+            {
+                _selectedCausale = _causali.FirstOrDefault(c => c.CausaleId == SelectedCausaleId);
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            _selectedCausale = null;
+        }
+    }
+
+    private async Task LoadCausali()
+    {
+        try
+        {
+            _isLoading = true;
+            
+            // Determina l'aziendaId da usare
+            int targetAziendaId = AziendaId ?? await TenantContext.GetRequiredAziendaIdAsync();
+            
+            var causali = await CausaliService.GetActiveByAziendaAsync(targetAziendaId);
+            _causali = causali?.ToList() ?? new List<AnaTipoCausale>();
+            _loaded = true;
+
+            if (_pendingCausaleId > 0)
+            {
+                _selectedCausale = _causali.FirstOrDefault(c => c.CausaleId == _pendingCausaleId);
+                _pendingCausaleId = 0;
+            }
+            else
+            {
+                UpdateSelectedCausale();
+            }
+        }
+        catch (Exception ex)
+        {
+            _causali = new List<AnaTipoCausale>();
+            System.Diagnostics.Debug.WriteLine($"[CausaleSelect] Errore caricamento causali: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnCausaleChanged(AnaTipoCausale? causale)
+    {
+        _selectedCausale = causale;
+        SelectedCausaleId = causale?.CausaleId ?? 0;
+        await SelectedCausaleIdChanged.InvokeAsync(SelectedCausaleId);
+    }
+
+    private async Task<IEnumerable<AnaTipoCausale>> SearchCausali(string searchText, CancellationToken cancellationToken)
+    {
+        if (!_loaded || _causali.Count == 0)
+            return Enumerable.Empty<AnaTipoCausale>();
+
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return _causali;
+        }
+
+        return _causali
+            .Where(c => c.CausaleDescrizione.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                        c.CausaleCodice.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private string GetCssClass()
+    {
+        var classes = Class ?? "";
+        if (Required)
+        {
+            classes += " required-field";
+        }
+        return classes.Trim();
+    }
+}

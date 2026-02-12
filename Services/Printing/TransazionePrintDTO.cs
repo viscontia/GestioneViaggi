@@ -18,7 +18,9 @@ public class TransazionePrintItem
     public DateTime? DataScadenza { get; set; }
     public DateTime? DataPagamento { get; set; }
     public string Fornitore { get; set; } = string.Empty;
-    public string TipoMovimento { get; set; } = string.Empty;
+    public string TipoMovimentoCodice { get; set; } = string.Empty;
+    public string TipoMovimentoDescrizione { get; set; } = string.Empty;
+    public int CausaleSegno { get; set; } = 1;
     public string? Causale { get; set; }
     public string Stato { get; set; } = string.Empty;
     public string? NumeroDocumento { get; set; }
@@ -50,8 +52,8 @@ public class TransazionePrintItem
     public decimal SaldoProgressivo { get; set; }
     public string SaldoProgressivoFormatted => $"{SaldoProgressivo:N2} {ValutaTargetIso}";
     
-    // Indica se l'importo deve essere sottratto (Uscita) o sommato (Entrata)
-    public decimal ImportoAlgebricoTarget => TipoMovimento == "ENTRATA" ? ImportoValutaTarget : -ImportoValutaTarget;
+    // Indica se l'importo deve essere sottratto (Uscita/Pagamento/NC) o sommato (Entrata/Fattura)
+    public decimal ImportoAlgebricoTarget => ImportoValutaTarget * CausaleSegno;
     
     public string StatoDisplay => Stato switch
     {
@@ -62,12 +64,8 @@ public class TransazionePrintItem
         _ => Stato
     };
 
-    public string TipoMovimentoDisplay => TipoMovimento switch
-    {
-        "ENTRATA" => "Entrata",
-        "USCITA" => "Uscita",
-        _ => TipoMovimento
-    };
+    public string TipoMovimentoDisplay => TipoMovimentoDescrizione;
+    public string TipoMovimento => TipoMovimentoCodice;
 }
 
 /// <summary>
@@ -143,10 +141,11 @@ public class TransazioniPrintData
 {
     public string TipoOrdinamento { get; set; } = "FORNITORE";
     public string ValutaTargetCodiceIso { get; set; } = "EUR";
-    public CompanyPrintInfo Company { get; set; } = new();
+    public CompanyPrintInfo Azienda { get; set; } = new();
     public FiltriApplicatiInfo Filtri { get; set; } = new();
     public List<TransazionePrintItem> Dettagli { get; set; } = new();
-    public List<SubTotaleItem> SubTotali { get; set; } = new();
+    public List<SubTotaleItem> Subtotali { get; set; } = new();
+    public decimal TotaleGeneraleValutaTarget { get; set; }
     
     public DateTime DataStampa { get; set; } = DateTime.Now;
     public string UtenteStampa { get; set; } = string.Empty;
@@ -155,10 +154,10 @@ public class TransazioniPrintData
     public int TotaleTransazioni => Dettagli.Count;
     
     public IEnumerable<SubTotaleItem> TotaliGenerali => 
-        SubTotali.Where(s => s.IsTotaleGenerale);
+        Subtotali.Where(s => s.IsTotaleGenerale);
     
     public IEnumerable<SubTotaleItem> SubTotaliGruppi => 
-        SubTotali.Where(s => !s.IsTotaleGenerale);
+        Subtotali.Where(s => !s.IsTotaleGenerale);
 
     // Raggruppa dettagli per facilitare iterazione nel PDF
     public IEnumerable<IGrouping<string?, TransazionePrintItem>> DettagliRaggruppati =>

@@ -18,9 +18,9 @@ public static partial class EuropeanVatValidator
     // ========== PATTERN GENERICO ==========
 
     /// <summary>
-    /// Pattern generico VAT Number: 2 lettere (codice paese) + 2-18 caratteri alfanumerici.
+    /// Pattern generico VAT Number: 1-3 lettere (codice paese) + 2-18 caratteri alfanumerici.
     /// </summary>
-    [GeneratedRegex(@"^[A-Z]{2}[A-Z0-9]{2,18}$", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^[A-Z]{1,3}[A-Z0-9]{2,20}$", RegexOptions.Compiled)]
     private static partial Regex VatNumberGenericRegex();
 
     // ========== PATTERN SPECIFICI PER PAESE ==========
@@ -137,13 +137,72 @@ public static partial class EuropeanVatValidator
     [GeneratedRegex(@"^GB(\d{9}|\d{12})$", RegexOptions.Compiled)]
     private static partial Regex VatUnitedKingdomRegex();
 
-    // Svizzera (non EU ma comune): CHE + 9 cifre + MVA/MWST/IVA
-    [GeneratedRegex(@"^CHE\d{9}(MVA|MWST|IVA)$", RegexOptions.Compiled)]
+    // Svizzera (non EU ma comune): CHE + 9 cifre + MVA/MWST/IVA (supporta separatori come CHE-123.456.789 MWST)
+    [GeneratedRegex(@"^CHE[- ]?(\d{9}|\d{3}\.\d{3}\.\d{3})[- ]?(MVA|MWST|IVA|TVA)$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
     private static partial Regex VatSwitzerlandRegex();
 
     // Norvegia (non EU ma comune): NO + 9 cifre + MVA
     [GeneratedRegex(@"^NO\d{9}MVA$", RegexOptions.Compiled)]
     private static partial Regex VatNorwayRegex();
+
+    // Albania: NIPT standard (L + 8 cifre + L) oppure con prefisso AL
+    [GeneratedRegex(@"^[A-Z]\d{8}[A-Z]$", RegexOptions.Compiled)]
+    private static partial Regex VatAlbaniaNiptRegex();
+
+    [GeneratedRegex(@"^AL[A-Z]\d{8}[A-Z]$", RegexOptions.Compiled)]
+    private static partial Regex VatAlbaniaWithPrefixRegex();
+
+    // Islanda: IS + 5-6 cifre
+    [GeneratedRegex(@"^IS\d{5,6}$", RegexOptions.Compiled)]
+    private static partial Regex VatIcelandRegex();
+
+    // Liechtenstein: LI + 5 cifre
+    [GeneratedRegex(@"^LI\d{5}$", RegexOptions.Compiled)]
+    private static partial Regex VatLiechtensteinRegex();
+
+    // Montenegro: ME + 8 cifre
+    [GeneratedRegex(@"^ME\d{8}$", RegexOptions.Compiled)]
+    private static partial Regex VatMontenegroRegex();
+
+    // Macedonia del Nord: MK + 13 cifre
+    [GeneratedRegex(@"^MK\d{13}$", RegexOptions.Compiled)]
+    private static partial Regex VatNorthMacedoniaRegex();
+
+    // Serbia: RS + 9 cifre
+    [GeneratedRegex(@"^RS\d{9}$", RegexOptions.Compiled)]
+    private static partial Regex VatSerbiaRegex();
+
+    // Turchia: TR + 10 cifre
+    [GeneratedRegex(@"^TR\d{10}$", RegexOptions.Compiled)]
+    private static partial Regex VatTurkeyRegex();
+
+    // Ucraina: UA + 8-12 cifre
+    [GeneratedRegex(@"^UA\d{8,12}$", RegexOptions.Compiled)]
+    private static partial Regex VatUkraineRegex();
+
+    // Sudafrica: ZA + 10 cifre
+    [GeneratedRegex(@"^ZA\d{10}$", RegexOptions.Compiled)]
+    private static partial Regex VatSouthAfricaRegex();
+
+    // Marocco: MA + 8 cifre
+    [GeneratedRegex(@"^MA\d{8}$", RegexOptions.Compiled)]
+    private static partial Regex VatMoroccoRegex();
+
+    // Tunisia: TN + 7 cifre + 1 lettera
+    [GeneratedRegex(@"^TN\d{7}[A-Z]$", RegexOptions.Compiled)]
+    private static partial Regex VatTunisiaRegex();
+
+    // Algeria: DZ + 15 o 20 cifre
+    [GeneratedRegex(@"^DZ\d{15}(\d{5})?$", RegexOptions.Compiled)]
+    private static partial Regex VatAlgeriaRegex();
+
+    // Libia: LY + 6 cifre
+    [GeneratedRegex(@"^LY\d{6}$", RegexOptions.Compiled)]
+    private static partial Regex VatLibyaRegex();
+
+    // Egitto: EG + 9 cifre
+    [GeneratedRegex(@"^EG\d{9}$", RegexOptions.Compiled)]
+    private static partial Regex VatEgyptRegex();
 
     // ========== MAPPATURA COUNTRY CODE → REGEX ==========
 
@@ -180,8 +239,22 @@ public static partial class EuropeanVatValidator
         { "ES", VatSpainRegex },
         { "SE", VatSwedenRegex },
         { "GB", VatUnitedKingdomRegex },
-        { "CHE", VatSwitzerlandRegex },  // Svizzera usa 3 lettere
-        { "NO", VatNorwayRegex }
+        { "CHE", VatSwitzerlandRegex },
+        { "NO", VatNorwayRegex },
+        { "AL", VatAlbaniaWithPrefixRegex },
+        { "IS", VatIcelandRegex },
+        { "LI", VatLiechtensteinRegex },
+        { "ME", VatMontenegroRegex },
+        { "MK", VatNorthMacedoniaRegex },
+        { "RS", VatSerbiaRegex },
+        { "TR", VatTurkeyRegex },
+        { "UA", VatUkraineRegex },
+        { "ZA", VatSouthAfricaRegex },
+        { "MA", VatMoroccoRegex },
+        { "TN", VatTunisiaRegex },
+        { "DZ", VatAlgeriaRegex },
+        { "LY", VatLibyaRegex },
+        { "EG", VatEgyptRegex }
     };
 
     // ========== METODI PUBBLICI ==========
@@ -202,10 +275,14 @@ public static partial class EuropeanVatValidator
 
         var upperVat = vatNumber.ToUpperInvariant().Trim();
 
+        // Caso Speciale: Albania (NIPT) può non avere prefisso ed è unico (Lettera + 8 cifre + Lettera)
+        if (VatAlbaniaNiptRegex().IsMatch(upperVat) || VatAlbaniaWithPrefixRegex().IsMatch(upperVat))
+            return ValidationResult.Success();
+
         // Fase 1: Validazione pattern generico
         if (!VatNumberGenericRegex().IsMatch(upperVat))
             return ValidationResult.Failure(
-                "VAT Number non valido: deve iniziare con 2 lettere (codice paese) seguite da 2-18 caratteri alfanumerici (es: FR12345678901, DE123456789)",
+                "VAT Number non valido: deve iniziare con 2-3 lettere (codice paese) seguite da caratteri alfanumerici (es: IT12345678901, FR12...)",
                 "CHK_VAT_002"
             );
 
@@ -240,16 +317,25 @@ public static partial class EuropeanVatValidator
     }
 
     /// <summary>
-    /// Estrae il codice paese da un VAT Number (primi 2 caratteri).
+    /// Estrae il codice paese da un VAT Number.
+    /// Gestisce codici a 2 lettere (standard EU) e 3 lettere (es: Svizzera CHE).
     /// </summary>
-    /// <param name="vatNumber">VAT Number (es: FR12345678901).</param>
-    /// <returns>Codice paese maiuscolo (es: "FR"), oppure null se non valido.</returns>
+    /// <param name="vatNumber">VAT Number (es: FR123..., CHE123...).</param>
+    /// <returns>Codice paese maiuscolo, oppure null se non valido.</returns>
     public static string? ExtractCountryCode(string? vatNumber)
     {
-        if (string.IsNullOrWhiteSpace(vatNumber) || vatNumber.Length < 2)
-            return null;
+        if (string.IsNullOrWhiteSpace(vatNumber) || vatNumber.Length < 3)
+        {
+             if (!string.IsNullOrWhiteSpace(vatNumber) && vatNumber.Length >= 2)
+                return vatNumber.Substring(0, 2).ToUpperInvariant();
+             return null;
+        }
 
-        return vatNumber.Substring(0, 2).ToUpperInvariant();
+        var upper = vatNumber.ToUpperInvariant();
+        if (upper.StartsWith("CHE"))
+            return "CHE";
+
+        return upper.Substring(0, 2);
     }
 
     /// <summary>

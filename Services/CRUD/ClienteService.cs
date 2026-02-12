@@ -30,7 +30,7 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero di tutti i clienti per azienda {AziendaFk}", aziendaFk);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_clienti");
         }
     }
 
@@ -73,39 +73,10 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
             // Insert
             return await _repository.InsertAsync(cliente);
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
-        {
-            // Unique constraint violation
-            _logger.LogWarning(ex, "Violazione constraint univoco durante inserimento cliente");
-
-            // Trova l'email esistente per fornire feedback specifico
-            var existing = await FindExistingByAnagraficaAsync(
-                cliente.Cognome,
-                cliente.Nome,
-                cliente.DataNascita ?? DateTime.MinValue,
-                cliente.CodiceFiscale ?? string.Empty,
-                cliente.AziendaFk
-            );
-
-            if (existing != null && !string.IsNullOrEmpty(existing.Email))
-            {
-                throw new UniqueConstraintViolationException(
-                    $"Cliente già esistente con email: {existing.Email}",
-                    existing.Email,
-                    "cliente_email"
-                );
-            }
-
-            throw new UniqueConstraintViolationException(
-                "Cliente già esistente nel sistema",
-                null,
-                "unique_constraint"
-            );
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del cliente");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_clienti");
         }
     }
 
@@ -122,20 +93,10 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
             // Update
             return await _repository.UpdateAsync(cliente);
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
-        {
-            _logger.LogWarning(ex, "Violazione constraint univoco durante aggiornamento cliente {ClienteId}", cliente.ClienteId);
-
-            throw new UniqueConstraintViolationException(
-                "Dati cliente in conflitto con un cliente esistente",
-                null,
-                "unique_constraint"
-            );
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del cliente {ClienteId}", cliente.ClienteId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_clienti");
         }
     }
 
@@ -166,7 +127,7 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         catch (Exception ex) when (ex is not ClienteHasRelationsException)
         {
             _logger.LogError(ex, "Errore durante l'eliminazione del cliente {ClienteId}", clienteId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_clienti");
         }
     }
 

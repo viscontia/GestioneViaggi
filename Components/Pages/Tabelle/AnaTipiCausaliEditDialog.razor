@@ -1,0 +1,138 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@inject AnaTipiCausaliService CausaliService
+@inject ITenantContext TenantContext
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(Entity.CausaleId == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Edit)" Class="mr-3 mb-n1" />
+            @(Entity.CausaleId == 0 ? "Nuova Causale" : "Modifica Causale")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="@Entity" OnValidSubmit="OnValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Codice" 
+                                  Value="@Entity.CausaleCodice"
+                                  ValueChanged="@((string val) => Entity.CausaleCodice = val?.ToUpper() ?? string.Empty)"
+                                  Required="true" 
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="10"
+                                  Class="uppercase-input"
+                                  HelperText="Es: FT, NC, PG" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField Label="Descrizione" 
+                                  Value="@Entity.CausaleDescrizione"
+                                  ValueChanged="@((string val) => Entity.CausaleDescrizione = val?.ToUpper() ?? string.Empty)"
+                                  Required="true" 
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Class="uppercase-input" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Segno Algebrico" 
+                               @bind-Value="Entity.CausaleSegno" 
+                               Variant="Variant.Outlined" 
+                               Margin="Margin.Dense"
+                               Required="true">
+                        <MudSelectItem Value="1">+ Aumenta Debito (Fattura)</MudSelectItem>
+                        <MudSelectItem Value="-1">- Diminuisce Debito (Pagamento/NC)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch @bind-Value="Entity.CausaleIsDocumento" 
+                               Label="È Documento" 
+                               Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch @bind-Value="Entity.IsActive" 
+                               Label="Attiva" 
+                               Color="Color.Success" />
+                </MudItem>
+            </MudGrid>
+            <div class="d-flex justify-end mt-6">
+                <MudButton ButtonType="ButtonType.Button" OnClick="Cancel" Class="mr-2">Annulla</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_processing">
+                    @if (_processing)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Salvataggio...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@(Entity.CausaleId == 0 ? "Crea" : "Salva")</MudText>
+                    }
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@inject IJSRuntime JS
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AnaTipoCausale Entity { get; set; } = new();
+
+    private bool _processing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Entity.CausaleId == 0)
+        {
+            Entity.AziendaFk = (await TenantContext.GetCurrentAziendaIdAsync()) ?? 0;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Abilita la navigazione TAB e il focus sul primo campo
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AnaTipiCausaliEditDialog] Errore JS: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task OnValidSubmit()
+    {
+        _processing = true;
+        try
+        {
+            if (Entity.CausaleId == 0)
+            {
+                await CausaliService.CreateAsync(Entity);
+                Snackbar.Add("Causale creata con successo", Severity.Success);
+            }
+            else
+            {
+                await CausaliService.UpdateAsync(Entity);
+                Snackbar.Add("Causale aggiornata con successo", Severity.Success);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

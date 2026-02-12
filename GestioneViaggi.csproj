@@ -92,13 +92,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- Escludi file di esempio dalla compilazione -->
-        <Compile Remove="Documents\**\*.razor" />
-        <Content Remove="Documents\**\*.razor" />
-        
         <!-- Fix build error with omnisharp.json -->
         <Content Remove="omnisharp.json" />
         <None Remove="omnisharp.json" />
+
+        <!-- Escludi Unit_Tests dal bundling MAUI -->
+        <Compile Remove="Unit_Tests\**" />
+        <Content Remove="Unit_Tests\**" />
+        <None Remove="Unit_Tests\**" />
+        <MauiAsset Remove="Unit_Tests\**" />
     </ItemGroup>
 
     <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->

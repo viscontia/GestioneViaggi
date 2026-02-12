@@ -73,19 +73,21 @@ public class MovTransazioniService
         int? viaggioId = null,
         int? dataViaggioId = null,
         DateTime? dataTransazione = null,
-        bool soloDaPagare = false)
+        bool soloDaPagare = false,
+        int? causaleTipoId = null)
     {
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = "SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare)";
+            string sql = "SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {
                 ViaggioId = viaggioId,
                 DataViaggioId = dataViaggioId,
                 DataTransazione = dataTransazione,
-                SoloDaPagare = soloDaPagare
+                SoloDaPagare = soloDaPagare,
+                CausaleTipoId = causaleTipoId
             });
 
             return result;
@@ -106,12 +108,13 @@ public class MovTransazioniService
         int? viaggioId = null,
         int? dataViaggioId = null,
         DateTime? dataTransazione = null,
-        bool soloDaPagare = false)
+        bool soloDaPagare = false,
+        int? causaleTipoId = null)
     {
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = "SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare)";
+            string sql = "SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {
@@ -119,7 +122,8 @@ public class MovTransazioniService
                 ViaggioId = viaggioId,
                 DataViaggioId = dataViaggioId,
                 DataTransazione = dataTransazione,
-                SoloDaPagare = soloDaPagare
+                SoloDaPagare = soloDaPagare,
+                CausaleTipoId = causaleTipoId
             });
 
             return result;
@@ -139,11 +143,14 @@ public class MovTransazioniService
             string sql = @"
                 SELECT
                     t.*,
-                    f.ragione_sociale as fornitore_ragione_sociale,
-                    v.valuta_codice_iso as valuta_codice_iso
+                    f.fornitore_ragione_sociale as fornitore_ragione_sociale,
+                    v.valuta_codice_iso as valuta_codice_iso,
+                    c.causale_descrizione as causale_descrizione,
+                    c.causale_segno as causale_segno
                 FROM mov_transazioni t
                 JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
                 JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
+                JOIN ana_tipi_causali c ON t.transazione_causale_tipo_id = c.causale_id
                 WHERE t.transazione_id = @Id";
 
             return await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, new { Id = id });
@@ -199,7 +206,7 @@ public class MovTransazioniService
                     transazione_viaggio_id,
                     transazione_data_viaggio_id,
                     transazione_fornitore_id,
-                    transazione_tipo_movimento,
+                    transazione_causale_tipo_id,
                     transazione_importo,
                     transazione_valuta_id,
                     transazione_data,
@@ -217,7 +224,7 @@ public class MovTransazioniService
                     @TransazioneViaggioId,
                     @TransazioneDataViaggioId,
                     @TransazioneFornitoreId,
-                    @TransazioneTipoMovimento,
+                    @TransazioneCausaleTipoId,
                     @TransazioneImporto,
                     @TransazioneValutaId,
                     @TransazioneData,
@@ -241,7 +248,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella creazione transazione");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
         }
     }
 
@@ -288,7 +295,7 @@ public class MovTransazioniService
                     transazione_viaggio_id = @TransazioneViaggioId,
                     transazione_data_viaggio_id = @TransazioneDataViaggioId,
                     transazione_fornitore_id = @TransazioneFornitoreId,
-                    transazione_tipo_movimento = @TransazioneTipoMovimento,
+                    transazione_causale_tipo_id = @TransazioneCausaleTipoId,
                     transazione_importo = @TransazioneImporto,
                     transazione_valuta_id = @TransazioneValutaId,
                     transazione_data = @TransazioneData,
@@ -310,7 +317,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nell'aggiornamento transazione {Id}", item.TransazioneId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
         }
     }
 
@@ -324,7 +331,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella cancellazione transazione {Id}", id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
         }
     }
 }

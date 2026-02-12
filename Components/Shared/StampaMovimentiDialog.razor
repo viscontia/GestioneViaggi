@@ -11,6 +11,7 @@
 @inject MovTransazioniPrintService PrintService
 @inject AnaFornitoriService FornitoriService
 @inject AnaValuteService ValuteService
+@inject AnaTipiCausaliService CausaliService
 @inject IJSRuntime JS
 @inject IDialogService DialogService
 @implements IDisposable
@@ -35,14 +36,12 @@
                                      Clearable="true" />
                 </MudItem>
 
-                @* RIGA 2: Tipo Movimento e Stati *@
+                @* RIGA 2: Causale e Stati *@
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="string" Label="Tipo Movimento" @bind-Value="_filtroTipoMovimento" 
-                               Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@((string?)null)">Tutti</MudSelectItem>
-                        <MudSelectItem Value="@("ENTRATA")">Entrata</MudSelectItem>
-                        <MudSelectItem Value="@("USCITA")">Uscita</MudSelectItem>
-                    </MudSelect>
+                    <CausaleSelect @bind-SelectedCausaleId="_filtroCausaleTipoIdInt"
+                                   AziendaId="@_aziendaIdEffettivo"
+                                   Label="Filtra per Causale"
+                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="string" Label="Stato" @bind-SelectedValues="_filtroStati" 
@@ -160,7 +159,8 @@
     private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
     private int _filtroFornitoreIdInt;
     private int? _filtroFornitoreId => _filtroFornitoreIdInt > 0 ? _filtroFornitoreIdInt : null;
-    private string? _filtroTipoMovimento;
+    private int _filtroCausaleTipoIdInt;
+    private int? _filtroCausaleTipoId => _filtroCausaleTipoIdInt > 0 ? _filtroCausaleTipoIdInt : null;
     private IEnumerable<string> _filtroStati = new List<string>();
     private int? _filtroViaggioId;
     private int? _filtroDataViaggioId;
@@ -195,7 +195,6 @@
         if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
-            // Forza refresh del FornitoreSelect che ora riceverà l'AziendaId corretto
             StateHasChanged();
         }
     }
@@ -206,12 +205,10 @@
         {
             try
             {
-                // Setup TAB navigation
                 await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
             }
             catch { }
 
-            // Focus sul primo campo
             if (_firstField != null)
             {
                 await Task.Delay(300);
@@ -235,7 +232,7 @@
     {
         _filtroAziendaIdInt = 0;
         _filtroFornitoreIdInt = 0;
-        _filtroTipoMovimento = null;
+        _filtroCausaleTipoIdInt = 0;
         _filtroStati = new List<string>();
         _filtroViaggioId = null;
         _filtroDataViaggioId = null;
@@ -280,13 +277,10 @@
     private bool ValidaFiltri()
     {
         bool isValid = true;
-
-        // Reset errori
         _errorDataTransazione = false;
         _errorDataDocumento = false;
         _errorImporto = false;
 
-        // Controllo Data Transazione Da <= A
         if (_dataTransazioneDa.HasValue && _dataTransazioneA.HasValue && _dataTransazioneDa > _dataTransazioneA)
         {
             _errorDataTransazione = true;
@@ -294,7 +288,6 @@
             isValid = false;
         }
 
-        // Controllo Data Documento Da <= A
         if (_dataDocumentoDa.HasValue && _dataDocumentoA.HasValue && _dataDocumentoDa > _dataDocumentoA)
         {
             _errorDataDocumento = true;
@@ -302,7 +295,6 @@
             isValid = false;
         }
 
-        // Controllo Importo Da <= A
         if (_importoDa.HasValue && _importoA.HasValue && _importoDa > _importoA)
         {
             _errorImporto = true;
@@ -310,7 +302,6 @@
             isValid = false;
         }
 
-        // Controllo Viaggio obbligatorio se Data Viaggio selezionata
         if (_filtroDataViaggioId.HasValue && !_filtroViaggioId.HasValue)
         {
             Snackbar.Add("Filtro Viaggio: selezionare prima un Viaggio per filtrare per Data Viaggio", Severity.Warning);
@@ -330,7 +321,6 @@
         }
         try
         {
-            // Recupera informazioni utente
             var sessionData = await SessionManager.GetSessionAsync();
             if (sessionData?.User == null)
             {
@@ -339,9 +329,9 @@
             }
             var userInfo = sessionData.User;
 
-            // Recupera nomi per i filtri applicati
             string? fornitoreNome = null;
             string? valutaNome = null;
+            string? causaleNome = null;
             
             if (_filtroFornitoreIdInt == 0)
             {
@@ -352,19 +342,29 @@
                 var fornitore = await FornitoriService.GetByIdAsync(_filtroFornitoreId.Value);
                 fornitoreNome = fornitore?.RagioneSociale;
             }
+
+            if (_filtroCausaleTipoId.HasValue)
+            {
+                var causale = await CausaliService.GetByIdAsync(_filtroCausaleTipoId.Value);
+                causaleNome = causale?.CausaleDescrizione;
+            }
+            else
+            {
+                causaleNome = "TUTTE LE CAUSALI";
+            }
+
             if (_filtroValutaId.HasValue)
             {
                 var valuta = await ValuteService.GetByIdAsync(_filtroValutaId.Value);
                 valutaNome = valuta?.ValutaCodiceIso;
             }
 
-            // Costruisci DTO filtri
             var aziendaIdFiltro = _aziendaIdEffettivo > 0 ? _aziendaIdEffettivo : (int?)null;
             var filtri = new TransazioniFiltriDTO
             {
                 AziendaId = aziendaIdFiltro,
                 FornitoreId = _filtroFornitoreId,
-                TipoMovimento = _filtroTipoMovimento,
+                CausaleTipoId = _filtroCausaleTipoId,
                 Stati = _filtroStati?.Any() == true ? _filtroStati.ToArray() : null,
                 ViaggioId = _filtroViaggioId,
                 DataViaggioId = _filtroDataViaggioId,
@@ -382,10 +382,10 @@
                 SoloSenzaViaggio = _soloSenzaViaggio,
                 SoloConFattura = _soloConFattura,
                 FornitoreNome = fornitoreNome,
-                ValutaNome = valutaNome
+                ValutaNome = valutaNome,
+                TipoMovimentoNome = causaleNome
             };
 
-            // Recupera dati per stampa
             var printData = await PrintService.GetDataPerStampaAsync(
                 filtri,
                 _ordinamento,
@@ -401,7 +401,6 @@
 
             Snackbar.Add("Generazione PDF in corso...", Severity.Info);
 
-            // Genera PDF in Downloads (Coerente con Dashboard/NavMenu)
             var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
             var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetMovementReportFileName(filtri);
             var outputPath = Path.Combine(targetFolder, fileName);
@@ -413,7 +412,6 @@
 
             await MovTransazioniPrinter.GeneratePdfAsync(printData, outputPath);
 
-            // Messaggio di conferma e apertura (Coerente con Dashboard/NavMenu)
             bool? confirm = await DialogService.ShowMessageBox(
                 "Stampa Completata",
                 $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",

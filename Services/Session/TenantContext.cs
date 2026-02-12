@@ -47,6 +47,16 @@ public class TenantContext : ITenantContext
         return session.User.AziendaId.Value;
     }
 
+    public async Task<int> GetRequiredAziendaIdAsync()
+    {
+        var aziendaId = await GetCurrentAziendaIdAsync();
+        if (!aziendaId.HasValue)
+        {
+            throw new InvalidOperationException("Nessuna azienda selezionata o disponibile nel contesto corrente.");
+        }
+        return aziendaId.Value;
+    }
+
     public async Task<bool> IsSuperAdminAsync()
     {
         var session = await _sessionManager.GetSessionAsync();

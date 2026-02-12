@@ -77,8 +77,9 @@
                 <MudItem xs="12" sm="6">
                     <MudGrid Spacing="1">
                         <MudItem xs="12">
-                            <ComuneSelect @bind-SelectedComuneId="Entity.ComuneFk"
-                                          @bind-SelectedComune="Entity.Comune"
+                            <ComuneSelect SelectedComuneId="Entity.ComuneFk"
+                                          SelectedComune="Entity.Comune"
+                                          SelectedComuneChanged="HandleComuneChanged"
                                           Label="Comune (Sede)"
                                           Required="false" />
                         </MudItem>
@@ -167,8 +168,8 @@
                                 <div class="d-flex align-center gap-2">
                                     <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" />
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Estero</MudText>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">VAT Number europeo (es: FR12345678901)</MudText>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Estero (EU, CH, ZA, ...)</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">VAT Number alfanumerico (es: FR123, ESB123, ZA123, CHE123)</MudText>
                                     </div>
                                 </div>
                             </MudRadio>
@@ -223,8 +224,9 @@
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
                             <MudText Typo="Typo.caption">
-                                <strong>VAT Number obbligatorio:</strong> Formato [Codice Paese][Numero] (es: FR12345678901, DE123456789).<br/>
-                                <strong>Codice SDI:</strong> Impostato automaticamente a "XXXXXXX" per fornitori esteri.
+                                <strong>VAT Number obbligatorio:</strong> Formato [Codice Paese][Codice Alfanumerico].<br/>
+                                Supportate tutte le nazioni <strong>UE, Svizzera (CHE), Sudafrica (ZA)</strong> e paesi limitrofi.<br/>
+                                <strong>Codice SDI:</strong> Impostato automaticamente a "XXXXXXX".
                             </MudText>
                         </MudAlert>
                     </MudItem>
@@ -329,6 +331,21 @@
             _debugError = ex.ToString();
             Console.WriteLine($"[AnaFornitoriEditDialog] ERROR: {ex}");
             Snackbar.Add("Errore inizializzazione finestra", Severity.Error);
+        }
+    }
+
+    private void HandleComuneChanged(Comune? comune)
+    {
+        Entity.Comune = comune;
+        Entity.ComuneFk = comune?.Id;
+
+        // Adriano: se il comune è estero, imposta automaticamente il flag FornitoreEstero
+        // ma SOLO in fase di inserimento (non in modifica)
+        if (!IsEditMode && comune != null)
+        {
+            Console.WriteLine($"[AnaFornitoriEditDialog] Comune selezionato: {comune.Nome}, Estero: {comune.ComuneEstero}");
+            Entity.FornitoreEstero = comune.ComuneEstero;
+            StateHasChanged();
         }
     }
     

@@ -131,7 +131,7 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero di tutti gli elementi da {TableName}", TableName);
-            throw;
+            throw DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -157,7 +157,7 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero dell'elemento {Id} da {TableName}", id, TableName);
-            throw;
+            throw DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -213,7 +213,7 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'eliminazione dell'elemento {Id} da {TableName}", id, TableName);
-            throw;
+            throw DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -287,8 +287,13 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
             catch (Exception fixEx)
             {
                 _logger.LogError(fixEx, "Tentativo di fix sequence fallito per {TableName}", TableName);
-                throw; // Rilancia l'eccezione originale o quella del fix
+                throw DatabaseExceptionHelper.WrapException(fixEx, TableName);
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante la creazione dell'elemento in {TableName}", TableName);
+            throw DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
