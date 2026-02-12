@@ -75,7 +75,7 @@ public static class DatabaseExceptionHelper
         return tableName.ToLower() switch
         {
             "mov_transazioni" => "transazioni contabili",
-            "ana_fornitori" => "anagrafica fornitori",
+            "ana_controparti" => "anagrafica controparti",
             "ana_viaggi" => "viaggi",
             "ana_date_viaggi" => "date di viaggio",
             "ana_clienti" => "anagrafica clienti",
