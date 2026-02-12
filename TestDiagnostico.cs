@@ -55,7 +55,7 @@ namespace GestioneViaggi
                 Console.WriteLine("Query base OK - Dati letti:");
                 Console.WriteLine($"  TransazioneId: {basicResult.TransazioneId}");
                 Console.WriteLine($"  TransazioneAziendaId: {basicResult.TransazioneAziendaId}");
-                Console.WriteLine($"  TransazioneFornitoreId: {basicResult.TransazioneFornitoreId}");
+                Console.WriteLine($"  TransazioneControparteId: {basicResult.TransazioneControparteId}");
                 Console.WriteLine($"  TransazioneImporto: {basicResult.TransazioneImporto}");
                 Console.WriteLine($"  TransazioneData: {basicResult.TransazioneData}");
                 Console.WriteLine($"  TransazioneCausale: {basicResult.TransazioneCausale}");
@@ -65,11 +65,11 @@ namespace GestioneViaggi
                 string fullSql = @"
                     SELECT
                         t.*,
-                        f.ragione_sociale as fornitore_ragione_sociale,
+                        f.ragione_sociale as controparte_ragione_sociale,
                         v.valuta_codice_iso as valuta_codice_iso,
-                        vi.descrizione_breve as viaggio_descrizione
+                        vi.viaggio_descrizione_breve as viaggio_descrizione
                     FROM mov_transazioni t
-                    JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
+                    JOIN ana_controparti f ON t.transazione_controparte_id = f.controparte_id
                     JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
                     LEFT JOIN ana_viaggi vi ON t.transazione_viaggio_id = vi.viaggio_id
                     ORDER BY t.transazione_data DESC, t.created_at DESC";
@@ -111,7 +111,7 @@ namespace GestioneViaggi
                 Console.WriteLine("\n=== STEP 4: DETTAGLI PRIMO RECORD ===");
                 var first = fullResultList.First();
                 Console.WriteLine($"  TransazioneId: {first.TransazioneId}");
-                Console.WriteLine($"  FornitoreRagioneSociale: {first.FornitoreRagioneSociale}");
+                Console.WriteLine($"  ControparteRagioneSociale: {first.ControparteRagioneSociale}");
                 Console.WriteLine($"  ValutaCodiceIso: {first.ValutaCodiceIso}");
                 Console.WriteLine($"  ViaggioDescrizione: {first.ViaggioDescrizione ?? "(null)"}");
                 Console.WriteLine($"  TransazioneCausale: {first.TransazioneCausale}");

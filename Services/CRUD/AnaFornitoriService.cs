@@ -8,8 +8,8 @@ namespace GestioneViaggi.Services.CRUD;
 
 public class AnaFornitoriService : BaseCrudService<AnaFornitore>
 {
-    protected override string TableName => "ana_fornitori";
-    protected override string IdColumnName => "fornitore_id";
+    protected override string TableName => "ana_controparti";
+    protected override string IdColumnName => "controparte_id";
 
     public AnaFornitoriService(
         IDatabaseService databaseService,
@@ -33,33 +33,33 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             await using var connection = await _databaseService.GetConnectionAsync();
 
             var sql = @"
-                SELECT 
-                    f.*,
+                SELECT
+                    c.*,
                     tf.descrizione as tipo_fornitore_desc,
-                    c.comune_descrizione,
+                    co.comune_descrizione,
                     p.provincia_sigla
-                FROM ana_fornitori f
-                JOIN ana_tipo_fornitore tf ON f.tipo_fornitore_fk = tf.tipo_fornitore_id
-                LEFT JOIN ana_geo_comuni c ON f.comune_fk = c.comune_id
-                LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
+                FROM ana_controparti c
+                LEFT JOIN ana_tipo_fornitore tf ON c.tipo_fornitore_fk = tf.tipo_fornitore_id
+                LEFT JOIN ana_geo_comuni co ON c.comune_fk = co.comune_id
+                LEFT JOIN ana_geo_province p ON co.comune_provincia_fk = p.provincia_id
                 WHERE 1=1";
 
             if (currentAziendaId.HasValue)
             {
                 // Normal User: Filter strict by own company
-                sql += $" AND f.azienda_fk = {currentAziendaId.Value}";
+                sql += $" AND c.azienda_fk = {currentAziendaId.Value}";
             }
             else
             {
                 // SuperAdmin
                 if (aziendaIdFilter.HasValue && aziendaIdFilter.Value > 0)
                 {
-                    sql += $" AND f.azienda_fk = {aziendaIdFilter.Value}";
+                    sql += $" AND c.azienda_fk = {aziendaIdFilter.Value}";
                 }
                 // Else (Filter=0 or null) -> Show All (no additional WHERE)
             }
 
-            sql += " ORDER BY f.priorita ASC, f.ragione_sociale ASC";
+            sql += " ORDER BY c.priorita ASC, c.ragione_sociale ASC";
 
             await using var command = new NpgsqlCommand(sql, connection);
             await using var reader = await command.ExecuteReaderAsync();
@@ -73,7 +73,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il caricamento dei fornitori");
+            _logger.LogError(ex, "Errore durante il caricamento delle controparti");
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -91,7 +91,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             }
             else
             {
-                 throw new UnauthorizedAccessException("Operazione non consentita: Nessuna azienda specificata per il nuovo fornitore.");
+                 throw new UnauthorizedAccessException("Operazione non consentita: Nessuna azienda specificata per la nuova controparte.");
             }
         }
         // Else use provided entity.AziendaFk
@@ -104,10 +104,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
-                INSERT INTO ana_fornitori (
+                INSERT INTO ana_controparti (
                     azienda_fk,
                     ragione_sociale,
                     nome_breve,
+                    is_fornitore,
+                    is_cliente,
                     indirizzo,
                     comune_fk,
                     telefono_prefisso,
@@ -132,6 +134,8 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                     @aziendaFk,
                     @ragioneSociale,
                     @nomeBreve,
+                    @isFornitore,
+                    @isCliente,
                     @indirizzo,
                     @comuneFk,
                     @telefonoPrefisso,
@@ -162,11 +166,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             {
                 return MapFromReader(reader);
             }
-            throw new Exception("Impossibile creare il fornitore");
+            throw new Exception("Impossibile creare la controparte");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la creazione del fornitore");
+            _logger.LogError(ex, "Errore durante la creazione della controparte");
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -183,10 +187,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = @"
-                UPDATE ana_fornitori
+                UPDATE ana_controparti
                 SET
                     ragione_sociale = @ragioneSociale,
                     nome_breve = @nomeBreve,
+                    is_fornitore = @isFornitore,
+                    is_cliente = @isCliente,
                     indirizzo = @indirizzo,
                     comune_fk = @comuneFk,
                     telefono_prefisso = @telefonoPrefisso,
@@ -204,7 +210,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                     note = @note,
                     updated_by = @updatedBy,
                     updated_at = @updatedAt
-                WHERE fornitore_id = @id
+                WHERE controparte_id = @id
                 RETURNING *";
 
             await using var command = new NpgsqlCommand(sql, connection);
@@ -216,11 +222,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             {
                 return MapFromReader(reader);
             }
-            throw new Exception($"Fornitore con ID {entity.Id} non trovato");
+            throw new Exception($"Controparte con ID {entity.Id} non trovata");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'aggiornamento del fornitore");
+            _logger.LogError(ex, "Errore durante l'aggiornamento della controparte");
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -235,14 +241,14 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             await using var connection = await _databaseService.GetConnectionAsync();
 
             // Prima recupero l'azienda_fk per validare l'accesso tenant
-            var sqlAziendaCheck = "SELECT azienda_fk FROM ana_fornitori WHERE fornitore_id = @id";
+            var sqlAziendaCheck = "SELECT azienda_fk FROM ana_controparti WHERE controparte_id = @id";
             await using var cmdCheck = new NpgsqlCommand(sqlAziendaCheck, connection);
             cmdCheck.Parameters.AddWithValue("id", id);
 
             var aziendaFk = await cmdCheck.ExecuteScalarAsync();
             if (aziendaFk == null || aziendaFk == DBNull.Value)
             {
-                return null; // Fornitore non trovato
+                return null; // Controparte non trovata
             }
 
             // Validazione tenant: verifica accesso all'azienda
@@ -250,16 +256,16 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
 
             // Ora posso fare la query completa con i JOIN
             var sql = @"
-                 SELECT
-                    f.*,
+                SELECT
+                    c.*,
                     tf.descrizione as tipo_fornitore_desc,
-                    c.comune_descrizione,
+                    co.comune_descrizione,
                     p.provincia_sigla
-                FROM ana_fornitori f
-                JOIN ana_tipo_fornitore tf ON f.tipo_fornitore_fk = tf.tipo_fornitore_id
-                LEFT JOIN ana_geo_comuni c ON f.comune_fk = c.comune_id
-                LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-                WHERE f.fornitore_id = @id";
+                FROM ana_controparti c
+                LEFT JOIN ana_tipo_fornitore tf ON c.tipo_fornitore_fk = tf.tipo_fornitore_id
+                LEFT JOIN ana_geo_comuni co ON c.comune_fk = co.comune_id
+                LEFT JOIN ana_geo_province p ON co.comune_provincia_fk = p.provincia_id
+                WHERE c.controparte_id = @id";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", id);
@@ -273,7 +279,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         }
         catch(Exception ex)
         {
-            _logger.LogError(ex, "Errore GetByIdAsync fornitore {Id}", id);
+            _logger.LogError(ex, "Errore GetByIdAsync controparte {Id}", id);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -282,10 +288,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
     {
         return new AnaFornitore
         {
-            Id = ReadInt(reader, "fornitore_id"),
+            Id = ReadInt(reader, "controparte_id"),
             AziendaFk = ReadInt(reader, "azienda_fk"),
             RagioneSociale = reader.GetString(reader.GetOrdinal("ragione_sociale")),
             NomeBreve = ReadNullableString(reader, "nome_breve"),
+            IsFornitore = reader.GetBoolean(reader.GetOrdinal("is_fornitore")),
+            IsCliente = reader.GetBoolean(reader.GetOrdinal("is_cliente")),
             Indirizzo = ReadNullableString(reader, "indirizzo"),
             ComuneFk = ReadNullableInt(reader, "comune_fk"),
             TelefonoPrefisso = ReadNullableString(reader, "telefono_prefisso"),
@@ -297,7 +305,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             CodiceSdi = ReadNullableString(reader, "codice_destinatario_sdi"),
             PartitaIva = ReadNullableString(reader, "partita_iva"),
             CodiceFiscale = ReadNullableString(reader, "codice_fiscale"),
-            TipoFornitoreFk = ReadInt(reader, "tipo_fornitore_fk"),
+            TipoFornitoreFk = ReadNullableInt(reader, "tipo_fornitore_fk"),
             Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
             Priorita = reader.GetInt32(reader.GetOrdinal("priorita")),
             Note = ReadNullableString(reader, "note"),
@@ -324,6 +332,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
 
         // Parametri nullable - specifica il tipo per evitare errore "could not determine data type"
         AddNullableStringParameter(command, "nomeBreve", entity.NomeBreve);
+
+        // I due flag
+        command.Parameters.AddWithValue("isFornitore", entity.IsFornitore);
+        command.Parameters.AddWithValue("isCliente", entity.IsCliente);
+
         AddNullableStringParameter(command, "indirizzo", entity.Indirizzo);
 
         if (entity.ComuneFk.HasValue)
@@ -343,7 +356,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         AddNullableStringParameter(command, "partitaIva", entity.PartitaIva);
         AddNullableStringParameter(command, "codiceFiscale", entity.CodiceFiscale);
 
-        command.Parameters.AddWithValue("tipoFornitoreFk", entity.TipoFornitoreFk);
+        if (entity.TipoFornitoreFk.HasValue)
+            command.Parameters.AddWithValue("tipoFornitoreFk", entity.TipoFornitoreFk.Value);
+        else
+            command.Parameters.Add(new NpgsqlParameter("tipoFornitoreFk", NpgsqlTypes.NpgsqlDbType.Integer) { Value = DBNull.Value });
+
         command.Parameters.AddWithValue("attivo", entity.Attivo);
         command.Parameters.AddWithValue("priorita", entity.Priorita);
 
@@ -381,8 +398,8 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
     }
 
     /// <summary>
-    /// Normalizza i dati del fornitore prima del salvataggio.
-    /// - Gestione automatica Codice SDI in base al tipo fornitore
+    /// Normalizza i dati della controparte prima del salvataggio.
+    /// - Gestione automatica Codice SDI in base al tipo
     /// - Uppercase/Lowercase appropriati
     /// - Trim e conversione empty string → NULL
     /// </summary>
@@ -391,12 +408,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
         // ===== GESTIONE AUTOMATICA CODICE SDI =====
         if (entity.FornitoreEstero)
         {
-            // Fornitore estero: SDI fisso
+            // Controparte estera: SDI fisso
             entity.CodiceSdi = "XXXXXXX";
         }
         else
         {
-            // Fornitore italiano: default se non specificato
+            // Controparte italiana: default se non specificato
             if (string.IsNullOrWhiteSpace(entity.CodiceSdi))
             {
                 entity.CodiceSdi = "0000000";
@@ -432,7 +449,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
 
         await using var connection = await _databaseService.GetConnectionAsync();
 
-        // ===== FORNITORI ITALIANI =====
+        // ===== CONTROPARTI ITALIANE =====
         if (!entity.FornitoreEstero)
         {
             // Verifica P.IVA italiana duplicata
@@ -440,11 +457,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             {
                 var sqlPiva = @"
                     SELECT COUNT(*)
-                    FROM ana_fornitori
+                    FROM ana_controparti
                     WHERE azienda_fk = @aziendaFk
                       AND partita_iva = @partitaIva
                       AND fornitore_estero = FALSE
-                      AND (@excludeId IS NULL OR fornitore_id != @excludeId)";
+                      AND (@excludeId IS NULL OR controparte_id != @excludeId)";
 
                 await using var cmdPiva = new NpgsqlCommand(sqlPiva, connection);
                 cmdPiva.Parameters.AddWithValue("aziendaFk", entity.AziendaFk);
@@ -455,7 +472,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                 if (count > 0)
                 {
                     throw new InvalidOperationException(
-                        $"Partita IVA {entity.PartitaIva} già presente per un altro fornitore italiano di questa azienda"
+                        $"Partita IVA {entity.PartitaIva} già presente per un'altra controparte italiana di questa azienda"
                     );
                 }
             }
@@ -465,11 +482,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             {
                 var sqlCf = @"
                     SELECT COUNT(*)
-                    FROM ana_fornitori
+                    FROM ana_controparti
                     WHERE azienda_fk = @aziendaFk
                       AND codice_fiscale = @codiceFiscale
                       AND fornitore_estero = FALSE
-                      AND (@excludeId IS NULL OR fornitore_id != @excludeId)";
+                      AND (@excludeId IS NULL OR controparte_id != @excludeId)";
 
                 await using var cmdCf = new NpgsqlCommand(sqlCf, connection);
                 cmdCf.Parameters.AddWithValue("aziendaFk", entity.AziendaFk);
@@ -480,12 +497,12 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                 if (count > 0)
                 {
                     throw new InvalidOperationException(
-                        $"Codice Fiscale {entity.CodiceFiscale} già presente per un altro fornitore italiano di questa azienda"
+                        $"Codice Fiscale {entity.CodiceFiscale} già presente per un'altra controparte italiana di questa azienda"
                     );
                 }
             }
         }
-        // ===== FORNITORI ESTERI =====
+        // ===== CONTROPARTI ESTERE =====
         else
         {
             // Verifica VAT Number duplicato
@@ -493,11 +510,11 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
             {
                 var sqlVat = @"
                     SELECT COUNT(*)
-                    FROM ana_fornitori
+                    FROM ana_controparti
                     WHERE azienda_fk = @aziendaFk
                       AND partita_iva = @vatNumber
                       AND fornitore_estero = TRUE
-                      AND (@excludeId IS NULL OR fornitore_id != @excludeId)";
+                      AND (@excludeId IS NULL OR controparte_id != @excludeId)";
 
                 await using var cmdVat = new NpgsqlCommand(sqlVat, connection);
                 cmdVat.Parameters.AddWithValue("aziendaFk", entity.AziendaFk);
@@ -508,7 +525,7 @@ public class AnaFornitoriService : BaseCrudService<AnaFornitore>
                 if (count > 0)
                 {
                     throw new InvalidOperationException(
-                        $"VAT Number {entity.PartitaIva} già presente per un altro fornitore estero di questa azienda"
+                        $"VAT Number {entity.PartitaIva} già presente per un'altra controparte estera di questa azienda"
                     );
                 }
             }

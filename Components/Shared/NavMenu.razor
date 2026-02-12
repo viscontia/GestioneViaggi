@@ -30,8 +30,8 @@
         </MudNavLink>
 
         <MudNavLink Icon="@Icons.Material.Filled.Store"
-                    OnClick="@(() => OpenTab("/ana-fornitori", "Anagrafica Fornitori", "store"))">
-            <MudText Typo="Typo.body1">Anagrafica Fornitori</MudText>
+                    OnClick="@(() => OpenTab("/ana-fornitori", "Anagrafica Controparti", "store"))">
+            <MudText Typo="Typo.body1">Anagrafica Controparti</MudText>
         </MudNavLink>
 
         <MudNavLink Icon="@Icons.Material.Filled.FlightTakeoff"
@@ -129,8 +129,8 @@
         <!-- Tabelle Contabili -->
         <MudNavGroup Title="Tabelle Contabili" Icon="@Icons.Material.Filled.Calculate" Expanded="false">
              <MudNavLink Icon="@Icons.Material.Filled.Category"
-                        OnClick="@(() => OpenTab("/tabelle/tipi-fornitore", "Tipi Fornitore", "table"))">
-                <MudText Typo="Typo.body1">Tipi Fornitore</MudText>
+                        OnClick="@(() => OpenTab("/tabelle/tipi-fornitore", "Tipi Controparti", "table"))">
+                <MudText Typo="Typo.body1">Tipi Controparti</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.AttachMoney"
                         OnClick="@(() => OpenTab("/tabelle/valute", "Valute", "table"))">
@@ -152,8 +152,8 @@
 
     <MudNavGroup Title="Contabilità" Icon="@Icons.Material.Filled.AttachMoney" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.ReceiptLong"
-                    OnClick="@(() => OpenTab("/movimenti", "Movimenti", "receipt_long"))">
-            <MudText Typo="Typo.body1">Movimenti</MudText>
+                    OnClick="@(() => OpenTab("/movimenti", "Movimenti Passivi", "receipt_long"))">
+            <MudText Typo="Typo.body1">Movimenti Passivi</MudText>
         </MudNavLink>
     </MudNavGroup>
 
@@ -175,7 +175,7 @@
     <MudNavGroup Title="Stampe Contabili" Icon="@Icons.Material.Filled.AccountBalance" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Receipt"
                     OnClick="@OpenStampaMovimentiDialog">
-            <MudText Typo="Typo.body1">Elenco Movimenti Contabili</MudText>
+            <MudText Typo="Typo.body1">Stampa Movimenti Passivi</MudText>
         </MudNavLink>
         <MudNavLink Icon="@Icons.Material.Filled.EventNote"
                     OnClick="@(() => OnStampaSviluppo("Scadenziario"))">
@@ -450,6 +450,6 @@
             FullWidth = true, 
             BackdropClick = false 
         };
-        await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Elenco Movimenti Contabili", options);
+        await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Movimenti Passivi", options);
     }
 }

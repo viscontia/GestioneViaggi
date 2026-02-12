@@ -148,7 +148,7 @@ public class MovTransazioniService
                     c.causale_descrizione as causale_descrizione,
                     c.causale_segno as causale_segno
                 FROM mov_transazioni t
-                JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
+                JOIN ana_controparti f ON t.transazione_controparte_id = f.controparte_id
                 JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
                 JOIN ana_tipi_causali c ON t.transazione_causale_tipo_id = c.causale_id
                 WHERE t.transazione_id = @Id";
@@ -205,7 +205,7 @@ public class MovTransazioniService
                     transazione_azienda_id,
                     transazione_viaggio_id,
                     transazione_data_viaggio_id,
-                    transazione_fornitore_id,
+                    transazione_controparte_id,
                     transazione_causale_tipo_id,
                     transazione_importo,
                     transazione_valuta_id,
@@ -223,7 +223,7 @@ public class MovTransazioniService
                     @TransazioneAziendaId,
                     @TransazioneViaggioId,
                     @TransazioneDataViaggioId,
-                    @TransazioneFornitoreId,
+                    @TransazioneControparteId,
                     @TransazioneCausaleTipoId,
                     @TransazioneImporto,
                     @TransazioneValutaId,
@@ -294,7 +294,7 @@ public class MovTransazioniService
                 UPDATE mov_transazioni SET
                     transazione_viaggio_id = @TransazioneViaggioId,
                     transazione_data_viaggio_id = @TransazioneDataViaggioId,
-                    transazione_fornitore_id = @TransazioneFornitoreId,
+                    transazione_controparte_id = @TransazioneControparteId,
                     transazione_causale_tipo_id = @TransazioneCausaleTipoId,
                     transazione_importo = @TransazioneImporto,
                     transazione_valuta_id = @TransazioneValutaId,

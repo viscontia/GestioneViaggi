@@ -107,7 +107,7 @@
                                 CellStyle="white-space: nowrap; padding: 8px 6px;"
                                 HeaderStyle="padding: 8px 6px; width: 100px; min-width: 80px;" />
 
-                <PropertyColumn Property="x => x.FornitoreRagioneSociale" Title="Fornitore"
+                <PropertyColumn Property="x => x.ControparteRagioneSociale" Title="Controparte"
                                 CellStyle="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 6px;"
                                 HeaderStyle="padding: 8px 6px; width: 180px; min-width: 120px;" />
 
@@ -425,7 +425,7 @@
         if (string.IsNullOrWhiteSpace(searchString)) return true;
 
         // Cerca in Fornitore, Descrizione (Causale libera), Tipo (Causale contabile), Viaggio
-        if (t.FornitoreRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (t.ControparteRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneCausale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.CausaleDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         if (t.TransazioneNumeroDocumento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;

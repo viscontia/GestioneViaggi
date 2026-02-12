@@ -12,7 +12,7 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            @(IsEditMode ? $"Modifica Fornitore: {Entity.RagioneSociale}" : "Nuovo Fornitore")
+            @(IsEditMode ? $"Modifica Controparte: {Entity.RagioneSociale}" : "Nuova Controparte")
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -48,24 +48,40 @@
                         Class="uppercase-input" />
                 </MudItem>
 
-                <!-- RIGA 2: Tipo Fornitore e Priorità -->
+                <!-- RIGA 2: Checkbox Tipo Controparte -->
+                <MudItem xs="12">
+                    <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Tipo Controparte *</MudText>
+                        <MudStack Row="true" Spacing="3">
+                            <MudCheckBox @bind-Value="Entity.IsFornitore" Color="Color.Primary" Label="È un Fornitore" />
+                            <MudCheckBox @bind-Value="Entity.IsCliente" Color="Color.Secondary" Label="È un Cliente" />
+                        </MudStack>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                            Almeno uno dei due deve essere selezionato
+                        </MudText>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- RIGA 3: Tipo Fornitore e Priorità -->
                 <MudItem xs="12" sm="8">
-                    <MudSelect T="int" Label="Tipo Fornitore" @bind-Value="Entity.TipoFornitoreFk"
-                        Variant="Variant.Outlined" Required="true" RequiredError="Obbligatorio" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelect T="int?" Label="Tipo Fornitore" @bind-Value="Entity.TipoFornitoreFk"
+                        Variant="Variant.Outlined" Required="@Entity.IsFornitore"
+                        RequiredError="Obbligatorio per fornitori" AnchorOrigin="Origin.BottomCenter"
+                        Disabled="@(!Entity.IsFornitore)">
                         @foreach (var tipo in _tipiFornitore)
                         {
-                            <MudSelectItem Value="@tipo.Id">@tipo.Descrizione</MudSelectItem>
+                            <MudSelectItem Value="@((int?)tipo.Id)">@tipo.Descrizione</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                     <MudNumericField @bind-Value="Entity.Priorita" Label="Priorità (1-10)" 
+                     <MudNumericField @bind-Value="Entity.Priorita" Label="Priorità (1-10)"
                         Variant="Variant.Outlined" Min="1" Max="10" />
                 </MudItem>
 
-                <!-- RIGA 3: Attivo (Switch) -->
+                <!-- RIGA 4: Attivo (Switch) -->
                 <MudItem xs="12">
-                    <MudSwitch @bind-Value="Entity.Attivo" Color="Color.Primary" Label="Fornitore Attivo" />
+                    <MudSwitch @bind-Value="Entity.Attivo" Color="Color.Primary" Label="Controparte Attiva" />
                 </MudItem>
                 
                 <MudItem xs="12">
@@ -150,16 +166,16 @@
                      <MudText Typo="Typo.subtitle2" Color="Color.Primary">Dati Fiscali</MudText>
                 </MudItem>
 
-                <!-- RIGA 6.5: Tipo Fornitore (Italia/Estero) -->
+                <!-- RIGA 6.5: Tipo Controparte (Italia/Estero) -->
                 <MudItem xs="12">
                     <MudPaper Elevation="2" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Tipo Fornitore</MudText>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Nazionalità</MudText>
                         <MudRadioGroup @bind-Value="Entity.FornitoreEstero" T="bool">
                             <MudRadio Value="false" Color="Color.Primary">
                                 <div class="d-flex align-center gap-2">
                                     <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" />
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Italiano</MudText>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Controparte Italiana</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">P.IVA e/o Codice Fiscale italiani</MudText>
                                     </div>
                                 </div>
@@ -168,7 +184,7 @@
                                 <div class="d-flex align-center gap-2">
                                     <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" />
                                     <div>
-                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fornitore Estero (EU, CH, ZA, ...)</MudText>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Controparte Estera (EU, CH, ZA, ...)</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">VAT Number alfanumerico (es: FR123, ESB123, ZA123, CHE123)</MudText>
                                     </div>
                                 </div>
@@ -184,7 +200,7 @@
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
                             <MudText Typo="Typo.caption">
-                                <strong>Obbligatorio:</strong> Inserire almeno Partita IVA o Codice Fiscale.<br/>
+                                <strong>Obbligatorio:</strong> Inserire almeno Partita IVA o Codice Fiscale.<br />
                                 <strong>Codice SDI:</strong> Se non noto, lasciare il valore predefinito "0000000".
                             </MudText>
                         </MudAlert>
@@ -224,8 +240,8 @@
                     <MudItem xs="12">
                         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
                             <MudText Typo="Typo.caption">
-                                <strong>VAT Number obbligatorio:</strong> Formato [Codice Paese][Codice Alfanumerico].<br/>
-                                Supportate tutte le nazioni <strong>UE, Svizzera (CHE), Sudafrica (ZA)</strong> e paesi limitrofi.<br/>
+                                <strong>VAT Number obbligatorio:</strong> Formato [Codice Paese][Codice Alfanumerico].<br />
+                                Supportate tutte le nazioni <strong>UE, Svizzera (CHE), Sudafrica (ZA)</strong> e paesi limitrofi.<br />
                                 <strong>Codice SDI:</strong> Impostato automaticamente a "XXXXXXX".
                             </MudText>
                         </MudAlert>
@@ -252,10 +268,10 @@
                     </MudItem>
 
                     <!-- SDI automatico per esteri - solo visualizzazione -->
-                    <MudItem xs="12" sm="12">
+                    <MudItem xs="12">
                         <MudTextField Value="@("XXXXXXX")" Label="Codice SDI (Automatico)"
                             Variant="Variant.Outlined" ReadOnly="true" Disabled="true"
-                            HelperText="Valore fisso per fornitori esteri" />
+                            HelperText="Valore fisso per controparti estere" />
                     </MudItem>
                 }
 
@@ -298,6 +314,8 @@
             Entity.AziendaFk = AziendaFk;
             Entity.Priorita = 5;
             Entity.Attivo = true;
+            Entity.IsFornitore = true;  // Default: Fornitore
+            Entity.IsCliente = false;
             Entity.TelefonoPrefisso = "+39";
             Entity.FornitoreEstero = false; // Default: Italia
             Entity.CodiceSdi = "0000000"; // Default SDI per italiani
@@ -397,12 +415,26 @@
         await _form.Validate();
         if (_form.IsValid)
         {
+            // Validazione ruolo: almeno uno dei due flag deve essere TRUE
+            if (!Entity.IsFornitore && !Entity.IsCliente)
+            {
+                Snackbar.Add("La controparte deve essere almeno un Fornitore o un Cliente", Severity.Warning);
+                return;
+            }
+
+            // Validazione Tipo Fornitore: obbligatorio se è un fornitore
+            if (Entity.IsFornitore && (!Entity.TipoFornitoreFk.HasValue || Entity.TipoFornitoreFk.Value == 0))
+            {
+                Snackbar.Add("Il Tipo Fornitore è obbligatorio per le controparti marcate come Fornitore", Severity.Warning);
+                return;
+            }
+
             // Validazione aggiuntiva: almeno P.IVA o CF per italiani
             if (!Entity.FornitoreEstero)
             {
                 if (string.IsNullOrWhiteSpace(Entity.PartitaIva) && string.IsNullOrWhiteSpace(Entity.CodiceFiscale))
                 {
-                    Snackbar.Add("Per fornitori italiani è obbligatorio inserire almeno Partita IVA o Codice Fiscale", Severity.Warning);
+                    Snackbar.Add("Per controparti italiane è obbligatorio inserire almeno Partita IVA o Codice Fiscale", Severity.Warning);
                     return;
                 }
             }
@@ -411,7 +443,7 @@
                 // VAT Number obbligatorio per esteri
                 if (string.IsNullOrWhiteSpace(Entity.PartitaIva))
                 {
-                    Snackbar.Add("Per fornitori esteri il VAT Number è obbligatorio", Severity.Warning);
+                    Snackbar.Add("Per controparti estere il VAT Number è obbligatorio", Severity.Warning);
                     return;
                 }
             }

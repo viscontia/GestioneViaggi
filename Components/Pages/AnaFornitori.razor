@@ -26,7 +26,7 @@ else
 {
     <EnterpriseDataGrid T="AnaFornitore"
                         Items="@_items"
-                        Title="Gestione Anagrafica Fornitori"
+                        Title="Gestione Anagrafica Controparti"
                         SearchFunction="@Search"
                         @bind-SelectedItem="_selectedItem">
 
@@ -43,7 +43,7 @@ else
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
-                Nuovo Fornitore
+                Nuova Controparte
             </MudButton>
         </ToolBarActions>
 
@@ -72,10 +72,42 @@ else
             }
 
             <PropertyColumn Property="x => x.RagioneSociale" Title="Ragione Sociale" />
-            
+
             <PropertyColumn Property="x => x.NomeBreve" Title="Nome Breve" />
 
-            <PropertyColumn Property="x => x.TipoFornitoreDescrizione" Title="Tipo" />
+            <TemplateColumn SortBy="@(x => x.TipoControparteDisplay)" Title="Ruolo">
+                <CellTemplate>
+                    @if (context.Item.IsFornitore && context.Item.IsCliente)
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.SwapHoriz" Variant="Variant.Filled" Style="font-weight: 600; background-color: #D946EF !important; color: white !important;">F/C</MudChip>
+                    }
+                    else if (context.Item.IsFornitore)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Store" Variant="Variant.Filled" Style="font-weight: 600;">Fornitore</MudChip>
+                    }
+                    else if (context.Item.IsCliente)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.People" Variant="Variant.Filled" Style="font-weight: 600;">Cliente</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <PropertyColumn Property="x => x.TipoFornitoreDescrizione" Title="Tipo Forn." />
+
+            <TemplateColumn Title="P.IVA / VAT">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.PartitaIva))
+                    {
+                        <MudText Typo="Typo.caption" Style="font-family: monospace;">
+                            @context.Item.PartitaIva
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Tertiary">-</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
 
             <TemplateColumn Title="Contatti">
                 <CellTemplate>
@@ -129,7 +161,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        StatusBarService.SetCurrentTable("ana_fornitori");
+        StatusBarService.SetCurrentTable("ana_controparti");
         
         _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
 
@@ -196,7 +228,7 @@ else
         // Enforce company selection for SuperAdmin
         if (_isSuperAdmin && _selectedAziendaId == 0)
         {
-            Snackbar.Add("Selezionare una Azienda prima di inserire un nuovo Fornitore", Severity.Warning);
+            Snackbar.Add("Selezionare una Azienda prima di inserire una nuova Controparte", Severity.Warning);
             return;
         }
 
@@ -210,7 +242,7 @@ else
 
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Nuovo Fornitore", parameters, options);
+        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Nuova Controparte", parameters, options);
         var result = await dialog.Result;
 
         if (!result!.Canceled && result.Data is AnaFornitore newItem)
@@ -231,12 +263,15 @@ else
 
     private async Task OpenEditDialog(AnaFornitore item)
     {
-        var editEntity = new AnaFornitore 
-        { 
+        var editEntity = new AnaFornitore
+        {
             Id = item.Id,
             AziendaFk = item.AziendaFk,
             RagioneSociale = item.RagioneSociale,
             NomeBreve = item.NomeBreve,
+            IsFornitore = item.IsFornitore,
+            IsCliente = item.IsCliente,
+            FornitoreEstero = item.FornitoreEstero,
             Indirizzo = item.Indirizzo,
             ComuneFk = item.ComuneFk,
             TelefonoPrefisso = item.TelefonoPrefisso,
@@ -263,7 +298,7 @@ else
 
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Modifica Fornitore", parameters, options);
+        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Modifica Controparte", parameters, options);
         var result = await dialog.Result;
 
         if (!result!.Canceled && result.Data is AnaFornitore updatedItem)
@@ -271,7 +306,7 @@ else
             try
             {
                 var updated = await Service.UpdateAsync(updatedItem);
-                await LoadDataAsync(); 
+                await LoadDataAsync();
                 Snackbar.Add("Aggiornato con successo", Severity.Success);
                 StateHasChanged();
             }
@@ -287,7 +322,7 @@ else
         var parameters = new DialogParameters
         {
             { "Title", "Attenzione" },
-            { "ContentText", $"Vuoi veramente cancellare questo fornitore? ({item.RagioneSociale})" }
+            { "ContentText", $"Vuoi veramente cancellare questa controparte? ({item.RagioneSociale})" }
         };
 
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };

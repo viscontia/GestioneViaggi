@@ -41,11 +41,11 @@ public class TestDapperMapping
             string sql = @"
                 SELECT
                     t.*,
-                    f.ragione_sociale as fornitore_ragione_sociale,
+                    f.ragione_sociale as controparte_ragione_sociale,
                     v.valuta_codice_iso as valuta_codice_iso,
-                    vi.descrizione_breve as viaggio_descrizione
+                    vi.viaggio_descrizione_breve as viaggio_descrizione
                 FROM mov_transazioni t
-                JOIN ana_fornitori f ON t.transazione_fornitore_id = f.fornitore_id
+                JOIN ana_controparti f ON t.transazione_controparte_id = f.controparte_id
                 JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
                 LEFT JOIN ana_viaggi vi ON t.transazione_viaggio_id = vi.viaggio_id
                 ORDER BY t.transazione_data DESC
@@ -65,7 +65,7 @@ public class TestDapperMapping
                 Console.WriteLine($"Data: {first.TransazioneData:d}");
                 Console.WriteLine($"Importo: {first.TransazioneImporto}");
                 Console.WriteLine($"Valuta: {first.ValutaCodiceIso}");
-                Console.WriteLine($"Fornitore: {first.FornitoreRagioneSociale}");
+                Console.WriteLine($"Controparte: {first.ControparteRagioneSociale}");
                 Console.WriteLine($"Importo Formattato: {first.ImportoFormattato}");
                 Console.WriteLine("\n✓ MAPPING SUCCESSFUL - Data loaded correctly!");
             }

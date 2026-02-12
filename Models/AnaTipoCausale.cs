@@ -31,6 +31,11 @@ namespace GestioneViaggi.Models
         [Column("causale_is_documento")]
         public bool CausaleIsDocumento { get; set; } = true;
 
+        [Column("causale_ciclo")]
+        [Required(ErrorMessage = "Il ciclo contabile è obbligatorio")]
+        [StringLength(10)]
+        public string CausaleCiclo { get; set; } = "PASSIVO"; // "ATTIVO" o "PASSIVO"
+
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
@@ -49,6 +54,22 @@ namespace GestioneViaggi.Models
         public string? UpdatedBy { get; set; }
         
         [NotMapped]
-        public string SegnoDisplay => CausaleSegno > 0 ? "+ (Aumenta Debito)" : "- (Diminuisce Debito)";
+        public string SegnoDisplay
+        {
+            get
+            {
+                if (CausaleCiclo == "PASSIVO")
+                {
+                    return CausaleSegno > 0 ? "+ (Aumenta Debito)" : "- (Diminuisce Debito)";
+                }
+                else // ATTIVO
+                {
+                    return CausaleSegno > 0 ? "+ (Aumenta Credito)" : "- (Diminuisce Credito)";
+                }
+            }
+        }
+
+        [NotMapped]
+        public string CicloDisplay => CausaleCiclo == "ATTIVO" ? "Clienti" : "Fornitori";
     }
 }

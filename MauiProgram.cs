@@ -128,6 +128,7 @@ public static class MauiProgram
         builder.Services.AddScoped<MovClientiViaggiService>();
         builder.Services.AddScoped<MovClientiAlloggiService>();
         builder.Services.AddScoped<AnaFornitoriService>();
+        builder.Services.AddScoped<ContropartiService>();
         builder.Services.AddScoped<TipoFornitoreService>();
         builder.Services.AddScoped<AnaValuteService>();
         builder.Services.AddScoped<MovTransazioniService>();

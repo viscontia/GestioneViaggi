@@ -4,11 +4,11 @@ using GestioneViaggi.Validation.Syntax;
 
 namespace GestioneViaggi.Models
 {
-    [Table("ana_fornitori")]
+    [Table("ana_controparti")]
     public class AnaFornitore : BaseEntity, IAuditable, IValidatableObject
     {
         [Key]
-        [Column("fornitore_id")]
+        [Column("controparte_id")]
         public new int Id { get; set; }
 
         [Column("azienda_fk")]
@@ -22,6 +22,15 @@ namespace GestioneViaggi.Models
         [Column("nome_breve")]
         [MaxLength(50)]
         public string? NomeBreve { get; set; }
+
+        // NUOVI FLAG FONDAMENTALI PER CONTROPARTI
+        [Column("is_fornitore")]
+        [Required]
+        public bool IsFornitore { get; set; } = false;
+
+        [Column("is_cliente")]
+        [Required]
+        public bool IsCliente { get; set; } = false;
 
         [Column("indirizzo")]
         [MaxLength(100)]
@@ -68,8 +77,7 @@ namespace GestioneViaggi.Models
         public string? CodiceFiscale { get; set; }
 
         [Column("tipo_fornitore_fk")]
-        [Required(ErrorMessage = "Il Tipo Fornitore è obbligatorio")]
-        public int TipoFornitoreFk { get; set; }
+        public int? TipoFornitoreFk { get; set; }
 
         [Column("attivo")]
         public bool Attivo { get; set; } = true;
@@ -114,25 +122,57 @@ namespace GestioneViaggi.Models
         [NotMapped]
         public string? ProvinciaSigla { get; set; }
 
+        [NotMapped]
+        public string TipoControparteDisplay
+        {
+            get
+            {
+                if (IsFornitore && IsCliente) return "Fornitore/Cliente";
+                if (IsFornitore) return "Fornitore";
+                if (IsCliente) return "Cliente";
+                return "N/D";
+            }
+        }
+
         // ==========================================================
         // Validazioni Condizionali (IValidatableObject)
         // ==========================================================
 
         /// <summary>
-        /// Validazioni custom basate sul tipo fornitore (Italiano vs Estero).
+        /// Validazioni custom basate sul tipo controparte (Fornitore/Cliente, Italiano vs Estero).
         /// </summary>
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             var results = new List<ValidationResult>();
 
-            // ===== FORNITORI ITALIANI =====
+            // ===== VALIDAZIONE RUOLO =====
+            // Almeno uno dei due flag deve essere TRUE
+            if (!IsFornitore && !IsCliente)
+            {
+                results.Add(new ValidationResult(
+                    "La controparte deve essere almeno un Fornitore o un Cliente",
+                    new[] { nameof(IsFornitore), nameof(IsCliente) }
+                ));
+            }
+
+            // ===== VALIDAZIONE TIPO FORNITORE =====
+            // Se è un fornitore, il tipo fornitore è obbligatorio
+            if (IsFornitore && (!TipoFornitoreFk.HasValue || TipoFornitoreFk.Value == 0))
+            {
+                results.Add(new ValidationResult(
+                    "Il Tipo Fornitore è obbligatorio per le controparti marcate come Fornitore",
+                    new[] { nameof(TipoFornitoreFk) }
+                ));
+            }
+
+            // ===== CONTROPARTI ITALIANE =====
             if (!FornitoreEstero)
             {
                 // 1. P.IVA E/O CF obbligatori (almeno uno dei due)
                 if (string.IsNullOrWhiteSpace(PartitaIva) && string.IsNullOrWhiteSpace(CodiceFiscale))
                 {
                     results.Add(new ValidationResult(
-                        "Per fornitori italiani è obbligatorio inserire almeno Partita IVA o Codice Fiscale",
+                        "Per controparti italiane è obbligatorio inserire almeno Partita IVA o Codice Fiscale",
                         new[] { nameof(PartitaIva), nameof(CodiceFiscale) }
                     ));
                 }
@@ -176,14 +216,14 @@ namespace GestioneViaggi.Models
                     }
                 }
             }
-            // ===== FORNITORI ESTERI =====
+            // ===== CONTROPARTI ESTERE =====
             else
             {
                 // 1. VAT Number obbligatorio
                 if (string.IsNullOrWhiteSpace(PartitaIva))
                 {
                     results.Add(new ValidationResult(
-                        "Per fornitori esteri il VAT Number è obbligatorio",
+                        "Per controparti estere il VAT Number è obbligatorio",
                         new[] { nameof(PartitaIva) }
                     ));
                 }

@@ -19,9 +19,9 @@ namespace GestioneViaggi.Models
         [Column("transazione_data_viaggio_id")]
         public int? TransazioneDataViaggioId { get; set; }
 
-        [Column("transazione_fornitore_id")]
-        [Required(ErrorMessage = "Il Fornitore è obbligatorio")]
-        public int TransazioneFornitoreId { get; set; }
+        [Column("transazione_controparte_id")]
+        [Required(ErrorMessage = "La Controparte è obbligatoria")]
+        public int TransazioneControparteId { get; set; }
 
         [Column("transazione_causale_tipo_id")]
         [Required(ErrorMessage = "La Causale Contabile è obbligatoria")]
@@ -96,7 +96,7 @@ namespace GestioneViaggi.Models
         public string? AziendaCodice { get; set; }
 
         [NotMapped]
-        public string? FornitoreRagioneSociale { get; set; }
+        public string? ControparteRagioneSociale { get; set; }
 
         [NotMapped]
         public string? ValutaCodiceIso { get; set; }
