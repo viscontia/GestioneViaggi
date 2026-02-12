@@ -63,7 +63,7 @@ public class ComuneService : BaseCrudService<Comune>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei comuni");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -116,7 +116,7 @@ public class ComuneService : BaseCrudService<Comune>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero del comune {Id}", id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -166,7 +166,7 @@ public class ComuneService : BaseCrudService<Comune>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del comune {Nome}", entity.Nome);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -216,7 +216,7 @@ public class ComuneService : BaseCrudService<Comune>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del comune");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

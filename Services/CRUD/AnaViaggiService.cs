@@ -564,39 +564,55 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         {
             await transaction.RollbackAsync();
             _logger.LogError(ex, "Errore nella creazione atomica del viaggio con date.");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
     public async Task UpdateDateAsync(AnaDataViaggio date)
     {
-        await using var connection = await _databaseService.GetConnectionAsync();
-        var sql = @"
-            UPDATE ana_date_viaggi SET
-                data_viaggio_data_inizio = @inizio,
-                data_viaggio_data_fine = @fine,
-                data_viaggio_effettuato_sino = @effettuato,
-                data_viaggio_costo_pilota = @costoPilota,
-                data_viaggio_costo_passeggero = @costoPass,
-                data_viaggio_costo_passeggero_auto_guida = @costoPassAuto,
-                data_viaggio_costo_bambino_0_2 = @costoB02,
-                data_viaggio_costo_bambino_2_6 = @costoB26,
-                data_viaggio_costo_bambino_6_12 = @costoB612,
-                data_viaggio_note = @note,
-                azienda_id = @aziendaId
-            WHERE data_viaggio_id = @id";
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                UPDATE ana_date_viaggi SET
+                    data_viaggio_data_inizio = @inizio,
+                    data_viaggio_data_fine = @fine,
+                    data_viaggio_effettuato_sino = @effettuato,
+                    data_viaggio_costo_pilota = @costoPilota,
+                    data_viaggio_costo_passeggero = @costoPass,
+                    data_viaggio_costo_passeggero_auto_guida = @costoPassAuto,
+                    data_viaggio_costo_bambino_0_2 = @costoB02,
+                    data_viaggio_costo_bambino_2_6 = @costoB26,
+                    data_viaggio_costo_bambino_6_12 = @costoB612,
+                    data_viaggio_note = @note,
+                    azienda_id = @aziendaId
+                WHERE data_viaggio_id = @id";
 
-        await using var cmd = new NpgsqlCommand(sql, connection);
-        AddDateParameters(cmd, date);
-        cmd.Parameters.AddWithValue("id", date.Id);
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            AddDateParameters(cmd, date);
+            cmd.Parameters.AddWithValue("id", date.Id);
 
-        await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore aggiornamento data viaggio {Id}", date.Id);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
     }
 
     public async Task CreateDateAsync(AnaDataViaggio date)
     {
-        await using var connection = await _databaseService.GetConnectionAsync();
-        await InsertDateInternalAsync(date, connection, null);
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            await InsertDateInternalAsync(date, connection, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore creazione data viaggio");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
     }
 
     public async Task DeleteDateAsync(int dateId)
@@ -631,10 +647,18 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
         await reader.CloseAsync();
 
-        var sql = "DELETE FROM ana_date_viaggi WHERE data_viaggio_id = @id";
-        await using var cmd = new NpgsqlCommand(sql, connection);
-        cmd.Parameters.AddWithValue("id", dateId);
-        await cmd.ExecuteNonQueryAsync();
+        try
+        {
+            var sql = "DELETE FROM ana_date_viaggi WHERE data_viaggio_id = @id";
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("id", dateId);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore eliminazione data viaggio {Id}", dateId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
     }
 
     private async Task InsertDateInternalAsync(AnaDataViaggio date, NpgsqlConnection connection, NpgsqlTransaction? transaction)
@@ -758,7 +782,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore recupero dati TreeView per azienda {AziendaId}", aziendaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
         return result;
     }

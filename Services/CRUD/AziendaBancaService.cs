@@ -57,7 +57,7 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del conto bancario");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -103,7 +103,7 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del conto bancario");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -155,7 +155,7 @@ public class AziendaBancaService : BaseCrudService<AziendaBanca>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei conti bancari per azienda {AziendaId}", aziendaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 }

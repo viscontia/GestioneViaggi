@@ -63,7 +63,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting users");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "utente");
         }
     }
 
@@ -102,7 +102,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating user");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "utente");
         }
     }
 
@@ -130,7 +130,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating user");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "utente");
         }
     }
 
@@ -161,7 +161,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting user");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "utente");
         }
     }
 }

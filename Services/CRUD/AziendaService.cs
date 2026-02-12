@@ -108,7 +108,7 @@ public class AziendaService : BaseCrudService<Azienda>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento delle aziende");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -216,7 +216,7 @@ public class AziendaService : BaseCrudService<Azienda>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione dell'azienda");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -294,7 +294,7 @@ public class AziendaService : BaseCrudService<Azienda>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento dell'azienda");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

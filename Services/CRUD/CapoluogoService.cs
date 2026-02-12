@@ -42,7 +42,7 @@ public class CapoluogoService : BaseCrudService<Capoluogo>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del capoluogo {Descrizione}", entity.Descrizione);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -72,7 +72,7 @@ public class CapoluogoService : BaseCrudService<Capoluogo>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del capoluogo {Id}", entity.Id);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

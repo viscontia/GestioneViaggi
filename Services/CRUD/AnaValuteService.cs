@@ -81,7 +81,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione della valuta {Iso}", entity.ValutaCodiceIso);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -109,7 +109,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento della valuta {Id}", entity.ValutaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

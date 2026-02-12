@@ -62,7 +62,7 @@ public class CountryService : BaseCrudService<Country>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei paesi");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -114,7 +114,7 @@ public class CountryService : BaseCrudService<Country>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del paese");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -165,7 +165,7 @@ public class CountryService : BaseCrudService<Country>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del paese");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

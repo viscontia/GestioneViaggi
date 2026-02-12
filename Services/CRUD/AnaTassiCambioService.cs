@@ -92,7 +92,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore creazione tasso cambio");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -120,7 +120,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore aggiornamento tasso cambio {Id}", entity.TassoId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 

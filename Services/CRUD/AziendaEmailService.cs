@@ -55,7 +55,7 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione dell'email");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -97,7 +97,7 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento dell'email");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -151,7 +151,7 @@ public class AziendaEmailService : BaseCrudService<AziendaEmail>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento delle email per azienda {AziendaId}", aziendaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 }

@@ -60,7 +60,7 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del reparto");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -109,7 +109,7 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del reparto");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -157,7 +157,7 @@ public class RepartoAziendaleService : BaseCrudService<RepartoAziendale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei reparti per azienda {AziendaId}", aziendaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 }

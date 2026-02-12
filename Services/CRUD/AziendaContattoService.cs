@@ -62,7 +62,7 @@ public class AziendaContattoService : BaseCrudService<AziendaContatto>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione del contatto");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -113,7 +113,7 @@ public class AziendaContattoService : BaseCrudService<AziendaContatto>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento del contatto");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -176,7 +176,7 @@ public class AziendaContattoService : BaseCrudService<AziendaContatto>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il caricamento dei contatti per azienda {AziendaId}", aziendaId);
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 }

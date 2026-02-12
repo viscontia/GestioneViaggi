@@ -65,7 +65,7 @@ public class AziendaSedeService : BaseCrudService<AziendaSede>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione della sede");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
@@ -121,7 +121,7 @@ public class AziendaSedeService : BaseCrudService<AziendaSede>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento della sede");
-            throw;
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
 
