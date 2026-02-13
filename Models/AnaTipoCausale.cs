@@ -39,6 +39,15 @@ namespace GestioneViaggi.Models
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
 
+        [Column("causale_richiede_scadenza")]
+        public bool CausaleRichiedeScadenza { get; set; } = false;
+
+        [Column("causale_giorni_scadenza_default")]
+        public int? CausaleGiorniScadenzaDefault { get; set; }
+
+        [Column("causale_genera_scadenza_auto")]
+        public bool CausaleGeneraScadenzaAuto { get; set; } = false;
+
         [Column("created_at")]
         public DateTime? Created { get; set; }
 

@@ -17,7 +17,7 @@
                 <!-- RIGA 1: Data e Tipo -->
                 <MudItem xs="6">
                     <MudDatePicker @ref="_firstField"
-                                   Label="Data Transazione"
+                                   Label="Data Transazione *"
                                    @bind-Date="_dataTransazione"
                                    Required="true"
                                    RequiredError="Data obbligatoria"
@@ -26,7 +26,9 @@
                 </MudItem>
                 <MudItem xs="6">
                     <CausaleSelect @bind-SelectedCausaleId="Transazione.TransazioneCausaleTipoId"
+                                   SelectedCausaleIdChanged="@OnCausaleChanged"
                                    AziendaId="@AziendaId"
+                                   Label="Causale Contabile *"
                                    Required="true" />
                 </MudItem>
 
@@ -34,34 +36,37 @@
                 <MudItem xs="12" sm="6">
                     <FornitoreSelect @bind-SelectedFornitoreId="Transazione.TransazioneControparteId"
                                      AziendaId="@AziendaId"
+                                     Label="Controparte *"
                                      Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudTextField Label="Causale"
+                    <MudTextField Label="Descrizione *"
                                   Value="@Transazione.TransazioneCausale"
                                   ValueChanged="@((string val) => HandleCausaleChanged(val))"
                                   Required="true"
-                                  RequiredError="Causale obbligatoria"
+                                  RequiredError="Descrizione obbligatoria"
                                   Variant="Variant.Outlined"
                                   Class="uppercase-input" />
                 </MudItem>
 
                 <!-- RIGA 3: Importo e Valuta -->
                 <MudItem xs="6">
-                    <MudNumericField @bind-Value="Transazione.TransazioneImporto" 
-                                     Label="Importo" 
-                                     Format="N2" 
-                                     Variant="Variant.Outlined" 
-                                     Required="true" 
-                                     Adornment="Adornment.Start" 
+                    <MudNumericField @bind-Value="Transazione.TransazioneImporto"
+                                     Label="Importo *"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                 </MudItem>
                 <MudItem xs="6">
-                    <ValutaSelect @bind-SelectedValutaId="Transazione.TransazioneValutaId" Required="true" />
+                    <ValutaSelect @bind-SelectedValutaId="Transazione.TransazioneValutaId"
+                                  Label="Valuta *"
+                                  Required="true" />
                 </MudItem>
 
-                <!-- RIGA 4: Stato -->
-                 <MudItem xs="6">
+                <!-- RIGA 4: Stato Pagamento -->
+                <MudItem xs="12">
                     <MudSelect T="string" Label="Stato Pagamento" @bind-Value="Transazione.TransazioneStato" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                         <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
                         <MudSelectItem Value="@("PAGATO")">Pagato</MudSelectItem>
@@ -102,11 +107,12 @@
 
                 <!-- RIGA 8: Date Scadenza e Pagamento -->
                 <MudItem xs="6">
-                    <MudDatePicker Label="Data Scadenza"
+                    <MudDatePicker Label="@(_scadenzaObbligatoria ? "Data Scadenza *" : "Data Scadenza")"
                                    @bind-Date="_dataScadenza"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Clearable="true"
+                                   Required="@_scadenzaObbligatoria"
                                    Error="@_dataScadenzaError"
                                    ErrorText="@_dataScadenzaErrorText" />
                 </MudItem>
@@ -171,6 +177,11 @@
     private bool _dataPagamentoError = false;
     private string _dataPagamentoErrorText = string.Empty;
 
+    // Scadenza reattiva properties
+    private AnaTipoCausale? _selectedCausale;
+    private bool _scadenzaObbligatoria = false;
+    private int? _giorniScadenzaDefault = null;
+
     protected override async Task OnInitializedAsync()
     {
         // Init dates from model
@@ -178,6 +189,7 @@
         {
             _dataTransazione = DateTime.Today;
             Transazione.TransazioneStato = "DA_PAGARE";
+            // Tipo movimento sarà impostato automaticamente dal service in base al causale_ciclo
             // Use AziendaId parameter (passed from parent page)
             Transazione.TransazioneAziendaId = AziendaId;
 
@@ -286,6 +298,14 @@
             hasValidationErrors = true;
         }
 
+        // Validazione: Scadenza obbligatoria per causali che la richiedono
+        if (_scadenzaObbligatoria && !_dataScadenza.HasValue)
+        {
+            _dataScadenzaError = true;
+            _dataScadenzaErrorText = "La data scadenza è obbligatoria per questa causale";
+            hasValidationErrors = true;
+        }
+
         // Validazione: Data Scadenza >= Data Documento (se entrambi presenti)
         if (_dataDocumento.HasValue && _dataScadenza.HasValue && _dataScadenza.Value < _dataDocumento.Value)
         {
@@ -384,5 +404,26 @@
     {
         Transazione.TransazioneNote = value?.ToUpper();
         StateHasChanged();
+    }
+
+    private async Task OnCausaleChanged(int causaleId)
+    {
+        _selectedCausale = await CausaliService.GetByIdAsync(causaleId);
+
+        if (_selectedCausale != null)
+        {
+            _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
+            _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
+
+            // Auto-calcola scadenza se abilitato e non già impostata
+            if (_selectedCausale.CausaleGeneraScadenzaAuto
+                && !_dataScadenza.HasValue
+                && _giorniScadenzaDefault.HasValue)
+            {
+                DateTime baseDate = _dataDocumento ?? _dataTransazione ?? DateTime.Today;
+                _dataScadenza = baseDate.AddDays(_giorniScadenzaDefault.Value);
+                StateHasChanged();
+            }
+        }
     }
 }

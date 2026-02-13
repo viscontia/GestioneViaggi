@@ -168,6 +168,16 @@
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Default"
                                     Class="inline-action-btn edit-btn" OnClick="@(() => OpenEditDialog(cellContext.Item))" />
                             </MudTooltip>
+                            @if (cellContext.Item.TransazioneStato is "DA_PAGARE" or "PARZIALMENTE_PAGATO")
+                            {
+                                <MudTooltip Text="Paga Ora">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Payment"
+                                                   Size="Size.Small"
+                                                   Color="Color.Success"
+                                                   Class="inline-action-btn payment-btn"
+                                                   OnClick="@(() => PagaOraAsync(cellContext.Item))" />
+                                </MudTooltip>
+                            }
                             <MudTooltip Text="Elimina">
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Default"
                                     Class="inline-action-btn delete-btn" OnClick="@(() => DeleteTransazione(cellContext.Item))" />
@@ -395,6 +405,34 @@
         if (result != null && !result.Canceled)
         {
             await LoadDataAsync();
+        }
+    }
+
+    private async Task PagaOraAsync(MovTransazioni item)
+    {
+        var parameters = new DialogParameters { ["Item"] = item };
+        var dialog = await DialogService.ShowAsync<PagaOraDialog>("Registra Pagamento", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is PagaOraDialogResult paymentResult)
+        {
+            try
+            {
+                var session = await SessionManager.GetSessionAsync();
+                int pgId = await TransazioniService.PagaOraAsync(
+                    item.TransazioneId,
+                    paymentResult.ImportoPagamento,
+                    paymentResult.DataPagamento,
+                    paymentResult.Note,
+                    session?.User?.Username ?? "System");
+
+                Snackbar.Add($"Pagamento registrato con successo (ID: {pgId})", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore durante il pagamento: {ex.Message}", Severity.Error);
+            }
         }
     }
 

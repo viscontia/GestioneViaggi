@@ -1,0 +1,115 @@
+@using GestioneViaggi.Models
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.h6" Class="mb-4">
+            Registra Pagamento per @(Item.TransazioneNumeroDocumento != null ? "Fattura " + Item.TransazioneNumeroDocumento : "Transazione #" + Item.TransazioneId)
+        </MudText>
+
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            <strong>Importo Documento:</strong> @((Item.TransazioneImportoEur ?? Item.TransazioneImporto).ToString("N2")) EUR<br />
+            <strong>Stato Attuale:</strong> @Item.TransazioneStato.Replace("_", " ")
+        </MudAlert>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_importoPagamento"
+                                 Label="Importo Pagamento (EUR)"
+                                 Format="N2"
+                                 Variant="Variant.Outlined"
+                                 Required="true"
+                                 Min="0.01m"
+                                 Max="@(_importoMassimo)"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Euro" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_dataPagamento"
+                               Label="Data Pagamento"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               MaxDate="@DateTime.Today"
+                               AnchorOrigin="Origin.BottomCenter" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_note"
+                              Label="Note Pagamento"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudCheckBox @bind-Value="_pagamentoTotale"
+                             Label="Pagamento Totale"
+                             Color="Color.Primary"
+                             ValueChanged="@OnPagamentoTotaleChanged" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">
+            Registra Pagamento
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public MovTransazioni Item { get; set; } = new();
+
+    private decimal _importoPagamento;
+    private decimal _importoMassimo;
+    private DateTime? _dataPagamento = DateTime.Today;
+    private string? _note;
+    private bool _pagamentoTotale = true;
+
+    protected override void OnInitialized()
+    {
+        _importoMassimo = Item.TransazioneImportoEur ?? Item.TransazioneImporto;
+        _importoPagamento = _importoMassimo; // Default to full payment
+    }
+
+    private void OnPagamentoTotaleChanged(bool value)
+    {
+        if (value)
+        {
+            _importoPagamento = _importoMassimo;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        if (_importoPagamento <= 0)
+        {
+            Snackbar.Add("L'importo deve essere maggiore di zero", Severity.Warning);
+            return;
+        }
+
+        if (_importoPagamento > _importoMassimo)
+        {
+            Snackbar.Add($"L'importo non può superare {_importoMassimo:N2} EUR", Severity.Warning);
+            return;
+        }
+
+        if (!_dataPagamento.HasValue)
+        {
+            Snackbar.Add("Specificare la data del pagamento", Severity.Warning);
+            return;
+        }
+
+        var result = new PagaOraDialogResult
+        {
+            ImportoPagamento = _importoPagamento,
+            DataPagamento = _dataPagamento.Value,
+            Note = _note
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+}
