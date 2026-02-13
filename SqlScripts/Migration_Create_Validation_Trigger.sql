@@ -29,20 +29,10 @@ BEGIN
     END IF;
 
     -- =============================================
-    -- RULE 1: Scadenza obbligatoria per documenti (metadata-driven)
+    -- RULE 1: Auto-generate scadenza if metadata says so (FIRST!)
     -- =============================================
-    IF v_causale.causale_richiede_scadenza = TRUE
-       AND NEW.transazione_data_scadenza IS NULL THEN
-        RAISE EXCEPTION 'ERRORE VALIDAZIONE: La causale "%" richiede la Data Scadenza obbligatoria. '
-                        'Impossibile procedere senza questo dato.',
-                        v_causale.causale_descrizione
-            USING ERRCODE = 'check_violation',
-                  HINT = 'Inserire la data scadenza o selezionare una causale che non la richiede';
-    END IF;
-
-    -- =============================================
-    -- RULE 2: Auto-generate scadenza if metadata says so
-    -- =============================================
+    -- IMPORTANTE: Questa regola DEVE essere eseguita PRIMA della validazione obbligatorietà
+    -- altrimenti le causali con richiede_scadenza=TRUE e genera_auto=TRUE fallirebbero
     IF v_causale.causale_genera_scadenza_auto = TRUE
        AND NEW.transazione_data_scadenza IS NULL
        AND v_causale.causale_giorni_scadenza_default IS NOT NULL THEN
@@ -60,6 +50,20 @@ BEGIN
             NEW.transazione_data_scadenza,
             COALESCE(NEW.transazione_data_documento, NEW.transazione_data),
             v_causale.causale_giorni_scadenza_default;
+    END IF;
+
+    -- =============================================
+    -- RULE 2: Scadenza obbligatoria per documenti (metadata-driven)
+    -- =============================================
+    -- Questa regola viene eseguita DOPO l'auto-generazione, così se genera_auto=TRUE
+    -- la scadenza è già stata popolata e la validazione passa
+    IF v_causale.causale_richiede_scadenza = TRUE
+       AND NEW.transazione_data_scadenza IS NULL THEN
+        RAISE EXCEPTION 'ERRORE VALIDAZIONE: La causale "%" richiede la Data Scadenza obbligatoria. '
+                        'Impossibile procedere senza questo dato.',
+                        v_causale.causale_descrizione
+            USING ERRCODE = 'check_violation',
+                  HINT = 'Inserire la data scadenza o selezionare una causale che non la richiede';
     END IF;
 
     -- =============================================
