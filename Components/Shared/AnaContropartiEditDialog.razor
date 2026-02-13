@@ -295,7 +295,7 @@
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
 
-    [Parameter] public AnaFornitore Entity { get; set; } = new();
+    [Parameter] public AnaControparte Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
     [Parameter] public int AziendaFk { get; set; }
     [Parameter] public bool IsSuperAdmin { get; set; }
@@ -324,11 +324,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine($"[AnaFornitoriEditDialog] OnInitializedAsync Start. AziendaFk: {AziendaFk}, EditMode: {IsEditMode}");
+        Console.WriteLine($"[AnaContropartiEditDialog] OnInitializedAsync Start. AziendaFk: {AziendaFk}, EditMode: {IsEditMode}");
         try
         {
             await LoadTipiFornitore();
-            Console.WriteLine($"[AnaFornitoriEditDialog] Tipi loaded: {_tipiFornitore.Count}");
+            Console.WriteLine($"[AnaContropartiEditDialog] Tipi loaded: {_tipiFornitore.Count}");
 
             // Load Comune navigation property if editing existing entity
             if (IsEditMode && Entity.ComuneFk.HasValue && Entity.ComuneFk.Value > 0 && Entity.Comune == null)
@@ -336,18 +336,18 @@
                 try
                 {
                     Entity.Comune = await ComuneService.GetByIdAsync(Entity.ComuneFk.Value);
-                    Console.WriteLine($"[AnaFornitoriEditDialog] Comune loaded: {Entity.Comune?.Nome}");
+                    Console.WriteLine($"[AnaContropartiEditDialog] Comune loaded: {Entity.Comune?.Nome}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[AnaFornitoriEditDialog] Error loading comune: {ex.Message}");
+                    Console.WriteLine($"[AnaContropartiEditDialog] Error loading comune: {ex.Message}");
                 }
             }
         }
         catch (Exception ex)
         {
             _debugError = ex.ToString();
-            Console.WriteLine($"[AnaFornitoriEditDialog] ERROR: {ex}");
+            Console.WriteLine($"[AnaContropartiEditDialog] ERROR: {ex}");
             Snackbar.Add("Errore inizializzazione finestra", Severity.Error);
         }
     }
@@ -361,7 +361,7 @@
         // ma SOLO in fase di inserimento (non in modifica)
         if (!IsEditMode && comune != null)
         {
-            Console.WriteLine($"[AnaFornitoriEditDialog] Comune selezionato: {comune.Nome}, Estero: {comune.ComuneEstero}");
+            Console.WriteLine($"[AnaContropartiEditDialog] Comune selezionato: {comune.Nome}, Estero: {comune.ComuneEstero}");
             Entity.FornitoreEstero = comune.ComuneEstero;
             StateHasChanged();
         }

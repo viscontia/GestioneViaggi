@@ -127,7 +127,7 @@ public static class MauiProgram
         builder.Services.AddScoped<TipoAvvicinamentoService>();
         builder.Services.AddScoped<MovClientiViaggiService>();
         builder.Services.AddScoped<MovClientiAlloggiService>();
-        builder.Services.AddScoped<AnaFornitoriService>();
+        // AnaFornitoriService rimosso (13/02/2026) - utilizzare ContropartiService
         builder.Services.AddScoped<ContropartiService>();
         builder.Services.AddScoped<TipoFornitoreService>();
         builder.Services.AddScoped<AnaValuteService>();

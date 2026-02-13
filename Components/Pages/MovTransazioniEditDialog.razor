@@ -4,6 +4,7 @@
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
 @inject MovTransazioniService TransazioniService
+@inject AnaTipiCausaliService CausaliService
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
@@ -25,19 +26,20 @@
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
-                    <CausaleSelect @bind-SelectedCausaleId="Transazione.TransazioneCausaleTipoId"
+                    <CausaleSelect SelectedCausaleId="Transazione.TransazioneCausaleTipoId"
                                    SelectedCausaleIdChanged="@OnCausaleChanged"
                                    AziendaId="@AziendaId"
                                    Label="Causale Contabile *"
                                    Required="true" />
                 </MudItem>
 
-                <!-- RIGA 2: Fornitore e Causale -->
+                <!-- RIGA 2: Controparte e Descrizione -->
                 <MudItem xs="12" sm="6">
-                    <FornitoreSelect @bind-SelectedFornitoreId="Transazione.TransazioneControparteId"
-                                     AziendaId="@AziendaId"
-                                     Label="Controparte *"
-                                     Required="true" />
+                    <ControparteSelect @bind-SelectedControparteId="Transazione.TransazioneControparteId"
+                                       AziendaId="@AziendaId"
+                                       CausaleeCiclo="@_causaleCicloCorrente"
+                                       Label="@(_causaleCicloCorrente == "ATTIVO" ? "Cliente *" : _causaleCicloCorrente == "PASSIVO" ? "Fornitore *" : "Controparte *")"
+                                       Required="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField Label="Descrizione *"
@@ -182,6 +184,9 @@
     private bool _scadenzaObbligatoria = false;
     private int? _giorniScadenzaDefault = null;
 
+    // Ciclo contabile corrente (ATTIVO/PASSIVO) per filtraggio controparti
+    private string? _causaleCicloCorrente = null;
+
     protected override async Task OnInitializedAsync()
     {
         // Init dates from model
@@ -218,6 +223,18 @@
             _dataDocumento = Transazione.TransazioneDataDocumento;
             _dataScadenza = Transazione.TransazioneDataScadenza;
             _dataPagamento = Transazione.TransazioneDataPagamento;
+
+            // Carica la causale per impostare il ciclo contabile in modalità modifica
+            if (Transazione.TransazioneCausaleTipoId > 0)
+            {
+                _selectedCausale = await CausaliService.GetByIdAsync(Transazione.TransazioneCausaleTipoId);
+                if (_selectedCausale != null)
+                {
+                    _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
+                    _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
+                    _causaleCicloCorrente = _selectedCausale.CausaleCiclo;
+                }
+            }
         }
 
         await Task.CompletedTask;
@@ -408,12 +425,16 @@
 
     private async Task OnCausaleChanged(int causaleId)
     {
+        Transazione.TransazioneCausaleTipoId = causaleId;
         _selectedCausale = await CausaliService.GetByIdAsync(causaleId);
 
         if (_selectedCausale != null)
         {
             _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
             _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
+
+            // Imposta il ciclo contabile corrente per filtraggio controparti
+            _causaleCicloCorrente = _selectedCausale.CausaleCiclo;
 
             // Auto-calcola scadenza se abilitato e non già impostata
             if (_selectedCausale.CausaleGeneraScadenzaAuto

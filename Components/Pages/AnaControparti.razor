@@ -1,4 +1,4 @@
-@page "/ana-fornitori"
+@page "/ana-controparti"
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
@@ -6,7 +6,7 @@
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
 @using MudBlazor
-@inject AnaFornitoriService Service
+@inject ContropartiService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
@@ -24,7 +24,7 @@
 }
 else
 {
-    <EnterpriseDataGrid T="AnaFornitore"
+    <EnterpriseDataGrid T="AnaControparte"
                         Items="@_items"
                         Title="Gestione Anagrafica Controparti"
                         SearchFunction="@Search"
@@ -141,7 +141,7 @@ else
                 </CellTemplate>
             </TemplateColumn>
 
-            <EnterpriseActionsColumn T="AnaFornitore"
+            <EnterpriseActionsColumn T="AnaControparte"
                                      OnEdit="@OpenEditDialog"
                                      OnDelete="@DeleteItem" />
         </Columns>
@@ -150,8 +150,8 @@ else
 }
 
 @code {
-    private List<AnaFornitore> _items = new();
-    private AnaFornitore? _selectedItem;
+    private List<AnaControparte> _items = new();
+    private AnaControparte? _selectedItem;
     private string _errorMessage = string.Empty;
     
     // SuperAdmin Logic
@@ -204,7 +204,7 @@ else
             // NOTE: Service.GetAllAsync now returns everything if filter is null for SuperAdmin.
             // If we want "All", pass null. If specific, pass ID.
             
-            _items = (await Service.GetAllAsync(filterId)).ToList();
+            _items = (await Service.GetAllAsync(filterId, null, null)).ToList();
         }
         catch (Exception ex)
         {
@@ -212,7 +212,7 @@ else
         }
     }
 
-    private bool Search(AnaFornitore item, string searchString)
+    private bool Search(AnaControparte item, string searchString)
     {
         if (string.IsNullOrWhiteSpace(searchString)) return true;
         if (item.RagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
@@ -232,9 +232,9 @@ else
             return;
         }
 
-        var parameters = new DialogParameters<AnaFornitoriEditDialog>
+        var parameters = new DialogParameters<AnaContropartiEditDialog>
         {
-            { x => x.Entity, new AnaFornitore() },
+            { x => x.Entity, new AnaControparte() },
             { x => x.IsEditMode, false },
             { x => x.AziendaFk, _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0) },
             { x => x.IsSuperAdmin, _isSuperAdmin }
@@ -242,10 +242,10 @@ else
 
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Nuova Controparte", parameters, options);
+        var dialog = await DialogService.ShowAsync<AnaContropartiEditDialog>("Nuova Controparte", parameters, options);
         var result = await dialog.Result;
 
-        if (!result!.Canceled && result.Data is AnaFornitore newItem)
+        if (!result!.Canceled && result.Data is AnaControparte newItem)
         {
             try
             {
@@ -261,9 +261,9 @@ else
         }
     }
 
-    private async Task OpenEditDialog(AnaFornitore item)
+    private async Task OpenEditDialog(AnaControparte item)
     {
-        var editEntity = new AnaFornitore
+        var editEntity = new AnaControparte
         {
             Id = item.Id,
             AziendaFk = item.AziendaFk,
@@ -288,7 +288,7 @@ else
             Note = item.Note
         };
 
-        var parameters = new DialogParameters<AnaFornitoriEditDialog>
+        var parameters = new DialogParameters<AnaContropartiEditDialog>
         {
             { x => x.Entity, editEntity },
             { x => x.IsEditMode, true },
@@ -298,10 +298,10 @@ else
 
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<AnaFornitoriEditDialog>("Modifica Controparte", parameters, options);
+        var dialog = await DialogService.ShowAsync<AnaContropartiEditDialog>("Modifica Controparte", parameters, options);
         var result = await dialog.Result;
 
-        if (!result!.Canceled && result.Data is AnaFornitore updatedItem)
+        if (!result!.Canceled && result.Data is AnaControparte updatedItem)
         {
             try
             {
@@ -317,7 +317,7 @@ else
         }
     }
 
-    private async Task DeleteItem(AnaFornitore item)
+    private async Task DeleteItem(AnaControparte item)
     {
         var parameters = new DialogParameters
         {

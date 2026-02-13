@@ -27,6 +27,10 @@ namespace GestioneViaggi.Models
         [Required(ErrorMessage = "La Causale Contabile è obbligatoria")]
         public int TransazioneCausaleTipoId { get; set; }
 
+        [Column("transazione_tipo_movimento")]
+        [Required(ErrorMessage = "Il Tipo Movimento è obbligatorio")]
+        public string TransazioneTipoMovimento { get; set; } = "USCITA";
+
         [Column("transazione_importo")]
         [Required(ErrorMessage = "L'importo è obbligatorio")]
         public decimal TransazioneImporto { get; set; }

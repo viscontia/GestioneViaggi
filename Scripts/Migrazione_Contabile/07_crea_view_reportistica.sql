@@ -2,6 +2,11 @@
 -- Script: 07_crea_view_reportistica.sql
 -- Descrizione: Creazione view per reportistica contabile
 -- Data: 12/02/2026
+-- Ultima Modifica: 13/02/2026
+--
+-- IMPORTANTE: Il calcolo dei residui usa transazione_fattura_fk per
+-- identificare i pagamenti PG/IN già registrati, NON la tabella mov_pagamenti.
+-- Questo allineamento è necessario per coerenza con MovTransazioniService.PagaOraAsync()
 -- =====================================================
 
 -- ===========================================
@@ -37,12 +42,14 @@ SELECT
     t.transazione_data_scadenza,
 
     -- Residuo (solo per transazioni non pagate completamente)
+    -- NOTA: Usa transazione_fattura_fk per calcolare pagamenti già registrati (transazioni PG/IN)
     CASE
         WHEN t.transazione_stato IN ('DA_PAGARE', 'PARZIALMENTE_PAGATO')
         THEN (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-            (SELECT SUM(p.pagamento_importo_eur)
-             FROM mov_pagamenti p
-             WHERE p.transazione_fk = t.transazione_id), 0
+            (SELECT SUM(ABS(pg.transazione_importo_eur))
+             FROM mov_transazioni pg
+             WHERE pg.transazione_fattura_fk = t.transazione_id
+               AND pg.transazione_stato = 'PAGATO'), 0
         )
         ELSE 0
     END as residuo,
@@ -95,12 +102,14 @@ SELECT
     t.transazione_data_scadenza,
 
     -- Residuo
+    -- NOTA: Usa transazione_fattura_fk per calcolare incassi già registrati (transazioni IN)
     CASE
         WHEN t.transazione_stato IN ('DA_PAGARE', 'PARZIALMENTE_PAGATO')
         THEN (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-            (SELECT SUM(p.pagamento_importo_eur)
-             FROM mov_pagamenti p
-             WHERE p.transazione_fk = t.transazione_id), 0
+            (SELECT SUM(ABS(pg.transazione_importo_eur))
+             FROM mov_transazioni pg
+             WHERE pg.transazione_fattura_fk = t.transazione_id
+               AND pg.transazione_stato = 'PAGATO'), 0
         )
         ELSE 0
     END as residuo,
@@ -194,10 +203,12 @@ SELECT
     t.transazione_importo_eur * ca.causale_segno as importo,
 
     -- Residuo da pagare/incassare
+    -- NOTA: Usa transazione_fattura_fk per calcolare pagamenti/incassi già registrati
     (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-        (SELECT SUM(p.pagamento_importo_eur)
-         FROM mov_pagamenti p
-         WHERE p.transazione_fk = t.transazione_id), 0
+        (SELECT SUM(ABS(pg.transazione_importo_eur))
+         FROM mov_transazioni pg
+         WHERE pg.transazione_fattura_fk = t.transazione_id
+           AND pg.transazione_stato = 'PAGATO'), 0
     ) as residuo,
 
     -- Giorni alla scadenza (negativo = scaduto)

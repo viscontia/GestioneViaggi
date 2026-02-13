@@ -1,0 +1,192 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@inject ContropartiService ContropartiService
+@inject ITenantContext TenantContext
+
+@*
+    COMPONENT: ControparteSelect
+    DESC: Autocomplete per la selezione di una Controparte (Fornitore/Cliente) con ricerca testuale.
+          Supporta filtraggio dinamico basato sul ciclo contabile (ATTIVO=clienti, PASSIVO=fornitori).
+*@
+
+<MudAutocomplete T="AnaControparte"
+                 Label="@Label"
+                 Value="@_selectedControparte"
+                 ValueChanged="@OnControparteChanged"
+                 SearchFunc="@SearchControparti"
+                 ToStringFunc="@(c => c?.RagioneSociale?.ToUpperInvariant())"
+                 Required="@Required"
+                 RequiredError="@RequiredError"
+                 Variant="Variant.Outlined"
+                 Dense="true"
+                 Clearable="@Clearable"
+                 Disabled="@Disabled"
+                 ResetValueOnEmptyText="true"
+                 CoerceText="false"
+                 CoerceValue="false"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 AdornmentColor="Color.Primary"
+                 Class="@GetCssClass()">
+    <ItemTemplate Context="controparte">
+        <MudText Typo="Typo.body2">@controparte.RagioneSociale</MudText>
+        @if (!string.IsNullOrEmpty(controparte.NomeBreve))
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @controparte.NomeBreve - @controparte.TipoControparteDisplay
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @controparte.TipoControparteDisplay
+            </MudText>
+        }
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public int SelectedControparteId { get; set; }
+    [Parameter] public EventCallback<int> SelectedControparteIdChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Controparte";
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
+    [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public bool Disabled { get; set; } = false;
+
+    /// <summary>
+    /// AziendaId esplicito per filtrare le controparti.
+    /// Se specificato, ha precedenza sul TenantContext.
+    /// Utile per SuperAdmin che deve selezionare l'azienda prima di vedere le controparti.
+    /// </summary>
+    [Parameter] public int? AziendaId { get; set; }
+
+    /// <summary>
+    /// Ciclo contabile per filtraggio automatico:
+    /// - "PASSIVO" → mostra solo fornitori (is_fornitore = TRUE)
+    /// - "ATTIVO" → mostra solo clienti (is_cliente = TRUE)
+    /// - null → mostra tutti
+    /// </summary>
+    [Parameter] public string? CausaleeCiclo { get; set; }
+
+    private List<AnaControparte> _controparti = new List<AnaControparte>();
+    private AnaControparte? _selectedControparte;
+    private int? _lastLoadedAziendaId;
+    private string? _lastLoadedCiclo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Ricarica le controparti se l'AziendaId o il Ciclo è cambiato
+        if (AziendaId != _lastLoadedAziendaId || CausaleeCiclo != _lastLoadedCiclo)
+        {
+            await LoadData();
+        }
+
+        // Aggiorna la controparte selezionata quando cambia l'ID
+        UpdateSelectedControparte();
+    }
+
+    private void UpdateSelectedControparte()
+    {
+        if (_controparti == null || _controparti.Count == 0) return;
+
+        if (SelectedControparteId > 0)
+        {
+            if (_selectedControparte?.Id != SelectedControparteId)
+            {
+                _selectedControparte = _controparti.FirstOrDefault(c => c.Id == SelectedControparteId);
+            }
+        }
+        else
+        {
+            _selectedControparte = null;
+        }
+    }
+
+    private async Task LoadData()
+    {
+        // Usa AziendaId parametro se specificato, altrimenti TenantContext
+        int? aziendaId = AziendaId ?? await TenantContext.GetCurrentAziendaIdAsync();
+
+        if (aziendaId.HasValue && aziendaId.Value > 0)
+        {
+            // Determina i filtri in base al CausaleeCiclo
+            bool? soloFornitori = null;
+            bool? soloClienti = null;
+
+            if (CausaleeCiclo == "PASSIVO")
+            {
+                soloFornitori = true;
+            }
+            else if (CausaleeCiclo == "ATTIVO")
+            {
+                soloClienti = true;
+            }
+            // Se CausaleeCiclo è null → mostra tutti
+
+            var result = await ContropartiService.GetAllAsync(aziendaId.Value, soloFornitori, soloClienti);
+
+            // Inserisce l'opzione virtuale per la selezione globale (Stampa Tutti)
+            _controparti = new List<AnaControparte>
+            {
+                new AnaControparte { Id = 0, RagioneSociale = "--- TUTTE LE CONTROPARTI ---" }
+            };
+            _controparti.AddRange(result);
+
+            _lastLoadedAziendaId = aziendaId;
+            _lastLoadedCiclo = CausaleeCiclo;
+            UpdateSelectedControparte();
+        }
+        else
+        {
+            _controparti = new List<AnaControparte>();
+            _selectedControparte = null;
+            _lastLoadedAziendaId = null;
+            _lastLoadedCiclo = null;
+        }
+    }
+
+    private async Task OnControparteChanged(AnaControparte? controparte)
+    {
+        _selectedControparte = controparte;
+        await SelectedControparteIdChanged.InvokeAsync(controparte?.Id ?? 0);
+    }
+
+    private async Task<IEnumerable<AnaControparte>> SearchControparti(string value, CancellationToken token)
+    {
+        if (_controparti == null || _controparti.Count == 0)
+            return Enumerable.Empty<AnaControparte>();
+
+        // Se non c'è testo di ricerca, mostra tutti
+        if (string.IsNullOrWhiteSpace(value))
+            return _controparti;
+
+        // Cerca in RagioneSociale e NomeBreve
+        return _controparti.Where(c =>
+            (c.RagioneSociale?.Contains(value, StringComparison.InvariantCultureIgnoreCase) == true) ||
+            (c.NomeBreve?.Contains(value, StringComparison.InvariantCultureIgnoreCase) == true)
+        );
+    }
+
+    private string GetCssClass()
+    {
+        var classes = new List<string> { "uppercase-input" };
+        if (!string.IsNullOrEmpty(Class))
+        {
+            classes.Add(Class);
+        }
+        if (Required)
+        {
+            classes.Add("required-field");
+        }
+        return string.Join(" ", classes);
+    }
+}

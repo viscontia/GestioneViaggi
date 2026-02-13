@@ -38,14 +38,18 @@ CHECK (
     transazione_data_pagamento >= transazione_data_documento
 );
 
--- Constraint: data pagamento >= data scadenza (se entrambi presenti)
-ALTER TABLE mov_transazioni
-ADD CONSTRAINT chk_pagamento_dopo_scadenza
-CHECK (
-    transazione_data_scadenza IS NULL OR
-    transazione_data_pagamento IS NULL OR
-    transazione_data_pagamento >= transazione_data_scadenza
-);
+-- REMOVED: Constraint chk_pagamento_dopo_scadenza (Migration_Fix_Pagamento_Constraint.sql - 2026-02-12)
+-- This constraint was incorrect as it prevented early payments.
+-- In reality, invoices can and should be paid before their due date.
+-- The chk_pagamento_dopo_documento constraint already ensures data_pagamento >= data_documento.
+--
+-- ALTER TABLE mov_transazioni
+-- ADD CONSTRAINT chk_pagamento_dopo_scadenza
+-- CHECK (
+--     transazione_data_scadenza IS NULL OR
+--     transazione_data_pagamento IS NULL OR
+--     transazione_data_pagamento >= transazione_data_scadenza
+-- );
 
 -- Step 4: Update SQL functions to include the new field
 -- Execute Create_Fn_Get_Transazioni.sql after dropping the existing functions:

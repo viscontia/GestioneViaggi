@@ -9,7 +9,7 @@
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
 @inject MovTransazioniPrintService PrintService
-@inject AnaFornitoriService FornitoriService
+@inject ContropartiService ContropartiService
 @inject AnaValuteService ValuteService
 @inject AnaTipiCausaliService CausaliService
 @inject IJSRuntime JS
@@ -21,7 +21,7 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="2">
                 
-                @* RIGA 1: Azienda e Fornitore *@
+                @* RIGA 1: Azienda e Controparte *@
                 @if (_isSuperAdmin)
                 {
                     <MudItem xs="12" sm="6">
@@ -31,9 +31,9 @@
                     </MudItem>
                 }
                 <MudItem xs="12" sm="@(_isSuperAdmin ? 6 : 12)">
-                    <FornitoreSelect @bind-SelectedFornitoreId="_filtroFornitoreIdInt"
-                                     AziendaId="@_aziendaIdEffettivo"
-                                     Clearable="true" />
+                    <ControparteSelect @bind-SelectedControparteId="_filtroControparteIdInt"
+                                       AziendaId="@_aziendaIdEffettivo"
+                                       Clearable="true" />
                 </MudItem>
 
                 @* RIGA 2: Causale e Stati *@
@@ -157,8 +157,8 @@
     // Filtri
     private int _filtroAziendaIdInt;
     private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
-    private int _filtroFornitoreIdInt;
-    private int? _filtroFornitoreId => _filtroFornitoreIdInt > 0 ? _filtroFornitoreIdInt : null;
+    private int _filtroControparteIdInt;
+    private int? _filtroControparteId => _filtroControparteIdInt > 0 ? _filtroControparteIdInt : null;
     private int _filtroCausaleTipoIdInt;
     private int? _filtroCausaleTipoId => _filtroCausaleTipoIdInt > 0 ? _filtroCausaleTipoIdInt : null;
     private IEnumerable<string> _filtroStati = new List<string>();
@@ -231,7 +231,7 @@
     private void ResetFiltri()
     {
         _filtroAziendaIdInt = 0;
-        _filtroFornitoreIdInt = 0;
+        _filtroControparteIdInt = 0;
         _filtroCausaleTipoIdInt = 0;
         _filtroStati = new List<string>();
         _filtroViaggioId = null;
@@ -329,18 +329,18 @@
             }
             var userInfo = sessionData.User;
 
-            string? fornitoreNome = null;
+            string? controparteNome = null;
             string? valutaNome = null;
             string? causaleNome = null;
-            
-            if (_filtroFornitoreIdInt == 0)
+
+            if (_filtroControparteIdInt == 0)
             {
-                fornitoreNome = "TUTTI I FORNITORI";
+                controparteNome = "TUTTE LE CONTROPARTI";
             }
-            else if (_filtroFornitoreId.HasValue)
+            else if (_filtroControparteId.HasValue)
             {
-                var fornitore = await FornitoriService.GetByIdAsync(_filtroFornitoreId.Value);
-                fornitoreNome = fornitore?.RagioneSociale;
+                var controparte = await ContropartiService.GetByIdAsync(_filtroControparteId.Value);
+                controparteNome = controparte?.RagioneSociale;
             }
 
             if (_filtroCausaleTipoId.HasValue)
@@ -363,7 +363,7 @@
             var filtri = new TransazioniFiltriDTO
             {
                 AziendaId = aziendaIdFiltro,
-                FornitoreId = _filtroFornitoreId,
+                FornitoreId = _filtroControparteId,
                 CausaleTipoId = _filtroCausaleTipoId,
                 Stati = _filtroStati?.Any() == true ? _filtroStati.ToArray() : null,
                 ViaggioId = _filtroViaggioId,
@@ -381,7 +381,7 @@
                 SoloConViaggio = _soloConViaggio,
                 SoloSenzaViaggio = _soloSenzaViaggio,
                 SoloConFattura = _soloConFattura,
-                FornitoreNome = fornitoreNome,
+                FornitoreNome = controparteNome,
                 ValutaNome = valutaNome,
                 TipoMovimentoNome = causaleNome
             };

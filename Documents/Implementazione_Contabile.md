@@ -3,7 +3,8 @@
 **Progetto**: Gestione Viaggi Offroad
 **Database**: PostgreSQL 17.5
 **Data Creazione**: 12/02/2026
-**Versione**: 1.0
+**Ultima Modifica**: 13/02/2026
+**Versione**: 1.3
 
 ---
 
@@ -25,8 +26,9 @@ Questa impostazione rende impossibile gestire il **ciclo attivo** (clienti) e ca
    - `ATTIVO`: ciclo clienti (fatture emesse, incassi)
    - `PASSIVO`: ciclo fornitori (fatture ricevute, pagamenti)
 
-3. **Tabella `mov_pagamenti`**
-   - Tracciabilità completa dei pagamenti parziali
+3. **Sistema Pagamenti con Transazioni PG/IN**
+   - Pagamenti gestiti tramite transazioni PG (Pagamento) e IN (Incasso)
+   - Link alle fatture originali tramite `transazione_fattura_fk`
    - Calcolo automatico del residuo da pagare/incassare
 
 4. **View di reportistica**
@@ -43,8 +45,9 @@ Questa impostazione rende impossibile gestire il **ciclo attivo** (clienti) e ca
 - [x] Migrare dati da `ana_fornitori` a `ana_controparti`
 - [x] Aggiungere colonna `causale_ciclo` a `ana_tipi_causali`
 - [x] Creare causali per ciclo ATTIVO (FV, IN, NCA, NDA)
-- [x] Creare tabella `mov_pagamenti`
+- [x] ~~Creare tabella `mov_pagamenti`~~ (creata poi rimossa - 13/02/2026)
 - [x] Rinominare `transazione_fornitore_id` → `transazione_controparte_id`
+- [x] Eliminare tabella `mov_pagamenti` (13/02/2026 - non utilizzata)
 
 ### FASE 2: View e Logica di Business
 - [x] View `vw_partitario_fornitori`
@@ -53,16 +56,22 @@ Questa impostazione rende impossibile gestire il **ciclo attivo** (clienti) e ca
 - [x] View `vw_scadenzario`
 - [x] Trigger aggiornamento automatico `transazione_stato`
 
-### FASE 3: Codice C# Backend
-- [ ] Refactoring modelli DTO
-- [ ] Adattamento servizi CRUD
-- [ ] Aggiornamento validazioni
+### FASE 3: Codice C# Backend (85% COMPLETATA - 13/02/2026)
+- [x] Refactoring modelli DTO (MovTransazioni, AnaControparte, AnaTipoCausale)
+- [x] Adattamento servizi CRUD (ContropartiService, MovTransazioniService)
+- [x] Aggiornamento validazioni (metadata-driven + trigger)
+- [x] ~~AnaFornitoriService marcato come `[Obsolete]`~~ → **Eliminato completamente** (13/02/2026)
+- [x] Rimossa registrazione `AnaFornitoriService` da MauiProgram.cs
 - [ ] Unit test
+- [ ] Deprecare componenti legacy (FornitoreSelect, AnaFornitori.razor)
 
-### FASE 4: UI Frontend (Blazor)
-- [ ] Rinominare menu "Fornitori" → "Controparti"
-- [ ] Dropdown con filtro `is_fornitore` / `is_cliente`
-- [ ] Form gestione causali con `causale_ciclo`
+### FASE 4: UI Frontend (Blazor) (70% COMPLETATA - 13/02/2026)
+- [x] Componente `ControparteSelect.razor` con filtro dinamico `causale_ciclo`
+- [x] Form MovTransazioni con selezione controparte filtrata per ciclo
+- [x] Dialog `PagaOraDialog.razor` per pagamenti rapidi
+- [x] Scadenza reattiva in MovTransazioniEditDialog
+- [ ] Rinominare menu "Fornitori" → "Controparti" (menu NavBar)
+- [ ] Deprecare componente `FornitoreSelect.razor`
 - [ ] Nuove pagine per partitari clienti
 - [ ] Dashboard margini viaggi
 
@@ -72,6 +81,18 @@ Questa impostazione rende impossibile gestire il **ciclo attivo** (clienti) e ca
 - [x] Funzionalità "Paga Ora" con gestione pagamenti multipli
 - [x] Validazione coerenza stato/data pagamento
 - [x] UI reattiva per scadenze obbligatorie
+
+### FASE 6: Cleanup e Refactoring (COMPLETATA - 13/02/2026)
+- [x] Eliminata tabella `mov_pagamenti` (non utilizzata)
+- [x] Eliminato `AnaFornitoriService.cs` (sostituito da `ContropartiService`)
+- [x] Rimossa registrazione servizio da `MauiProgram.cs`
+- [x] Aggiornate VIEW reportistica per usare `transazione_fattura_fk`
+- [x] Creato componente `ControparteSelect.razor` con filtraggio dinamico
+
+**Componenti Legacy (da deprecare in futuro):**
+- `FornitoreSelect.razor` - usato da `StampaMovimentiDialog` e altri componenti legacy
+- `AnaFornitori.razor` - pagina non più accessibile da menu (route `/ana-fornitori`)
+- `AnaFornitoriEditDialog.razor` - dialog legacy
 
 ---
 
@@ -163,7 +184,12 @@ CHECK (transazione_data_documento IS NULL
 ```
 
 **Motivazione Contabile:**
-La data del documento (es. fattura emessa il 10/02) non può essere successiva alla data di registrazione contabile (es. registrata il 05/02). Questo prevenire errori di data entry.
+La data del documento (es. fattura emessa il 10/02) non può essere successiva alla data di registrazione contabile (es. registrata il 05/02). Questo previene errori di data entry.
+
+**⚠️ Constraint Rimosso (13/02/2026):**
+Il constraint `chk_pagamento_dopo_scadenza` (che impediva pagamenti prima della scadenza) è stato **rimosso** perché errato. In contabilità è normale pagare fatture prima della scadenza (anzi, è auspicabile!). Il constraint `chk_pagamento_dopo_documento` (che impone `data_pagamento >= data_documento`) rimane attivo e garantisce la correttezza contabile.
+
+**File:** [SqlScripts/Migration_Fix_Pagamento_Constraint.sql](SqlScripts/Migration_Fix_Pagamento_Constraint.sql)
 
 ---
 
@@ -182,6 +208,11 @@ In contabilità italiana, i pagamenti sono movimenti contabili a tutti gli effet
 **Alternativa Non Scelta:** Tabella `mov_pagamenti` separata
 - Pro: Struttura più "relazionale" e normalizzata
 - Contro: Pagamenti "nascosti" dalle transazioni principali, non compatibile con export contabili standard
+
+**⚠️ TABELLA RIMOSSA (13/02/2026):**
+La tabella `mov_pagamenti` è stata **eliminata** dal database perché non utilizzata. Tutti i pagamenti sono gestiti tramite transazioni PG/IN con `transazione_fattura_fk`. Le VIEW di reportistica calcolano i residui interrogando `mov_transazioni` con filtro `transazione_fattura_fk`. La sezione seguente è mantenuta per documentazione storica, ma lo schema SQL non è più presente nel database.
+
+**Script di rimozione:** [SqlScripts/Migration_Drop_MovPagamenti.sql](SqlScripts/Migration_Drop_MovPagamenti.sql)
 
 ### Implementazione `PagaOraAsync()`
 
@@ -360,7 +391,7 @@ CREATE TABLE public.ana_controparti (
 
     -- Contatti
     indirizzo VARCHAR(100),
-    comune_fk INTEGER REFERENCES ana_comuni(comune_id),
+    comune_fk INTEGER REFERENCES ana_geo_comuni(comune_id),
     telefono_prefisso VARCHAR(5),
     telefono_numero VARCHAR(20),
     email VARCHAR(100),
@@ -368,7 +399,7 @@ CREATE TABLE public.ana_controparti (
     sito_web VARCHAR(100),
 
     -- Classificazione
-    tipo_fornitore_fk INTEGER REFERENCES ana_tipi_fornitore(tipo_fornitore_id),
+    tipo_fornitore_fk INTEGER REFERENCES ana_tipo_fornitore(tipo_fornitore_id),
     fornitore_estero BOOLEAN DEFAULT FALSE,
 
     -- Operatività
@@ -428,9 +459,12 @@ CREATE INDEX idx_causali_ciclo ON ana_tipi_causali(causale_ciclo);
 | NCA | Nota di Credito Emessa | -1 | Sì |
 | NDA | Nota di Debito Emessa | +1 | Sì |
 
-### Tabella: `mov_pagamenti` (nuova)
+### ~~Tabella: `mov_pagamenti`~~ (RIMOSSA - 13/02/2026)
+
+**NOTA:** Questa tabella è stata eliminata dal database. La sezione seguente è mantenuta solo per documentazione storica.
 
 ```sql
+-- SCHEMA RIMOSSO - NON PIÙ PRESENTE NEL DATABASE
 CREATE TABLE public.mov_pagamenti (
     pagamento_id SERIAL PRIMARY KEY,
     transazione_fk INTEGER NOT NULL REFERENCES mov_transazioni(transazione_id) ON DELETE CASCADE,
@@ -512,12 +546,14 @@ SELECT
     t.transazione_data_scadenza,
 
     -- Residuo (solo per transazioni non pagate completamente)
+    -- NOTA: Calcola i pagamenti già registrati usando transazione_fattura_fk (transazioni PG collegate)
     CASE
         WHEN t.transazione_stato IN ('DA_PAGARE', 'PARZIALMENTE_PAGATO')
         THEN (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-            (SELECT SUM(p.pagamento_importo_eur)
-             FROM mov_pagamenti p
-             WHERE p.transazione_fk = t.transazione_id), 0
+            (SELECT SUM(ABS(pg.transazione_importo_eur))
+             FROM mov_transazioni pg
+             WHERE pg.transazione_fattura_fk = t.transazione_id
+               AND pg.transazione_stato = 'PAGATO'), 0
         )
         ELSE 0
     END as residuo,
@@ -570,12 +606,14 @@ SELECT
     t.transazione_data_scadenza,
 
     -- Residuo
+    -- NOTA: Calcola gli incassi già registrati usando transazione_fattura_fk (transazioni IN collegate)
     CASE
         WHEN t.transazione_stato IN ('DA_PAGARE', 'PARZIALMENTE_PAGATO')
         THEN (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-            (SELECT SUM(p.pagamento_importo_eur)
-             FROM mov_pagamenti p
-             WHERE p.transazione_fk = t.transazione_id), 0
+            (SELECT SUM(ABS(pg.transazione_importo_eur))
+             FROM mov_transazioni pg
+             WHERE pg.transazione_fattura_fk = t.transazione_id
+               AND pg.transazione_stato = 'PAGATO'), 0
         )
         ELSE 0
     END as residuo,
@@ -673,10 +711,12 @@ SELECT
     t.transazione_importo_eur * ca.causale_segno as importo,
 
     -- Residuo da pagare/incassare
+    -- NOTA: Usa transazione_fattura_fk per calcolare pagamenti/incassi già registrati
     (t.transazione_importo_eur * ca.causale_segno) - COALESCE(
-        (SELECT SUM(p.pagamento_importo_eur)
-         FROM mov_pagamenti p
-         WHERE p.transazione_fk = t.transazione_id), 0
+        (SELECT SUM(ABS(pg.transazione_importo_eur))
+         FROM mov_transazioni pg
+         WHERE pg.transazione_fattura_fk = t.transazione_id
+           AND pg.transazione_stato = 'PAGATO'), 0
     ) as residuo,
 
     -- Giorni alla scadenza (negativo = scaduto)
@@ -811,27 +851,47 @@ Aggiungere checkbox:
 </div>
 ```
 
-### Dropdown Controparte in Form Movimenti
+### Dropdown Controparte in Form Movimenti (IMPLEMENTATO - 13/02/2026)
 
-Filtraggio dinamico in base al `causale_ciclo`:
+**Componente:** `ControparteSelect.razor`
+
+Filtraggio dinamico automatico in base al `causale_ciclo` della causale selezionata:
+
+**File:** [Components/Shared/ControparteSelect.razor](Components/Shared/ControparteSelect.razor)
+
+```razor
+<ControparteSelect @bind-SelectedControparteId="Transazione.TransazioneControparteId"
+                   AziendaId="@AziendaId"
+                   CausaleeCiclo="@_causaleCicloCorrente"
+                   Label="@(_causaleCicloCorrente == "ATTIVO" ? "Cliente *" : "Fornitore *")"
+                   Required="true" />
+```
+
+**Implementazione Backend (MovTransazioniEditDialog.razor):**
 
 ```csharp
+private string? _causaleCicloCorrente = null;
+
 private async Task OnCausaleChanged(int causaleId)
 {
-    var causale = await CausaliService.GetByIdAsync(causaleId);
+    _selectedCausale = await CausaliService.GetByIdAsync(causaleId);
 
-    if (causale.CausaleCiclo == "PASSIVO")
+    if (_selectedCausale != null)
     {
-        // Carica solo fornitori
-        controparti = await ContropartiService.GetFornitoriAsync();
-    }
-    else if (causale.CausaleCiclo == "ATTIVO")
-    {
-        // Carica solo clienti
-        controparti = await ContropartiService.GetClientiAsync();
+        // Imposta il ciclo contabile corrente per filtraggio controparti
+        _causaleCicloCorrente = _selectedCausale.CausaleCiclo; // "ATTIVO" o "PASSIVO"
+
+        // ControparteSelect si ricarica automaticamente filtrando:
+        // - PASSIVO → mostra solo fornitori (is_fornitore = TRUE)
+        // - ATTIVO → mostra solo clienti (is_cliente = TRUE)
     }
 }
 ```
+
+**Logica ControparteSelect:**
+- Parametro `CausaleeCiclo` guida il filtraggio
+- Chiama `ContropartiService.GetAllAsync(aziendaId, soloFornitori, soloClienti)` con filtri appropriati
+- Label si aggiorna dinamicamente: "Fornitore *" per PASSIVO, "Cliente *" per ATTIVO
 
 ---
 
@@ -1273,7 +1333,6 @@ ORDER BY p.transazione_data, p.created_at;
 - Repository: [GitHub repo link]
 - Database Locale: [Documents/DataBaseLocale.md](DataBaseLocale.md)
 - Change Log: [BUGFIX-SUMMARY.txt](../BUGFIX-SUMMARY.txt)
-- Piano Implementazione: `/Users/adrianovisconti/.claude/plans/wondrous-forging-cosmos.md`
 
 ### Versioning
 
@@ -1281,6 +1340,8 @@ ORDER BY p.transazione_data, p.created_at;
 |----------|------|-----------|
 | 1.0 | 12/02/2026 | Sistema base contabile (cicli ATTIVO/PASSIVO) |
 | 1.1 | 12/02/2026 | Sistema metadata-driven + "Paga Ora" |
+| 1.2 | 13/02/2026 | Allineamento documentazione con implementazione reale: VIEW con transazione_fattura_fk, ControparteSelect.razor, correzioni nomi tabelle, nota constraint rimosso |
+| 1.3 | 13/02/2026 | Cleanup: Eliminati mov_pagamenti (tabella inutilizzata) e AnaFornitoriService.cs (sostituito da ContropartiService) |
 
 ---
 

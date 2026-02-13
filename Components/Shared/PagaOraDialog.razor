@@ -42,7 +42,8 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudCheckBox @bind-Value="_pagamentoTotale"
+                <MudCheckBox T="bool"
+                             Value="_pagamentoTotale"
                              Label="Pagamento Totale"
                              Color="Color.Primary"
                              ValueChanged="@OnPagamentoTotaleChanged" />
@@ -58,7 +59,7 @@
 </MudDialog>
 
 @code {
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public MovTransazioni Item { get; set; } = new();
 
     private decimal _importoPagamento;
@@ -75,6 +76,7 @@
 
     private void OnPagamentoTotaleChanged(bool value)
     {
+        _pagamentoTotale = value;
         if (value)
         {
             _importoPagamento = _importoMassimo;
