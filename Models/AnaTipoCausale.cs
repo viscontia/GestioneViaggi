@@ -48,6 +48,17 @@ namespace GestioneViaggi.Models
         [Column("causale_genera_scadenza_auto")]
         public bool CausaleGeneraScadenzaAuto { get; set; } = false;
 
+        // ===== GESTIONE IVA (STEP 3 - Implementazione_IVA.md) =====
+
+        [Column("causale_genera_iva")]
+        public bool CausaleGeneraIva { get; set; } = false;
+
+        [Column("causale_richiede_iva")]
+        public bool CausaleRichiedeIva { get; set; } = false;
+
+        [Column("causale_aliquota_iva_default_fk")]
+        public int? CausaleAliquotaIvaDefaultFk { get; set; }
+
         [Column("created_at")]
         public DateTime? Created { get; set; }
 

@@ -7,30 +7,21 @@
 @*
     COMPONENT: CausaleSelect
     DESC: Autocomplete per la selezione della causale contabile (Fattura, PG, NC...).
+    REFACTOR: Ora utilizza BaseEntitySelect per conformità UI.
     AUTORE: Antigravity
 *@
 
-<MudAutocomplete T="AnaTipoCausale"
-                 Value="@_selectedCausale"
-                 ValueChanged="@OnCausaleChanged"
-                 SearchFunc="@SearchCausali"
-                 ToStringFunc="@(c => c != null ? c.CausaleDescrizione : string.Empty)"
-                 Label="@Label"
-                 Variant="Variant.Outlined"
-                 Required="@Required"
-                 RequiredError="@RequiredError"
-                 Disabled="@(_isLoading || Disabled)"
-                 Class="@GetCssClass()"
-                 Dense="true"
-                 Clearable="@Clearable"
-                 AdornmentIcon="@Icons.Material.Filled.Search"
-                 AdornmentColor="Color.Primary"
-                 ResetValueOnEmptyText="true"
-                 CoerceText="true"
-                 CoerceValue="false"
-                 Strict="false"
-                 OpenOnFocus="false"
-                 MaxItems="null" />
+<BaseEntitySelect TItem="AnaTipoCausale"
+                  Value="@_selectedCausale"
+                  ValueChanged="@OnCausaleChanged"
+                  SearchFunc="@SearchCausali"
+                  ToStringFunc="@(c => c?.CausaleDescrizione)"
+                  Label="@Label"
+                  Required="@Required"
+                  RequiredError="@RequiredError"
+                  Disabled="@(_isLoading || Disabled)"
+                  Class="@Class"
+                  Clearable="@Clearable" />
 
 @code {
     [Parameter] public int SelectedCausaleId { get; set; }
@@ -76,7 +67,7 @@
             if (_selectedCausale?.CausaleId != SelectedCausaleId)
             {
                 _selectedCausale = _causali.FirstOrDefault(c => c.CausaleId == SelectedCausaleId);
-                StateHasChanged();
+                // Non chiamare StateHasChanged qui se siamo in OnParametersSet, è automatico
             }
         }
         else
@@ -138,18 +129,8 @@
         }
 
         return _causali
-            .Where(c => c.CausaleDescrizione.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
-                        c.CausaleCodice.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+            .Where(c => (c.CausaleDescrizione?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                        (c.CausaleCodice?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
-    }
-
-    private string GetCssClass()
-    {
-        var classes = Class ?? "";
-        if (Required)
-        {
-            classes += " required-field";
-        }
-        return classes.Trim();
     }
 }

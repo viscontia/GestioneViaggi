@@ -211,6 +211,41 @@ Funzioni CRUD per la gestione delle aliquote IVA multi-tenant con supporto fattu
 
 ---
 
+## 8.1. Contabilità - Tipi Causali
+
+Funzioni CRUD per la gestione dei tipi di causale contabile con metadati IVA e scadenze.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_ana_tipi_causali_get_all` | Recupera tutte le causali per azienda, ordinate per ciclo e descrizione. Usato dalla griglia principale. | `p_azienda_id INTEGER` | `SETOF ana_tipi_causali` (tutte le colonne) | `Services/CRUD/AnaTipiCausaliService.cs` |
+| `fn_ana_tipi_causali_get_active` | Recupera solo le causali attive per azienda. Usato nei dropdown/combobox per selezione causale nelle transazioni. | `p_azienda_id INTEGER` | `SETOF ana_tipi_causali` (solo record con `is_active = TRUE`) | `Services/CRUD/AnaTipiCausaliService.cs` |
+| `fn_ana_tipi_causali_get_active_by_ciclo` | Recupera causali attive filtrate per ciclo contabile (ATTIVO/PASSIVO). Usato nei filtri transazioni per mostrare solo causali del ciclo selezionato. | `p_azienda_id INTEGER, p_ciclo VARCHAR(10)` | `SETOF ana_tipi_causali` (record attivi del ciclo specificato) | `Services/CRUD/AnaTipiCausaliService.cs` |
+| `sp_ana_tipi_causali_create` | Crea nuova causale con validazione completa. **Normalizzazione automatica**: forza UPPER CASE su codice, descrizione e ciclo. **Validazioni**: azienda obbligatoria, codice/descrizione non vuoti, ciclo ATTIVO/PASSIVO, segno ±1. **Gestione errori**: DUPLICATE_CODICE (unique violation), INVALID_AZIENDA (FK violation), INVALID_DATA (check constraint). | `p_azienda_fk INTEGER, p_causale_codice VARCHAR(10), p_causale_descrizione VARCHAR(100), p_causale_segno INTEGER, p_causale_is_documento BOOLEAN, p_causale_ciclo VARCHAR(10), p_causale_richiede_scadenza BOOLEAN, p_causale_giorni_scadenza_default INTEGER, p_causale_genera_scadenza_auto BOOLEAN, p_causale_genera_iva BOOLEAN, p_causale_richiede_iva BOOLEAN, p_causale_aliquota_iva_default_fk INTEGER, p_is_active BOOLEAN, p_created_by VARCHAR(50), p_updated_by VARCHAR(50)` | `INTEGER` (causale_id del record creato) | `Services/CRUD/AnaTipiCausaliService.cs` |
+| `sp_ana_tipi_causali_update` | Aggiorna causale esistente con validazione. **Normalizzazione automatica**: forza UPPER CASE. **Validazioni**: verifica esistenza record, campi obbligatori non vuoti, ciclo ATTIVO/PASSIVO, segno ±1. **Gestione errori**: RECORD_NOT_FOUND, DUPLICATE_CODICE, INVALID_DATA, INVALID_REFERENCE. | `p_causale_id INTEGER, p_causale_codice VARCHAR(10), p_causale_descrizione VARCHAR(100), p_causale_segno INTEGER, p_causale_is_documento BOOLEAN, p_causale_ciclo VARCHAR(10), p_causale_richiede_scadenza BOOLEAN, p_causale_giorni_scadenza_default INTEGER, p_causale_genera_scadenza_auto BOOLEAN, p_causale_genera_iva BOOLEAN, p_causale_richiede_iva BOOLEAN, p_causale_aliquota_iva_default_fk INTEGER, p_is_active BOOLEAN, p_updated_by VARCHAR(50)` | `VOID` | `Services/CRUD/AnaTipiCausaliService.cs` |
+| `sp_ana_tipi_causali_delete` | Elimina causale. Blocca eliminazione se in uso da transazioni. **Gestione errori**: RECORD_NOT_FOUND, RECORD_IN_USE (FK violation). | `p_causale_id INTEGER` | `VOID` | `Services/CRUD/AnaTipiCausaliService.cs` |
+
+### 📝 Note Implementative - Tipi Causali (2026-02-14)
+
+**Architettura DB-First Completa**:
+- ✅ **Zero SQL diretto** in `AnaTipiCausaliService.cs` - tutte le operazioni delegate al database
+- ✅ Normalizzazione UPPER CASE gestita lato database (stored procedures)
+- ✅ Validazioni business rules nel database (constraint + procedure logic)
+- ✅ Gestione metadati IVA per trigger automatico calcolo IVA (STEP 3 - Implementazione_IVA.md)
+
+**Metadati IVA (Nuovi dal 2026-02-14)**:
+- `causale_genera_iva`: TRUE se la causale può avere IVA (FT, FV, ND, NDA)
+- `causale_richiede_iva`: TRUE se IVA è obbligatoria (trigger validerà presenza aliquota)
+- `causale_aliquota_iva_default_fk`: FK a aliquota IVA preselezionata in UI
+
+**Constraint e Validazioni DB**:
+- `chk_iva_richiede_implica_genera`: Se richiede IVA obbligatoria, deve anche generare IVA
+- Unique constraint su (azienda_fk, causale_codice) - previene duplicati
+- Check segno ±1 e ciclo ATTIVO/PASSIVO
+
+**File SQL**: `SqlScripts/Create_AnaTipiCausali_CRUD.sql`, `SqlScripts/Migration_Add_Causale_IVA_Metadata.sql` (metadati IVA)
+
+---
+
 ## 9. Contabilità - Stampe e Report
 
 Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
