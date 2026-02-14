@@ -1,0 +1,184 @@
+@page "/tabelle/aliquote-iva"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Services.Session
+@inject AnaAliquoteIvaService AliquoteService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="AnaAliquotaIva"
+                        Title="Gestione Aliquote IVA"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuova Aliquota IVA
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.IvaCodice" Title="Codice" />
+            <PropertyColumn Property="x => x.IvaDescrizione" Title="Descrizione" />
+            <PropertyColumn Property="x => x.IvaPercentuale" Title="%" Format="N2">
+                <CellTemplate>
+                    @if (context.Item.IvaPercentuale > 0)
+                    {
+                        <MudChip Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@context.Item.IvaPercentuale.ToString("N2")%</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">0%</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IvaNatura" Title="Natura FE">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.IvaNatura))
+                    {
+                        <MudChip Color="Color.Secondary" Size="Size.Small" Variant="Variant.Outlined">@context.Item.IvaNatura</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IsDefault" Title="Default">
+                <CellTemplate>
+                    @if (context.Item.IsDefault)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Title="Aliquota default" />
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IsActive" Title="Attiva">
+                <CellTemplate>
+                    @if (context.Item.IsActive)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.Ordinamento" Title="Ord." />
+
+            <EnterpriseActionsColumn T="AnaAliquotaIva" OnEdit="@OpenEditDialog" OnDelete="@DeleteAliquota" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaAliquotaIva> _items = new List<AnaAliquotaIva>();
+    private bool _loading = true;
+    private int _aziendaId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Recupera azienda corrente dal context
+        _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+
+        if (_aziendaId == 0)
+        {
+            Snackbar.Add("Errore: Azienda non trovata nel context", Severity.Error);
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await AliquoteService.GetAllAliquoteAsync(_aziendaId);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var newAliquota = new AnaAliquotaIva
+        {
+            AziendaFk = _aziendaId,
+            IsActive = true,
+            Ordinamento = 100
+        };
+
+        var parameters = new DialogParameters { ["Aliquota"] = newAliquota };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaAliquoteIvaEditDialog>("Nuova Aliquota IVA", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaAliquotaIva item)
+    {
+        var parameters = new DialogParameters { ["Aliquota"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaAliquoteIvaEditDialog>("Modifica Aliquota IVA", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteAliquota(AnaAliquotaIva item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Aliquota IVA",
+            $"Sei sicuro di voler eliminare l'aliquota {item.IvaCodice} - {item.IvaDescrizione}?",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await AliquoteService.DeleteAsync(item.IvaId);
+                Snackbar.Add("Aliquota IVA eliminata", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool SearchFunc(AnaAliquotaIva aliquota, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (aliquota.IvaCodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (aliquota.IvaDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (aliquota.IvaNatura?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (aliquota.IvaPercentuale.ToString().Contains(searchString))
+            return true;
+
+        return false;
+    }
+}

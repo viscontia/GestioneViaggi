@@ -169,7 +169,49 @@ Funzioni di manutenzione, log, validazione e calcolo statistiche.
 
 ---
 
-## 8. Contabilità - Stampe e Report
+## 8. Contabilità - Aliquote IVA
+
+Funzioni CRUD per la gestione delle aliquote IVA multi-tenant con supporto fatturazione elettronica.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_ana_aliquote_iva_get_all` | Recupera tutte le aliquote IVA per azienda, ordinate per ordinamento e descrizione. Usato dalla griglia principale. | `p_azienda_id INTEGER` | `SETOF ana_aliquote_iva` (tutte le colonne) | `Services/CRUD/AnaAliquoteIvaService.cs`, `Components/Pages/Tabelle/AnaAliquoteIvaPage.razor` |
+| `fn_ana_aliquote_iva_get_active` | Recupera solo le aliquote IVA attive per azienda. Usato nei dropdown/combobox per selezione aliquota nelle transazioni. | `p_azienda_id INTEGER` | `SETOF ana_aliquote_iva` (solo record con `is_active = TRUE`) | `Services/CRUD/AnaAliquoteIvaService.cs` |
+| `fn_ana_aliquote_iva_get_default` | Recupera l'aliquota IVA default per azienda (preselezionata in UI). | `p_azienda_id INTEGER` | `ana_aliquote_iva` (singolo record o NULL) | `Services/CRUD/AnaAliquoteIvaService.cs` |
+| `sp_ana_aliquote_iva_create` | Crea nuova aliquota IVA con validazione completa. **Normalizzazione automatica**: forza UPPER CASE su codice, descrizione e natura FE. **Validazioni**: azienda obbligatoria, codice/descrizione non vuoti, percentuale 0-100. **Gestione errori**: DUPLICATE_CODICE (unique violation), INVALID_AZIENDA (FK violation), INVALID_DATA (check constraint). | `p_azienda_fk INTEGER, p_iva_codice VARCHAR(10), p_iva_descrizione VARCHAR(100), p_iva_percentuale NUMERIC(5,2), p_iva_natura VARCHAR(10), p_is_default BOOLEAN, p_is_active BOOLEAN, p_ordinamento SMALLINT, p_created_by VARCHAR(50), p_updated_by VARCHAR(50)` | `INTEGER` (iva_id del record creato) | `Services/CRUD/AnaAliquoteIvaService.cs`, `Components/Pages/Tabelle/AnaAliquoteIvaEditDialog.razor` |
+| `sp_ana_aliquote_iva_update` | Aggiorna aliquota IVA esistente con validazione. **Normalizzazione automatica**: forza UPPER CASE. **Validazioni**: verifica esistenza record, campi obbligatori non vuoti. **Gestione errori**: RECORD_NOT_FOUND, DUPLICATE_CODICE, INVALID_DATA. | `p_iva_id INTEGER, p_iva_codice VARCHAR(10), p_iva_descrizione VARCHAR(100), p_iva_percentuale NUMERIC(5,2), p_iva_natura VARCHAR(10), p_is_default BOOLEAN, p_is_active BOOLEAN, p_ordinamento SMALLINT, p_updated_by VARCHAR(50)` | `VOID` | `Services/CRUD/AnaAliquoteIvaService.cs`, `Components/Pages/Tabelle/AnaAliquoteIvaEditDialog.razor` |
+| `sp_ana_aliquote_iva_delete` | Elimina aliquota IVA. Blocca eliminazione se in uso da altre tabelle (es. transazioni). **Gestione errori**: RECORD_NOT_FOUND, RECORD_IN_USE (FK violation). | `p_iva_id INTEGER` | `VOID` | `Services/CRUD/AnaAliquoteIvaService.cs`, `Components/Pages/Tabelle/AnaAliquoteIvaPage.razor` |
+| `sp_ana_aliquote_iva_set_default` | Imposta un'aliquota come default per azienda. **Automazione**: il trigger `fn_check_single_default_iva` rimuove automaticamente il flag `is_default` dalle altre aliquote della stessa azienda, garantendo che solo 1 aliquota per azienda sia default. | `p_iva_id INTEGER, p_azienda_id INTEGER` | `VOID` | `Services/CRUD/AnaAliquoteIvaService.cs` |
+
+### 📝 Note Implementative - Aliquote IVA (2026-02-14)
+
+**Architettura DB-First Completa**:
+- ✅ **Zero SQL diretto** in `AnaAliquoteIvaService.cs` - tutte le operazioni delegate al database
+- ✅ Normalizzazione UPPER CASE gestita lato database (stored procedures)
+- ✅ Validazioni business rules nel database (constraint + procedure logic)
+- ✅ Trigger `fn_check_single_default_iva` garantisce constraint "single default per azienda"
+- ✅ Trigger `fn_touch_updated_at_iva` aggiorna automaticamente `updated_at` su ogni modifica
+
+**Constraint e Validazioni DB**:
+- `uk_iva_azienda_codice`: UNIQUE su (azienda_fk, iva_codice) - previene duplicati
+- `chk_iva_percentuale`: CHECK percentuale tra 0 e 100
+- `chk_iva_codice_upper`: CHECK codice sempre UPPER CASE
+- Trigger automatic single default enforcement
+
+**Codici Natura FE Supportati** (Fatturazione Elettronica):
+- `N1`: Escluso art. 15 (es. Fuori Campo IVA)
+- `N2.x`: Non soggetto (es. N2.1 Regime forfettario)
+- `N3.x`: Non imponibile (es. N3.1 Esportazioni)
+- `N4`: Esente IVA
+- `N5`: Regime margine
+- `N6.x`: Reverse charge
+- `N7`: Altro
+
+**File SQL**: `SqlScripts/Create_AnaAliquoteIva.sql` (tabella + trigger), `SqlScripts/Create_AnaAliquoteIva_CRUD.sql` (stored functions)
+
+---
+
+## 9. Contabilità - Stampe e Report
 
 Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 
@@ -200,7 +242,7 @@ Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 
 ---
 
-## 9. Implementazioni Service-Side (Logica Applicativa)
+## 10. Implementazioni Service-Side (Logica Applicativa)
 Nota: Queste non sono funzioni DB, ma descrizioni di logica C# rilevante.
 
 | Componente | Funzionalità | Descrizione | Files Coinvolti |

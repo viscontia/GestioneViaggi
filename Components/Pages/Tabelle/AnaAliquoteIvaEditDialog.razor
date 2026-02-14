@@ -1,0 +1,188 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using Microsoft.JSInterop
+@inject AnaAliquoteIvaService AliquoteService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm Model="@Aliquota" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Codice"
+                                  Value="@Aliquota.IvaCodice"
+                                  ValueChanged="@((string s) => Aliquota.IvaCodice = s?.ToUpper() ?? string.Empty)"
+                                  @ref="_firstField"
+                                  Required="true"
+                                  RequiredError="Codice obbligatorio"
+                                  MaxLength="10"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. 22, 10, FC, ES"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Tag"
+                                  Class="uppercase-input"
+                                  tabindex="1" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField Label="Percentuale IVA"
+                                     @bind-Value="Aliquota.IvaPercentuale"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Max="100"
+                                     Required="true"
+                                     RequiredError="Percentuale obbligatoria"
+                                     HelperText="0.00 per FC/ES/NS"
+                                     Adornment="Adornment.End"
+                                     AdornmentText="%"
+                                     tabindex="2" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Descrizione"
+                                  Value="@Aliquota.IvaDescrizione"
+                                  ValueChanged="@((string s) => Aliquota.IvaDescrizione = s?.ToUpper() ?? string.Empty)"
+                                  Required="true"
+                                  RequiredError="Descrizione obbligatoria"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. IVA ORDINARIA 22%"
+                                  Class="uppercase-input"
+                                  tabindex="3" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Natura FE (Fatturazione Elettronica)"
+                                  Value="@Aliquota.IvaNatura"
+                                  ValueChanged="@((string? s) => Aliquota.IvaNatura = s?.ToUpper())"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="10"
+                                  HelperText="Es. N1, N2.1, N4 (opzionale)"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Description"
+                                  Class="uppercase-input"
+                                  tabindex="4" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="short"
+                                     Label="Ordinamento"
+                                     @bind-Value="Aliquota.Ordinamento"
+                                     Variant="Variant.Outlined"
+                                     Min="1"
+                                     Max="999"
+                                     HelperText="1 = primo, 999 = ultimo"
+                                     tabindex="5" />
+                </MudItem>
+                <MudItem xs="6" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Aliquota.IsActive" Label="Attiva" Color="Color.Success" tabindex="6" />
+                </MudItem>
+                <MudItem xs="6" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Aliquota.IsDefault" Label="Default (preselezionata)" Color="Color.Warning" tabindex="7" />
+                </MudItem>
+
+                @if (Aliquota.IsDefault)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Questa aliquota sarà preselezionata automaticamente nelle nuove transazioni.
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @if (Aliquota.IvaPercentuale == 0 && string.IsNullOrWhiteSpace(Aliquota.IvaNatura))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            Attenzione: Per aliquote 0% si consiglia di specificare la Natura FE (es. N1 per Fuori Campo).
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AnaAliquotaIva Aliquota { get; set; } = new();
+
+    private MudForm _form = default!;
+    private MudTextField<string>? _firstField;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+
+                if (_firstField != null)
+                {
+                    await Task.Delay(300);
+                    await _firstField.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+
+        if (_form.IsValid)
+        {
+            try
+            {
+                // Validazione personalizzata
+                if (string.IsNullOrWhiteSpace(Aliquota.IvaCodice))
+                {
+                    Snackbar.Add("Il codice è obbligatorio", Severity.Error);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(Aliquota.IvaDescrizione))
+                {
+                    Snackbar.Add("La descrizione è obbligatoria", Severity.Error);
+                    return;
+                }
+
+                if (Aliquota.AziendaFk == 0)
+                {
+                    Snackbar.Add("Azienda non specificata", Severity.Error);
+                    return;
+                }
+
+                if (Aliquota.IvaId == 0)
+                {
+                    await AliquoteService.CreateAsync(Aliquota);
+                    Snackbar.Add("Aliquota IVA creata con successo", Severity.Success);
+                }
+                else
+                {
+                    await AliquoteService.UpdateAsync(Aliquota);
+                    Snackbar.Add("Aliquota IVA aggiornata con successo", Severity.Success);
+                }
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -415,7 +415,7 @@
         var dialog = await DialogService.ShowAsync<PagaOraDialog>("Registra Pagamento", parameters);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is PagaOraDialogResult paymentResult)
+        if (result != null && !result.Canceled && result.Data is PagaOraDialogResult paymentResult)
         {
             try
             {
