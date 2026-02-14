@@ -99,7 +99,7 @@
         _loading = true;
         try
         {
-            _items = await AliquoteService.GetAllAliquoteAsync(_aziendaId);
+            _items = await AliquoteService.GetByAziendaAsync(_aziendaId);
         }
         finally
         {

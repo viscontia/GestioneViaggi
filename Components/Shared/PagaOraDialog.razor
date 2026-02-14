@@ -8,7 +8,7 @@
         </MudText>
 
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            <strong>Importo Documento:</strong> @((Item.TransazioneImportoEur ?? Item.TransazioneImporto).ToString("N2")) EUR<br />
+            <strong>Importo Documento:</strong> @((Item.TransazioneLordoEur ?? Item.TransazioneImporto).ToString("N2")) EUR<br />
             <strong>Stato Attuale:</strong> @Item.TransazioneStato.Replace("_", " ")
         </MudAlert>
 
@@ -70,7 +70,7 @@
 
     protected override void OnInitialized()
     {
-        _importoMassimo = Item.TransazioneImportoEur ?? Item.TransazioneImporto;
+        _importoMassimo = Item.TransazioneLordoEur ?? Item.TransazioneImporto;
         _importoPagamento = _importoMassimo; // Default to full payment
     }
 

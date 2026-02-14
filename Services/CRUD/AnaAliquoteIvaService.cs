@@ -1,232 +1,312 @@
 using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
-using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace GestioneViaggi.Services.CRUD;
 
-public class AnaAliquoteIvaService : BaseCrudService<AnaAliquotaIva>
+/// <summary>
+/// Service per gestione CRUD ana_aliquote_iva
+/// </summary>
+public class AnaAliquoteIvaService
 {
-    protected override string TableName => "ana_aliquote_iva";
-    protected override string IdColumnName => "iva_id";
+    private readonly IDatabaseService _dbService;
+    private readonly ILogger<AnaAliquoteIvaService> _logger;
 
-    public AnaAliquoteIvaService(IDatabaseService dbService, ILogger<AnaAliquoteIvaService> logger, ITenantContext tenantContext)
-        : base(dbService, logger, tenantContext)
+    public AnaAliquoteIvaService(IDatabaseService dbService, ILogger<AnaAliquoteIvaService> logger)
     {
+        _dbService = dbService;
+        _logger = logger;
     }
 
+    // ==========================================
+    // READ
+    // ==========================================
+
     /// <summary>
-    /// Recupera tutte le aliquote IVA per azienda.
-    /// Ordinate per ordinamento crescente.
+    /// Recupera aliquota per ID
     /// </summary>
-    public async Task<IEnumerable<AnaAliquotaIva>> GetAllAliquoteAsync(int aziendaId)
+    public async Task<AnaAliquotaIva?> GetByIdAsync(int id)
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<AnaAliquotaIva>(
-                "SELECT * FROM fn_ana_aliquote_iva_get_all(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
-            return results;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante il recupero delle aliquote IVA per azienda {AziendaId}", aziendaId);
-            return Enumerable.Empty<AnaAliquotaIva>();
-        }
-    }
+            using var conn = await _dbService.GetConnectionAsync();
 
-    /// <summary>
-    /// Recupera solo le aliquote IVA attive per azienda (per dropdown UI).
-    /// </summary>
-    public async Task<IEnumerable<AnaAliquotaIva>> GetActiveAliquoteAsync(int aziendaId)
-    {
-        try
-        {
-            using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<AnaAliquotaIva>(
-                "SELECT * FROM fn_ana_aliquote_iva_get_active(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
-            return results;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante il recupero delle aliquote IVA attive per azienda {AziendaId}", aziendaId);
-            return Enumerable.Empty<AnaAliquotaIva>();
-        }
-    }
+            const string sql = @"
+                SELECT
+                    iva_id AS IvaId,
+                    azienda_fk AS AziendaFk,
+                    iva_codice AS IvaCodice,
+                    iva_descrizione AS IvaDescrizione,
+                    iva_percentuale AS IvaPercentuale,
+                    iva_natura AS IvaNatura,
+                    is_default AS IsDefault,
+                    is_active AS IsActive,
+                    ordinamento AS Ordinamento,
+                    created_at AS Created,
+                    created_by AS CreatedBy,
+                    updated_at AS Updated,
+                    updated_by AS UpdatedBy
+                FROM ana_aliquote_iva
+                WHERE iva_id = @Id";
 
-    /// <summary>
-    /// Recupera l'aliquota IVA default per azienda.
-    /// </summary>
-    public async Task<AnaAliquotaIva?> GetDefaultAliquotaAsync(int aziendaId)
-    {
-        try
-        {
-            using var conn = await _databaseService.GetConnectionAsync();
-            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(
-                "SELECT * FROM fn_ana_aliquote_iva_get_default(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
+            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, new { Id = id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dell'aliquota IVA default per azienda {AziendaId}", aziendaId);
+            _logger.LogError(ex, "Errore nel recupero aliquota IVA {Id}", id);
             return null;
         }
     }
 
-    public override async Task<AnaAliquotaIva> CreateAsync(AnaAliquotaIva entity)
+    /// <summary>
+    /// Recupera tutte le aliquote per azienda
+    /// </summary>
+    public async Task<IEnumerable<AnaAliquotaIva>> GetByAziendaAsync(int aziendaId)
     {
-        await PopulateAuditFieldsAsync(entity, true);
-
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            using var conn = await _dbService.GetConnectionAsync();
 
-            entity.IvaId = await conn.ExecuteScalarAsync<int>(
-                @"SELECT sp_ana_aliquote_iva_create(
-                    @AziendaFk,
-                    @IvaCodice,
-                    @IvaDescrizione,
-                    @IvaPercentuale,
-                    @IvaNatura,
-                    @IsDefault,
-                    @IsActive,
-                    @Ordinamento,
-                    @CreatedBy,
-                    @UpdatedBy
-                )",
-                new
-                {
-                    entity.AziendaFk,
-                    entity.IvaCodice,
-                    entity.IvaDescrizione,
-                    entity.IvaPercentuale,
-                    entity.IvaNatura,
-                    entity.IsDefault,
-                    entity.IsActive,
-                    entity.Ordinamento,
-                    entity.CreatedBy,
-                    entity.UpdatedBy
-                }
-            );
+            const string sql = @"
+                SELECT
+                    iva_id AS IvaId,
+                    azienda_fk AS AziendaFk,
+                    iva_codice AS IvaCodice,
+                    iva_descrizione AS IvaDescrizione,
+                    iva_percentuale AS IvaPercentuale,
+                    iva_natura AS IvaNatura,
+                    is_default AS IsDefault,
+                    is_active AS IsActive,
+                    ordinamento AS Ordinamento,
+                    created_at AS Created,
+                    created_by AS CreatedBy,
+                    updated_at AS Updated,
+                    updated_by AS UpdatedBy
+                FROM ana_aliquote_iva
+                WHERE azienda_fk = @AziendaId
+                ORDER BY ordinamento, iva_descrizione";
 
-            return entity;
+            return await conn.QueryAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante la creazione dell'aliquota IVA {Codice}", entity.IvaCodice);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
-        }
-    }
-
-    public override async Task<AnaAliquotaIva> UpdateAsync(AnaAliquotaIva entity)
-    {
-        await PopulateAuditFieldsAsync(entity, false);
-
-        try
-        {
-            using var conn = await _databaseService.GetConnectionAsync();
-
-            await conn.ExecuteAsync(
-                @"SELECT sp_ana_aliquote_iva_update(
-                    @IvaId,
-                    @IvaCodice,
-                    @IvaDescrizione,
-                    @IvaPercentuale,
-                    @IvaNatura,
-                    @IsDefault,
-                    @IsActive,
-                    @Ordinamento,
-                    @UpdatedBy
-                )",
-                new
-                {
-                    entity.IvaId,
-                    entity.IvaCodice,
-                    entity.IvaDescrizione,
-                    entity.IvaPercentuale,
-                    entity.IvaNatura,
-                    entity.IsDefault,
-                    entity.IsActive,
-                    entity.Ordinamento,
-                    entity.UpdatedBy
-                }
-            );
-
-            return entity;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante l'aggiornamento dell'aliquota IVA {Id}", entity.IvaId);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+            _logger.LogError(ex, "Errore nel recupero aliquote IVA per azienda {AziendaId}", aziendaId);
+            return Enumerable.Empty<AnaAliquotaIva>();
         }
     }
 
     /// <summary>
-    /// Imposta un'aliquota come default (rimuove flag dalle altre).
-    /// Il trigger fn_check_single_default_iva gestisce automaticamente la rimozione del flag dalle altre aliquote.
+    /// Recupera solo aliquote attive per azienda (per dropdown UI)
+    /// </summary>
+    public async Task<IEnumerable<AnaAliquotaIva>> GetActiveByAziendaAsync(int aziendaId)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+
+            const string sql = @"
+                SELECT
+                    iva_id AS IvaId,
+                    azienda_fk AS AziendaFk,
+                    iva_codice AS IvaCodice,
+                    iva_descrizione AS IvaDescrizione,
+                    iva_percentuale AS IvaPercentuale,
+                    iva_natura AS IvaNatura,
+                    is_default AS IsDefault,
+                    is_active AS IsActive,
+                    ordinamento AS Ordinamento
+                FROM ana_aliquote_iva
+                WHERE azienda_fk = @AziendaId
+                  AND is_active = TRUE
+                ORDER BY ordinamento, iva_descrizione";
+
+            return await conn.QueryAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero aliquote attive per azienda {AziendaId}", aziendaId);
+            return Enumerable.Empty<AnaAliquotaIva>();
+        }
+    }
+
+    /// <summary>
+    /// Recupera aliquota default per azienda
+    /// </summary>
+    public async Task<AnaAliquotaIva?> GetDefaultByAziendaAsync(int aziendaId)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+
+            const string sql = @"
+                SELECT
+                    iva_id AS IvaId,
+                    azienda_fk AS AziendaFk,
+                    iva_codice AS IvaCodice,
+                    iva_descrizione AS IvaDescrizione,
+                    iva_percentuale AS IvaPercentuale,
+                    iva_natura AS IvaNatura,
+                    is_default AS IsDefault,
+                    is_active AS IsActive,
+                    ordinamento AS Ordinamento
+                FROM ana_aliquote_iva
+                WHERE azienda_fk = @AziendaId
+                  AND is_default = TRUE
+                LIMIT 1";
+
+            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero aliquota default per azienda {AziendaId}", aziendaId);
+            return null;
+        }
+    }
+
+    // ==========================================
+    // CREATE
+    // ==========================================
+
+    /// <summary>
+    /// Crea nuova aliquota IVA
+    /// </summary>
+    public async Task<int> CreateAsync(AnaAliquotaIva item)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+
+            // Normalizza codice (UPPER CASE)
+            item.IvaCodice = item.IvaCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.IvaCodice));
+
+            const string sql = @"
+                INSERT INTO ana_aliquote_iva (
+                    azienda_fk, iva_codice, iva_descrizione, iva_percentuale, iva_natura,
+                    is_default, is_active, ordinamento, created_at, created_by
+                ) VALUES (
+                    @AziendaFk, @IvaCodice, @IvaDescrizione, @IvaPercentuale, @IvaNatura,
+                    @IsDefault, @IsActive, @Ordinamento, NOW(), @CreatedBy
+                )
+                RETURNING iva_id";
+
+            return await conn.ExecuteScalarAsync<int>(sql, item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nella creazione aliquota IVA");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
+        }
+    }
+
+    // ==========================================
+    // UPDATE
+    // ==========================================
+
+    /// <summary>
+    /// Aggiorna aliquota IVA
+    /// </summary>
+    public async Task UpdateAsync(AnaAliquotaIva item)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+
+            item.IvaCodice = item.IvaCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.IvaCodice));
+
+            const string sql = @"
+                UPDATE ana_aliquote_iva SET
+                    iva_codice = @IvaCodice,
+                    iva_descrizione = @IvaDescrizione,
+                    iva_percentuale = @IvaPercentuale,
+                    iva_natura = @IvaNatura,
+                    is_default = @IsDefault,
+                    is_active = @IsActive,
+                    ordinamento = @Ordinamento,
+                    updated_at = NOW(),
+                    updated_by = @UpdatedBy
+                WHERE iva_id = @IvaId";
+
+            await conn.ExecuteAsync(sql, item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nell'aggiornamento aliquota IVA {Id}", item.IvaId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
+        }
+    }
+
+    /// <summary>
+    /// Imposta aliquota come default (rimuove flag da altre)
+    /// Transazione atomica
     /// </summary>
     public async Task SetAsDefaultAsync(int ivaId, int aziendaId)
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            using var conn = await _dbService.GetConnectionAsync();
+            await conn.OpenAsync();
 
-            await conn.ExecuteAsync(
-                "SELECT sp_ana_aliquote_iva_set_default(@IvaId, @AziendaId)",
-                new { IvaId = ivaId, AziendaId = aziendaId }
-            );
+            using var transaction = await conn.BeginTransactionAsync();
+
+            try
+            {
+                // Rimuovi flag default da tutte le aliquote dell'azienda
+                const string sqlRemove = @"
+                    UPDATE ana_aliquote_iva
+                    SET is_default = FALSE
+                    WHERE azienda_fk = @AziendaId";
+
+                await conn.ExecuteAsync(sqlRemove, new { AziendaId = aziendaId }, transaction);
+
+                // Imposta flag default sulla aliquota selezionata
+                const string sqlSet = @"
+                    UPDATE ana_aliquote_iva
+                    SET is_default = TRUE
+                    WHERE iva_id = @IvaId AND azienda_fk = @AziendaId";
+
+                await conn.ExecuteAsync(sqlSet, new { IvaId = ivaId, AziendaId = aziendaId }, transaction);
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'impostazione dell'aliquota default {IvaId} per azienda {AziendaId}", ivaId, aziendaId);
+            _logger.LogError(ex, "Errore nell'impostare default aliquota {Id}", ivaId);
             throw;
         }
     }
 
-    public override async Task<bool> DeleteAsync(int id)
+    // ==========================================
+    // DELETE
+    // ==========================================
+
+    /// <summary>
+    /// Elimina aliquota IVA (soft delete)
+    /// </summary>
+    public async Task DeleteAsync(int id)
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            using var conn = await _dbService.GetConnectionAsync();
 
-            await conn.ExecuteAsync(
-                "SELECT sp_ana_aliquote_iva_delete(@IvaId)",
-                new { IvaId = id }
-            );
+            // Soft delete: imposta is_active = FALSE
+            const string sql = @"
+                UPDATE ana_aliquote_iva
+                SET is_active = FALSE
+                WHERE iva_id = @Id";
 
-            return true;
+            await conn.ExecuteAsync(sql, new { Id = id });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'eliminazione dell'aliquota IVA {Id}", id);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+            _logger.LogError(ex, "Errore nella cancellazione aliquota {Id}", id);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
         }
-    }
-
-    protected override AnaAliquotaIva MapFromReader(NpgsqlDataReader reader)
-    {
-        return new AnaAliquotaIva
-        {
-            IvaId = ReadInt(reader, "iva_id"),
-            AziendaFk = ReadInt(reader, "azienda_fk"),
-            IvaCodice = reader.GetString(reader.GetOrdinal("iva_codice")),
-            IvaDescrizione = reader.GetString(reader.GetOrdinal("iva_descrizione")),
-            IvaPercentuale = reader.GetDecimal(reader.GetOrdinal("iva_percentuale")),
-            IvaNatura = ReadNullableString(reader, "iva_natura"),
-            IsDefault = reader.GetBoolean(reader.GetOrdinal("is_default")),
-            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
-            Ordinamento = reader.GetInt16(reader.GetOrdinal("ordinamento")),
-            Created = ReadNullableDateTime(reader, "created_at"),
-            CreatedBy = ReadNullableString(reader, "created_by"),
-            Updated = ReadNullableDateTime(reader, "updated_at"),
-            UpdatedBy = ReadNullableString(reader, "updated_by")
-        };
     }
 }

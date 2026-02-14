@@ -142,10 +142,10 @@
 
             </MudGrid>
 
-            @if(Transazione.TransazioneId > 0 && Transazione.TransazioneImportoEur.HasValue && Transazione.ValutaCodiceIso != "EUR")
+            @if(Transazione.TransazioneId > 0 && Transazione.TransazioneLordoEur.HasValue && Transazione.ValutaCodiceIso != "EUR")
             {
                  <MudAlert Severity="Severity.Info" Class="mt-2" Dense="true">
-                     Controvalore calcolato: <b>@Transazione.TransazioneImportoEur?.ToString("N2") EUR</b> (da @Transazione.TransazioneImporto.ToString("N2") @Transazione.ValutaCodiceIso)
+                     Controvalore calcolato: <b>@Transazione.TransazioneLordoEur?.ToString("N2") EUR</b> (da @Transazione.TransazioneImporto.ToString("N2") @Transazione.ValutaCodiceIso)
                  </MudAlert>
             }
 

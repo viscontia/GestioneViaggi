@@ -82,7 +82,14 @@ public class MovTransazioniService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = "SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
+            string sql = @"
+                SELECT 
+                    t.*,
+                    aiva.iva_descrizione as AliquotaIvaDescrizione,
+                    aiva.iva_percentuale as AliquotaIvaPercentuale,
+                    aiva.iva_codice as AliquotaIvaCodice
+                FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId) t
+                LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {
@@ -117,7 +124,14 @@ public class MovTransazioniService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = "SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
+            string sql = @"
+                SELECT 
+                    t.*,
+                    aiva.iva_descrizione as AliquotaIvaDescrizione,
+                    aiva.iva_percentuale as AliquotaIvaPercentuale,
+                    aiva.iva_codice as AliquotaIvaCodice
+                FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId) t
+                LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {
@@ -149,11 +163,15 @@ public class MovTransazioniService
                     c.ragione_sociale as controparte_ragione_sociale,
                     v.valuta_codice_iso as valuta_codice_iso,
                     tc.causale_descrizione as causale_descrizione,
-                    tc.causale_segno as causale_segno
+                    tc.causale_segno as causale_segno,
+                    aiva.iva_descrizione as AliquotaIvaDescrizione,
+                    aiva.iva_percentuale as AliquotaIvaPercentuale,
+                    aiva.iva_codice as AliquotaIvaCodice
                 FROM mov_transazioni t
                 JOIN ana_controparti c ON t.transazione_controparte_id = c.controparte_id
                 JOIN ana_valute v ON t.transazione_valuta_id = v.valuta_id
                 JOIN ana_tipi_causali tc ON t.transazione_causale_tipo_id = tc.causale_id
+                LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id
                 WHERE t.transazione_id = @Id";
 
             return await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, new { Id = id });
@@ -221,7 +239,7 @@ public class MovTransazioniService
             }
 
             // =============================================
-            // STEP 2: Inserimento della transazione (il trigger calcolerà l'importo EUR)
+            // STEP 2: Inserimento della transazione (il trigger calcolerà l'importo EUR e IVA)
             // =============================================
             using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
@@ -242,6 +260,11 @@ public class MovTransazioniService
                     transazione_note,
                     transazione_numero_documento,
                     transazione_data_documento,
+                    transazione_aliquota_iva_fk,
+                    transazione_imponibile_eur,
+                    transazione_iva_eur,
+                    transazione_lordo_eur,
+                    transazione_iva_modalita_input,
                     created_at,
                     created_by
                 ) VALUES (
@@ -261,12 +284,17 @@ public class MovTransazioniService
                     @TransazioneNote,
                     @TransazioneNumeroDocumento,
                     @TransazioneDataDocumento,
+                    @TransazioneAliquotaIvaFk,
+                    @TransazioneImponibileEur,
+                    @TransazioneIvaEur,
+                    @TransazioneLordoEur,
+                    @TransazioneIvaModalitaInput,
                     NOW(),
                     @CreatedBy
                 ) RETURNING transazione_id";
 
-            // Nota: transazione_importo_eur, tasso_cambio_applicato, tasso_fonte, tasso_data_validita
-            //       sono tutti calcolati automaticamente dal trigger trg_calcola_importo_eur
+            // Nota: transazione_importo_eur_old è deprecato e non gestito qui (trigger o null)
+            //       Tutti i calcoli IVA sono demandati al trigger fn_calcola_iva_transazione
             int transazioneId = await conn.ExecuteScalarAsync<int>(sql, item);
 
             return (transazioneId, warningMessage);
@@ -354,7 +382,7 @@ public class MovTransazioniService
             }
 
             // =============================================
-            // STEP 3: Aggiornamento della transazione (il trigger ricalcolerà l'importo EUR se necessario)
+            // STEP 3: Aggiornamento della transazione (il trigger ricalcolerà IVA e importi)
             // =============================================
             string sql = @"
                 UPDATE mov_transazioni SET
@@ -373,6 +401,11 @@ public class MovTransazioniService
                     transazione_note = @TransazioneNote,
                     transazione_numero_documento = @TransazioneNumeroDocumento,
                     transazione_data_documento = @TransazioneDataDocumento,
+                    transazione_aliquota_iva_fk = @TransazioneAliquotaIvaFk,
+                    transazione_imponibile_eur = @TransazioneImponibileEur,
+                    transazione_iva_eur = @TransazioneIvaEur,
+                    transazione_lordo_eur = @TransazioneLordoEur,
+                    transazione_iva_modalita_input = @TransazioneIvaModalitaInput,
                     updated_at = NOW(),
                     updated_by = @UpdatedBy
                 WHERE transazione_id = @TransazioneId";
@@ -460,8 +493,8 @@ public class MovTransazioniService
             }
 
             // Step 5: Calculate payment amount and check existing payments
-            decimal importoNuovoPagamento = importoPagamento ?? originalTx.TransazioneImportoEur ?? originalTx.TransazioneImporto;
-            decimal importoDocumento = originalTx.TransazioneImportoEur ?? originalTx.TransazioneImporto;
+            decimal importoNuovoPagamento = importoPagamento ?? originalTx.TransazioneLordoEur ?? originalTx.TransazioneImporto;
+            decimal importoDocumento = originalTx.TransazioneLordoEur ?? originalTx.TransazioneImporto;
 
             // Step 5a: Somma tutti i pagamenti PG/IN già effettuati per questa fattura
             string sqlTotalePagato = @"
