@@ -80,6 +80,7 @@ public static class DatabaseExceptionHelper
             "ana_date_viaggi" => "date di viaggio",
             "ana_clienti" => "anagrafica clienti",
             "ana_valute" => "valute",
+            "ana_aliquote_iva" => "aliquote IVA",
             "ana_tipi_causali" => "causali contabili",
             "azienda_sede" => "sedi aziendali",
             "mov_clienti_viaggi" => "prenotazioni clienti",

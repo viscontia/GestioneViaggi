@@ -5,6 +5,8 @@
 @using GestioneViaggi.Components.Shared
 @inject MovTransazioniService TransazioniService
 @inject AnaTipiCausaliService CausaliService
+@inject AnaAliquoteIvaService AliquoteIvaService
+@inject AnaValuteService ValuteService
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
@@ -62,12 +64,111 @@
                                      AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                 </MudItem>
                 <MudItem xs="6">
-                    <ValutaSelect @bind-SelectedValutaId="Transazione.TransazioneValutaId"
+                    <ValutaSelect SelectedValutaId="Transazione.TransazioneValutaId"
+                                  SelectedValutaIdChanged="@OnValutaChanged"
                                   Label="Valuta *"
                                   Required="true" />
                 </MudItem>
 
-                <!-- RIGA 4: Stato Pagamento -->
+                <!-- RIGA 4: Sezione IVA - Visibile solo se EUR e causale genera IVA -->
+                @if (_valutaIsEur && _causaleGeneraIva)
+                {
+                    <MudItem xs="12">
+                        <MudDivider Class="my-2" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" Class="mr-1" />
+                            Gestione IVA
+                        </MudText>
+                    </MudItem>
+
+                    <!-- Aliquota IVA + Toggle Modalità -->
+                    <MudItem xs="12" md="8">
+                        <AliquotaIvaSelect SelectedAliquotaId="Transazione.TransazioneAliquotaIvaFk"
+                                          SelectedAliquotaIdChanged="@OnAliquotaIvaChanged"
+                                          AziendaId="@AziendaId"
+                                          Required="@_causaleRichiedeIva"
+                                          Label="@(_causaleRichiedeIva ? "Aliquota IVA *" : "Aliquota IVA")"
+                                          Clearable="!_causaleRichiedeIva" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4" Class="d-flex align-center">
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="mr-2">
+                            Modalità: @(Transazione.TransazioneIvaModalitaInput ?? "AUTO")
+                        </MudChip>
+                        <MudTooltip Text="Inverti modalità calcolo IVA (LORDO ↔ NETTO)">
+                            <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz"
+                                          Size="Size.Small"
+                                          Color="Color.Primary"
+                                          OnClick="@ToggleModalitaIva"
+                                          Disabled="Transazione.TransazioneAliquotaIvaFk == null" />
+                        </MudTooltip>
+                    </MudItem>
+
+                    <!-- Campi Importi IVA - SEMPRE EDITABILI -->
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="Transazione.TransazioneImponibileEur"
+                                        Label="Imponibile (EUR)"
+                                        Format="N2"
+                                        Variant="Variant.Outlined"
+                                        Adornment="Adornment.End"
+                                        AdornmentText="€"
+                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
+                                        OnBlur="@OnImponibileChanged"
+                                        HelperText="Editabile per correzioni arrotondamenti" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="Transazione.TransazioneIvaEur"
+                                        Label="IVA (EUR)"
+                                        Format="N2"
+                                        Variant="Variant.Outlined"
+                                        Adornment="Adornment.End"
+                                        AdornmentText="€"
+                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
+                                        OnBlur="@OnIvaChanged"
+                                        HelperText="Editabile per correzioni arrotondamenti" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="Transazione.TransazioneLordoEur"
+                                        Label="Totale con IVA (EUR)"
+                                        Format="N2"
+                                        Variant="Variant.Outlined"
+                                        Adornment="Adornment.End"
+                                        AdornmentText="€"
+                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
+                                        OnBlur="@OnLordoChanged"
+                                        Class="font-weight-bold"
+                                        HelperText="Deve coincidere con fattura cartacea" />
+                    </MudItem>
+
+                    <!-- Alert informativo calcolo -->
+                    @if (!string.IsNullOrEmpty(_messaggioIva))
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="@_severityIva" Dense="true" Class="my-2">
+                                <MudText Typo="Typo.body2">@_messaggioIva</MudText>
+                            </MudAlert>
+                        </MudItem>
+                    }
+                }
+                else if (!_valutaIsEur && _causaleGeneraIva)
+                {
+                    <!-- Messaggio informativo per valute estere -->
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
+                            <MudText Typo="Typo.body2">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
+                                <b>Transazione in valuta estera:</b> L'IVA non viene scorporata
+                                in quanto considerata costo totale (Fuori Campo IVA art. 7-ter o 74-ter).
+                            </MudText>
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                <!-- RIGA 5: Stato Pagamento -->
                 <MudItem xs="12">
                     <MudSelect T="string" Label="Stato Pagamento" @bind-Value="Transazione.TransazioneStato" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                         <MudSelectItem Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
@@ -187,6 +288,16 @@
     // Ciclo contabile corrente (ATTIVO/PASSIVO) per filtraggio controparti
     private string? _causaleCicloCorrente = null;
 
+    // ==========================================
+    // IVA - Gestione Reattiva
+    // ==========================================
+    private bool _valutaIsEur = true;
+    private bool _causaleGeneraIva = false;
+    private bool _causaleRichiedeIva = false;
+    private decimal? _aliquotaPercentuale = null;
+    private string? _messaggioIva = null;
+    private Severity _severityIva = Severity.Info;
+
     protected override async Task OnInitializedAsync()
     {
         // Init dates from model
@@ -233,9 +344,23 @@
                     _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
                     _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
                     _causaleCicloCorrente = _selectedCausale.CausaleCiclo;
+
+                    // =========================================
+                    // LOGICA IVA - Carica metadati in modifica
+                    // =========================================
+                    _causaleGeneraIva = _selectedCausale.CausaleGeneraIva;
+                    _causaleRichiedeIva = _selectedCausale.CausaleRichiedeIva;
+
+                    // Copia la percentuale IVA se già presente (caricata dal DB via JOIN)
+                    _aliquotaPercentuale = Transazione.AliquotaIvaPercentuale;
                 }
             }
         }
+
+        // =========================================
+        // Inizializza flag valuta (sia new che modifica)
+        // =========================================
+        _valutaIsEur = (Transazione.ValutaCodiceIso == "EUR");
 
         await Task.CompletedTask;
     }
@@ -443,8 +568,255 @@
             {
                 DateTime baseDate = _dataDocumento ?? _dataTransazione ?? DateTime.Today;
                 _dataScadenza = baseDate.AddDays(_giorniScadenzaDefault.Value);
-                StateHasChanged();
             }
+
+            // =========================================
+            // LOGICA IVA - Metadati causale
+            // =========================================
+            _causaleGeneraIva = _selectedCausale.CausaleGeneraIva;
+            _causaleRichiedeIva = _selectedCausale.CausaleRichiedeIva;
+
+            // Auto-imposta aliquota default se causale la prevede
+            if (_causaleGeneraIva && Transazione.TransazioneAliquotaIvaFk == null
+                && _selectedCausale.CausaleAliquotaIvaDefaultFk.HasValue)
+            {
+                Transazione.TransazioneAliquotaIvaFk = _selectedCausale.CausaleAliquotaIvaDefaultFk.Value;
+
+                // Recupera la percentuale IVA per l'aliquota default
+                var aliquota = await AliquoteIvaService.GetByIdAsync(_selectedCausale.CausaleAliquotaIvaDefaultFk.Value);
+                if (aliquota != null)
+                {
+                    Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
+                    _aliquotaPercentuale = aliquota.IvaPercentuale;
+                }
+            }
+
+            // Auto-imposta modalità input se non specificata
+            if (Transazione.TransazioneIvaModalitaInput == null)
+            {
+                Transazione.TransazioneIvaModalitaInput = _selectedCausale.CausaleCiclo == "PASSIVO"
+                    ? "LORDO"
+                    : "NETTO";
+            }
+
+            // Se causale non genera IVA, azzera i campi
+            if (!_causaleGeneraIva)
+            {
+                Transazione.TransazioneAliquotaIvaFk = null;
+                Transazione.TransazioneImponibileEur = null;
+                Transazione.TransazioneIvaEur = null;
+                Transazione.TransazioneLordoEur = null;
+                _messaggioIva = null;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    // =========================================
+    // Evento: Cambio Valuta
+    // =========================================
+    private async Task OnValutaChanged(int valutaId)
+    {
+        // Aggiorna l'ID della valuta sul modello (per il binding)
+        Transazione.TransazioneValutaId = valutaId;
+
+        // Recupera informazioni valuta per verificare se è EUR
+        if (valutaId > 0)
+        {
+            var valuta = await ValuteService.GetByIdAsync(valutaId);
+            _valutaIsEur = valuta?.ValutaIsBase ?? false; // ValutaIsBase = true solo per EUR
+
+            // Aggiorna anche il codice ISO sul modello (utile per altri componenti)
+            Transazione.ValutaCodiceIso = valuta?.ValutaCodiceIso;
+        }
+        else
+        {
+            _valutaIsEur = true; // Default a EUR se nessuna valuta selezionata
+            Transazione.ValutaCodiceIso = null;
+        }
+
+        // Se non EUR, azzera IVA
+        if (!_valutaIsEur)
+        {
+            Transazione.TransazioneAliquotaIvaFk = null;
+            Transazione.TransazioneImponibileEur = null;
+            Transazione.TransazioneIvaEur = null;
+            Transazione.TransazioneLordoEur = null;
+            _aliquotaPercentuale = null;
+            Transazione.AliquotaIvaPercentuale = null;
+            _messaggioIva = "IVA non applicabile per valute estere (Fuori Campo IVA art. 7-ter)";
+            _severityIva = Severity.Info;
+        }
+        else
+        {
+            _messaggioIva = null;
+        }
+
+        StateHasChanged();
+    }
+
+    // =========================================
+    // Evento: Cambio Aliquota IVA
+    // =========================================
+    private async Task OnAliquotaIvaChanged(int? aliquotaId)
+    {
+        Transazione.TransazioneAliquotaIvaFk = aliquotaId;
+
+        if (aliquotaId.HasValue)
+        {
+            // Recupera la percentuale IVA dal service
+            var aliquota = await AliquoteIvaService.GetByIdAsync(aliquotaId.Value);
+            if (aliquota != null)
+            {
+                Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
+                _aliquotaPercentuale = aliquota.IvaPercentuale;
+                CalcolaIvaReattivo();
+            }
+        }
+        else
+        {
+            _aliquotaPercentuale = null;
+            Transazione.AliquotaIvaPercentuale = null;
+            Transazione.TransazioneImponibileEur = null;
+            Transazione.TransazioneIvaEur = null;
+            Transazione.TransazioneLordoEur = null;
+            _messaggioIva = null;
+        }
+
+        StateHasChanged();
+    }
+
+    // =========================================
+    // Azione: Toggle Modalità IVA (LORDO ↔ NETTO)
+    // =========================================
+    private void ToggleModalitaIva()
+    {
+        if (Transazione.TransazioneIvaModalitaInput == "LORDO")
+        {
+            Transazione.TransazioneIvaModalitaInput = "NETTO";
+        }
+        else if (Transazione.TransazioneIvaModalitaInput == "NETTO")
+        {
+            Transazione.TransazioneIvaModalitaInput = "LORDO";
+        }
+
+        CalcolaIvaReattivo();
+        StateHasChanged();
+    }
+
+    // =========================================
+    // Evento: Modifica Manuale Imponibile
+    // =========================================
+    private void OnImponibileChanged()
+    {
+        // Utente ha modificato manualmente l'imponibile
+        // Ricalcola IVA e Lordo mantenendo fisso l'imponibile
+        if (Transazione.TransazioneImponibileEur.HasValue && Transazione.AliquotaIvaPercentuale.HasValue)
+        {
+            Transazione.TransazioneIvaEur = Math.Round(
+                Transazione.TransazioneImponibileEur.Value * (Transazione.AliquotaIvaPercentuale.Value / 100m), 2);
+            Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur.Value + (Transazione.TransazioneIvaEur ?? 0);
+
+            _messaggioIva = $"IVA ricalcolata da imponibile modificato";
+            _severityIva = Severity.Info;
+            StateHasChanged();
+        }
+    }
+
+    // =========================================
+    // Evento: Modifica Manuale IVA
+    // =========================================
+    private void OnIvaChanged()
+    {
+        // Utente ha modificato manualmente l'IVA
+        // Ricalcola Lordo mantenendo fissi imponibile e IVA
+        if (Transazione.TransazioneImponibileEur.HasValue && Transazione.TransazioneIvaEur.HasValue)
+        {
+            Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur.Value + Transazione.TransazioneIvaEur.Value;
+
+            _messaggioIva = $"Lordo ricalcolato da IVA modificata (correzione arrotondamenti)";
+            _severityIva = Severity.Warning;
+            StateHasChanged();
+        }
+    }
+
+    // =========================================
+    // Evento: Modifica Manuale Lordo
+    // =========================================
+    private void OnLordoChanged()
+    {
+        // Utente ha modificato manualmente il lordo
+        // Ricalcola IVA mantenendo fisso l'imponibile
+        if (Transazione.TransazioneLordoEur.HasValue && Transazione.TransazioneImponibileEur.HasValue)
+        {
+            Transazione.TransazioneIvaEur = Transazione.TransazioneLordoEur.Value - Transazione.TransazioneImponibileEur.Value;
+
+            _messaggioIva = $"IVA ricalcolata da lordo modificato";
+            _severityIva = Severity.Warning;
+            StateHasChanged();
+        }
+    }
+
+    // =========================================
+    // Calcolo Reattivo IVA (chiamato da eventi)
+    // =========================================
+    private void CalcolaIvaReattivo()
+    {
+        // Verifica prerequisiti
+        if (!Transazione.TransazioneAliquotaIvaFk.HasValue ||
+            !Transazione.AliquotaIvaPercentuale.HasValue ||
+            Transazione.TransazioneImporto <= 0)
+        {
+            return;
+        }
+
+        decimal percentuale = Transazione.AliquotaIvaPercentuale.Value;
+
+        if (Transazione.TransazioneIvaModalitaInput == "LORDO")
+        {
+            // ----------------------------------------
+            // SCORPORO IVA: da Lordo calcola Netto + IVA
+            // ----------------------------------------
+            Transazione.TransazioneLordoEur = Transazione.TransazioneImporto;
+
+            if (percentuale > 0)
+            {
+                Transazione.TransazioneImponibileEur = Math.Round(
+                    Transazione.TransazioneImporto / (1 + (percentuale / 100m)), 2);
+                Transazione.TransazioneIvaEur = Transazione.TransazioneLordoEur - Transazione.TransazioneImponibileEur;
+            }
+            else
+            {
+                // Aliquota 0% (FC, ES, NS)
+                Transazione.TransazioneImponibileEur = Transazione.TransazioneImporto;
+                Transazione.TransazioneIvaEur = 0;
+            }
+
+            _messaggioIva = $"Scorporo IVA {percentuale:N0}%: Lordo {Transazione.TransazioneLordoEur:N2} → Netto {Transazione.TransazioneImponibileEur:N2} + IVA {Transazione.TransazioneIvaEur:N2}";
+            _severityIva = Severity.Success;
+        }
+        else // NETTO
+        {
+            // ----------------------------------------
+            // CALCOLO IVA: da Netto calcola IVA + Lordo
+            // ----------------------------------------
+            Transazione.TransazioneImponibileEur = Transazione.TransazioneImporto;
+
+            if (percentuale > 0)
+            {
+                Transazione.TransazioneIvaEur = Math.Round(
+                    Transazione.TransazioneImporto * (percentuale / 100m), 2);
+                Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur + Transazione.TransazioneIvaEur;
+            }
+            else
+            {
+                Transazione.TransazioneIvaEur = 0;
+                Transazione.TransazioneLordoEur = Transazione.TransazioneImporto;
+            }
+
+            _messaggioIva = $"Calcolo IVA {percentuale:N0}%: Netto {Transazione.TransazioneImponibileEur:N2} + IVA {Transazione.TransazioneIvaEur:N2} = Lordo {Transazione.TransazioneLordoEur:N2}";
+            _severityIva = Severity.Success;
         }
     }
 }

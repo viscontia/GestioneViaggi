@@ -144,7 +144,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante la creazione della causale {Codice}", entity.CausaleCodice);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "la causale");
         }
     }
 
@@ -204,7 +204,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'aggiornamento della causale {Id}", entity.CausaleId);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "la causale");
         }
     }
 
@@ -231,7 +231,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante l'eliminazione della causale {Id}", id);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "la causale");
         }
     }
 

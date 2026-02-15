@@ -201,12 +201,41 @@ Componente autocomplete per la selezione della causale contabile (`Components/Sh
                    Required="true" />
     ```
 
+### AliquotaIvaSelect
+Componente autocomplete per la selezione dell'aliquota IVA (`Components/Shared/AliquotaIvaSelect.razor`).
+*   **Implementazione**: Utilizza `BaseEntitySelect<AnaAliquotaIva>` per coerenza con gli altri componenti select.
+*   **Funzionalità**:
+    *   Carica automaticamente le aliquote IVA attive da `ana_aliquote_iva` filtrate per azienda.
+    *   Visualizza codice, percentuale e descrizione nel formato: `22% - IVA Ordinaria 22%`.
+    *   Supporta ricerca testuale case-insensitive su codice, descrizione e percentuale.
+    *   Supporta validazione con asterisco rosso nella label quando `Required="true"`.
+    *   Parametro `AziendaId` esplicito che ha precedenza sul `TenantContext`.
+    *   Ricarica automaticamente le aliquote quando cambia `AziendaId`.
+*   **Parametri Chiave**:
+    *   `SelectedAliquotaId` (int?): ID aliquota IVA selezionata (binding). Usa null per nessuna selezione.
+    *   `SelectedAliquotaIdChanged` (EventCallback<int?>): Evento scatenato al cambio selezione.
+    *   `Label` (string): Etichetta del campo (default: "Aliquota IVA").
+    *   `Required` (bool): Campo obbligatorio (mostra asterisco rosso nella label).
+    *   `RequiredError` (string): Messaggio di errore personalizzato (default: "Aliquota obbligatoria").
+    *   `Clearable` (bool): Permette di cancellare la selezione con pulsante X (default: true).
+    *   `AziendaId` (int?): ID azienda per filtrare le aliquote. Se non specificato, usa `TenantContext`.
+*   **Utilizzo**:
+    ```razor
+    <AliquotaIvaSelect SelectedAliquotaId="Transazione.TransazioneAliquotaIvaFk"
+                       SelectedAliquotaIdChanged="@OnAliquotaIvaChanged"
+                       AziendaId="@AziendaId"
+                       Required="@_causaleRichiedeIva"
+                       Label="@(_causaleRichiedeIva ? "Aliquota IVA *" : "Aliquota IVA")"
+                       Clearable="!_causaleRichiedeIva" />
+    ```
+
 ### Elenco Completo Componenti Select
 
 Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) disponibili in `Components/Shared`:
 
 | Componente | File | Tabella / Campo | Ordinamento | Scopo |
 |---|---|---|---|---|
+| **AliquotaIvaSelect** | `AliquotaIvaSelect.razor` | `ana_aliquote_iva` | Ordinamento + Descrizione | Selezione aliquota IVA per transazioni contabili. Supporta parametro `AziendaId` esplicito. Visualizza codice, percentuale e descrizione. |
 | **AziendaSelect** | `AziendaSelect.razor` | `ana_aziende` | Ragione Sociale | Selezione azienda per contesto multi-tenant. Include opzione "Tutte". |
 | **CausaleSelect** | `CausaleSelect.razor` | `ana_tipi_causali` | Descrizione | Selezione causale contabile con logica di segno algebrico. |
 | **CapoluogoSelect** | `CapoluogoSelect.razor` | `ana_geo_comuni` (flag capoluogo) | Descrizione | Selezione città capoluogo di provincia. |
@@ -225,7 +254,6 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **RipGeoSelect** | `RipGeoSelect.razor` | `ana_geo_ripartizioni_geo` | Descrizione | Selezione ripartizione geografica (Nord, Centro, Sud). |
 | **RuoloSelect** | `RuoloSelect.razor` | `IRoleService` | RoleName | Selezione ruolo utente (Administrator, User, ecc.). Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **SedeSelect** | `SedeSelect.razor` | `ana_sedi` | Tipologia + Indirizzo | Selezione sede operativa/legale di un'azienda. |
-| **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |

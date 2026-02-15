@@ -195,7 +195,7 @@ public class AnaAliquoteIvaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella creazione aliquota IVA");
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "l'aliquota IVA");
         }
     }
 
@@ -232,7 +232,7 @@ public class AnaAliquoteIvaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nell'aggiornamento aliquota IVA {Id}", item.IvaId);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "l'aliquota IVA");
         }
     }
 
@@ -295,10 +295,9 @@ public class AnaAliquoteIvaService
         {
             using var conn = await _dbService.GetConnectionAsync();
 
-            // Soft delete: imposta is_active = FALSE
+            // Delete fisico per attivare i vincoli di integrità del DB (RESTRICT)
             const string sql = @"
-                UPDATE ana_aliquote_iva
-                SET is_active = FALSE
+                DELETE FROM ana_aliquote_iva
                 WHERE iva_id = @Id";
 
             await conn.ExecuteAsync(sql, new { Id = id });
@@ -306,7 +305,7 @@ public class AnaAliquoteIvaService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella cancellazione aliquota {Id}", id);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_aliquote_iva");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "l'aliquota IVA");
         }
     }
 }
