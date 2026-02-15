@@ -28,7 +28,9 @@ public static class DatabaseExceptionHelper
         {
             case "23503": // foreign_key_violation
                 string relatedTable = ExtractTableNameFromDetail(ex.Detail);
-                message = $"Non è possibile eliminare {label} perché è utilizzato in altre parti del sistema";
+                // Determina se usare 'il', 'lo', 'la', 'l'' in base all'etichetta
+                string prefix = GetItalianPrefixFor(label);
+                message = $"Non è possibile eliminare {prefix}{label} perché è utilizzato in altre parti del sistema";
                 if (!string.IsNullOrEmpty(relatedTable))
                 {
                     message += $" (es. {TranslateTableName(relatedTable)})";
@@ -37,15 +39,15 @@ public static class DatabaseExceptionHelper
                 break;
 
             case "23505": // unique_violation
-                message = $"Esiste già un record con questi dati. {label} non può essere duplicato.";
+                message = $"Esiste già un record per {GetItalianPrefixFor(label)}{label}. Non sono ammessi duplicati.";
                 break;
 
             case "23502": // not_null_violation
-                message = $"Uno o più campi obbligatori di {label} non sono stati compilati.";
+                message = $"Uno o più campi obbligatori per {GetItalianPrefixFor(label)}{label} non sono stati compilati.";
                 break;
 
             case "22001": // string_data_right_truncation
-                message = "Uno dei testi inseriti è troppo lungo. Riduci la lunghezza e riprova.";
+                message = "Uno dei testi inseriti supera la lunghezza massima consentita. Riduci il testo e riprova.";
                 break;
 
             default:
@@ -74,17 +76,38 @@ public static class DatabaseExceptionHelper
     {
         return tableName.ToLower() switch
         {
-            "mov_transazioni" => "transazioni contabili",
-            "ana_controparti" => "anagrafica controparti",
-            "ana_viaggi" => "viaggi",
-            "ana_date_viaggi" => "date di viaggio",
-            "ana_clienti" => "anagrafica clienti",
-            "ana_valute" => "valute",
-            "ana_aliquote_iva" => "aliquote IVA",
-            "ana_tipi_causali" => "causali contabili",
-            "azienda_sede" => "sedi aziendali",
-            "mov_clienti_viaggi" => "prenotazioni clienti",
+            "mov_transazioni" => "transazione",
+            "ana_controparti" => "controparte",
+            "ana_viaggi" => "viaggio",
+            "ana_date_viaggi" => "data di viaggio",
+            "ana_clienti" => "anagrafica cliente",
+            "ana_valute" => "valuta",
+            "ana_aliquote_iva" => "aliquota IVA",
+            "ana_tipi_causali" => "causale contabile",
+            "ana_aziende" => "azienda",
+            "azienda_sede" => "sede aziendale",
+            "mov_clienti_viaggi" => "prenotazione cliente",
             _ => tableName // Fallback al nome tecnico se non mappato
         };
+    }
+
+    private static string GetItalianPrefixFor(string label)
+    {
+        string l = label.ToLower().Trim();
+        
+        // Se ha già un articolo, non aggiungerne un altro
+        if (l.StartsWith("la ") || l.StartsWith("il ") || l.StartsWith("l'"))
+            return "";
+
+        if (l.StartsWith("a") || l.StartsWith("e") || l.StartsWith("i") || l.StartsWith("o") || l.StartsWith("u"))
+            return "l'";
+        
+        if (l.StartsWith("transazione") || l.StartsWith("causale") || l.StartsWith("controparte") || l.StartsWith("valuta") || l.StartsWith("data") || l.StartsWith("prenotazione") || l.StartsWith("sede") || l.StartsWith("aliquota") || l.StartsWith("anagrafica"))
+            return "la ";
+            
+        if (l.StartsWith("viaggio"))
+            return "il ";
+
+        return ""; // Fallback
     }
 }

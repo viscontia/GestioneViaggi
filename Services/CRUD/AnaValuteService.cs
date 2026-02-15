@@ -40,7 +40,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante il recupero delle valute");
-            return Enumerable.Empty<AnaValute>();
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "valuta");
         }
     }
 

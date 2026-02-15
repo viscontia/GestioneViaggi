@@ -366,7 +366,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella creazione transazione");
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }
     }
 
@@ -545,7 +545,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nell'aggiornamento transazione {Id}", item.TransazioneId);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }
     }
 
@@ -559,7 +559,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nella cancellazione transazione {Id}", id);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }
     }
 
@@ -629,7 +629,7 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore durante registrazione pagamento per transazione {Id}", transazioneId);
-            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "mov_transazioni");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }
     }
 

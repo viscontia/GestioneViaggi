@@ -17,17 +17,33 @@ public class TransazionePrintItem
     public DateTime? DataDocumento { get; set; }
     public DateTime? DataScadenza { get; set; }
     public DateTime? DataPagamento { get; set; }
-    public string Fornitore { get; set; } = string.Empty;
+    
+    // ex Fornitore
+    public string ControparteRagioneSociale { get; set; } = string.Empty;
+    
     public string TipoMovimentoCodice { get; set; } = string.Empty;
     public string TipoMovimentoDescrizione { get; set; } = string.Empty;
     public int CausaleSegno { get; set; } = 1;
     public string? Causale { get; set; }
+    public string? CausaleCiclo { get; set; } // ATTIVO / PASSIVO
+
     public string Stato { get; set; } = string.Empty;
     public string? NumeroDocumento { get; set; }
     public string ValutaCodiceIso { get; set; } = "EUR";
-    public decimal Importo { get; set; }
-    public decimal ImportoValutaTarget { get; set; }
+    
+    // Valori Originali
+    public decimal ImponibileEur { get; set; }
+    public decimal IvaEur { get; set; }
+    public decimal LordoEur { get; set; } // ex transazione_importo
+
+    // Dati IVA
+    public string? AliquotaIvaCodice { get; set; }
+    public decimal? AliquotaIvaPercentuale { get; set; }
+
+    // Valori Convertiti
+    public decimal ImportoValutaTarget { get; set; } // Calcolato su LORDO
     public string ValutaTargetIso { get; set; } = "EUR";
+    
     public string? ViaggioDescrizione { get; set; }
     public DateTime? DataViaggioInizio { get; set; }
 
@@ -45,9 +61,18 @@ public class TransazionePrintItem
     public string DataDocumentoFormatted => DataDocumento?.ToString("dd/MM/yyyy") ?? "-";
     public string DataTransazioneFormatted => DataTransazione?.ToString("dd/MM/yyyy") ?? "-";
     public string DataScadenzaFormatted => DataScadenza?.ToString("dd/MM/yyyy") ?? "-";
-    public string ImportoFormatted => $"{Importo:N2} {ValutaCodiceIso}";
-    public string ImportoTargetFormatted => $"{ImportoValutaTarget:N2} {ValutaTargetIso}";
     
+    public string ImponibileFormatted => $"{ImponibileEur:N2} {ValutaCodiceIso}";
+    public string IvaFormatted => $"{IvaEur:N2} {ValutaCodiceIso}";
+    public string LordoFormatted => $"{LordoEur:N2} {ValutaCodiceIso}";
+    
+    public string ImportoTargetFormatted => $"{ImportoValutaTarget:N2} {ValutaTargetIso}";
+    public string AliquotaDisplay => !string.IsNullOrEmpty(AliquotaIvaCodice) ? $"{AliquotaIvaCodice} ({AliquotaIvaPercentuale:0.##}%)" : "-";
+
+    // Helpers Logici
+    public bool IsCicloAttivo => CausaleCiclo == "ATTIVO";
+    public bool IsCicloPassivo => CausaleCiclo == "PASSIVO";
+
     // Saldo progressivo (calcolato dinamicamente nel Printer o nel Service)
     public decimal SaldoProgressivo { get; set; }
     public string SaldoProgressivoFormatted => $"{SaldoProgressivo:N2} {ValutaTargetIso}";
@@ -80,23 +105,30 @@ public class SubTotaleItem
     public string ValutaCodiceIso { get; set; } = "EUR";
     
     // Algebrico (Saldo)
-    public decimal TotaleOriginale { get; set; }
-    public decimal TotaleValutaTarget { get; set; }
+    public decimal TotaleValutaOriginale { get; set; } // Saldo Lordo Orig
+    public decimal TotaleValutaTarget { get; set; }    // Saldo Lordo Target
     
-    // Tripartizione
+    // Tripartizione Cash Flow (Target)
     public decimal TotaleFatturatoTarget { get; set; }
     public decimal TotalePagatoTarget { get; set; }
+
+    // Nuovi totali (Target)
+    public decimal TotaleImponibileTarget { get; set; }
+    public decimal TotaleIvaTarget { get; set; }
     
     public string ValutaTargetIso { get; set; } = "EUR";
     public int ConteggioTransazioni { get; set; }
     public bool IsTotaleGenerale { get; set; }
 
     // Proprietà formattate
-    public string TotaleOriginaleFormatted => $"{(TotaleOriginale >= 0 ? "" : "-")}{Math.Abs(TotaleOriginale):N2} {ValutaCodiceIso}";
+    public string TotaleOriginaleFormatted => $"{(TotaleValutaOriginale >= 0 ? "" : "-")}{Math.Abs(TotaleValutaOriginale):N2} {ValutaCodiceIso}";
     public string TotaleTargetFormatted => $"{(TotaleValutaTarget >= 0 ? "" : "-")}{Math.Abs(TotaleValutaTarget):N2} {ValutaTargetIso}";
     
     public string TotaleFatturatoTargetFormatted => $"{TotaleFatturatoTarget:N2} {ValutaTargetIso}";
     public string TotalePagatoTargetFormatted => $"{TotalePagatoTarget:N2} {ValutaTargetIso}";
+    
+    public string TotaleImponibileFormatted => $"{TotaleImponibileTarget:N2} {ValutaTargetIso}";
+    public string TotaleIvaFormatted => $"{TotaleIvaTarget:N2} {ValutaTargetIso}";
 }
 
 /// <summary>
@@ -105,7 +137,8 @@ public class SubTotaleItem
 public class FiltriApplicatiInfo
 {
     public string? Azienda { get; set; }
-    public string? Fornitore { get; set; }
+    public string? Controparte { get; set; } // ex Fornitore
+    public string? CausaleCiclo { get; set; } // Nuovo
     public string? TipoMovimento { get; set; }
     public string? Valuta { get; set; }
     public string? Viaggio { get; set; }
@@ -120,7 +153,8 @@ public class FiltriApplicatiInfo
     
     public bool HasAnyFilter => 
         !string.IsNullOrEmpty(Azienda) ||
-        !string.IsNullOrEmpty(Fornitore) ||
+        !string.IsNullOrEmpty(Controparte) ||
+        !string.IsNullOrEmpty(CausaleCiclo) ||
         !string.IsNullOrEmpty(TipoMovimento) ||
         !string.IsNullOrEmpty(Valuta) ||
         !string.IsNullOrEmpty(Viaggio) ||
@@ -139,7 +173,7 @@ public class FiltriApplicatiInfo
 /// </summary>
 public class TransazioniPrintData
 {
-    public string TipoOrdinamento { get; set; } = "FORNITORE";
+    public string TipoOrdinamento { get; set; } = "CONTROPARTE"; // ex FORNITORE
     public string ValutaTargetCodiceIso { get; set; } = "EUR";
     public CompanyPrintInfo Azienda { get; set; } = new();
     public FiltriApplicatiInfo Filtri { get; set; } = new();
@@ -165,7 +199,8 @@ public class TransazioniPrintData
     
     public string TipoOrdinamentoDisplay => TipoOrdinamento switch
     {
-        "FORNITORE" => "Fornitore",
+        "FORNITORE" => "Controparte", // Legacy string, new label
+        "CONTROPARTE" => "Controparte",
         "DATA_DOCUMENTO" => "Data Documento (Mese/Anno)",
         "IMPORTO_ASC" => "Importo (crescente)",
         "IMPORTO_DESC" => "Importo (decrescente)",

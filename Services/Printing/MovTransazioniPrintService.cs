@@ -40,7 +40,7 @@ public class MovTransazioniPrintService
             ValutaTargetCodiceIso = valutaTargetIso,
             DataStampa = DateTime.Now,
             UtenteStampa = currentUser.FullName,
-            Filtri = filtri.ToFiltriApplicatiInfo()
+            Filtri = filtri.ToFiltriApplicatiInfo() // Mappa i filtri per la visualizzazione
         };
 
         try
@@ -48,6 +48,7 @@ public class MovTransazioniPrintService
             using var connection = await _dbService.GetConnectionAsync();
 
             // 1. Recupera dettagli transazioni
+            // Mapping 1:1 con le colonne restituite da fn_get_transazioni_stampa_dettaglio
             var dettagliSql = @"
                 SELECT 
                     gruppo_chiave as GruppoChiave,
@@ -58,22 +59,37 @@ public class MovTransazioniPrintService
                     transazione_data_documento as DataDocumento,
                     transazione_data_scadenza as DataScadenza,
                     transazione_data_pagamento as DataPagamento,
-                    fornitore_ragione_sociale as Fornitore,
+                    
+                    controparte_ragione_sociale as ControparteRagioneSociale, -- ex Fornitore
+                    
                     tipo_movimento_codice as TipoMovimentoCodice,
                     tipo_movimento_descrizione as TipoMovimentoDescrizione,
                     causale_segno as CausaleSegno,
                     transazione_causale as Causale,
+                    causale_ciclo as CausaleCiclo, -- Nuovo
+                    
                     transazione_stato as Stato,
                     transazione_numero_documento as NumeroDocumento,
                     valuta_codice_iso as ValutaCodiceIso,
-                    transazione_importo as Importo,
+                    
+                    -- Valori Originali
+                    imponibile_eur as ImponibileEur,
+                    iva_eur as IvaEur,
+                    lordo_eur as LordoEur, -- ex Importo
+
+                    -- Dati IVA
+                    aliquota_iva_codice as AliquotaIvaCodice,
+                    aliquota_iva_percentuale as AliquotaIvaPercentuale,
+
+                    -- Valori Convertiti
                     importo_valuta_target as ImportoValutaTarget,
                     valuta_target_iso as ValutaTargetIso,
+                    
                     viaggio_descrizione as ViaggioDescrizione,
                     data_viaggio_inizio as DataViaggioInizio
                 FROM fn_get_transazioni_stampa_dettaglio(
                     @AziendaId,
-                    @FornitoreId,
+                    @ControparteId, -- ex FornitoreId
                     @CausaleTipoId,
                     @Stati,
                     @ViaggioId,
@@ -92,13 +108,14 @@ public class MovTransazioniPrintService
                     @SoloSenzaViaggio,
                     @SoloConFattura,
                     @Ordinamento,
-                    @ValutaTargetId
+                    @ValutaTargetId,
+                    @CausaleCiclo -- Nuovo
                 )";
 
             var dettagli = await connection.QueryAsync<TransazionePrintItem>(dettagliSql, new
             {
                 AziendaId = filtri.AziendaId,
-                FornitoreId = filtri.FornitoreId,
+                ControparteId = filtri.ControparteId, // ex FornitoreId
                 CausaleTipoId = filtri.CausaleTipoId,
                 Stati = filtri.Stati,
                 ViaggioId = filtri.ViaggioId,
@@ -117,7 +134,8 @@ public class MovTransazioniPrintService
                 SoloSenzaViaggio = filtri.SoloSenzaViaggio,
                 SoloConFattura = filtri.SoloConFattura,
                 Ordinamento = ordinamento,
-                ValutaTargetId = valutaTargetId
+                ValutaTargetId = valutaTargetId,
+                CausaleCiclo = filtri.CausaleCiclo
             });
 
             result.Dettagli = dettagli.ToList();
@@ -129,16 +147,23 @@ public class MovTransazioniPrintService
                     gruppo_display as GruppoDisplay,
                     gruppo_ordine as GruppoOrdine,
                     valuta_codice_iso as ValutaCodiceIso,
-                    totale_valuta_originale as TotaleOriginale,
+                    
+                    totale_valuta_originale as TotaleValutaOriginale,
                     totale_valuta_target as TotaleValutaTarget,
+                    
                     totale_fatturato_target as TotaleFatturatoTarget,
                     totale_pagato_target as TotalePagatoTarget,
+                    
+                    -- Nuovi Totali
+                    totale_imponibile_target as TotaleImponibileTarget,
+                    totale_iva_target as TotaleIvaTarget,
+
                     valuta_target_iso as ValutaTargetIso,
                     conteggio_transazioni as ConteggioTransazioni,
                     is_totale_generale as IsTotaleGenerale
                 FROM fn_get_transazioni_stampa_subtotali(
                     @AziendaId,
-                    @FornitoreId,
+                    @ControparteId, -- ex FornitoreId
                     @CausaleTipoId,
                     @Stati,
                     @ViaggioId,
@@ -157,13 +182,14 @@ public class MovTransazioniPrintService
                     @SoloSenzaViaggio,
                     @SoloConFattura,
                     @Ordinamento,
-                    @ValutaTargetId
+                    @ValutaTargetId,
+                    @CausaleCiclo -- Nuovo
                 )";
 
             var subtotali = await connection.QueryAsync<SubTotaleItem>(subtotaliSql, new
             {
                 AziendaId = filtri.AziendaId,
-                FornitoreId = filtri.FornitoreId,
+                ControparteId = filtri.ControparteId,
                 CausaleTipoId = filtri.CausaleTipoId,
                 Stati = filtri.Stati,
                 ViaggioId = filtri.ViaggioId,
@@ -182,7 +208,8 @@ public class MovTransazioniPrintService
                 SoloSenzaViaggio = filtri.SoloSenzaViaggio,
                 SoloConFattura = filtri.SoloConFattura,
                 Ordinamento = ordinamento,
-                ValutaTargetId = valutaTargetId
+                ValutaTargetId = valutaTargetId,
+                CausaleCiclo = filtri.CausaleCiclo
             });
 
             result.Subtotali = subtotali.ToList();
@@ -227,8 +254,9 @@ public class MovTransazioniPrintService
 public class TransazioniFiltriDTO
 {
     public int? AziendaId { get; set; }
-    public int? FornitoreId { get; set; }
+    public int? ControparteId { get; set; } // ex FornitoreId
     public int? CausaleTipoId { get; set; }
+    public string? CausaleCiclo { get; set; } // Nuovo
     public string[]? Stati { get; set; }
     public int? ViaggioId { get; set; }
     public int? DataViaggioId { get; set; }
@@ -248,7 +276,7 @@ public class TransazioniFiltriDTO
 
     // Nomi per visualizzazione nei filtri applicati
     public string? AziendaNome { get; set; }
-    public string? FornitoreNome { get; set; }
+    public string? ControparteNome { get; set; } // ex FornitoreNome
     public string? ValutaNome { get; set; }
     public string? ViaggioNome { get; set; }
     public string? TipoMovimentoNome { get; set; }
@@ -258,7 +286,8 @@ public class TransazioniFiltriDTO
         var info = new FiltriApplicatiInfo
         {
             Azienda = AziendaNome,
-            Fornitore = FornitoreNome,
+            Controparte = ControparteNome,
+            CausaleCiclo = CausaleCiclo,
             TipoMovimento = TipoMovimentoNome,
             Valuta = ValutaNome,
             Viaggio = ViaggioNome,

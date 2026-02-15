@@ -21,7 +21,7 @@
         <MudForm @ref="_form">
             <MudGrid Spacing="2">
                 
-                @* RIGA 1: Azienda e Controparte *@
+                @* RIGA 1: Azienda e Ciclo *@
                 @if (_isSuperAdmin)
                 {
                     <MudItem xs="12" sm="6">
@@ -31,15 +31,26 @@
                     </MudItem>
                 }
                 <MudItem xs="12" sm="@(_isSuperAdmin ? 6 : 12)">
+                      <MudSelect T="string" Label="Ciclo Contabile" @bind-Value="_filtroCausaleCiclo" 
+                                   Clearable="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@("ATTIVO")">Attivo (Entrate/Clienti)</MudSelectItem>
+                            <MudSelectItem Value="@("PASSIVO")">Passivo (Uscite/Fornitori)</MudSelectItem>
+                        </MudSelect>
+                </MudItem>
+
+                @* RIGA 2: Controparte *@
+                <MudItem xs="12" sm="12">
                     <ControparteSelect @bind-SelectedControparteId="_filtroControparteIdInt"
                                        AziendaId="@_aziendaIdEffettivo"
+                                       Label="Filtra per Controparte"
                                        Clearable="true" />
                 </MudItem>
 
-                @* RIGA 2: Causale e Stati *@
+                @* RIGA 3: Causale e Stati *@
                 <MudItem xs="12" sm="6">
                     <CausaleSelect @bind-SelectedCausaleId="_filtroCausaleTipoIdInt"
                                    AziendaId="@_aziendaIdEffettivo"
+                                   CycleType="@_filtroCausaleCiclo" 
                                    Label="Filtra per Causale"
                                    Clearable="true" />
                 </MudItem>
@@ -53,7 +64,7 @@
                     </MudSelect>
                 </MudItem>
 
-                @* RIGA 3: Data Transazione Da/A *@
+                @* RIGA 4: Data Transazione Da/A *@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker @ref="_firstField" Label="Data Transazione Da" @bind-Date="_dataTransazioneDa" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
@@ -64,7 +75,7 @@
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
 
-                @* RIGA 4: Data Documento Da/A *@
+                @* RIGA 5: Data Documento Da/A *@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento Da" @bind-Date="_dataDocumentoDa" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
@@ -75,7 +86,7 @@
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
 
-                @* RIGA 5: Importo Da/A *@
+                @* RIGA 6: Importo Da/A *@
                 <MudItem xs="12" sm="6">
                     <MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_importoDa" 
                                      Variant="Variant.Outlined" Format="N2"
@@ -86,7 +97,7 @@
                                      Variant="Variant.Outlined" Format="N2" />
                 </MudItem>
 
-                @* RIGA 6: Viaggio e Data Viaggio *@
+                @* RIGA 7: Viaggio e Data Viaggio *@
                 <MudItem xs="12" sm="6">
                     <ViaggioSelect @bind-SelectedViaggioId="_filtroViaggioId"
                                    AziendaId="@_aziendaIdEffettivo"
@@ -98,7 +109,7 @@
                                        Clearable="true" />
                 </MudItem>
 
-                @* RIGA 7: Valuta e Numero Documento *@
+                @* RIGA 8: Valuta e Numero Documento *@
                 <MudItem xs="12" sm="6">
                     <ValutaSelect @bind-SelectedValutaId="_filtroValutaIdInt" Clearable="true" />
                 </MudItem>
@@ -107,7 +118,7 @@
                                   Variant="Variant.Outlined" />
                 </MudItem>
 
-                @* RIGA 8: Checkbox opzioni *@
+                @* RIGA 9: Checkbox opzioni *@
                 <MudItem xs="12">
                     <MudStack Row="true" Spacing="4" Class="flex-wrap">
                         <MudCheckBox @bind-Value="_soloConDocumento" Label="Solo con documento" Dense="true" Color="Color.Primary" />
@@ -124,7 +135,7 @@
                     </MudStack>
                 </MudItem>
 
-                @* RIGA 9: Ordinamento *@
+                @* RIGA 10: Ordinamento *@
                 <MudItem xs="12" sm="6">
                     <OrdinamentoStampaSelect @bind-SelectedOrdinamento="_ordinamento" />
                 </MudItem>
@@ -157,15 +168,22 @@
     // Filtri
     private int _filtroAziendaIdInt;
     private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+    
+    // NUOVO: Filtro Ciclo (Attivo/Passivo)
+    private string? _filtroCausaleCiclo;
+
     private int _filtroControparteIdInt;
     private int? _filtroControparteId => _filtroControparteIdInt > 0 ? _filtroControparteIdInt : null;
+    
     private int _filtroCausaleTipoIdInt;
     private int? _filtroCausaleTipoId => _filtroCausaleTipoIdInt > 0 ? _filtroCausaleTipoIdInt : null;
+    
     private IEnumerable<string> _filtroStati = new List<string>();
     private int? _filtroViaggioId;
     private int? _filtroDataViaggioId;
     private int _filtroValutaIdInt;
     private int? _filtroValutaId => _filtroValutaIdInt > 0 ? _filtroValutaIdInt : null;
+    
     private DateTime? _dataTransazioneDa;
     private DateTime? _dataTransazioneA;
     private DateTime? _dataDocumentoDa;
@@ -182,7 +200,7 @@
     private bool _soloConFattura;
 
     // Ordinamento
-    private string _ordinamento = "FORNITORE";
+    private string _ordinamento = "CONTROPARTE"; // Default aggiornato
 
     // Errori validazione
     private bool _errorDataTransazione;
@@ -231,6 +249,7 @@
     private void ResetFiltri()
     {
         _filtroAziendaIdInt = 0;
+        _filtroCausaleCiclo = null; // Reset ciclo
         _filtroControparteIdInt = 0;
         _filtroCausaleTipoIdInt = 0;
         _filtroStati = new List<string>();
@@ -249,7 +268,7 @@
         _soloConViaggio = false;
         _soloSenzaViaggio = false;
         _soloConFattura = false;
-        _ordinamento = "FORNITORE";
+        _ordinamento = "CONTROPARTE";
 
         // Reset errori
         _errorDataTransazione = false;
@@ -360,10 +379,13 @@
             }
 
             var aziendaIdFiltro = _aziendaIdEffettivo > 0 ? _aziendaIdEffettivo : (int?)null;
+            
+            // Creazione DTO con i nuovi parametri
             var filtri = new TransazioniFiltriDTO
             {
                 AziendaId = aziendaIdFiltro,
-                FornitoreId = _filtroControparteId,
+                CausaleCiclo = _filtroCausaleCiclo, // Nuovo parametro
+                ControparteId = _filtroControparteId, // Renamed from FornitoreId
                 CausaleTipoId = _filtroCausaleTipoId,
                 Stati = _filtroStati?.Any() == true ? _filtroStati.ToArray() : null,
                 ViaggioId = _filtroViaggioId,
@@ -381,7 +403,7 @@
                 SoloConViaggio = _soloConViaggio,
                 SoloSenzaViaggio = _soloSenzaViaggio,
                 SoloConFattura = _soloConFattura,
-                FornitoreNome = controparteNome,
+                ControparteNome = controparteNome,
                 ValutaNome = valutaNome,
                 TipoMovimentoNome = causaleNome
             };

@@ -40,7 +40,7 @@ public class AnaDateViaggiService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nel recupero date viaggio per viaggio {ViaggioId}", viaggioId);
-            return Enumerable.Empty<DataViaggioDTO>();
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "data di viaggio");
         }
     }
 }

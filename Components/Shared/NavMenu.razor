@@ -156,8 +156,8 @@
 
     <MudNavGroup Title="Contabilità" Icon="@Icons.Material.Filled.AttachMoney" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.ReceiptLong"
-                    OnClick="@(() => OpenTab("/movimenti", "Movimenti Passivi", "receipt_long"))">
-            <MudText Typo="Typo.body1">Movimenti Passivi</MudText>
+                    OnClick="@(() => OpenTab("/movimenti", "Movimenti Contabili", "receipt_long"))">
+            <MudText Typo="Typo.body1">Movimenti Contabili</MudText>
         </MudNavLink>
     </MudNavGroup>
 
@@ -179,7 +179,7 @@
     <MudNavGroup Title="Stampe Contabili" Icon="@Icons.Material.Filled.AccountBalance" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Receipt"
                     OnClick="@OpenStampaMovimentiDialog">
-            <MudText Typo="Typo.body1">Stampa Movimenti Passivi</MudText>
+            <MudText Typo="Typo.body1">Stampa Movimenti Contabili</MudText>
         </MudNavLink>
         <MudNavLink Icon="@Icons.Material.Filled.EventNote"
                     OnClick="@(() => OnStampaSviluppo("Scadenziario"))">
@@ -454,6 +454,6 @@
             FullWidth = true, 
             BackdropClick = false 
         };
-        await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Movimenti Passivi", options);
+        await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Movimenti Contabili", options);
     }
 }

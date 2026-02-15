@@ -12,7 +12,7 @@ public static class PdfFileNameHelper
     /// <returns>Nome file nel formato: Movimenti_Fornitore_Data_HHmmss.pdf</returns>
     public static string GetMovementReportFileName(TransazioniFiltriDTO filtri)
     {
-        var fornitore = !string.IsNullOrEmpty(filtri.FornitoreNome) ? filtri.FornitoreNome : "Tutti";
+        var fornitore = !string.IsNullOrEmpty(filtri.ControparteNome) ? filtri.ControparteNome : "Tutti";
         var safeFornitore = SanitizeFileName(fornitore, maxLength: 30);
         return $"Movimenti_{safeFornitore}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
     }
