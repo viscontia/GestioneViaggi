@@ -39,7 +39,7 @@
                 <MudItem xs="12" sm="6">
                     <ControparteSelect @bind-SelectedControparteId="Transazione.TransazioneControparteId"
                                        AziendaId="@AziendaId"
-                                       CausaleeCiclo="@_causaleCicloCorrente"
+                                       CausaleCiclo="@_causaleCicloCorrente"
                                        Label="@(_causaleCicloCorrente == "ATTIVO" ? "Cliente *" : _causaleCicloCorrente == "PASSIVO" ? "Fornitore *" : "Controparte *")"
                                        Required="true" />
                 </MudItem>

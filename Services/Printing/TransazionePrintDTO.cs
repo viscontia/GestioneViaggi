@@ -78,7 +78,7 @@ public class TransazionePrintItem
     public string SaldoProgressivoFormatted => $"{SaldoProgressivo:N2} {ValutaTargetIso}";
     
     // Indica se l'importo deve essere sottratto (Uscita/Pagamento/NC) o sommato (Entrata/Fattura)
-    public decimal ImportoAlgebricoTarget => ImportoValutaTarget * CausaleSegno;
+    public decimal ImportoAlgebricoTarget => Math.Abs(ImportoValutaTarget) * CausaleSegno;
     
     public string StatoDisplay => Stato switch
     {

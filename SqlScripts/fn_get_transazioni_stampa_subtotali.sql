@@ -168,17 +168,17 @@ BEGIN
         MAX(tf.grp_ordine) as gruppo_ordine,
         tf.val_iso as valuta_codice_iso,
         -- Saldo Algebrico Originale (LORDO)
-        SUM(tf.transazione_lordo_eur * tf.causale_segno)::NUMERIC as totale_valuta_originale,
+        SUM(ABS(tf.transazione_lordo_eur) * tf.causale_segno)::NUMERIC as totale_valuta_originale,
         -- Saldo Algebrico Target (LORDO)
-        SUM(tf.importo_target * tf.causale_segno)::NUMERIC as totale_valuta_target,
+        SUM(ABS(tf.importo_target) * tf.causale_segno)::NUMERIC as totale_valuta_target,
         -- Totale Fatturato (Solo Addebiti, segno > 0)
-        SUM(CASE WHEN tf.causale_segno > 0 THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_fatturato_target,
+        SUM(CASE WHEN tf.causale_segno > 0 THEN ABS(tf.importo_target) ELSE 0 END)::NUMERIC as totale_fatturato_target,
         -- Totale Pagato (Solo Accrediti/Pagamenti, segno < 0)
-        SUM(CASE WHEN tf.causale_segno < 0 THEN tf.importo_target ELSE 0 END)::NUMERIC as totale_pagato_target,
+        SUM(CASE WHEN tf.causale_segno < 0 THEN ABS(tf.importo_target) ELSE 0 END)::NUMERIC as totale_pagato_target,
         
         -- Nuovi totali Imponibile e IVA
-        SUM(tf.imponibile_target * tf.causale_segno)::NUMERIC as totale_imponibile_target,
-        SUM(tf.iva_target * tf.causale_segno)::NUMERIC as totale_iva_target,
+        SUM(ABS(tf.imponibile_target) * tf.causale_segno)::NUMERIC as totale_imponibile_target,
+        SUM(ABS(tf.iva_target) * tf.causale_segno)::NUMERIC as totale_iva_target,
         
         v_valuta_target_iso as valuta_target_iso,
         COUNT(*)::INTEGER as conteggio_transazioni,

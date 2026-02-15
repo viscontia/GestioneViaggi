@@ -70,7 +70,7 @@
     /// - "ATTIVO" → mostra solo clienti (is_cliente = TRUE)
     /// - null → mostra tutti
     /// </summary>
-    [Parameter] public string? CausaleeCiclo { get; set; }
+    [Parameter] public string? CausaleCiclo { get; set; }
 
     private List<AnaControparte> _controparti = new List<AnaControparte>();
     private AnaControparte? _selectedControparte;
@@ -85,7 +85,7 @@
     protected override async Task OnParametersSetAsync()
     {
         // Ricarica le controparti se l'AziendaId o il Ciclo è cambiato
-        if (AziendaId != _lastLoadedAziendaId || CausaleeCiclo != _lastLoadedCiclo)
+        if (AziendaId != _lastLoadedAziendaId || CausaleCiclo != _lastLoadedCiclo)
         {
             await LoadData();
         }
@@ -118,19 +118,19 @@
 
         if (aziendaId.HasValue && aziendaId.Value > 0)
         {
-            // Determina i filtri in base al CausaleeCiclo
+            // Determina i filtri in base al CausaleCiclo
             bool? soloFornitori = null;
             bool? soloClienti = null;
 
-            if (CausaleeCiclo == "PASSIVO")
+            if (CausaleCiclo == "PASSIVO")
             {
                 soloFornitori = true;
             }
-            else if (CausaleeCiclo == "ATTIVO")
+            else if (CausaleCiclo == "ATTIVO")
             {
                 soloClienti = true;
             }
-            // Se CausaleeCiclo è null → mostra tutti
+            // Se CausaleCiclo è null → mostra tutti
 
             var result = await ContropartiService.GetAllAsync(aziendaId.Value, soloFornitori, soloClienti);
 
@@ -142,7 +142,7 @@
             _controparti.AddRange(result);
 
             _lastLoadedAziendaId = aziendaId;
-            _lastLoadedCiclo = CausaleeCiclo;
+            _lastLoadedCiclo = CausaleCiclo;
             UpdateSelectedControparte();
         }
         else

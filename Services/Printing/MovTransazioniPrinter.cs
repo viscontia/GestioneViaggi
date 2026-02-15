@@ -36,21 +36,28 @@ public class MovTransazioniPrinter
     private const float FontSizeSmall = 7;
 
     /// <summary>
-    /// Determina il colore del saldo in base alla logica "Esposizione Finanziaria":
-    /// - ROSSO: Debito verso fornitore (saldo > 0)
-    /// - VERDE: Pari o credito minimo (saldo = 0 o leggermente negativo)
-    /// - ARANCIONE: Credito significativo da recuperare (saldo molto negativo)
+    /// Determina il colore del saldo.
+    /// - Se Contesto PASSIVO (Fornitori): Saldo > 0 = DEBITO (Rosso), Saldo < 0 = CREDITO (Verde)
+    /// - Se Contesto ATTIVO o MISTO: Saldo > 0 = CREDITO/RICAVO (Verde), Saldo < 0 = DEBITO/USCITA (Rosso)
     /// </summary>
-    private static string GetSaldoColor(decimal saldo)
+    private static string GetSaldoColor(decimal saldo, bool isCicloPassivo)
     {
-        const decimal sogliaCredito = -10.0m; // Oltre -10 unità consideriamo il credito significativo
+        if (saldo == 0) return BrandColors.Text;
 
-        if (saldo > 0)
-            return BrandColors.Accent;      // ROSSO: Devo soldi al fornitore (DEBITO)
-        else if (saldo >= sogliaCredito)
-            return BrandColors.Success;     // VERDE: Pari o piccolo credito (OK)
+        if (isCicloPassivo)
+        {
+            // Logica Fornitori: POSITIVO = DEBITO (Rosso)
+            const decimal sogliaCredito = -10.0m;
+            if (saldo > 0) return BrandColors.Accent;      // ROSSO: Devo soldi
+            if (saldo >= sogliaCredito) return BrandColors.Success; // VERDE: Pari o credito
+            return BrandColors.Warning; // ARANCIONE: Credito significativo
+        }
         else
-            return BrandColors.Warning;     // ARANCIONE: Credito significativo da recuperare
+        {
+            // Logica Clienti/Mista: POSITIVO = CREDITO/ENTRATA (Verde)
+            if (saldo > 0) return BrandColors.Success;     // VERDE: Entrata/Credito
+            return BrandColors.Accent;      // ROSSO: Uscita/Debito
+        }
     }
 
     public static async Task GeneratePdfAsync(TransazioniPrintData data, string outputPath)
@@ -353,7 +360,7 @@ public class MovTransazioniPrinter
                         t.Cell().ColumnSpan(3).PaddingTop(2).LineHorizontal(0.5f).LineColor(BrandColors.Border);
                         t.Cell().BorderTop(0.5f).PaddingTop(2).Text("SALDO FINALE:").FontSize(FontSizeBody).Bold();
                         t.Cell().ColumnSpan(2).BorderTop(0.5f).PaddingTop(2).AlignRight().Text(sub.TotaleTargetFormatted).FontSize(FontSizeBody).Bold()
-                            .FontColor(GetSaldoColor(sub.TotaleValutaTarget));
+                            .FontColor(GetSaldoColor(sub.TotaleValutaTarget, data.Filtri.CausaleCiclo == "PASSIVO"));
                     });
                 });
             }
@@ -365,6 +372,8 @@ public class MovTransazioniPrinter
         var totali = data.TotaliGenerali.ToList();
         
         if (!totali.Any()) return;
+
+        bool isPassivo = data.Filtri.CausaleCiclo == "PASSIVO";
 
         column.Item().Background(BrandColors.Total).Border(1).BorderColor(BrandColors.Primary).Padding(5).Column(totCol =>
         {
@@ -384,7 +393,7 @@ public class MovTransazioniPrinter
                         .FontSize(FontSizeSubHeader).Bold();
                     
                     row.ConstantItem(150).AlignRight().Text($"-> {tot.TotaleTargetFormatted}")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(GetSaldoColor(tot.TotaleValutaTarget));
+                        .FontSize(FontSizeSubHeader).Bold().FontColor(GetSaldoColor(tot.TotaleValutaTarget, isPassivo));
                     
                     row.ConstantItem(80).AlignRight().Text($"({tot.ConteggioTransazioni} mov.)")
                         .FontSize(FontSizeSmall);
@@ -400,7 +409,7 @@ public class MovTransazioniPrinter
                 row.RelativeItem().Text($"TOTALE COMPLESSIVO ({data.ValutaTargetCodiceIso}):")
                     .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
                 row.ConstantItem(150).AlignRight().Text($"{totaleComplessivo:N2} {data.ValutaTargetCodiceIso}")
-                    .FontSize(FontSizeHeader).Bold().FontColor(GetSaldoColor(totaleComplessivo));
+                    .FontSize(FontSizeHeader).Bold().FontColor(GetSaldoColor(totaleComplessivo, isPassivo));
                 row.ConstantItem(80).AlignRight().Text($"({conteggioComplessivo} mov.)")
                     .FontSize(FontSizeSmall);
             });

@@ -33,6 +33,7 @@
     [Parameter] public bool Clearable { get; set; } = false;
     [Parameter] public bool Disabled { get; set; } = false;
     [Parameter] public int? AziendaId { get; set; }
+    [Parameter] public string? CycleType { get; set; }
 
     private List<AnaTipoCausale> _causali = new();
     private AnaTipoCausale? _selectedCausale;
@@ -123,12 +124,20 @@
         if (!_loaded || _causali.Count == 0)
             return Enumerable.Empty<AnaTipoCausale>();
 
-        if (string.IsNullOrWhiteSpace(searchText))
+        var query = _causali.AsEnumerable();
+
+        // Filtro per ciclo se specificato (ATTIVO/PASSIVO)
+        if (!string.IsNullOrEmpty(CycleType))
         {
-            return _causali;
+            query = query.Where(c => c.CausaleCiclo == CycleType);
         }
 
-        return _causali
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            return query.ToList();
+        }
+
+        return query
             .Where(c => (c.CausaleDescrizione?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
                         (c.CausaleCodice?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
