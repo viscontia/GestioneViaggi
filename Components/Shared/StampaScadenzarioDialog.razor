@@ -1,0 +1,335 @@
+@* Dialog per la selezione filtri e stampa scadenzario *@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
+@using GestioneViaggi.Components.Shared
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject ScadenzarioPrintService PrintService
+@inject ContropartiService ContropartiService
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+
+                @* RIGA 1: Azienda e Ciclo *@
+                @if (_isSuperAdmin)
+                {
+                    <MudItem xs="12" sm="6">
+                        <AziendaSelect @bind-Value="_filtroAziendaIdInt"
+                                       Label="Azienda"
+                                       Clearable="true"
+                                       AutoFocus="true" />
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="@(_isSuperAdmin ? 6 : 12)">
+                    <CicloSelect @bind-Value="_filtroCausaleCiclo" />
+                </MudItem>
+
+                @* RIGA 2: Controparte e Urgenza *@
+                <MudItem xs="12" sm="6">
+                    <ControparteSelect @bind-SelectedControparteId="_filtroControparteIdInt"
+                                       AziendaId="@_aziendaIdEffettivo"
+                                       CausaleCiclo="@_filtroCausaleCiclo"
+                                       Label="Filtra per Controparte"
+                                       Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <UrgenzaSelect @bind-Value="_filtroUrgenza" />
+                </MudItem>
+
+                @* RIGA 3: Data Scadenza Da/A *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @ref="_firstField" Label="Data Scadenza Da" @bind-Date="_dataScadenzaDa"
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Error="@_errorDataScadenza" ErrorText="Data Da deve essere <= Data A" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Scadenza A" @bind-Date="_dataScadenzaA"
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+
+                @* RIGA 4: Viaggio *@
+                <MudItem xs="12" sm="12">
+                    <ViaggioSelect @bind-SelectedViaggioId="_filtroViaggioId"
+                                   AziendaId="@_aziendaIdEffettivo"
+                                   Clearable="true"
+                                   Class="uppercase-input" />
+                </MudItem>
+
+                @* RIGA 5: Checkbox opzioni *@
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="4" Class="flex-wrap">
+                        <MudCheckBox T="bool" Value="_soloConViaggio" Label="Solo con viaggio" Dense="true" Color="Color.Primary"
+                                     ValueChanged="@OnSoloConViaggioChanged" />
+                        <MudCheckBox T="bool" Value="_soloSenzaViaggio" Label="Solo senza viaggio" Dense="true" Color="Color.Primary"
+                                     ValueChanged="@OnSoloSenzaViaggioChanged" />
+                    </MudStack>
+                </MudItem>
+
+                @* RIGA 6: Raggruppamento *@
+                <MudItem xs="12" sm="6">
+                    <RaggruppamentoStampaSelect @bind-Value="_raggruppamento" />
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
+            Reset
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+            Stampa
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private MudDatePicker? _firstField;
+
+    // Sessione e tenant
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_filtroAziendaId ?? 0) : (_currentAziendaId ?? 0);
+
+    // Filtri
+    private int _filtroAziendaIdInt;
+    private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+
+    private string? _filtroCausaleCiclo;
+
+    private int _filtroControparteIdInt;
+    private int? _filtroControparteId => _filtroControparteIdInt > 0 ? _filtroControparteIdInt : null;
+
+    private string? _filtroUrgenza;
+    private int? _filtroViaggioId;
+
+    private DateTime? _dataScadenzaDa;
+    private DateTime? _dataScadenzaA;
+
+    // Checkbox
+    private bool _soloConViaggio;
+    private bool _soloSenzaViaggio;
+
+    // Raggruppamento
+    private string _raggruppamento = "URGENZA"; // Default
+
+    // Errori validazione
+    private bool _errorDataScadenza;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ResetFiltri()
+    {
+        _filtroAziendaIdInt = 0;
+        _filtroCausaleCiclo = null;
+        _filtroControparteIdInt = 0;
+        _filtroUrgenza = null;
+        _filtroViaggioId = null;
+        _dataScadenzaDa = null;
+        _dataScadenzaA = null;
+        _soloConViaggio = false;
+        _soloSenzaViaggio = false;
+        _raggruppamento = "URGENZA";
+
+        _errorDataScadenza = false;
+
+        StateHasChanged();
+        Snackbar.Add("Filtri resettati", Severity.Info);
+    }
+
+    private void OnSoloConViaggioChanged(bool value)
+    {
+        _soloConViaggio = value;
+        if (value) _soloSenzaViaggio = false;
+        StateHasChanged();
+    }
+
+    private void OnSoloSenzaViaggioChanged(bool value)
+    {
+        _soloSenzaViaggio = value;
+        if (value) _soloConViaggio = false;
+        StateHasChanged();
+    }
+
+    private bool ValidaFiltri()
+    {
+        bool isValid = true;
+        _errorDataScadenza = false;
+
+        if (_dataScadenzaDa.HasValue && _dataScadenzaA.HasValue && _dataScadenzaDa > _dataScadenzaA)
+        {
+            _errorDataScadenza = true;
+            Snackbar.Add("Data Scadenza: la data inizio non può essere superiore alla data fine", Severity.Warning);
+            isValid = false;
+        }
+
+        StateHasChanged();
+        return isValid;
+    }
+
+    private async Task EseguiStampa()
+    {
+        if (!ValidaFiltri())
+        {
+            Snackbar.Add("Correggi gli errori nei filtri prima di procedere", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            var sessionData = await SessionManager.GetSessionAsync();
+            if (sessionData?.User == null)
+            {
+                Snackbar.Add("Errore: sessione utente non valida", Severity.Error);
+                return;
+            }
+            var userInfo = sessionData.User;
+
+            string? controparteNome = null;
+
+            if (_filtroControparteIdInt == 0)
+            {
+                controparteNome = "TUTTE LE CONTROPARTI";
+            }
+            else if (_filtroControparteId.HasValue)
+            {
+                var controparte = await ContropartiService.GetByIdAsync(_filtroControparteId.Value);
+                controparteNome = controparte?.RagioneSociale;
+            }
+
+            var aziendaIdFiltro = _aziendaIdEffettivo > 0 ? _aziendaIdEffettivo : (int?)null;
+
+            var filtri = new ScadenzarioFiltriDTO
+            {
+                AziendaId = aziendaIdFiltro,
+                CausaleCiclo = _filtroCausaleCiclo,
+                ControparteId = _filtroControparteId,
+                Urgenza = _filtroUrgenza,
+                DataScadenzaDa = _dataScadenzaDa.HasValue ? DateOnly.FromDateTime(_dataScadenzaDa.Value).ToDateTime(TimeOnly.MinValue) : null,
+                DataScadenzaA = _dataScadenzaA.HasValue ? DateOnly.FromDateTime(_dataScadenzaA.Value).ToDateTime(TimeOnly.MinValue) : null,
+                ViaggioId = _filtroViaggioId,
+                SoloConViaggio = _soloConViaggio,
+                SoloSenzaViaggio = _soloSenzaViaggio,
+                ControparteNome = controparteNome
+            };
+
+            var printData = await PrintService.GetDataPerStampaAsync(
+                filtri,
+                _raggruppamento,
+                userInfo.ValutaCodiceIso,
+                userInfo);
+
+            if (printData.Dettagli.Count == 0)
+            {
+                Snackbar.Add("Nessuna scadenza trovata con i filtri applicati", Severity.Warning);
+                return;
+            }
+
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
+
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = GetScadenzarioFileName(filtri);
+            var outputPath = Path.Combine(targetFolder, fileName);
+
+            if (System.IO.File.Exists(outputPath))
+            {
+                System.IO.File.Delete(outputPath);
+            }
+
+            await ScadenzarioPrinter.GeneratePdfAsync(printData, outputPath);
+
+            bool? confirm = await DialogService.ShowMessageBox(
+                "Stampa Completata",
+                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                yesText: "Sì, Apri", cancelText: "No");
+
+            if (confirm == true)
+            {
+#if MACCATALYST
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "open",
+                    Arguments = $"\"{outputPath}\"",
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+#else
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    Title = "Scadenzario",
+                    File = new ReadOnlyFile(outputPath)
+                });
+#endif
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la generazione del PDF: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string GetScadenzarioFileName(ScadenzarioFiltriDTO filtri)
+    {
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var ciclo = filtri.CausaleCiclo switch
+        {
+            "ATTIVO" => "Entrate",
+            "PASSIVO" => "Uscite",
+            _ => "Misto"
+        };
+
+        return $"Scadenzario_{ciclo}_{timestamp}.pdf";
+    }
+}

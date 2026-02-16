@@ -17,7 +17,8 @@
                  ResetValueOnEmptyText="true"
                  CoerceText="true"
                  AdornmentIcon="@Icons.Material.Filled.Landscape"
-                 AdornmentColor="Color.Primary">
+                 AdornmentColor="Color.Primary"
+                 Class="@Class">
     <ItemTemplate Context="viaggio">
         <MudText Typo="Typo.body2">@viaggio.DescrizioneBreve</MudText>
         @if (!string.IsNullOrWhiteSpace(viaggio.NazioneNome))
@@ -35,6 +36,7 @@
     [Parameter] public bool Required { get; set; }
     [Parameter] public bool Clearable { get; set; } = true;
     [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
     [Parameter] public IEnumerable<AnaViaggi>? CustomItems { get; set; }
 
     private AnaViaggi? _selectedViaggio;

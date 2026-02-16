@@ -131,6 +131,52 @@ Componente autocomplete per la selezione di fornitori (`Components/Shared/Fornit
     ```
 *   **Nota SuperAdmin**: Per il ruolo SuperAdmin è necessario passare esplicitamente `AziendaId` dopo la selezione dell'azienda, altrimenti il combobox rimane vuoto.
 
+### ControparteSelect
+Componente autocomplete per la selezione di una Controparte (Fornitore/Cliente) (`Components/Shared/ControparteSelect.razor`).
+*   **Funzionalità**:
+    *   Carica controparti da `ana_controparti` filtrate per azienda.
+    *   Supporta filtro dinamico basato sul ciclo contabile:
+        - `CausaleCiclo="PASSIVO"` → mostra solo fornitori (is_fornitore = TRUE)
+        - `CausaleCiclo="ATTIVO"` → mostra solo clienti (is_cliente = TRUE)
+        - `CausaleCiclo=null` → mostra tutti
+    *   Include opzione virtuale "TUTTE LE CONTROPARTI" (ID=0) per selezione globale nelle stampe.
+    *   Visualizza Ragione Sociale, Nome Breve (se presente) e Tipo Controparte nel dropdown.
+    *   Ricerca testuale su Ragione Sociale e Nome Breve.
+    *   Ricarica automatica quando cambia `AziendaId` o `CausaleCiclo`.
+*   **Parametri Chiave**:
+    *   `SelectedControparteId` (int): ID controparte selezionata (binding).
+    *   `AziendaId` (int?, opzionale): ID azienda per filtrare. Se non specificato, usa `TenantContext`.
+    *   `CausaleCiclo` (string?, opzionale): "ATTIVO" o "PASSIVO" per filtrare clienti/fornitori.
+    *   `Required`, `Clearable`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <ControparteSelect @bind-SelectedControparteId="_filtroControparteIdInt"
+                       AziendaId="@_aziendaIdEffettivo"
+                       CausaleCiclo="@_filtroCausaleCiclo"
+                       Label="Filtra per Controparte"
+                       Clearable="true" />
+    ```
+
+### ViaggioSelect
+Componente autocomplete per la selezione di un Viaggio (`Components/Shared/ViaggioSelect.razor`).
+*   **Funzionalità**:
+    *   Carica viaggi da `ana_viaggi` filtrati per azienda.
+    *   Visualizza Descrizione Breve, Nazione e Numero Giorni nel dropdown.
+    *   Ricerca testuale su Descrizione Breve, Descrizione Estesa e Nome Nazione.
+    *   Supporta parametro `CustomItems` per fornire lista personalizzata di viaggi.
+    *   Ricarica automaticamente quando cambia `AziendaId`.
+*   **Parametri Chiave**:
+    *   `SelectedViaggioId` (int?): ID viaggio selezionato (binding).
+    *   `AziendaId` (int?, opzionale): ID azienda per filtrare i viaggi.
+    *   `CustomItems` (IEnumerable<AnaViaggi>?, opzionale): Lista personalizzata di viaggi.
+    *   `Required`, `Clearable`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <ViaggioSelect @bind-SelectedViaggioId="_filtroViaggioId"
+                   AziendaId="@_aziendaIdEffettivo"
+                   Clearable="true" />
+    ```
+
 ### ValutaSelect
 Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
 *   **Implementazione**: Utilizza `MudAutocomplete<AnaValute>` invece di `MudSelect` per risolvere il problema di sovrapposizione tra asterisco required e freccia dropdown.
@@ -229,6 +275,63 @@ Componente autocomplete per la selezione dell'aliquota IVA (`Components/Shared/A
                        Clearable="!_causaleRichiedeIva" />
     ```
 
+### CicloSelect
+Componente select per la selezione del ciclo contabile (Cash Flow) (`Components/Shared/CicloSelect.razor`).
+*   **Funzionalità**:
+    *   Utilizza `MudSelect` con valori statici predefiniti.
+    *   Opzioni disponibili:
+        - `ATTIVO` → Entrate (Crediti da Clienti)
+        - `PASSIVO` → Uscite (Debiti verso Fornitori)
+    *   Campo clearable di default per permettere selezione "Tutti".
+*   **Parametri Chiave**:
+    *   `Value` (string?): Valore selezionato (binding).
+    *   `Label` (string): Etichetta del campo (default: "Tipo Cash Flow").
+    *   `Clearable` (bool): Permette cancellazione selezione (default: true).
+    *   `Required`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <CicloSelect @bind-Value="_filtroCausaleCiclo" />
+    ```
+
+### UrgenzaSelect
+Componente select per la selezione dell'urgenza delle scadenze (`Components/Shared/UrgenzaSelect.razor`).
+*   **Funzionalità**:
+    *   Utilizza `MudSelect` con valori statici predefiniti.
+    *   Opzioni disponibili:
+        - `SCADUTO` → Scaduto (in ritardo)
+        - `URGENTE` → Urgente (entro 7 giorni)
+        - `IN_SCADENZA` → In scadenza (entro 30 giorni)
+        - `NORMALE` → Normale (oltre 30 giorni)
+    *   Campo clearable di default per permettere selezione "Tutti".
+*   **Parametri Chiave**:
+    *   `Value` (string?): Valore selezionato (binding).
+    *   `Label` (string): Etichetta del campo (default: "Urgenza").
+    *   `Clearable` (bool): Permette cancellazione selezione (default: true).
+    *   `Required`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <UrgenzaSelect @bind-Value="_filtroUrgenza" />
+    ```
+
+### RaggruppamentoStampaSelect
+Componente select per la selezione del criterio di raggruppamento nelle stampe scadenzario (`Components/Shared/RaggruppamentoStampaSelect.razor`).
+*   **Funzionalità**:
+    *   Utilizza `MudSelect` con valori statici predefiniti.
+    *   Opzioni disponibili:
+        - `URGENZA` → Urgenza (Scaduto/Urgente/Normale) - Default
+        - `MESE` → Mese di Scadenza
+        - `CONTROPARTE` → Controparte
+    *   Non è clearable (deve sempre avere un valore selezionato).
+*   **Parametri Chiave**:
+    *   `Value` (string): Valore selezionato (binding). Default: "URGENZA".
+    *   `Label` (string): Etichetta del campo (default: "Raggruppa per").
+    *   `Clearable` (bool): Non permette cancellazione (default: false).
+    *   `Required`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <RaggruppamentoStampaSelect @bind-Value="_raggruppamento" />
+    ```
+
 ### Elenco Completo Componenti Select
 
 Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) disponibili in `Components/Shared`:
@@ -239,7 +342,9 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **AziendaSelect** | `AziendaSelect.razor` | `ana_aziende` | Ragione Sociale | Selezione azienda per contesto multi-tenant. Include opzione "Tutte". |
 | **CausaleSelect** | `CausaleSelect.razor` | `ana_tipi_causali` | Descrizione | Selezione causale contabile con logica di segno algebrico. |
 | **CapoluogoSelect** | `CapoluogoSelect.razor` | `ana_geo_comuni` (flag capoluogo) | Descrizione | Selezione città capoluogo di provincia. |
+| **CicloSelect** | `CicloSelect.razor` | Valori statici | - | Selezione ciclo contabile (ATTIVO/PASSIVO) per Cash Flow. Utilizzato nei filtri stampe. |
 | **ComuneSelect** | `ComuneSelect.razor` | `ana_geo_comuni` | Nome | Ricerca completa comuni italiani ed esteri. |
+| **ControparteSelect** | `ControparteSelect.razor` | `ana_controparti` | Ragione Sociale | Selezione controparte (Fornitore/Cliente) con filtro dinamico per ciclo. Supporta parametro `AziendaId` e `CausaleCiclo`. Include opzione "TUTTE LE CONTROPARTI". |
 | **CountrySelect** | `CountrySelect.razor` | `eba_countries` | Name (Nome Paese) | Selezione nazione (standard ISO). |
 | **CountryIntermediate** | `CountryIntermediateSelect` | `eba_countries_intermediate_regions` | Name | Selezione macro-regione intermedia (ONU). |
 | **CountryOrganization** | `CountryOrganizationSelect` | `eba_countries_organizations` | Name | Selezione organizzazione internazionale. |
@@ -251,12 +356,15 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **ProvinciaSelect** | `ProvinciaSelect.razor` | `ana_geo_province_ita` | Descrizione | Selezione provincia (sigla visualizzata). supporta filtro estero. |
 | **RegioneSelect** | `RegioneSelect.razor` | `ana_geo_regioni_ita` | Descrizione | Selezione regione amministrativa italiana. |
 | **RepartoSelect** | `RepartoSelect.razor` | `ana_reparti` | NomeReparto | Assegnazione reparto interno (es. Amministrazione). |
+| **RaggruppamentoStampaSelect** | `RaggruppamentoStampaSelect.razor` | Valori statici | - | Selezione criterio di raggruppamento per stampe scadenzario (URGENZA/MESE/CONTROPARTE). Non clearable. |
 | **RipGeoSelect** | `RipGeoSelect.razor` | `ana_geo_ripartizioni_geo` | Descrizione | Selezione ripartizione geografica (Nord, Centro, Sud). |
 | **RuoloSelect** | `RuoloSelect.razor` | `IRoleService` | RoleName | Selezione ruolo utente (Administrator, User, ecc.). Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **SedeSelect** | `SedeSelect.razor` | `ana_sedi` | Tipologia + Indirizzo | Selezione sede operativa/legale di un'azienda. |
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
+| **UrgenzaSelect** | `UrgenzaSelect.razor` | Valori statici | - | Selezione urgenza scadenze (SCADUTO/URGENTE/IN_SCADENZA/NORMALE). Utilizzato nei filtri stampe. |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
+| **ViaggioSelect** | `ViaggioSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione viaggio con ricerca su descrizione e nazione. Supporta parametro `AziendaId` e `CustomItems`. |
 | **OrdinamentoStampaSelect** | `OrdinamentoStampaSelect.razor` | - | - | Selezione ordinamento per le stampe contabili: Fornitore, Data Documento, Importo ASC/DESC, Tipo Movimento. |
 
 ---
@@ -279,6 +387,24 @@ Dialog per la selezione filtri e stampa dei movimenti contabili (`Components/Sha
     *   Checkbox "con viaggio" / "senza viaggio" mutuamente esclusive.
 *   **Database**: Utilizza la function `fn_get_transazioni_per_stampa` per il filtraggio lato server.
 *   **Utilizzo**: Accessibile da NavMenu → Stampe Contabili → Elenco Movimenti Contabili.
+
+### StampaScadenzarioDialog
+Dialog per la selezione filtri e stampa dello scadenzario (`Components/Shared/StampaScadenzarioDialog.razor`).
+*   **Funzionalità**:
+    *   Filtri disponibili:
+        - Azienda (solo per SuperAdmin) tramite `AziendaSelect`
+        - Tipo Cash Flow tramite `CicloSelect` (ATTIVO/PASSIVO)
+        - Controparte tramite `ControparteSelect` (con filtro dinamico per ciclo)
+        - Urgenza tramite `UrgenzaSelect` (SCADUTO/URGENTE/IN_SCADENZA/NORMALE)
+        - Range Date Scadenza (Da/A)
+        - Viaggio tramite `ViaggioSelect`
+        - Checkbox: Solo con viaggio, Solo senza viaggio (mutuamente esclusive)
+    *   Raggruppamento tramite `RaggruppamentoStampaSelect` (URGENZA/MESE/CONTROPARTE)
+*   **Controlli Formali**:
+    *   Data Scadenza Da <= Data Scadenza A
+    *   Checkbox "con viaggio" / "senza viaggio" mutuamente esclusive
+*   **Database**: Utilizza la function `fn_get_scadenzario_stampa` per il filtraggio lato server.
+*   **Utilizzo**: Accessibile da NavMenu → Stampe Contabili → Scadenzario.
 
 ---
 

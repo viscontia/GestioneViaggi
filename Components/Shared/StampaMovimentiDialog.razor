@@ -443,7 +443,13 @@
             if (confirm == true)
             {
 #if MACCATALYST
-                System.Diagnostics.Process.Start("open", $"\"{outputPath}\"");
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "open",
+                    Arguments = $"\"{outputPath}\"",
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
 #else
                 await Launcher.Default.OpenAsync(new OpenFileRequest
                 {

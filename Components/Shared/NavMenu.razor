@@ -182,7 +182,7 @@
             <MudText Typo="Typo.body1">Stampa Movimenti Contabili</MudText>
         </MudNavLink>
         <MudNavLink Icon="@Icons.Material.Filled.EventNote"
-                    OnClick="@(() => OnStampaSviluppo("Scadenziario"))">
+                    OnClick="@OpenStampaScadenzarioDialog">
             <MudText Typo="Typo.body1">Scadenziario</MudText>
         </MudNavLink>
     </MudNavGroup>
@@ -440,20 +440,27 @@
         }
     }
 
-    private void OnStampaSviluppo(string titolo)
-    {
-        Snackbar.Add($"{titolo}: Funzionalità in fase di sviluppo", Severity.Info);
-    }
-
     private async Task OpenStampaMovimentiDialog()
     {
-        var options = new DialogOptions 
-        { 
-            CloseOnEscapeKey = true, 
-            MaxWidth = MaxWidth.Large, 
-            FullWidth = true, 
-            BackdropClick = false 
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            BackdropClick = false
         };
         await DialogService.ShowAsync<StampaMovimentiDialog>("Stampa Movimenti Contabili", options);
+    }
+
+    private async Task OpenStampaScadenzarioDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<StampaScadenzarioDialog>("Stampa Scadenzario", options);
     }
 }
