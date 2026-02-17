@@ -82,14 +82,9 @@ public class MovTransazioniService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = @"
-                SELECT 
-                    t.*,
-                    aiva.iva_descrizione as AliquotaIvaDescrizione,
-                    aiva.iva_percentuale as AliquotaIvaPercentuale,
-                    aiva.iva_codice as AliquotaIvaCodice
-                FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId) t
-                LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id";
+            // La function ritorna già tutti i campi incluse le descrizioni in join.
+            // Non serve fare ulteriori JOIN qui, ma Dapper mapperà le colonne snake_case sulle proprietà PascalCase.
+            string sql = @"SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {
@@ -124,14 +119,9 @@ public class MovTransazioniService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = @"
-                SELECT 
-                    t.*,
-                    aiva.iva_descrizione as AliquotaIvaDescrizione,
-                    aiva.iva_percentuale as AliquotaIvaPercentuale,
-                    aiva.iva_codice as AliquotaIvaCodice
-                FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId) t
-                LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id";
+            // La function ritorna già tutti i campi incluse le descrizioni in join.
+            // Non serve fare ulteriori JOIN qui, ma Dapper mapperà le colonne snake_case sulle proprietà PascalCase.
+            string sql = @"SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
 
             var result = await conn.QueryAsync<MovTransazioni>(sql, new
             {

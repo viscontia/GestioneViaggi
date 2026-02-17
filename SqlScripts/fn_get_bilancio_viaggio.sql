@@ -7,7 +7,8 @@
 
 CREATE OR REPLACE FUNCTION fn_get_bilancio_viaggio(
     p_azienda_id INT,
-    p_viaggio_ids INT[],        -- Array of trip IDs to analyze
+    p_viaggio_id INT,           -- Specific Trip ID
+    p_data_viaggio_id INT DEFAULT NULL, -- Optional specific Trip Date ID
     p_data_da DATE DEFAULT NULL,
     p_data_a DATE DEFAULT NULL
 )
@@ -45,9 +46,16 @@ BEGIN
     SELECT 
         v.viaggio_id,
         (v.viaggio_descrizione_breve)::TEXT as viaggio_descrizione,
-        -- Get min/max dates from ana_date_viaggi
-        (SELECT MIN(data_viaggio_data_inizio) FROM ana_date_viaggi WHERE viaggio_id_fk = v.viaggio_id LIMIT 1) as viaggio_data_inizio,
-        (SELECT MAX(data_viaggio_data_fine) FROM ana_date_viaggi WHERE viaggio_id_fk = v.viaggio_id LIMIT 1) as viaggio_data_fine,
+        -- Get min/max dates from ana_date_viaggi if specific date not selected, else use specific date
+        CASE 
+            WHEN p_data_viaggio_id IS NOT NULL THEN (SELECT data_viaggio_data_inizio FROM ana_date_viaggi WHERE data_viaggio_id = p_data_viaggio_id)
+            ELSE (SELECT MIN(data_viaggio_data_inizio) FROM ana_date_viaggi WHERE viaggio_id_fk = v.viaggio_id)
+        END as viaggio_data_inizio,
+        
+        CASE 
+            WHEN p_data_viaggio_id IS NOT NULL THEN (SELECT data_viaggio_data_fine FROM ana_date_viaggi WHERE data_viaggio_id = p_data_viaggio_id)
+            ELSE (SELECT MAX(data_viaggio_data_fine) FROM ana_date_viaggi WHERE viaggio_id_fk = v.viaggio_id)
+        END as viaggio_data_fine,
         
         -- Estimate participants (Count distinct clients linked to trip dates)
         COALESCE((
@@ -55,6 +63,7 @@ BEGIN
             FROM ana_date_viaggi d
             JOIN mov_clienti_viaggi mcv ON mcv.data_viaggio_id_fk = d.data_viaggio_id
             WHERE d.viaggio_id_fk = v.viaggio_id
+              AND (p_data_viaggio_id IS NULL OR d.data_viaggio_id = p_data_viaggio_id)
         ), 0) as viaggio_numero_partecipanti,
 
         t.transazione_id,
@@ -103,7 +112,8 @@ BEGIN
     LEFT JOIN ana_tipo_fornitore tf ON c.tipo_fornitore_fk = tf.tipo_fornitore_id
 
     WHERE t.transazione_azienda_id = p_azienda_id
-      AND t.transazione_viaggio_id = ANY(p_viaggio_ids)
+      AND t.transazione_viaggio_id = p_viaggio_id
+      AND (p_data_viaggio_id IS NULL OR t.transazione_data_viaggio_id = p_data_viaggio_id)
       AND t.transazione_stato != 'ANNULLATO'
       AND tc.causale_is_documento = TRUE -- Only invoices/notes, exclude payments from main list
       AND (p_data_da IS NULL OR t.transazione_data >= p_data_da)

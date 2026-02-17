@@ -24,18 +24,21 @@ public class BilancioViaggioPrintService
         _logger = logger;
     }
 
-    public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, List<int> viaggioIds, DateTime? dataDa, DateTime? dataA)
+    public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA)
     {
         var result = new List<BilancioViaggioDTO>();
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_bilancio_viaggio(@aziendaId, @viaggioIds, @dataDa, @dataA)";
+            var sql = "SELECT * FROM fn_get_bilancio_viaggio(@aziendaId, @viaggioId, @dataViaggioId, @dataDa, @dataA)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("aziendaId", aziendaId);
-            command.Parameters.AddWithValue("viaggioIds", viaggioIds.ToArray());
+            command.Parameters.AddWithValue("viaggioId", viaggioId);
             
+            var pDataViaggioId = new NpgsqlParameter("dataViaggioId", NpgsqlDbType.Integer) { Value = (object?)dataViaggioId ?? DBNull.Value, IsNullable = true };
+            command.Parameters.Add(pDataViaggioId);
+
             // Handle nullable dates explicitly
             var pDataDa = new NpgsqlParameter("dataDa", NpgsqlDbType.Date) { Value = (object?)dataDa ?? DBNull.Value, IsNullable = true };
             var pDataA = new NpgsqlParameter("dataA", NpgsqlDbType.Date) { Value = (object?)dataA ?? DBNull.Value, IsNullable = true };

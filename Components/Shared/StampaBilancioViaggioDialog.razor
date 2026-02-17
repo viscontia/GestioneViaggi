@@ -13,7 +13,6 @@
 @inject IJSRuntime JS
 @inject IDialogService DialogService
 
-@inject IDialogService DialogService
 @implements IDisposable
 
 <MudDialog>
@@ -31,29 +30,33 @@
                     </MudItem>
                 }
 
-                @* RIGA 2: Selezione Viaggi (Multipla) *@
+                @* RIGA 2: Selezione Viaggio (Singolo) *@
                 <MudItem xs="12">
-                    <ViaggioMultiSelect @bind-SelectedViaggioIds="_selectedViaggioIds" 
-                                        AziendaId="@_aziendaIdEffettivo"
-                                        Label="Seleziona Viaggi"
-                                        Required="true" />
+                     <ViaggioSelect @bind-SelectedViaggioId="_selectedViaggioId"
+                                    AziendaId="@_aziendaIdEffettivo"
+                                    Label="Seleziona Viaggio *"
+                                    Required="true"
+                                    Clearable="true" />
                 </MudItem>
 
-                @* RIGA 3: Periodo (Opzionale) *@
+                 @* RIGA 3: Selezione Data Viaggio (Opzionale, attivata solo se Viaggio selezionato) *@
+                <MudItem xs="12">
+                    <DataViaggioSelect @bind-SelectedDataViaggioId="_selectedDataViaggioId"
+                                       ViaggioId="@_selectedViaggioId"
+                                       Label="Data Viaggio (Opzionale)"
+                                       Clearable="true"
+                                       Disabled="@(_selectedViaggioId == null || _selectedViaggioId == 0)" />
+                </MudItem>
+
+                @* RIGA 4: Periodo (Opzionale) *@
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Data Da (Opzionale)" @bind-Date="_dataDa" 
+                    <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Data A (Opzionale)" @bind-Date="_dataA" 
+                    <MudDatePicker Label="Data Documento A (Opzionale)" @bind-Date="_dataA" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
-
-                @* RIGA 4: Opzioni *@
-                @* Future usage: Detailed vs Summary only *@
-                @* <MudItem xs="12">
-                    <MudCheckBox @bind-Value="_dettagliato" Label="Stampa Dettagliata" Dense="true" Color="Color.Primary" />
-                </MudItem> *@
 
             </MudGrid>
         </MudForm>
@@ -83,11 +86,11 @@
     private int _filtroAziendaIdInt;
     private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
 
-    private IEnumerable<int> _selectedViaggioIds = new HashSet<int>();
+    private int? _selectedViaggioId;
+    private int? _selectedDataViaggioId;
 
     private DateTime? _dataDa;
     private DateTime? _dataA;
-    // private bool _dettagliato = true;
 
     [Parameter] public int? InitialViaggioId { get; set; }
 
@@ -101,7 +104,7 @@
 
         if (InitialViaggioId.HasValue)
         {
-            _selectedViaggioIds = new HashSet<int> { InitialViaggioId.Value };
+            _selectedViaggioId = InitialViaggioId.Value;
         }
     }
 
@@ -127,14 +130,13 @@
         catch { }
     }
 
-
-
     private void Cancel() => MudDialog.Cancel();
 
     private void ResetFiltri()
     {
         _filtroAziendaIdInt = 0;
-        _selectedViaggioIds = new HashSet<int>();
+        _selectedViaggioId = null;
+        _selectedDataViaggioId = null;
         _dataDa = null;
         _dataA = null;
         StateHasChanged();
@@ -142,9 +144,9 @@
 
     private bool ValidaFiltri()
     {
-        if (!_selectedViaggioIds.Any())
+        if (!_selectedViaggioId.HasValue || _selectedViaggioId <= 0)
         {
-            Snackbar.Add("Selezionare almeno un viaggio", Severity.Warning);
+            Snackbar.Add("Selezionare un viaggio", Severity.Warning);
             return false;
         }
 
@@ -182,29 +184,17 @@
             // Fetch Data
             var data = await PrintService.GetBilancioDataAsync(
                 _aziendaIdEffettivo,
-                _selectedViaggioIds.ToList(),
+                _selectedViaggioId!.Value,
+                _selectedDataViaggioId,
                 _dataDa.HasValue ? DateOnly.FromDateTime(_dataDa.Value).ToDateTime(TimeOnly.MinValue) : null,
                 _dataA.HasValue ? DateOnly.FromDateTime(_dataA.Value).ToDateTime(TimeOnly.MinValue) : null
             );
 
             // Analyze results
-            var distinctFoundIds = data.Select(x => x.ViaggioId).Distinct().ToList();
-            var requestedCount = _selectedViaggioIds.Count();
-            var foundCount = distinctFoundIds.Count;
-
-            if (foundCount == 0)
+            if (!data.Any())
             {
-                Snackbar.Add("Nessun documento contabile trovato per i viaggi selezionati. Stampa annullata.", Severity.Warning);
+                Snackbar.Add("Nessun documento contabile trovato per i criteri selezionati. Stampa annullata.", Severity.Warning);
                 return;
-            }
-
-            if (foundCount < requestedCount)
-            {
-                var missingCount = requestedCount - foundCount;
-                Snackbar.Add($"Attenzione: {missingCount} viaggi selezionati non hanno documenti contabili e non verranno inclusi nella stampa.", Severity.Warning, config => 
-                {
-                    config.VisibleStateDuration = 5000; // Stay longer
-                });
             }
 
             // Generate PDF
