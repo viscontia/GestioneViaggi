@@ -1,0 +1,253 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Models.DTOs
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject BilancioViaggioPrintService PrintService
+@inject AnaViaggiService ViaggiService
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+
+@inject IDialogService DialogService
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                
+                @* RIGA 1: Azienda (se superadmin) *@
+                @if (_isSuperAdmin)
+                {
+                    <MudItem xs="12">
+                        <AziendaSelect @bind-Value="_filtroAziendaIdInt" 
+                                       Label="Azienda" 
+                                       Clearable="true" />
+                    </MudItem>
+                }
+
+                @* RIGA 2: Selezione Viaggi (Multipla) *@
+                <MudItem xs="12">
+                    <ViaggioMultiSelect @bind-SelectedViaggioIds="_selectedViaggioIds" 
+                                        AziendaId="@_aziendaIdEffettivo"
+                                        Label="Seleziona Viaggi"
+                                        Required="true" />
+                </MudItem>
+
+                @* RIGA 3: Periodo (Opzionale) *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data Da (Opzionale)" @bind-Date="_dataDa" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Data A (Opzionale)" @bind-Date="_dataA" 
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                </MudItem>
+
+                @* RIGA 4: Opzioni *@
+                @* Future usage: Detailed vs Summary only *@
+                @* <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_dettagliato" Label="Stampa Dettagliata" Dense="true" Color="Color.Primary" />
+                </MudItem> *@
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
+            Reset
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+            Stampa
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+
+    // Sessione e tenant
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_filtroAziendaId ?? 0) : (_currentAziendaId ?? 0);
+
+    // Filtri
+    private int _filtroAziendaIdInt;
+    private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+
+    private IEnumerable<int> _selectedViaggioIds = new HashSet<int>();
+
+    private DateTime? _dataDa;
+    private DateTime? _dataA;
+    // private bool _dettagliato = true;
+
+    [Parameter] public int? InitialViaggioId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+        }
+
+        if (InitialViaggioId.HasValue)
+        {
+            _selectedViaggioIds = new HashSet<int> { InitialViaggioId.Value };
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Usage of global helper for Tab navigation and AutoFocus
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ResetFiltri()
+    {
+        _filtroAziendaIdInt = 0;
+        _selectedViaggioIds = new HashSet<int>();
+        _dataDa = null;
+        _dataA = null;
+        StateHasChanged();
+    }
+
+    private bool ValidaFiltri()
+    {
+        if (!_selectedViaggioIds.Any())
+        {
+            Snackbar.Add("Selezionare almeno un viaggio", Severity.Warning);
+            return false;
+        }
+
+        if (_dataDa.HasValue && _dataA.HasValue && _dataDa > _dataA)
+        {
+            Snackbar.Add("La data inizio non può essere superiore alla data fine", Severity.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task EseguiStampa()
+    {
+        if (!ValidaFiltri()) return;
+
+        try
+        {
+            var sessionData = await SessionManager.GetSessionAsync();
+            if (sessionData?.User == null)
+            {
+                Snackbar.Add("Errore sessione utente", Severity.Error);
+                return;
+            }
+
+            var aziendaNome = "Azienda"; // Retrieve company name if not superadmin, or from selected ID
+             if (_aziendaIdEffettivo > 0)
+            {
+                // TODO: Get Azienda Name properly. For now use placeholder or User Info if single tenant
+                aziendaNome = sessionData.User.RagioneSocialeAzienda ?? "Azienda";
+            }
+
+            Snackbar.Add("Generazione report in corso...", Severity.Info);
+
+            // Fetch Data
+            var data = await PrintService.GetBilancioDataAsync(
+                _aziendaIdEffettivo,
+                _selectedViaggioIds.ToList(),
+                _dataDa.HasValue ? DateOnly.FromDateTime(_dataDa.Value).ToDateTime(TimeOnly.MinValue) : null,
+                _dataA.HasValue ? DateOnly.FromDateTime(_dataA.Value).ToDateTime(TimeOnly.MinValue) : null
+            );
+
+            // Analyze results
+            var distinctFoundIds = data.Select(x => x.ViaggioId).Distinct().ToList();
+            var requestedCount = _selectedViaggioIds.Count();
+            var foundCount = distinctFoundIds.Count;
+
+            if (foundCount == 0)
+            {
+                Snackbar.Add("Nessun documento contabile trovato per i viaggi selezionati. Stampa annullata.", Severity.Warning);
+                return;
+            }
+
+            if (foundCount < requestedCount)
+            {
+                var missingCount = requestedCount - foundCount;
+                Snackbar.Add($"Attenzione: {missingCount} viaggi selezionati non hanno documenti contabili e non verranno inclusi nella stampa.", Severity.Warning, config => 
+                {
+                    config.VisibleStateDuration = 5000; // Stay longer
+                });
+            }
+
+            // Generate PDF
+            var pdfBytes = await PrintService.GeneratePdfAsync(data, aziendaNome);
+
+            // Save and Open
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = $"Bilancio_Viaggi_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+            var outputPath = Path.Combine(targetFolder, fileName);
+            
+            if (System.IO.File.Exists(outputPath)) System.IO.File.Delete(outputPath);
+
+            await System.IO.File.WriteAllBytesAsync(outputPath, pdfBytes);
+
+            bool? confirm = await DialogService.ShowMessageBox(
+                "Stampa Completata",
+                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                yesText: "Sì, Apri", cancelText: "No");
+
+            if (confirm == true)
+            {
+#if MACCATALYST
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "open",
+                    Arguments = $"\"{outputPath}\"",
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+#else
+                await Launcher.Default.OpenAsync(new OpenFileRequest
+                {
+                    Title = "Stampa Bilancio",
+                    File = new ReadOnlyFile(outputPath)
+                });
+#endif
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore generazione PDF: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,98 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using Microsoft.Extensions.Logging
+@inject AnaViaggiService ViaggioService
+@inject ILogger<ViaggioMultiSelect> Logger
+
+<MudSelect T="int" Label="@Label"
+           @bind-SelectedValues="_selectedValues"
+           MultiSelection="true" 
+           SelectAll="true" 
+           SelectAllText="Seleziona Tutti"
+           Variant="Variant.Outlined" 
+           AnchorOrigin="Origin.BottomCenter"
+           Clearable="@Clearable"
+           Required="@Required"
+           RequiredError="@RequiredError"
+           Disabled="@Disabled"
+           AdornmentIcon="@Icons.Material.Filled.Landscape" 
+           AdornmentColor="Color.Primary"
+           ToStringFunc="@GetViaggioDescription"
+           Class="@Class">
+    @foreach (var viaggio in _viaggi)
+    {
+        <MudSelectItem Value="@viaggio.Id">@($"{viaggio.DescrizioneBreve}")</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public IEnumerable<int> SelectedViaggioIds { get; set; } = new HashSet<int>();
+    [Parameter] public EventCallback<IEnumerable<int>> SelectedViaggioIdsChanged { get; set; }
+    
+    [Parameter] public int? AziendaId { get; set; }
+    [Parameter] public string Label { get; set; } = "Seleziona Viaggi";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private IEnumerable<int> _selectedValues
+    {
+        get => SelectedViaggioIds;
+        set
+        {
+            if (!SelectedViaggioIds.SequenceEqual(value))
+            {
+                SelectedViaggioIds = value;
+                SelectedViaggioIdsChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    private List<AnaViaggi> _viaggi = new();
+    private int? _previousAziendaId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadViaggiAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId != _previousAziendaId)
+        {
+            _previousAziendaId = AziendaId;
+            await LoadViaggiAsync();
+        }
+    }
+
+    private async Task LoadViaggiAsync()
+    {
+        try
+        {
+            if (AziendaId.HasValue && AziendaId.Value > 0)
+            {
+                // Load all trips for the company
+                var trips = await ViaggioService.GetAllAsync(aziendaId: AziendaId.Value);
+                _viaggi = trips.OrderBy(v => v.DescrizioneBreve).ToList();
+            }
+            else
+            {
+                _viaggi = new List<AnaViaggi>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ViaggioMultiSelect: Errore nel caricamento viaggi");
+            _viaggi = new List<AnaViaggi>();
+        }
+    }
+
+    private string GetViaggioDescription(int id)
+    {
+        var viaggio = _viaggi.FirstOrDefault(x => x.Id == id);
+        return viaggio?.DescrizioneBreve ?? $"{id}";
+    }
+}
+}

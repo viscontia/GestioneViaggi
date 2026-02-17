@@ -9,12 +9,12 @@ using GestioneViaggi.Components;
 using GestioneViaggi.Components.Shared;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Authentication;
+using GestioneViaggi.Services.Printing;
 using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services;
-using GestioneViaggi.Services.Printing; // Add namespace
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
 
@@ -180,8 +180,9 @@ public static class MauiProgram
         // Printing Services
         builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
         builder.Services.AddScoped<IRoomingListPrintService, RoomingListPrintService>();
-        builder.Services.AddScoped<MovTransazioniPrintService>();
-        builder.Services.AddScoped<ScadenzarioPrintService>();
+        builder.Services.AddSingleton<MovTransazioniPrintService>();
+        builder.Services.AddSingleton<ScadenzarioPrintService>();
+        builder.Services.AddSingleton<BilancioViaggioPrintService>();
 
         // Exchange Rate Service
         builder.Services.AddHttpClient();

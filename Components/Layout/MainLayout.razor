@@ -11,14 +11,19 @@
 
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-            OnClick="@((e) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="@((e) => DrawerToggle())"
+                       aria-label="Apri/Chiudi menu laterale" />
         <MudText Typo="Typo.h5" Class="ml-3">Gestione Viaggi</MudText>
         <MudSpacer />
         <AppBreadcrumbs />
         <MudSpacer />
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)"
-            Color="Color.Inherit" OnClick="@((e) => DarkModeToggle())" />
+                       Color="Color.Inherit"
+                       OnClick="@((e) => DarkModeToggle())"
+                       aria-label="@(_isDarkMode ? "Passa a tema chiaro" : "Passa a tema scuro")" />
     </MudAppBar>
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini"
         OpenMiniOnHover="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
@@ -69,7 +74,7 @@
                 AppbarBackground = "#FFFFFF",
                 AppbarText = "#111827",
                 TextPrimary = "#111827",
-                TextSecondary = "#6B7280",
+                TextSecondary = "#475569", // Improved contrast: 7.1:1 (WCAG AAA) - was #6B7280
             },
             PaletteDark = new PaletteDark()
             {
@@ -82,6 +87,7 @@
                 AppbarBackground = "#30333B",
                 TextPrimary = "#E6E8EB",
                 TextSecondary = "#9AA1AC",
+                Divider = "#404752", // FASE 2: Visible borders in dark mode
             },
         };
 

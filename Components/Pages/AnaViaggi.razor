@@ -125,7 +125,14 @@
                                                            Size="Size.Small"
                                                            Color="Color.Info"
                                                            Class="inline-action-btn"
-                                                           OnClick="@(() => OpenEditDialog(context, true))" />
+                                            OnClick="@(() => OpenEditDialog(context, true))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Stampa Bilancio">
+                                            <MudIconButton Icon="@Icons.Material.Filled.AttachMoney"
+                                                           Size="Size.Small"
+                                                           Color="Color.Warning"
+                                                           Class="inline-action-btn"
+                                                           OnClick="@(() => OpenBilancioDialog(context))" />
                                         </MudTooltip>
                                     </CustomActions>
                                 </EnterpriseActionsColumn>
@@ -770,4 +777,21 @@
             }
         }
     }
+
+    private async Task OpenBilancioDialog(AnaViaggiEntity item)
+    {
+        var parameters = new DialogParameters
+        {
+            ["InitialViaggioId"] = item.Id
+        };
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<StampaBilancioViaggioDialog>("Stampa Bilancio Viaggio", parameters, options);
+    }
+}
 }

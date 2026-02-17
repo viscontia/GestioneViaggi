@@ -177,6 +177,26 @@ Componente autocomplete per la selezione di un Viaggio (`Components/Shared/Viagg
                    Clearable="true" />
     ```
 
+### ViaggioMultiSelect
+Componente per la selezione multipla di viaggi (`Components/Shared/ViaggioMultiSelect.razor`).
+*   **Funzionalità**:
+    *   Carica viaggi da `ana_viaggi` filtrati per azienda.
+    *   Permette la selezione multipla tramite `MudSelect`.
+    *   Supporta funzionalità "Seleziona Tutti".
+    *   Visualizza Descrizione Breve nel dropdown.
+    *   Ricarica automaticamente quando cambia `AziendaId`.
+*   **Parametri Chiave**:
+    *   `SelectedViaggioIds` (IEnumerable<int>): IDs viaggi selezionati (binding).
+    *   `AziendaId` (int?, opzionale): ID azienda per filtrare i viaggi.
+    *   `Label`: Etichetta del campo.
+    *   `Required`, `Clearable`, `Disabled`: Opzioni standard.
+*   **Utilizzo**:
+    ```razor
+    <ViaggioMultiSelect @bind-SelectedViaggioIds="_selectedIds"
+                        AziendaId="@_aziendaId"
+                        Label="Seleziona Viaggi" />
+    ```
+
 ### ValutaSelect
 Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
 *   **Implementazione**: Utilizza `MudAutocomplete<AnaValute>` invece di `MudSelect` per risolvere il problema di sovrapposizione tra asterisco required e freccia dropdown.
@@ -365,6 +385,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **UrgenzaSelect** | `UrgenzaSelect.razor` | Valori statici | - | Selezione urgenza scadenze (SCADUTO/URGENTE/IN_SCADENZA/NORMALE). Utilizzato nei filtri stampe. |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **ViaggioSelect** | `ViaggioSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione viaggio con ricerca su descrizione e nazione. Supporta parametro `AziendaId` e `CustomItems`. |
+| **ViaggioMultiSelect** | `ViaggioMultiSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione multipla viaggi. Supporta "Seleziona Tutti" e filtro azienda. |
 | **OrdinamentoStampaSelect** | `OrdinamentoStampaSelect.razor` | - | - | Selezione ordinamento per le stampe contabili: Fornitore, Data Documento, Importo ASC/DESC, Tipo Movimento. |
 
 ---

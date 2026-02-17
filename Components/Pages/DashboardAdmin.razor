@@ -18,7 +18,7 @@
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject ISnackbar Snackbar
 
-<MudStack Spacing="4">
+<MudStack Spacing="4" Class="@(_isLoading ? "" : "fade-in-content")">
 
     <!-- Header -->
     <MudPaper Elevation="2" Class="pa-4">
@@ -105,11 +105,77 @@
                 max-width: 20%;
             }
         }
+
+        /* FASE 1: Hover transitions for interactive cards */
+        .stat-card-interactive {
+            transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card-interactive:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Respect reduced motion preference */
+        @@media (prefers-reduced-motion: reduce) {
+            .stat-card-interactive {
+                transition: none;
+            }
+            .stat-card-interactive:hover {
+                transform: none;
+            }
+        }
+
+        /* FASE 2: Skeleton placeholder for charts */
+        .chart-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s ease-in-out infinite;
+            border-radius: 4px;
+        }
+
+        @@keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Dark mode skeleton */
+        .mud-theme-dark .chart-skeleton {
+            background: linear-gradient(90deg, #2a2d35 25%, #35383f 50%, #2a2d35 75%);
+            background-size: 200% 100%;
+        }
+
+        /* Respect reduced motion for skeleton */
+        @@media (prefers-reduced-motion: reduce) {
+            .chart-skeleton {
+                animation: none;
+                background: #f0f0f0;
+            }
+            .mud-theme-dark .chart-skeleton {
+                background: #2a2d35;
+            }
+        }
+
+        /* FASE 2: Fade-in animation */
+        .fade-in-content {
+            animation: fadeIn 300ms ease-in;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .fade-in-content {
+                animation: none;
+            }
+        }
     </style>
     <MudGrid>
 
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-            <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+            <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
             @onclick="@(() => NavigateTo($"/anagrafiche/clienti?year={_selectedYear}"))">
                 <MudStack Spacing="2">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -128,10 +194,10 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
                         <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
+                        <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                         @if (_statsClienti?.TrendData?.Any(x => x > 0) == true)
                         {
-                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none" aria-hidden="true">
                                     @{
                                         var data = _statsClienti.TrendData;
                                         var max = data.Any() ? data.Max() : 1;
@@ -164,8 +230,12 @@
                                         }
                                     }
                                 </svg>
-                            </MudPaper>
                         }
+                        else
+                        {
+                            <div class="chart-skeleton" style="width: 120px; height: 50px;"></div>
+                        }
+                        </MudPaper>
                     </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Clienti Totali</MudText>
@@ -176,7 +246,7 @@
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-            <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+            <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
             @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}"))">
                 <MudStack Spacing="2">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -195,10 +265,10 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
                         <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
+                        <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                         @if (_statsViaggi?.TrendData?.Any(x => x > 0) == true)
                         {
-                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none" aria-hidden="true">
                                     @{
                                         var data = _statsViaggi.TrendData;
                                         var max = data.Any() ? data.Max() : 1;
@@ -231,8 +301,12 @@
                                         }
                                     }
                                 </svg>
-                            </MudPaper>
                         }
+                        else
+                        {
+                            <div class="chart-skeleton" style="width: 120px; height: 50px;"></div>
+                        }
+                        </MudPaper>
                     </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Viaggi Totali</MudText>
@@ -261,10 +335,10 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
                         <MudText Typo="Typo.h4">@((_statsRevenue?.MainValue ?? 0).ToString("N0"))</MudText>
+                        <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                         @if (_statsRevenue?.TrendData?.Any(x => x > 0) == true)
                         {
-                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none" aria-hidden="true">
                                     @{
                                         var data = _statsRevenue.TrendData;
                                         var max = data.Any() ? data.Max() : 1;
@@ -297,8 +371,12 @@
                                         }
                                     }
                                 </svg>
-                            </MudPaper>
                         }
+                        else
+                        {
+                            <div class="chart-skeleton" style="width: 120px; height: 50px;"></div>
+                        }
+                        </MudPaper>
                     </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Fatturato @_selectedYear (@(_currentUser?.ValutaCodiceIso ?? "EUR"))</MudText>
@@ -309,7 +387,7 @@
             </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-                <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%"
+                <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
                 @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}&filter=completed"))">
                     <MudStack Spacing="2">
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
@@ -337,7 +415,7 @@
                 </MudPaper>
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-                <MudPaper Elevation="2" Class="pa-4 cursor-pointer" Style="height: 100%" @onclick="OnPartenzeDaFareClick">
+                <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);" @onclick="OnPartenzeDaFareClick">
                     <MudStack Spacing="2">
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Warning" />
@@ -357,10 +435,10 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 50px; width: 100%;">
                         <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
+                        <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                         @if (_statsViaggiDaFare?.TrendData?.Any(x => x > 0) == true)
                         {
-                           <MudPaper Width="120px" Height="50px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none">
+                                <svg width="100%" height="100%" viewBox="0 0 120 50" preserveAspectRatio="none" aria-hidden="true">
                                     @{
                                         var data = _statsViaggiDaFare.TrendData;
                                         // Ensure we have 12 points
@@ -425,8 +503,12 @@
                                         }
                                     }
                                 </svg>
-                            </MudPaper>
                         }
+                        else
+                        {
+                            <div class="chart-skeleton" style="width: 120px; height: 50px;"></div>
+                        }
+                        </MudPaper>
                     </MudStack>
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudText Typo="Typo.body2">Viaggi da fare @_selectedYear</MudText>
@@ -488,7 +570,10 @@
         <MudPaper Elevation="2" Class="pa-4">
             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
                 <MudText Typo="Typo.h6">Attività Recenti</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" OnClick="LoadActivitiesAsync" />
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Size="Size.Small"
+                               OnClick="LoadActivitiesAsync"
+                               aria-label="Ricarica attività recenti" />
             </MudStack>
             
             @if (_activities == null)
@@ -523,6 +608,7 @@
     </MudStack>
 
     @code {
+    private bool _isLoading = true; // FASE 2: Loading state for fade-in animation
     private Models.UserInfo? _currentUser;
     private ComparisonMode _comparisonMode = ComparisonMode.FullYear;
     private StatisticResult? _statsClienti;
@@ -573,6 +659,7 @@
 
         await LoadStatsAsync();
         await LoadActivitiesAsync();
+        _isLoading = false; // FASE 2: Trigger fade-in animation
     }
 
     private string GetYearLabel()

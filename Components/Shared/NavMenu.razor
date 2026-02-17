@@ -185,6 +185,10 @@
                     OnClick="@OpenStampaScadenzarioDialog">
             <MudText Typo="Typo.body1">Scadenziario</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.AccountBalanceWallet"
+                    OnClick="@OpenStampaBilancioViaggioDialog">
+            <MudText Typo="Typo.body1">Stampa Bilancio Viaggio/i</MudText>
+        </MudNavLink>
     </MudNavGroup>
 
 
@@ -462,5 +466,17 @@
             BackdropClick = false
         };
         await DialogService.ShowAsync<StampaScadenzarioDialog>("Stampa Scadenzario", options);
+    }
+
+    private async Task OpenStampaBilancioViaggioDialog()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<StampaBilancioViaggioDialog>("Stampa Bilancio Viaggio", options);
     }
 }
