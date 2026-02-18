@@ -12,6 +12,7 @@
 @inject ContropartiService ContropartiService
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject IPdfOpenerService PdfOpenerService
 @implements IDisposable
 
 <MudDialog>
@@ -290,29 +291,7 @@
 
             await ScadenzarioPrinter.GeneratePdfAsync(printData, outputPath);
 
-            bool? confirm = await DialogService.ShowMessageBox(
-                "Stampa Completata",
-                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
-                yesText: "Sì, Apri", cancelText: "No");
-
-            if (confirm == true)
-            {
-#if MACCATALYST
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "open",
-                    Arguments = $"\"{outputPath}\"",
-                    UseShellExecute = true
-                };
-                System.Diagnostics.Process.Start(psi);
-#else
-                await Launcher.Default.OpenAsync(new OpenFileRequest
-                {
-                    Title = "Scadenzario",
-                    File = new ReadOnlyFile(outputPath)
-                });
-#endif
-            }
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Stampa Completata");
 
             MudDialog.Close(DialogResult.Ok(true));
         }

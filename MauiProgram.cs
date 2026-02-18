@@ -186,6 +186,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MovTransazioniPrintService>();
         builder.Services.AddSingleton<ScadenzarioPrintService>();
         builder.Services.AddSingleton<BilancioViaggioPrintService>();
+        builder.Services.AddScoped<IPdfOpenerService, PdfOpenerService>();
 
         // Exchange Rate Service
         builder.Services.AddHttpClient();

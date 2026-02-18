@@ -4,6 +4,7 @@
 @using GestioneViaggi.Models.DTOs
 @using MudBlazor
 @using System.IO
+@using GestioneViaggi.Services.Printing
 @inject MovClientiViaggiService MovClientiService
 @inject MovClientiAlloggiService AlloggiService
 @inject AnaViaggiService ViaggiService
@@ -13,6 +14,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject IPdfOpenerService PdfOpenerService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 
 <MudDialog>
@@ -656,25 +658,7 @@
 
             await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
 
-            // Confirmation and Open
-            bool? confirm = await DialogService.ShowMessageBox(
-                "Stampa Completata",
-                $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
-                yesText: "Sì, Apri", cancelText: "No");
-
-            if (confirm == true)
-            {
-                // Cross-Platform Open
-#if MACCATALYST
-                System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
-#else
-                await Launcher.Default.OpenAsync(new OpenFileRequest
-                {
-                    Title = "Rooming List",
-                    File = new ReadOnlyFile(filePath)
-                });
-#endif
-            }
+            await PdfOpenerService.OpenPdfAsync(filePath, "Stampa Completata");
         }
         catch(Exception ex)
         {
