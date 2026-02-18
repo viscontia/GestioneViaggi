@@ -564,3 +564,41 @@ Servizio per l'aggiornamento automatico dei tassi di cambio.
     *   `UpdateRateAsync(string isoCode)`: Aggiorna il tasso di cambio per una specifica valuta (es. "USD").
 *   **Dipendenze**: `HttpClient`, `AnaValuteService`, `AnaTassiCambioService`.
 
+
+## Gestione Stampe
+
+### ReportHeaderHelper
+
+`ReportHeaderHelper` è una classe statica che centralizza la logica per la generazione di header e footer nei report PDF (QuestPDF). Assicura coerenza grafica e riduce la duplicazione del codice.
+
+#### Metodi Principali
+
+*   **ComposeCompanyHeader**: Genera l'intestazione standard con:
+    *   Logo aziendale (se presente) o Ragione Sociale (testo).
+    *   Dettagli azienda (indirizzo, P.IVA, telefono, email).
+    *   Titolo del report (es. "BILANCIO DI VIAGGIO").
+    *   Data di stampa e utente (opzionali).
+    
+    ```csharp
+    ReportHeaderHelper.ComposeCompanyHeader(
+        container, 
+        companyData,     // DTO con dati azienda e logo
+        "TITOLO REPORT", 
+        DateTime.Now,    // Data stampa
+        currentUser      // Utente
+    );
+    ```
+
+*   **ComposeFooter**: Genera il piè di pagina standard con:
+    *   Copyright e nome applicazione.
+    *   Numerazione pagine (Pagina X di Y).
+
+    ```csharp
+    page.Footer().Element(ReportHeaderHelper.ComposeFooter);
+    ```
+
+#### Stili Condivisi
+
+*   **BrandColors**: Definisce i colori principali da usare nei report (Primary, Secondary, Background).
+*   **GridHeaderStyle**: Stile standard per le intestazioni delle tabelle.
+*   **GridCellStyle**: Stile standard per le celle delle tabelle.

@@ -237,8 +237,25 @@ public class MovTransazioniPrintService
         try
         {
             using var connection = await _dbService.GetConnectionAsync();
-            string sql = "SELECT azienda_codice as Codice, azienda_ragione_sociale as RagioneSociale FROM ana_aziende WHERE azienda_id = @Id";
-            return await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(sql, new { Id = aziendaId }) ?? new CompanyPrintInfo();
+            
+            // Use the shared function for consistent company info including logo
+            var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";
+            var companyRaw = await connection.QueryFirstOrDefaultAsync<dynamic>(companySql, new { AziendaId = aziendaId });
+
+            if (companyRaw != null)
+            {
+                return new CompanyPrintInfo
+                {
+                    RagioneSociale = (string)companyRaw.ragione_sociale ?? "",
+                    Telefono = (string)companyRaw.telefono ?? "",
+                    Email = (string)companyRaw.email ?? "",
+                    SitoWeb = (string)companyRaw.sito_web ?? "",
+                    Piva = (string)companyRaw.piva ?? "",
+                    LogoData = companyRaw.logo_data != null ? (byte[])companyRaw.logo_data : Array.Empty<byte>()
+                };
+            }
+            
+            return new CompanyPrintInfo();
         }
         catch (Exception ex)
         {

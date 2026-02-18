@@ -1,5 +1,7 @@
 using GestioneViaggi.Models.DTOs;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
@@ -11,17 +13,79 @@ using IContainer = QuestPDF.Infrastructure.IContainer;
 
 namespace GestioneViaggi.Services.Printing;
 
+public class BilancioViaggioPrintData
+{
+    public CompanyPrintInfo Azienda { get; set; } = new();
+    public List<BilancioViaggioDTO> Dettagli { get; set; } = new();
+    public string UtenteStampa { get; set; } = string.Empty;
+    public DateTime DataStampa { get; set; } = DateTime.Now;
+    public string? FiltriDisplay { get; set; }
+}
+
 public class BilancioViaggioPrintService
 {
     private readonly IDatabaseService _databaseService;
+    private readonly AziendaService _aziendaService;
+    private readonly AziendaLogoService _aziendaLogoService;
+    private readonly ITenantContext _tenantContext;
     private readonly ILogger<BilancioViaggioPrintService> _logger;
 
     public BilancioViaggioPrintService(
         IDatabaseService databaseService,
+        AziendaService aziendaService,
+        AziendaLogoService aziendaLogoService,
+        ITenantContext tenantContext,
         ILogger<BilancioViaggioPrintService> logger)
     {
         _databaseService = databaseService;
+        _aziendaService = aziendaService;
+        _aziendaLogoService = aziendaLogoService;
+        _tenantContext = tenantContext;
         _logger = logger;
+    }
+
+    public async Task<BilancioViaggioPrintData> GetBilancioPrintDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, string utenteStampa)
+    {
+        var data = new BilancioViaggioPrintData
+        {
+            UtenteStampa = utenteStampa,
+            DataStampa = DateTime.Now
+        };
+
+        // 1. Fetch Company Info
+        var azienda = await _aziendaService.GetByIdAsync(aziendaId);
+        if (azienda != null)
+        {
+            data.Azienda.RagioneSociale = azienda.RagioneSociale;
+            data.Azienda.Piva = azienda.PartitaIva;
+            data.Azienda.Telefono = azienda.TelefonoPrincipale;
+            data.Azienda.Email = azienda.Pec ?? "";
+            data.Azienda.SitoWeb = azienda.SitoWeb ?? "";
+
+            // 2. Fetch Logo
+            try
+            {
+                var logos = await _aziendaLogoService.GetByAziendaIdAsync(aziendaId);
+                var primaryLogo = logos.FirstOrDefault(l => l.IsDefault) ?? logos.FirstOrDefault();
+                if (primaryLogo != null)
+                {
+                    var logoData = await _aziendaLogoService.GetBinaryDataAsync(primaryLogo.Id);
+                    if (logoData != null)
+                    {
+                        data.Azienda.LogoData = logoData;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Impossibile recuperare il logo per l'azienda {AziendaId}", aziendaId);
+            }
+        }
+
+        // 3. Fetch Details
+        data.Dettagli = await GetBilancioDataAsync(aziendaId, viaggioId, dataViaggioId, dataDa, dataA);
+
+        return data;
     }
 
     public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA)
@@ -83,10 +147,12 @@ public class BilancioViaggioPrintService
         return result;
     }
 
-    public async Task<byte[]> GeneratePdfAsync(List<BilancioViaggioDTO> data, string aziendaNome)
+    public async Task<byte[]> GeneratePdfAsync(BilancioViaggioPrintData printData)
     {
         return await Task.Run(() =>
         {
+            var data = printData.Dettagli;
+
             // Group data by trip
             var trips = data.GroupBy(x => x.ViaggioId).ToList();
             
@@ -94,224 +160,165 @@ public class BilancioViaggioPrintService
             var globalTotals = new BilancioTotals
             {
                 TotalRevenue = data.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur),
-                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur)
+                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur),
+                Participants = data.Select(x => x.ViaggioNumeroPartecipanti).FirstOrDefault() // Approximation for global
             };
 
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4);
+                    page.Size(PageSizes.A4.Landscape());
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
+
+                    page.Header().Element(header => ComposeHeader(header, printData));
                     
-                    page.Header().Element(ComposeHeader);
-                    
-                    page.Content().Element(ComposeContent);
-
-                    page.Footer().AlignCenter().Text(x =>
-                    {
-                        x.CurrentPageNumber();
-                        x.Span(" / ");
-                        x.TotalPages();
-                    });
-                });
-
-                void ComposeHeader(IContainer container)
-                {
-                    container.Row(row =>
-                    {
-                        row.RelativeItem().Column(column =>
-                        {
-                            column.Item().Text(aziendaNome).FontSize(20).SemiBold().FontColor(Colors.Blue.Medium);
-                            column.Item().Text("Bilancio di Viaggio").FontSize(16).SemiBold();
-                            column.Item().Text($"Generato il: {DateTime.Now:dd/MM/yyyy HH:mm}");
-                        });
-                    });
-                }
-
-                void ComposeContent(IContainer container)
-                {
-                    container.Column(column =>
+                    page.Content().PaddingVertical(10).Column(column =>
                     {
                         foreach (var trip in trips)
                         {
-                            var tripData = trip.ToList();
-                            var first = tripData.First();
-                            
-                            var tripTotals = new BilancioTotals
-                            {
-                                TotalRevenue = tripData.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur),
-                                TotalCost = tripData.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur),
-                                Participants = first.ViaggioNumeroPartecipanti
-                            };
-
-                             // Page break logic: if not first trip, add page break.
-                            if (trip != trips.First()) column.Item().PageBreak();
-
-                            // Trip Header
-                            column.Item().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingBottom(5).Row(row => 
-                            {
-                                row.RelativeItem().Column(c => 
-                                { 
-                                    c.Item().Text(first.ViaggioDescrizione).FontSize(14).Bold();
-                                    if (first.ViaggioDataInizio.HasValue)
-                                        c.Item().Text($"{first.ViaggioDataInizio:dd/MM/yyyy} - {first.ViaggioDataFine:dd/MM/yyyy}").FontSize(10).FontColor(Colors.Grey.Medium);
-                                });
-                                 if (tripTotals.Participants > 0)
-                                {
-                                    row.ConstantItem(100).AlignRight().Text($"Pax: {tripTotals.Participants}").FontSize(11);
-                                }
-                            });
-
-
-                            column.Item().PaddingTop(10);
-                            
-                            // REVENUES Section
-                            var revenues = tripData.Where(x => x.CategoriaTipo == "RICAVO").OrderBy(x => x.DataDocumento).ToList();
-                            RenderSection(column, "RICAVI (Vendite)", revenues, tripTotals.TotalRevenue, isCost: false, totalCostForIncidence: 0); 
-
-                            column.Item().PaddingTop(15);
-                            
-                            // COSTS Section
-                            var costs = tripData.Where(x => x.CategoriaTipo == "COSTO").OrderBy(x => x.CategoriaNome).ThenBy(x => x.DataDocumento).ToList();
-                            RenderSection(column, "COSTI (Acquisti)", costs, tripTotals.TotalCost, isCost: true, totalCostForIncidence: tripTotals.TotalCost);
-
-                            column.Item().PaddingTop(20);
-                            
-                            // SUMMARY Box for Trip
-                            RenderSummaryBox(column, tripTotals);
+                            var tripInfo = trip.First();
+                            ComposeTripSection(column, tripInfo, trip.ToList());
+                            column.Item().PageBreak(); 
                         }
 
-                        // Global Summary if multiple trips
+                        // Summary Page if more than one trip
                         if (trips.Count > 1)
                         {
-                            column.Item().PageBreak();
-                            column.Item().Text("RIEPILOGO GENERALE").FontSize(16).Bold();
-                            RenderSummaryBox(column, globalTotals);
+                             ComposeGlobalSummary(column, globalTotals);
                         }
                     });
-                }
 
-                void RenderSection(ColumnDescriptor column, string title, List<BilancioViaggioDTO> items, decimal sectionTotal, bool isCost, decimal totalCostForIncidence)
-                {
-                    column.Item().Text(title).FontSize(12).Bold().FontColor(isCost ? Colors.Red.Darken1 : Colors.Green.Darken1);
-                    
-                    if (!items.Any())
-                    {
-                        column.Item().Text("Nessuna transazione registrata.").FontSize(10).Italic();
-                        return;
-                    }
-
-                    column.Item().Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn(3); // Categoria/Descrizione
-                            columns.RelativeColumn(2); // Controparte
-                            columns.RelativeColumn(2); // Documento
-                            columns.RelativeColumn(2); // Data
-                            columns.RelativeColumn(2); // Importo
-                            if (isCost) columns.RelativeColumn(1); // % Inc.
-                        });
-
-                        // Header
-                        table.Header(header =>
-                        {
-                            header.Cell().Text(isCost ? "Categoria" : "Descrizione").Bold();
-                            header.Cell().Text("Controparte").Bold();
-                            header.Cell().Text("Doc. N.").Bold();
-                            header.Cell().Text("Data").Bold();
-                            header.Cell().AlignRight().Text("Importo (€)").Bold();
-                            if (isCost) header.Cell().AlignRight().Text("% Inc.").Bold();
-                        });
-
-                        // Group by Categoria if Cost
-                        if (isCost)
-                        {
-                            foreach (var group in items.GroupBy(x => x.CategoriaNome))
-                            {
-                                decimal groupTotal = group.Sum(x => x.ImportoNettoEur);
-                                decimal incidence = totalCostForIncidence != 0 ? (groupTotal / totalCostForIncidence) * 100 : 0;
-
-                                foreach (var item in group)
-                                {
-                                    RenderRow(table, item, isCost, totalCostForIncidence);
-                                }
-                                
-                                // Category Subtotal
-                                table.Cell().ColumnSpan(4).AlignRight().Text($"{group.Key} Totale:").FontSize(9).Bold();
-                                table.Cell().AlignRight().Text($"{groupTotal:N2}").FontSize(9).Bold();
-                                table.Cell().AlignRight().Text($"{incidence:N1}%").FontSize(9).Italic();
-                            }
-                        }
-                        else
-                        {
-                            foreach (var item in items)
-                            {
-                                RenderRow(table, item, isCost, 0);
-                            }
-                        }
-
-                        // Section Total
-                        table.Cell().ColumnSpan(4).AlignRight().PaddingTop(5).Text("TOTALE SEZIONE:").Bold();
-                        table.Cell().AlignRight().PaddingTop(5).BorderTop(1).Text($"{sectionTotal:N2}").Bold();
-                        if (isCost) table.Cell().Text("");
-                    });
-                }
-
-                void RenderRow(TableDescriptor table, BilancioViaggioDTO item, bool isCost, decimal totalCost)
-                {
-                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(2).Text(isCost ? item.CategoriaNome : item.TransazioneDescrizione).FontSize(9);
-                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(2).Text(item.ControparteRagioneSociale).FontSize(9);
-                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(2).Text(item.NumeroDocumento).FontSize(9);
-                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten3).PaddingVertical(2).Text(item.DataDocumento?.ToString("dd/MM/yyyy") ?? "-").FontSize(9);
-                    
-                    table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten3).AlignRight().PaddingVertical(2).Text($"{item.ImportoNettoEur:N2}").FontSize(9);
-                    
-                    if (isCost)
-                    {
-                        table.Cell().Text(""); 
-                    }
-                }
-
-                void RenderSummaryBox(ColumnDescriptor column, BilancioTotals totals)
-                {
-                    column.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
-                    {
-                        c.Item().Text("RIEPILOGO MARGINI").Bold();
-                        
-                        c.Item().Table(t => 
-                        {
-                            t.ColumnsDefinition(cols => 
-                            {
-                                cols.RelativeColumn();
-                                cols.ConstantColumn(100);
-                            });
-
-                            t.Cell().Text("Totale Ricavi:");
-                            t.Cell().AlignRight().Text($"{totals.TotalRevenue:N2} €").Bold().FontColor(Colors.Green.Darken2);
-
-                            t.Cell().Text("Totale Costi:");
-                            t.Cell().AlignRight().Text($"{totals.TotalCost:N2} €").Bold().FontColor(Colors.Red.Darken2);
-
-                            t.Cell().PaddingTop(5).BorderTop(1).Text("MARGINE OPERATIVO:").Bold();
-                            t.Cell().PaddingTop(5).BorderTop(1).AlignRight().Text($"{totals.Margin:N2} €").FontSize(12).Bold();
-
-                            t.Cell().Text("Margine %:");
-                            t.Cell().AlignRight().Text($"{totals.MarginPercentage:N2}%").Bold();
-
-                            if (totals.Participants > 0)
-                            {
-                                t.Cell().PaddingTop(5).Text("Costo Medio per Pax:").Italic();
-                                t.Cell().PaddingTop(5).AlignRight().Text($"{(totals.TotalCost / totals.Participants):N2} €").Italic();
-                            }
-                        });
-                    });
-                }
+                    page.Footer().Element(ReportHeaderHelper.ComposeFooter);
+                });
             });
 
             return document.GeneratePdf();
+        });
+    }
+
+    private void ComposeHeader(IContainer container, BilancioViaggioPrintData data)
+    {
+        ReportHeaderHelper.ComposeCompanyHeader(
+            container, 
+            data.Azienda, 
+            "BILANCIO DI VIAGGIO", 
+            data.DataStampa, 
+            data.UtenteStampa
+        );
+    }
+
+    private void ComposeTripSection(ColumnDescriptor column, BilancioViaggioDTO tripInfo, List<BilancioViaggioDTO> transactions)
+    {
+        // Trip Header
+        column.Item().Background(Colors.Grey.Lighten3).Padding(10).Column(c =>
+        {
+            c.Item().Text($"{tripInfo.ViaggioDescrizione}").FontSize(14).Bold().FontColor(Colors.Blue.Medium);
+            c.Item().Text($"Dal: {tripInfo.ViaggioDataInizio:dd/MM/yyyy} Al: {tripInfo.ViaggioDataFine:dd/MM/yyyy} - Partecipanti: {tripInfo.ViaggioNumeroPartecipanti}").FontSize(10);
+        });
+
+        column.Item().PaddingTop(10);
+
+        // Calculate Trip Totals
+        var revenue = transactions.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur);
+        var cost = transactions.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur);
+        var margin = revenue - cost;
+        var marginPercent = revenue > 0 ? (margin / revenue) * 100 : 0;
+        
+        var totals = new BilancioTotals
+        {
+            TotalRevenue = revenue,
+            TotalCost = cost,
+            Participants = tripInfo.ViaggioNumeroPartecipanti
+        };
+
+        // Transactions Table
+        column.Item().Table(table =>
+        {
+            table.ColumnsDefinition(columns =>
+            {
+                columns.ConstantColumn(80); // Data
+                columns.RelativeColumn(3);  // Descrizione
+                columns.RelativeColumn(2);  // Controparte
+                columns.RelativeColumn(2);  // Categoria
+                columns.RelativeColumn(1);  // Tipo
+                columns.RelativeColumn(1.5f); // Importo
+            });
+
+            table.Header(header =>
+            {
+                header.Cell().Element(CellStyle).Text("Data").SemiBold();
+                header.Cell().Element(CellStyle).Text("Descrizione").SemiBold();
+                header.Cell().Element(CellStyle).Text("Controparte").SemiBold();
+                header.Cell().Element(CellStyle).Text("Categoria").SemiBold();
+                header.Cell().Element(CellStyle).Text("Tipo").SemiBold();
+                header.Cell().Element(CellStyle).AlignRight().Text("Importo (€)").SemiBold();
+
+                IContainer CellStyle(IContainer container) => container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(2);
+            });
+
+            foreach (var transaction in transactions.OrderBy(x => x.DataRegistrazione))
+            {
+                table.Cell().Element(CellStyle).Text($"{transaction.DataRegistrazione:dd/MM/yyyy}");
+                table.Cell().Element(CellStyle).Text(transaction.TransazioneDescrizione);
+                table.Cell().Element(CellStyle).Text(transaction.ControparteRagioneSociale);
+                table.Cell().Element(CellStyle).Text(transaction.CategoriaNome);
+                
+                var color = transaction.CategoriaTipo == "RICAVO" ? Colors.Green.Medium : Colors.Red.Medium;
+                table.Cell().Element(CellStyle).Text(transaction.CategoriaTipo).FontColor(color);
+                
+                table.Cell().Element(CellStyle).AlignRight().Text($"{transaction.ImportoNettoEur:N2}").FontColor(color);
+
+                IContainer CellStyle(IContainer container) => container.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten4).Padding(2);
+            }
+        });
+
+        // Trip Summary
+        column.Item().PaddingTop(10).Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+        {
+            c.Item().Text("Riepilogo Viaggio").Bold();
+            c.Item().Row(row =>
+            {
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text($"Totale Ricavi: {revenue:N2} €").FontColor(Colors.Green.Medium);
+                    col.Item().Text($"Totale Costi: {cost:N2} €").FontColor(Colors.Red.Medium);
+                });
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text($"Margine: {margin:N2} €").Bold();
+                    col.Item().Text($"Margine %: {marginPercent:N2} %");
+                });
+            });
+        });
+    }
+
+    private void ComposeGlobalSummary(ColumnDescriptor column, BilancioTotals totals)
+    {
+        column.Item().Background(Colors.Blue.Lighten5).Padding(20).Column(c =>
+        {
+            c.Item().AlignCenter().Text("RIEPILOGO GENERALE").FontSize(16).Bold().FontColor(Colors.Blue.Darken2);
+            c.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Blue.Darken2);
+            c.Item().PaddingTop(10).Row(row =>
+            {
+                row.RelativeItem().AlignCenter().Column(col =>
+                {
+                    col.Item().Text("Totale Ricavi").FontSize(12);
+                    col.Item().Text($"{totals.TotalRevenue:N2} €").FontSize(14).Bold().FontColor(Colors.Green.Darken2);
+                });
+                row.RelativeItem().AlignCenter().Column(col =>
+                {
+                    col.Item().Text("Totale Costi").FontSize(12);
+                    col.Item().Text($"{totals.TotalCost:N2} €").FontSize(14).Bold().FontColor(Colors.Red.Darken2);
+                });
+                row.RelativeItem().AlignCenter().Column(col =>
+                {
+                    col.Item().Text("Margine Totale").FontSize(12);
+                    col.Item().Text($"{totals.Margin:N2} €").FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
+                });
+            });
         });
     }
 
@@ -320,7 +327,6 @@ public class BilancioViaggioPrintService
         public decimal TotalRevenue { get; set; }
         public decimal TotalCost { get; set; }
         public int Participants { get; set; }
-        
         public decimal Margin => TotalRevenue - TotalCost;
         public decimal MarginPercentage => TotalRevenue != 0 ? (Margin / TotalRevenue) * 100 : 0;
     }

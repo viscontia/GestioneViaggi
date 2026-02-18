@@ -50,33 +50,12 @@ public class RoomingListPrinter
 
     private static void ComposeHeader(IContainer container, RoomingListPrintDTO data)
     {
-        container.Column(column =>
-        {
-            // TOP ROW: Logo + Title + Date (repeated on every page)
-            column.Item().Row(row =>
-            {
-                // LEFT: Logo
-                if (data.Company.LogoData != null && data.Company.LogoData.Length > 0)
-                {
-                    row.ConstantItem(80).MaxHeight(60).Image(data.Company.LogoData).FitArea();
-                }
-
-                // CENTER: Title (on single line)
-                row.RelativeItem().Column(titleCol =>
-                {
-                    titleCol.Item().AlignCenter().Border(2).BorderColor(BrandColors.Accent).Padding(10)
-                        .Text("ROOMING LIST")
-                        .FontSize(24).Bold().FontColor(BrandColors.Accent);
-                });
-
-                // RIGHT: Print Date
-                row.ConstantItem(100).AlignRight().Column(dateCol =>
-                {
-                    dateCol.Item().AlignRight().Text("Data di Stampa").FontSize(10);
-                    dateCol.Item().AlignRight().Text(DateTime.Now.ToString("dd/MM/yyyy")).FontSize(12).Bold();
-                });
-            });
-        });
+        ReportHeaderHelper.ComposeCompanyHeader(
+            container,
+            data.Company,
+            "ROOMING LIST",
+            DateTime.Now
+        );
     }
 
     private static void ComposeContent(IContainer container, RoomingListPrintDTO data)
@@ -262,19 +241,6 @@ public class RoomingListPrinter
 
     private static void ComposeFooter(IContainer container)
     {
-        container.Column(column =>
-        {
-            column.Item().LineHorizontal(0.5f).LineColor(BrandColors.Border);
-            column.Item().PaddingTop(5).Row(row =>
-            {
-                row.RelativeItem().AlignLeft().Text(text =>
-                {
-                    text.Span("Pag. ");
-                    text.CurrentPageNumber();
-                    text.Span(" di ");
-                    text.TotalPages();
-                });
-            });
-        });
+        ReportHeaderHelper.ComposeFooter(container);
     }
 }

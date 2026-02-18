@@ -174,33 +174,27 @@
                 return;
             }
 
-            var aziendaNome = "Azienda"; // Retrieve company name if not superadmin, or from selected ID
-             if (_aziendaIdEffettivo > 0)
-            {
-                // TODO: Get Azienda Name properly. For now use placeholder or User Info if single tenant
-                aziendaNome = sessionData.User.RagioneSocialeAzienda ?? "Azienda";
-            }
-
             Snackbar.Add("Generazione report in corso...", Severity.Info);
 
-            // Fetch Data
-            var data = await PrintService.GetBilancioDataAsync(
+            // 1. Get Print Data
+            var printData = await PrintService.GetBilancioPrintDataAsync(
                 _aziendaIdEffettivo,
                 _selectedViaggioId!.Value,
                 _selectedDataViaggioId,
-                _dataDa.HasValue ? DateOnly.FromDateTime(_dataDa.Value).ToDateTime(TimeOnly.MinValue) : null,
-                _dataA.HasValue ? DateOnly.FromDateTime(_dataA.Value).ToDateTime(TimeOnly.MinValue) : null
+                _dataDa,
+                _dataA,
+                sessionData.User.Username ?? "Utente"
             );
 
             // Analyze results
-            if (!data.Any())
+            if (!printData.Dettagli.Any())
             {
                 Snackbar.Add("Nessun documento contabile trovato per i criteri selezionati. Stampa annullata.", Severity.Warning);
                 return;
             }
 
-            // Generate PDF
-            var pdfBytes = await PrintService.GeneratePdfAsync(data, aziendaNome);
+            // 2. Generate PDF
+            var pdfBytes = await PrintService.GeneratePdfAsync(printData);
 
             // Save and Open
             var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");

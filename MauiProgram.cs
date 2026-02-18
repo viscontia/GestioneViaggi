@@ -30,6 +30,9 @@ public static class MauiProgram
         // Configura Dapper per mappare snake_case del DB su PascalCase del C#
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
+        // Configura licenza QuestPDF (Community)
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()

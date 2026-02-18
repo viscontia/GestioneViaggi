@@ -86,56 +86,17 @@ public class MovTransazioniPrinter
     {
         container.Column(column =>
         {
-            // 1. Riga Superiore: Logo/Azienda (Sinistra) + Info Stampa (Destra)
-            column.Item().Row(row =>
-            {
-                // Sinistra: Logo/Azienda
-                row.RelativeItem().Column(col =>
-                {
-                    if (data.Azienda.LogoData != null && data.Azienda.LogoData.Length > 0)
-                    {
-                        col.Item().MaxHeight(40).Image(data.Azienda.LogoData).FitArea();
-                    }
-                    else
-                    {
-                        col.Item().Text(data.Azienda.RagioneSociale)
-                            .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
-                    }
+            // 1. Header Standard Aziendale + Titolo
+             ReportHeaderHelper.ComposeCompanyHeader(
+                column.Item(),
+                data.Azienda,
+                "STAMPA MOVIMENTI CONTABILI" + (string.IsNullOrEmpty(data.Filtri.CausaleCiclo) ? "" : $" ({data.Filtri.CausaleCiclo})"),
+                data.DataStampa,
+                data.UtenteStampa,
+                $"Valuta target: {data.ValutaTargetCodiceIso}\nOrdinamento: {data.TipoOrdinamentoDisplay}"
+            );
 
-                    var infoParts = new List<string>();
-                    if (!string.IsNullOrEmpty(data.Azienda.RagioneSociale)) infoParts.Add(data.Azienda.RagioneSociale);
-                    if (!string.IsNullOrEmpty(data.Azienda.Piva)) infoParts.Add($"P.IVA: {data.Azienda.Piva}");
-                    if (!string.IsNullOrEmpty(data.Azienda.Telefono)) infoParts.Add(data.Azienda.Telefono);
-
-                    if (infoParts.Any())
-                    {
-                        col.Item().PaddingTop(2).Text(string.Join(" - ", infoParts)).FontSize(FontSizeSmall);
-                    }
-                });
-
-                // Destra: Info Stampa
-                row.RelativeItem().AlignRight().Column(col =>
-                {
-                    col.Item().Text($"Stampato il: {data.DataStampa:dd/MM/yyyy HH:mm}")
-                        .FontSize(FontSizeSmall);
-                    col.Item().Text($"Da: {data.UtenteStampa}")
-                        .FontSize(FontSizeSmall);
-                    col.Item().Text($"Valuta target: {data.ValutaTargetCodiceIso}")
-                        .FontSize(FontSizeSmall).Bold();
-                });
-            });
-
-            // 2. Riga Titolo: Centrata nel documento su un'unica riga
-            column.Item().PaddingVertical(10).AlignCenter().Column(col =>
-            {
-                col.Item().Text("STAMPA MOVIMENTI CONTABILI" + (string.IsNullOrEmpty(data.Filtri.CausaleCiclo) ? "" : $" ({data.Filtri.CausaleCiclo})"))
-                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
-                
-                col.Item().AlignCenter().Text($"Ordinamento: {data.TipoOrdinamentoDisplay}")
-                    .FontSize(10).FontColor(BrandColors.Secondary);
-            });
-
-            // Filtri applicati (se presenti)
+            // 2. Filtri applicati (se presenti)
             if (data.Filtri.HasAnyFilter)
             {
                 column.Item().PaddingTop(5).Background(BrandColors.LightGray).Padding(5).Row(row =>

@@ -189,19 +189,14 @@ public class ViaggiPrinter
 
      private static void ComposePageHeader(IContainer container, TravelPrintDTO data)
     {
-        container.PaddingBottom(10).Row(row =>
-        {
-             row.RelativeItem().Column(c =>
-             {
-                c.Item().Text(data.Header.Titolo).FontSize(14).Bold().FontColor(BrandColors.Primary);
-                c.Item().Text($"{data.Header.Destinazione} - {data.Header.DateFormatted}").FontSize(10).Italic();
-             });
-             
-             if (data.Company.LogoData != null && data.Company.LogoData.Length > 0)
-            {
-                row.ConstantItem(100).AlignRight().MaxHeight(30).Image(data.Company.LogoData).FitArea();
-            }
-        });
+        ReportHeaderHelper.ComposeCompanyHeader(
+            container,
+            data.Company,
+            data.Header.Titolo,
+            DateTime.Now,
+            null,
+            $"{data.Header.Destinazione} - {data.Header.DateFormatted}"
+        );
     }
 
     private static void ComposeContent(IContainer container, List<ParticipantPrintInfo> participants)
@@ -444,25 +439,7 @@ public class ViaggiPrinter
 
     private static void ComposeFooter(IContainer container)
     {
-        container.PaddingTop(10).Column(column =>
-        {
-            column.Item().LineHorizontal(0.5f).LineColor(BrandColors.Border);
-            column.Item().PaddingTop(5).Row(row =>
-            {
-                row.RelativeItem().Text(x =>
-                {
-                    x.Span("Generato il ");
-                    x.Span(DateTime.Now.ToString("dd/MM/yyyy HH:mm")).Bold();
-                });
-                
-                row.RelativeItem().AlignRight().Text(x =>
-                {
-                    x.CurrentPageNumber();
-                    x.Span(" / ");
-                    x.TotalPages();
-                });
-            });
-        });
+        ReportHeaderHelper.ComposeFooter(container);
     }
     public static async Task GenerateDetailedPdfAsync(TravelPrintDTO data, string outputPath)
     {
