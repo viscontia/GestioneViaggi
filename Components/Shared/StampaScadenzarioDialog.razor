@@ -49,11 +49,13 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker @ref="_firstField" Label="Data Scadenza Da" @bind-Date="_dataScadenzaDa"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Error="@_errorDataScadenza" ErrorText="Data Da deve essere <= Data A" />
+                                   Error="@_errorDataScadenza" ErrorText="Data Da deve essere <= Data A"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Scadenza A" @bind-Date="_dataScadenzaA"
-                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
 
                 @* RIGA 4: Viaggio *@

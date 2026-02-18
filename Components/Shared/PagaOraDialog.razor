@@ -30,6 +30,8 @@
                                Label="Data Pagamento"
                                Variant="Variant.Outlined"
                                Required="true"
+                               Editable="true"
+                               Mask="@(new DateMask("dd/MM/yyyy"))"
                                MaxDate="@DateTime.Today"
                                AnchorOrigin="Origin.BottomCenter" />
             </MudItem>

@@ -579,7 +579,7 @@ public class MovTransazioniService
                 SELECT * FROM sp_registra_pagamento(
                     @TransazioneId,
                     @ImportoPagamento,
-                    @DataPagamento,
+                    @DataPagamento::DATE,
                     @NotePagamento,
                     @CurrentUser
                 )";

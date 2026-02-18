@@ -69,22 +69,26 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker @ref="_firstField" Label="Data Transazione Da" @bind-Date="_dataTransazioneDa" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Error="@_errorDataTransazione" ErrorText="Data Da deve essere <= Data A" />
+                                   Error="@_errorDataTransazione" ErrorText="Data Da deve essere <= Data A"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Transazione A" @bind-Date="_dataTransazioneA" 
-                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
 
                 @* RIGA 5: Data Documento Da/A *@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento Da" @bind-Date="_dataDocumentoDa" 
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Error="@_errorDataDocumento" ErrorText="Data Da deve essere <= Data A" />
+                                   Error="@_errorDataDocumento" ErrorText="Data Da deve essere <= Data A"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento A" @bind-Date="_dataDocumentoA" 
-                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
 
                 @* RIGA 6: Importo Da/A *@

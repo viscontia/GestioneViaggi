@@ -17,11 +17,13 @@
                 <MudItem xs="6">
                     <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" Date="Entity.DataInizio" DateChanged="OnStartDateChanged"
                         Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
+                        Mask="@(new DateMask("dd/MM/yyyy"))"
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true"
                         RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
+                        Mask="@(new DateMask("dd/MM/yyyy"))"
                         Margin="Margin.Dense" HelperText="@(DurationDays > 0 ? $"Durata fissa: {DurationDays} giorni" : null)" />
                 </MudItem>
 

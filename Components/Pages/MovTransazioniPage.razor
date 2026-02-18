@@ -59,6 +59,8 @@
                                DateChanged="@(EventCallback.Factory.Create<DateTime?>(this, OnDataTransazioneFilterChanged))"
                                Clearable="true"
                                Variant="Variant.Outlined" 
+                               Editable="true"
+                               Mask="@(new DateMask("dd/MM/yyyy"))"
                                Adornment="Adornment.End" 
                                AdornmentIcon="@Icons.Material.Filled.Event" />
             </div>

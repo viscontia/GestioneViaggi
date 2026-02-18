@@ -51,11 +51,13 @@
                 @* RIGA 4: Periodo (Opzionale) *@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa" 
-                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento A (Opzionale)" @bind-Date="_dataA" 
-                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter" />
+                                   Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
 
             </MudGrid>

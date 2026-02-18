@@ -25,6 +25,8 @@
                                    Required="true"
                                    RequiredError="Data obbligatoria"
                                    Variant="Variant.Outlined"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))"
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
@@ -193,6 +195,8 @@
                                    @bind-Date="_dataDocumento"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))"
                                    Clearable="true"
                                    Error="@_dataDocumentoError"
                                    ErrorText="@_dataDocumentoErrorText" />
@@ -214,6 +218,8 @@
                                    @bind-Date="_dataScadenza"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))"
                                    Clearable="true"
                                    Required="@_scadenzaObbligatoria"
                                    Error="@_dataScadenzaError"
@@ -224,6 +230,8 @@
                                    @bind-Date="_dataPagamento"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))"
                                    Clearable="true"
                                    Error="@_dataPagamentoError"
                                    ErrorText="@_dataPagamentoErrorText" />
