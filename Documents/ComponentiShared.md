@@ -601,4 +601,19 @@ Servizio per l'aggiornamento automatico dei tassi di cambio.
 
 *   **BrandColors**: Definisce i colori principali da usare nei report (Primary, Secondary, Background).
 *   **GridHeaderStyle**: Stile standard per le intestazioni delle tabelle.
-*   **GridCellStyle**: Stile standard per le celle delle tabelle.
+
+### PdfOpenerService
+
+`PdfOpenerService` centralizza la logica per richiedere all'utente di aprire un file PDF generato (in `Downloads`) e, in caso affermativo, lanciare il viewer di sistema.
+
+*   **Interfaccia**: `IPdfOpenerService`
+*   **Metodo**: `Task<bool> OpenPdfAsync(string filePath, string title = "Stampa Completata")`
+*   **Funzionalità**:
+    *   Mostra un `DialogService.ShowMessageBox` per chiedere conferma.
+    *   Gestisce l'apertura cross-platform:
+        *   **MacCatalyst**: Usa `System.Diagnostics.Process.Start("open", ...)` per bypassare limitazioni di `Launcher`.
+        *   **Altro**: Usa `Launcher.Default.OpenAsync`.
+*   **Utilizzo**:
+    ```csharp
+    await PdfOpenerService.OpenPdfAsync(outputPath);
+    ```
