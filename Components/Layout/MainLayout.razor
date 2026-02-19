@@ -34,7 +34,6 @@
                Elevation="2"
                Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)"
                OpenMiniOnHover="@(!_isMobile)"
-               CloseOnEscape="@_isMobile"
                Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <NavMenu OnItemClick="@HandleNavItemClick" />
     </MudDrawer>

@@ -278,12 +278,24 @@ public class BilancioViaggioPrintService
                     col.Item().Text($"Totale Costi").FontSize(10);
                     col.Item().Text($"{cost:N2} €").FontSize(12).Bold().FontColor(Colors.Red.Medium);
                     col.Item().Text($"{costPercent:N2} %").FontSize(9);
+                    
+                    if (tripInfo.ViaggioNumeroPartecipanti > 0)
+                    {
+                         var avgCost = cost / tripInfo.ViaggioNumeroPartecipanti;
+                         col.Item().PaddingTop(2).Text($"Costo medio/pax: {avgCost:N2} €").FontSize(9).Italic();
+                    }
                 });
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text($"Margine").FontSize(10);
                     col.Item().Text($"{margin:N2} €").FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
                     col.Item().Text($"{marginPercent:N2} %").FontSize(9);
+
+                    if (tripInfo.ViaggioNumeroPartecipanti > 0)
+                    {
+                         var avgMargin = margin / tripInfo.ViaggioNumeroPartecipanti;
+                         col.Item().PaddingTop(2).Text($"Guadagno medio/pax: {avgMargin:N2} €").FontSize(9).Italic();
+                    }
                 });
                 
                 // PIE CHART
@@ -370,12 +382,24 @@ public class BilancioViaggioPrintService
                     col.Item().Text("Totale Costi").FontSize(12);
                     col.Item().Text($"{totals.TotalCost:N2} €").FontSize(14).Bold().FontColor(Colors.Red.Darken2);
                     col.Item().Text($"{totals.CostPercentage:N2} %").FontSize(10);
+                    
+                    if (totals.Participants > 0)
+                    {
+                        var avgCost = totals.TotalCost / totals.Participants;
+                        col.Item().PaddingTop(2).Text($"Costo medio/pax: {avgCost:N2} €").FontSize(10).Italic();
+                    }
                 });
                 row.RelativeItem().AlignCenter().Column(col =>
                 {
                     col.Item().Text("Margine Totale").FontSize(12);
                     col.Item().Text($"{totals.Margin:N2} €").FontSize(14).Bold().FontColor(Colors.Blue.Darken2);
                     col.Item().Text($"{totals.MarginPercentage:N2} %").FontSize(10);
+                    
+                    if (totals.Participants > 0)
+                    {
+                        var avgMargin = totals.Margin / totals.Participants;
+                        col.Item().PaddingTop(2).Text($"Guadagno medio/pax: {avgMargin:N2} €").FontSize(10).Italic();
+                    }
                 });
             });
         });

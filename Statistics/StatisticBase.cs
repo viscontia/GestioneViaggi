@@ -43,7 +43,7 @@ public abstract class StatisticBase
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             await using var command = new NpgsqlCommand("SELECT count_val FROM fn_get_monthly_trend(@table_name, @year, @azienda_id, @date_column)", connection);
-            
+
             command.Parameters.AddWithValue("table_name", tableName);
             command.Parameters.AddWithValue("year", year);
             command.Parameters.AddWithValue("azienda_id", aziendaId ?? (object)DBNull.Value);
@@ -52,8 +52,11 @@ public abstract class StatisticBase
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                trend.Add(reader.GetInt64(0)); // count_val is BIGINT -> long -> but List is double for chart
+                trend.Add(reader.GetInt64(0)); // Index 0 = count_val (only column selected)
             }
+
+            _logger.LogInformation("GetMonthlyTrendFromDbAsync: Table={Table}, Year={Year}, AziendaId={AziendaId}, TrendCount={Count}",
+                tableName, year, aziendaId, trend.Count);
         }
         catch (Exception ex)
         {
@@ -63,6 +66,9 @@ public abstract class StatisticBase
 
         // Ensure we always have 12 items even if DB fails or returns partial (though function ensures 12)
         while (trend.Count < 12) trend.Add(0);
+
+        _logger.LogInformation("GetMonthlyTrendFromDbAsync FINAL: Table={Table}, Year={Year}, FinalCount={Count}, Data={Data}",
+            tableName, year, trend.Count, string.Join(",", trend));
 
         return trend;
     }

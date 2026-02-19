@@ -1,5 +1,6 @@
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace GestioneViaggi.Statistics;
 
@@ -30,7 +31,70 @@ public class StatisticCountViaggiFatti : StatisticBase
              previousCount = await GetCountForYearAsync(year - 1, aziendaId);
         }
 
-        return StatisticResult.Create(currentCount, currentCount, previousCount);
+        var result = StatisticResult.Create(currentCount, currentCount, previousCount);
+
+        // Populate trend data for chart visualization with custom filter for completed trips
+        result.TrendData = await GetMonthlyTrendForCompletedTripsAsync(year, aziendaId);
+
+        return result;
+    }
+
+    private async Task<List<double>> GetMonthlyTrendForCompletedTripsAsync(int year, int? aziendaId)
+    {
+        var trend = new List<double>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+
+            string sql = @"
+                WITH months AS (
+                    SELECT generate_series(1, 12) AS month_num
+                ),
+                counts AS (
+                    SELECT
+                        EXTRACT(MONTH FROM data_viaggio_data_inizio)::INT AS month_num,
+                        COUNT(*) as cnt
+                    FROM ana_date_viaggi
+                    WHERE EXTRACT(YEAR FROM data_viaggio_data_inizio) = @year
+                      AND data_viaggio_effettuato_sino = 'Y'";
+
+            if (aziendaId.HasValue)
+            {
+                sql += " AND azienda_id = @aziendaId";
+            }
+
+            sql += @"
+                    GROUP BY 1
+                )
+                SELECT
+                    m.month_num,
+                    COALESCE(c.cnt, 0) as count_val
+                FROM months m
+                LEFT JOIN counts c ON m.month_num = c.month_num
+                ORDER BY m.month_num";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("year", year);
+            if (aziendaId.HasValue)
+            {
+                command.Parameters.AddWithValue("aziendaId", aziendaId.Value);
+            }
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                trend.Add(reader.GetInt64(1)); // Index 1 = count_val
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching monthly trend for completed trips, Year {Year}", year);
+        }
+
+        // Ensure we always have 12 items
+        while (trend.Count < 12) trend.Add(0);
+
+        return trend;
     }
 
     private async Task<long> GetCountForYearAsync(int year, int? aziendaId)

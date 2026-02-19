@@ -84,10 +84,10 @@ public class AuthenticationService : IAuthenticationService
 
                 var errorMessage = errorCode switch
                 {
-                    "USER_NOT_FOUND" => "Utente non abilitato all'uso dell'applicazione: rivolgersi all'Amministratore",
-                    "INVALID_PASSWORD" => "Utente non abilitato all'uso dell'applicazione: rivolgersi all'Amministratore",
-                    "USER_SUSPENDED_OR_INACTIVE" => "Utente non abilitato all'uso dell'applicazione: rivolgersi all'Amministratore",
-                    _ => $"Utente non abilitato all'uso dell'applicazione: rivolgersi all'Amministratore [{errorCode}]"
+                    "USER_NOT_FOUND" => "Credenziali non valide.",
+                    "INVALID_PASSWORD" => "Credenziali non valide.",
+                    "USER_SUSPENDED_OR_INACTIVE" => "Account non attivo. Contatta l'amministratore.",
+                    _ => $"Errore di autenticazione [{errorCode}]"
                 };
 
                 return new LoginResponse

@@ -20,7 +20,10 @@ public class StatisticRevenue : StatisticBase
         if (!aziendaId.HasValue)
         {
             _logger.LogWarning("GetStatsAsync called without aziendaId - returning zero values");
-            return StatisticResult.Create(0, 0, 0);
+            var emptyResult = StatisticResult.Create(0, 0, 0);
+            // Ensure TrendData has 12 zeros for graph rendering
+            emptyResult.TrendData = Enumerable.Repeat(0.0, 12).ToList();
+            return emptyResult;
         }
 
         // Se non viene passata una valuta target, usa EUR (valuta base)
@@ -64,7 +67,10 @@ public class StatisticRevenue : StatisticBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calculating revenue for azienda {AziendaId}, year {Year}", aziendaId, year);
-            return StatisticResult.Create(0, 0, 0);
+            var errorResult = StatisticResult.Create(0, 0, 0);
+            // Ensure TrendData has 12 zeros for graph rendering even on error
+            errorResult.TrendData = Enumerable.Repeat(0.0, 12).ToList();
+            return errorResult;
         }
     }
 

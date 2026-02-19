@@ -103,13 +103,13 @@ BEGIN
         END as categoria_tipo,
 
         -- Economic Values (Normalized)
-        -- Netto: Use Imponibile if present, else Importo (for pre-IVA compatibility)
-        (COALESCE(t.transazione_imponibile_eur, t.transazione_importo) * tc.causale_segno)::NUMERIC as importo_netto_eur,
+        -- Netto: Use Imponibile if present, else Importo (for pre-IVA compatibility) -> FORCE ABS to rely on Sign
+        (ABS(COALESCE(t.transazione_imponibile_eur, t.transazione_importo)) * tc.causale_segno)::NUMERIC as importo_netto_eur,
         
-        (COALESCE(t.transazione_iva_eur, 0) * tc.causale_segno)::NUMERIC as importo_iva_eur,
+        (ABS(COALESCE(t.transazione_iva_eur, 0)) * tc.causale_segno)::NUMERIC as importo_iva_eur,
 
-        -- Lordo: Use LordoEur if present, else Importo (pre-IVA)
-        (COALESCE(t.transazione_lordo_eur, t.transazione_importo) * tc.causale_segno)::NUMERIC as importo_lordo_eur,
+        -- Lordo: Use LordoEur if present, else Importo (pre-IVA) -> FORCE ABS
+        (ABS(COALESCE(t.transazione_lordo_eur, t.transazione_importo)) * tc.causale_segno)::NUMERIC as importo_lordo_eur,
 
         -- Financial Status (Paid Amount)
         -- Sum of related PG/IN transactions
