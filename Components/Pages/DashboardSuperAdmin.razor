@@ -132,7 +132,7 @@ else
                                     </MudStack>
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
-                                    <MudText Typo="Typo.h4">@(_statsAziende?.MainValue ?? 0)</MudText>
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsAziende?.MainValue ?? 0)</MudText>
                         <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                         @if (_statsAziende?.TrendData?.Any(x => x > 0) == true)
                         {
@@ -178,11 +178,11 @@ else
                                 </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2">Aziende Totali</MudText>
+                                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Aziende Totali</MudText>
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()
                                             </MudText>
                                         </MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su
+                                        <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su
                                             @(_selectedYear - 1))
                                     </MudText>
                                 </MudStack>
@@ -216,7 +216,7 @@ else
                                     </MudStack>
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
-                                    <MudText Typo="Typo.h4">@(_statsClienti?.MainValue ?? 0)</MudText>
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsClienti?.MainValue ?? 0)</MudText>
                                     @if (_statsClienti?.TrendData?.Any(x => x > 0) == true)
                                     {
                                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
@@ -258,11 +258,11 @@ else
                                 </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2">Clienti Totali</MudText>
+                                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Clienti Totali</MudText>
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()
                                             </MudText>
                                         </MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su
+                                        <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su
                                             @(_selectedYear - 1))
                                     </MudText>
                                 </MudStack>
@@ -297,7 +297,7 @@ else
                                     </MudStack>
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
-                                    <MudText Typo="Typo.h4">@(_statsViaggi?.MainValue ?? 0)</MudText>
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggi?.MainValue ?? 0)</MudText>
                                     @if (_statsViaggi?.TrendData?.Any(x => x > 0) == true)
                                     {
                                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
@@ -339,11 +339,11 @@ else
                                 </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2">Viaggi Totali</MudText>
+                                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Viaggi Totali</MudText>
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@GetTotalLabelSuffix()
                                             </MudText>
                                         </MudStack>
-                                        <MudText Typo="Typo.caption" Color="Color.Secondary">(% @_selectedYear su
+                                        <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su
                                             @(_selectedYear - 1))
                                     </MudText>
                                 </MudStack>
@@ -356,8 +356,8 @@ else
                 <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
                     <MudStack Spacing="2">
                         <MudIcon Icon="@Icons.Material.Filled.EuroSymbol" Size="Size.Large" Color="Color.Tertiary" />
-                        <MudText Typo="Typo.h4">@(_statsRevenue?.MainValue ?? 0)</MudText>
-                            <MudText Typo="Typo.body2">Fatturato</MudText>
+                        <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsRevenue?.MainValue ?? 0)</MudText>
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato</MudText>
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -386,13 +386,13 @@ else
                                             </MudText>
                                         </MudStack>
                                     </MudStack>
-                                    <MudText Typo="Typo.h4">@(_statsViaggiFatti?.MainValue ?? 0)</MudText>
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggiFatti?.MainValue ?? 0)</MudText>
                                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                             <MudStack Spacing="0">
-                                                <MudText Typo="Typo.body2">Partenze Fatte</MudText>
+                                                <MudText Typo="Typo.body2" Style="font-weight: 500;">Partenze Fatte</MudText>
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">nel @_selectedYear</MudText>
                                             </MudStack>
-                                            <MudText Typo="Typo.caption" Color="Color.Secondary">fino al
+                                            <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">fino al
                                                 @GetEffectiveEndDate().ToString("dd/MM/yyyy")</MudText>
                                         </MudStack>
                                     </MudStack>
@@ -425,7 +425,7 @@ else
                                         </MudStack>
                                     </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
-                                        <MudText Typo="Typo.h4">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
+                                        <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
                                         @if (_statsViaggiDaFare?.TrendData?.Any(x => x > 0) == true)
                                         {
                                         <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
@@ -496,7 +496,7 @@ else
                                     </MudStack>
                                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                             <MudStack Spacing="0">
-                                                <MudText Typo="Typo.body2">@GetViaggiDaFareLabel()</MudText>
+                                                <MudText Typo="Typo.body2" Style="font-weight: 500;">@GetViaggiDaFareLabel()</MudText>
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@GetViaggiDaFareSubtitle()
                                                 </MudText>
                                             </MudStack>
