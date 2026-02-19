@@ -217,10 +217,10 @@ else
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                     <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsClienti?.MainValue ?? 0)</MudText>
+                                    <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                                     @if (_statsClienti?.TrendData?.Any(x => x > 0) == true)
                                     {
-                                       <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                            <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none">
+                                            <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
                                                 @{
                                                     var data = _statsClienti.TrendData;
                                                     var max = data.Any() ? data.Max() : 1;
@@ -253,8 +253,12 @@ else
                                                     }
                                                 }
                                             </svg>
-                                        </MudPaper>
                                     }
+                                    else
+                                    {
+                                        <div class="chart-skeleton" style="width: 140px; height: 60px;"></div>
+                                    }
+                                    </MudPaper>
                                 </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
@@ -298,10 +302,10 @@ else
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                     <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggi?.MainValue ?? 0)</MudText>
+                                    <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                                     @if (_statsViaggi?.TrendData?.Any(x => x > 0) == true)
                                     {
-                                       <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                            <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none">
+                                            <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
                                                 @{
                                                     var data = _statsViaggi.TrendData;
                                                     var max = data.Any() ? data.Max() : 1;
@@ -334,8 +338,12 @@ else
                                                     }
                                                 }
                                             </svg>
-                                        </MudPaper>
                                     }
+                                    else
+                                    {
+                                        <div class="chart-skeleton" style="width: 140px; height: 60px;"></div>
+                                    }
+                                    </MudPaper>
                                 </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                                         <MudStack Spacing="0">
