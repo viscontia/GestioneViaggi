@@ -13,29 +13,29 @@
 
 <MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
-                OnClick="@(() => OpenTab(_dashboardRoute, "Dashboard", "dashboard"))">
+                OnClick="@(() => OpenTabAndNotify(_dashboardRoute, "Dashboard", "dashboard"))">
         <MudText Typo="Typo.body1">Dashboard</MudText>
     </MudNavLink>
 
     @* MULTI-TENANT: Tutti vedono menu Aziende (SuperAdmin: tutte | Altri: solo propria) *@
     <MudNavGroup Title="Anagrafiche" Icon="@Icons.Material.Filled.AccountBox" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Business"
-                    OnClick="@(() => OpenTab("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
+                    OnClick="@(() => OpenTabAndNotify("/anagrafiche/aziende", "Anagrafica Aziende", "business"))">
             <MudText Typo="Typo.body1">Anagrafica Aziende</MudText>
         </MudNavLink>
 
         <MudNavLink Icon="@Icons.Material.Filled.People"
-                    OnClick="@(() => OpenTab("/anagrafiche/clienti", "Anagrafica Clienti", "people"))">
+                    OnClick="@(() => OpenTabAndNotify("/anagrafiche/clienti", "Anagrafica Clienti", "people"))">
             <MudText Typo="Typo.body1">Anagrafica Clienti</MudText>
         </MudNavLink>
 
         <MudNavLink Icon="@Icons.Material.Filled.Store"
-                    OnClick="@(() => OpenTab("/ana-controparti", "Anagrafica Controparti", "store"))">
+                    OnClick="@(() => OpenTabAndNotify("/ana-controparti", "Anagrafica Controparti", "store"))">
             <MudText Typo="Typo.body1">Anagrafica Controparti</MudText>
         </MudNavLink>
 
         <MudNavLink Icon="@Icons.Material.Filled.FlightTakeoff"
-                    OnClick="@(() => OpenTab("/ana-viaggi", "Anagrafica Viaggi e Date", "flight_takeoff"))">
+                    OnClick="@(() => OpenTabAndNotify("/ana-viaggi", "Anagrafica Viaggi e Date", "flight_takeoff"))">
             <MudText Typo="Typo.body1">Anagrafica Viaggi e Date</MudText>
         </MudNavLink>
     </MudNavGroup>
@@ -45,32 +45,32 @@
         <!-- Tabelle Geografiche -->
         <MudNavGroup Title="Tabelle Geografiche" Icon="@Icons.Material.Filled.Public" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Public"
-                        OnClick="@(() => OpenTab("/tabelle/nazioni", "Nazioni", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/nazioni", "Nazioni", "table"))">
                 <MudText Typo="Typo.body1">Nazioni</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Map"
-                        OnClick="@(() => OpenTab("/tabelle/regioni", "Regioni", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/regioni", "Regioni", "table"))">
                 <MudText Typo="Typo.body1">Regioni</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.LocationCity"
-                        OnClick="@(() => OpenTab("/tabelle/capoluoghi", "Capoluoghi", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/capoluoghi", "Capoluoghi", "table"))">
                 <MudText Typo="Typo.body1">Capoluogo di Regione</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Landscape"
-                        OnClick="@(() => OpenTab("/tabelle/ripartizioni-geografiche", "Ripartizioni Geografiche", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/ripartizioni-geografiche", "Ripartizioni Geografiche", "table"))">
                 <MudText Typo="Typo.body1">Ripartizioni Geografiche</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Terrain"
-                        OnClick="@(() => OpenTab("/tabelle/province", "Province", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/province", "Province", "table"))">
                 <MudText Typo="Typo.body1">Province</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Place"
-                        OnClick="@(() => OpenTab("/tabelle/comuni", "Comuni", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/comuni", "Comuni", "table"))">
                 <MudText Typo="Typo.body1">Comuni</MudText>
             </MudNavLink>
         </MudNavGroup>
@@ -78,32 +78,32 @@
         <!-- Tabelle Viaggi -->
         <MudNavGroup Title="Tabelle Viaggi" Icon="@Icons.Material.Filled.Explore" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Category"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-viaggio", "Tipologie Viaggio", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-viaggio", "Tipologie Viaggio", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Viaggio</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.People"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-partecipanti", "Tipologie Partecipanti", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-partecipanti", "Tipologie Partecipanti", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Partecipanti</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Hotel"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-alloggi", "Tipologie Alloggi", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-alloggi", "Tipologie Alloggi", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Alloggi</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Restaurant"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-trattamento-alberghiero", "Tipologie Tratt. Alberghiero", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-trattamento-alberghiero", "Tipologie Tratt. Alberghiero", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Tratt. Alberghiero</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.NightsStay"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-pernottamento", "Tipologie Pernottamento", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-pernottamento", "Tipologie Pernottamento", "table"))">
                 <MudText Typo="Typo.body1">Tipologie di Pernottamento</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Commute"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-avvicinamento", "Tipologie Avvicinamento", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-avvicinamento", "Tipologie Avvicinamento", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Avvicinamento</MudText>
             </MudNavLink>
         </MudNavGroup>
@@ -111,17 +111,17 @@
         <!-- Tabelle Mezzi -->
         <MudNavGroup Title="Tabelle Mezzi" Icon="@Icons.Material.Filled.DirectionsCar" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.CarRental"
-                        OnClick="@(() => OpenTab("/tabelle/marche-veicoli", "Marche Veicoli", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/marche-veicoli", "Marche Veicoli", "table"))">
                 <MudText Typo="Typo.body1">Marche Veicoli</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.DirectionsCar"
-                        OnClick="@(() => OpenTab("/tabelle/mezzi-modelli", "Modelli Veicoli", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/mezzi-modelli", "Modelli Veicoli", "table"))">
                 <MudText Typo="Typo.body1">Modelli Veicoli</MudText>
             </MudNavLink>
 
             <MudNavLink Icon="@Icons.Material.Filled.Category"
-                        OnClick="@(() => OpenTab("/tabelle/tipologie-veicoli", "Tipologie Veicoli", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-veicoli", "Tipologie Veicoli", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Veicoli</MudText>
             </MudNavLink>
         </MudNavGroup>
@@ -129,23 +129,23 @@
         <!-- Tabelle Contabili -->
         <MudNavGroup Title="Tabelle Contabili" Icon="@Icons.Material.Filled.Calculate" Expanded="false">
              <MudNavLink Icon="@Icons.Material.Filled.Category"
-                        OnClick="@(() => OpenTab("/tabelle/tipi-fornitore", "Tipi Controparti", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tipi-fornitore", "Tipi Controparti", "table"))">
                 <MudText Typo="Typo.body1">Tipi Controparti</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.AttachMoney"
-                        OnClick="@(() => OpenTab("/tabelle/valute", "Valute", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/valute", "Valute", "table"))">
                 <MudText Typo="Typo.body1">Valute</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.Timeline"
-                        OnClick="@(() => OpenTab("/tabelle/tassi-cambio", "Storico Tassi", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/tassi-cambio", "Storico Tassi", "table"))">
                 <MudText Typo="Typo.body1">Storico Tassi</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.FactCheck"
-                        OnClick="@(() => OpenTab("/tabelle/causali", "Causali", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/causali", "Causali", "table"))">
                 <MudText Typo="Typo.body1">Causali</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.Percent"
-                        OnClick="@(() => OpenTab("/tabelle/aliquote-iva", "Aliquote IVA", "table"))">
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/aliquote-iva", "Aliquote IVA", "table"))">
                 <MudText Typo="Typo.body1">Aliquote IVA</MudText>
             </MudNavLink>
         </MudNavGroup>
@@ -156,7 +156,7 @@
 
     <MudNavGroup Title="Contabilità" Icon="@Icons.Material.Filled.AttachMoney" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.ReceiptLong"
-                    OnClick="@(() => OpenTab("/movimenti", "Movimenti Contabili", "receipt_long"))">
+                    OnClick="@(() => OpenTabAndNotify("/movimenti", "Movimenti Contabili", "receipt_long"))">
             <MudText Typo="Typo.body1">Movimenti Contabili</MudText>
         </MudNavLink>
     </MudNavGroup>
@@ -196,26 +196,26 @@
     <AuthorizeView Roles="superadmin">
         <MudNavGroup Title="Amministrazione" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="false">
              <MudNavLink Icon="@Icons.Material.Filled.People"
-                        OnClick="@(() => OpenTab("/amministrazione/users", "Gestione Utenti", "people"))">
+                        OnClick="@(() => OpenTabAndNotify("/amministrazione/users", "Gestione Utenti", "people"))">
                 <MudText Typo="Typo.body1">Gestione Utenti</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.Badge"
-                        OnClick="@(() => OpenTab("/amministrazione/roles", "Gestione Ruoli", "badge"))">
+                        OnClick="@(() => OpenTabAndNotify("/amministrazione/roles", "Gestione Ruoli", "badge"))">
                 <MudText Typo="Typo.body1">Gestione Ruoli</MudText>
             </MudNavLink>
         </MudNavGroup>
 
         <MudNavGroup Title="Utilità" Icon="@Icons.Material.Filled.Build" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.ImportExport"
-                        OnClick="@(() => OpenTab("/tools/oracle-import", "Importazione Dati da Oracle", "import_export"))">
+                        OnClick="@(() => OpenTabAndNotify("/tools/oracle-import", "Importazione Dati da Oracle", "import_export"))">
                 <MudText Typo="Typo.body1">Importazione Dati da Oracle</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.Description"
-                        OnClick="@(() => OpenTab("/tools/db-documentation", "Documentazione DB", "description"))">
+                        OnClick="@(() => OpenTabAndNotify("/tools/db-documentation", "Documentazione DB", "description"))">
                 <MudText Typo="Typo.body1">Documentazione DB</MudText>
             </MudNavLink>
              <MudNavLink Icon="@Icons.Material.Filled.CleaningServices"
-                        OnClick="@(() => OpenTab("/tools/event-maintenance", "Manutenzione Eventi", "cleaning_services"))">
+                        OnClick="@(() => OpenTabAndNotify("/tools/event-maintenance", "Manutenzione Eventi", "cleaning_services"))">
                 <MudText Typo="Typo.body1">Manutenzione Eventi</MudText>
             </MudNavLink>
         </MudNavGroup>
@@ -230,6 +230,9 @@
 </MudNavMenu>
 
 @code {
+    [Parameter]
+    public EventCallback OnItemClick { get; set; }
+
     private string _dashboardRoute = "/dashboard-admin";
 
     protected override async Task OnInitializedAsync()
@@ -261,6 +264,12 @@
         }
     }
 
+    private async Task OpenTabAndNotify(string route, string title, string icon)
+    {
+        OpenTab(route, title, icon);
+        await OnItemClick.InvokeAsync();
+    }
+
     private async Task HandleLogout()
     {
         // Perform logout - force reload will reset everything
@@ -272,6 +281,8 @@
 
     private async Task OpenStampaSchedaDataViaggio()
     {
+        await OnItemClick.InvokeAsync();
+
         var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio da Stampare", new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
@@ -330,6 +341,8 @@
 
     private async Task OpenStampaDettaglioDataViaggio()
     {
+        await OnItemClick.InvokeAsync();
+
         var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio (Stampa Dettagliata)", new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
@@ -388,6 +401,8 @@
 
     private async Task OpenStampaRoomingList()
     {
+        await OnItemClick.InvokeAsync();
+
         var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio per Rooming List", new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
@@ -446,6 +461,8 @@
 
     private async Task OpenStampaMovimentiDialog()
     {
+        await OnItemClick.InvokeAsync();
+
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
@@ -458,6 +475,8 @@
 
     private async Task OpenStampaScadenzarioDialog()
     {
+        await OnItemClick.InvokeAsync();
+
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
@@ -470,6 +489,8 @@
 
     private async Task OpenStampaBilancioViaggioDialog()
     {
+        await OnItemClick.InvokeAsync();
+
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
