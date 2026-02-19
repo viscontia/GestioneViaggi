@@ -37,3 +37,8 @@ window.scrollToSelectedMudSelectItem = () => {
         scrollContainer.scrollTop = Math.max(0, scrollPosition);
     }, 80);
 };
+
+// Helper function for responsive breakpoint detection
+// Returns the current window inner width in pixels
+// Used by MainLayout for responsive drawer variant selection
+window.getWindowWidth = () => window.innerWidth;
