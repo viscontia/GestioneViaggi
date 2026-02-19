@@ -52,7 +52,15 @@ public class AnaDateViaggiService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
-            string sql = "SELECT * FROM fn_get_date_viaggi_with_transactions(@ViaggioId)";
+            string sql = @"
+                SELECT 
+                    data_viaggio_id as DataViaggioId,
+                    viaggio_id_fk as ViaggioIdFk,
+                    data_viaggio_data_inizio as DataInizio,
+                    data_viaggio_data_fine as DataFine,
+                    data_viaggio_effettuato_sino as Effettuato,
+                    has_transactions as HasTransactions
+                FROM fn_get_date_viaggi_with_transactions(@ViaggioId)";
 
             return await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
         }
