@@ -99,7 +99,7 @@
 
     <!-- Stats Cards -->
     <style>
-        @@media(min-width:1280px) {
+        @@media(min-width:1700px) {
             .col-lg-5-custom {
                 flex: 0 0 20%;
                 max-width: 20%;
@@ -175,13 +175,13 @@
     <MudGrid>
 
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-            <MudTooltip Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+            <MudTooltip RootStyle="display: block; width: 100%;" Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
                 <TooltipContent>@GetTooltipContent(_statsClienti, "Clienti", true)</TooltipContent>
                 <ChildContent>
                     <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
                     @onclick="@(() => NavigateTo($"/anagrafiche/clienti?year={_selectedYear}"))">
                         <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                         <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Success" />
                         <MudStack Spacing="0" AlignItems="AlignItems.End">
                             <MudChip T="string" Size="Size.Large"
@@ -197,7 +197,7 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsClienti?.MainValue ?? 0)</MudText>
-                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                        <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
                         @if (_statsClienti?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
@@ -284,7 +284,7 @@
                         }
                         </MudPaper>
                     </MudStack>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudText Typo="Typo.body2" Style="font-weight: 500;">Clienti Totali</MudText>
                             <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
@@ -295,13 +295,13 @@
             </MudTooltip>
         </MudItem>
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-            <MudTooltip Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+            <MudTooltip RootStyle="display: block; width: 100%;" Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
                 <TooltipContent>@GetTooltipContent(_statsViaggi, "Viaggi", true)</TooltipContent>
                 <ChildContent>
                     <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
                     @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}"))">
                         <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                         <MudIcon Icon="@Icons.Material.Filled.FlightTakeoff" Size="Size.Large" Color="Color.Info" />
                         <MudStack Spacing="0" AlignItems="AlignItems.End">
                             <MudChip T="string" Size="Size.Large"
@@ -317,7 +317,7 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggi?.MainValue ?? 0)</MudText>
-                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                        <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
                         @if (_statsViaggi?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
@@ -404,7 +404,7 @@
                         }
                         </MudPaper>
                     </MudStack>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudText Typo="Typo.body2" Style="font-weight: 500;">Viaggi Totali</MudText>
                             <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
@@ -415,12 +415,12 @@
             </MudTooltip>
         </MudItem>
         <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-            <MudTooltip Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+            <MudTooltip RootStyle="display: block; width: 100%;" Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
                 <TooltipContent>@GetTooltipContent(_statsRevenue, "Fatturato", false)</TooltipContent>
                 <ChildContent>
                     <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
                         <MudStack Spacing="2">
-                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                         <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" Color="Color.Tertiary" />
                         <MudStack Spacing="0" AlignItems="AlignItems.End">
                             <MudChip T="string" Size="Size.Large"
@@ -436,7 +436,7 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@((_statsRevenue?.MainValue ?? 0).ToString("N0"))</MudText>
-                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                        <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
                         @if (_statsRevenue?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
@@ -523,7 +523,7 @@
                         }
                         </MudPaper>
                     </MudStack>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato @_selectedYear (@(_currentUser?.ValutaCodiceIso ?? "EUR"))</MudText>
                             <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su @(_selectedYear - 1))
                         </MudText>
@@ -534,13 +534,13 @@
             </MudTooltip>
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-                <MudTooltip Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+                <MudTooltip RootStyle="display: block; width: 100%;" Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
                     <TooltipContent>@GetTooltipContent(_statsViaggiFatti, "Viaggi Fatti", false)</TooltipContent>
                     <ChildContent>
                         <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);"
                         @onclick="@(() => NavigateTo($"/ana-viaggi?year={_selectedYear}&filter=completed"))">
                             <MudStack Spacing="2">
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary" />
                             <MudStack Spacing="0" AlignItems="AlignItems.End">
                                 <MudChip T="string" Size="Size.Large"
@@ -557,7 +557,7 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggiFatti?.MainValue ?? 0)</MudText>
-                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                        <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
                         @if (_statsViaggiFatti?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
@@ -644,7 +644,7 @@
                         }
                         </MudPaper>
                     </MudStack>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudText Typo="Typo.body2" Style="font-weight: 500;">Viaggi fatti @_selectedYear</MudText>
                             <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">fino al
                                 @GetEffectiveEndDate().ToString("dd/MM/yyyy")</MudText>
@@ -655,12 +655,12 @@
             </MudTooltip>
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-lg-5-custom">
-                <MudTooltip Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
+                <MudTooltip RootStyle="display: block; width: 100%;" Style="background-color: var(--mud-palette-surface); color: var(--mud-palette-text-primary); border: 1px solid var(--mud-palette-lines-default); box-shadow: 0 8px 16px rgba(0,0,0,0.2);">
                     <TooltipContent>@GetTooltipContent(_statsViaggiDaFare, "Partenze", false)</TooltipContent>
                     <ChildContent>
                         <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);" @onclick="OnPartenzeDaFareClick">
                             <MudStack Spacing="2">
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Large" Color="Color.Warning" />
                             <MudStack Spacing="0" AlignItems="AlignItems.End">
                                 <MudChip T="string" Size="Size.Large"
@@ -678,7 +678,7 @@
                     </MudStack>
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
-                        <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
+                        <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
                         @if (_statsViaggiDaFare?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
@@ -765,7 +765,7 @@
                         }
                         </MudPaper>
                     </MudStack>
-                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                             <MudText Typo="Typo.body2" Style="font-weight: 500;">Viaggi da fare @_selectedYear</MudText>
                             <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">fino al 31/12/@_selectedYear</MudText>
                         </MudStack>
