@@ -44,9 +44,9 @@
                 <MudItem xs="12">
                     <DataViaggioSelect @bind-SelectedDataViaggioId="_selectedDataViaggioId"
                                        ViaggioId="@_selectedViaggioId"
-                                       Label="Data Viaggio (Opzionale)"
-                                       Clearable="true"
-                                       Disabled="@(_selectedViaggioId == null || _selectedViaggioId == 0)" />
+                                       Label="Data Viaggio *"
+                                       Required="true"
+                                       Clearable="true" />
                 </MudItem>
 
                 @* RIGA 4: Periodo (Opzionale) *@
@@ -150,6 +150,12 @@
         if (!_selectedViaggioId.HasValue || _selectedViaggioId <= 0)
         {
             Snackbar.Add("Selezionare un viaggio", Severity.Warning);
+            return false;
+        }
+
+        if (!_selectedDataViaggioId.HasValue || _selectedDataViaggioId <= 0)
+        {
+            Snackbar.Add("Selezionare una data viaggio", Severity.Warning);
             return false;
         }
 

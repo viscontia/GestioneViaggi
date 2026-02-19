@@ -10,6 +10,7 @@ public class BilancioViaggioDTO
     public DateTime? ViaggioDataInizio { get; set; }
     public DateTime? ViaggioDataFine { get; set; }
     public int ViaggioNumeroPartecipanti { get; set; }
+    public int ViaggioNumeroMezzi { get; set; }
 
     // Transaction Info
     public int TransazioneId { get; set; }
