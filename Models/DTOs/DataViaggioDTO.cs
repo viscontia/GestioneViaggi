@@ -7,6 +7,7 @@ public class DataViaggioDTO
     public DateTime DataInizio { get; set; }
     public DateTime DataFine { get; set; }
     public string? Effettuato { get; set; }
+    public bool HasTransactions { get; set; }
 
     public string DisplayText => $"{DataInizio:dd/MM/yyyy} - {DataFine:dd/MM/yyyy}";
 }

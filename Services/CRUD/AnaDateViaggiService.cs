@@ -43,4 +43,23 @@ public class AnaDateViaggiService
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, "data di viaggio");
         }
     }
+
+    /// <summary>
+    /// Recupera le date di viaggio con statistiche transazionali per un determinato viaggio
+    /// </summary>
+    public async Task<IEnumerable<DataViaggioDTO>> GetByViaggioIdWithStatsAsync(int viaggioId)
+    {
+        try
+        {
+            using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT * FROM fn_get_date_viaggi_with_transactions(@ViaggioId)";
+
+            return await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero date viaggio con stats per viaggio {ViaggioId}", viaggioId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "data di viaggio");
+        }
+    }
 }
