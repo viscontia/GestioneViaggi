@@ -19,6 +19,7 @@ RETURNS TABLE (
     viaggio_data_inizio DATE,
     viaggio_data_fine DATE,
     viaggio_numero_partecipanti INT,
+    viaggio_numero_mezzi INT,
     
     -- Transaction Info
     transazione_id INT,
@@ -57,14 +58,30 @@ BEGIN
             ELSE (SELECT MAX(data_viaggio_data_fine) FROM ana_date_viaggi WHERE viaggio_id_fk = v.viaggio_id)
         END as viaggio_data_fine,
         
-        -- Estimate participants (Count distinct clients linked to trip dates)
+        -- Participants: Count all people (records in mov_clienti_viaggi)
         COALESCE((
-            SELECT COUNT(DISTINCT mcv.cliente_id_fk)::INT
+            SELECT COUNT(mcv.cliente_id_fk)::INT
             FROM ana_date_viaggi d
             JOIN mov_clienti_viaggi mcv ON mcv.data_viaggio_id_fk = d.data_viaggio_id
             WHERE d.viaggio_id_fk = v.viaggio_id
               AND (p_data_viaggio_id IS NULL OR d.data_viaggio_id = p_data_viaggio_id)
         ), 0) as viaggio_numero_partecipanti,
+
+        -- Vehicles/Crews: Count distinct grouping keys (Pilot ID or Own ID if Pilot)
+        COALESCE((
+            SELECT COUNT(DISTINCT 
+                CASE 
+                    WHEN mcv.cliente_pilota_id_fk IS NOT NULL AND mcv.cliente_pilota_id_fk > 0 THEN mcv.cliente_pilota_id_fk 
+                    WHEN tp.tipo_partecipante_pilota = true THEN mcv.cliente_id_fk 
+                    ELSE NULL 
+                END
+            )::INT
+            FROM ana_date_viaggi d
+            JOIN mov_clienti_viaggi mcv ON mcv.data_viaggio_id_fk = d.data_viaggio_id
+            JOIN ana_tipo_partecipante tp ON mcv.tipo_partecipante_id_fk = tp.tipo_partecipante_id
+            WHERE d.viaggio_id_fk = v.viaggio_id
+              AND (p_data_viaggio_id IS NULL OR d.data_viaggio_id = p_data_viaggio_id)
+        ), 0) as viaggio_numero_mezzi,
 
         t.transazione_id,
         COALESCE(t.transazione_data_documento, t.transazione_data) as data_documento,
@@ -76,8 +93,8 @@ BEGIN
 
         -- Category Logic
         CASE 
-            WHEN tc.causale_ciclo = 'ATTIVO' THEN 'Vendite'::VARCHAR
-            ELSE COALESCE(tf.descrizione, 'Altro/Varie')::VARCHAR
+            WHEN tc.causale_ciclo = 'ATTIVO' THEN 'VENDITE'::VARCHAR
+            ELSE COALESCE(UPPER(tf.descrizione), 'ALTRO/VARIE')::VARCHAR
         END as categoria_nome,
 
         CASE 
