@@ -3,6 +3,7 @@
 @inject IServiceProvider Services
 @using GestioneViaggi.Services.Database
 @inject IDatabaseService DatabaseService
+@inject IJSRuntime JSRuntime
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
 <MudDialogProvider />
@@ -11,11 +12,14 @@
 
 <MudLayout>
     <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="@((e) => DrawerToggle())"
-                       aria-label="Apri/Chiudi menu laterale" />
+        @if (_isMobile)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="@((e) => DrawerToggle())"
+                           aria-label="Apri/Chiudi menu laterale" />
+        }
         <MudText Typo="Typo.h5" Class="ml-3">Gestione Viaggi</MudText>
         <MudSpacer />
         <AppBreadcrumbs />
@@ -25,9 +29,14 @@
                        OnClick="@((e) => DarkModeToggle())"
                        aria-label="@(_isDarkMode ? "Passa a tema chiaro" : "Passa a tema scuro")" />
     </MudAppBar>
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Mini"
-        OpenMiniOnHover="true" Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
-        <NavMenu />
+    <MudDrawer @bind-Open="_drawerOpen"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="2"
+               Variant="@(_isMobile ? DrawerVariant.Temporary : DrawerVariant.Mini)"
+               OpenMiniOnHover="@(!_isMobile)"
+               CloseOnEscape="@_isMobile"
+               Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
+        <NavMenu OnItemClick="@HandleNavItemClick" />
     </MudDrawer>
     <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
@@ -45,6 +54,7 @@
 @code {
     bool _drawerOpen = true;
     bool _isDarkMode = false; // Default Light Mode
+    bool _isMobile = false; // Track mobile/tablet (<960px)
     private MudThemeProvider? _mudThemeProvider;
 
     void DrawerToggle()
@@ -57,6 +67,16 @@
         _isDarkMode = !_isDarkMode;
         // Salva la preferenza (funziona anche in Hybrid)
         Preferences.Set("is_dark_mode", _isDarkMode);
+    }
+
+    async Task HandleNavItemClick()
+    {
+        // Close drawer on mobile after navigation
+        if (_isMobile && _drawerOpen)
+        {
+            _drawerOpen = false;
+            StateHasChanged();
+        }
     }
 
     MudTheme _theme = new MudTheme()
@@ -95,6 +115,18 @@
     {
         if (firstRender)
         {
+            // RESPONSIVE: Detect screen width
+            try
+            {
+                var width = await JSRuntime.InvokeAsync<int>("getWindowWidth");
+                _isMobile = width < 960; // MudBlazor Breakpoint.Md
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error detecting window width: {ex.Message}");
+                _isMobile = false; // Fallback to desktop
+            }
+
             // Controlla se c'è una preferenza salvata
             if (Preferences.ContainsKey("is_dark_mode"))
             {
@@ -105,7 +137,7 @@
                 // Altrimenti usa il default di sistema
                 _isDarkMode = await _mudThemeProvider!.GetSystemDarkModeAsync();
             }
-            
+
             // Forza il refresh per applicare il tema
             StateHasChanged();
 
