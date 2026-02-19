@@ -385,6 +385,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **UrgenzaSelect** | `UrgenzaSelect.razor` | Valori statici | - | Selezione urgenza scadenze (SCADUTO/URGENTE/IN_SCADENZA/NORMALE). Utilizzato nei filtri stampe. |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **ViaggioSelect** | `ViaggioSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione viaggio con ricerca su descrizione e nazione. Supporta parametro `AziendaId` e `CustomItems`. |
+| **DataViaggioBilancioSelect** | `DataViaggioBilancioSelect.razor` | `ana_date_viaggi` | Data Inizio DESC | **Specializzato per Stampe**: Selezione data viaggio con indicatore ($) presenza movimenti. Avvisa se la data non ha movimenti. |
 | **ViaggioMultiSelect** | `ViaggioMultiSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione multipla viaggi. Supporta "Seleziona Tutti" e filtro azienda. |
 | **OrdinamentoStampaSelect** | `OrdinamentoStampaSelect.razor` | - | - | Selezione ordinamento per le stampe contabili: Fornitore, Data Documento, Importo ASC/DESC, Tipo Movimento. |
 

@@ -40,9 +40,9 @@
                                     Clearable="true" />
                 </MudItem>
 
-                 @* RIGA 3: Selezione Data Viaggio (Opzionale, attivata solo se Viaggio selezionato) *@
+                @* RIGA 3: Selezione Data Viaggio (Opzionale, attivata solo se Viaggio selezionato) *@
                 <MudItem xs="12">
-                    <DataViaggioSelect @bind-SelectedDataViaggioId="_selectedDataViaggioId"
+                    <DataViaggioBilancioSelect @bind-SelectedDataViaggioId="_selectedDataViaggioId"
                                        ViaggioId="@_selectedViaggioId"
                                        Label="Data Viaggio *"
                                        Required="true"
