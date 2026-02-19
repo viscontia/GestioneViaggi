@@ -586,11 +586,11 @@
             }
             else
             {
-                <div style="max-height: 400px; overflow-y: auto; padding-right: 4px;">
-                    <MudList T="string" Dense="true">
+                <div style="max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                    <MudList T="string" Dense="false">
                         @foreach (var item in _activities)
                         {
-                            <MudListItem Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)">
+                            <MudListItem Icon="@GetActivityIcon(item.EventType)" IconColor="@GetActivityColor(item.EventType)" Style="padding: 12px 16px;">
                                 <div class="d-flex flex-column">
                                     <MudText Typo="Typo.body2">@item.Description</MudText>
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">
