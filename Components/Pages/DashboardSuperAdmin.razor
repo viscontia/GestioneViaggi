@@ -134,7 +134,7 @@ else
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                     <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsAziende?.MainValue ?? 0)</MudText>
                         <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                        @if (_statsAziende?.TrendData?.Any(x => x > 0) == true)
+                        @if (_statsAziende?.TrendData?.Count == 12)
                         {
                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
                                     @{
@@ -218,7 +218,7 @@ else
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                     <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsClienti?.MainValue ?? 0)</MudText>
                                     <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                    @if (_statsClienti?.TrendData?.Any(x => x > 0) == true)
+                                    @if (_statsClienti?.TrendData?.Count == 12)
                                     {
                                             <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
                                                 @{
@@ -303,7 +303,7 @@ else
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                     <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggi?.MainValue ?? 0)</MudText>
                                     <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
-                                    @if (_statsViaggi?.TrendData?.Any(x => x > 0) == true)
+                                    @if (_statsViaggi?.TrendData?.Count == 12)
                                     {
                                             <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
                                                 @{
@@ -434,7 +434,7 @@ else
                                     </MudStack>
                                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
                                         <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsViaggiDaFare?.MainValue ?? 0)</MudText>
-                                        @if (_statsViaggiDaFare?.TrendData?.Any(x => x > 0) == true)
+                                        @if (_statsViaggiDaFare?.TrendData?.Count == 12)
                                         {
                                         <MudPaper Width="140px" Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="background: transparent;">
                                                 <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
