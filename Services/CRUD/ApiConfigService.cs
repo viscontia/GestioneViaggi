@@ -89,6 +89,35 @@ public class ApiConfigService
     }
 
     /// <summary>
+    /// Recupera il valore di una configurazione API attiva tramite function DB dedicata.
+    /// DB-First: tutta la logica di validazione (esistenza, attivazione, valore non vuoto) è nel database.
+    /// </summary>
+    public async Task<string?> GetConfigValueAsync(string serviceCode, string configKey)
+    {
+        try
+        {
+            using var conn = await _databaseService.GetConnectionAsync();
+            var value = await conn.ExecuteScalarAsync<string>(
+                "SELECT fn_get_api_config_value(@ServiceCode, @ConfigKey)",
+                new { ServiceCode = serviceCode, ConfigKey = configKey }
+            );
+            return value;
+        }
+        catch (PostgresException pex) when (pex.SqlState == "P0001")
+        {
+            _logger.LogWarning("Configurazione API non disponibile per {ServiceCode}/{ConfigKey}: {Error}",
+                serviceCode, configKey, pex.MessageText);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero configurazione API per {ServiceCode}/{ConfigKey}",
+                serviceCode, configKey);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Crea una nuova configurazione API.
     /// </summary>
     public async Task<ApiConfig> CreateAsync(ApiConfig entity)

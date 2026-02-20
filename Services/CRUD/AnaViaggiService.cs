@@ -145,6 +145,44 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
     }
 
+    public async Task<List<AnaViaggi>> GetViaggiWithTransactionsAsync(int? aziendaId = null)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_get_viaggi_with_transactions(@aziendaId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            // Explicitly define type to avoid 42P08 when value is NULL
+            var param = new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
+            {
+                Value = (object?)aziendaId ?? DBNull.Value,
+                IsNullable = true
+            };
+            command.Parameters.Add(param);
+
+            await using var reader = await command.ExecuteReaderAsync();
+
+            var list = new List<AnaViaggi>();
+            while (await reader.ReadAsync())
+            {
+                var item = MapFromReader(reader);
+                // Map the transient count
+                if (HasColumn(reader, "matching_dates_count"))
+                {
+                    item.MatchingDatesCount = reader.GetInt32(reader.GetOrdinal("matching_dates_count"));
+                }
+                list.Add(item);
+            }
+            return list;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero lista viaggi con transazioni");
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
     public override async Task<AnaViaggi?> GetByIdAsync(int id)
     {
         try

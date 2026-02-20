@@ -113,6 +113,7 @@ Funzioni core per la gestione dei viaggi (`ana_viaggi` e `ana_date_viaggi`).
 | `get_all_travel_detail` | Restituisce tutti i dettagli di un singolo viaggio (Data Viaggio) incrociando ana_date_viaggi, ana_viaggi e vari lookup | `p_data_viaggio_id integer` | `TABLE(...)` | `Services/Printing/TravelPrintService.cs` |
 | `check_possible_duplicate_travels` | Identifica potenziali duplicati dei viaggi basandosi su parole chiave nella descrizione | `p_description text, p_azienda_id integer` | `TABLE(...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_viaggi_grouped_by_year` | Restituisce viaggi e date viaggi raggruppati per anno con stato. Usato per TreeView. | `p_azienda_id integer` | `TABLE(...)` | `Services/CRUD/AnaViaggiService.cs` |
+| `fn_get_viaggi_with_transactions` | Restituisce solo i viaggi che hanno almeno un movimento contabile (transazione non ANNULLATA con causale documento). Include JOIN su nazioni, tipi viaggio, trattamento, pernottamento, avvicinamento e azienda. Filtra tramite EXISTS su `mov_transazioni` + `ana_tipi_causali` (causale_is_documento = TRUE). | `p_azienda_id INTEGER` (nullable: NULL o 0 = tutte le aziende) | `TABLE(viaggio_id INT, viaggio_descrizione_breve VARCHAR(255), viaggio_descrizione_estesa TEXT, viaggio_numero_giorni INT, viaggio_numero_notti INT, viaggio_pasti_al_sacco CHAR(1), viaggio_num_km INT, viaggio_note TEXT, viaggio_link VARCHAR(500), viaggio_nazione_fk INT, viaggio_tipo_viaggio_fk INT, viaggio_tipo_trattamento_fk INT, viaggio_tipo_pernottamento_fk INT, viaggio_tipo_avvicinamento_fk INT, azienda_id INT, created_by VARCHAR(50), created TIMESTAMPTZ, updated_by VARCHAR(50), updated TIMESTAMPTZ, nazione_nome VARCHAR(100), tipo_viaggi_descrizione VARCHAR(100), tipo_trattamento_descrizione VARCHAR(100), ana_tipo_pernottamento_descrizione VARCHAR(100), tipo_avvicinamento_descrizione VARCHAR(100), azienda_nome VARCHAR(255), matching_dates_count INT)` | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/StampaBilancioViaggioDialog.razor` |
 | `get_datetrips_fromtrip` | - | `p_viaggio_id integer` | `TABLE(data_viaggio_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_viaggio_partecipanti` | - | `p_data_viaggio_id integer` | `TABLE(gruppo_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_travel_stats` | Calcola totali partecipanti, equipaggi e veicoli per una data viaggio | `p_data_viaggio_id integer` | `TABLE(total_participants, ...)` | `Services/Printing/TravelPrintService.cs` |
@@ -348,6 +349,7 @@ Funzioni CRUD per la gestione delle configurazioni API esterne. Tabella globale 
 | `sp_ana_api_config_update` | Aggiorna configurazione API esistente con validazione. **Normalizzazione automatica**: forza UPPER CASE. **Validazioni**: verifica esistenza record, campi obbligatori non vuoti, config_type valido. **Gestione errori**: RECORD_NOT_FOUND, DUPLICATE_KEY, INVALID_DATA. | `p_config_id INTEGER, p_service_code VARCHAR(50), p_service_name VARCHAR(100), p_config_key VARCHAR(100), p_config_value TEXT, p_config_type VARCHAR(20), p_config_description VARCHAR(255), p_is_secret BOOLEAN, p_is_active BOOLEAN, p_display_order SMALLINT, p_updated_by VARCHAR(50)` | `VOID` | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigEditDialog.razor` |
 | `sp_ana_api_config_delete` | Elimina una singola configurazione API per ID. **Gestione errori**: RECORD_NOT_FOUND. | `p_config_id INTEGER` | `VOID` | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigPage.razor` |
 | `sp_ana_api_config_delete_service` | Elimina tutte le configurazioni di un servizio specifico. **Gestione errori**: RECORD_NOT_FOUND (nessuna config trovata). | `p_service_code VARCHAR(50)` | `VOID` | `Services/CRUD/ApiConfigService.cs` |
+| `fn_get_api_config_value` | Recupera il valore di una singola configurazione API attiva dato service_code e config_key. **Normalizzazione automatica**: UPPER CASE + TRIM su entrambi i parametri. **Validazioni**: parametri obbligatori, esistenza record, stato attivo (`is_active = TRUE`), valore non vuoto. **Gestione errori**: CONFIG_NOT_FOUND (record inesistente), CONFIG_DISABLED (configurazione disattivata), CONFIG_EMPTY (valore non impostato), INVALID_DATA (parametri vuoti). Usato da `CurrencyApiService` per recuperare API key (ALPHA_VANTAGE, UNIRATE) dal DB con service_code `API_VALUTE` invece che da costanti cablate nel codice. | `p_service_code VARCHAR(50), p_config_key VARCHAR(100)` | `TEXT` (config_value del record trovato) | `Services/CRUD/ApiConfigService.cs`, `Services/ExternalApis/CurrencyApiService.cs` |
 
 ### 📝 Note Implementative - Configurazione API (2026-02-20)
 
@@ -368,7 +370,13 @@ Funzioni CRUD per la gestione delle configurazioni API esterne. Tabella globale 
 - Validazione config_type: TEXT, API_KEY, URL, SECRET, BOOLEAN
 - Trigger automatic updated_at enforcement
 
-**File SQL**: `SqlScripts/Create_AnaApiConfig.sql` (tabella + trigger), `SqlScripts/Create_AnaApiConfig_CRUD.sql` (stored functions)
+**Recupero API Key dal DB (2026-02-20)**:
+- `fn_get_api_config_value('API_VALUTE', 'ALPHA_VANTAGE_API_KEY')` → restituisce la chiave Alpha Vantage
+- `fn_get_api_config_value('API_VALUTE', 'UNIRATE_API_KEY')` → restituisce la chiave UniRate
+- `CurrencyApiService` carica le chiavi dal DB al primo utilizzo e le mantiene in cache per la durata dello scope
+- Le API key non sono più cablate nel codice sorgente
+
+**File SQL**: `SqlScripts/Create_AnaApiConfig.sql` (tabella + trigger), `SqlScripts/Create_AnaApiConfig_CRUD.sql` (stored functions), `SqlScripts/122_Create_fn_get_api_config_value.sql` (funzione lookup singola chiave)
 
 ---
 

@@ -113,8 +113,9 @@
             }
             else if (ViaggioId.HasValue && ViaggioId.Value > 0)
             {
-                // Use specialized service method
-                _allDateViaggi = (await DateViaggiService.GetByViaggioIdWithStatsAsync(ViaggioId.Value)).ToList();
+                // Use specialized service method and filter out dates without transactions
+                var loadedDates = await DateViaggiService.GetByViaggioIdWithStatsAsync(ViaggioId.Value);
+                _allDateViaggi = loadedDates.Where(d => d.HasTransactions).ToList();
             }
             else
             {

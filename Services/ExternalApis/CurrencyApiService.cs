@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using GestioneViaggi.Services.CRUD;
 using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.ExternalApis;
@@ -8,7 +9,7 @@ namespace GestioneViaggi.Services.ExternalApis;
 public interface ICurrencyApiService
 {
     Task<bool> CheckInternetConnectionAsync();
-    
+
     /// <summary>
     /// Recupera il tasso di cambio dalla valuta base (es. EUR) alla valuta target (es. USD) per 'oggi'.
     /// </summary>
@@ -18,7 +19,7 @@ public interface ICurrencyApiService
     /// Recupera il tasso di cambio storico per una data specifica.
     /// </summary>
     Task<decimal?> GetHistoricalRateAsync(string fromIsoCode, string toIsoCode, DateTime date);
-    
+
     /// <summary>
     /// Recupera i tassi correnti di tutte le valute rispetto a una valuta base (es. EUR).
     /// </summary>
@@ -28,23 +29,54 @@ public interface ICurrencyApiService
 public class CurrencyApiService : ICurrencyApiService
 {
     private readonly HttpClient _httpClient;
+    private readonly ApiConfigService _apiConfigService;
     private readonly ILogger<CurrencyApiService> _logger;
 
     private const string FRANKFURTER_API_BASE_URL = "https://api.frankfurter.app";
     private const string JSDELIVR_FALLBACK_BASE_URL = "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api";
     private const string UNIRATE_API_BASE_URL = "https://api.unirateapi.com/api";
     private const string ALPHA_VANTAGE_API_BASE_URL = "https://www.alphavantage.co/query";
-    
-    // Configurable API key for UniRate/Exchangerate/etc if needed in the future
-    private const string UNIRATE_API_KEY = "giaYK0x6Oet1eZvuvpIjsN6UP2RMUAp3NWT6OrLsDtlSgnZnoHCIJaeQytTt7R8w";
-    private const string ALPHA_VANTAGE_API_KEY = "I9KEG797AP0QPLMT"; 
 
-    public CurrencyApiService(HttpClient httpClient, ILogger<CurrencyApiService> logger)
+    private const string API_VALUTE_SERVICE_CODE = "API_VALUTE";
+
+    // Cache in-memory delle API key per evitare query ripetute al DB nella stessa sessione
+    private string? _cachedUnirateApiKey;
+    private string? _cachedAlphaVantageApiKey;
+    private bool _keysLoaded;
+
+    public CurrencyApiService(HttpClient httpClient, ApiConfigService apiConfigService, ILogger<CurrencyApiService> logger)
     {
         _httpClient = httpClient;
         // The service should have a short timeout since it is called synchronously during saves
         _httpClient.Timeout = TimeSpan.FromSeconds(5);
+        _apiConfigService = apiConfigService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Carica le API key dal database (tabella ana_api_config) con service_code = API_VALUTE.
+    /// Le chiavi vengono cachate in memoria per la durata del service scope.
+    /// </summary>
+    private async Task EnsureApiKeysLoadedAsync()
+    {
+        if (_keysLoaded) return;
+
+        try
+        {
+            _cachedUnirateApiKey = await _apiConfigService.GetConfigValueAsync(API_VALUTE_SERVICE_CODE, "UNIRATE_API_KEY");
+            _cachedAlphaVantageApiKey = await _apiConfigService.GetConfigValueAsync(API_VALUTE_SERVICE_CODE, "ALPHA_VANTAGE_API_KEY");
+            _keysLoaded = true;
+
+            if (string.IsNullOrEmpty(_cachedUnirateApiKey))
+                _logger.LogWarning("API key UniRate non trovata o disattivata nella configurazione DB (API_VALUTE/UNIRATE_API_KEY).");
+            if (string.IsNullOrEmpty(_cachedAlphaVantageApiKey))
+                _logger.LogWarning("API key Alpha Vantage non trovata o disattivata nella configurazione DB (API_VALUTE/ALPHA_VANTAGE_API_KEY).");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il caricamento delle API key dal database. I provider che richiedono API key non saranno disponibili.");
+            _keysLoaded = true; // Evita retry continui in caso di errore DB
+        }
     }
 
     public async Task<bool> CheckInternetConnectionAsync()
@@ -91,6 +123,9 @@ public class CurrencyApiService : ICurrencyApiService
         toIsoCode = toIsoCode.ToUpper();
 
         if (fromIsoCode == toIsoCode) return 1m;
+
+        // Carica API key dal DB (ana_api_config) se non già in cache
+        await EnsureApiKeysLoadedAsync();
 
         // Formato per le API
         string frankfurterDateString = date == DateTime.Today ? "latest" : date.ToString("yyyy-MM-dd");
@@ -150,13 +185,13 @@ public class CurrencyApiService : ICurrencyApiService
         // ----------------------------------------------------
         // 3. TENTATIVO CON UNIRATE API (Richiede KEY) - Solo 'latest' se free tier
         // ----------------------------------------------------
-        if (!string.IsNullOrEmpty(UNIRATE_API_KEY))
+        if (!string.IsNullOrEmpty(_cachedUnirateApiKey))
         {
             try
             {
-                string endpoint = date == DateTime.Today 
-                    ? $"rates?api_key={UNIRATE_API_KEY}&base={fromIsoCode}&symbols={toIsoCode}" 
-                    : $"historical/rates?api_key={UNIRATE_API_KEY}&date={date:yyyy-MM-dd}&base={fromIsoCode}&symbols={toIsoCode}"; 
+                string endpoint = date == DateTime.Today
+                    ? $"rates?api_key={_cachedUnirateApiKey}&base={fromIsoCode}&symbols={toIsoCode}"
+                    : $"historical/rates?api_key={_cachedUnirateApiKey}&date={date:yyyy-MM-dd}&base={fromIsoCode}&symbols={toIsoCode}"; 
                 
                 var response = await _httpClient.GetFromJsonAsync<UniRateApiResponse>($"{UNIRATE_API_BASE_URL}/{endpoint}");
 
@@ -180,12 +215,11 @@ public class CurrencyApiService : ICurrencyApiService
         // ----------------------------------------------------
         // 4. TENTATIVO CON ALPHA VANTAGE (Gratuito, Storico illimitato)
         // ----------------------------------------------------
-        if (!string.IsNullOrEmpty(ALPHA_VANTAGE_API_KEY))
+        if (!string.IsNullOrEmpty(_cachedAlphaVantageApiKey))
         {
             try
             {
-                // Example URL: https://www.alphavantage.co/query?function=FX_DAILY&from_symbol=EUR&to_symbol=USD&outputsize=full&apikey=demo
-                string url = $"{ALPHA_VANTAGE_API_BASE_URL}?function=FX_DAILY&from_symbol={fromIsoCode}&to_symbol={toIsoCode}&outputsize=full&apikey={ALPHA_VANTAGE_API_KEY}";
+                string url = $"{ALPHA_VANTAGE_API_BASE_URL}?function=FX_DAILY&from_symbol={fromIsoCode}&to_symbol={toIsoCode}&outputsize=full&apikey={_cachedAlphaVantageApiKey}";
                 
                 var response = await _httpClient.GetFromJsonAsync<AlphaVantageApiResponse>(url);
 

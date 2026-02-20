@@ -25,7 +25,8 @@
                 @if (_isSuperAdmin)
                 {
                     <MudItem xs="12">
-                        <AziendaSelect @bind-Value="_filtroAziendaIdInt" 
+                        <AziendaSelect Value="@_filtroAziendaIdInt" 
+                                       ValueChanged="OnAziendaSelezionataChanged"
                                        Label="Azienda" 
                                        Clearable="true" />
                     </MudItem>
@@ -36,8 +37,12 @@
                      <ViaggioSelect @bind-SelectedViaggioId="_selectedViaggioId"
                                     AziendaId="@_aziendaIdEffettivo"
                                     Label="Seleziona Viaggio *"
+                                    CustomItems="@_viaggiFiltrati"
                                     Required="true"
                                     Clearable="true" />
+                     <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
+                         Sono visualizzati solo i viaggi che hanno dei movimenti contabili.
+                     </MudText>
                 </MudItem>
 
                 @* RIGA 3: Selezione Data Viaggio (Opzionale, attivata solo se Viaggio selezionato) *@
@@ -47,6 +52,9 @@
                                        Label="Data Viaggio *"
                                        Required="true"
                                        Clearable="true" />
+                     <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
+                         Sono visualizzate solo le date in cui ci sono movimenti contabili.
+                     </MudText>
                 </MudItem>
 
                 @* RIGA 4: Selezione Valuta Report (Opzionale) *@
@@ -104,6 +112,8 @@
     private DateTime? _dataDa;
     private DateTime? _dataA;
 
+    private List<AnaViaggi> _viaggiFiltrati = new();
+
     [Parameter] public int? InitialViaggioId { get; set; }
 
     protected override async Task OnInitializedAsync()
@@ -120,6 +130,8 @@
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
         }
+
+        await CaricaViaggiFiltratiAsync();
 
         if (InitialViaggioId.HasValue)
         {
@@ -160,6 +172,34 @@
         _dataDa = null;
         _dataA = null;
         StateHasChanged();
+    }
+
+    private async Task OnAziendaSelezionataChanged(int newValue)
+    {
+        _filtroAziendaIdInt = newValue;
+        _selectedViaggioId = null;
+        _selectedDataViaggioId = null;
+        await CaricaViaggiFiltratiAsync();
+        StateHasChanged();
+    }
+
+    private async Task CaricaViaggiFiltratiAsync()
+    {
+        try
+        {
+            if (_aziendaIdEffettivo > 0 || _isSuperAdmin)
+            {
+               _viaggiFiltrati = await ViaggiService.GetViaggiWithTransactionsAsync(_isSuperAdmin && _filtroAziendaIdInt == 0 ? null : _aziendaIdEffettivo);
+               if (!_viaggiFiltrati.Any())
+               {
+                   Snackbar.Add("Nessun viaggio trovato con movimenti contabili.", Severity.Warning);
+               }
+            }
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Errore nel caricamento dei viaggi filtrati", Severity.Error);
+        }
     }
 
     private bool ValidaFiltri()
@@ -227,8 +267,6 @@
             var outputPath = Path.Combine(targetFolder, fileName);
             
             if (System.IO.File.Exists(outputPath)) System.IO.File.Delete(outputPath);
-
-            await System.IO.File.WriteAllBytesAsync(outputPath, pdfBytes);
 
             await System.IO.File.WriteAllBytesAsync(outputPath, pdfBytes);
 
