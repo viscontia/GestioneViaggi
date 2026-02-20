@@ -12,6 +12,13 @@ public class BilancioViaggioDTO
     public int ViaggioNumeroPartecipanti { get; set; }
     public int ViaggioNumeroMezzi { get; set; }
 
+    // Trip Date Info (Riga)
+    public int? DataViaggioId { get; set; }
+    public DateTime? DataViaggioDataInizio { get; set; }
+    public DateTime? DataViaggioDataFine { get; set; }
+    public int DataViaggioNumeroPartecipanti { get; set; }
+    public int DataViaggioNumeroMezzi { get; set; }
+
     // Transaction Info
     public int TransazioneId { get; set; }
     public DateTime? DataDocumento { get; set; }

@@ -1,0 +1,207 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Models.DTOs
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject BilancioViaggioPrintService PrintService
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@inject IPdfOpenerService PdfOpenerService
+
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                
+                @* RIGA 1: Azienda (se superadmin) *@
+                @if (_isSuperAdmin)
+                {
+                    <MudItem xs="12">
+                        <AziendaSelect Value="@_filtroAziendaIdInt"
+                                       ValueChanged="OnAziendaSelezionataChanged" 
+                                       Label="Azienda" 
+                                       Clearable="true" />
+                    </MudItem>
+                }
+
+                @* RIGA 2: Anno *@
+                <MudItem xs="12">
+                     <MudSelect T="AnnoBilancioDTO" Label="Anno di Riferimento *" @bind-Value="_selectedAnno" Required="true" Clearable="true" AnchorOrigin="Origin.BottomCenter" Disabled="@(!_anniDisponibili.Any())">
+                          @foreach(var item in _anniDisponibili)
+                          {
+                              <MudSelectItem Value="@item">@item.ToString()</MudSelectItem>
+                          }
+                     </MudSelect>
+                     <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
+                         Sono visualizzati solo gli anni in cui sono stati fatti viaggi che hanno dei movimenti contabili.
+                     </MudText>
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
+            Reset
+        </MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+            Stampa
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+
+    // Sessione e tenant
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_filtroAziendaId ?? 0) : (_currentAziendaId ?? 0);
+
+    // Filtri
+    private int _filtroAziendaIdInt;
+    private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+
+    private AnnoBilancioDTO? _selectedAnno;
+    private List<AnnoBilancioDTO> _anniDisponibili = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            await CaricaAnniDisponibiliAsync();
+        }
+    }
+
+    private async Task OnAziendaSelezionataChanged(int aziendaId)
+    {
+        _filtroAziendaIdInt = aziendaId;
+        _selectedAnno = null;
+        await CaricaAnniDisponibiliAsync();
+        StateHasChanged();
+    }
+
+    private async Task CaricaAnniDisponibiliAsync()
+    {
+        _anniDisponibili.Clear();
+        if (_aziendaIdEffettivo > 0)
+        {
+            var result = await PrintService.GetAnniBilancioDisponibiliAsync(_aziendaIdEffettivo);
+            if (result != null && result.Any())
+            {
+                _anniDisponibili.AddRange(result);
+                _selectedAnno = _anniDisponibili.FirstOrDefault(); // Preseleziona l'oggetto intero
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ResetFiltri()
+    {
+        _filtroAziendaIdInt = 0;
+        _selectedAnno = _anniDisponibili.FirstOrDefault();
+        StateHasChanged();
+    }
+
+    private bool ValidaFiltri()
+    {
+        if (_selectedAnno == null || _selectedAnno.Anno <= 0)
+        {
+            Snackbar.Add("Selezionare un anno di riferimento", Severity.Warning);
+            return false;
+        }
+
+        if (_isSuperAdmin && _filtroAziendaIdInt <= 0)
+        {
+            Snackbar.Add("Selezionare un'azienda", Severity.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task EseguiStampa()
+    {
+        if (!ValidaFiltri()) return;
+
+        try
+        {
+            var sessionData = await SessionManager.GetSessionAsync();
+            if (sessionData?.User == null)
+            {
+                Snackbar.Add("Errore sessione utente", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Generazione report in corso...", Severity.Info);
+
+            // 1. Get Print Data for Annual Report
+            var printData = await PrintService.GetBilancioAnnualePrintDataAsync(
+                _aziendaIdEffettivo,
+                _selectedAnno!.Anno,
+                sessionData.User.Username ?? "Utente"
+            );
+
+            // Analyze results
+            if (!printData.Dettagli.Any())
+            {
+                Snackbar.Add("Nessun documento contabile trovato per l'anno selezionato. Stampa annullata.", Severity.Warning);
+                return;
+            }
+
+            // 2. Generate PDF
+            var pdfBytes = await PrintService.GenerateAnnualePdfAsync(printData, _selectedAnno.Anno);
+
+            // Save and Open
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = $"Bilancio_Annuale_Viaggi_{_selectedAnno.Anno}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
+            var outputPath = Path.Combine(targetFolder, fileName);
+            
+            if (System.IO.File.Exists(outputPath)) System.IO.File.Delete(outputPath);
+
+            await System.IO.File.WriteAllBytesAsync(outputPath, pdfBytes);
+
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Stampa Bilancio Annuale Completata");
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore generazione PDF: {ex.Message}", Severity.Error);
+        }
+    }
+}

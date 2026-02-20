@@ -187,7 +187,11 @@
         </MudNavLink>
         <MudNavLink Icon="@Icons.Material.Filled.AccountBalanceWallet"
                     OnClick="@OpenStampaBilancioViaggioDialog">
-            <MudText Typo="Typo.body1">Stampa Bilancio Viaggio/i</MudText>
+            <MudText Typo="Typo.body1">Stampa Bilancio Viaggio</MudText>
+        </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.DateRange"
+                    OnClick="@OpenStampaBilancioAnnualeViaggiDialog">
+            <MudText Typo="Typo.body1">Stampa Bilancio Annuale Viaggi</MudText>
         </MudNavLink>
     </MudNavGroup>
 
@@ -499,5 +503,19 @@
             BackdropClick = false
         };
         await DialogService.ShowAsync<StampaBilancioViaggioDialog>("Stampa Bilancio Viaggio", options);
+    }
+
+    private async Task OpenStampaBilancioAnnualeViaggiDialog()
+    {
+        await OnItemClick.InvokeAsync();
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<StampaBilancioAnnualeViaggiDialog>("Stampa Bilancio Annuale Viaggi", options);
     }
 }

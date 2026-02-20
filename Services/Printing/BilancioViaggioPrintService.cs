@@ -123,6 +123,13 @@ public class BilancioViaggioPrintService
                     ViaggioNumeroPartecipanti = reader.GetInt32(reader.GetOrdinal("viaggio_numero_partecipanti")),
                     ViaggioNumeroMezzi = reader.GetInt32(reader.GetOrdinal("viaggio_numero_mezzi")),
 
+                    // Fallback to default if column doesn't exist (since old fn doesn't have them)
+                    DataViaggioId = HasColumn(reader, "data_viaggio_id") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_id")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_id")) : null,
+                    DataViaggioDataInizio = HasColumn(reader, "data_viaggio_data_inizio") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_inizio")) ? reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_inizio")) : null,
+                    DataViaggioDataFine = HasColumn(reader, "data_viaggio_data_fine") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_fine")) ? reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_fine")) : null,
+                    DataViaggioNumeroPartecipanti = HasColumn(reader, "data_viaggio_numero_partecipanti") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_numero_partecipanti")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_partecipanti")) : 0,
+                    DataViaggioNumeroMezzi = HasColumn(reader, "data_viaggio_numero_mezzi") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_numero_mezzi")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_mezzi")) : 0,
+
                     TransazioneId = reader.GetInt32(reader.GetOrdinal("transazione_id")),
                     DataDocumento = reader.IsDBNull(reader.GetOrdinal("data_documento")) ? null : reader.GetDateTime(reader.GetOrdinal("data_documento")),
                     DataRegistrazione = reader.GetDateTime(reader.GetOrdinal("data_registrazione")),
@@ -149,22 +156,146 @@ public class BilancioViaggioPrintService
         return result;
     }
 
+    public async Task<List<AnnoBilancioDTO>> GetAnniBilancioDisponibiliAsync(int aziendaId)
+    {
+        var result = new List<AnnoBilancioDTO>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new AnnoBilancioDTO
+                {
+                    Anno = reader.GetInt32(reader.GetOrdinal("anno")),
+                    NumeroViaggi = reader.GetInt32(reader.GetOrdinal("numero_viaggi"))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero anni disponibili per bilancio");
+            // Gestione graceful: fall back to current year if error
+            result.Add(new AnnoBilancioDTO { Anno = DateTime.Now.Year, NumeroViaggi = 0 });
+        }
+        return result;
+    }
+
+    public async Task<BilancioViaggioPrintData> GetBilancioAnnualePrintDataAsync(int aziendaId, int anno, string utenteStampa)
+    {
+        var data = new BilancioViaggioPrintData
+        {
+            UtenteStampa = utenteStampa,
+            DataStampa = DateTime.Now
+        };
+
+        // 1. Fetch Company Info
+        var azienda = await _aziendaService.GetByIdAsync(aziendaId);
+        if (azienda != null)
+        {
+            data.Azienda.RagioneSociale = azienda.RagioneSociale;
+            data.Azienda.Piva = azienda.PartitaIva;
+            data.Azienda.Telefono = azienda.TelefonoPrincipale;
+            data.Azienda.Email = azienda.Pec ?? "";
+            data.Azienda.SitoWeb = azienda.SitoWeb ?? "";
+
+            // 2. Fetch Logo
+            try
+            {
+                var logos = await _aziendaLogoService.GetByAziendaIdAsync(aziendaId);
+                var primaryLogo = logos.FirstOrDefault(l => l.IsDefault) ?? logos.FirstOrDefault();
+                if (primaryLogo != null)
+                {
+                    var logoData = await _aziendaLogoService.GetBinaryDataAsync(primaryLogo.Id);
+                    if (logoData != null)
+                    {
+                        data.Azienda.LogoData = logoData;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Impossibile recuperare il logo per l'azienda {AziendaId}", aziendaId);
+            }
+        }
+
+        // 3. Fetch Details
+        data.Dettagli = await GetBilancioAnnualeDataAsync(aziendaId, anno);
+
+        return data;
+    }
+
+    public async Task<List<BilancioViaggioDTO>> GetBilancioAnnualeDataAsync(int aziendaId, int anno)
+    {
+        var result = new List<BilancioViaggioDTO>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_get_bilancio_annuale_viaggi(@aziendaId, @anno)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+            command.Parameters.AddWithValue("anno", anno);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new BilancioViaggioDTO
+                {
+                    ViaggioId = reader.GetInt32(reader.GetOrdinal("viaggio_id")),
+                    ViaggioDescrizione = reader.GetString(reader.GetOrdinal("viaggio_descrizione")),
+                    
+                    DataViaggioId = reader.GetInt32(reader.GetOrdinal("data_viaggio_id")),
+                    DataViaggioDataInizio = reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_inizio")),
+                    DataViaggioDataFine = reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_fine")) ? null : reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_fine")),
+                    DataViaggioNumeroPartecipanti = reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_partecipanti")),
+                    DataViaggioNumeroMezzi = reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_mezzi")),
+
+                    TransazioneId = reader.GetInt32(reader.GetOrdinal("transazione_id")),
+                    DataDocumento = reader.IsDBNull(reader.GetOrdinal("data_documento")) ? null : reader.GetDateTime(reader.GetOrdinal("data_documento")),
+                    DataRegistrazione = reader.GetDateTime(reader.GetOrdinal("data_registrazione")),
+                    NumeroDocumento = reader.GetString(reader.GetOrdinal("numero_documento")),
+                    TransazioneDescrizione = reader.GetString(reader.GetOrdinal("transazione_descrizione")),
+
+                    ControparteRagioneSociale = reader.GetString(reader.GetOrdinal("controparte_ragione_sociale")),
+                    CategoriaNome = reader.GetString(reader.GetOrdinal("categoria_nome")),
+                    CategoriaTipo = reader.GetString(reader.GetOrdinal("categoria_tipo")),
+
+                    ImportoNettoEur = reader.GetDecimal(reader.GetOrdinal("importo_netto_eur")),
+                    ImportoIvaEur = reader.GetDecimal(reader.GetOrdinal("importo_iva_eur")),
+                    ImportoLordoEur = reader.GetDecimal(reader.GetOrdinal("importo_lordo_eur")),
+                    ImportoPagatoEur = reader.GetDecimal(reader.GetOrdinal("importo_pagato_eur")),
+                    StatoPagamento = reader.GetString(reader.GetOrdinal("stato_pagamento"))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero dati bilancio annuale viaggi");
+            throw;
+        }
+        return result;
+    }
+
+    private bool HasColumn(NpgsqlDataReader reader, string columnName)
+    {
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
+
     public async Task<byte[]> GeneratePdfAsync(BilancioViaggioPrintData printData)
     {
         return await Task.Run(() =>
         {
             var data = printData.Dettagli;
-
-            // Group data by trip
-            var trips = data.GroupBy(x => x.ViaggioId).ToList();
-            
-            // Calculate global totals if multiple trips
-            var globalTotals = new BilancioTotals
-            {
-                TotalRevenue = data.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur),
-                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur),
-                Participants = data.Select(x => x.ViaggioNumeroPartecipanti).FirstOrDefault() // Approximation for global
-            };
 
             var document = Document.Create(container =>
             {
@@ -179,22 +310,10 @@ public class BilancioViaggioPrintService
                     
                     page.Content().PaddingVertical(10).Column(column =>
                     {
-                        foreach (var trip in trips)
+                        if (data.Any())
                         {
-                            var tripInfo = trip.First();
-                            ComposeTripSection(column, tripInfo, trip.ToList());
-                            
-                            // Page break only if not the last trip
-                            if (trip != trips.Last())
-                            {
-                                column.Item().PageBreak(); 
-                            }
-                        }
-
-                        // Summary Page if more than one trip
-                        if (trips.Count > 1)
-                        {
-                             ComposeGlobalSummary(column, globalTotals);
+                            var tripInfo = data.First();
+                            ComposeTripSection(column, tripInfo, data.ToList());
                         }
                     });
 
@@ -203,6 +322,194 @@ public class BilancioViaggioPrintService
             });
 
             return document.GeneratePdf();
+        });
+    }
+
+    public async Task<byte[]> GenerateAnnualePdfAsync(BilancioViaggioPrintData printData, int anno)
+    {
+        return await Task.Run(() =>
+        {
+            var data = printData.Dettagli;
+
+            // Global Totals (Livello 3)
+            var globalTotals = new BilancioTotals
+            {
+                TotalRevenue = data.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur),
+                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur),
+                Participants = data.GroupBy(x => x.DataViaggioId).Sum(g => g.First().DataViaggioNumeroPartecipanti)
+            };
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(1, Unit.Centimetre);
+                    page.PageColor(Colors.White);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
+
+                    page.Header().Element(header => 
+                        ReportHeaderHelper.ComposeCompanyHeader(
+                            header, 
+                            printData.Azienda, 
+                            $"BILANCIO ANNUALE VIAGGI {anno}", 
+                            printData.DataStampa, 
+                            printData.UtenteStampa
+                        )
+                    );
+                    
+                    page.Content().PaddingVertical(10).Column(column =>
+                    {
+                        var trips = data.GroupBy(x => x.ViaggioId).ToList();
+
+                        foreach (var trip in trips)
+                        {
+                            var tripInfo = trip.First();
+                            
+                            // Livello 2: Intestazione Viaggio
+                            column.Item().Background(Colors.Blue.Lighten4).Padding(10).Column(c =>
+                            {
+                                c.Item().Text($"VIAGGIO: {tripInfo.ViaggioDescrizione}").FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
+                            });
+
+                            var tripDates = trip.GroupBy(x => x.DataViaggioId).ToList();
+
+                            foreach (var tripDate in tripDates)
+                            {
+                                var dateInfo = tripDate.First();
+                                
+                                // Livello 1: Dettaglio Data Viaggio (Ensure section is kept together if possible)
+                                column.Item().ShowEntire().Column(sc => 
+                                {
+                                    ComposeAnnualeDateSection(sc, dateInfo, tripDate.ToList());
+                                });
+                                column.Item().PaddingBottom(15);
+                            }
+
+                            // Livello 2: Totali Viaggio
+                            column.Item().ShowEntire().Column(sc => 
+                            {
+                                ComposeAnnualeTripTotals(sc, tripInfo.ViaggioDescrizione, trip.ToList());
+                            });
+                            
+                            // Non forzare PageBreak a fine viaggio se possibile tenerlo unito,
+                            // o forzarlo se si desidera ogni viaggio su pagina separata.
+                            // Per flessibilità lasciamo che QuestPDF gestisca il salto, 
+                            // a meno che non ci sia molto spazio.
+                            column.Item().PaddingBottom(20);
+                        }
+
+                        // Livello 3: Riepilogo Finale su Nuova Pagina
+                        if (data.Any())
+                        {
+                            column.Item().PageBreak();
+                            ComposeGlobalSummary(column, globalTotals);
+                        }
+                    });
+
+                    page.Footer().Element(ReportHeaderHelper.ComposeFooter);
+                });
+            });
+
+            return document.GeneratePdf();
+        });
+    }
+
+    private void ComposeAnnualeDateSection(ColumnDescriptor column, BilancioViaggioDTO dateInfo, List<BilancioViaggioDTO> transactions)
+    {
+        column.Item().PaddingTop(10).Background(Colors.Grey.Lighten3).Padding(10).Column(c =>
+        {
+            var dataFine = dateInfo.DataViaggioDataFine.HasValue ? $" Al {dateInfo.DataViaggioDataFine.Value:dd/MM/yyyy}" : "";
+            c.Item().Text($"Partenza: Dal {dateInfo.DataViaggioDataInizio:dd/MM/yyyy}{dataFine}").FontSize(12).Bold().FontColor(Colors.Blue.Medium);
+            c.Item().Text($"Mezzi: {dateInfo.DataViaggioNumeroMezzi} - Persone: {dateInfo.DataViaggioNumeroPartecipanti}").FontSize(10).Bold();
+        });
+
+        column.Item().PaddingTop(5);
+
+        var revenueTransactions = transactions.Where(x => x.CategoriaTipo == "RICAVO").ToList();
+        var costTransactions = transactions.Where(x => x.CategoriaTipo == "COSTO").ToList();
+
+        var revenue = revenueTransactions.Sum(x => x.ImportoNettoEur);
+        var cost = costTransactions.Sum(x => x.ImportoNettoEur);
+
+        if (revenueTransactions.Any())
+        {
+            ComposeTransactionTable(column, "RICAVI", revenueTransactions, revenue, 0, true); 
+        }
+
+        if (costTransactions.Any())
+        {
+            column.Item().PaddingTop(10);
+            ComposeTransactionTable(column, "COSTI", costTransactions, cost, revenue, false);
+        }
+
+        // Totali Data Viaggio
+        column.Item().PaddingTop(10).Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
+        {
+            c.Item().Text("Totali Partenza").Bold().FontSize(11);
+            c.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+            c.Item().PaddingTop(5);
+            ComposeAnnualeTotalsRow(c, revenue, cost, dateInfo.DataViaggioNumeroPartecipanti, false);
+        });
+    }
+
+    private void ComposeAnnualeTripTotals(ColumnDescriptor column, string viaggioDescrizione, List<BilancioViaggioDTO> tripTransactions)
+    {
+        var revenue = tripTransactions.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur);
+        var cost = tripTransactions.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur);
+        var participants = tripTransactions.GroupBy(x => x.DataViaggioId).Sum(g => g.First().DataViaggioNumeroPartecipanti);
+
+        column.Item().PaddingTop(5).PaddingBottom(10).Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten2).Padding(10).Column(c =>
+        {
+            c.Item().Text($"RIEPILOGO VIAGGIO: {viaggioDescrizione}").Bold().FontSize(12).FontColor(Colors.Blue.Darken2);
+            c.Item().PaddingTop(5).LineHorizontal(1).LineColor(Colors.Blue.Lighten1);
+            c.Item().PaddingTop(5);
+            ComposeAnnualeTotalsRow(c, revenue, cost, participants, true);
+        });
+    }
+
+    private void ComposeAnnualeTotalsRow(ColumnDescriptor c, decimal revenue, decimal cost, int participants, bool showPieChart)
+    {
+        var margin = revenue - cost;
+        var marginPercent = revenue > 0 ? (margin / revenue) * 100 : 0;
+        var costPercent = revenue > 0 ? (cost / revenue) * 100 : 0;
+        
+        c.Item().Row(row =>
+        {
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text($"Totale Ricavi").FontSize(10);
+                col.Item().Text($"{revenue:N2} €").FontSize(12).Bold().FontColor(Colors.Green.Medium);
+            });
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text($"Totale Costi").FontSize(10);
+                col.Item().Text($"{cost:N2} €").FontSize(12).Bold().FontColor(Colors.Red.Medium);
+                col.Item().Text($"{costPercent:N2} %").FontSize(9);
+                
+                if (participants > 0)
+                {
+                     var avgCost = cost / participants;
+                     col.Item().PaddingTop(2).Text($"Costo medio/pax: {avgCost:N2} €").FontSize(9).Italic();
+                }
+            });
+            row.RelativeItem().Column(col =>
+            {
+                col.Item().Text($"Margine").FontSize(10);
+                col.Item().Text($"{margin:N2} €").FontSize(12).Bold().FontColor(Colors.Blue.Darken2);
+                col.Item().Text($"{marginPercent:N2} %").FontSize(9);
+
+                if (participants > 0)
+                {
+                     var avgMargin = margin / participants;
+                     col.Item().PaddingTop(2).Text($"Guadagno medio/pax: {avgMargin:N2} €").FontSize(9).Italic();
+                }
+            });
+            
+            if (showPieChart && (revenue > 0 || cost > 0))
+            {
+                row.RelativeItem().AlignRight().Width(60).Height(60).Image(GeneratePieChart(revenue, cost));
+            }
         });
     }
 
@@ -401,6 +708,11 @@ public class BilancioViaggioPrintService
                         col.Item().PaddingTop(2).Text($"Guadagno medio/pax: {avgMargin:N2} €").FontSize(10).Italic();
                     }
                 });
+                
+                if (totals.TotalRevenue > 0 || totals.TotalCost > 0)
+                {
+                    row.RelativeItem().AlignRight().Width(80).Height(80).Image(GeneratePieChart(totals.TotalRevenue, totals.TotalCost));
+                }
             });
         });
     }
