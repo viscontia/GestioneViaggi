@@ -1,0 +1,185 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject ApiConfigService ApiConfigService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(Entity.ConfigId == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Edit)" Class="mr-3 mb-n1" />
+            @(Entity.ConfigId == 0 ? "Nuova Configurazione API" : "Modifica Configurazione API")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="@Entity" OnValidSubmit="OnValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Codice Servizio"
+                                  Value="@Entity.ServiceCode"
+                                  ValueChanged="@((string val) => Entity.ServiceCode = val?.ToUpper() ?? string.Empty)"
+                                  Required="true"
+                                  RequiredError="Il codice servizio è obbligatorio"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="50"
+                                  AutoFocus="true"
+                                  Class="uppercase-input"
+                                  tabindex="1"
+                                  HelperText="Es: EXCHANGE_RATE, EMAIL_SERVICE" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Nome Servizio"
+                                  Value="@Entity.ServiceName"
+                                  ValueChanged="@((string val) => Entity.ServiceName = val?.ToUpper() ?? string.Empty)"
+                                  Required="true"
+                                  RequiredError="Il nome servizio è obbligatorio"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="100"
+                                  Class="uppercase-input"
+                                  tabindex="2"
+                                  HelperText="Es: TASSI DI CAMBIO" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Chiave Configurazione"
+                                  Value="@Entity.ConfigKey"
+                                  ValueChanged="@((string val) => Entity.ConfigKey = val?.ToUpper() ?? string.Empty)"
+                                  Required="true"
+                                  RequiredError="La chiave è obbligatoria"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="100"
+                                  Class="uppercase-input"
+                                  tabindex="3"
+                                  HelperText="Es: API_KEY, BASE_URL" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Tipo"
+                               @bind-Value="Entity.ConfigType"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Required="true"
+                               tabindex="5">
+                        <MudSelectItem Value="@("TEXT")">TEXT</MudSelectItem>
+                        <MudSelectItem Value="@("API_KEY")">API_KEY</MudSelectItem>
+                        <MudSelectItem Value="@("URL")">URL</MudSelectItem>
+                        <MudSelectItem Value="@("SECRET")">SECRET</MudSelectItem>
+                        <MudSelectItem Value="@("BOOLEAN")">BOOLEAN</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Valore"
+                                  @bind-Value="Entity.ConfigValue"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  InputType="@(_showSecretValue ? InputType.Text : (Entity.IsSecret ? InputType.Password : InputType.Text))"
+                                  tabindex="4"
+                                  Adornment="@(Entity.IsSecret ? Adornment.End : Adornment.None)"
+                                  AdornmentIcon="@(_showSecretValue ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="ToggleSecretVisibility" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Descrizione"
+                                  Value="@Entity.ConfigDescription"
+                                  ValueChanged="@((string val) => Entity.ConfigDescription = val?.ToUpper() ?? string.Empty)"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="255"
+                                  Class="uppercase-input"
+                                  tabindex="6" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch @bind-Value="Entity.IsSecret"
+                               Label="Segreto"
+                               Color="Color.Warning"
+                               tabindex="7" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSwitch @bind-Value="Entity.IsActive"
+                               Label="Attiva"
+                               Color="Color.Success"
+                               tabindex="8" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="short" Label="Ordine"
+                                     @bind-Value="Entity.DisplayOrder"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" Max="999"
+                                     tabindex="9" />
+                </MudItem>
+            </MudGrid>
+            <div class="d-flex justify-end mt-6">
+                <MudButton ButtonType="ButtonType.Button" OnClick="Cancel" Class="mr-2">Annulla</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_processing">
+                    @if (_processing)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Salvataggio...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@(Entity.ConfigId == 0 ? "Crea" : "Salva")</MudText>
+                    }
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@inject IJSRuntime JS
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ApiConfig Entity { get; set; } = new();
+
+    private bool _processing = false;
+    private bool _showSecretValue = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ApiConfigEditDialog] Errore JS: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task OnValidSubmit()
+    {
+        _processing = true;
+        try
+        {
+            if (Entity.ConfigId == 0)
+            {
+                await ApiConfigService.CreateAsync(Entity);
+                Snackbar.Add("Configurazione creata con successo", Severity.Success);
+            }
+            else
+            {
+                await ApiConfigService.UpdateAsync(Entity);
+                Snackbar.Add("Configurazione aggiornata con successo", Severity.Success);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ToggleSecretVisibility() => _showSecretValue = !_showSecretValue;
+}

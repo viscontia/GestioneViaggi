@@ -139,6 +139,7 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaDateViaggiService>();
         builder.Services.AddScoped<AnaTipiCausaliService>();
         builder.Services.AddScoped<AnaAliquoteIvaService>();
+        builder.Services.AddScoped<ApiConfigService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
@@ -186,10 +187,13 @@ public static class MauiProgram
         builder.Services.AddSingleton<MovTransazioniPrintService>();
         builder.Services.AddSingleton<ScadenzarioPrintService>();
         builder.Services.AddSingleton<BilancioViaggioPrintService>();
+        builder.Services.AddSingleton<RegistroIvaPrintService>();
         builder.Services.AddScoped<IPdfOpenerService, PdfOpenerService>();
 
+        // External APIs
+        builder.Services.AddHttpClient<GestioneViaggi.Services.ExternalApis.ICurrencyApiService, GestioneViaggi.Services.ExternalApis.CurrencyApiService>();
+
         // Exchange Rate Service
-        builder.Services.AddHttpClient();
         builder.Services.AddScoped<Services.Shared.IExchangeRateService, Services.Shared.ExchangeRateService>();
 
         return builder.Build();

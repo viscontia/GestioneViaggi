@@ -45,6 +45,17 @@ public static class PdfFileNameHelper
     }
 
     /// <summary>
+    /// Genera il nome file per la stampa "Registro IVA"
+    /// </summary>
+    /// <param name="periodoDa">Inizio periodo</param>
+    /// <param name="periodoA">Fine periodo</param>
+    /// <returns>Nome file nel formato: RegistroIVA_Dal_{Data}_al_{Data}.pdf</returns>
+    public static string GetRegistroIvaFileName(DateTime periodoDa, DateTime periodoA)
+    {
+        return $"RegistroIVA_Dal_{periodoDa:dd-MM-yyyy}_al_{periodoA:dd-MM-yyyy}.pdf";
+    }
+
+    /// <summary>
     /// Sanitizza un nome file rimuovendo caratteri non validi e limitando la lunghezza
     /// </summary>
     /// <param name="fileName">Nome file da sanitizzare</param>

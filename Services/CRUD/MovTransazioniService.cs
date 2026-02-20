@@ -456,24 +456,30 @@ public class MovTransazioniService
             using var conn = await _dbService.GetConnectionAsync();
 
             // =============================================
-            // STEP 6: Verifica se sono cambiati valuta o data documento
+            // STEP 6: Verifica se la valuta è cambiata, la data è cambiata, o se *manca* il tasso di cambio
             // =============================================
             string checkSql = @"
-                SELECT transazione_valuta_id, transazione_data_documento
-                FROM mov_transazioni
-                WHERE transazione_id = @TransazioneId";
+                SELECT t.transazione_valuta_id, 
+                       t.transazione_data_documento,
+                       (SELECT COUNT(*) FROM ana_tassi_cambio tc 
+                        WHERE tc.tasso_valuta_da_fk = (SELECT valuta_id FROM ana_valute WHERE valuta_codice_iso = 'EUR')
+                          AND tc.tasso_valuta_a_fk = t.transazione_valuta_id
+                          AND tc.tasso_data_validita = @DataDoc) as count_tassi
+                FROM mov_transazioni t
+                WHERE t.transazione_id = @TransazioneId";
 
-            var original = await conn.QueryFirstOrDefaultAsync<(int ValutaId, DateTime? DataDocumento)>(
+            var original = await conn.QueryFirstOrDefaultAsync<(int ValutaId, DateTime? DataDocumento, int CountTassi)>(
                 checkSql,
-                new { item.TransazioneId });
+                new { item.TransazioneId, DataDoc = item.TransazioneDataDocumento });
 
             bool valutaCambiata = original.ValutaId != item.TransazioneValutaId;
             bool dataDocumentoCambiata = original.DataDocumento != item.TransazioneDataDocumento;
+            bool tassoMancante = !valuta.ValutaIsBase && original.CountTassi == 0;
 
             // =============================================
             // STEP 7: Recupero automatico tasso di cambio SOLO se necessario
             // =============================================
-            if ((valutaCambiata || dataDocumentoCambiata) && item.TransazioneDataDocumento.HasValue)
+            if ((valutaCambiata || dataDocumentoCambiata || tassoMancante) && item.TransazioneDataDocumento.HasValue)
             {
                 if (!valuta.ValutaIsBase)
                 {

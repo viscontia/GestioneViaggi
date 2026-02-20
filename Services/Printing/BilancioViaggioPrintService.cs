@@ -45,7 +45,7 @@ public class BilancioViaggioPrintService
         _logger = logger;
     }
 
-    public async Task<BilancioViaggioPrintData> GetBilancioPrintDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, string utenteStampa)
+    public async Task<BilancioViaggioPrintData> GetBilancioPrintDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, string utenteStampa, int? valutaTargetId = null)
     {
         var data = new BilancioViaggioPrintData
         {
@@ -84,18 +84,18 @@ public class BilancioViaggioPrintService
         }
 
         // 3. Fetch Details
-        data.Dettagli = await GetBilancioDataAsync(aziendaId, viaggioId, dataViaggioId, dataDa, dataA);
+        data.Dettagli = await GetBilancioDataAsync(aziendaId, viaggioId, dataViaggioId, dataDa, dataA, valutaTargetId);
 
         return data;
     }
 
-    public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA)
+    public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, int? valutaTargetId = null)
     {
         var result = new List<BilancioViaggioDTO>();
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_bilancio_viaggio(@aziendaId, @viaggioId, @dataViaggioId, @dataDa, @dataA)";
+            var sql = "SELECT * FROM fn_get_bilancio_viaggio(@aziendaId, @viaggioId, @dataViaggioId, @dataDa, @dataA, @valutaTargetId)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("aziendaId", aziendaId);
@@ -110,6 +110,9 @@ public class BilancioViaggioPrintService
             
             command.Parameters.Add(pDataDa);
             command.Parameters.Add(pDataA);
+
+            var pValutaTargetId = new NpgsqlParameter("valutaTargetId", NpgsqlDbType.Integer) { Value = (object?)valutaTargetId ?? DBNull.Value, IsNullable = true };
+            command.Parameters.Add(pValutaTargetId);
 
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -186,7 +189,7 @@ public class BilancioViaggioPrintService
         return result;
     }
 
-    public async Task<BilancioViaggioPrintData> GetBilancioAnnualePrintDataAsync(int aziendaId, int anno, string utenteStampa)
+    public async Task<BilancioViaggioPrintData> GetBilancioAnnualePrintDataAsync(int aziendaId, int anno, string utenteStampa, int? valutaTargetId = null)
     {
         var data = new BilancioViaggioPrintData
         {
@@ -225,22 +228,25 @@ public class BilancioViaggioPrintService
         }
 
         // 3. Fetch Details
-        data.Dettagli = await GetBilancioAnnualeDataAsync(aziendaId, anno);
+        data.Dettagli = await GetBilancioAnnualeDataAsync(aziendaId, anno, valutaTargetId);
 
         return data;
     }
 
-    public async Task<List<BilancioViaggioDTO>> GetBilancioAnnualeDataAsync(int aziendaId, int anno)
+    public async Task<List<BilancioViaggioDTO>> GetBilancioAnnualeDataAsync(int aziendaId, int anno, int? valutaTargetId = null)
     {
         var result = new List<BilancioViaggioDTO>();
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_bilancio_annuale_viaggi(@aziendaId, @anno)";
+            var sql = "SELECT * FROM fn_get_bilancio_annuale_viaggi(@aziendaId, @anno, @valutaTargetId)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("aziendaId", aziendaId);
             command.Parameters.AddWithValue("anno", anno);
+
+            var pValutaTargetId = new NpgsqlParameter("valutaTargetId", NpgsqlDbType.Integer) { Value = (object?)valutaTargetId ?? DBNull.Value, IsNullable = true };
+            command.Parameters.Add(pValutaTargetId);
 
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -364,17 +370,32 @@ public class BilancioViaggioPrintService
 
                         foreach (var trip in trips)
                         {
-                            var tripInfo = trip.First();
-                            
-                            // Livello 2: Intestazione Viaggio
-                            column.Item().Background(Colors.Blue.Lighten4).Padding(10).Column(c =>
-                            {
-                                c.Item().Text($"VIAGGIO: {tripInfo.ViaggioDescrizione}").FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
-                            });
-
                             var tripDates = trip.GroupBy(x => x.DataViaggioId).ToList();
+                            var tripInfo = trip.First();
 
-                            foreach (var tripDate in tripDates)
+                            // Group the Trip Header and the FIRST Trip Date block together so they don't break across pages
+                            column.Item().ShowEntire().Column(sc =>
+                            {
+                                // Livello 2: Intestazione Viaggio
+                                sc.Item().Background(Colors.Blue.Lighten4).Padding(10).Column(c =>
+                                {
+                                    c.Item().Text($"VIAGGIO: {tripInfo.ViaggioDescrizione}").FontSize(14).Bold().FontColor(Colors.Blue.Darken3);
+                                });
+
+                                if (tripDates.Any())
+                                {
+                                    var firstDateInfo = tripDates.First().First();
+                                    sc.Item().Column(dsc => 
+                                    {
+                                        ComposeAnnualeDateSection(dsc, firstDateInfo, tripDates.First().ToList());
+                                    });
+                                }
+                            });
+                            
+                            column.Item().PaddingBottom(15);
+
+                            // Process any remaining Trip Dates
+                            foreach (var tripDate in tripDates.Skip(1))
                             {
                                 var dateInfo = tripDate.First();
                                 

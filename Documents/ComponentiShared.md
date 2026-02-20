@@ -220,15 +220,23 @@ Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
     *   Se non viene digitato testo, mostra tutte le valute disponibili (sono poche).
     *   Durante la digitazione, filtra in tempo reale per codice ISO o descrizione.
     *   Gestisce automaticamente gli stati di caricamento con `_isLoading`.
-*   **Utilizzo**:
+*   **Contesto Stampe e Profilo Utente**:
+    *   Integrato nei contesti documentali (es. **StampaBilancioViaggioDialog**, **StampaBilancioAnnualeViaggiDialog**).
+    *   In tali maschere, il componente sfrutta la sessione (`SessionManager`) per pre-istanziare la `ValutaDefaultId` dell'utente collegato, fungendo da filtro di Valuta Report personalizzabile e automatizzato.
+*   **Utilizzo Base**:
     ```razor
     <ValutaSelect SelectedValutaId="@(User.ValutaDefaultId ?? 0)"
                   SelectedValutaIdChanged="@HandleValutaChanged"
                   Label="Valuta di Default"
                   Required="true"
-                  RequiredError="Valuta di default obbligatoria"
-                  Clearable="false"
-                  Class="mb-3" />
+                  Clearable="false" />
+    ```
+*   **Utilizzo in Filtri Stampe (Pre-selezione profilo utente)**:
+    ```razor
+    <ValutaSelect SelectedValutaId="_selectedValutaId"
+                  SelectedValutaIdChanged="@(val => _selectedValutaId = val)"
+                  Label="Valuta Report"
+                  Clearable="true" />
     ```
 
 ### RuoloSelect

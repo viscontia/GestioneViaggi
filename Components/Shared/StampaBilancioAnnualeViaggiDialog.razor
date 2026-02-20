@@ -44,6 +44,14 @@
                      </MudText>
                 </MudItem>
 
+                @* RIGA 3: Selezione Valuta Report (Opzionale) *@
+                <MudItem xs="12">
+                    <ValutaSelect SelectedValutaId="_selectedValutaId"
+                                  SelectedValutaIdChanged="@(val => _selectedValutaId = val)"
+                                  Label="Valuta Report"
+                                  Clearable="true" />
+                </MudItem>
+
             </MudGrid>
         </MudForm>
     </DialogContent>
@@ -74,10 +82,18 @@
 
     private AnnoBilancioDTO? _selectedAnno;
     private List<AnnoBilancioDTO> _anniDisponibili = new();
+    private int _selectedValutaId;
 
     protected override async Task OnInitializedAsync()
     {
         _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        
+        var sessionData = await SessionManager.GetSessionAsync();
+        if (sessionData?.User?.ValutaDefaultId > 0)
+        {
+            _selectedValutaId = sessionData.User.ValutaDefaultId.Value;
+        }
+
         if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
@@ -134,6 +150,7 @@
     {
         _filtroAziendaIdInt = 0;
         _selectedAnno = _anniDisponibili.FirstOrDefault();
+        _selectedValutaId = 0;
         StateHasChanged();
     }
 
@@ -173,7 +190,8 @@
             var printData = await PrintService.GetBilancioAnnualePrintDataAsync(
                 _aziendaIdEffettivo,
                 _selectedAnno!.Anno,
-                sessionData.User.Username ?? "Utente"
+                sessionData.User.Username ?? "Utente",
+                _selectedValutaId > 0 ? _selectedValutaId : sessionData.User.ValutaDefaultId
             );
 
             // Analyze results

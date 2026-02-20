@@ -1,0 +1,241 @@
+@* Dialog per la selezione periodo e stampa del Registro IVA *@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
+@using GestioneViaggi.Components.Shared
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject RegistroIvaPrintService PrintService
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@inject IPdfOpenerService PdfOpenerService
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+
+                @* Azienda (solo SuperAdmin) *@
+                @if (_isSuperAdmin)
+                {
+                    <MudItem xs="12">
+                        <AziendaSelect @bind-Value="_filtroAziendaIdInt"
+                                       Label="Azienda"
+                                       Clearable="false" />
+                    </MudItem>
+                }
+
+                @* Periodo Da/A *@
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @ref="_firstField" Label="Periodo Da" @bind-Date="_periodoDa"
+                                   Variant="Variant.Outlined" Clearable="false" AnchorOrigin="Origin.BottomCenter"
+                                   Error="@_errorPeriodo" ErrorText="Il periodo Da deve essere precedente al periodo A"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Periodo A" @bind-Date="_periodoA"
+                                   Variant="Variant.Outlined" Clearable="false" AnchorOrigin="Origin.BottomCenter"
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+                </MudItem>
+
+                @* Shortcut rapidi *@
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Class="mb-1">Periodi rapidi:</MudText>
+                    <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@SetMeseCorrente"
+                                   Color="Color.Primary">Mese corrente</MudButton>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@SetMesePrecedente"
+                                   Color="Color.Primary">Mese precedente</MudButton>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@SetTrimestreCorrente"
+                                   Color="Color.Primary">Trimestre corrente</MudButton>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="@SetAnnoCorrente"
+                                   Color="Color.Primary">Anno corrente</MudButton>
+                    </MudStack>
+                </MudItem>
+
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+            Stampa Registro IVA
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private MudDatePicker? _firstField;
+
+    // Sessione e tenant
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_filtroAziendaId ?? 0) : (_currentAziendaId ?? 0);
+
+    // Filtri
+    private int _filtroAziendaIdInt;
+    private int? _filtroAziendaId => _filtroAziendaIdInt > 0 ? _filtroAziendaIdInt : null;
+
+    private DateTime? _periodoDa;
+    private DateTime? _periodoA;
+
+    // Errori
+    private bool _errorPeriodo;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+        }
+
+        // Default: mese corrente
+        SetMeseCorrente();
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { }
+
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                await _firstField.FocusAsync();
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
+        }
+        catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // Shortcut periodi
+    private void SetMeseCorrente()
+    {
+        var oggi = DateTime.Today;
+        _periodoDa = new DateTime(oggi.Year, oggi.Month, 1);
+        _periodoA = _periodoDa.Value.AddMonths(1).AddDays(-1);
+    }
+
+    private void SetMesePrecedente()
+    {
+        var oggi = DateTime.Today;
+        _periodoDa = new DateTime(oggi.Year, oggi.Month, 1).AddMonths(-1);
+        _periodoA = new DateTime(oggi.Year, oggi.Month, 1).AddDays(-1);
+    }
+
+    private void SetTrimestreCorrente()
+    {
+        var oggi = DateTime.Today;
+        var meseInizioTrimestre = ((oggi.Month - 1) / 3) * 3 + 1;
+        _periodoDa = new DateTime(oggi.Year, meseInizioTrimestre, 1);
+        _periodoA = _periodoDa.Value.AddMonths(3).AddDays(-1);
+    }
+
+    private void SetAnnoCorrente()
+    {
+        var oggi = DateTime.Today;
+        _periodoDa = new DateTime(oggi.Year, 1, 1);
+        _periodoA = new DateTime(oggi.Year, 12, 31);
+    }
+
+    private bool ValidaFiltri()
+    {
+        bool isValid = true;
+        _errorPeriodo = false;
+
+        if (!_periodoDa.HasValue || !_periodoA.HasValue)
+        {
+            Snackbar.Add("Selezionare il periodo Da e A", Severity.Warning);
+            isValid = false;
+        }
+        else if (_periodoDa > _periodoA)
+        {
+            _errorPeriodo = true;
+            Snackbar.Add("Il periodo Da deve essere precedente al periodo A", Severity.Warning);
+            isValid = false;
+        }
+
+        if (_aziendaIdEffettivo <= 0)
+        {
+            Snackbar.Add("Selezionare un'azienda", Severity.Warning);
+            isValid = false;
+        }
+
+        StateHasChanged();
+        return isValid;
+    }
+
+    private async Task EseguiStampa()
+    {
+        if (!ValidaFiltri())
+            return;
+
+        try
+        {
+            var sessionData = await SessionManager.GetSessionAsync();
+            if (sessionData?.User == null)
+            {
+                Snackbar.Add("Errore: sessione utente non valida", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Estrazione dati Registro IVA in corso...", Severity.Info);
+
+            var printData = await PrintService.GetRegistroIvaDataAsync(
+                _aziendaIdEffettivo,
+                _periodoDa!.Value,
+                _periodoA!.Value,
+                sessionData.User);
+
+            if (!printData.HasData)
+            {
+                Snackbar.Add("Nessuna fattura con IVA trovata nel periodo selezionato", Severity.Warning);
+                return;
+            }
+
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
+
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = PdfFileNameHelper.GetRegistroIvaFileName(_periodoDa!.Value, _periodoA!.Value);
+            var outputPath = Path.Combine(targetFolder, fileName);
+
+            if (System.IO.File.Exists(outputPath))
+            {
+                System.IO.File.Delete(outputPath);
+            }
+
+            await RegistroIvaPrinter.GeneratePdfAsync(printData, outputPath);
+
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Registro IVA Generato");
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la generazione del Registro IVA: {ex.Message}", Severity.Error);
+        }
+    }
+}

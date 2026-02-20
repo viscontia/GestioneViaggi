@@ -49,6 +49,14 @@
                                        Clearable="true" />
                 </MudItem>
 
+                @* RIGA 4: Selezione Valuta Report (Opzionale) *@
+                <MudItem xs="12">
+                    <ValutaSelect SelectedValutaId="_selectedValutaId"
+                                  SelectedValutaIdChanged="@(val => _selectedValutaId = val)"
+                                  Label="Valuta Report (Default: Valuta Utente)"
+                                  Clearable="true" />
+                </MudItem>
+
                 @* RIGA 4: Periodo (Opzionale) *@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa" 
@@ -91,6 +99,7 @@
 
     private int? _selectedViaggioId;
     private int? _selectedDataViaggioId;
+    private int _selectedValutaId;
 
     private DateTime? _dataDa;
     private DateTime? _dataA;
@@ -100,6 +109,13 @@
     protected override async Task OnInitializedAsync()
     {
         _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        var sessionData = await SessionManager.GetSessionAsync();
+        if (sessionData?.User?.ValutaDefaultId > 0)
+        {
+            _selectedValutaId = sessionData.User.ValutaDefaultId.Value;
+        }
+
         if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
@@ -140,6 +156,7 @@
         _filtroAziendaIdInt = 0;
         _selectedViaggioId = null;
         _selectedDataViaggioId = null;
+        _selectedValutaId = 0;
         _dataDa = null;
         _dataA = null;
         StateHasChanged();
@@ -190,7 +207,8 @@
                 _selectedDataViaggioId,
                 _dataDa,
                 _dataA,
-                sessionData.User.Username ?? "Utente"
+                sessionData.User.Username ?? "Utente",
+                _selectedValutaId > 0 ? _selectedValutaId : sessionData.User.ValutaDefaultId
             );
 
             // Analyze results

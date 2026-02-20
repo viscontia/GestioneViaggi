@@ -193,6 +193,10 @@
                     OnClick="@OpenStampaBilancioAnnualeViaggiDialog">
             <MudText Typo="Typo.body1">Stampa Bilancio Annuale Viaggi</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.ReceiptLong"
+                    OnClick="@OpenStampaRegistroIvaDialog">
+            <MudText Typo="Typo.body1">Registro IVA</MudText>
+        </MudNavLink>
     </MudNavGroup>
 
 
@@ -221,6 +225,10 @@
              <MudNavLink Icon="@Icons.Material.Filled.CleaningServices"
                         OnClick="@(() => OpenTabAndNotify("/tools/event-maintenance", "Manutenzione Eventi", "cleaning_services"))">
                 <MudText Typo="Typo.body1">Manutenzione Eventi</MudText>
+            </MudNavLink>
+            <MudNavLink Icon="@Icons.Material.Filled.Key"
+                        OnClick="@(() => OpenTabAndNotify("/tools/api-config", "Configurazione API", "key"))">
+                <MudText Typo="Typo.body1">Configurazione API</MudText>
             </MudNavLink>
         </MudNavGroup>
     </AuthorizeView>
@@ -517,5 +525,19 @@
             BackdropClick = false
         };
         await DialogService.ShowAsync<StampaBilancioAnnualeViaggiDialog>("Stampa Bilancio Annuale Viaggi", options);
+    }
+
+    private async Task OpenStampaRegistroIvaDialog()
+    {
+        await OnItemClick.InvokeAsync();
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            BackdropClick = false
+        };
+        await DialogService.ShowAsync<StampaRegistroIvaDialog>("Registro IVA Acquisti e Vendite", options);
     }
 }

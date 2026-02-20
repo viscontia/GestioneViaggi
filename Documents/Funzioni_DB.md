@@ -336,7 +336,43 @@ Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 
 ---
 
-## 10. Implementazioni Service-Side (Logica Applicativa)
+## 10. Configurazione API (SuperAdmin)
+
+Funzioni CRUD per la gestione delle configurazioni API esterne. Tabella globale (non multi-tenant), accessibile solo al SuperAdmin.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_ana_api_config_get_all` | Recupera tutte le configurazioni API ordinate per service_code e display_order. Usato dalla griglia principale. | (nessuno) | `SETOF ana_api_config` (tutte le colonne) | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigPage.razor` |
+| `fn_ana_api_config_get_by_service` | Recupera le configurazioni per un servizio specifico. Usato per lettura API key da codice applicativo. | `p_service_code VARCHAR(50)` | `SETOF ana_api_config` (record del servizio specificato) | `Services/CRUD/ApiConfigService.cs` |
+| `sp_ana_api_config_create` | Crea nuova configurazione API con validazione completa. **Normalizzazione automatica**: forza UPPER CASE su service_code, service_name, config_key, config_type, config_description. **Validazioni**: campi obbligatori non vuoti, config_type in (TEXT, API_KEY, URL, SECRET, BOOLEAN). **Gestione errori**: DUPLICATE_KEY (unique violation), INVALID_DATA (check constraint). | `p_service_code VARCHAR(50), p_service_name VARCHAR(100), p_config_key VARCHAR(100), p_config_value TEXT, p_config_type VARCHAR(20), p_config_description VARCHAR(255), p_is_secret BOOLEAN, p_is_active BOOLEAN, p_display_order SMALLINT, p_created_by VARCHAR(50)` | `INTEGER` (config_id del record creato) | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigEditDialog.razor` |
+| `sp_ana_api_config_update` | Aggiorna configurazione API esistente con validazione. **Normalizzazione automatica**: forza UPPER CASE. **Validazioni**: verifica esistenza record, campi obbligatori non vuoti, config_type valido. **Gestione errori**: RECORD_NOT_FOUND, DUPLICATE_KEY, INVALID_DATA. | `p_config_id INTEGER, p_service_code VARCHAR(50), p_service_name VARCHAR(100), p_config_key VARCHAR(100), p_config_value TEXT, p_config_type VARCHAR(20), p_config_description VARCHAR(255), p_is_secret BOOLEAN, p_is_active BOOLEAN, p_display_order SMALLINT, p_updated_by VARCHAR(50)` | `VOID` | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigEditDialog.razor` |
+| `sp_ana_api_config_delete` | Elimina una singola configurazione API per ID. **Gestione errori**: RECORD_NOT_FOUND. | `p_config_id INTEGER` | `VOID` | `Services/CRUD/ApiConfigService.cs`, `Components/Pages/Configurazione/ApiConfigPage.razor` |
+| `sp_ana_api_config_delete_service` | Elimina tutte le configurazioni di un servizio specifico. **Gestione errori**: RECORD_NOT_FOUND (nessuna config trovata). | `p_service_code VARCHAR(50)` | `VOID` | `Services/CRUD/ApiConfigService.cs` |
+
+### 📝 Note Implementative - Configurazione API (2026-02-20)
+
+**Architettura DB-First Completa**:
+- ✅ **Zero SQL diretto** in `ApiConfigService.cs` - tutte le operazioni delegate al database
+- ✅ Normalizzazione UPPER CASE gestita lato database (stored procedures)
+- ✅ Validazioni business rules nel database (constraint + procedure logic)
+- ✅ Trigger `trg_touch_updated_at_api_config` aggiorna automaticamente `updated_at` su ogni modifica
+
+**Differenze vs altre tabelle anagrafiche**:
+- **Tabella globale**: Nessun `azienda_fk` - non è multi-tenant
+- **Solo SuperAdmin**: Pagina protetta con `@attribute [Authorize(Roles = "superadmin")]`
+- **Servizio standalone**: `ApiConfigService` NON eredita da `BaseCrudService<T>`
+- **Unique constraint**: `(service_code, config_key)` - una sola chiave per servizio
+
+**Constraint e Validazioni DB**:
+- `uk_api_config_service_key`: UNIQUE su (service_code, config_key) - previene duplicati
+- Validazione config_type: TEXT, API_KEY, URL, SECRET, BOOLEAN
+- Trigger automatic updated_at enforcement
+
+**File SQL**: `SqlScripts/Create_AnaApiConfig.sql` (tabella + trigger), `SqlScripts/Create_AnaApiConfig_CRUD.sql` (stored functions)
+
+---
+
+## 11. Implementazioni Service-Side (Logica Applicativa)
 Nota: Queste non sono funzioni DB, ma descrizioni di logica C# rilevante.
 
 | Componente | Funzionalità | Descrizione | Files Coinvolti |

@@ -261,8 +261,18 @@
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Salva</MudButton>
+        <MudButton OnClick="Cancel" Disabled="@_isLoading">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@_isLoading">
+            @if (_isLoading)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Attendere...</MudText>
+            }
+            else
+            {
+                @("Salva")
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -306,6 +316,9 @@
     private string? _messaggioIva = null;
     private Severity _severityIva = Severity.Info;
 
+    // Loading flag
+    private bool _isLoading = false;
+
     protected override async Task OnInitializedAsync()
     {
         // Init dates from model
@@ -324,6 +337,11 @@
                 if (session?.User?.ValutaDefaultId.HasValue == true)
                 {
                     Transazione.TransazioneValutaId = session.User.ValutaDefaultId.Value;
+                    var defaultValuta = await ValuteService.GetByIdAsync(Transazione.TransazioneValutaId);
+                    if (defaultValuta != null)
+                    {
+                        Transazione.ValutaCodiceIso = defaultValuta.ValutaCodiceIso;
+                    }
                     System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Valuta default impostata: {session.User.ValutaDefaultId.Value}");
                 }
                 else
@@ -407,7 +425,12 @@
 
     private async Task Submit()
     {
-        await _form.Validate();
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await _form.Validate();
 
         // Reset error states
         _numeroDocumentoError = false;
@@ -523,7 +546,7 @@
                 {
                     Snackbar.Add(warningMessage, Severity.Warning, config =>
                     {
-                        config.VisibleStateDuration = 5000; // 5 secondi
+                        config.VisibleStateDuration = 10000; // 10 secondi per permetterne la lettura
                     });
                 }
 
@@ -533,6 +556,12 @@
             {
                 Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
             }
+        }
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
         }
     }
 

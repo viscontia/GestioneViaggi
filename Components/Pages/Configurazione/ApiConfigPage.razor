@@ -1,0 +1,164 @@
+@page "/tools/api-config"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "superadmin")]
+@inject ApiConfigService ApiConfigService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="ApiConfig"
+                        Title="Configurazione API"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuova Configurazione
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.ServiceCode" Title="Servizio" />
+            <PropertyColumn Property="x => x.ServiceName" Title="Nome Servizio" />
+            <PropertyColumn Property="x => x.ConfigKey" Title="Chiave" />
+            <PropertyColumn Property="x => x.ConfigValueDisplay" Title="Valore">
+                <CellTemplate>
+                    @if (context.Item.IsSecret && !string.IsNullOrEmpty(context.Item.ConfigValue))
+                    {
+                        <MudText Typo="Typo.body2" Style="font-family: monospace; letter-spacing: 2px;">●●●●●●●●●●</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">@(context.Item.ConfigValue ?? "")</MudText>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.ConfigType" Title="Tipo">
+                <CellTemplate>
+                    <MudChip Color="@GetTypeColor(context.Item.ConfigType)" Size="Size.Small" Variant="Variant.Text">@context.Item.ConfigType</MudChip>
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IsActive" Title="Attiva">
+                <CellTemplate>
+                    @if (context.Item.IsActive)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <EnterpriseActionsColumn T="ApiConfig" OnEdit="@OpenEditDialog" OnDelete="@DeleteConfig" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<ApiConfig> _items = new List<ApiConfig>();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await ApiConfigService.GetAllAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<ApiConfigEditDialog>("Nuova Configurazione API", options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(ApiConfig item)
+    {
+        var parameters = new DialogParameters { ["Entity"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<ApiConfigEditDialog>("Modifica Configurazione API", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteConfig(ApiConfig item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Configurazione",
+            $"Sei sicuro di voler eliminare la configurazione {item.ServiceCode} / {item.ConfigKey}?",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await ApiConfigService.DeleteAsync(item.ConfigId);
+                Snackbar.Add("Configurazione eliminata", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool SearchFunc(ApiConfig item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (item.ServiceCode?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (item.ServiceName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (item.ConfigKey?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (item.ConfigDescription?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+
+    private Color GetTypeColor(string configType) => configType switch
+    {
+        "API_KEY" => Color.Warning,
+        "SECRET" => Color.Error,
+        "URL" => Color.Info,
+        "BOOLEAN" => Color.Secondary,
+        _ => Color.Default
+    };
+}
