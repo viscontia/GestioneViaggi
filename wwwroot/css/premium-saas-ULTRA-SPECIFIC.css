@@ -385,181 +385,95 @@ textarea {
 }
 
 /* ========================================== */
-/* 5. LOGIN PAGE - TWO COLUMN LAYOUT          */
+/* 5. LOGIN PAGE - GLASSMORPHISM              */
 /* ========================================== */
 
-.login-container-wrapper {
-    width: 100%;
-    min-height: 100vh;
+.login-fullscreen-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
-    align-items: center;
     justify-content: center;
-}
-
-.login-wrapper {
-    min-height: 100vh;
-    background: #FFFFFF;
-    display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
+    background-image: url('../images/offroad-hero.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #111827; /* Fallback color */
+    z-index: 10;
+}
+
+.glass-login-card {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 16px !important;
     width: 100%;
+    margin: 0 16px;
+    max-width: 480px; /* Allargata per permettere campi mail lunghi */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+    color: white !important; 
 }
 
-.login-layout {
-    display: flex;
-    width: 100%;
-    max-width: 1400px;
-    height: auto;
-    min-height: 600px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-    border-radius: 16px;
-    overflow: hidden;
+/* To make text inputs white inside the glass card */
+.glass-login-card .login-input .mud-input {
+    background-color: #ffffff !important;
+    border-radius: 8px !important;
 }
-
-.login-form-column {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    background: linear-gradient(135deg, #F7F8FA 0%, #E5E7EB 100%);
-    min-width: 420px;
-}
-
-.login-image-column {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    background: #F5F5F5;
-    min-width: 450px;
-}
-
-.login-hero-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-}
-
-.login-container {
-    width: 100%;
-    max-width: 420px;
-}
-
-.login-card {
-    width: 100%;
-    max-width: 380px;
-    padding: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.login-header {
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.login-logo-image {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    margin-bottom: 16px;
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-}
-
-.login-title {
-    font-weight: 600 !important;
-    color: #111827 !important;
-    margin-bottom: 8px !important;
-}
-
-.login-subtitle {
-    color: #6B7280 !important;
-}
-
-.login-input {
-    margin-bottom: 0 !important;
-}
-
-.login-button {
-    margin-top: 8px !important;
-    height: 48px !important;
-    font-size: 15px !important;
+.glass-login-card .login-input .mud-input-slot {
+    color: #222222 !important;
     font-weight: 500 !important;
+}
+.glass-login-card .login-input.mud-input-outlined .mud-input-outlined-border {
+    border: none !important;
+}
+
+/* Modifiers for Icons and Adornments */
+.glass-login-card .login-input .mud-input-adornment-start,
+.glass-login-card .login-input .mud-input-adornment-end,
+.glass-login-card .login-input .mud-icon-root {
+    color: #555555 !important;
+}
+
+.glass-login-card .login-input input::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+}
+
+/* Customize Checkbox */
+.glass-login-card .login-checkbox {
+    color: white !important;
+}
+.glass-login-card .login-checkbox .mud-icon-root,
+.glass-login-card .login-checkbox .mud-checkbox-label,
+.glass-login-card .login-checkbox .mud-typography {
+    color: white !important;
+}
+
+/* Customize Login Button to dark navy */
+.glass-login-card .login-button {
+    background-color: #0d1117 !important;
+    color: white !important;
+    border-radius: 12px !important;
     text-transform: none !important;
-    letter-spacing: 0 !important;
-}
-
-.forgot-password-link {
-    text-align: center;
-    display: block;
-    font-size: 14px !important;
-    margin-top: 8px !important;
-}
-
-/* ========================================== */
-/* ENTERPRISE GRID TITLE */
-/* ========================================== */
-
-.enterprise-grid-title {
+    font-size: 1.1rem !important;
     font-weight: 600 !important;
-    color: #111827 !important;
-    margin-bottom: 0 !important;
-    letter-spacing: -0.02em !important;
-    font-size: 1.5rem !important;
+}
+.glass-login-card .login-button:hover {
+    background-color: #1f2937 !important;
 }
 
-.theme-dark .enterprise-grid-title {
-    color: #E6E8EB !important;
-}
-
-@media (max-width: 1024px) {
-    .login-layout {
-        flex-direction: column;
-        min-height: auto;
-        max-width: 600px;
-    }
-
-    .login-form-column {
-        min-width: 100%;
-        padding: 32px 20px;
-    }
-
-    .login-image-column {
-        min-width: 100%;
-        height: 300px;
-    }
-}
-
-@media (max-width: 768px) {
-    .login-form-column {
-        padding: 24px 16px;
-        min-width: 100%;
-    }
-
-    .login-card {
-        max-width: 100%;
-    }
-
-    .login-image-column {
-        display: none;
-    }
-
-    .login-wrapper {
-        background: linear-gradient(135deg, #F7F8FA 0%, #E5E7EB 100%);
-    }
-
-    .login-layout {
-        box-shadow: none;
-        border-radius: 0;
-        max-width: 100%;
-    }
+/* Forgot password link */
+.glass-login-card .forgot-password-link {
+    color: white !important;
+    text-align: center !important;
+    width: 100% !important;
+    display: block !important;
+    margin-top: 1rem !important;
+    font-size: 0.9rem !important;
 }
 
 /* ========================================== */

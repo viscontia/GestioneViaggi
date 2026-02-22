@@ -9,129 +9,119 @@
 @inject IJSRuntime JS
 @layout LoginLayout
 
-<div class="login-wrapper">
-    <div class="login-layout">
-        <!-- COLONNA SINISTRA: FORM -->
-        <div class="login-form-column">
-            <MudPaper Class="login-card" Elevation="3">
+<div class="login-fullscreen-container">
+    <MudPaper Class="glass-login-card pa-8" Elevation="3">
 
-                <!-- Logo e Titolo -->
-                <div class="login-header">
-                    <img src="images/logo-gestione-viaggi.png" alt="Gestione Viaggi Logo" class="login-logo-image" />
-                    <MudText Typo="Typo.h4" Class="login-title">Gestione Viaggi</MudText>
-                    <MudText Typo="Typo.body2" Class="login-subtitle">Accedi al tuo account</MudText>
-                </div>
-
-                <!-- Alert Errore Validazione -->
-                @if (!string.IsNullOrEmpty(_validationErrorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
-                        @_validationErrorMessage
-                    </MudAlert>
-                }
-
-                <!-- Alert Errore Autenticazione -->
-                @if (!string.IsNullOrEmpty(_authErrorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" Dense="false" Class="mb-4" Variant="Variant.Filled">
-                        @if (_authErrorMessage.Contains("\n"))
-                        {
-                            <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; font-family: monospace; margin: 0;">@_authErrorMessage</pre>
-                        }
-                        else
-                        {
-                            @_authErrorMessage
-                        }
-                    </MudAlert>
-                }
-
-                <!-- Form Login -->
-                <EditForm Model="@_loginRequest" OnSubmit="HandleFormSubmit">
-                    <DataAnnotationsValidator />
-
-                    <MudStack Spacing="3">
-
-                        <!-- Email/Username -->
-                        <MudTextField
-                            @ref="_emailField"
-                            @bind-Value="_loginRequest.Email"
-                            Label="Email"
-                            Variant="Variant.Outlined"
-                            Adornment="Adornment.Start"
-                            AdornmentIcon="@Icons.Material.Filled.Email"
-                            HelperText="Es: user@example.com"
-                            Disabled="@_isLoading"
-                            Class="login-input"
-                            tabindex="1"
-                            aria-label="Inserisci il tuo indirizzo email"
-                            @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Email))" />
-
-                        <!-- Password -->
-                        <MudTextField
-                            @ref="_passwordField"
-                            @bind-Value="_loginRequest.Password"
-                            Label="Password"
-                            Variant="Variant.Outlined"
-                            InputType="@_passwordInputType"
-                            Adornment="Adornment.End"
-                            AdornmentIcon="@_passwordIcon"
-                            OnAdornmentClick="TogglePasswordVisibility"
-                            AdornmentAriaLabel="Mostra Password"
-                            HelperText="Almeno 8 caratteri, una maiuscola e un carattere speciale"
-                            Disabled="@_isLoading"
-                            Class="login-input"
-                            tabindex="2"
-                            aria-label="Inserisci una password sicura"
-                            @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Password))" />
-
-                        <!-- Ricordami -->
-                        <MudCheckBox
-                            @bind-Value="_loginRequest.RememberMe"
-                            Label="Ricordami"
-                            Color="Color.Primary"
-                            Disabled="@_isLoading"
-                            tabindex="3"
-                            aria-label="Seleziona per rimanere connesso"
-                            @onkeydown="HandleCheckboxKeyDown" />
-
-                        <!-- Bottone Login -->
-                        <MudButton
-                            ButtonType="ButtonType.Submit"
-                            Variant="Variant.Filled"
-                            Color="Color.Primary"
-                            Size="Size.Large"
-                            FullWidth="true"
-                            Disabled="@_isLoading"
-                            Class="login-button"
-                            tabindex="4"
-                            aria-label="Fai clic per accedere al tuo account">
-                            @if (_isLoading)
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                                <span>Accesso in corso...</span>
-                            }
-                            else
-                            {
-                                <span>Accedi</span>
-                            }
-                        </MudButton>
-
-                        <!-- Link Password Dimenticata -->
-                        <MudLink Href="#" Underline="Underline.Hover" Color="Color.Primary" Class="forgot-password-link">
-                            Password dimenticata?
-                        </MudLink>
-
-                    </MudStack>
-                </EditForm>
-
-            </MudPaper>
+        <!-- Logo e Titolo -->
+        <div class="d-flex flex-column align-center mb-6">
+            <MudImage Src="images/logo-gestione-viaggi.png" Alt="Gestione Viaggi Logo" Width="80" Class="mb-3" />
+            <MudText Typo="Typo.h5" Class="login-title" Style="color: white; font-weight: bold;">Gestione Viaggi</MudText>
+            <MudText Typo="Typo.body2" Class="login-subtitle mt-1" Style="color: rgba(255, 255, 255, 0.9);">Accedi al tuo account</MudText>
         </div>
 
-        <!-- COLONNA DESTRA: IMMAGINE -->
-        <div class="login-image-column">
-            <img src="images/offroad-hero.jpg" alt="Gestione Viaggi" class="login-hero-image" />
-        </div>
-    </div>
+        <!-- Alert Errore Validazione -->
+        @if (!string.IsNullOrEmpty(_validationErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">
+                @_validationErrorMessage
+            </MudAlert>
+        }
+
+        <!-- Alert Errore Autenticazione -->
+        @if (!string.IsNullOrEmpty(_authErrorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Dense="false" Class="mb-4" Variant="Variant.Filled">
+                @if (_authErrorMessage.Contains("\n"))
+                {
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; font-family: monospace; margin: 0;">@_authErrorMessage</pre>
+                }
+                else
+                {
+                    @_authErrorMessage
+                }
+            </MudAlert>
+        }
+
+        <!-- Form Login -->
+        <EditForm Model="@_loginRequest" OnSubmit="HandleFormSubmit">
+            <DataAnnotationsValidator />
+
+            <MudStack Spacing="4">
+
+                <!-- Email/Username -->
+                <MudTextField
+                    @ref="_emailField"
+                    @bind-Value="_loginRequest.Email"
+                    Placeholder="visconti.adriano@gmail.com"
+                    Variant="Variant.Outlined"
+                    Adornment="Adornment.Start"
+                    AdornmentIcon="@Icons.Material.Filled.Email"
+                    Disabled="@_isLoading"
+                    Class="login-input"
+                    Margin="Margin.Dense"
+                    tabindex="1"
+                    aria-label="Inserisci il tuo indirizzo email"
+                    @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Email))" />
+
+                <!-- Password -->
+                <MudTextField
+                    @ref="_passwordField"
+                    @bind-Value="_loginRequest.Password"
+                    Placeholder="Password"
+                    Variant="Variant.Outlined"
+                    InputType="@_passwordInputType"
+                    Adornment="Adornment.End"
+                    AdornmentIcon="@_passwordIcon"
+                    OnAdornmentClick="TogglePasswordVisibility"
+                    AdornmentAriaLabel="Mostra Password"
+                    Disabled="@_isLoading"
+                    Class="login-input"
+                    Margin="Margin.Dense"
+                    tabindex="2"
+                    aria-label="Inserisci una password sicura"
+                    @onkeydown="@(e => HandleKeyDown(e, KeyDownTarget.Password))" />
+
+                <!-- Ricordami -->
+                <MudCheckBox
+                    @bind-Value="_loginRequest.RememberMe"
+                    Label="Ricordami"
+                    Class="login-checkbox mt-n2 mb-2"
+                    Disabled="@_isLoading"
+                    tabindex="3"
+                    Color="Color.Default"
+                    aria-label="Seleziona per rimanere connesso"
+                    @onkeydown="HandleCheckboxKeyDown" />
+
+                <!-- Bottone Login -->
+                <MudButton
+                    ButtonType="ButtonType.Submit"
+                    Variant="Variant.Filled"
+                    Size="Size.Large"
+                    FullWidth="true"
+                    Disabled="@_isLoading"
+                    Class="login-button py-2"
+                    tabindex="4"
+                    aria-label="Fai clic per accedere al tuo account">
+                    @if (_isLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Accesso in corso...</span>
+                    }
+                    else
+                    {
+                        <span>Accedi</span>
+                    }
+                </MudButton>
+
+                <!-- Link Password Dimenticata -->
+                <MudLink Href="#" Underline="Underline.Hover" Class="forgot-password-link">
+                    Password dimenticata?
+                </MudLink>
+
+            </MudStack>
+        </EditForm>
+
+    </MudPaper>
 </div>
 
 @code {
