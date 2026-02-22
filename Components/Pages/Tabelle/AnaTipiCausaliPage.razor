@@ -1,8 +1,10 @@
 @page "/tabelle/causali"
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
 @inject AnaTipiCausaliService CausaliService
+@inject ITenantContext TenantContext
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -16,9 +18,16 @@
                         Loading="@_loading"
                         SearchFunction="@SearchFunc">
         <ToolBarActions>
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Primary" 
-                       StartIcon="@Icons.Material.Filled.Add" 
+            @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="false"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@OpenCreateDialog">
                 Nuova Causale
             </MudButton>
@@ -62,6 +71,18 @@
                     }
                 </CellTemplate>
             </PropertyColumn>
+            <PropertyColumn Property="x => x.CausaleConcorreFatturato" Title="Concorre Fatturato">
+                <CellTemplate>
+                    @if (context.Item.CausaleConcorreFatturato)
+                    {
+                        <MudChip Color="Color.Tertiary" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
 
             <EnterpriseActionsColumn T="AnaTipoCausale" OnEdit="@OpenEditDialog" OnDelete="@DeleteCausale" />
         </Columns>
@@ -71,18 +92,57 @@
 @code {
     private IEnumerable<AnaTipoCausale> _items = new List<AnaTipoCausale>();
     private bool _loading = true;
+    private int? _currentAziendaId;
+    private int _selectedAziendaId;
+    private bool _isSuperAdmin;
 
     protected override async Task OnInitializedAsync()
     {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null;
+        }
+        else
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!_currentAziendaId.HasValue)
+            {
+                Snackbar.Add("Errore: Azienda non trovata nel context", Severity.Error);
+                return;
+            }
+        }
+
         await LoadDataAsync();
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private int GetEffectiveAziendaId()
+    {
+        if (_isSuperAdmin && _selectedAziendaId > 0)
+            return _selectedAziendaId;
+        return _currentAziendaId ?? 0;
     }
 
     private async Task LoadDataAsync()
     {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            _items = new List<AnaTipoCausale>();
+            return;
+        }
+
         _loading = true;
         try
         {
-            _items = await CausaliService.GetAllAsync();
+            _items = await CausaliService.GetAllByAziendaAsync(aziendaId);
         }
         finally
         {
@@ -92,6 +152,13 @@
 
     private async Task OpenCreateDialog()
     {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            Snackbar.Add("Seleziona un'azienda prima di creare una causale", Severity.Warning);
+            return;
+        }
+
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaTipiCausaliEditDialog>("Nuova Causale", options);
         var result = await dialog.Result;

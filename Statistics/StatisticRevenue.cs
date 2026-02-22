@@ -1,6 +1,7 @@
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace GestioneViaggi.Statistics;
 
@@ -17,21 +18,12 @@ public class StatisticRevenue : StatisticBase
         ComparisonMode comparisonMode = ComparisonMode.FullYear,
         int? valutaTargetId = null)
     {
-        if (!aziendaId.HasValue)
-        {
-            _logger.LogWarning("GetStatsAsync called without aziendaId - returning zero values");
-            var emptyResult = StatisticResult.Create(0, 0, 0);
-            // Ensure TrendData has 12 zeros for graph rendering
-            emptyResult.TrendData = Enumerable.Repeat(0.0, 12).ToList();
-            return emptyResult;
-        }
-
-        // Se non viene passata una valuta target, usa EUR (valuta base)
+        // V2: aziendaId = null → SuperAdmin, somma tutte le aziende
         int effectiveValutaId = valutaTargetId ?? await GetValutaBaseIdAsync();
 
         try
         {
-            decimal currentYearRevenue = await GetFatturatoAnnualeAsync(aziendaId.Value, year, effectiveValutaId);
+            decimal currentYearRevenue = await GetFatturatoAnnualeAsync(aziendaId, year, effectiveValutaId);
             decimal previousYearRevenue;
             List<double> trendData;
 
@@ -43,17 +35,17 @@ public class StatisticRevenue : StatisticBase
                 DateTime prevStart = new DateTime(year - 1, 1, 1);
                 DateTime prevEnd = DateTime.Now.AddYears(-1);
 
-                currentYearRevenue = await GetFatturatoPeriodoAsync(aziendaId.Value, periodStart, periodEnd, effectiveValutaId);
-                previousYearRevenue = await GetFatturatoPeriodoAsync(aziendaId.Value, prevStart, prevEnd, effectiveValutaId);
+                currentYearRevenue = await GetFatturatoPeriodoAsync(aziendaId, periodStart, periodEnd, effectiveValutaId);
+                previousYearRevenue = await GetFatturatoPeriodoAsync(aziendaId, prevStart, prevEnd, effectiveValutaId);
             }
             else
             {
                 // Full Year: confronta intero anno precedente
-                previousYearRevenue = await GetFatturatoAnnualeAsync(aziendaId.Value, year - 1, effectiveValutaId);
+                previousYearRevenue = await GetFatturatoAnnualeAsync(aziendaId, year - 1, effectiveValutaId);
             }
 
             // Trend mensile per l'anno selezionato
-            trendData = await GetFatturatoMensileTrendAsync(aziendaId.Value, year, effectiveValutaId);
+            trendData = await GetFatturatoMensileTrendAsync(aziendaId, year, effectiveValutaId);
 
             var result = StatisticResult.Create(
                 (long)Math.Round(currentYearRevenue),
@@ -68,13 +60,12 @@ public class StatisticRevenue : StatisticBase
         {
             _logger.LogError(ex, "Error calculating revenue for azienda {AziendaId}, year {Year}", aziendaId, year);
             var errorResult = StatisticResult.Create(0, 0, 0);
-            // Ensure TrendData has 12 zeros for graph rendering even on error
             errorResult.TrendData = Enumerable.Repeat(0.0, 12).ToList();
             return errorResult;
         }
     }
 
-    private async Task<decimal> GetFatturatoAnnualeAsync(int aziendaId, int anno, int valutaTargetId)
+    private async Task<decimal> GetFatturatoAnnualeAsync(int? aziendaId, int anno, int valutaTargetId)
     {
         try
         {
@@ -83,7 +74,7 @@ public class StatisticRevenue : StatisticBase
                 "SELECT fn_get_fatturato_annuale(@azienda_id, @anno, @valuta_target_id)",
                 connection);
 
-            command.Parameters.AddWithValue("azienda_id", aziendaId);
+            command.Parameters.Add(new NpgsqlParameter("azienda_id", NpgsqlDbType.Integer) { Value = aziendaId.HasValue ? aziendaId.Value : DBNull.Value });
             command.Parameters.AddWithValue("anno", anno);
             command.Parameters.AddWithValue("valuta_target_id", valutaTargetId);
 
@@ -97,7 +88,7 @@ public class StatisticRevenue : StatisticBase
         }
     }
 
-    private async Task<decimal> GetFatturatoPeriodoAsync(int aziendaId, DateTime dataInizio, DateTime dataFine, int valutaTargetId)
+    private async Task<decimal> GetFatturatoPeriodoAsync(int? aziendaId, DateTime dataInizio, DateTime dataFine, int valutaTargetId)
     {
         try
         {
@@ -106,7 +97,7 @@ public class StatisticRevenue : StatisticBase
                 "SELECT fn_get_fatturato_periodo(@azienda_id, @data_inizio, @data_fine, @valuta_target_id)",
                 connection);
 
-            command.Parameters.AddWithValue("azienda_id", aziendaId);
+            command.Parameters.Add(new NpgsqlParameter("azienda_id", NpgsqlDbType.Integer) { Value = aziendaId.HasValue ? aziendaId.Value : DBNull.Value });
             command.Parameters.AddWithValue("data_inizio", dataInizio);
             command.Parameters.AddWithValue("data_fine", dataFine);
             command.Parameters.AddWithValue("valuta_target_id", valutaTargetId);
@@ -121,7 +112,7 @@ public class StatisticRevenue : StatisticBase
         }
     }
 
-    private async Task<List<double>> GetFatturatoMensileTrendAsync(int aziendaId, int anno, int valutaTargetId)
+    private async Task<List<double>> GetFatturatoMensileTrendAsync(int? aziendaId, int anno, int valutaTargetId)
     {
         var trend = new List<double>();
         try
@@ -131,7 +122,7 @@ public class StatisticRevenue : StatisticBase
                 "SELECT fatturato FROM fn_get_fatturato_mensile_trend(@azienda_id, @anno, @valuta_target_id)",
                 connection);
 
-            command.Parameters.AddWithValue("azienda_id", aziendaId);
+            command.Parameters.Add(new NpgsqlParameter("azienda_id", NpgsqlDbType.Integer) { Value = aziendaId.HasValue ? aziendaId.Value : DBNull.Value });
             command.Parameters.AddWithValue("anno", anno);
             command.Parameters.AddWithValue("valuta_target_id", valutaTargetId);
 

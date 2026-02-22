@@ -116,7 +116,14 @@ else
         try
         {
             _errorMessage = string.Empty;
-             int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : null) : _currentAziendaId;
+            int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : (int?)null) : _currentAziendaId;
+
+            if (_isSuperAdmin && !filterId.HasValue)
+            {
+                _items = new List<AnaTipoFornitore>();
+                return;
+            }
+
             _items = (await Service.GetAllAsync(filterId)).ToList();
         }
         catch (Exception ex)

@@ -362,13 +362,111 @@ else
             </MudItem>
             <MudItem xs="12" sm="6" md="4" Class="col-custom-6">
                 <MudPaper Elevation="2" Class="pa-4" Style="height: 100%">
-                    <MudStack Spacing="2">
-                        <MudIcon Icon="@Icons.Material.Filled.EuroSymbol" Size="Size.Large" Color="Color.Tertiary" />
-                        <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@(_statsRevenue?.MainValue ?? 0)</MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato</MudText>
-                        </MudStack>
-                    </MudPaper>
-                </MudItem>
+                    <MudTooltip Placement="Placement.Top" RootStyle="display: block; width: 100%;">
+                        <TooltipContent>
+                            @GetTooltipContent(_statsRevenue, "Fatturato", false)
+                        </TooltipContent>
+                        <ChildContent>
+                            <MudStack Spacing="2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Payments" Size="Size.Large" Color="Color.Tertiary" />
+                                    <MudStack Spacing="0" AlignItems="AlignItems.End">
+                                        <MudChip T="string" Size="Size.Large"
+                                            Color="@(GetTrendColor(_statsRevenue?.PercentageChange ?? 0))"
+                                            Variant="Variant.Text"
+                                            Icon="@(GetTrendIcon(_statsRevenue?.PercentageChange ?? 0))">
+                                            @(_statsRevenue?.PercentageChange.ToString("+0.#;-0.#;0"))%
+                                        </MudChip>
+                                        <MudText Typo="Typo.body1"
+                                            Color="@(GetTrendColor(_statsRevenue?.PercentageChange ?? 0))"
+                                            Style="font-weight: bold" Class="mr-2">
+                                            @((_statsRevenue?.Increment ?? 0).ToString("+0;-0;0"))
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.End" Style="height: 60px; width: 100%;">
+                                    <MudText Typo="Typo.h3" Style="font-weight: 700; line-height: 1.2;">@((_statsRevenue?.MainValue ?? 0).ToString("N0"))</MudText>
+                                    <MudPaper Height="60px" Elevation="0" Class="d-flex align-end ml-4" Style="flex: 1; min-width: 60px; max-width: 140px; background: transparent;">
+                                    @if (_statsRevenue?.TrendData?.Count == 12)
+                                    {
+                                            <svg width="100%" height="100%" viewBox="0 0 140 60" preserveAspectRatio="none" aria-hidden="true">
+                                                @{
+                                                    var dataRev = _statsRevenue.TrendData;
+                                                    var pointsRev = new List<double>();
+                                                    for(int i=0; i<12; i++) pointsRev.Add((i < dataRev.Count) ? dataRev[i] : 0);
+
+                                                    var maxRev = pointsRev.Any() ? pointsRev.Max() : 1;
+                                                    if (maxRev == 0) maxRev = 1;
+
+                                                    double slotWidthRev = 11.67;
+                                                    double gapRev = 2.0;
+                                                    double barWidthRev = slotWidthRev - gapRev;
+
+                                                    var sbRev = new System.Text.StringBuilder();
+                                                    for (int i = 0; i < 12; i++)
+                                                    {
+                                                        var val = pointsRev[i];
+                                                        var x = (i * slotWidthRev) + (barWidthRev / 2.0);
+                                                        var y = 55.0 - ((val / maxRev) * 47.0);
+                                                        sbRev.Append($"{x.ToString(System.Globalization.CultureInfo.InvariantCulture)},{y.ToString(System.Globalization.CultureInfo.InvariantCulture)} ");
+                                                    }
+                                                    var polylinePointsRev = sbRev.ToString();
+                                                }
+                                                @for(int i=0; i<12; i++)
+                                                {
+                                                    var x = (i * slotWidthRev);
+                                                    var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                                    var toolTip = $"{monthName}: {pointsRev[i]:N0}";
+                                                    <rect x="@x.ToString(System.Globalization.CultureInfo.InvariantCulture)" y="0" width="@barWidthRev.ToString(System.Globalization.CultureInfo.InvariantCulture)" height="60" fill="#e0e0e0" rx="2">
+                                                        <title>@toolTip</title>
+                                                    </rect>
+                                                }
+                                                @for(int i=0; i<12; i++)
+                                                {
+                                                    var x = (i * slotWidthRev);
+                                                    var val = pointsRev[i];
+                                                    if (val > 0.01)
+                                                    {
+                                                        var barHeight = (val / maxRev) * 47.0;
+                                                        var y = 55.0 - barHeight;
+                                                        <rect x="@x.ToString(System.Globalization.CultureInfo.InvariantCulture)" y="@y.ToString(System.Globalization.CultureInfo.InvariantCulture)" width="@barWidthRev.ToString(System.Globalization.CultureInfo.InvariantCulture)" height="@barHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)" fill="@Colors.Purple.Default" opacity="0.7" rx="2" />
+                                                    }
+                                                }
+                                                <polyline points="@polylinePointsRev" fill="none" stroke="@Colors.Purple.Default" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                                @for (int i = 0; i < 12; i++)
+                                                {
+                                                    var val = pointsRev[i];
+                                                    if (val > 0.01)
+                                                    {
+                                                        var monthName = System.Globalization.CultureInfo.GetCultureInfo("it-IT").DateTimeFormat.GetAbbreviatedMonthName(i + 1);
+                                                        var toolTip = $"{monthName}: {val:N0}";
+                                                        var x = (i * slotWidthRev) + (barWidthRev / 2.0);
+                                                        var y = 55.0 - ((val / maxRev) * 47.0);
+                                                        <circle cx="@x.ToString(System.Globalization.CultureInfo.InvariantCulture)" cy="@y.ToString(System.Globalization.CultureInfo.InvariantCulture)" r="3" fill="@Colors.Purple.Default">
+                                                            <title>@toolTip</title>
+                                                        </circle>
+                                                    }
+                                                }
+                                            </svg>
+                                    }
+                                    else
+                                    {
+                                        <div class="chart-skeleton" style="width: 140px; height: 60px;"></div>
+                                    }
+                                    </MudPaper>
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato @_selectedYear (EUR)</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Tutte le aziende</MudText>
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su @(_selectedYear - 1))</MudText>
+                                </MudStack>
+                            </MudStack>
+                        </ChildContent>
+                    </MudTooltip>
+                </MudPaper>
+            </MudItem>
                 <MudItem xs="12" sm="6" md="4" Class="col-custom-6">
                     <MudPaper Elevation="2" Class="pa-4 cursor-pointer stat-card-interactive" Style="height: 100%; border: 1px solid var(--mud-palette-divider, transparent);" @onclick="@(() => NavigateToSection($"/ana-viaggi?year={_selectedYear}&filter=completed", $"Partenze Fatte {_selectedYear}", "history"))">
                         <MudTooltip Placement="Placement.Top" RootStyle="display: block; width: 100%;">
@@ -944,6 +1042,10 @@ Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_
                 else if (entityName == "Viaggi Fatti" || stats == _statsViaggiFatti)
                 {
                     labelCurr = $"• Realizzati nel {_selectedYear}:";
+                }
+                else if (entityName == "Fatturato")
+                {
+                    labelCurr = $"• Generato nel {_selectedYear}:";
                 }
                 else // Viaggi Da Fare
                 {

@@ -110,7 +110,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     @CausaleAliquotaIvaDefaultFk,
                     @IsActive,
                     @CreatedBy,
-                    @UpdatedBy
+                    @UpdatedBy,
+                    @CausaleConcorreFatturato
                 )",
                 new
                 {
@@ -128,7 +129,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     entity.CausaleAliquotaIvaDefaultFk,
                     entity.IsActive,
                     entity.CreatedBy,
-                    entity.UpdatedBy
+                    entity.UpdatedBy,
+                    entity.CausaleConcorreFatturato
                 }
             );
 
@@ -171,7 +173,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     @CausaleRichiedeIva,
                     @CausaleAliquotaIvaDefaultFk,
                     @IsActive,
-                    @UpdatedBy
+                    @UpdatedBy,
+                    @CausaleConcorreFatturato
                 )",
                 new
                 {
@@ -188,7 +191,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     entity.CausaleRichiedeIva,
                     entity.CausaleAliquotaIvaDefaultFk,
                     entity.IsActive,
-                    entity.UpdatedBy
+                    entity.UpdatedBy,
+                    entity.CausaleConcorreFatturato
                 }
             );
 
@@ -254,6 +258,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
             CausaleGeneraIva = reader.GetBoolean(reader.GetOrdinal("causale_genera_iva")),
             CausaleRichiedeIva = reader.GetBoolean(reader.GetOrdinal("causale_richiede_iva")),
             CausaleAliquotaIvaDefaultFk = ReadNullableInt(reader, "causale_aliquota_iva_default_fk"),
+            CausaleConcorreFatturato = reader.GetBoolean(reader.GetOrdinal("causale_concorre_fatturato")),
             IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
             Created = ReadNullableDateTime(reader, "created_at"),
             CreatedBy = ReadNullableString(reader, "created_by"),

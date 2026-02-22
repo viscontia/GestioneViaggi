@@ -59,6 +59,11 @@ namespace GestioneViaggi.Models
         [Column("causale_aliquota_iva_default_fk")]
         public int? CausaleAliquotaIvaDefaultFk { get; set; }
 
+        // ===== FATTURATO =====
+
+        [Column("causale_concorre_fatturato")]
+        public bool CausaleConcorreFatturato { get; set; } = false;
+
         [Column("created_at")]
         public DateTime? Created { get; set; }
 

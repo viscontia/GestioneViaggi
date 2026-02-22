@@ -53,9 +53,14 @@
                                Color="Color.Primary" />
                 </MudItem>
                 <MudItem xs="12" sm="3">
-                    <MudSwitch @bind-Value="Entity.IsActive" 
-                               Label="Attiva" 
+                    <MudSwitch @bind-Value="Entity.IsActive"
+                               Label="Attiva"
                                Color="Color.Success" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudSwitch @bind-Value="Entity.CausaleConcorreFatturato"
+                               Label="Concorre al Fatturato"
+                               Color="Color.Tertiary" />
                 </MudItem>
             </MudGrid>
             <div class="d-flex justify-end mt-6">
