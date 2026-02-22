@@ -94,6 +94,7 @@ Funzioni per la gestione delle aliquote IVA e calcolo automatico su transazioni 
 | `sp_ana_aliquote_iva_delete` | Soft delete aliquota IVA (imposta is_active = FALSE). Impedisce eliminazione fisica se FK da mov_transazioni | `p_iva_id INTEGER` | `RETURNS VOID` | `Services/CRUD/AnaAliquoteIvaService.cs` |
 | `sp_ana_aliquote_iva_set_default` | Imposta aliquota come default (rimuove flag da altre). Transazione atomica per garantire single default | `p_iva_id INTEGER, p_azienda_id INTEGER` | `RETURNS VOID` | `Services/CRUD/AnaAliquoteIvaService.cs` |
 | `fn_calcola_iva_transazione` | **TRIGGER FUNCTION** - Calcola automaticamente IVA su INSERT/UPDATE mov_transazioni. **Aggiornata 2026-02-15**: Migliorata logica di **scorporo inverso**: se viene fornito solo il LORDO, calcola automaticamente Imponibile e IVA basandosi sull'aliquota. Mantiene priorità ai valori manuali se completi. Garantisce integrità dati per constraint `chk_iva_completeness`. | Trigger BEFORE INSERT OR UPDATE su `mov_transazioni` | Ricalcola: `transazione_imponibile_eur, transazione_iva_eur, transazione_lordo_eur` | `SqlScripts/Fix_Trigger_IVACalc.sql` |
+| `sp_assegna_protocollo_iva` | **STORED FUNCTION** - Assegna atomicamente un numero di protocollo IVA sequenziale progressivo a una transazione qualificante. **Idempotente**: se la transazione ha già un protocollo assegnato, restituisce quello esistente senza generarne uno nuovo. **Criteri Qualificazione**: la transazione deve avere `causale_genera_iva = TRUE`, valuta EUR, stato != ANNULLATO. **Numerazione**: separata per azienda, anno solare (da `transazione_data_documento` o fallback `transazione_data`), e ciclo contabile (ATTIVO/PASSIVO). Utilizza **UPSERT** con `ON CONFLICT DO UPDATE` per incremento atomico del contatore con row-level locking, garantendo sicurezza in caso di accesso concorrente. Restituisce NULL se la transazione non qualifica per un protocollo IVA. | `p_transazione_id INTEGER` | `INTEGER` (numero protocollo o NULL) | `SqlScripts/202_Create_Sp_Assegna_Protocollo_IVA.sql`, `Services/CRUD/MovTransazioniService.cs` (CreateAsync STEP 8, UpdateAsync STEP 9) |
 
 **Note Implementative IVA:**
 
@@ -102,6 +103,58 @@ Funzioni per la gestione delle aliquote IVA e calcolo automatico su transazioni 
 3. **Regola d'Oro - Correzioni Manuali**: Se utente compila TUTTI e TRE i campi IVA manualmente, trigger NON ricalcola ma valida solo coerenza matematica (tolleranza ±0.01€)
 4. **IVA Solo EUR**: Automaticamente azzerata per valute estere (Fuori Campo IVA art. 7-ter)
 5. **Validazione Obbligatoria**: Causali che marcano `causale_richiede_iva = TRUE` bloccano INSERT se aliquota mancante
+
+### 📝 Note Implementative - Protocollo IVA (2026-02-22)
+
+**Nuova Tabella `mov_contatori_protocollo_iva`**:
+- Tabella contatori per numerazione protocollo IVA
+- Separata per: `contatore_azienda_id`, `contatore_anno` (solare), `contatore_ciclo` (ATTIVO/PASSIVO)
+- Numerazione **ricomincia da 1** ogni anno per ogni combinazione azienda+ciclo
+- Colonne: `contatore_id` (PK SERIAL), `contatore_azienda_id` (FK ana_aziende), `contatore_anno` (INT), `contatore_ciclo` (VARCHAR CHECK PASSIVO/ATTIVO), `contatore_ultimo_numero` (INT DEFAULT 0), `updated_at` (TIMESTAMPTZ)
+- **UNIQUE constraint** su `(contatore_azienda_id, contatore_anno, contatore_ciclo)` - garantisce un solo contatore per combinazione
+- **File SQL**: `SqlScripts/200_Create_MovContatoriProtocolloIva.sql`
+
+**Nuova Colonna `mov_transazioni.transazione_numero_protocollo_iva`**:
+- Tipo: `INTEGER`, nullable (NULL = transazione non-IVA o non ancora protocollata)
+- **Partial index**: `idx_transazioni_protocollo_iva` su `(transazione_azienda_id, transazione_numero_protocollo_iva) WHERE transazione_numero_protocollo_iva IS NOT NULL`
+- Ottimizza le query di ricerca per numero protocollo ignorando le transazioni senza protocollo
+- **File SQL**: `SqlScripts/201_Migration_Add_Protocollo_IVA.sql`
+
+**Formato Display C#** (UI e stampe):
+- **Acquisti (PASSIVO)**: `ANNO/A/N` (es. 2026/A/123 = 123° acquisto IVA del 2026)
+- **Vendite (ATTIVO)**: `ANNO/V/N` (es. 2026/V/45 = 45° vendita IVA del 2026)
+- Implementato in: `Services/Printing/RegistroIvaPrintDTO.cs` (property `NumeroProtocolloFormatted`)
+
+**Meccanismo UPSERT per Sicurezza Concorrente**:
+- `sp_assegna_protocollo_iva` utilizza `INSERT ... ON CONFLICT (azienda, anno, ciclo) DO UPDATE SET contatore_ultimo_numero = contatore_ultimo_numero + 1 RETURNING contatore_ultimo_numero`
+- Il row-level locking PostgreSQL garantisce che non vengano mai assegnati numeri duplicati anche con inserimenti concorrenti
+- **Atomicità completa**: lettura + incremento + assign in un'unica transazione database
+
+**Protezione Hard Delete**:
+- `MovTransazioniService.DeleteAsync()` **blocca l'eliminazione** se `transazione_numero_protocollo_iva IS NOT NULL`
+- Messaggio errore: "Impossibile eliminare la transazione perché ha un numero di protocollo IVA assegnato (ANNO/X/N). La cancellazione fisica non è consentita per garantire la continuità del registro IVA."
+- Soluzione alternativa: soft delete (cambiare stato in ANNULLATO)
+
+**Gestione Cambio Anno**:
+- Se in `MovTransazioniService.UpdateAsync()` l'anno della transazione cambia (modifica `transazione_data_documento`):
+  1. Il protocollo esistente viene **revocato** (impostato a NULL)
+  2. Viene **riassegnato** un nuovo protocollo nell'anno corretto
+- Questo garantisce che il protocollo rifletta sempre l'anno fiscale reale della transazione
+
+**Backfill Script**:
+- Script one-time per assegnare protocolli alle transazioni esistenti qualificanti
+- Ordinamento: per azienda, ciclo, COALESCE(data_documento, data_transazione), transazione_id
+- Garantisce che le transazioni storiche ricevano protocolli nell'ordine cronologico originale
+- **File SQL**: `SqlScripts/203_Backfill_Protocollo_IVA.sql`
+- **Esecuzione**: manuale, solo una volta dopo deployment della feature
+
+**Files Coinvolti**:
+- `Services/CRUD/MovTransazioniService.cs` (STEP 8 CreateAsync, STEP 9 UpdateAsync, DeleteAsync validation)
+- `Services/Printing/RegistroIvaPrintDTO.cs` (NumeroProtocolloFormatted property)
+- `Services/Printing/RegistroIvaPrintService.cs` (mapping nuovo campo)
+- `Services/Printing/RegistroIvaPrinter.cs` (rendering colonna protocollo in PDF)
+- `Models/MovTransazioni.cs` (property TransazioneNumeroProtocolloIva)
+- `SqlScripts/fn_get_registro_iva.sql` (aggiornata con nuove colonne output)
 
 ---
 
@@ -284,6 +337,7 @@ Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 | `fn_get_bilancio_viaggio` | Recupera dati economici per report **Bilancio di Viaggio** (Analisi Margini). Aggrega le transazioni filtrate per viaggio classificandole in **RICAVI** (Ciclo Attivo) e **COSTI** (Ciclo Passivo). Calcola importi normalizzati (Imponibile, IVA, Lordo) gestendo i segni delle causali e determina l'importo effettivamente pagato/incassato. Supporta selezione multipla viaggi. | `p_azienda_id INT, p_viaggio_ids INT[], p_data_da DATE, p_data_a DATE` | `TABLE(viaggio_descrizione, transazione_descrizione, categoria_nome, categoria_tipo, importo_netto_eur, importo_pagato_eur, ...)` | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/fn_get_bilancio_viaggio.sql` |
 | `fn_get_bilancio_annuale_viaggi` | Estrae l'intero pool di movimenti contabili (Attivi e Passivi) per l'anno di competenza, raggruppandoli per Data Viaggio, garantendo il corretto ordinamento cronologico. Permette la creazione del report a 3 Livelli (Totale Data, Totale Viaggio, Riepilogo Generale). | `p_azienda_id INT, p_anno INT` | `TABLE(viaggio_id, viaggio_descrizione, data_viaggio_id, data_viaggio_data_inizio, importo_netto_eur, importo_lordo_eur, categoria_tipo, ...)` | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/fn_get_bilancio_annuale_viaggi.sql` |
 | `fn_get_anni_bilancio_viaggi` | Recupera dinamicamente solo gli anni in cui vi sono partenze collegate a transazioni contabili reali (ignorando i viaggi non movimentati). Utile per popolare i filtri UI pre-selezionati. Restituisce anche il conteggio dei viaggi unici contabilizzati per anno. | `p_azienda_id INT` | `TABLE(anno INT, numero_viaggi INT)` | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/fn_get_anni_bilancio_viaggi.sql` |
+| `fn_get_registro_iva` | Estrae dati per stampa **Registro IVA** (Libro Acquisti e Vendite) con filtri per azienda, anno e ciclo contabile (ATTIVO/PASSIVO). Restituisce transazioni ordinate per **numero protocollo IVA** (con NULLS LAST, poi per data documento). **Aggiornata 2026-02-22**: Aggiunti campi output `aliquota_iva_natura VARCHAR` (codice natura FE es. N1, N3.1) e `numero_protocollo_iva INTEGER` per conformità normativa registri IVA. Filtra solo transazioni qualificanti IVA (causale_genera_iva = TRUE, valuta EUR, stato != ANNULLATO). | `p_azienda_id INTEGER, p_anno INTEGER, p_causale_ciclo VARCHAR(10)` | `TABLE(transazione_id INTEGER, data_documento DATE, numero_documento VARCHAR, controparte_ragione_sociale VARCHAR, causale_descrizione VARCHAR, causale_ciclo VARCHAR, imponibile_eur NUMERIC, iva_eur NUMERIC, lordo_eur NUMERIC, aliquota_iva_codice VARCHAR, aliquota_iva_percentuale NUMERIC, aliquota_iva_natura VARCHAR, numero_protocollo_iva INTEGER)` | `Services/Printing/RegistroIvaPrintService.cs`, `Services/Printing/RegistroIvaPrintDTO.cs`, `SqlScripts/fn_get_registro_iva.sql` |
 
 ### 📝 Note Implementative - Report PDF Transazioni (2026-02-09)
 

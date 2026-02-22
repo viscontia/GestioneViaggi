@@ -16,19 +16,32 @@ public class RegistroIvaItem
     public string? AliquotaIvaCodice { get; set; }
     public decimal? AliquotaIvaPercentuale { get; set; }
     public string? AliquotaIvaDescrizione { get; set; }
+    public string? AliquotaIvaNatura { get; set; }
+    public int? NumeroProtocollo { get; set; }
     public decimal ImponibileEur { get; set; }
     public decimal IvaEur { get; set; }
     public decimal LordoEur { get; set; }
     public int CausaleSegno { get; set; } = 1;
 
     // Proprietà formattate
+    public string NumeroProtocolloDisplay =>
+        NumeroProtocollo.HasValue && TransazioneDataDocumento.HasValue
+            ? $"{TransazioneDataDocumento.Value.Year}/{(CausaleCiclo == "PASSIVO" ? "A" : "V")}/{NumeroProtocollo}"
+            : "-";
     public string DataDocumentoFormatted => TransazioneDataDocumento?.ToString("dd/MM/yyyy") ?? "-";
     public string ImponibileFormatted => $"{ImponibileEur:N2}";
     public string IvaFormatted => $"{IvaEur:N2}";
     public string LordoFormatted => $"{LordoEur:N2}";
-    public string AliquotaDisplay => !string.IsNullOrEmpty(AliquotaIvaCodice)
-        ? $"{AliquotaIvaCodice}"
-        : "-";
+    public string AliquotaDisplay
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(AliquotaIvaCodice)) return "-";
+            if ((AliquotaIvaPercentuale ?? 0) == 0 && !string.IsNullOrEmpty(AliquotaIvaNatura))
+                return $"{AliquotaIvaCodice} ({AliquotaIvaNatura})";
+            return AliquotaIvaCodice;
+        }
+    }
 }
 
 /// <summary>
@@ -39,6 +52,7 @@ public class RiepilogoAliquotaItem
     public string AliquotaCodice { get; set; } = string.Empty;
     public decimal AliquotaPercentuale { get; set; }
     public string? AliquotaDescrizione { get; set; }
+    public string? AliquotaNatura { get; set; }
 
     // Acquisti (PASSIVO)
     public decimal ImponibileAcquisti { get; set; }
@@ -51,9 +65,17 @@ public class RiepilogoAliquotaItem
     public int ConteggioVendite { get; set; }
 
     // Display
-    public string AliquotaDisplay => AliquotaPercentuale > 0
-        ? $"{AliquotaCodice} ({AliquotaPercentuale:0.##}%)"
-        : AliquotaCodice;
+    public string AliquotaDisplay
+    {
+        get
+        {
+            if (AliquotaPercentuale > 0)
+                return $"{AliquotaCodice} ({AliquotaPercentuale:0.##}%)";
+            if (!string.IsNullOrEmpty(AliquotaNatura))
+                return $"{AliquotaCodice} ({AliquotaNatura})";
+            return AliquotaCodice;
+        }
+    }
 }
 
 /// <summary>
@@ -67,9 +89,13 @@ public class LiquidazioneIva
     /// <summary>IVA sugli acquisti (credito verso lo Stato)</summary>
     public decimal IvaCredito { get; set; }
 
-    /// <summary>IVA da versare (positivo) o a credito (negativo)</summary>
-    public decimal Saldo => IvaDebito - IvaCredito;
+    /// <summary>Credito IVA residuo dal periodo precedente (input manuale)</summary>
+    public decimal CreditoPrecedente { get; set; }
 
+    /// <summary>IVA da versare (positivo) o a credito (negativo)</summary>
+    public decimal Saldo => IvaDebito - IvaCredito - CreditoPrecedente;
+
+    public bool HasCreditoPrecedente => CreditoPrecedente != 0;
     public bool IsDebito => Saldo > 0;
     public bool IsCredito => Saldo < 0;
     public bool IsPari => Saldo == 0;
@@ -86,14 +112,23 @@ public class SubTotaleAliquota
     public string AliquotaCodice { get; set; } = string.Empty;
     public decimal AliquotaPercentuale { get; set; }
     public string? AliquotaDescrizione { get; set; }
+    public string? AliquotaNatura { get; set; }
     public decimal TotaleImponibile { get; set; }
     public decimal TotaleIva { get; set; }
     public decimal TotaleLordo { get; set; }
     public int Conteggio { get; set; }
 
-    public string AliquotaDisplay => AliquotaPercentuale > 0
-        ? $"{AliquotaCodice} ({AliquotaPercentuale:0.##}%)"
-        : AliquotaCodice;
+    public string AliquotaDisplay
+    {
+        get
+        {
+            if (AliquotaPercentuale > 0)
+                return $"{AliquotaCodice} ({AliquotaPercentuale:0.##}%)";
+            if (!string.IsNullOrEmpty(AliquotaNatura))
+                return $"{AliquotaCodice} ({AliquotaNatura})";
+            return AliquotaCodice;
+        }
+    }
 }
 
 /// <summary>

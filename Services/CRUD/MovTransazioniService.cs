@@ -351,6 +351,21 @@ public class MovTransazioniService
             //       Tutti i calcoli IVA sono demandati al trigger fn_calcola_iva_transazione
             int transazioneId = await conn.ExecuteScalarAsync<int>(sql, item);
 
+            // =============================================
+            // STEP 8: Assegnazione protocollo IVA (se qualifica)
+            // =============================================
+            try
+            {
+                await conn.ExecuteAsync(
+                    "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
+                    new { TransazioneId = transazioneId });
+            }
+            catch (Exception exProt)
+            {
+                // Non bloccare la creazione se il protocollo fallisce (la SP potrebbe non esistere ancora)
+                _logger.LogWarning(exProt, "Impossibile assegnare protocollo IVA per transazione {Id}", transazioneId);
+            }
+
             return (transazioneId, warningMessage);
         }
         catch (Exception ex)
@@ -536,6 +551,44 @@ public class MovTransazioniService
 
             await conn.ExecuteAsync(sql, item);
 
+            // =============================================
+            // STEP 9: Gestione protocollo IVA su cambio anno data documento
+            // =============================================
+            try
+            {
+                // Se la data documento è cambiata di anno, il protocollo va riassegnato
+                int? annoOld = original.DataDocumento?.Year;
+                int? annoNew = item.TransazioneDataDocumento?.Year;
+
+                if (annoOld != annoNew)
+                {
+                    // Revoca vecchio protocollo (il numero resta "bruciato" nel contatore)
+                    await conn.ExecuteAsync(
+                        "UPDATE mov_transazioni SET transazione_numero_protocollo_iva = NULL WHERE transazione_id = @Id",
+                        new { Id = item.TransazioneId });
+
+                    // Riassegna per il nuovo anno
+                    await conn.ExecuteAsync(
+                        "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
+                        new { TransazioneId = item.TransazioneId });
+
+                    _logger.LogInformation(
+                        "Protocollo IVA riassegnato per transazione {Id}: anno cambiato da {AnnoOld} a {AnnoNew}",
+                        item.TransazioneId, annoOld, annoNew);
+                }
+                else
+                {
+                    // Anche senza cambio anno, riassegna se non aveva protocollo (es. causale cambiata)
+                    await conn.ExecuteAsync(
+                        "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
+                        new { TransazioneId = item.TransazioneId });
+                }
+            }
+            catch (Exception exProt)
+            {
+                _logger.LogWarning(exProt, "Impossibile gestire protocollo IVA per transazione {Id}", item.TransazioneId);
+            }
+
             return warningMessage;
         }
         catch (Exception ex)
@@ -550,7 +603,24 @@ public class MovTransazioniService
         try
         {
             using var conn = await _dbService.GetConnectionAsync();
+
+            // Blocca eliminazione se la transazione ha un protocollo IVA assegnato
+            var protocollo = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT transazione_numero_protocollo_iva FROM mov_transazioni WHERE transazione_id = @Id",
+                new { Id = id });
+
+            if (protocollo.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Questa transazione ha un Protocollo IVA assegnato e non può essere eliminata. " +
+                    "Per annullarla, cambia lo stato in ANNULLATO dalla scheda di modifica.");
+            }
+
             await conn.ExecuteAsync("DELETE FROM mov_transazioni WHERE transazione_id = @Id", new { Id = id });
+        }
+        catch (InvalidOperationException)
+        {
+            throw; // Rilancia senza wrapping
         }
         catch (Exception ex)
         {

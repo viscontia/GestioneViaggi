@@ -9,6 +9,7 @@ namespace GestioneViaggi.Services.Printing;
 /// <summary>
 /// Generatore PDF per il Registro IVA (Acquisti e Vendite).
 /// Stile grafico coerente con MovTransazioniPrinter.
+/// Supporta paginazione con riporto dei totali progressivi.
 /// </summary>
 public class RegistroIvaPrinter
 {
@@ -34,6 +35,10 @@ public class RegistroIvaPrinter
     private const float FontSizeSubHeader = 11;
     private const float FontSizeBody = 8;
     private const float FontSizeSmall = 7;
+
+    // Paginazione: max righe dettaglio per chunk (per gestione riporto)
+    private const int MaxRowsFirstChunk = 35;
+    private const int MaxRowsNextChunk = 40;
 
     public static async Task GeneratePdfAsync(RegistroIvaPrintData data, string outputPath)
     {
@@ -66,9 +71,12 @@ public class RegistroIvaPrinter
                 data.Azienda,
                 "REGISTRO IVA",
                 data.DataStampa,
-                data.UtenteStampa,
-                $"Periodo: {data.PeriodoDisplay}"
+                data.UtenteStampa
             );
+
+            // Periodo centrato sotto l'header, con font più leggibile
+            column.Item().AlignCenter().PaddingBottom(5).Text($"Periodo: {data.PeriodoDisplay}")
+                .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
         });
     }
 
@@ -125,62 +133,73 @@ public class RegistroIvaPrinter
         column.Item().Background(accentColor).Padding(5).Text(titolo)
             .FontSize(FontSizeSubHeader).Bold().FontColor(Colors.White);
 
-        // Tabella dettaglio
-        column.Item().Table(table =>
+        // Suddivide le righe in blocchi per gestire il riporto tra pagine
+        var chunks = SplitIntoChunks(items, MaxRowsFirstChunk, MaxRowsNextChunk);
+
+        decimal runningImponibile = 0;
+        decimal runningIva = 0;
+        decimal runningLordo = 0;
+        int globalRowIndex = 0;
+
+        for (int chunkIdx = 0; chunkIdx < chunks.Count; chunkIdx++)
         {
-            table.ColumnsDefinition(columns =>
+            var chunk = chunks[chunkIdx];
+            bool isFirstChunk = chunkIdx == 0;
+            bool isLastChunk = chunkIdx == chunks.Count - 1;
+
+            // Totali progressivi dalla pagina precedente
+            decimal prevRunningImponibile = runningImponibile;
+            decimal prevRunningIva = runningIva;
+            decimal prevRunningLordo = runningLordo;
+
+            // Accumula i totali per questo blocco
+            foreach (var item in chunk)
             {
-                columns.ConstantColumn(55);   // Data Doc
-                columns.ConstantColumn(60);   // N. Doc
-                columns.RelativeColumn(1.5f); // Controparte
-                columns.RelativeColumn(0.8f); // Causale
-                columns.ConstantColumn(40);   // Aliquota
-                columns.ConstantColumn(70);   // Imponibile
-                columns.ConstantColumn(60);   // IVA
-                columns.ConstantColumn(70);   // Lordo
-            });
-
-            // Header
-            table.Header(header =>
-            {
-                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
-
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("N. Doc").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignCenter().Text("Aliq.").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Lordo").Style(headerStyle);
-            });
-
-            // Righe
-            int rowIndex = 0;
-            foreach (var item in items)
-            {
-                var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
-
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.TransazioneNumeroDocumento ?? "-").FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.ControparteRagioneSociale).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.CausaleDescrizione).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignCenter()
-                    .Text(item.AliquotaDisplay).FontSize(FontSizeSmall);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text(item.ImponibileFormatted).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text(item.IvaFormatted).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text(item.LordoFormatted).FontSize(FontSizeBody).Bold();
-
-                rowIndex++;
+                runningImponibile += item.ImponibileEur;
+                runningIva += item.IvaEur;
+                runningLordo += item.LordoEur;
             }
-        });
+
+            // Interruzione di pagina e titolo continuazione per i blocchi successivi al primo
+            if (!isFirstChunk)
+            {
+                column.Item().PageBreak();
+                column.Item().Background(accentColor).Padding(5).Text($"{titolo} (segue)")
+                    .FontSize(FontSizeSubHeader).Bold().FontColor(Colors.White);
+            }
+
+            // Tabella per questo blocco di righe
+            column.Item().Table(table =>
+            {
+                DefineRegistroColumns(table);
+                ComposeRegistroTableHeader(table);
+
+                // Riga "Riporto" con i totali dalla pagina precedente
+                if (!isFirstChunk)
+                {
+                    ComposeRiportoRow(table, "Riporto da pagina precedente",
+                        prevRunningImponibile, prevRunningIva, prevRunningLordo, isRiporto: true);
+                }
+
+                // Righe dati
+                int localRowIndex = 0;
+                foreach (var item in chunk)
+                {
+                    var bgColor = (globalRowIndex + localRowIndex) % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                    ComposeRegistroDataRow(table, item, bgColor);
+                    localRowIndex++;
+                }
+
+                // Riga "Da riportare" con i totali progressivi
+                if (!isLastChunk)
+                {
+                    ComposeRiportoRow(table, "Da riportare",
+                        runningImponibile, runningIva, runningLordo, isRiporto: false);
+                }
+            });
+
+            globalRowIndex += chunk.Count;
+        }
 
         // Sub-totali per aliquota
         if (subTotali.Any())
@@ -230,6 +249,119 @@ public class RegistroIvaPrinter
                 });
             });
         }
+    }
+
+    /// <summary>
+    /// Suddivide una lista in blocchi dimensionati per pagina.
+    /// Il primo blocco ha dimensione ridotta (la prima pagina ha il titolo sezione).
+    /// </summary>
+    private static List<List<T>> SplitIntoChunks<T>(List<T> items, int firstChunkSize, int nextChunkSize)
+    {
+        var chunks = new List<List<T>>();
+        if (items.Count == 0)
+            return chunks;
+
+        if (items.Count <= firstChunkSize)
+        {
+            chunks.Add(items);
+            return chunks;
+        }
+
+        chunks.Add(items.Take(firstChunkSize).ToList());
+        var remaining = items.Skip(firstChunkSize).ToList();
+
+        while (remaining.Count > 0)
+        {
+            var chunk = remaining.Take(nextChunkSize).ToList();
+            chunks.Add(chunk);
+            remaining = remaining.Skip(nextChunkSize).ToList();
+        }
+
+        return chunks;
+    }
+
+    /// <summary>
+    /// Definisce il layout a 9 colonne della tabella dettaglio registro.
+    /// </summary>
+    private static void DefineRegistroColumns(TableDescriptor table)
+    {
+        table.ColumnsDefinition(columns =>
+        {
+            columns.ConstantColumn(50);   // Prot.
+            columns.ConstantColumn(55);   // Data Doc
+            columns.ConstantColumn(60);   // N. Doc
+            columns.RelativeColumn(1.5f); // Controparte
+            columns.RelativeColumn(0.8f); // Causale
+            columns.ConstantColumn(55);   // Aliquota
+            columns.ConstantColumn(70);   // Imponibile
+            columns.ConstantColumn(60);   // IVA
+            columns.ConstantColumn(70);   // Lordo
+        });
+    }
+
+    /// <summary>
+    /// Renderizza l'header colonne della tabella dettaglio.
+    /// </summary>
+    private static void ComposeRegistroTableHeader(TableDescriptor table)
+    {
+        table.Header(header =>
+        {
+            var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+
+            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Prot.").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).Text("N. Doc").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).AlignCenter().Text("Aliq.").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
+            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Lordo").Style(headerStyle);
+        });
+    }
+
+    /// <summary>
+    /// Renderizza una singola riga dati nella tabella dettaglio.
+    /// </summary>
+    private static void ComposeRegistroDataRow(TableDescriptor table, RegistroIvaItem item, string bgColor)
+    {
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+            .Text(item.NumeroProtocolloDisplay).FontSize(FontSizeSmall);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+            .Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+            .Text(item.TransazioneNumeroDocumento ?? "-").FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+            .Text(item.ControparteRagioneSociale).FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+            .Text(item.CausaleDescrizione).FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignCenter()
+            .Text(item.AliquotaDisplay).FontSize(FontSizeSmall);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.ImponibileFormatted).FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.IvaFormatted).FontSize(FontSizeBody);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.LordoFormatted).FontSize(FontSizeBody).Bold();
+    }
+
+    /// <summary>
+    /// Renderizza una riga di riporto ("Riporto da pagina precedente" o "Da riportare")
+    /// con i totali progressivi di Imponibile, IVA e Lordo.
+    /// </summary>
+    private static void ComposeRiportoRow(TableDescriptor table, string label,
+        decimal imponibile, decimal iva, decimal lordo, bool isRiporto)
+    {
+        var bgColor = isRiporto ? BrandColors.IvaHeader : BrandColors.SubTotal;
+
+        table.Cell().ColumnSpan(6).Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
+            .Padding(3).Text(label).FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{imponibile:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{iva:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{lordo:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
     }
 
     private static void ComposeRiepilogoLiquidazione(ColumnDescriptor column, RegistroIvaPrintData data)
@@ -321,8 +453,8 @@ public class RegistroIvaPrinter
                         .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Accent);
                 });
 
-                // Separatore
-                row.ConstantItem(30).AlignCenter().AlignMiddle().Text("-")
+                // Separatore -
+                row.ConstantItem(20).AlignCenter().AlignMiddle().Text("-")
                     .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
 
                 // IVA a Credito (Acquisti)
@@ -333,8 +465,23 @@ public class RegistroIvaPrinter
                         .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Success);
                 });
 
-                // Separatore
-                row.ConstantItem(30).AlignCenter().AlignMiddle().Text("=")
+                // Credito periodo precedente (solo se presente)
+                if (liquidazione.HasCreditoPrecedente)
+                {
+                    // Separatore -
+                    row.ConstantItem(20).AlignCenter().AlignMiddle().Text("-")
+                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Credito Periodo Prec.").FontSize(FontSizeBody).Bold();
+                        c.Item().Text($"{liquidazione.CreditoPrecedente:N2} EUR")
+                            .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Success);
+                    });
+                }
+
+                // Separatore =
+                row.ConstantItem(20).AlignCenter().AlignMiddle().Text("=")
                     .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
 
                 // Saldo
@@ -361,7 +508,7 @@ public class RegistroIvaPrinter
 
             row.RelativeItem().AlignRight().Text(text =>
             {
-                text.Span("Pagina ").FontSize(FontSizeSmall);
+                text.Span($"{data.PeriodoDa.Year} / Pagina ").FontSize(FontSizeSmall);
                 text.CurrentPageNumber().FontSize(FontSizeSmall);
                 text.Span(" di ").FontSize(FontSizeSmall);
                 text.TotalPages().FontSize(FontSizeSmall);

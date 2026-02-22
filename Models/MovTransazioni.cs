@@ -79,6 +79,13 @@ namespace GestioneViaggi.Models
         [MaxLength(10)]
         public string? TransazioneIvaModalitaInput { get; set; }
 
+        /// <summary>
+        /// Numero protocollo IVA progressivo annuale per azienda+ciclo.
+        /// NULL se transazione non qualifica per protocollo IVA.
+        /// </summary>
+        [Column("transazione_numero_protocollo_iva")]
+        public int? TransazioneNumeroProtocolloIva { get; set; }
+
         [Column("transazione_tasso_cambio_applicato")]
         public decimal? TransazioneTassoCambioApplicato { get; set; }
 

@@ -29,7 +29,8 @@ public class RegistroIvaPrintService
         int aziendaId,
         DateTime periodoDa,
         DateTime periodoA,
-        UserInfo currentUser)
+        UserInfo currentUser,
+        decimal creditoIvaPrecedente = 0m)
     {
         _logger.LogInformation(
             "Inizio estrazione dati Registro IVA. Azienda: {AziendaId}, Periodo: {Da} - {A}",
@@ -60,11 +61,13 @@ public class RegistroIvaPrintService
                     aliquota_iva_codice AS AliquotaIvaCodice,
                     aliquota_iva_percentuale AS AliquotaIvaPercentuale,
                     aliquota_iva_descrizione AS AliquotaIvaDescrizione,
+                    aliquota_iva_natura AS AliquotaIvaNatura,
+                    numero_protocollo_iva AS NumeroProtocollo,
                     imponibile_eur AS ImponibileEur,
                     iva_eur AS IvaEur,
                     lordo_eur AS LordoEur,
                     causale_segno AS CausaleSegno
-                FROM fn_get_registro_iva(@AziendaId, @PeriodoDa, @PeriodoA)";
+                FROM fn_get_registro_iva(@AziendaId, @PeriodoDa::date, @PeriodoA::date)";
 
             var items = (await connection.QueryAsync<RegistroIvaItem>(sql, new
             {
@@ -96,7 +99,8 @@ public class RegistroIvaPrintService
             result.Liquidazione = new LiquidazioneIva
             {
                 IvaDebito = result.TotaleIvaVendite,
-                IvaCredito = result.TotaleIvaAcquisti
+                IvaCredito = result.TotaleIvaAcquisti,
+                CreditoPrecedente = creditoIvaPrecedente
             };
 
             // 7. Info azienda
@@ -124,6 +128,7 @@ public class RegistroIvaPrintService
                 AliquotaCodice = g.Key.Codice,
                 AliquotaPercentuale = g.Key.Percentuale,
                 AliquotaDescrizione = g.First().AliquotaIvaDescrizione,
+                AliquotaNatura = g.First().AliquotaIvaNatura,
                 TotaleImponibile = g.Sum(i => i.ImponibileEur),
                 TotaleIva = g.Sum(i => i.IvaEur),
                 TotaleLordo = g.Sum(i => i.LordoEur),
@@ -139,8 +144,8 @@ public class RegistroIvaPrintService
         List<SubTotaleAliquota> subVendite)
     {
         // Unione delle aliquote presenti in entrambe le sezioni
-        var aliquote = subAcquisti.Select(s => new { s.AliquotaCodice, s.AliquotaPercentuale, s.AliquotaDescrizione })
-            .Union(subVendite.Select(s => new { s.AliquotaCodice, s.AliquotaPercentuale, s.AliquotaDescrizione }))
+        var aliquote = subAcquisti.Select(s => new { s.AliquotaCodice, s.AliquotaPercentuale, s.AliquotaDescrizione, s.AliquotaNatura })
+            .Union(subVendite.Select(s => new { s.AliquotaCodice, s.AliquotaPercentuale, s.AliquotaDescrizione, s.AliquotaNatura }))
             .Distinct()
             .OrderByDescending(a => a.AliquotaPercentuale)
             .ThenBy(a => a.AliquotaCodice);
@@ -155,6 +160,7 @@ public class RegistroIvaPrintService
                 AliquotaCodice = a.AliquotaCodice,
                 AliquotaPercentuale = a.AliquotaPercentuale,
                 AliquotaDescrizione = a.AliquotaDescrizione,
+                AliquotaNatura = a.AliquotaNatura,
                 ImponibileAcquisti = acq?.TotaleImponibile ?? 0,
                 IvaAcquisti = acq?.TotaleIva ?? 0,
                 ConteggioAcquisti = acq?.Conteggio ?? 0,

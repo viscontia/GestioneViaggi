@@ -454,9 +454,14 @@
                 Snackbar.Add("Transazione eliminata", Severity.Success);
                 await LoadDataAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                // Blocco business rule (es. protocollo IVA assegnato) - mostra come avviso
+                Snackbar.Add(ex.Message, Severity.Warning);
+            }
             catch (Exception ex)
             {
-                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
             }
         }
     }

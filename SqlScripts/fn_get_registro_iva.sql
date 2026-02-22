@@ -21,6 +21,8 @@ RETURNS TABLE (
     aliquota_iva_codice VARCHAR,
     aliquota_iva_percentuale NUMERIC,
     aliquota_iva_descrizione VARCHAR,
+    aliquota_iva_natura VARCHAR,
+    numero_protocollo_iva INTEGER,
     imponibile_eur NUMERIC,
     iva_eur NUMERIC,
     lordo_eur NUMERIC,
@@ -41,6 +43,8 @@ BEGIN
         iva.iva_codice::VARCHAR AS aliquota_iva_codice,
         iva.iva_percentuale AS aliquota_iva_percentuale,
         iva.iva_descrizione::VARCHAR AS aliquota_iva_descrizione,
+        iva.iva_natura::VARCHAR AS aliquota_iva_natura,
+        t.transazione_numero_protocollo_iva AS numero_protocollo_iva,
         COALESCE(t.transazione_imponibile_eur, 0)::NUMERIC AS imponibile_eur,
         COALESCE(t.transazione_iva_eur, 0)::NUMERIC AS iva_eur,
         COALESCE(t.transazione_lordo_eur, t.transazione_importo, 0)::NUMERIC AS lordo_eur,
@@ -60,7 +64,8 @@ BEGIN
     ORDER BY
         -- PASSIVO (Acquisti) first, then ATTIVO (Vendite)
         CASE ca.causale_ciclo WHEN 'PASSIVO' THEN 1 WHEN 'ATTIVO' THEN 2 ELSE 3 END,
+        t.transazione_numero_protocollo_iva ASC NULLS LAST,
         t.transazione_data_documento ASC,
-        t.transazione_numero_documento ASC;
+        t.transazione_id ASC;
 END;
 $function$;
