@@ -457,7 +457,7 @@ else
                                 </MudStack>
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="flex-wrap: wrap; gap: 4px;">
                                     <MudStack Spacing="0">
-                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato @_selectedYear (EUR)</MudText>
+                                        <MudText Typo="Typo.body2" Style="font-weight: 500;">Fatturato @_selectedYear (@(_currentUser?.ValutaCodiceIso ?? "EUR"))</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Tutte le aziende</MudText>
                                     </MudStack>
                                     <MudText Typo="Typo.body2" Style="font-size: 12px; color: var(--mud-palette-text-secondary);">(% @_selectedYear su @(_selectedYear - 1))</MudText>
@@ -947,7 +947,7 @@ else
 Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, null, _comparisonMode)),
-Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode)),
+Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode, _currentUser?.ValutaDefaultId)),
 Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
 Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, null, _comparisonMode))
         };

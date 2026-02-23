@@ -18,6 +18,13 @@
                         Loading="@_loading"
                         SearchFunction="@SearchFunc">
         <ToolBarActions>
+            @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="false"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add"
@@ -78,28 +85,57 @@
 @code {
     private IEnumerable<AnaAliquotaIva> _items = new List<AnaAliquotaIva>();
     private bool _loading = true;
-    private int _aziendaId;
+    private int? _currentAziendaId;
+    private int _selectedAziendaId;
+    private bool _isSuperAdmin;
 
     protected override async Task OnInitializedAsync()
     {
-        // Recupera azienda corrente dal context
-        _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
 
-        if (_aziendaId == 0)
+        if (_isSuperAdmin)
         {
-            Snackbar.Add("Errore: Azienda non trovata nel context", Severity.Error);
-            return;
+            _currentAziendaId = null;
+        }
+        else
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!_currentAziendaId.HasValue)
+            {
+                Snackbar.Add("Errore: Azienda non trovata nel context", Severity.Error);
+                return;
+            }
         }
 
         await LoadDataAsync();
     }
 
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private int GetEffectiveAziendaId()
+    {
+        if (_isSuperAdmin && _selectedAziendaId > 0)
+            return _selectedAziendaId;
+        return _currentAziendaId ?? 0;
+    }
+
     private async Task LoadDataAsync()
     {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            _items = new List<AnaAliquotaIva>();
+            return;
+        }
+
         _loading = true;
         try
         {
-            _items = await AliquoteService.GetByAziendaAsync(_aziendaId);
+            _items = await AliquoteService.GetByAziendaAsync(aziendaId);
         }
         finally
         {
@@ -109,9 +145,16 @@
 
     private async Task OpenCreateDialog()
     {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            Snackbar.Add("Seleziona un'azienda prima di creare un'aliquota IVA", Severity.Warning);
+            return;
+        }
+
         var newAliquota = new AnaAliquotaIva
         {
-            AziendaFk = _aziendaId,
+            AziendaFk = aziendaId,
             IsActive = true,
             Ordinamento = 100
         };
