@@ -19,14 +19,30 @@
 
     <!-- 3. IL TUO CSS PER ULTIMO (sovrascrive tutto) - ULTRA SPECIFIC -->
     <link rel="stylesheet" href="css/premium-saas-ULTRA-SPECIFIC.css?v=5.0" />
+
+    <style>
+        /* Animazioni per lo Splash Screen Blazor interno a #app */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.8; transform: scale(0.98); }
+        }
+    </style>
 </head>
 
 <body>
     <div class="status-bar-safe-area"></div>
 
-    <div id="app">Loading...</div>
+    <div id="app">
+        <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#172331;">
+            <p style="color: white; font-family: 'Inter', sans-serif;">Caricamento in corso...</p>
+        </div>
+    </div>
 
-    <div id="blazor-error-ui">
+    <div id="blazor-error-ui" style="z-index: 10000;">
         An unhandled error has occurred.
         <a href="" class="reload">Reload</a>
         <a class="dismiss">🗙</a>

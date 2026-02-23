@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GestioneViaggi"
              xmlns:components="clr-namespace:GestioneViaggi.Components"
-             x:Class="GestioneViaggi.MainPage">
+             x:Class="GestioneViaggi.MainPage"
+             BackgroundColor="#172331">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>

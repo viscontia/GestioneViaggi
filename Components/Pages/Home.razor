@@ -12,18 +12,18 @@
         if (currentUser == null)
         {
             // Non autenticato → vai al login
-            Navigation.NavigateTo("/login", true);
+            Navigation.NavigateTo("/login");
         }
         else
         {
             // Autenticato → vai alla dashboard corretta
             if (currentUser.IsSuperAdmin)
             {
-                Navigation.NavigateTo("/dashboard-superadmin", true);
+                Navigation.NavigateTo("/dashboard-superadmin");
             }
             else
             {
-                Navigation.NavigateTo("/dashboard-admin", true);
+                Navigation.NavigateTo("/dashboard-admin");
             }
         }
     }

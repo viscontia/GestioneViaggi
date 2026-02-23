@@ -1,51 +1,37 @@
+@using Microsoft.Extensions.Logging
 @using GestioneViaggi.Services.Database
 @using GestioneViaggi.Services.Session
-@using GestioneViaggi.Services.Authentication
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 
-@inject IDatabaseConnectionManager DatabaseConnectionManager
-@inject ISessionManager SessionManager
-@inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<AppInitializer> Logger
 
 @code {
+    [Inject] private IDatabaseConnectionManager DatabaseConnectionManager { get; set; } = default!;
+    [Inject] private ISessionManager SessionManager { get; set; } = default!;
+
     protected override async Task OnInitializedAsync()
     {
-        try
+        try 
         {
-            Logger.LogInformation("Starting application initialization...");
-
+            Logger.LogInformation("Inizializzazione App in corso...");
+            
+            // Inizializza il pool del database (non bloccante, ma aspetta il completamento del check iniziale)
             await DatabaseConnectionManager.InitializePoolAsync();
-            Logger.LogInformation("Database connection pool initialized successfully");
-
+            
+            // Inizializza il manager della sessione
             await SessionManager.InitializeAsync();
-            Logger.LogInformation("Session manager initialized successfully");
-
-            if (AuthStateProvider is CustomAuthStateProvider customProvider)
-            {
-                customProvider.NotifyAuthenticationStateChanged();
-                Logger.LogInformation("Authentication state notified successfully");
-            }
-
-            Logger.LogInformation("Application initialization completed successfully");
+            
+            Logger.LogInformation("AppInitializer completato con successo");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Critical error during application initialization");
-            throw;
+            Logger.LogError(ex, "Errore durante l'inizializzazione dell'app");
         }
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        // Singleton services should NOT be disposed here.
-        // DatabaseConnectionManager is a Singleton application-wide service.
-        // SessionManager handles its own lifecycle or is stateless enough.
-
-        // We only log the disposal of the initializer component.
-        Logger.LogInformation("AppInitializer disposed (page reload/navigation)");
+        Logger.LogInformation("AppInitializer disposed");
         await Task.CompletedTask;
     }
 }

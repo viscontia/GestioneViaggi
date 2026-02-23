@@ -1,12 +1,20 @@
 @page "/login"
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Database
 @using GestioneViaggi.Services.Session
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
+@using MudBlazor
 @inject IAuthenticationService AuthService
+@inject IDatabaseConnectionManager DatabaseConnectionManager
 @inject ISessionManager SessionManager
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject ILogger<Login> Logger
 @layout LoginLayout
 
 <div class="login-fullscreen-container">
@@ -33,11 +41,13 @@
             <MudAlert Severity="Severity.Error" Dense="false" Class="mb-4" Variant="Variant.Filled">
                 @if (_authErrorMessage.Contains("\n"))
                 {
-                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; font-family: monospace; margin: 0;">@_authErrorMessage</pre>
+                    <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 0.85em; font-family: monospace; margin: 0;">
+                        @_authErrorMessage
+                    </pre>
                 }
                 else
                 {
-                    @_authErrorMessage
+                    <MudText Typo="Typo.body2">@_authErrorMessage</MudText>
                 }
             </MudAlert>
         }
@@ -114,7 +124,7 @@
                 </MudButton>
 
                 <!-- Link Password Dimenticata -->
-                <MudLink Href="#" Underline="Underline.Hover" Class="forgot-password-link">
+                <MudLink Href="/forgot-password" Underline="Underline.Hover" Class="forgot-password-link">
                     Password dimenticata?
                 </MudLink>
 
@@ -142,6 +152,8 @@
     {
         if (firstRender)
         {
+
+            // Setup UI del form di login
             try
             {
                 var lastEmail = await SessionManager.GetLastLoginEmailAsync();
@@ -324,13 +336,19 @@
 
             if (response.Success && response.User != null)
             {
+                // Notifica Blazor che l'utente è cambiato, fondamentale per il router senza forceLoad
+                if (AuthStateProvider is CustomAuthStateProvider customProvider)
+                {
+                    customProvider.NotifyAuthenticationStateChanged();
+                }
+
                 if (response.User.IsSuperAdmin)
                 {
-                    Navigation.NavigateTo("/dashboard-superadmin", true);
+                    Navigation.NavigateTo("/dashboard-superadmin");
                 }
                 else
                 {
-                    Navigation.NavigateTo("/dashboard-admin", true);
+                    Navigation.NavigateTo("/dashboard-admin");
                 }
             }
             else

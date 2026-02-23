@@ -17,6 +17,7 @@ using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services;
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
+using GestioneViaggi.Services.Email;
 
 using GestioneViaggi.Statistics;
 using GestioneViaggi.Migrazione_Dati_Oracle;
@@ -85,6 +86,11 @@ public static class MauiProgram
         builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
         builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
         builder.Services.AddAuthorizationCore();
+
+        // Password Reset & Email Services
+        builder.Services.AddHttpClient<ResendEmailSender>();
+        builder.Services.AddScoped<EmailSenderFactory>();
+        builder.Services.AddScoped<PasswordResetService>();
 
         builder.Services.AddScoped<ITabManagerService, TabManagerService>();
         builder.Services.AddScoped<IStatusBarService, StatusBarService>();
