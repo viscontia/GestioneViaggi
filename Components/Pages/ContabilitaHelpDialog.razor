@@ -1,0 +1,77 @@
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Guida alle Registrazioni Contabili</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer Style="max-height: 500px; overflow-y: auto;">
+            <MudText Typo="Typo.body1" Class="mb-4">
+                Il sistema gestisce i calcoli dell'IVA in modo intelligente in base al tipo di documento che stai registrando.
+            </MudText>
+
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+                <MudText Typo="Typo.subtitle2"><b>Regola Generale</b></MudText>
+                <MudText Typo="Typo.body2">Il sistema distingue tra acquisti (Ciclo Passivo) e vendite (Ciclo Attivo).</MudText>
+            </MudAlert>
+
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">🛒 Ciclo Passivo (Fornitori / Costi)</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                In questo caso si usa lo <b>SCORPORO</b>. È la modalità consigliata per le fatture ricevute.
+            </MudText>
+            <MudPaper Outlined="true" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.caption" Color="Color.Primary"><b>Esempio Pratico:</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Hai una fattura fornitore da <b>€ 122,00</b> (totale lordo).<br />
+                    1. Inserisci <b>122,00</b> nel campo <b>Importo</b>.<br />
+                    2. Il sistema calcola automaticamente <b>€ 100,00</b> di Imponibile e <b>€ 22,00</b> di IVA.
+                </MudText>
+            </MudPaper>
+
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">💰 Ciclo Attivo (Clienti / Ricavi)</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                In questo caso si usa il <b>CALCOLO</b>. È la modalità usata per emettere fatture.
+            </MudText>
+            <MudPaper Outlined="true" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+                <MudText Typo="Typo.caption" Color="Color.Primary"><b>Esempio Pratico:</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Vuoi vendere un servizio a <b>€ 100,00</b> + IVA.<br />
+                    1. Inserisci <b>100,00</b> nel campo <b>Importo</b> (Imponibile).<br />
+                    2. Il sistema aggiunge automaticamente <b>€ 22,00</b> di IVA e imposta il Lordo a <b>€ 122,00</b>.
+                </MudText>
+            </MudPaper>
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🔄 Invertire la Modalità</b></MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Se hai bisogno di cambiare comportamento, clicca sull'icona delle frecce <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Primary" /> nella sezione IVA. 
+                Questo ti permette di passare da "Lordo" a "Netto" indipendentemente dal tipo di documento.
+            </MudText>
+
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudText Typo="Typo.subtitle2"><b>⚖️ Arrotondamenti di 1 centesimo</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Se il totale della fattura cartacea differisce per pochi centesimi dal calcolo automatico, puoi <b>modificare manualmente</b> i campi Imponibile o IVA per far quadrare i conti.
+                </MudText>
+            </MudAlert>
+
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🌍 Valute Estere</b></MudText>
+            <MudText Typo="Typo.body2">
+                Per transazioni non in Euro (es. TND, USD), l'IVA non viene mai scorporata perché l'intero importo è considerato costo totale.
+            </MudText>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">Ho capito</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Close() => MudDialog.Close();
+}

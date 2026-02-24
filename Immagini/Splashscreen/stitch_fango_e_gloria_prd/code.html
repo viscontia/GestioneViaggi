@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Horizon Hunter Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;family=Manrope:wght@300;400;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary-amber: #D97706;
+            --slate-900-glass: rgba(15, 23, 42, 0.75);
+        }
+        @layer utilities {
+            .glass-panel {
+                background: var(--slate-900-glass);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .glass-button {
+                background: rgba(15, 23, 42, 0.5);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                transition: all 0.3s ease;
+            }
+            .text-shadow-sm {
+                text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            }
+            .text-shadow-lg {
+                text-shadow: 0 4px 12px rgba(0,0,0,0.9);
+            }
+        }
+        .loading-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .6; }
+        }
+        .spin-slow {
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "amber-accent": "#D97706",
+                        "slate-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "body": ["Manrope", "sans-serif"],
+                        "cinzel": ["Cinzel", "serif"],
+                        "mono": ["JetBrains Mono", "monospace"],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-body h-screen w-screen overflow-hidden selection:bg-amber-accent selection:text-white">
+<div class="relative h-full w-full">
+<div class="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvUdJg3pdRCxHkKQtXr6zxC3_tzZ97Gb4HDPFszPT9MLvwjQ3HisIOeyFhAer5bcl3qpT_IaE8-RYHhMukTB7tisRJPKyW8GwALEJamFR6CoOpI0z-5oPjrM3KRe5cv89o720aUOfZ3VM_YNbFBYx44exjWsHvF8DA-8d9Q4tYfs7vftq3LVOpem5iGMBO6EgOQEH15PoVnns_7wc_VI6vJvR_DjXPMInfCvuWzQbRDElKKuURCY9HkMWR3x49uBfViwLNrZLRX-U');">
+<div class="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80"></div>
+</div>
+<div class="relative z-10 flex h-full flex-col justify-between p-6 md:p-10">
+<header class="flex w-full items-start justify-between">
+<div class="glass-panel flex items-center gap-3 rounded-full px-5 py-2.5 shadow-2xl">
+<span class="material-symbols-outlined text-amber-accent" style="font-size: 22px;">explore</span>
+<h1 class="font-cinzel text-base font-bold tracking-[0.2em] text-white">HORIZON HUNTER</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="glass-panel flex items-center gap-5 rounded-xl px-5 py-2.5 shadow-xl">
+<div class="flex flex-col items-end text-right">
+<span class="text-[10px] text-slate-400 font-mono tracking-wider">24°41'N, 13°12'E</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-accent" style="font-size: 16px;">light_mode</span>
+<span class="font-mono text-sm font-bold text-white">32°C</span>
+<span class="hidden md:inline text-[10px] uppercase tracking-widest text-slate-400">Clear Sky</span>
+</div>
+</div>
+<div class="h-8 w-px bg-white/10"></div>
+<div class="h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-slate-800 ring-2 ring-black/20">
+<img alt="User Avatar" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnes8VOZ2WtvW5FVWtBoZDe-n7gBrQER4Td9qydngXV2e7vVZyYmd3Cx344ejiV2vMHACPuJ-p2TmflYUbSxY6gp4wD8Z48tR5X-UeTD9-cSz85AMky6Z4HNksCYoLhIu4m3vExQZE5nUpCHSAMAMC_1bwdnMyUThNn6edBO3JSAn85wseiAixet25oqqLk6SSuLmeXKbDcp25zEKG9_KPUnMPog_3hK7g-oirC2QMIIccD2JgFNimjbCaNGAePNa2LIr2uWcI0Wk"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 flex-col items-center justify-center text-center">
+<div class="mb-10 space-y-3">
+<h3 class="font-body text-[10px] font-bold uppercase tracking-[0.4em] text-amber-accent/90 text-shadow-sm">Expedition Log #402</h3>
+<h2 class="font-cinzel text-4xl font-black leading-tight tracking-wider text-white md:text-5xl lg:text-7xl text-shadow-lg">
+                    THE WILDERNESS<br/>AWAITS, HUNTER.
+                </h2>
+</div>
+<div class="glass-panel w-full max-w-md overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/10">
+<div class="relative p-8">
+<div class="mb-6 flex flex-col items-center border-b border-white/5 pb-4">
+<span class="font-body text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Next Departure</span>
+<span class="font-mono text-4xl md:text-5xl font-bold tracking-tighter text-amber-accent text-shadow-sm">
+                            T-MINUS 14:02:45
+                        </span>
+</div>
+<div class="mb-8 space-y-2">
+<h3 class="font-cinzel text-xl font-bold tracking-widest text-white">NAMIB DESERT CROSSING</h3>
+<div class="flex justify-center gap-6 text-[10px] text-slate-400 font-mono uppercase tracking-widest">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-accent" style="font-size: 14px;">distance</span>
+                                Est. 450km
+                            </span>
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-accent" style="font-size: 14px;">local_gas_station</span>
+                                65L Fuel
+                            </span>
+</div>
+</div>
+<button class="loading-pulse relative flex w-full cursor-wait items-center justify-center gap-3 overflow-hidden rounded-lg bg-amber-accent px-8 py-4 font-mono text-sm font-black tracking-[0.2em] text-white shadow-lg transition-transform active:scale-95">
+<span class="material-symbols-outlined spin-slow" style="font-size: 20px;">progress_activity</span>
+                        ...LOADING...
+<div class="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+</button>
+</div>
+</div>
+</main>
+<footer class="relative flex w-full items-end justify-between">
+<div class="hidden md:block">
+<div class="flex flex-col gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-slate-500">
+<span>SYS.VER 2.4.1</span>
+<span>LINK: ACTIVE [S-09]</span>
+</div>
+</div>
+<div class="absolute bottom-0 left-1/2 flex -translate-x-1/2 gap-5">
+<button class="glass-button flex h-12 w-12 items-center justify-center rounded-lg text-white hover:text-amber-accent hover:border-amber-accent/30">
+<span class="material-symbols-outlined" style="font-size: 24px;">map</span>
+</button>
+<button class="glass-button flex h-12 w-12 items-center justify-center rounded-lg text-white hover:text-amber-accent hover:border-amber-accent/30">
+<span class="material-symbols-outlined" style="font-size: 24px;">backpack</span>
+</button>
+<button class="glass-button flex h-12 w-12 items-center justify-center rounded-lg text-white hover:text-amber-accent hover:border-amber-accent/30">
+<span class="material-symbols-outlined" style="font-size: 24px;">menu_book</span>
+</button>
+</div>
+<div class="hidden md:block text-right">
+<div class="flex flex-col gap-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-slate-500">
+<span>ELEV: 240M</span>
+<span>BARO: 1013 HPA</span>
+</div>
+</div>
+</footer>
+</div>
+</div>
+
+</body></html>

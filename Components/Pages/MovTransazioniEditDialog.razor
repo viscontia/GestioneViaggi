@@ -11,9 +11,24 @@
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
 @inject IJSRuntime JS
+@inject IDialogService DialogService
 @implements IDisposable
 
 <MudDialog>
+    <TitleContent>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">@_dialogTitle</MudText>
+            <MudTooltip Text="Guida alla registrazione contabile">
+                <MudButton StartIcon="@Icons.Material.Filled.HelpOutline" 
+                           Color="Color.Info" 
+                           Variant="Variant.Outlined"
+                           Size="Size.Small"
+                           OnClick="@OpenHelpAsync">
+                    Guida
+                </MudButton>
+            </MudTooltip>
+        </MudStack>
+    </TitleContent>
     <DialogContent>
         <MudForm Model="@Transazione" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
             <MudGrid>
@@ -280,6 +295,8 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public MovTransazioni Transazione { get; set; } = new();
     [Parameter] public int AziendaId { get; set; }
+
+    private string _dialogTitle => Transazione.TransazioneId == 0 ? "Nuova Transazione" : "Modifica Transazione";
 
     private MudForm _form = default!;
     private MudDatePicker? _firstField;
@@ -793,6 +810,15 @@
             _severityIva = Severity.Warning;
             StateHasChanged();
         }
+    }
+
+    // =========================================
+    // Apertura Guida Utente
+    // =========================================
+    private async Task OpenHelpAsync()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<ContabilitaHelpDialog>("", options);
     }
 
     // =========================================
