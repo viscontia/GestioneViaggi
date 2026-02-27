@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <!-- Framework impostati su .NET 9 -->
-        <!-- <TargetFrameworks>net9.0-android;net9.0-ios;net9.0-maccatalyst</TargetFrameworks> -->
         <TargetFrameworks>net9.0-maccatalyst</TargetFrameworks>
 
         <!-- QUESTA È LA RIGA MAGICA CHE RISOLVE L'ERRORE DI XCODE -->

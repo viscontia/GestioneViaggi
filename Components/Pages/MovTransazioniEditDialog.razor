@@ -3,6 +3,7 @@
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
+@using Microsoft.Extensions.Logging
 @inject MovTransazioniService TransazioniService
 @inject AnaTipiCausaliService CausaliService
 @inject AnaAliquoteIvaService AliquoteIvaService
@@ -12,6 +13,7 @@
 @inject ISessionManager SessionManager
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject ILogger<MovTransazioniEditDialog> _logger
 @implements IDisposable
 
 <MudDialog>
@@ -30,7 +32,7 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
-        <MudForm Model="@Transazione" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
+        <MudForm Model="@Transazione" @ref="_form" id="mov-transazioni-form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
             <MudGrid>
                 <!-- RIGA 1: Data e Tipo -->
                 <MudItem xs="6">
@@ -87,103 +89,101 @@
                                   Required="true" />
                 </MudItem>
 
-                <!-- RIGA 4: Sezione IVA - Visibile solo se EUR e causale genera IVA -->
-                @if (_valutaIsEur && _causaleGeneraIva)
-                {
-                    <MudItem xs="12">
-                        <MudDivider Class="my-2" />
-                    </MudItem>
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mt-2 mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Receipt" Size="Size.Small" Class="mr-1" />
-                            Gestione IVA
+                <!-- SEZIONE DETTAGLIO RIGHE (MASTER-DETAIL) -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.subtitle2">
+                            <MudIcon Icon="@Icons.Material.Filled.List" Size="Size.Small" Class="mr-1" />
+                            Dettaglio Righe
                         </MudText>
-                    </MudItem>
+                        <MudStack Row="true">
+                            @if (AziendaId == 2 || AziendaId == 6)
+                            {
+                                <MudButton StartIcon="@Icons.Material.Filled.AutoFixHigh" 
+                                           Color="Color.Secondary" 
+                                           Variant="Variant.Outlined" 
+                                           Size="Size.Small"
+                                           OnClick="@ApplicaForfettario"
+                                           Disabled="@(Transazione.TransazioneImporto <= 0)">
+                                    Applica Forfettario
+                                </MudButton>
+                            }
+                            <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                                       Color="Color.Primary" 
+                                       Variant="Variant.Outlined" 
+                                       Size="Size.Small"
+                                       OnClick="@AddRiga">
+                                Aggiungi Riga
+                            </MudButton>
+                        </MudStack>
+                    </MudStack>
 
-                    <!-- Aliquota IVA + Toggle Modalità -->
-                    <MudItem xs="12" md="8">
-                        <AliquotaIvaSelect SelectedAliquotaId="Transazione.TransazioneAliquotaIvaFk"
-                                          SelectedAliquotaIdChanged="@OnAliquotaIvaChanged"
-                                          AziendaId="@AziendaId"
-                                          Required="@_causaleRichiedeIva"
-                                          Label="@(_causaleRichiedeIva ? "Aliquota IVA *" : "Aliquota IVA")"
-                                          Clearable="!_causaleRichiedeIva" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="4" Class="d-flex align-center">
-                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="mr-2">
-                            Modalità: @(Transazione.TransazioneIvaModalitaInput ?? "AUTO")
-                        </MudChip>
-                        <MudTooltip Text="Inverti modalità calcolo IVA (LORDO ↔ NETTO)">
-                            <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz"
-                                          Size="Size.Small"
-                                          Color="Color.Primary"
-                                          OnClick="@ToggleModalitaIva"
-                                          Disabled="Transazione.TransazioneAliquotaIvaFk == null" />
-                        </MudTooltip>
-                    </MudItem>
-
-                    <!-- Campi Importi IVA - SEMPRE EDITABILI -->
-                    <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="Transazione.TransazioneImponibileEur"
-                                        Label="Imponibile (EUR)"
-                                        Format="N2"
-                                        Variant="Variant.Outlined"
-                                        Adornment="Adornment.End"
-                                        AdornmentText="€"
-                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
-                                        OnBlur="@OnImponibileChanged"
-                                        HelperText="Editabile per correzioni arrotondamenti" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="Transazione.TransazioneIvaEur"
-                                        Label="IVA (EUR)"
-                                        Format="N2"
-                                        Variant="Variant.Outlined"
-                                        Adornment="Adornment.End"
-                                        AdornmentText="€"
-                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
-                                        OnBlur="@OnIvaChanged"
-                                        HelperText="Editabile per correzioni arrotondamenti" />
-                    </MudItem>
-
-                    <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="Transazione.TransazioneLordoEur"
-                                        Label="Totale con IVA (EUR)"
-                                        Format="N2"
-                                        Variant="Variant.Outlined"
-                                        Adornment="Adornment.End"
-                                        AdornmentText="€"
-                                        Disabled="@(Transazione.TransazioneAliquotaIvaFk == null)"
-                                        OnBlur="@OnLordoChanged"
-                                        Class="font-weight-bold"
-                                        HelperText="Deve coincidere con fattura cartacea" />
-                    </MudItem>
-
-                    <!-- Alert informativo calcolo -->
-                    @if (!string.IsNullOrEmpty(_messaggioIva))
-                    {
-                        <MudItem xs="12">
-                            <MudAlert Severity="@_severityIva" Dense="true" Class="my-2">
-                                <MudText Typo="Typo.body2">@_messaggioIva</MudText>
-                            </MudAlert>
-                        </MudItem>
-                    }
-                }
-                else if (!_valutaIsEur && _causaleGeneraIva)
-                {
-                    <!-- Messaggio informativo per valute estere -->
+                    <MudDataGrid T="MovTransazioniRighe" Items="@Transazione.Righe" EditMode="DataGridEditMode.Cell" 
+                                 ReadOnly="false" Bordered="true" Dense="true" Hover="true">
+                        <Columns>
+                            <PropertyColumn Property="x => x.RigaNumero" Title="#" Editable="false" HeaderStyle="width: 50px;" />
+                            <TemplateColumn Title="Descrizione" CellStyle="min-width: 250px;">
+                                <EditTemplate>
+                                    <MudTextField Value="@context.Item.RigaDescrizione" 
+                                                  ValueChanged="@((string s) => context.Item.RigaDescrizione = s?.ToUpper() ?? string.Empty)"
+                                                  Variant="Variant.Text" 
+                                                  Margin="Margin.Dense" 
+                                                  Class="uppercase-input" />
+                                </EditTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Tipo" HeaderStyle="width: 150px;">
+                                <EditTemplate>
+                                    <MudSelect @bind-Value="context.Item.RigaTipo" Margin="Margin.Dense" T="string">
+                                        <MudSelectItem Value="@("PRESTAZIONE")">Prestazione</MudSelectItem>
+                                        <MudSelectItem Value="@("CASSA_PREV")">Cassa Prev.</MudSelectItem>
+                                        <MudSelectItem Value="@("BOLLO")">Bollo</MudSelectItem>
+                                        <MudSelectItem Value="@("SPESA_ART15")">Spese Art.15</MudSelectItem>
+                                    </MudSelect>
+                                </EditTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Imponibile" HeaderStyle="width: 120px;">
+                                <EditTemplate>
+                                    <MudNumericField @bind-Value="context.Item.RigaImponibile" Margin="Margin.Dense" Format="N2" Culture="@(new System.Globalization.CultureInfo("it-IT"))" T="decimal" OnBlur="@(() => OnRigaImponibileChanged(context.Item))" />
+                                </EditTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="IVA (%)" HeaderStyle="width: 130px;">
+                                <EditTemplate>
+                                    <AliquotaIvaSelect SelectedAliquotaId="context.Item.RigaAliquotaIvaFk"
+                                                      SelectedAliquotaIdChanged="@((id) => OnRigaAliquotaChanged(context.Item, id))"
+                                                      AziendaId="@AziendaId" />
+                                </EditTemplate>
+                                <CellTemplate>
+                                    @(context.Item != null ? $"{context.Item.AliquotaIvaCodice} ({context.Item.AliquotaIvaPercentuale}%)" : "")
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="x => x.RigaIvaValore" Title="IVA Val." Editable="false" HeaderStyle="width: 100px;" Format="N2" />
+                            <PropertyColumn Property="x => x.RigaLordo" Title="Lordo" Editable="false" HeaderStyle="width: 100px;" Format="N2" />
+                            <TemplateColumn CellStyle="width: 50px;" Editable="false">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveRiga(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    
+                    <!-- Riepilogo Totali Calcolati -->
                     <MudItem xs="12">
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
-                            <MudText Typo="Typo.body2">
-                                <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Class="mr-1" />
-                                <b>Transazione in valuta estera:</b> L'IVA non viene scorporata
-                                in quanto considerata costo totale (Fuori Campo IVA art. 7-ter o 74-ter).
-                            </MudText>
-                        </MudAlert>
+                        <MudPaper Elevation="0" Class="pa-4" Style="background-color: var(--mud-palette-background-grey); border-radius: 8px;">
+                            <MudGrid>
+                                <MudItem xs="4">
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">IMPONIBILE: @(Transazione.Righe?.Sum(r => r.RigaImponibile).ToString("N2") ?? "0,00") €</MudText>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">IVA: @(Transazione.Righe?.Sum(r => r.RigaIvaValore).ToString("N2") ?? "0,00") €</MudText>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudText Typo="Typo.h6" Color="Color.Primary">TOTALE: @(Transazione.Righe?.Sum(r => r.RigaLordo).ToString("N2") ?? "0,00") €</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
                     </MudItem>
-                }
+                </MudItem>
 
                 <!-- RIGA 5: Stato Pagamento -->
                 <MudItem xs="12">
@@ -330,8 +330,6 @@
     private bool _causaleGeneraIva = false;
     private bool _causaleRichiedeIva = false;
     private decimal? _aliquotaPercentuale = null;
-    private string? _messaggioIva = null;
-    private Severity _severityIva = Severity.Info;
 
     // Loading flag
     private bool _isLoading = false;
@@ -405,7 +403,35 @@
         // =========================================
         _valutaIsEur = (Transazione.ValutaCodiceIso == "EUR");
 
+        // Se in creazione e non abbiamo righe, proviamo a generarne una di default se importo > 0
+        if (Transazione.TransazioneId == 0 && !Transazione.Righe.Any() && Transazione.TransazioneImporto > 0)
+        {
+            AddRigaDefault();
+        }
+
         await Task.CompletedTask;
+    }
+
+    private void AddRigaDefault()
+    {
+        var r = new MovTransazioniRighe
+        {
+            RigaNumero = 1,
+            RigaDescrizione = Transazione.TransazioneCausale ?? "NUOVA RIGA",
+            RigaTipo = "PRESTAZIONE",
+            RigaImponibile = Transazione.TransazioneImporto,
+            RigaAliquotaIvaFk = Transazione.TransazioneAliquotaIvaFk ?? 0
+        };
+        
+        // Se abbiamo l'aliquota di testata, usiamola
+        if (Transazione.AliquotaIvaPercentuale.HasValue)
+        {
+            r.AliquotaIvaPercentuale = Transazione.AliquotaIvaPercentuale;
+            r.AliquotaIvaCodice = Transazione.AliquotaIvaCodice;
+            CalcolaDatiRiga(r);
+        }
+        
+        Transazione.Righe.Add(r);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -660,7 +686,6 @@
                 Transazione.TransazioneImponibileEur = null;
                 Transazione.TransazioneIvaEur = null;
                 Transazione.TransazioneLordoEur = null;
-                _messaggioIva = null;
             }
 
             StateHasChanged();
@@ -699,12 +724,6 @@
             Transazione.TransazioneLordoEur = null;
             _aliquotaPercentuale = null;
             Transazione.AliquotaIvaPercentuale = null;
-            _messaggioIva = "IVA non applicabile per valute estere (Fuori Campo IVA art. 7-ter)";
-            _severityIva = Severity.Info;
-        }
-        else
-        {
-            _messaggioIva = null;
         }
 
         StateHasChanged();
@@ -724,91 +743,167 @@
             if (aliquota != null)
             {
                 Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
-                _aliquotaPercentuale = aliquota.IvaPercentuale;
-                CalcolaIvaReattivo();
+                // _aliquotaPercentuale = aliquota.IvaPercentuale; // Old logic
+                // CalcolaIvaReattivo(); // Old logic
             }
         }
         else
         {
-            _aliquotaPercentuale = null;
+            // _aliquotaPercentuale = null; // Old logic
             Transazione.AliquotaIvaPercentuale = null;
             Transazione.TransazioneImponibileEur = null;
             Transazione.TransazioneIvaEur = null;
             Transazione.TransazioneLordoEur = null;
-            _messaggioIva = null;
         }
 
         StateHasChanged();
     }
 
     // =========================================
-    // Azione: Toggle Modalità IVA (LORDO ↔ NETTO)
+    // Gestione Righe di Dettaglio
     // =========================================
-    private void ToggleModalitaIva()
-    {
-        if (Transazione.TransazioneIvaModalitaInput == "LORDO")
-        {
-            Transazione.TransazioneIvaModalitaInput = "NETTO";
-        }
-        else if (Transazione.TransazioneIvaModalitaInput == "NETTO")
-        {
-            Transazione.TransazioneIvaModalitaInput = "LORDO";
-        }
 
-        CalcolaIvaReattivo();
+    private void AddRiga()
+    {
+        var nuovaRiga = new MovTransazioniRighe
+        {
+            RigaNumero = Transazione.Righe.Count + 1,
+            RigaDescrizione = Transazione.TransazioneCausale ?? "Nuova riga",
+            RigaTipo = "PRESTAZIONE"
+        };
+        Transazione.Righe.Add(nuovaRiga);
         StateHasChanged();
     }
 
-    // =========================================
-    // Evento: Modifica Manuale Imponibile
-    // =========================================
-    private void OnImponibileChanged()
+    private void RemoveRiga(MovTransazioniRighe riga)
     {
-        // Utente ha modificato manualmente l'imponibile
-        // Ricalcola IVA e Lordo mantenendo fisso l'imponibile
-        if (Transazione.TransazioneImponibileEur.HasValue && Transazione.AliquotaIvaPercentuale.HasValue)
+        Transazione.Righe.Remove(riga);
+        // Riassegna numeri riga
+        for (int i = 0; i < Transazione.Righe.Count; i++)
         {
-            Transazione.TransazioneIvaEur = Math.Round(
-                Transazione.TransazioneImponibileEur.Value * (Transazione.AliquotaIvaPercentuale.Value / 100m), 2);
-            Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur.Value + (Transazione.TransazioneIvaEur ?? 0);
-
-            _messaggioIva = $"IVA ricalcolata da imponibile modificato";
-            _severityIva = Severity.Info;
-            StateHasChanged();
+            Transazione.Righe[i].RigaNumero = i + 1;
         }
+        StateHasChanged();
     }
 
-    // =========================================
-    // Evento: Modifica Manuale IVA
-    // =========================================
-    private void OnIvaChanged()
+    private async Task OnRigaAliquotaChanged(MovTransazioniRighe riga, int? id)
     {
-        // Utente ha modificato manualmente l'IVA
-        // Ricalcola Lordo mantenendo fissi imponibile e IVA
-        if (Transazione.TransazioneImponibileEur.HasValue && Transazione.TransazioneIvaEur.HasValue)
+        riga.RigaAliquotaIvaFk = id ?? 0;
+        if (id.HasValue && id.Value > 0)
         {
-            Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur.Value + Transazione.TransazioneIvaEur.Value;
-
-            _messaggioIva = $"Lordo ricalcolato da IVA modificata (correzione arrotondamenti)";
-            _severityIva = Severity.Warning;
-            StateHasChanged();
+            var al = await AliquoteIvaService.GetByIdAsync(id.Value);
+            if (al != null)
+            {
+                riga.AliquotaIvaCodice = al.IvaCodice;
+                riga.AliquotaIvaPercentuale = al.IvaPercentuale;
+                riga.AliquotaIvaDescrizione = al.IvaDescrizione;
+            }
         }
+        else
+        {
+            riga.AliquotaIvaCodice = null;
+            riga.AliquotaIvaPercentuale = 0;
+        }
+        
+        CalcolaDatiRiga(riga);
+        StateHasChanged();
     }
 
-    // =========================================
-    // Evento: Modifica Manuale Lordo
-    // =========================================
-    private void OnLordoChanged()
+    private void OnRigaImponibileChanged(MovTransazioniRighe riga)
     {
-        // Utente ha modificato manualmente il lordo
-        // Ricalcola IVA mantenendo fisso l'imponibile
-        if (Transazione.TransazioneLordoEur.HasValue && Transazione.TransazioneImponibileEur.HasValue)
-        {
-            Transazione.TransazioneIvaEur = Transazione.TransazioneLordoEur.Value - Transazione.TransazioneImponibileEur.Value;
+        CalcolaDatiRiga(riga);
+        StateHasChanged();
+    }
 
-            _messaggioIva = $"IVA ricalcolata da lordo modificato";
-            _severityIva = Severity.Warning;
+    private void CalcolaDatiRiga(MovTransazioniRighe riga)
+    {
+        decimal percentuale = riga.AliquotaIvaPercentuale ?? 0;
+        riga.RigaIvaValore = Math.Round(riga.RigaImponibile * (percentuale / 100m), 2);
+        riga.RigaLordo = riga.RigaImponibile + riga.RigaIvaValore;
+    }
+
+    private async Task ApplicaForfettario()
+    {
+        try 
+        {
+            // 0. Safety Inits
+            if (Transazione == null) return;
+            
+            // Creiamo una lista locale per aggiornamento atomico (evita flickers e race conditions nel render)
+            var newRighe = new List<MovTransazioniRighe>();
+
+            // 2. Recupero Aliquote N1 e N2.2 per l'azienda
+            var aliquote = await AliquoteIvaService.GetByAziendaAsync(AziendaId);
+            var listAli = aliquote?.ToList() ?? new List<AnaAliquotaIva>();
+            
+            var aliN1 = listAli.FirstOrDefault(a => a.IvaCodice == "N1");
+            var aliN22 = listAli.FirstOrDefault(a => a.IvaCodice == "N2.2");
+
+            if (aliN22 == null || aliN1 == null)
+            {
+                Snackbar.Add("Aliquote N1 o N2.2 non trovate per questa azienda. Controllare l'anagrafica.", Severity.Error);
+                return;
+            }
+
+            decimal baseImponibile = Transazione.TransazioneImporto;
+            decimal cassaInps = Math.Round(baseImponibile * 0.04m, 2);
+            decimal totalePerBollo = baseImponibile + cassaInps;
+
+            // Riga 1: Prestazione
+            var r1 = new MovTransazioniRighe {
+                RigaNumero = 1,
+                RigaDescrizione = (Transazione.TransazioneCausale ?? "PRESTAZIONE PROFESSIONALE").ToUpper(),
+                RigaTipo = "PRESTAZIONE",
+                RigaImponibile = baseImponibile,
+                RigaAliquotaIvaFk = aliN22.IvaId,
+                AliquotaIvaCodice = aliN22.IvaCodice,
+                AliquotaIvaPercentuale = aliN22.IvaPercentuale
+            };
+            CalcolaDatiRiga(r1);
+            newRighe.Add(r1);
+
+            // Riga 2: Rivalsa INPS
+            var r2 = new MovTransazioniRighe {
+                RigaNumero = 2,
+                RigaDescrizione = "RIVALSA INPS 4%",
+                RigaTipo = "CASSA_PREV",
+                RigaImponibile = cassaInps,
+                RigaAliquotaIvaFk = aliN22.IvaId,
+                AliquotaIvaCodice = aliN22.IvaCodice,
+                AliquotaIvaPercentuale = aliN22.IvaPercentuale
+            };
+            CalcolaDatiRiga(r2);
+            newRighe.Add(r2);
+
+            // Riga 3: Bollo (se > 77.47)
+            if (totalePerBollo > 77.47m)
+            {
+                var r3 = new MovTransazioniRighe {
+                    RigaNumero = 3,
+                    RigaDescrizione = "IMPOSTA DI BOLLO",
+                    RigaTipo = "BOLLO",
+                    RigaImponibile = 2.00m,
+                    RigaAliquotaIvaFk = aliN1.IvaId,
+                    AliquotaIvaCodice = aliN1.IvaCodice,
+                    AliquotaIvaPercentuale = aliN1.IvaPercentuale
+                };
+                CalcolaDatiRiga(r3);
+                newRighe.Add(r3);
+            }
+
+            // Aggiorna la lista in-place (più sicuro per MudDataGrid che traccia il reference)
+            Transazione.Righe.Clear();
+            Transazione.Righe.AddRange(newRighe);
+
+            Snackbar.Add("Logica forfettario applicata correttamente.", Severity.Success);
             StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            var msg = $"Errore critico durante l'applicazione forfettario: {ex.Message}";
+            Snackbar.Add(msg, Severity.Error);
+            _logger.LogError(ex, "Errore in ApplicaForfettario");
+            await Task.CompletedTask;
         }
     }
 
@@ -819,67 +914,5 @@
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         await DialogService.ShowAsync<ContabilitaHelpDialog>("", options);
-    }
-
-    // =========================================
-    // Calcolo Reattivo IVA (chiamato da eventi)
-    // =========================================
-    private void CalcolaIvaReattivo()
-    {
-        // Verifica prerequisiti
-        if (!Transazione.TransazioneAliquotaIvaFk.HasValue ||
-            !Transazione.AliquotaIvaPercentuale.HasValue ||
-            Transazione.TransazioneImporto <= 0)
-        {
-            return;
-        }
-
-        decimal percentuale = Transazione.AliquotaIvaPercentuale.Value;
-
-        if (Transazione.TransazioneIvaModalitaInput == "LORDO")
-        {
-            // ----------------------------------------
-            // SCORPORO IVA: da Lordo calcola Netto + IVA
-            // ----------------------------------------
-            Transazione.TransazioneLordoEur = Transazione.TransazioneImporto;
-
-            if (percentuale > 0)
-            {
-                Transazione.TransazioneImponibileEur = Math.Round(
-                    Transazione.TransazioneImporto / (1 + (percentuale / 100m)), 2);
-                Transazione.TransazioneIvaEur = Transazione.TransazioneLordoEur - Transazione.TransazioneImponibileEur;
-            }
-            else
-            {
-                // Aliquota 0% (FC, ES, NS)
-                Transazione.TransazioneImponibileEur = Transazione.TransazioneImporto;
-                Transazione.TransazioneIvaEur = 0;
-            }
-
-            _messaggioIva = $"Scorporo IVA {percentuale:N0}%: Lordo {Transazione.TransazioneLordoEur:N2} → Netto {Transazione.TransazioneImponibileEur:N2} + IVA {Transazione.TransazioneIvaEur:N2}";
-            _severityIva = Severity.Success;
-        }
-        else // NETTO
-        {
-            // ----------------------------------------
-            // CALCOLO IVA: da Netto calcola IVA + Lordo
-            // ----------------------------------------
-            Transazione.TransazioneImponibileEur = Transazione.TransazioneImporto;
-
-            if (percentuale > 0)
-            {
-                Transazione.TransazioneIvaEur = Math.Round(
-                    Transazione.TransazioneImporto * (percentuale / 100m), 2);
-                Transazione.TransazioneLordoEur = Transazione.TransazioneImponibileEur + Transazione.TransazioneIvaEur;
-            }
-            else
-            {
-                Transazione.TransazioneIvaEur = 0;
-                Transazione.TransazioneLordoEur = Transazione.TransazioneImporto;
-            }
-
-            _messaggioIva = $"Calcolo IVA {percentuale:N0}%: Netto {Transazione.TransazioneImponibileEur:N2} + IVA {Transazione.TransazioneIvaEur:N2} = Lordo {Transazione.TransazioneLordoEur:N2}";
-            _severityIva = Severity.Success;
-        }
     }
 }

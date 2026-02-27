@@ -164,7 +164,23 @@ public class MovTransazioniService
                 LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id
                 WHERE t.transazione_id = @Id";
 
-            return await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, new { Id = id });
+            var transazione = await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, new { Id = id });
+
+            if (transazione != null)
+            {
+                // Caricamento righe di dettaglio
+                string sqlRighe = @"
+                    SELECT r.*, a.iva_codice as AliquotaIvaCodice, a.iva_descrizione as AliquotaIvaDescrizione, a.iva_percentuale as AliquotaIvaPercentuale
+                    FROM mov_transazioni_righe r
+                    JOIN ana_aliquote_iva a ON r.riga_aliquota_iva_fk = a.iva_id
+                    WHERE r.transazione_fk = @Id
+                    ORDER BY r.riga_numero";
+                
+                var righe = await conn.QueryAsync<MovTransazioniRighe>(sqlRighe, new { Id = id });
+                transazione.Righe = righe.ToList();
+            }
+
+            return transazione;
         }
         catch (Exception ex)
         {
@@ -176,6 +192,8 @@ public class MovTransazioniService
     public async Task<(int TransazioneId, string? WarningMessage)> CreateAsync(MovTransazioni item)
     {
         string? warningMessage = null;
+        using var conn = await _dbService.GetConnectionAsync();
+        using var transaction = conn.BeginTransaction();
 
         try
         {
@@ -191,11 +209,6 @@ public class MovTransazioniService
             // PASSIVO (fornitori) → USCITA | ATTIVO (clienti) → ENTRATA
             item.TransazioneTipoMovimento = causale.CausaleCiclo == "ATTIVO" ? "ENTRATA" : "USCITA";
 
-            _logger.LogInformation(
-                "Tipo movimento impostato automaticamente: {TipoMovimento} (causale_ciclo: {CausaleCiclo})",
-                item.TransazioneTipoMovimento,
-                causale.CausaleCiclo);
-
             // =============================================
             // STEP 1: Recupera valuta per controllo IVA
             // =============================================
@@ -208,62 +221,14 @@ public class MovTransazioniService
             // =============================================
             // STEP 2: LOGICA IVA - Se valuta != EUR, azzera IVA
             // =============================================
-            if (!valuta.ValutaIsBase) // ValutaIsBase = true solo per EUR
+            if (!valuta.ValutaIsBase)
             {
                 item.TransazioneAliquotaIvaFk = null;
                 item.TransazioneImponibileEur = null;
                 item.TransazioneIvaEur = null;
                 item.TransazioneLordoEur = null;
                 item.TransazioneIvaModalitaInput = null;
-
-                _logger.LogInformation(
-                    "IVA azzerata per transazione in valuta estera ({ValutaIso})",
-                    valuta.ValutaCodiceIso);
-            }
-
-            // =============================================
-            // STEP 3: LOGICA IVA - Se causale non genera IVA, azzera aliquota
-            // =============================================
-            if (!causale.CausaleGeneraIva)
-            {
-                item.TransazioneAliquotaIvaFk = null;
-                // Non azzerare imponibile/IVA/lordo: trigger li popolerà correttamente
-
-                _logger.LogInformation(
-                    "Aliquota IVA azzerata per causale che non genera IVA ({CausaleDescrizione})",
-                    causale.CausaleDescrizione);
-            }
-
-            // =============================================
-            // STEP 4: LOGICA IVA - Auto-imposta aliquota default (solo EUR + genera IVA)
-            // =============================================
-            if (causale.CausaleGeneraIva &&
-                valuta.ValutaIsBase &&
-                item.TransazioneAliquotaIvaFk == null &&
-                causale.CausaleAliquotaIvaDefaultFk.HasValue)
-            {
-                item.TransazioneAliquotaIvaFk = causale.CausaleAliquotaIvaDefaultFk.Value;
-
-                _logger.LogInformation(
-                    "Aliquota IVA default impostata: {AliquotaId} (da causale {CausaleDescrizione})",
-                    item.TransazioneAliquotaIvaFk,
-                    causale.CausaleDescrizione);
-            }
-
-            // =============================================
-            // STEP 5: LOGICA IVA - Auto-imposta modalità input da ciclo causale
-            // =============================================
-            if (item.TransazioneIvaModalitaInput == null &&
-                item.TransazioneAliquotaIvaFk.HasValue)
-            {
-                // PASSIVO (fornitori) → LORDO (scorporo)
-                // ATTIVO (clienti) → NETTO (calcolo IVA)
-                item.TransazioneIvaModalitaInput = causale.CausaleCiclo == "PASSIVO" ? "LORDO" : "NETTO";
-
-                _logger.LogInformation(
-                    "Modalità IVA auto-determinata: {Modalita} (ciclo: {Ciclo})",
-                    item.TransazioneIvaModalitaInput,
-                    causale.CausaleCiclo);
+                foreach(var r in item.Righe) { r.RigaIvaValore = 0; r.RigaLordo = r.RigaImponibile; }
             }
 
             // =============================================
@@ -271,88 +236,75 @@ public class MovTransazioniService
             // =============================================
             if (!valuta.ValutaIsBase && item.TransazioneDataDocumento.HasValue)
             {
-                _logger.LogInformation(
-                    "Recupero tasso di cambio per {ValutaIso} alla data documento {DataDoc}",
-                    valuta.ValutaCodiceIso,
-                    item.TransazioneDataDocumento.Value.ToString("yyyy-MM-dd"));
-
                 (bool success, string message) = await _exchangeRateService.UpdateRateForDateAsync(
                     valuta.ValutaCodiceIso,
                     item.TransazioneDataDocumento.Value);
 
                 if (!success)
                 {
-                    // API fallita o timeout - verrà usato il fallback dal DB
                     warningMessage = message;
-                    _logger.LogWarning("Fallback: {Message}", message);
-                }
-                else
-                {
-                    _logger.LogInformation("Tasso aggiornato con successo: {Message}", message);
                 }
             }
 
             // =============================================
-            // STEP 7: Inserimento della transazione (il trigger calcolerà l'importo EUR e IVA)
+            // STEP 7: Inserimento della testata
             // =============================================
-            using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 INSERT INTO mov_transazioni (
-                    transazione_azienda_id,
-                    transazione_viaggio_id,
-                    transazione_data_viaggio_id,
-                    transazione_controparte_id,
-                    transazione_causale_tipo_id,
-                    transazione_tipo_movimento,
-                    transazione_importo,
-                    transazione_valuta_id,
-                    transazione_data,
-                    transazione_data_scadenza,
-                    transazione_data_pagamento,
-                    transazione_stato,
-                    transazione_causale,
-                    transazione_note,
-                    transazione_numero_documento,
-                    transazione_data_documento,
-                    transazione_aliquota_iva_fk,
-                    transazione_imponibile_eur,
-                    transazione_iva_eur,
-                    transazione_lordo_eur,
-                    transazione_iva_modalita_input,
-                    created_at,
-                    created_by
+                    transazione_azienda_id, transazione_viaggio_id, transazione_data_viaggio_id,
+                    transazione_controparte_id, transazione_causale_tipo_id, transazione_tipo_movimento,
+                    transazione_importo, transazione_valuta_id, transazione_data,
+                    transazione_data_scadenza, transazione_data_pagamento, transazione_stato,
+                    transazione_causale, transazione_note, transazione_numero_documento,
+                    transazione_data_documento, created_at, created_by
                 ) VALUES (
-                    @TransazioneAziendaId,
-                    @TransazioneViaggioId,
-                    @TransazioneDataViaggioId,
-                    @TransazioneControparteId,
-                    @TransazioneCausaleTipoId,
-                    @TransazioneTipoMovimento,
-                    @TransazioneImporto,
-                    @TransazioneValutaId,
-                    @TransazioneData,
-                    @TransazioneDataScadenza,
-                    @TransazioneDataPagamento,
-                    @TransazioneStato,
-                    @TransazioneCausale,
-                    @TransazioneNote,
-                    @TransazioneNumeroDocumento,
-                    @TransazioneDataDocumento,
-                    @TransazioneAliquotaIvaFk,
-                    @TransazioneImponibileEur,
-                    @TransazioneIvaEur,
-                    @TransazioneLordoEur,
-                    @TransazioneIvaModalitaInput,
-                    NOW(),
-                    @CreatedBy
+                    @TransazioneAziendaId, @TransazioneViaggioId, @TransazioneDataViaggioId,
+                    @TransazioneControparteId, @TransazioneCausaleTipoId, @TransazioneTipoMovimento,
+                    @TransazioneImporto, @TransazioneValutaId, @TransazioneData,
+                    @TransazioneDataScadenza, @TransazioneDataPagamento, @TransazioneStato,
+                    @TransazioneCausale, @TransazioneNote, @TransazioneNumeroDocumento,
+                    @TransazioneDataDocumento, NOW(), @CreatedBy
                 ) RETURNING transazione_id";
 
-            // Nota: transazione_importo_eur_old è deprecato e non gestito qui (trigger o null)
-            //       Tutti i calcoli IVA sono demandati al trigger fn_calcola_iva_transazione
-            int transazioneId = await conn.ExecuteScalarAsync<int>(sql, item);
+            int transazioneId = await conn.ExecuteScalarAsync<int>(sql, item, transaction);
+            item.TransazioneId = transazioneId;
 
             // =============================================
-            // STEP 8: Assegnazione protocollo IVA (se qualifica)
+            // STEP 7.1: Inserimento delle righe
+            // =============================================
+            if (item.Righe != null && item.Righe.Any())
+            {
+                string sqlRighe = @"
+                    INSERT INTO mov_transazioni_righe (
+                        transazione_fk, riga_numero, riga_descrizione, riga_tipo,
+                        riga_imponibile, riga_aliquota_iva_fk, riga_iva_valore, riga_lordo,
+                        created_at, updated_at
+                    ) VALUES (
+                        @TransazioneId, @RigaNumero, @RigaDescrizione, @RigaTipo,
+                        @RigaImponibile, @RigaAliquotaIvaFk, @RigaIvaValore, @RigaLordo,
+                        NOW(), NOW()
+                    )";
+
+                foreach (var riga in item.Righe)
+                {
+                    riga.TransazioneFk = transazioneId;
+                    await conn.ExecuteAsync(sqlRighe, new {
+                        TransazioneId = transazioneId,
+                        riga.RigaNumero,
+                        riga.RigaDescrizione,
+                        riga.RigaTipo,
+                        riga.RigaImponibile,
+                        riga.RigaAliquotaIvaFk,
+                        riga.RigaIvaValore,
+                        riga.RigaLordo
+                    }, transaction);
+                }
+            }
+
+            transaction.Commit();
+
+            // =============================================
+            // STEP 8: Assegnazione protocollo IVA (fuori transazione atomica per semplicità se fallisce)
             // =============================================
             try
             {
@@ -362,7 +314,6 @@ public class MovTransazioniService
             }
             catch (Exception exProt)
             {
-                // Non bloccare la creazione se il protocollo fallisce (la SP potrebbe non esistere ancora)
                 _logger.LogWarning(exProt, "Impossibile assegnare protocollo IVA per transazione {Id}", transazioneId);
             }
 
@@ -370,6 +321,7 @@ public class MovTransazioniService
         }
         catch (Exception ex)
         {
+            transaction.Rollback();
             _logger.LogError(ex, "Errore nella creazione transazione");
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }
@@ -378,6 +330,8 @@ public class MovTransazioniService
     public async Task<string?> UpdateAsync(MovTransazioni item)
     {
         string? warningMessage = null;
+        using var conn = await _dbService.GetConnectionAsync();
+        using var transaction = conn.BeginTransaction();
 
         try
         {
@@ -393,11 +347,6 @@ public class MovTransazioniService
             // PASSIVO (fornitori) → USCITA | ATTIVO (clienti) → ENTRATA
             item.TransazioneTipoMovimento = causale.CausaleCiclo == "ATTIVO" ? "ENTRATA" : "USCITA";
 
-            _logger.LogInformation(
-                "Tipo movimento impostato automaticamente: {TipoMovimento} (causale_ciclo: {CausaleCiclo})",
-                item.TransazioneTipoMovimento,
-                causale.CausaleCiclo);
-
             // =============================================
             // STEP 1: Recupera valuta per controllo IVA
             // =============================================
@@ -410,118 +359,33 @@ public class MovTransazioniService
             // =============================================
             // STEP 2: LOGICA IVA - Se valuta != EUR, azzera IVA
             // =============================================
-            if (!valuta.ValutaIsBase) // ValutaIsBase = true solo per EUR
+            if (!valuta.ValutaIsBase)
             {
                 item.TransazioneAliquotaIvaFk = null;
                 item.TransazioneImponibileEur = null;
                 item.TransazioneIvaEur = null;
                 item.TransazioneLordoEur = null;
                 item.TransazioneIvaModalitaInput = null;
-
-                _logger.LogInformation(
-                    "IVA azzerata per transazione in valuta estera ({ValutaIso})",
-                    valuta.ValutaCodiceIso);
+                foreach(var r in item.Righe) { r.RigaIvaValore = 0; r.RigaLordo = r.RigaImponibile; }
             }
-
-            // =============================================
-            // STEP 3: LOGICA IVA - Se causale non genera IVA, azzera aliquota
-            // =============================================
-            if (!causale.CausaleGeneraIva)
-            {
-                item.TransazioneAliquotaIvaFk = null;
-                // Non azzerare imponibile/IVA/lordo: trigger li popolerà correttamente
-
-                _logger.LogInformation(
-                    "Aliquota IVA azzerata per causale che non genera IVA ({CausaleDescrizione})",
-                    causale.CausaleDescrizione);
-            }
-
-            // =============================================
-            // STEP 4: LOGICA IVA - Auto-imposta aliquota default (solo EUR + genera IVA)
-            // =============================================
-            if (causale.CausaleGeneraIva &&
-                valuta.ValutaIsBase &&
-                item.TransazioneAliquotaIvaFk == null &&
-                causale.CausaleAliquotaIvaDefaultFk.HasValue)
-            {
-                item.TransazioneAliquotaIvaFk = causale.CausaleAliquotaIvaDefaultFk.Value;
-
-                _logger.LogInformation(
-                    "Aliquota IVA default impostata: {AliquotaId} (da causale {CausaleDescrizione})",
-                    item.TransazioneAliquotaIvaFk,
-                    causale.CausaleDescrizione);
-            }
-
-            // =============================================
-            // STEP 5: LOGICA IVA - Auto-imposta modalità input da ciclo causale
-            // =============================================
-            if (item.TransazioneIvaModalitaInput == null &&
-                item.TransazioneAliquotaIvaFk.HasValue)
-            {
-                // PASSIVO (fornitori) → LORDO (scorporo)
-                // ATTIVO (clienti) → NETTO (calcolo IVA)
-                item.TransazioneIvaModalitaInput = causale.CausaleCiclo == "PASSIVO" ? "LORDO" : "NETTO";
-
-                _logger.LogInformation(
-                    "Modalità IVA auto-determinata: {Modalita} (ciclo: {Ciclo})",
-                    item.TransazioneIvaModalitaInput,
-                    causale.CausaleCiclo);
-            }
-
-            using var conn = await _dbService.GetConnectionAsync();
-
-            // =============================================
-            // STEP 6: Verifica se la valuta è cambiata, la data è cambiata, o se *manca* il tasso di cambio
-            // =============================================
-            string checkSql = @"
-                SELECT t.transazione_valuta_id, 
-                       t.transazione_data_documento,
-                       (SELECT COUNT(*) FROM ana_tassi_cambio tc 
-                        WHERE tc.tasso_valuta_da_fk = (SELECT valuta_id FROM ana_valute WHERE valuta_codice_iso = 'EUR')
-                          AND tc.tasso_valuta_a_fk = t.transazione_valuta_id
-                          AND tc.tasso_data_validita = @DataDoc) as count_tassi
-                FROM mov_transazioni t
-                WHERE t.transazione_id = @TransazioneId";
-
-            var original = await conn.QueryFirstOrDefaultAsync<(int ValutaId, DateTime? DataDocumento, int CountTassi)>(
-                checkSql,
-                new { item.TransazioneId, DataDoc = item.TransazioneDataDocumento });
-
-            bool valutaCambiata = original.ValutaId != item.TransazioneValutaId;
-            bool dataDocumentoCambiata = original.DataDocumento != item.TransazioneDataDocumento;
-            bool tassoMancante = !valuta.ValutaIsBase && original.CountTassi == 0;
 
             // =============================================
             // STEP 7: Recupero automatico tasso di cambio SOLO se necessario
             // =============================================
-            if ((valutaCambiata || dataDocumentoCambiata || tassoMancante) && item.TransazioneDataDocumento.HasValue)
+            if (item.TransazioneDataDocumento.HasValue && !valuta.ValutaIsBase)
             {
-                if (!valuta.ValutaIsBase)
+                (bool success, string message) = await _exchangeRateService.UpdateRateForDateAsync(
+                    valuta.ValutaCodiceIso,
+                    item.TransazioneDataDocumento.Value);
+
+                if (!success)
                 {
-                    _logger.LogInformation(
-                        "Valuta o data documento modificata - Recupero tasso di cambio per {ValutaIso} alla data {DataDoc}",
-                        valuta.ValutaCodiceIso,
-                        item.TransazioneDataDocumento.Value.ToString("yyyy-MM-dd"));
-
-                    (bool success, string message) = await _exchangeRateService.UpdateRateForDateAsync(
-                        valuta.ValutaCodiceIso,
-                        item.TransazioneDataDocumento.Value);
-
-                    if (!success)
-                    {
-                        // API fallita o timeout - verrà usato il fallback dal DB
-                        warningMessage = message;
-                        _logger.LogWarning("Fallback: {Message}", message);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Tasso aggiornato con successo: {Message}", message);
-                    }
+                    warningMessage = message;
                 }
             }
 
             // =============================================
-            // STEP 8: Aggiornamento della transazione (il trigger ricalcolerà IVA e importi)
+            // STEP 8: Aggiornamento della testata
             // =============================================
             string sql = @"
                 UPDATE mov_transazioni SET
@@ -540,49 +404,61 @@ public class MovTransazioniService
                     transazione_note = @TransazioneNote,
                     transazione_numero_documento = @TransazioneNumeroDocumento,
                     transazione_data_documento = @TransazioneDataDocumento,
-                    transazione_aliquota_iva_fk = @TransazioneAliquotaIvaFk,
-                    transazione_imponibile_eur = @TransazioneImponibileEur,
-                    transazione_iva_eur = @TransazioneIvaEur,
-                    transazione_lordo_eur = @TransazioneLordoEur,
-                    transazione_iva_modalita_input = @TransazioneIvaModalitaInput,
                     updated_at = NOW(),
                     updated_by = @UpdatedBy
                 WHERE transazione_id = @TransazioneId";
 
-            await conn.ExecuteAsync(sql, item);
+            await conn.ExecuteAsync(sql, item, transaction);
 
             // =============================================
-            // STEP 9: Gestione protocollo IVA su cambio anno data documento
+            // STEP 9: SINCRONIZZAZIONE RIGHE (DELETE + INSERT)
+            // =============================================
+            
+            // 1. Cancella righe vecchie
+            await conn.ExecuteAsync(
+                "DELETE FROM mov_transazioni_righe WHERE transazione_fk = @Id", 
+                new { Id = item.TransazioneId }, 
+                transaction);
+
+            // 2. Inserisce nuove righe
+            if (item.Righe != null && item.Righe.Any())
+            {
+                string sqlRighe = @"
+                    INSERT INTO mov_transazioni_righe (
+                        transazione_fk, riga_numero, riga_descrizione, riga_tipo,
+                        riga_imponibile, riga_aliquota_iva_fk, riga_iva_valore, riga_lordo,
+                        created_at, updated_at
+                    ) VALUES (
+                        @TransazioneId, @RigaNumero, @RigaDescrizione, @RigaTipo,
+                        @RigaImponibile, @RigaAliquotaIvaFk, @RigaIvaValore, @RigaLordo,
+                        NOW(), NOW()
+                    )";
+
+                foreach (var riga in item.Righe)
+                {
+                    await conn.ExecuteAsync(sqlRighe, new {
+                        TransazioneId = item.TransazioneId,
+                        riga.RigaNumero,
+                        riga.RigaDescrizione,
+                        riga.RigaTipo,
+                        riga.RigaImponibile,
+                        riga.RigaAliquotaIvaFk,
+                        riga.RigaIvaValore,
+                        riga.RigaLordo
+                    }, transaction);
+                }
+            }
+
+            transaction.Commit();
+
+            // =============================================
+            // STEP 10: Gestione protocollo IVA (fuori transazione)
             // =============================================
             try
             {
-                // Se la data documento è cambiata di anno, il protocollo va riassegnato
-                int? annoOld = original.DataDocumento?.Year;
-                int? annoNew = item.TransazioneDataDocumento?.Year;
-
-                if (annoOld != annoNew)
-                {
-                    // Revoca vecchio protocollo (il numero resta "bruciato" nel contatore)
-                    await conn.ExecuteAsync(
-                        "UPDATE mov_transazioni SET transazione_numero_protocollo_iva = NULL WHERE transazione_id = @Id",
-                        new { Id = item.TransazioneId });
-
-                    // Riassegna per il nuovo anno
-                    await conn.ExecuteAsync(
-                        "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
-                        new { TransazioneId = item.TransazioneId });
-
-                    _logger.LogInformation(
-                        "Protocollo IVA riassegnato per transazione {Id}: anno cambiato da {AnnoOld} a {AnnoNew}",
-                        item.TransazioneId, annoOld, annoNew);
-                }
-                else
-                {
-                    // Anche senza cambio anno, riassegna se non aveva protocollo (es. causale cambiata)
-                    await conn.ExecuteAsync(
-                        "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
-                        new { TransazioneId = item.TransazioneId });
-                }
+                await conn.ExecuteAsync(
+                    "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
+                    new { TransazioneId = item.TransazioneId });
             }
             catch (Exception exProt)
             {
@@ -593,6 +469,7 @@ public class MovTransazioniService
         }
         catch (Exception ex)
         {
+            transaction.Rollback();
             _logger.LogError(ex, "Errore nell'aggiornamento transazione {Id}", item.TransazioneId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, "transazione");
         }

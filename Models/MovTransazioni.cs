@@ -223,5 +223,12 @@ namespace GestioneViaggi.Models
         /// Restituisce l'importo formattato con simbolo valuta (se disponibile)
         /// </summary>
         public string ImportoFormattato => $"{TransazioneImporto:N2} {ValutaCodiceIso}";
+
+        // ==========================================
+        // Dettaglio Righe (Master-Detail)
+        // ==========================================
+        
+        [NotMapped]
+        public List<MovTransazioniRighe> Righe { get; set; } = new();
     }
 }

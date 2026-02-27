@@ -395,10 +395,18 @@
 
     private async Task OpenEditDialog(MovTransazioni item)
     {
+        // Carica la transazione completa con le righe di dettaglio (master-detail)
+        var fullItem = await TransazioniService.GetByIdAsync(item.TransazioneId);
+        if (fullItem == null)
+        {
+            Snackbar.Add("Errore: transazione non trovata", Severity.Error);
+            return;
+        }
+
         var parameters = new DialogParameters
         {
-            ["Transazione"] = item,
-            ["AziendaId"] = item.TransazioneAziendaId
+            ["Transazione"] = fullItem,
+            ["AziendaId"] = fullItem.TransazioneAziendaId
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
