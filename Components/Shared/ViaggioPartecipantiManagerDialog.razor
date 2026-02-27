@@ -321,6 +321,26 @@
                                                 Disabled="@_isEditMode" 
                                                 Class="mb-3" />
 
+                                 @if (_selectedCliente != null)
+                                 {
+                                     <div class="d-flex gap-4 mb-3" style="opacity: 0.75;">
+                                         @if (!string.IsNullOrEmpty(_selectedCliente.Email))
+                                         {
+                                             <div class="d-flex align-center gap-1">
+                                                 <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" />
+                                                 <MudText Typo="Typo.body2">@_selectedCliente.Email</MudText>
+                                             </div>
+                                         }
+                                         @if (!string.IsNullOrEmpty(_selectedCliente.Telefono))
+                                         {
+                                             <div class="d-flex align-center gap-1">
+                                                 <MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" />
+                                                 <MudText Typo="Typo.body2">@($"{_selectedCliente.PrefTelInt} {_selectedCliente.Telefono}".Trim())</MudText>
+                                             </div>
+                                         }
+                                     </div>
+                                 }
+
                                  <!-- 2. Trip Config -->
                                  <MudGrid Spacing="2">
                                      <MudItem xs="6">
