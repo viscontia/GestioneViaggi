@@ -401,6 +401,49 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 
 ## Componenti Dialog
 
+### SendEmailDialog
+Dialog riutilizzabile per l'invio email con Rich Text Editor (`Components/Shared/SendEmailDialog.razor`).
+*   **Dual-Mode**: Supporta due modalita operative selezionate automaticamente in base ai parametri:
+    *   **Trip Mode** (`DataViaggioId` valorizzato): Carica i destinatari dai partecipanti del viaggio tramite `MovClientiViaggiService`. Mostra conteggio partecipanti con/senza email. Oggetto pre-compilato.
+    *   **Direct Mode** (`RecipientEmails` fornito, `DataViaggioId` null): Usa le email passate direttamente, nessuna chiamata DB. Mostra il label del destinatario.
+*   **Funzionalita**:
+    *   Rich Text Editor (Quill.js via `BlazoredTextEditor`) con toolbar completa (grassetto, corsivo, sottolineato, colori, liste, link).
+    *   Validazione: Oggetto obbligatorio, corpo messaggio minimo 3 caratteri, almeno un destinatario.
+    *   Template HTML aziendale tramite `CompanyEmailTemplate` (logo, branding, footer).
+    *   Invio tramite `EmailSenderFactory` (SMTP aziendale o Resend fallback).
+    *   CC automatico all'utente corrente.
+*   **Parametri Chiave**:
+    *   `AziendaId` (int, richiesto): ID azienda per branding e sender.
+    *   `DefaultSubject` (string): Oggetto pre-compilato.
+    *   `DataViaggioId` (int?, opzionale): Se valorizzato, attiva Trip Mode.
+    *   `TripName` (string?, opzionale): Nome viaggio (per template e oggetto).
+    *   `DateRange` (string?, opzionale): Range date viaggio (per template).
+    *   `RecipientEmails` (List\<string\>?, opzionale): Email destinatari diretti (Direct Mode).
+    *   `RecipientDisplayLabel` (string?, opzionale): Label visualizzato nell'alert (es. "ROSSI Mario (mario@email.com)").
+*   **Utilizzo Trip Mode** (da `ViaggioDatesManager`):
+    ```razor
+    var parameters = new DialogParameters
+    {
+        ["DataViaggioId"] = date.Id,
+        ["AziendaId"] = AziendaId,
+        ["TripName"] = tripName,
+        ["DateRange"] = dateRange,
+        ["DefaultSubject"] = $"{tripName} - {dateRange}"
+    };
+    await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
+    ```
+*   **Utilizzo Direct Mode** (da `Clienti.razor`):
+    ```razor
+    var parameters = new DialogParameters
+    {
+        ["AziendaId"] = aziendaId,
+        ["DefaultSubject"] = string.Empty,
+        ["RecipientEmails"] = new List<string> { client.Email.Trim() },
+        ["RecipientDisplayLabel"] = $"{client.Cognome} {client.Nome} ({client.Email})"
+    };
+    await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
+    ```
+
 ### StampaMovimentiDialog
 Dialog per la selezione filtri e stampa dei movimenti contabili (`Components/Shared/StampaMovimentiDialog.razor`).
 *   **Funzionalità**:
@@ -561,6 +604,14 @@ Restituisce la lista degli anni (in formato intero, ordinati decrescenti) in cui
 ---
 
 ## Servizi Shared (Backend Logic)
+
+### CompanyEmailTemplate
+Template HTML generico per email aziendali (`Services/Email/CompanyEmailTemplate.cs`).
+*   **Classe statica** con metodo `GetHtmlBody(...)`.
+*   **Design**: Layout responsive 600px con branding aziendale (logo, nome azienda in serif blu, separatore, data/ora invio, contenuto utente, footer con contatti).
+*   **Sezioni opzionali**: Nome viaggio e range date sono renderizzati solo se forniti (parametri nullable `tripName`, `dateRange`). Questo permette l'uso sia per email legate ai viaggi che per comunicazioni generiche.
+*   **Parametri**: `logoBase64`, `logoMimeType`, `companyName`, `tripName?`, `dateRange?`, `userHtmlContent`, `sendDateTime`, `companyWebsite?`, `companyPhone?`.
+*   **Nota**: Sostituisce il precedente `ParticipantsEmailTemplate` (rinominato per riflettere l'uso generico).
 
 ### ExchangeRateService
 Servizio per l'aggiornamento automatico dei tassi di cambio.
