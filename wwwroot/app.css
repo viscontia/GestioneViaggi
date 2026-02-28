@@ -103,3 +103,55 @@ h1:focus {
 .uppercase-input input {
     text-transform: uppercase;
 }
+
+/* Quill Editor - Adatta ai colori MudBlazor (light e dark) via CSS variables */
+.ql-toolbar {
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-toolbar .ql-stroke {
+    stroke: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar .ql-fill {
+    fill: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar .ql-picker-label {
+    color: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar .ql-picker-label .ql-stroke {
+    stroke: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-container {
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-editor {
+    color: var(--mud-palette-text-primary, #333);
+}
+
+.ql-editor.ql-blank::before {
+    color: var(--mud-palette-text-disabled, rgba(0,0,0,0.38)) !important;
+}
+
+.ql-toolbar button:hover .ql-stroke,
+.ql-toolbar button.ql-active .ql-stroke {
+    stroke: var(--mud-palette-info, #42a5f5) !important;
+}
+
+.ql-toolbar button:hover .ql-fill,
+.ql-toolbar button.ql-active .ql-fill {
+    fill: var(--mud-palette-info, #42a5f5) !important;
+}
+
+.ql-toolbar .ql-picker-options {
+    background-color: var(--mud-palette-surface, #fff) !important;
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-toolbar .ql-picker-item {
+    color: var(--mud-palette-text-primary, #333) !important;
+}

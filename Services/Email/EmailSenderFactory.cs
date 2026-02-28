@@ -26,14 +26,7 @@ public class EmailSenderFactory
 
     public async Task<IEmailSender> GetSenderAsync(string? roleCode, int? aziendaId)
     {
-        // 1. SuperAdmin → Resend
-        if (string.Equals(roleCode, "superadmin", StringComparison.OrdinalIgnoreCase))
-        {
-            _logger.LogInformation("Utente SuperAdmin: uso Resend per invio email");
-            return _resendSender;
-        }
-
-        // 2. Utente con azienda → controlla SMTP aziendale
+        // 1. Se l'azienda ha SMTP configurato, usalo (vale per tutti i ruoli, incluso SuperAdmin)
         if (aziendaId.HasValue)
         {
             var hasSmtp = await HasActiveSmtpConfigAsync(aziendaId.Value);
@@ -42,11 +35,10 @@ public class EmailSenderFactory
                 _logger.LogInformation("Azienda {AziendaId} ha SMTP configurato: uso SMTP aziendale", aziendaId.Value);
                 return new SmtpEmailSender(_databaseService, _smtpLogger, aziendaId.Value);
             }
-
-            _logger.LogInformation("Azienda {AziendaId} senza SMTP: fallback a Resend", aziendaId.Value);
         }
 
-        // 3. Default → Resend
+        // 2. Fallback → Resend
+        _logger.LogInformation("Nessun SMTP aziendale disponibile: fallback a Resend");
         return _resendSender;
     }
 

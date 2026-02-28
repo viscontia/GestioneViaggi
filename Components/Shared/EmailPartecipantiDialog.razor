@@ -1,0 +1,267 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Email
+@using GestioneViaggi.Services.Session
+@using MudBlazor
+@using Blazored.TextEditor
+
+@inject MovClientiViaggiService MovClientiService
+@inject AziendaLogoService LogoService
+@inject AziendaService AziendaService
+@inject EmailSenderFactory EmailSenderFactory
+@inject ITenantContext TenantContext
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Invia Email ai Partecipanti</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+            <MudText Typo="Typo.body1" Align="Align.Center">Caricamento partecipanti...</MudText>
+        }
+        else
+        {
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-2">
+                <!-- Riepilogo Destinatari -->
+                <MudAlert Severity="@(_recipientCount > 0 ? Severity.Info : Severity.Warning)" Dense="true" Class="mb-3">
+                    <MudText Typo="Typo.body2">
+                        @if (_recipientCount > 0)
+                        {
+                            <span>Destinatari con email: <strong>@_recipientCount</strong> su @_totalParticipants partecipanti totali</span>
+                            @if (_participantsWithoutEmail > 0)
+                            {
+                                <span> (@_participantsWithoutEmail senza email, non riceveranno il messaggio)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span>Nessun partecipante ha un indirizzo email configurato.</span>
+                        }
+                    </MudText>
+                </MudAlert>
+
+                <!-- Oggetto -->
+                <MudTextField @bind-Value="_subject" Label="Oggetto" Required="true"
+                    RequiredError="L'oggetto è obbligatorio" Variant="Variant.Outlined"
+                    Margin="Margin.Dense" Class="mb-3" />
+
+                <!-- Rich Text Editor -->
+                <MudText Typo="Typo.body2" Class="mb-1" Color="Color.Default">
+                    Corpo del messaggio
+                </MudText>
+                <div style="height:300px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden;">
+                    <BlazoredTextEditor @ref="_quillEditor" Placeholder="Scrivi il tuo messaggio...">
+                        <ToolbarContent>
+                            <select class="ql-header">
+                                <option selected=""></option>
+                                <option value="1"></option>
+                                <option value="2"></option>
+                                <option value="3"></option>
+                            </select>
+                            <span class="ql-formats">
+                                <button class="ql-bold"></button>
+                                <button class="ql-italic"></button>
+                                <button class="ql-underline"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <select class="ql-color"></select>
+                                <select class="ql-background"></select>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-list" value="ordered"></button>
+                                <button class="ql-list" value="bullet"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-link"></button>
+                            </span>
+                            <span class="ql-formats">
+                                <button class="ql-clean"></button>
+                            </span>
+                        </ToolbarContent>
+                    </BlazoredTextEditor>
+                </div>
+            </MudContainer>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_isSending">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+            OnClick="SendEmail" Disabled="@(_isLoading || _isSending || _recipientCount == 0)"
+            StartIcon="@(_isSending ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Send)">
+            @(_isSending ? "Invio in corso..." : $"Invia a {_recipientCount} destinatari")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int DataViaggioId { get; set; }
+    [Parameter] public int AziendaId { get; set; }
+    [Parameter] public string TripName { get; set; } = string.Empty;
+    [Parameter] public string DateRange { get; set; } = string.Empty;
+
+    private BlazoredTextEditor _quillEditor = default!;
+    private string _subject = string.Empty;
+    private bool _isLoading = true;
+    private bool _isSending = false;
+
+    private List<string> _recipientEmails = new();
+    private int _totalParticipants;
+    private int _recipientCount;
+    private int _participantsWithoutEmail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _subject = $"{TripName} - {DateRange}";
+
+            var participants = await MovClientiService.GetParticipantsSortedAsync(DataViaggioId);
+            var allParticipants = participants.ToList();
+            _totalParticipants = allParticipants.Count;
+
+            _recipientEmails = allParticipants
+                .Where(p => !string.IsNullOrWhiteSpace(p.Email))
+                .Select(p => p.Email!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _recipientCount = _recipientEmails.Count;
+            _participantsWithoutEmail = _totalParticipants - allParticipants.Count(p => !string.IsNullOrWhiteSpace(p.Email));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento partecipanti: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SendEmail()
+    {
+        if (string.IsNullOrWhiteSpace(_subject))
+        {
+            Snackbar.Add("Inserire l'oggetto dell'email.", Severity.Warning);
+            return;
+        }
+
+        var htmlContent = await _quillEditor.GetHTML();
+        var textContent = await _quillEditor.GetText();
+
+        if (string.IsNullOrWhiteSpace(textContent) || textContent.Trim().Length < 3)
+        {
+            Snackbar.Add("Inserire il corpo del messaggio.", Severity.Warning);
+            return;
+        }
+
+        if (_recipientEmails.Count == 0)
+        {
+            Snackbar.Add("Nessun partecipante con indirizzo email.", Severity.Warning);
+            return;
+        }
+
+        _isSending = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Info utente corrente per EmailSenderFactory
+            var userInfo = await TenantContext.GetCurrentUserAsync();
+            var roleCode = userInfo?.RoleCode;
+            int? aziendaId = userInfo?.AziendaId ?? AziendaId;
+
+            // 2. Dati azienda
+            var azienda = await AziendaService.GetByIdAsync(AziendaId);
+            var companyName = azienda?.RagioneSociale ?? "Gestione Viaggi";
+            var companyWebsite = azienda?.SitoWeb;
+            var companyPhone = azienda?.TelefonoPrincipale;
+
+            // 3. Logo aziendale (non-critical)
+            string? logoBase64 = null;
+            string? logoMimeType = null;
+            try
+            {
+                var logos = await LogoService.GetByAziendaIdAsync(AziendaId);
+                var defaultLogo = logos
+                    .Where(l => l.IsActive && l.IsDefault)
+                    .OrderBy(l => l.Priority)
+                    .FirstOrDefault()
+                    ?? logos
+                    .Where(l => l.IsActive)
+                    .OrderBy(l => l.Priority)
+                    .FirstOrDefault();
+
+                if (defaultLogo != null)
+                {
+                    var binaryData = await LogoService.GetBinaryDataAsync(defaultLogo.Id);
+                    if (binaryData != null && binaryData.Length > 0)
+                    {
+                        logoBase64 = Convert.ToBase64String(binaryData);
+                        logoMimeType = defaultLogo.MimeType;
+                    }
+                }
+            }
+            catch
+            {
+                // Logo non disponibile, proseguiamo senza
+            }
+
+            // 4. Genera HTML dal template
+            var fullHtmlBody = ParticipantsEmailTemplate.GetHtmlBody(
+                logoBase64,
+                logoMimeType,
+                companyName,
+                TripName,
+                DateRange,
+                htmlContent,
+                DateTime.Now,
+                companyWebsite,
+                companyPhone
+            );
+
+            // 5. Ottieni sender appropriato (SMTP aziendale o Resend fallback)
+            var sender = await EmailSenderFactory.GetSenderAsync(roleCode, aziendaId);
+
+            // 6. Invio (CC all'utente corrente)
+            var currentUserEmail = userInfo?.Email;
+            var success = await sender.SendHtmlEmailAsync(
+                _recipientEmails,
+                _subject,
+                fullHtmlBody,
+                companyName,
+                currentUserEmail
+            );
+
+            if (success)
+            {
+                Snackbar.Add($"Email inviata con successo a {_recipientCount} partecipanti!", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Errore durante l'invio dell'email. Verifica la configurazione del servizio email.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore invio email: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSending = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

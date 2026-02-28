@@ -275,7 +275,8 @@ namespace GestioneViaggi.Services.CRUD
                         intolleranze as Intolleranze,
                         mezzo_dettagli as MezzoDettagli,
                         cliente_pilota_id as ClientePilotaId,
-                        grouping_key as GroupingKey
+                        grouping_key as GroupingKey,
+                        email as Email
                     FROM get_participants_sorted(@dataId)",
                     new { dataId = dataViaggioId });
             }

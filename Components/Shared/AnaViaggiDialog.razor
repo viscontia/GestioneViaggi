@@ -60,7 +60,7 @@
                         <MudGrid>
                             <!-- Giorni -->
                             <MudItem xs="6" sm="3">
-                                <MudNumericField T="int" @bind-Value="Entity.NumeroGiorni" For="@(() => Entity.NumeroGiorni)"
+                                <MudNumericField T="int" Value="Entity.NumeroGiorni" ValueChanged="@HandleGiorniChanged" For="@(() => Entity.NumeroGiorni)"
                                     Label="Giorni" Variant="Variant.Outlined" Min="1" Max="365" Required="true" />
                             </MudItem>
                             <!-- Notti -->
@@ -448,6 +448,14 @@
     {
         // Trip was deleted (orphaned). Close dialog and signal success (so list refreshes).
         MudDialog.Close(DialogResult.Ok(Entity)); 
+    }
+
+    private void HandleGiorniChanged(int value)
+    {
+        Entity.NumeroGiorni = value;
+        // Calcolo automatico notti: Giorni - 1 (minimo 0)
+        Entity.NumeroNotti = Math.Max(0, value - 1);
+        StateHasChanged();
     }
 
     private void Cancel() => MudDialog.Cancel();

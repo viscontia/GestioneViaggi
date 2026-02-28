@@ -1122,3 +1122,58 @@ div.mud-nav-link-text,
     background-color: rgba(245, 158, 11, 0.15) !important;
     color: #fbbf24 !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   QUILL EDITOR - Adattamento colori via CSS variables MudBlazor
+   Funziona automaticamente in light e dark mode
+   ═══════════════════════════════════════════════════════ */
+.ql-toolbar.ql-snow {
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-toolbar.ql-snow .ql-stroke {
+    stroke: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar.ql-snow .ql-fill {
+    fill: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar.ql-snow .ql-picker-label {
+    color: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-toolbar.ql-snow .ql-picker-label .ql-stroke {
+    stroke: var(--mud-palette-text-secondary, #444) !important;
+}
+
+.ql-container.ql-snow {
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-snow .ql-editor {
+    color: var(--mud-palette-text-primary, #333);
+}
+
+.ql-snow .ql-editor.ql-blank::before {
+    color: var(--mud-palette-text-disabled, rgba(0,0,0,0.38)) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke {
+    stroke: var(--mud-palette-info, #42a5f5) !important;
+}
+
+.ql-toolbar.ql-snow button:hover .ql-fill,
+.ql-toolbar.ql-snow button.ql-active .ql-fill {
+    fill: var(--mud-palette-info, #42a5f5) !important;
+}
+
+.ql-toolbar.ql-snow .ql-picker-options {
+    background-color: var(--mud-palette-surface, #fff) !important;
+    border-color: var(--mud-palette-divider, rgba(0,0,0,0.12)) !important;
+}
+
+.ql-toolbar.ql-snow .ql-picker-item {
+    color: var(--mud-palette-text-primary, #333) !important;
+}

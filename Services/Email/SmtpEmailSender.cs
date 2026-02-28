@@ -92,6 +92,79 @@ public class SmtpEmailSender : IEmailSender
         }
     }
 
+    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
+    {
+        try
+        {
+            using var connection = await _databaseService.GetConnectionAsync();
+            var configJson = await connection.ExecuteScalarAsync<string>(
+                "SELECT fn_get_smtp_config_for_email(@AziendaId)",
+                new { AziendaId = _aziendaId }
+            );
+
+            if (string.IsNullOrEmpty(configJson))
+            {
+                _logger.LogWarning("Nessuna configurazione SMTP trovata per azienda {AziendaId}", _aziendaId);
+                return false;
+            }
+
+            var config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (config == null)
+            {
+                _logger.LogError("Impossibile deserializzare configurazione SMTP per azienda {AziendaId}", _aziendaId);
+                return false;
+            }
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(fromName ?? config.FromName, config.FromEmail));
+
+            // BCC per proteggere la privacy dei destinatari
+            foreach (var email in toEmails)
+            {
+                message.Bcc.Add(MailboxAddress.Parse(email));
+            }
+
+            // CC all'utente che ha inviato l'email
+            if (!string.IsNullOrWhiteSpace(ccEmail))
+            {
+                message.Cc.Add(MailboxAddress.Parse(ccEmail));
+            }
+
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            var secureSocketOptions = config.SecurityMethod?.ToLower() switch
+            {
+                "ssl" or "tls" => SecureSocketOptions.SslOnConnect,
+                "starttls" => SecureSocketOptions.StartTls,
+                "none" => SecureSocketOptions.None,
+                _ => SecureSocketOptions.Auto
+            };
+
+            await client.ConnectAsync(config.Host, config.Port, secureSocketOptions);
+            await client.AuthenticateAsync(config.Username, config.Password);
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation(
+                "Email HTML inviata via SMTP aziendale (azienda {AziendaId}) a {Count} destinatari",
+                _aziendaId, toEmails.Count());
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore invio email HTML via SMTP aziendale (azienda {AziendaId})", _aziendaId);
+            return false;
+        }
+    }
+
     private class SmtpConfig
     {
         public string Host { get; set; } = string.Empty;

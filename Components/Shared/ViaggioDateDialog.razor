@@ -21,10 +21,13 @@
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
-                    <MudDatePicker Label="Data Fine" @bind-Date="Entity.DataFine" Required="true"
+                    <MudDatePicker Label="Data Fine" Date="Entity.DataFine" DateChanged="OnEndDateChanged" Required="true"
                         RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
                         Mask="@(new DateMask("dd/MM/yyyy"))"
-                        Margin="Margin.Dense" HelperText="@(DurationDays > 0 ? $"Durata fissa: {DurationDays} giorni" : null)" />
+                        Margin="Margin.Dense" 
+                        HelperText="@GetDurationHelperText()"
+                        Error="@IsDurationInvalid()"
+                        ErrorText="@($"Durata errata: deve essere {DurationDays} gg")" />
                 </MudItem>
 
                 <!-- Stato -->
@@ -129,6 +132,27 @@
             // Auto-Calculate End Date based on Duration
             Entity.DataFine = date.Value.AddDays(DurationDays - 1);
         }
+    }
+
+    private void OnEndDateChanged(DateTime? date)
+    {
+        Entity.DataFine = date;
+        // Not auto-calculating Start Date to avoid circular or confusing behavior,
+        // but the validation in Submit and the Error property will catch inconsistencies.
+    }
+
+    private string? GetDurationHelperText()
+    {
+        if (DurationDays <= 0) return null;
+        return $"Durata fissa: {DurationDays} giorni";
+    }
+
+    private bool IsDurationInvalid()
+    {
+        if (DurationDays <= 0) return false;
+        if (!Entity.DataInizio.HasValue || !Entity.DataFine.HasValue) return false;
+        var duration = (Entity.DataFine.Value - Entity.DataInizio.Value).Days + 1;
+        return duration != DurationDays;
     }
 
     private void Submit()

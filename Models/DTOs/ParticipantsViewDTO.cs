@@ -17,4 +17,5 @@ public class ParticipantsViewDTO
 
     public int ClientePilotaId { get; set; }
     public int GroupingKey { get; set; }
+    public string? Email { get; set; }
 }

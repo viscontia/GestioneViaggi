@@ -11,10 +11,10 @@
             OnClick="AddDate">Aggiungi Data</MudButton>
     </ToolBarContent>
     <Columns>
-        <!-- Azioni: Fixed 140px to fit 3 icons comfortably -->
+        <!-- Azioni: Fixed 180px to fit 4 icons comfortably -->
         <TemplateColumn Title="AZIONI" Sortable="false" Filterable="false"
-            CellStyle="width:140px; min-width:140px; max-width:140px; text-align:center; padding:0;" 
-            HeaderStyle="width:140px; min-width:140px; max-width:140px; text-align:center;" StickyLeft="true">
+            CellStyle="width:180px; min-width:180px; max-width:180px; text-align:center; padding:0;"
+            HeaderStyle="width:180px; min-width:180px; max-width:180px; text-align:center;" StickyLeft="true">
             <CellTemplate>
                 <div class="d-flex justify-center align-center">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
@@ -23,6 +23,8 @@
                         OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
                     <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
                         OnClick="@(() => OpenParticipantsDialog(context.Item))" title="Partecipanti" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Success"
+                        OnClick="@(() => OpenEmailDialog(context.Item))" title="Invia Email Partecipanti" />
                 </div>
             </CellTemplate>
         </TemplateColumn>
@@ -140,6 +142,40 @@
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.ExtraLarge, FullWidth = true };
 
         await DialogService.ShowAsync<ViaggioPartecipantiManagerDialog>("", parameters, options);
+    }
+
+    private async Task OpenEmailDialog(AnaDataViaggio date)
+    {
+        if (Trip == null)
+        {
+            Snackbar.Add("Dati del viaggio non disponibili.", Severity.Warning);
+            return;
+        }
+
+        if (!date.DataInizio.HasValue || !date.DataFine.HasValue)
+        {
+            Snackbar.Add("Date del viaggio non disponibili.", Severity.Warning);
+            return;
+        }
+
+        var tripName = Trip.DescrizioneBreve;
+        var dateRange = $"Dal {date.DataInizio.Value:dd/MM/yyyy} al {date.DataFine.Value:dd/MM/yyyy}";
+
+        var parameters = new DialogParameters
+        {
+            ["DataViaggioId"] = date.Id,
+            ["AziendaId"] = AziendaId,
+            ["TripName"] = tripName,
+            ["DateRange"] = dateRange
+        };
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        await DialogService.ShowAsync<EmailPartecipantiDialog>("", parameters, options);
     }
 
     private async Task DeleteDate(AnaDataViaggio date)

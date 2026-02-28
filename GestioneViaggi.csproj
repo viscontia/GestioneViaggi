@@ -91,6 +91,9 @@
 
         <!-- Email SMTP (MailKit) -->
         <PackageReference Include="MailKit" Version="4.9.0" />
+
+        <!-- Rich Text Editor (Quill.js wrapper) -->
+        <PackageReference Include="Blazored.TextEditor" Version="1.1.0" />
     </ItemGroup>
 
     <ItemGroup>

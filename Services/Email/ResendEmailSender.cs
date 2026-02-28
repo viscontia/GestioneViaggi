@@ -87,6 +87,53 @@ public class ResendEmailSender : IEmailSender
         }
     }
 
+    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
+    {
+        await EnsureConfigLoadedAsync();
+
+        if (string.IsNullOrEmpty(_cachedApiKey))
+            throw new InvalidOperationException("API key Resend non configurata (RESEND/API_KEY in ana_api_config).");
+
+        if (string.IsNullOrEmpty(_cachedFromEmail))
+            throw new InvalidOperationException("From email Resend non configurata (RESEND/FROM_EMAIL in ana_api_config).");
+
+        var fromAddress = _cachedFromEmail;
+        if (!string.IsNullOrEmpty(fromName))
+        {
+            fromAddress = $"{fromName} <{_cachedFromEmail}>";
+        }
+
+        var recipients = toEmails.ToArray();
+
+        var request = new HttpRequestMessage(HttpMethod.Post, RESEND_API_URL);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _cachedApiKey);
+        request.Content = JsonContent.Create(new ResendEmailRequest
+        {
+            From = fromAddress,
+            To = recipients.Length == 1
+                ? recipients               // Un solo destinatario → usa To diretto
+                : [fromAddress],            // Più destinatari → To al mittente, BCC per privacy
+            Cc = !string.IsNullOrWhiteSpace(ccEmail) ? [ccEmail] : [],
+            Bcc = recipients.Length == 1
+                ? []                        // Un solo destinatario → non serve BCC
+                : recipients,
+            Subject = subject,
+            Html = htmlBody
+        });
+
+        var response = await _httpClient.SendAsync(request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            _logger.LogInformation("Email HTML inviata via Resend a {Count} destinatari", toEmails.Count());
+            return true;
+        }
+
+        var errorContent = await response.Content.ReadAsStringAsync();
+        _logger.LogError("Errore Resend API ({StatusCode}): {Error}", response.StatusCode, errorContent);
+        throw new InvalidOperationException($"Resend API errore {(int)response.StatusCode}: {errorContent}");
+    }
+
     private class ResendEmailRequest
     {
         [JsonPropertyName("from")]
@@ -94,6 +141,12 @@ public class ResendEmailSender : IEmailSender
 
         [JsonPropertyName("to")]
         public string[] To { get; set; } = [];
+
+        [JsonPropertyName("cc")]
+        public string[] Cc { get; set; } = [];
+
+        [JsonPropertyName("bcc")]
+        public string[] Bcc { get; set; } = [];
 
         [JsonPropertyName("subject")]
         public string Subject { get; set; } = string.Empty;
