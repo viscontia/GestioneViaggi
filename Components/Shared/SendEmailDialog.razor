@@ -17,14 +17,16 @@
     <TitleContent>
         <div class="d-flex align-center gap-2">
             <MudIcon Icon="@Icons.Material.Filled.Email" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Invia Email ai Partecipanti</MudText>
+            <MudText Typo="Typo.h6">@(IsTripMode ? "Invia Email ai Partecipanti" : "Invia Email")</MudText>
         </div>
     </TitleContent>
     <DialogContent>
         @if (_isLoading)
         {
             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
-            <MudText Typo="Typo.body1" Align="Align.Center">Caricamento partecipanti...</MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center">
+                @(IsTripMode ? "Caricamento partecipanti..." : "Caricamento...")
+            </MudText>
         }
         else
         {
@@ -34,15 +36,22 @@
                     <MudText Typo="Typo.body2">
                         @if (_recipientCount > 0)
                         {
-                            <span>Destinatari con email: <strong>@_recipientCount</strong> su @_totalParticipants partecipanti totali</span>
-                            @if (_participantsWithoutEmail > 0)
+                            @if (IsTripMode)
                             {
-                                <span> (@_participantsWithoutEmail senza email, non riceveranno il messaggio)</span>
+                                <span>Destinatari con email: <strong>@_recipientCount</strong> su @_totalParticipants partecipanti totali</span>
+                                @if (_participantsWithoutEmail > 0)
+                                {
+                                    <span> (@_participantsWithoutEmail senza email, non riceveranno il messaggio)</span>
+                                }
+                            }
+                            else
+                            {
+                                <span>@(RecipientDisplayLabel ?? $"Destinatario: {_recipientEmails.FirstOrDefault()}")</span>
                             }
                         }
                         else
                         {
-                            <span>Nessun partecipante ha un indirizzo email configurato.</span>
+                            <span>@(IsTripMode ? "Nessun partecipante ha un indirizzo email configurato." : "Nessun destinatario specificato.")</span>
                         }
                     </MudText>
                 </MudAlert>
@@ -95,7 +104,7 @@
         <MudButton Color="Color.Primary" Variant="Variant.Filled"
             OnClick="SendEmail" Disabled="@(_isLoading || _isSending || _recipientCount == 0)"
             StartIcon="@(_isSending ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Send)">
-            @(_isSending ? "Invio in corso..." : $"Invia a {_recipientCount} destinatari")
+            @(_isSending ? "Invio in corso..." : IsTripMode ? $"Invia a {_recipientCount} destinatari" : "Invia Email")
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -103,10 +112,20 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter] public int DataViaggioId { get; set; }
+    // === Parametri comuni ===
     [Parameter] public int AziendaId { get; set; }
-    [Parameter] public string TripName { get; set; } = string.Empty;
-    [Parameter] public string DateRange { get; set; } = string.Empty;
+    [Parameter] public string DefaultSubject { get; set; } = string.Empty;
+
+    // === Mode A: Partecipanti viaggio (caricamento da DB) ===
+    [Parameter] public int? DataViaggioId { get; set; }
+    [Parameter] public string? TripName { get; set; }
+    [Parameter] public string? DateRange { get; set; }
+
+    // === Mode B: Destinatari diretti ===
+    [Parameter] public List<string>? RecipientEmails { get; set; }
+    [Parameter] public string? RecipientDisplayLabel { get; set; }
+
+    private bool IsTripMode => DataViaggioId.HasValue;
 
     private BlazoredTextEditor _quillEditor = default!;
     private string _subject = string.Empty;
@@ -122,24 +141,36 @@
     {
         try
         {
-            _subject = $"{TripName} - {DateRange}";
+            _subject = DefaultSubject;
 
-            var participants = await MovClientiService.GetParticipantsSortedAsync(DataViaggioId);
-            var allParticipants = participants.ToList();
-            _totalParticipants = allParticipants.Count;
+            if (IsTripMode)
+            {
+                // Mode A: carica destinatari dai partecipanti del viaggio
+                var participants = await MovClientiService.GetParticipantsSortedAsync(DataViaggioId!.Value);
+                var allParticipants = participants.ToList();
+                _totalParticipants = allParticipants.Count;
 
-            _recipientEmails = allParticipants
-                .Where(p => !string.IsNullOrWhiteSpace(p.Email))
-                .Select(p => p.Email!.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+                _recipientEmails = allParticipants
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Email))
+                    .Select(p => p.Email!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-            _recipientCount = _recipientEmails.Count;
-            _participantsWithoutEmail = _totalParticipants - allParticipants.Count(p => !string.IsNullOrWhiteSpace(p.Email));
+                _recipientCount = _recipientEmails.Count;
+                _participantsWithoutEmail = _totalParticipants - allParticipants.Count(p => !string.IsNullOrWhiteSpace(p.Email));
+            }
+            else
+            {
+                // Mode B: usa destinatari forniti direttamente
+                _recipientEmails = RecipientEmails ?? new List<string>();
+                _recipientCount = _recipientEmails.Count;
+                _totalParticipants = _recipientCount;
+                _participantsWithoutEmail = 0;
+            }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore caricamento partecipanti: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Errore caricamento destinatari: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -166,7 +197,7 @@
 
         if (_recipientEmails.Count == 0)
         {
-            Snackbar.Add("Nessun partecipante con indirizzo email.", Severity.Warning);
+            Snackbar.Add("Nessun destinatario con indirizzo email.", Severity.Warning);
             return;
         }
 
@@ -216,13 +247,13 @@
                 // Logo non disponibile, proseguiamo senza
             }
 
-            // 4. Genera HTML dal template
-            var fullHtmlBody = ParticipantsEmailTemplate.GetHtmlBody(
+            // 4. Genera HTML dal template (sezioni viaggio solo se in trip mode)
+            var fullHtmlBody = CompanyEmailTemplate.GetHtmlBody(
                 logoBase64,
                 logoMimeType,
                 companyName,
-                TripName,
-                DateRange,
+                IsTripMode ? TripName : null,
+                IsTripMode ? DateRange : null,
                 htmlContent,
                 DateTime.Now,
                 companyWebsite,
@@ -244,7 +275,10 @@
 
             if (success)
             {
-                Snackbar.Add($"Email inviata con successo a {_recipientCount} partecipanti!", Severity.Success);
+                var successMsg = IsTripMode
+                    ? $"Email inviata con successo a {_recipientCount} partecipanti!"
+                    : "Email inviata con successo!";
+                Snackbar.Add(successMsg, Severity.Success);
                 MudDialog.Close(DialogResult.Ok(true));
             }
             else

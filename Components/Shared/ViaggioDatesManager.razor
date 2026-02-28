@@ -166,7 +166,8 @@
             ["DataViaggioId"] = date.Id,
             ["AziendaId"] = AziendaId,
             ["TripName"] = tripName,
-            ["DateRange"] = dateRange
+            ["DateRange"] = dateRange,
+            ["DefaultSubject"] = $"{tripName} - {dateRange}"
         };
         var options = new DialogOptions
         {
@@ -175,7 +176,7 @@
             FullWidth = true
         };
 
-        await DialogService.ShowAsync<EmailPartecipantiDialog>("", parameters, options);
+        await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
     }
 
     private async Task DeleteDate(AnaDataViaggio date)

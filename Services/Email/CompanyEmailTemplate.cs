@@ -1,17 +1,17 @@
 namespace GestioneViaggi.Services.Email;
 
 /// <summary>
-/// Template HTML per email ai partecipanti di un viaggio.
-/// Design ispirato al template aziendale: logo, intestazione blue, nome viaggio, range date, contenuto utente, footer.
+/// Template HTML generico per email aziendali.
+/// Supporta contesto viaggio opzionale (nome viaggio, range date).
 /// </summary>
-public static class ParticipantsEmailTemplate
+public static class CompanyEmailTemplate
 {
     public static string GetHtmlBody(
         string? logoBase64,
         string? logoMimeType,
         string companyName,
-        string tripName,
-        string dateRange,
+        string? tripName,
+        string? dateRange,
         string userHtmlContent,
         DateTime sendDateTime,
         string? companyWebsite = null,
@@ -31,9 +31,38 @@ public static class ParticipantsEmailTemplate
         }
 
         var encodedCompany = System.Net.WebUtility.HtmlEncode(companyName);
-        var encodedTrip = System.Net.WebUtility.HtmlEncode(tripName);
-        var encodedDateRange = System.Net.WebUtility.HtmlEncode(dateRange);
         var formattedSendDate = sendDateTime.ToString("dd/MM/yyyy 'alle ore' HH:mm");
+
+        // Sezioni viaggio: renderizzate solo se fornite
+        var tripNameHtml = "";
+        if (!string.IsNullOrWhiteSpace(tripName))
+        {
+            var encodedTrip = System.Net.WebUtility.HtmlEncode(tripName);
+            tripNameHtml = $@"
+                    <!-- Nome Viaggio -->
+                    <tr>
+                        <td style=""padding:8px 32px 4px 32px;"">
+                            <h2 style=""margin:0;font-size:20px;color:#2171A5;font-weight:400;font-style:italic;font-family:Georgia,'Times New Roman',serif;"">
+                                {encodedTrip}
+                            </h2>
+                        </td>
+                    </tr>";
+        }
+
+        var dateRangeHtml = "";
+        if (!string.IsNullOrWhiteSpace(dateRange))
+        {
+            var encodedDateRange = System.Net.WebUtility.HtmlEncode(dateRange);
+            dateRangeHtml = $@"
+                    <!-- Range Date -->
+                    <tr>
+                        <td style=""padding:4px 32px 16px 32px;"">
+                            <p style=""margin:0;font-size:14px;color:#2E8B8B;font-weight:500;"">
+                                {encodedDateRange}
+                            </p>
+                        </td>
+                    </tr>";
+        }
 
         var footerContactLine = "";
         if (!string.IsNullOrEmpty(companyWebsite) || !string.IsNullOrEmpty(companyPhone))
@@ -85,23 +114,8 @@ public static class ParticipantsEmailTemplate
                         </td>
                     </tr>
 
-                    <!-- Nome Viaggio -->
-                    <tr>
-                        <td style=""padding:8px 32px 4px 32px;"">
-                            <h2 style=""margin:0;font-size:20px;color:#2171A5;font-weight:400;font-style:italic;font-family:Georgia,'Times New Roman',serif;"">
-                                {encodedTrip}
-                            </h2>
-                        </td>
-                    </tr>
-
-                    <!-- Range Date -->
-                    <tr>
-                        <td style=""padding:4px 32px 16px 32px;"">
-                            <p style=""margin:0;font-size:14px;color:#2E8B8B;font-weight:500;"">
-                                {encodedDateRange}
-                            </p>
-                        </td>
-                    </tr>
+                    {tripNameHtml}
+                    {dateRangeHtml}
 
                     <!-- Contenuto Utente (Rich Text) -->
                     <tr>

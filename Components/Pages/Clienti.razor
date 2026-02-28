@@ -194,6 +194,14 @@ else
                                 Color="Color.Default" Class="inline-action-btn stats-btn"
                                 OnClick="@(() => ShowTravelStats(cellContext.Item))" />
                         </MudTooltip>
+                        @if (!string.IsNullOrWhiteSpace(cellContext.Item.Email))
+                        {
+                            <MudTooltip Text="Invia Email">
+                                <MudIconButton Icon="@Icons.Material.Filled.Email" Size="Size.Small"
+                                    Color="Color.Success" Class="inline-action-btn"
+                                    OnClick="@(() => OpenEmailDialog(cellContext.Item))" />
+                            </MudTooltip>
+                        }
                     </MudStack>
                 </CellTemplate>
             </TemplateColumn>
@@ -438,6 +446,34 @@ else
             };
 
         await DialogService.ShowAsync<TravelStatsDialog>("Statistiche Viaggi", parameters, options);
+    }
+
+    private async Task OpenEmailDialog(Cliente client)
+    {
+        if (string.IsNullOrWhiteSpace(client.Email))
+        {
+            Snackbar.Add("Questo cliente non ha un indirizzo email configurato.", Severity.Warning);
+            return;
+        }
+
+        var aziendaId = _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? client.AziendaFk);
+
+        var parameters = new DialogParameters
+        {
+            ["AziendaId"] = aziendaId,
+            ["DefaultSubject"] = string.Empty,
+            ["RecipientEmails"] = new List<string> { client.Email.Trim() },
+            ["RecipientDisplayLabel"] = $"{client.Cognome} {client.Nome} ({client.Email})"
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
     }
 
     private void ResetFilters()
