@@ -46,8 +46,15 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Content Remove="appsettings.json" />
+        <Content Remove="appsettings.Development.json" />
+        <EmbeddedResource Include="appsettings.json" />
+        <EmbeddedResource Include="appsettings.Development.json" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+        <MauiIcon Include="Resources\AppIcon\appicon.png" />
 
         <!-- Splash Screen -->
         <MauiSplashScreen Include="Resources\Splash\splashscreen.png" Color="#172331" BaseSize="800,339" />

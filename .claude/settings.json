@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(PGPASSWORD=postgres psql:*)"
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(PGPASSWORD='U9Y7KSjQVfZ3N1Ca' psql:*)"
     ]
   }
 }

@@ -69,11 +69,21 @@ public static class MauiProgram
         // AUTHENTICATION & DATABASE
         // ==========================================================
 
-        var inMemorySettings = new Dictionary<string, string>
+        var assembly = typeof(MauiProgram).Assembly;
+        
+        // Carica appsettings.json (Base / Produzione)
+        using (var stream = assembly.GetManifestResourceStream("GestioneViaggi.appsettings.json"))
         {
-            {"ConnectionStrings:PostgreSQL", "Host=127.0.0.1;Port=5432;Database=gestione_viaggi;Username=postgres;Password=postgres;Pooling=true;MinPoolSize=1;MaxPoolSize=20;Timeout=30;CommandTimeout=30;"}
-        };
-        builder.Configuration.AddInMemoryCollection(inMemorySettings!);
+            if (stream != null) builder.Configuration.AddJsonStream(stream);
+        }
+
+#if DEBUG
+        // Carica appsettings.Development.json (Sviluppo)
+        using (var stream = assembly.GetManifestResourceStream("GestioneViaggi.appsettings.Development.json"))
+        {
+            if (stream != null) builder.Configuration.AddJsonStream(stream);
+        }
+#endif
 
         builder.Services.AddSingleton<IDatabaseConnectionManager, DatabaseConnectionManager>();
         builder.Services.AddSingleton<IDatabaseService, PostgreSqlService>();
