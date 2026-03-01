@@ -62,6 +62,16 @@ public class Azienda : BaseEntity, IAuditable, IValidatableObject
 
     public bool Attivo { get; set; } = true;
 
+    [Required(ErrorMessage = "Il regime fiscale è obbligatorio")]
+    public int RegimeFiscaleFk { get; set; }
+
+    // Lookup fields (non salvati nel DB)
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? RegimeFiscaleCodice { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? RegimeFiscaleDescrizione { get; set; }
+
     public DateTime DataCreazione { get; set; }
 
     public DateTime? DataUltimaModifica { get; set; }

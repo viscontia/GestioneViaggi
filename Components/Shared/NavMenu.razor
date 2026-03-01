@@ -148,6 +148,12 @@
                         OnClick="@(() => OpenTabAndNotify("/tabelle/aliquote-iva", "Aliquote IVA", "table"))">
                 <MudText Typo="Typo.body1">Aliquote IVA</MudText>
             </MudNavLink>
+            <AuthorizeView Roles="superadmin">
+                <MudNavLink Icon="@Icons.Material.Filled.Gavel"
+                            OnClick="@(() => OpenTabAndNotify("/tabelle/regimi-fiscali", "Regimi Fiscali", "gavel"))">
+                    <MudText Typo="Typo.body1">Regimi Fiscali</MudText>
+                </MudNavLink>
+            </AuthorizeView>
         </MudNavGroup>
 
     </MudNavGroup>

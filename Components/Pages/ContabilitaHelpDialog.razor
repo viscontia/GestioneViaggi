@@ -10,59 +10,125 @@
     <DialogContent>
         <MudContainer Style="max-height: 500px; overflow-y: auto;">
             <MudText Typo="Typo.body1" Class="mb-4">
-                Il sistema gestisce i calcoli dell'IVA in modo intelligente in base al tipo di documento che stai registrando.
+                Ogni transazione contabile e composta da una <b>testata</b> (data, causale, importo, controparte) e da una o piu <b>righe di dettaglio</b> che ne specificano la composizione fiscale.
             </MudText>
 
+            @* ===== SEZIONE 1: REGIME FISCALE ===== *@
             <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
-                <MudText Typo="Typo.subtitle2"><b>Regola Generale</b></MudText>
-                <MudText Typo="Typo.body2">Il sistema distingue tra acquisti (Ciclo Passivo) e vendite (Ciclo Attivo).</MudText>
+                <MudText Typo="Typo.subtitle2"><b>Regime Fiscale dell'Azienda</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Il comportamento del sistema dipende dal regime fiscale configurato per l'azienda (Ordinario, Forfettario, Semplificato).
+                    Il regime determina le aliquote IVA, la presenza della cassa previdenziale e dell'imposta di bollo.
+                </MudText>
             </MudAlert>
 
-            <MudText Typo="Typo.h6" Class="mt-4 mb-2">🛒 Ciclo Passivo (Fornitori / Costi)</MudText>
+            @* ===== SEZIONE 2: DETTAGLIO RIGHE ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Dettaglio Righe</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">
-                In questo caso si usa lo <b>SCORPORO</b>. È la modalità consigliata per le fatture ricevute.
+                Ogni transazione puo avere piu righe di dettaglio. Ogni riga ha un tipo, un imponibile e un'aliquota IVA. I tipi principali sono:
             </MudText>
-            <MudPaper Outlined="true" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <MudText Typo="Typo.caption" Color="Color.Primary"><b>Esempio Pratico:</b></MudText>
-                <MudText Typo="Typo.body2">
-                    Hai una fattura fornitore da <b>€ 122,00</b> (totale lordo).<br />
-                    1. Inserisci <b>122,00</b> nel campo <b>Importo</b>.<br />
-                    2. Il sistema calcola automaticamente <b>€ 100,00</b> di Imponibile e <b>€ 22,00</b> di IVA.
-                </MudText>
-            </MudPaper>
+            <MudSimpleTable Dense="true" Bordered="true" Class="mb-4">
+                <thead>
+                    <tr>
+                        <th>Tipo Riga</th>
+                        <th>Descrizione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>PRESTAZIONE</b></td>
+                        <td>L'importo principale della prestazione o della fornitura</td>
+                    </tr>
+                    <tr>
+                        <td><b>CASSA PREV.</b></td>
+                        <td>Rivalsa previdenziale (es. INPS 4% per forfettari). Calcolata sull'imponibile della prestazione</td>
+                    </tr>
+                    <tr>
+                        <td><b>BOLLO</b></td>
+                        <td>Imposta di bollo. Applicata quando il totale (prestazione + cassa) supera la soglia prevista dalla legge</td>
+                    </tr>
+                    <tr>
+                        <td><b>SPESE ART.15</b></td>
+                        <td>Spese anticipate in nome e per conto del cliente (escluse dalla base imponibile IVA)</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
 
-            <MudText Typo="Typo.h6" Class="mt-4 mb-2">💰 Ciclo Attivo (Clienti / Ricavi)</MudText>
+            @* ===== SEZIONE 3: BOTTONE CALCOLO REGIME ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Applica Calcolo Regime</MudText>
             <MudText Typo="Typo.body2" Class="mb-2">
-                In questo caso si usa il <b>CALCOLO</b>. È la modalità usata per emettere fatture.
+                Per le aziende il cui regime fiscale lo prevede, e disponibile il bottone
+                <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Variant="Variant.Outlined">
+                    <MudIcon Icon="@Icons.Material.Filled.AutoFixHigh" Size="Size.Small" Class="mr-1" /> Applica Calcolo Regime
+                </MudChip>
+                che genera automaticamente le righe di dettaglio in base alla configurazione del regime.
             </MudText>
             <MudPaper Outlined="true" Class="pa-3 mb-4" Style="background-color: var(--mud-palette-background-grey);">
-                <MudText Typo="Typo.caption" Color="Color.Primary"><b>Esempio Pratico:</b></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Primary"><b>Esempio - Regime Forfettario:</b></MudText>
                 <MudText Typo="Typo.body2">
-                    Vuoi vendere un servizio a <b>€ 100,00</b> + IVA.<br />
-                    1. Inserisci <b>100,00</b> nel campo <b>Importo</b> (Imponibile).<br />
-                    2. Il sistema aggiunge automaticamente <b>€ 22,00</b> di IVA e imposta il Lordo a <b>€ 122,00</b>.
+                    Importo prestazione: <b>1.000,00 EUR</b><br />
+                    Il sistema genera automaticamente:<br />
+                    1. <b>PRESTAZIONE</b>: 1.000,00 EUR (aliquota N2.2 - esente)<br />
+                    2. <b>RIVALSA INPS 4%</b>: 40,00 EUR (aliquota N2.2 - esente)<br />
+                    3. <b>IMPOSTA DI BOLLO</b>: 2,00 EUR (aliquota N1) - perche 1.000 + 40 > 77,47
                 </MudText>
             </MudPaper>
+            <MudText Typo="Typo.body2" Class="mb-4">
+                Se il bottone non e visibile, significa che il regime dell'azienda non prevede un calcolo automatico
+                (es. Regime Ordinario). In questo caso, le righe vanno compilate manualmente.
+            </MudText>
 
             <MudDivider Class="my-4" />
 
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🔄 Invertire la Modalità</b></MudText>
-            <MudText Typo="Typo.body2" Class="mb-4">
-                Se hai bisogno di cambiare comportamento, clicca sull'icona delle frecce <MudIcon Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Primary" /> nella sezione IVA. 
-                Questo ti permette di passare da "Lordo" a "Netto" indipendentemente dal tipo di documento.
+            @* ===== SEZIONE 4: CICLI CONTABILI ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Cicli Contabili</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Il sistema distingue automaticamente tra acquisti e vendite in base alla causale selezionata:
             </MudText>
+            <MudSimpleTable Dense="true" Bordered="true" Class="mb-4">
+                <thead>
+                    <tr>
+                        <th>Ciclo</th>
+                        <th>Uso</th>
+                        <th>Modalita IVA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>Passivo</b></td>
+                        <td>Fatture da fornitori (costi)</td>
+                        <td>SCORPORO - L'importo inserito e il lordo, il sistema scorporera l'IVA</td>
+                    </tr>
+                    <tr>
+                        <td><b>Attivo</b></td>
+                        <td>Fatture emesse a clienti (ricavi)</td>
+                        <td>CALCOLO - L'importo inserito e il netto, il sistema aggiungera l'IVA</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
 
+            @* ===== SEZIONE 5: NOTE OPERATIVE ===== *@
             <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudText Typo="Typo.subtitle2"><b>⚖️ Arrotondamenti di 1 centesimo</b></MudText>
+                <MudText Typo="Typo.subtitle2"><b>Arrotondamenti</b></MudText>
                 <MudText Typo="Typo.body2">
-                    Se il totale della fattura cartacea differisce per pochi centesimi dal calcolo automatico, puoi <b>modificare manualmente</b> i campi Imponibile o IVA per far quadrare i conti.
+                    Se il totale differisce per pochi centesimi dal documento cartaceo, puoi <b>modificare manualmente</b> l'imponibile delle singole righe per far quadrare i conti.
                 </MudText>
             </MudAlert>
 
-            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>🌍 Valute Estere</b></MudText>
-            <MudText Typo="Typo.body2">
-                Per transazioni non in Euro (es. TND, USD), l'IVA non viene mai scorporata perché l'intero importo è considerato costo totale.
-            </MudText>
+            <MudAlert Severity="Severity.Normal" Class="mb-4">
+                <MudText Typo="Typo.subtitle2"><b>Valute Estere</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Per transazioni non in Euro (es. TND, USD), l'IVA non viene mai scorporata: l'intero importo e considerato costo totale. Il controvalore in EUR viene calcolato automaticamente usando il tasso di cambio.
+                </MudText>
+            </MudAlert>
+
+            <MudAlert Severity="Severity.Normal" Class="mb-2">
+                <MudText Typo="Typo.subtitle2"><b>Configurazione Regime</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Il regime fiscale dell'azienda e configurato nell'anagrafica aziende. I parametri di calcolo (percentuali, soglie, codici IVA)
+                    sono gestiti dal SuperAdmin nella sezione Tabelle Contabili > Regimi Fiscali.
+                </MudText>
+            </MudAlert>
         </MudContainer>
     </DialogContent>
     <DialogActions>

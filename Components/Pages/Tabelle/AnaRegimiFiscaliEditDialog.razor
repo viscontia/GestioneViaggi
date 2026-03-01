@@ -1,0 +1,255 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using Microsoft.JSInterop
+@inject AnaRegimiFiscaliService RegimiService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudDialog>
+    <DialogContent>
+        <MudForm Model="@Regime" @ref="_form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
+            <MudGrid>
+                <!-- Codice e Descrizione -->
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Codice *"
+                                  Value="@Regime.RegimeCodice"
+                                  ValueChanged="@((string s) => Regime.RegimeCodice = s?.ToUpper() ?? string.Empty)"
+                                  @ref="_firstField"
+                                  Required="true"
+                                  RequiredError="Codice obbligatorio"
+                                  MaxLength="20"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. FORFETTARIO, ORDINARIO"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Gavel"
+                                  Class="uppercase-input"
+                                  tabindex="1" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField Label="Descrizione *"
+                                  @bind-Value="Regime.RegimeDescrizione"
+                                  Required="true"
+                                  RequiredError="Descrizione obbligatoria"
+                                  MaxLength="100"
+                                  Variant="Variant.Outlined"
+                                  tabindex="2" />
+                </MudItem>
+
+                <!-- Comportamento UI e IVA -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Comportamento IVA e Calcolo</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Aliquota IVA Default (Codice)"
+                                  Value="@Regime.DefaultAliquotaIvaCodice"
+                                  ValueChanged="@((string? s) => Regime.DefaultAliquotaIvaCodice = s?.ToUpper())"
+                                  MaxLength="10"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. 22, N2.2"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Percent"
+                                  Class="uppercase-input"
+                                  tabindex="3" />
+                </MudItem>
+                <MudItem xs="6" sm="4" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Regime.IsIvaDetraibile" Label="IVA Detraibile" Color="Color.Info" tabindex="4" />
+                </MudItem>
+                <MudItem xs="6" sm="4" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Regime.ShowHelperCalcolo" Label="Helper Calcolo" Color="Color.Secondary" tabindex="5" />
+                </MudItem>
+
+                <!-- Cassa Previdenziale -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Cassa Previdenziale</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudNumericField Label="Percentuale %"
+                                     @bind-Value="Regime.CassaPrevPercentuale"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     Min="0m"
+                                     Max="100m"
+                                     HelperText="Es. 4.00 per INPS"
+                                     Adornment="Adornment.End"
+                                     AdornmentText="%"
+                                     tabindex="6" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Descrizione Cassa"
+                                  @bind-Value="Regime.CassaPrevDescrizione"
+                                  MaxLength="50"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. RIVALSA INPS 4%"
+                                  tabindex="7" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Aliquota IVA Cassa (Codice)"
+                                  Value="@Regime.CassaPrevAliquotaCodice"
+                                  ValueChanged="@((string? s) => Regime.CassaPrevAliquotaCodice = s?.ToUpper())"
+                                  MaxLength="10"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. N2.2"
+                                  Class="uppercase-input"
+                                  tabindex="8" />
+                </MudItem>
+
+                <!-- Imposta di Bollo -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Imposta di Bollo</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudNumericField Label="Soglia"
+                                     @bind-Value="Regime.BolloSoglia"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     HelperText="Es. 77.47"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="€"
+                                     tabindex="9" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField Label="Importo Bollo"
+                                     @bind-Value="Regime.BolloImporto"
+                                     Format="N2"
+                                     Variant="Variant.Outlined"
+                                     HelperText="Es. 2.00"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="€"
+                                     tabindex="10" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Aliquota IVA Bollo (Codice)"
+                                  Value="@Regime.BolloAliquotaCodice"
+                                  ValueChanged="@((string? s) => Regime.BolloAliquotaCodice = s?.ToUpper())"
+                                  MaxLength="10"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. N1"
+                                  Class="uppercase-input"
+                                  tabindex="11" />
+                </MudItem>
+
+                <!-- Stato -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                </MudItem>
+                <MudItem xs="12" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Regime.Attivo" Label="Attivo" Color="Color.Success" tabindex="12" />
+                </MudItem>
+
+                <!-- Warning se helper calcolo attivo ma parametri incompleti -->
+                @if (Regime.ShowHelperCalcolo && string.IsNullOrWhiteSpace(Regime.DefaultAliquotaIvaCodice))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            Attenzione: l'Helper Calcolo e attivo ma non e stata specificata l'Aliquota IVA Default. Il calcolo automatico potrebbe non funzionare.
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @if (Regime.CassaPrevPercentuale.HasValue && Regime.CassaPrevPercentuale.Value > 0 && string.IsNullOrWhiteSpace(Regime.CassaPrevAliquotaCodice))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            Attenzione: la Cassa Previdenziale e configurata ma manca il codice Aliquota IVA per la cassa.
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @if (Regime.BolloImporto.HasValue && Regime.BolloImporto.Value > 0 && (!Regime.BolloSoglia.HasValue || string.IsNullOrWhiteSpace(Regime.BolloAliquotaCodice)))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            Attenzione: l'Imposta di Bollo e configurata ma mancano la Soglia o il codice Aliquota IVA per il bollo.
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AnaRegimeFiscale Regime { get; set; } = new();
+
+    private MudForm _form = default!;
+    private MudTextField<string>? _firstField;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+
+                if (_firstField != null)
+                {
+                    await Task.Delay(300);
+                    await _firstField.FocusAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up dialog: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(Regime.RegimeCodice))
+                {
+                    Snackbar.Add("Il codice e obbligatorio", Severity.Error);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(Regime.RegimeDescrizione))
+                {
+                    Snackbar.Add("La descrizione e obbligatoria", Severity.Error);
+                    return;
+                }
+
+                if (Regime.RegimeId == 0)
+                {
+                    await RegimiService.CreateAsync(Regime);
+                    Snackbar.Add("Regime fiscale creato con successo", Severity.Success);
+                }
+                else
+                {
+                    await RegimiService.UpdateAsync(Regime);
+                    Snackbar.Add("Regime fiscale aggiornato con successo", Severity.Success);
+                }
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

@@ -1,0 +1,202 @@
+@page "/tabelle/regimi-fiscali"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Services.Session
+@inject AnaRegimiFiscaliService RegimiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    @if (!_isSuperAdmin)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            Accesso non autorizzato. Solo i SuperAdmin possono gestire i regimi fiscali.
+        </MudAlert>
+    }
+    else
+    {
+        <EnterpriseDataGrid T="AnaRegimeFiscale"
+                            Title="Gestione Regimi Fiscali"
+                            Items="@_items"
+                            ReadOnly="false"
+                            Loading="@_loading"
+                            SearchFunction="@SearchFunc">
+            <ToolBarActions>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@OpenCreateDialog">
+                    Nuovo Regime Fiscale
+                </MudButton>
+            </ToolBarActions>
+            <Columns>
+                <PropertyColumn Property="x => x.RegimeCodice" Title="Codice" />
+                <PropertyColumn Property="x => x.RegimeDescrizione" Title="Descrizione" />
+                <PropertyColumn Property="x => x.ShowHelperCalcolo" Title="Helper Calcolo">
+                    <CellTemplate>
+                        @if (context.Item.ShowHelperCalcolo)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Title="Calcolo automatico abilitato" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Title="Calcolo automatico disabilitato" />
+                        }
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.DefaultAliquotaIvaCodice" Title="IVA Default" />
+                <PropertyColumn Property="x => x.IsIvaDetraibile" Title="IVA Detraibile">
+                    <CellTemplate>
+                        @if (context.Item.IsIvaDetraibile)
+                        {
+                            <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Si</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip Color="Color.Warning" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                        }
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.CassaPrevPercentuale" Title="Cassa Prev %">
+                    <CellTemplate>
+                        @if (context.Item.CassaPrevPercentuale.HasValue && context.Item.CassaPrevPercentuale.Value > 0)
+                        {
+                            <MudChip Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@context.Item.CassaPrevPercentuale.Value.ToString("N2")%</MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">-</MudText>
+                        }
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.BolloImporto" Title="Bollo">
+                    <CellTemplate>
+                        @if (context.Item.BolloImporto.HasValue)
+                        {
+                            <MudText Typo="Typo.body2">@($"€ {context.Item.BolloImporto.Value:N2} (soglia {context.Item.BolloSoglia?.ToString("N2") ?? "-"})")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2">-</MudText>
+                        }
+                    </CellTemplate>
+                </PropertyColumn>
+                <PropertyColumn Property="x => x.Attivo" Title="Attivo">
+                    <CellTemplate>
+                        @if (context.Item.Attivo)
+                        {
+                            <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Si</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                        }
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <EnterpriseActionsColumn T="AnaRegimeFiscale" OnEdit="@OpenEditDialog" OnDelete="@DeleteRegime" />
+            </Columns>
+        </EnterpriseDataGrid>
+    }
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaRegimeFiscale> _items = new List<AnaRegimeFiscale>();
+    private bool _loading = true;
+    private bool _isSuperAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _items = await RegimiService.GetAllAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var newRegime = new AnaRegimeFiscale
+        {
+            Attivo = true,
+            IsIvaDetraibile = true
+        };
+
+        var parameters = new DialogParameters { ["Regime"] = newRegime };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaRegimiFiscaliEditDialog>("Nuovo Regime Fiscale", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaRegimeFiscale item)
+    {
+        var parameters = new DialogParameters { ["Regime"] = item };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaRegimiFiscaliEditDialog>("Modifica Regime Fiscale", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task DeleteRegime(AnaRegimeFiscale item)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Elimina Regime Fiscale",
+            $"Sei sicuro di voler eliminare il regime {item.RegimeCodice} - {item.RegimeDescrizione}?",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (result == true)
+        {
+            try
+            {
+                await RegimiService.DeleteAsync(item.RegimeId);
+                Snackbar.Add("Regime fiscale eliminato", Severity.Success);
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private bool SearchFunc(AnaRegimeFiscale regime, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (regime.RegimeCodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (regime.RegimeDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+}

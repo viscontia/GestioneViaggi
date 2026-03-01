@@ -13,6 +13,7 @@
 @inject ISessionManager SessionManager
 @inject IJSRuntime JS
 @inject IDialogService DialogService
+@inject FiscalCalculationService FiscalCalcService
 @inject ILogger<MovTransazioniEditDialog> _logger
 @implements IDisposable
 
@@ -98,15 +99,15 @@
                             Dettaglio Righe
                         </MudText>
                         <MudStack Row="true">
-                            @if (AziendaId == 2 || AziendaId == 6)
+                            @if (_showHelperCalcolo)
                             {
-                                <MudButton StartIcon="@Icons.Material.Filled.AutoFixHigh" 
-                                           Color="Color.Secondary" 
-                                           Variant="Variant.Outlined" 
+                                <MudButton StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                                           Color="Color.Secondary"
+                                           Variant="Variant.Outlined"
                                            Size="Size.Small"
-                                           OnClick="@ApplicaForfettario"
+                                           OnClick="@ApplicaCalcoloRegime"
                                            Disabled="@(Transazione.TransazioneImporto <= 0)">
-                                    Applica Forfettario
+                                    Applica Calcolo Regime
                                 </MudButton>
                             }
                             <MudButton StartIcon="@Icons.Material.Filled.Add" 
@@ -331,6 +332,9 @@
     private bool _causaleRichiedeIva = false;
     private decimal? _aliquotaPercentuale = null;
 
+    // Helper calcolo regime fiscale
+    private bool _showHelperCalcolo = false;
+
     // Loading flag
     private bool _isLoading = false;
 
@@ -397,6 +401,11 @@
                 }
             }
         }
+
+        // =========================================
+        // Inizializza flag helper calcolo regime fiscale
+        // =========================================
+        _showHelperCalcolo = await FiscalCalcService.ShouldShowHelperCalcoloAsync(AziendaId);
 
         // =========================================
         // Inizializza flag valuta (sia new che modifica)
@@ -822,88 +831,33 @@
         riga.RigaLordo = riga.RigaImponibile + riga.RigaIvaValore;
     }
 
-    private async Task ApplicaForfettario()
+    private async Task ApplicaCalcoloRegime()
     {
-        try 
+        try
         {
-            // 0. Safety Inits
             if (Transazione == null) return;
-            
-            // Creiamo una lista locale per aggiornamento atomico (evita flickers e race conditions nel render)
-            var newRighe = new List<MovTransazioniRighe>();
 
-            // 2. Recupero Aliquote N1 e N2.2 per l'azienda
-            var aliquote = await AliquoteIvaService.GetByAziendaAsync(AziendaId);
-            var listAli = aliquote?.ToList() ?? new List<AnaAliquotaIva>();
-            
-            var aliN1 = listAli.FirstOrDefault(a => a.IvaCodice == "N1");
-            var aliN22 = listAli.FirstOrDefault(a => a.IvaCodice == "N2.2");
+            var result = await FiscalCalcService.ApplyRegimeCalculationAsync(
+                AziendaId,
+                Transazione.TransazioneImporto,
+                Transazione.TransazioneCausale);
 
-            if (aliN22 == null || aliN1 == null)
+            if (!result.Success)
             {
-                Snackbar.Add("Aliquote N1 o N2.2 non trovate per questa azienda. Controllare l'anagrafica.", Severity.Error);
+                Snackbar.Add(result.ErrorMessage ?? "Errore nel calcolo regime.", Severity.Error);
                 return;
             }
 
-            decimal baseImponibile = Transazione.TransazioneImporto;
-            decimal cassaInps = Math.Round(baseImponibile * 0.04m, 2);
-            decimal totalePerBollo = baseImponibile + cassaInps;
-
-            // Riga 1: Prestazione
-            var r1 = new MovTransazioniRighe {
-                RigaNumero = 1,
-                RigaDescrizione = (Transazione.TransazioneCausale ?? "PRESTAZIONE PROFESSIONALE").ToUpper(),
-                RigaTipo = "PRESTAZIONE",
-                RigaImponibile = baseImponibile,
-                RigaAliquotaIvaFk = aliN22.IvaId,
-                AliquotaIvaCodice = aliN22.IvaCodice,
-                AliquotaIvaPercentuale = aliN22.IvaPercentuale
-            };
-            CalcolaDatiRiga(r1);
-            newRighe.Add(r1);
-
-            // Riga 2: Rivalsa INPS
-            var r2 = new MovTransazioniRighe {
-                RigaNumero = 2,
-                RigaDescrizione = "RIVALSA INPS 4%",
-                RigaTipo = "CASSA_PREV",
-                RigaImponibile = cassaInps,
-                RigaAliquotaIvaFk = aliN22.IvaId,
-                AliquotaIvaCodice = aliN22.IvaCodice,
-                AliquotaIvaPercentuale = aliN22.IvaPercentuale
-            };
-            CalcolaDatiRiga(r2);
-            newRighe.Add(r2);
-
-            // Riga 3: Bollo (se > 77.47)
-            if (totalePerBollo > 77.47m)
-            {
-                var r3 = new MovTransazioniRighe {
-                    RigaNumero = 3,
-                    RigaDescrizione = "IMPOSTA DI BOLLO",
-                    RigaTipo = "BOLLO",
-                    RigaImponibile = 2.00m,
-                    RigaAliquotaIvaFk = aliN1.IvaId,
-                    AliquotaIvaCodice = aliN1.IvaCodice,
-                    AliquotaIvaPercentuale = aliN1.IvaPercentuale
-                };
-                CalcolaDatiRiga(r3);
-                newRighe.Add(r3);
-            }
-
-            // Aggiorna la lista in-place (più sicuro per MudDataGrid che traccia il reference)
             Transazione.Righe.Clear();
-            Transazione.Righe.AddRange(newRighe);
+            Transazione.Righe.AddRange(result.Righe);
 
-            Snackbar.Add("Logica forfettario applicata correttamente.", Severity.Success);
+            Snackbar.Add("Calcolo regime fiscale applicato correttamente.", Severity.Success);
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            var msg = $"Errore critico durante l'applicazione forfettario: {ex.Message}";
-            Snackbar.Add(msg, Severity.Error);
-            _logger.LogError(ex, "Errore in ApplicaForfettario");
-            await Task.CompletedTask;
+            Snackbar.Add($"Errore critico durante il calcolo regime: {ex.Message}", Severity.Error);
+            _logger.LogError(ex, "Errore in ApplicaCalcoloRegime");
         }
     }
 

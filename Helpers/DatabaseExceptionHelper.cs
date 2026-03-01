@@ -85,6 +85,7 @@ public static class DatabaseExceptionHelper
             "ana_aliquote_iva" => "aliquota IVA",
             "ana_tipi_causali" => "causale contabile",
             "ana_aziende" => "azienda",
+            "ana_regimi_fiscali" => "regime fiscale",
             "azienda_sede" => "sede aziendale",
             "mov_clienti_viaggi" => "prenotazione cliente",
             _ => tableName // Fallback al nome tecnico se non mappato
@@ -105,7 +106,7 @@ public static class DatabaseExceptionHelper
         if (l.StartsWith("transazione") || l.StartsWith("causale") || l.StartsWith("controparte") || l.StartsWith("valuta") || l.StartsWith("data") || l.StartsWith("prenotazione") || l.StartsWith("sede") || l.StartsWith("aliquota") || l.StartsWith("anagrafica"))
             return "la ";
             
-        if (l.StartsWith("viaggio"))
+        if (l.StartsWith("viaggio") || l.StartsWith("regime"))
             return "il ";
 
         return ""; // Fallback

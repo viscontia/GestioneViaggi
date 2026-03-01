@@ -13,6 +13,7 @@
 @inject RepartoAziendaleService RepartoService
 @inject AziendaSmtpService SmtpService
 @inject AziendaLogoService LogoService
+@inject AnaRegimiFiscaliService RegimiFiscaliService
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -141,6 +142,21 @@
             <MudCheckBox @bind-Value="Entity.Attivo" For="@(() => Entity.Attivo)" Label="Attivo" Color="Color.Success"
                 Class="mb-3" />
 
+            <MudDivider Class="my-4" />
+
+            <!-- Regime Fiscale - OBBLIGATORIO -->
+            <MudSelect T="int" Label="Regime Fiscale *" @bind-Value="Entity.RegimeFiscaleFk"
+                Variant="Variant.Outlined" Required="true"
+                RequiredError="Il regime fiscale è obbligatorio"
+                HelperText="Determina il comportamento della UI e dei calcoli IVA"
+                Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Gavel"
+                Class="mb-3">
+                @foreach (var regime in _regimi)
+                {
+                    <MudSelectItem Value="@regime.RegimeId">@regime.DisplayText</MudSelectItem>
+                }
+            </MudSelect>
+
         </MudForm>
         }
         else
@@ -253,6 +269,21 @@
                             Label="In Liquidazione" Color="Color.Warning" Class="mb-3" />
                         <MudCheckBox @bind-Value="Entity.Attivo" For="@(() => Entity.Attivo)" Label="Attivo"
                             Color="Color.Success" Class="mb-3" />
+
+                        <MudDivider Class="my-4" />
+
+                        <!-- Regime Fiscale - OBBLIGATORIO -->
+                        <MudSelect T="int" Label="Regime Fiscale *" @bind-Value="Entity.RegimeFiscaleFk"
+                            Variant="Variant.Outlined" Required="true"
+                            RequiredError="Il regime fiscale è obbligatorio"
+                            HelperText="Determina il comportamento della UI e dei calcoli IVA"
+                            Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Gavel"
+                            Class="mb-3">
+                            @foreach (var regime in _regimi)
+                            {
+                                <MudSelectItem Value="@regime.RegimeId">@regime.DisplayText</MudSelectItem>
+                            }
+                        </MudSelect>
                     </MudForm>
                 </MudTabPanel>
 
@@ -305,6 +336,7 @@
 @code {
     private MudForm? _form;
     private MudTextField<string>? _firstField;
+    private List<AnaRegimeFiscale> _regimi = new();
 
     // Badge counts per i TAB
     private int? _sediCount;
@@ -326,6 +358,19 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        // Carica regimi fiscali per il dropdown
+        _regimi = (await RegimiFiscaliService.GetActiveAsync()).ToList();
+
+        // Default per nuove aziende: ORDINARIO
+        if (!IsEditMode && Entity.RegimeFiscaleFk == 0)
+        {
+            var ordinario = _regimi.FirstOrDefault(r => r.RegimeCodice == "ORDINARIO");
+            if (ordinario != null)
+            {
+                Entity.RegimeFiscaleFk = ordinario.RegimeId;
+            }
+        }
+
         if (IsEditMode && Entity.Id > 0)
         {
             await LoadBadgeCountsAsync();

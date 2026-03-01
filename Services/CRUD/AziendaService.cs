@@ -63,11 +63,15 @@ public class AziendaService : BaseCrudService<Azienda>
                     a.sito_web,
                     a.telefono_principale,
                     a.attivo,
+                    a.regime_fiscale_fk,
                     a.data_creazione,
                     a.data_ultima_modifica,
-                    p.provincia_sigla as rea_provincia_sigla
+                    p.provincia_sigla as rea_provincia_sigla,
+                    r.regime_codice as regime_fiscale_codice,
+                    r.regime_descrizione as regime_fiscale_descrizione
                 FROM ana_aziende a
                 LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id
+                LEFT JOIN ana_regimi_fiscali r ON a.regime_fiscale_fk = r.regime_id
                 WHERE 1=1";
 
             // Applica filtro tenant se NON SuperAdmin
@@ -159,7 +163,8 @@ public class AziendaService : BaseCrudService<Azienda>
                     pec,
                     sito_web,
                     telefono_principale,
-                    attivo
+                    attivo,
+                    regime_fiscale_fk
                 )
                 VALUES (
                     @ragioneSociale,
@@ -178,9 +183,10 @@ public class AziendaService : BaseCrudService<Azienda>
                     @pec,
                     @sitoWeb,
                     @telefonoPrincipale,
-                    @attivo
+                    @attivo,
+                    @regimeFiscaleFk
                 )
-                RETURNING 
+                RETURNING
                     azienda_id,
                     ragione_sociale,
                     forma_giuridica,
@@ -199,6 +205,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     sito_web,
                     telefono_principale,
                     attivo,
+                    regime_fiscale_fk,
                     data_creazione,
                     data_ultima_modifica";
 
@@ -255,9 +262,10 @@ public class AziendaService : BaseCrudService<Azienda>
                     pec = @pec,
                     sito_web = @sitoWeb,
                     telefono_principale = @telefonoPrincipale,
-                    attivo = @attivo
+                    attivo = @attivo,
+                    regime_fiscale_fk = @regimeFiscaleFk
                 WHERE azienda_id = @id
-                RETURNING 
+                RETURNING
                     azienda_id,
                     ragione_sociale,
                     forma_giuridica,
@@ -276,6 +284,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     sito_web,
                     telefono_principale,
                     attivo,
+                    regime_fiscale_fk,
                     data_creazione,
                     data_ultima_modifica";
 
@@ -342,6 +351,7 @@ public class AziendaService : BaseCrudService<Azienda>
             SitoWeb = ReadNullableString(reader, "sito_web"),
             TelefonoPrincipale = reader.GetString(reader.GetOrdinal("telefono_principale")),
             Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
+            RegimeFiscaleFk = ReadInt(reader, "regime_fiscale_fk"),
             DataCreazione = reader.GetDateTime(reader.GetOrdinal("data_creazione")),
             DataUltimaModifica = ReadNullableDateTime(reader, "data_ultima_modifica")
         };
@@ -351,6 +361,8 @@ public class AziendaService : BaseCrudService<Azienda>
     {
         var azienda = MapFromReader(reader);
         azienda.ReaProvinciaSigla = ReadNullableString(reader, "rea_provincia_sigla");
+        azienda.RegimeFiscaleCodice = ReadNullableString(reader, "regime_fiscale_codice");
+        azienda.RegimeFiscaleDescrizione = ReadNullableString(reader, "regime_fiscale_descrizione");
         return azienda;
     }
 
@@ -373,6 +385,7 @@ public class AziendaService : BaseCrudService<Azienda>
         command.Parameters.AddWithValue("sitoWeb", (object?)entity.SitoWeb ?? DBNull.Value);
         command.Parameters.AddWithValue("telefonoPrincipale", entity.TelefonoPrincipale);
         command.Parameters.AddWithValue("attivo", entity.Attivo);
+        command.Parameters.AddWithValue("regimeFiscaleFk", entity.RegimeFiscaleFk);
     }
 
 }
