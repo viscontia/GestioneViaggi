@@ -57,14 +57,14 @@
             </div>
 
             <div style="min-width: 120px;">
-                <MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_filterImportoDa"
-                                 Variant="Variant.Outlined" Dense="true" Format="N2"
+<MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_filterImportoDa"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2"
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
             </div>
 
             <div style="min-width: 120px;">
-                <MudNumericField T="decimal?" Label="Importo A" @bind-Value="_filterImportoA"
-                                 Variant="Variant.Outlined" Dense="true" Format="N2"
+<MudNumericField T="decimal?" Label="Importo A" @bind-Value="_filterImportoA"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2"
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
             </div>
 
@@ -78,8 +78,8 @@
             </div>
 
             <div style="min-width: 130px;">
-                <MudTextField T="string?" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
-                              Variant="Variant.Outlined" Dense="true" />
+<MudTextField T="string?" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
 
             <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ResetFilters"
@@ -94,11 +94,7 @@
         </MudPaper>
 
         <!-- DataGrid risultati -->
-        <EnterpriseDataGrid T="FatturaAttivaListItem" Items="_items" SearchFunc="Search"
-                            SearchPlaceholder="Cerca per N. Documento, Cliente, Causale..."
-                            HeaderIcon="@Icons.Material.Filled.Description"
-                            HeaderTitle="Fatture Attive"
-                            EmptyMessage="Nessuna fattura attiva trovata. Modificare i filtri e riprovare.">
+        <EnterpriseDataGrid T="FatturaAttivaListItem" Items="_items" Title="Fatture Attive">
             <Columns>
                 <PropertyColumn Property="x => x.DataDocumentoFormatted" Title="Data Doc."
                                 CellStyle="white-space: nowrap; padding: 8px 6px;"
