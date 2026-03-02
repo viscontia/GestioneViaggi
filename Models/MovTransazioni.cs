@@ -156,6 +156,12 @@ namespace GestioneViaggi.Models
         public int? CausaleSegno { get; set; }
 
         [NotMapped]
+        public string? CausaleCiclo { get; set; }
+
+        [NotMapped]
+        public bool IsFatturaAttiva => CausaleCiclo == "ATTIVO";
+
+        [NotMapped]
         public string? ViaggioDescrizione { get; set; }
 
         [NotMapped]

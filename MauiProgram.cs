@@ -206,6 +206,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<ScadenzarioPrintService>();
         builder.Services.AddSingleton<BilancioViaggioPrintService>();
         builder.Services.AddSingleton<RegistroIvaPrintService>();
+        builder.Services.AddSingleton<FatturaAttivaPrintService>();
         builder.Services.AddScoped<IPdfOpenerService, PdfOpenerService>();
 
         // External APIs

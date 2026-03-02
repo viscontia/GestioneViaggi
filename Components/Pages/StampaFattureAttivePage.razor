@@ -1,0 +1,397 @@
+@page "/stampe/fatture-attive"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Authentication
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Printing
+@using GestioneViaggi.Components.Shared
+@inject FatturaAttivaPrintService PrintService
+@inject AziendaBancaService AziendaBancaService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@inject ISessionManager SessionManager
+@inject IPdfOpenerService PdfOpenerService
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <div style="width: 100%; overflow-x: auto;">
+
+        <!-- Filters Area -->
+        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap">
+            @if (_isSuperAdmin)
+            {
+                <div style="min-width: 200px;">
+                    <AziendaSelect Value="_selectedAziendaIdInt" Label="Azienda" Clearable="false" ShowAllOption="false"
+                        ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+
+            <div style="min-width: 120px;">
+                <MudSelect T="int" Label="Anno" @bind-Value="_filterAnno" Variant="Variant.Outlined" Dense="true"
+                           Disabled="@(_anniDisponibili.Count == 0)">
+                    @foreach (var anno in _anniDisponibili)
+                    {
+                        <MudSelectItem Value="@anno">@anno</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <div style="min-width: 150px;">
+                <MudSelect T="int?" Label="Mese" @bind-Value="_filterMese" Variant="Variant.Outlined" Dense="true" Clearable="true">
+                    @foreach (var m in _mesiItaliani)
+                    {
+                        <MudSelectItem T="int?" Value="@m.Key">@m.Value</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+
+            <div style="min-width: 220px;">
+                <ControparteSelect SelectedControparteId="_filterControparteId"
+                                   SelectedControparteIdChanged="@OnControparteFilterChanged"
+                                   AziendaId="@_aziendaIdEffettivo"
+                                   CausaleCiclo="ATTIVO"
+                                   Label="Cliente"
+                                   Clearable="true" />
+            </div>
+
+            <div style="min-width: 120px;">
+                <MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_filterImportoDa"
+                                 Variant="Variant.Outlined" Dense="true" Format="N2"
+                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+            </div>
+
+            <div style="min-width: 120px;">
+                <MudNumericField T="decimal?" Label="Importo A" @bind-Value="_filterImportoA"
+                                 Variant="Variant.Outlined" Dense="true" Format="N2"
+                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
+            </div>
+
+            <div style="min-width: 150px;">
+                <MudSelect T="string?" Label="Stato" @bind-Value="_filterStato" Variant="Variant.Outlined" Dense="true" Clearable="true">
+                    <MudSelectItem T="string?" Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("PAGATO")">Pagato</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("PARZIALMENTE_PAGATO")">Parz. Pagato</MudSelectItem>
+                    <MudSelectItem T="string?" Value="@("ANNULLATO")">Annullato</MudSelectItem>
+                </MudSelect>
+            </div>
+
+            <div style="min-width: 130px;">
+                <MudTextField T="string?" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
+                              Variant="Variant.Outlined" Dense="true" />
+            </div>
+
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ResetFilters"
+                       StartIcon="@Icons.Material.Filled.Clear" Size="Size.Small">
+                Reset
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CercaAsync"
+                       StartIcon="@Icons.Material.Filled.Search" Size="Size.Small">
+                Cerca
+            </MudButton>
+        </MudPaper>
+
+        <!-- DataGrid risultati -->
+        <EnterpriseDataGrid T="FatturaAttivaListItem" Items="_items" SearchFunc="Search"
+                            SearchPlaceholder="Cerca per N. Documento, Cliente, Causale..."
+                            HeaderIcon="@Icons.Material.Filled.Description"
+                            HeaderTitle="Fatture Attive"
+                            EmptyMessage="Nessuna fattura attiva trovata. Modificare i filtri e riprovare.">
+            <Columns>
+                <PropertyColumn Property="x => x.DataDocumentoFormatted" Title="Data Doc."
+                                CellStyle="white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px;" />
+
+                <PropertyColumn Property="x => x.NumeroDocumento" Title="N. Doc."
+                                CellStyle="white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px;" />
+
+                <PropertyColumn Property="x => x.NumeroProtocolloIva" Title="Prot. IVA"
+                                CellStyle="white-space: nowrap; padding: 8px 6px; text-align: center;"
+                                HeaderStyle="padding: 8px 6px; width: 80px; text-align: center;" />
+
+                <PropertyColumn Property="x => x.ControparteRagioneSociale" Title="Cliente"
+                                CellStyle="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; min-width: 150px;" />
+
+                <PropertyColumn Property="x => x.ImponibileFormatted" Title="Imponibile"
+                                CellStyle="text-align: right; padding: 8px 6px;"
+                                HeaderStyle="text-align: right; padding: 8px 6px; width: 100px;" />
+
+                <PropertyColumn Property="x => x.IvaFormatted" Title="IVA"
+                                CellStyle="text-align: right; padding: 8px 6px;"
+                                HeaderStyle="text-align: right; padding: 8px 6px; width: 80px;" />
+
+                <PropertyColumn Property="x => x.LordoFormatted" Title="Lordo"
+                                CellStyle="text-align: right; font-weight: 600; padding: 8px 6px;"
+                                HeaderStyle="text-align: right; padding: 8px 6px; width: 100px;" />
+
+                <PropertyColumn Property="x => x.Stato" Title="Stato"
+                                CellStyle="text-align: center; padding: 8px 6px;"
+                                HeaderStyle="text-align: center; padding: 8px 6px; width: 100px;">
+                    <CellTemplate>
+                        <div style="width: 100%; pointer-events: none;">
+                            <MudChip Color="@GetStatoColor(context.Item.Stato)" Size="Size.Small" Variant="Variant.Filled">
+                                @context.Item.StatoDisplay
+                            </MudChip>
+                        </div>
+                    </CellTemplate>
+                </PropertyColumn>
+
+                <PropertyColumn Property="x => x.DataScadenzaFormatted" Title="Scadenza"
+                                CellStyle="white-space: nowrap; padding: 8px 6px;"
+                                HeaderStyle="padding: 8px 6px; width: 100px;" />
+
+                <TemplateColumn T="FatturaAttivaListItem" Tag="@("Actions")" Sortable="false" StickyLeft="true"
+                                HeaderClass="sticky-actions-column" CellClass="sticky-actions-column">
+                    <HeaderTemplate>
+                        <MudText Typo="Typo.caption"
+                            Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Stampa</MudText>
+                    </HeaderTemplate>
+                    <CellTemplate Context="cellContext">
+                        <MudTooltip Text="Stampa Fattura">
+                            <MudIconButton Icon="@Icons.Material.Filled.Print"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           Class="inline-action-btn print-btn"
+                                           OnClick="@(() => StampaFatturaAttiva(cellContext.Item))" />
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </EnterpriseDataGrid>
+    </div>
+</MudContainer>
+
+@code {
+    private List<FatturaAttivaListItem> _items = new();
+    private bool _isSuperAdmin;
+    private int? _currentAziendaId;
+
+    // Filtri
+    private int _selectedAziendaIdInt;
+    private int? _selectedAziendaId => _selectedAziendaIdInt > 0 ? _selectedAziendaIdInt : null;
+    private int _aziendaIdEffettivo => _isSuperAdmin ? (_selectedAziendaId ?? 0) : (_currentAziendaId ?? 0);
+    private List<int> _anniDisponibili = new();
+    private int _filterAnno;
+    private int? _filterMese;
+    private int _filterControparteId;
+    private decimal? _filterImportoDa;
+    private decimal? _filterImportoA;
+    private string? _filterStato;
+    private string? _filterNumeroDocumento;
+
+    private static readonly Dictionary<int, string> _mesiItaliani = new()
+    {
+        { 1, "Gennaio" }, { 2, "Febbraio" }, { 3, "Marzo" }, { 4, "Aprile" },
+        { 5, "Maggio" }, { 6, "Giugno" }, { 7, "Luglio" }, { 8, "Agosto" },
+        { 9, "Settembre" }, { 10, "Ottobre" }, { 11, "Novembre" }, { 12, "Dicembre" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+        if (!_isSuperAdmin)
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            await CaricaAnniDisponibiliAsync();
+        }
+    }
+
+    private async Task OnAziendaFilterChanged(int id)
+    {
+        if (_selectedAziendaIdInt == id) return;
+        _selectedAziendaIdInt = id;
+        _filterControparteId = 0;
+        _items.Clear();
+        await CaricaAnniDisponibiliAsync();
+        StateHasChanged();
+    }
+
+    private void OnControparteFilterChanged(int id)
+    {
+        _filterControparteId = id;
+    }
+
+    private void ResetFilters()
+    {
+        _filterAnno = _anniDisponibili.FirstOrDefault();
+        _filterMese = null;
+        _filterControparteId = 0;
+        _filterImportoDa = null;
+        _filterImportoA = null;
+        _filterStato = null;
+        _filterNumeroDocumento = null;
+        _items.Clear();
+        StateHasChanged();
+    }
+
+    private async Task CaricaAnniDisponibiliAsync()
+    {
+        if (_aziendaIdEffettivo <= 0)
+        {
+            _anniDisponibili.Clear();
+            _filterAnno = 0;
+            return;
+        }
+
+        _anniDisponibili = await PrintService.GetAnniDisponibiliAsync(_aziendaIdEffettivo);
+        _filterAnno = _anniDisponibili.FirstOrDefault();
+    }
+
+    private async Task CercaAsync()
+    {
+        // Validazioni
+        if (_aziendaIdEffettivo <= 0)
+        {
+            Snackbar.Add("Seleziona un'azienda prima di cercare.", Severity.Warning);
+            return;
+        }
+
+        if (_filterAnno <= 0)
+        {
+            Snackbar.Add("Nessun anno disponibile con fatture attive per questa azienda.", Severity.Warning);
+            return;
+        }
+
+        if (_filterImportoDa.HasValue && _filterImportoA.HasValue && _filterImportoDa > _filterImportoA)
+        {
+            Snackbar.Add("L'importo 'Da' non può essere superiore all'importo 'A'.", Severity.Warning);
+            return;
+        }
+
+        // Calcola range date da Anno/Mese
+        DateTime? dataDocDa = null;
+        DateTime? dataDocA = null;
+
+        if (_filterMese.HasValue)
+        {
+            dataDocDa = new DateTime(_filterAnno, _filterMese.Value, 1);
+            dataDocA = dataDocDa.Value.AddMonths(1).AddDays(-1);
+        }
+        else
+        {
+            dataDocDa = new DateTime(_filterAnno, 1, 1);
+            dataDocA = new DateTime(_filterAnno, 12, 31);
+        }
+
+        try
+        {
+            _items = await PrintService.GetElencoFattureAttiveAsync(
+                _aziendaIdEffettivo,
+                _filterControparteId > 0 ? _filterControparteId : null,
+                dataDocDa,
+                dataDocA,
+                _filterImportoDa,
+                _filterImportoA,
+                _filterStato,
+                !string.IsNullOrWhiteSpace(_filterNumeroDocumento) ? _filterNumeroDocumento : null);
+
+            if (_items.Count == 0)
+            {
+                Snackbar.Add("Nessuna fattura attiva trovata con i filtri selezionati.", Severity.Info);
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nella ricerca: {ex.Message}", Severity.Error);
+            _items.Clear();
+            StateHasChanged();
+        }
+    }
+
+    private Color GetStatoColor(string stato) => stato switch
+    {
+        "PAGATO" => Color.Success,
+        "DA_PAGARE" => Color.Warning,
+        "PARZIALMENTE_PAGATO" => Color.Info,
+        "ANNULLATO" => Color.Error,
+        _ => Color.Default
+    };
+
+    private async Task StampaFatturaAttiva(FatturaAttivaListItem item)
+    {
+        try
+        {
+            Snackbar.Add("Caricamento dati fattura...", Severity.Info);
+
+            // 1. Carica dati fattura
+            var printData = await PrintService.GetFatturaAttivaDataAsync(item.TransazioneId);
+            if (printData == null)
+            {
+                Snackbar.Add("Impossibile caricare i dati della fattura", Severity.Error);
+                return;
+            }
+
+            // 2. Gestione selezione banca
+            var banche = await AziendaBancaService.GetByAziendaIdAsync(_aziendaIdEffettivo);
+
+            if (banche.Count == 1)
+            {
+                printData.Bank = MapBancaToInvoice(banche[0]);
+            }
+            else if (banche.Count > 1)
+            {
+                var parameters = new DialogParameters { ["AziendaId"] = _aziendaIdEffettivo };
+                var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+                var dialog = await DialogService.ShowAsync<SelezioneBancaDialog>("Seleziona Conto Bancario", parameters, options);
+                var result = await dialog.Result;
+
+                if (result == null || result.Canceled)
+                    return;
+
+                if (result.Data is AziendaBanca selectedBanca)
+                {
+                    printData.Bank = MapBancaToInvoice(selectedBanca);
+                }
+            }
+
+            // 3. Genera PDF
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
+
+            var session = await SessionManager.GetSessionAsync();
+            printData.UtenteStampa = session?.User?.FullName ?? "System";
+
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = PdfFileNameHelper.GetFatturaAttivaFileName(
+                printData.NumeroDocumento, printData.Client.RagioneSociale, printData.DataDocumento);
+            var outputPath = Path.Combine(targetFolder, fileName);
+
+            if (File.Exists(outputPath))
+                File.Delete(outputPath);
+
+            await FatturaAttivaPrinter.GeneratePdfAsync(printData, outputPath);
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Fattura Generata");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la stampa della fattura: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private static InvoiceBankInfo MapBancaToInvoice(AziendaBanca banca)
+    {
+        return new InvoiceBankInfo
+        {
+            NomeBanca = banca.NomeBanca,
+            Filiale = banca.Filiale,
+            Iban = banca.Iban,
+            SwiftBic = banca.SwiftBic
+        };
+    }
+
+    private Func<FatturaAttivaListItem, string, bool> Search => (item, searchString) =>
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+
+        if (item.NumeroDocumento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.ControparteRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (item.CausaleDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+
+        return false;
+    };
+}

@@ -10,6 +10,10 @@
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
+@using GestioneViaggi.Services.Printing
+@inject FatturaAttivaPrintService FatturaAttivaPrintService
+@inject AziendaBancaService AziendaBancaService
+@inject IPdfOpenerService PdfOpenerService
 
 <AppBreadcrumbs />
 
@@ -179,6 +183,16 @@
                                                    Color="Color.Success"
                                                    Class="inline-action-btn payment-btn"
                                                    OnClick="@(() => PagaOraAsync(cellContext.Item))" />
+                                </MudTooltip>
+                            }
+                            @if (cellContext.Item.IsFatturaAttiva)
+                            {
+                                <MudTooltip Text="Stampa Fattura">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Print"
+                                                   Size="Size.Small"
+                                                   Color="Color.Info"
+                                                   Class="inline-action-btn print-btn"
+                                                   OnClick="@(() => StampaFatturaAttiva(cellContext.Item))" />
                                 </MudTooltip>
                             }
                             <MudTooltip Text="Elimina">
@@ -472,6 +486,81 @@
                 Snackbar.Add($"Errore durante l'eliminazione: {ex.Message}", Severity.Error);
             }
         }
+    }
+
+    private async Task StampaFatturaAttiva(MovTransazioni item)
+    {
+        try
+        {
+            Snackbar.Add("Caricamento dati fattura...", Severity.Info);
+
+            // 1. Carica dati fattura
+            var printData = await FatturaAttivaPrintService.GetFatturaAttivaDataAsync(item.TransazioneId);
+            if (printData == null)
+            {
+                Snackbar.Add("Impossibile caricare i dati della fattura", Severity.Error);
+                return;
+            }
+
+            // 2. Gestione selezione banca
+            var aziendaId = item.TransazioneAziendaId;
+            var banche = await AziendaBancaService.GetByAziendaIdAsync(aziendaId);
+
+            if (banche.Count == 1)
+            {
+                // Una sola banca: usa direttamente
+                printData.Bank = MapBancaToInvoice(banche[0]);
+            }
+            else if (banche.Count > 1)
+            {
+                // Più banche: mostra dialog di selezione
+                var parameters = new DialogParameters { ["AziendaId"] = aziendaId };
+                var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+                var dialog = await DialogService.ShowAsync<SelezioneBancaDialog>("Seleziona Conto Bancario", parameters, options);
+                var result = await dialog.Result;
+
+                if (result == null || result.Canceled)
+                    return;
+
+                if (result.Data is AziendaBanca selectedBanca)
+                {
+                    printData.Bank = MapBancaToInvoice(selectedBanca);
+                }
+            }
+            // Se 0 banche: stampa senza dati bancari
+
+            // 3. Genera PDF
+            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
+
+            var session = await SessionManager.GetSessionAsync();
+            printData.UtenteStampa = session?.User?.FullName ?? "System";
+
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var fileName = PdfFileNameHelper.GetFatturaAttivaFileName(
+                printData.NumeroDocumento, printData.Client.RagioneSociale, printData.DataDocumento);
+            var outputPath = Path.Combine(targetFolder, fileName);
+
+            if (File.Exists(outputPath))
+                File.Delete(outputPath);
+
+            await FatturaAttivaPrinter.GeneratePdfAsync(printData, outputPath);
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Fattura Generata");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la stampa della fattura: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private static Services.Printing.InvoiceBankInfo MapBancaToInvoice(AziendaBanca banca)
+    {
+        return new Services.Printing.InvoiceBankInfo
+        {
+            NomeBanca = banca.NomeBanca,
+            Filiale = banca.Filiale,
+            Iban = banca.Iban,
+            SwiftBic = banca.SwiftBic
+        };
     }
 
     private Func<MovTransazioni, string, bool> Search => (t, searchString) =>

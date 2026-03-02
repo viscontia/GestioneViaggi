@@ -1,0 +1,103 @@
+@* Dialog per la selezione del conto bancario da stampare sulla fattura attiva *@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AziendaBancaService BancaService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Seleziona il conto bancario da stampare sulla fattura:
+        </MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_banche.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning">Nessun conto bancario trovato per questa azienda.</MudAlert>
+        }
+        else
+        {
+            <MudDataGrid T="AziendaBanca" Items="_banche" Dense="true" Hover="true"
+                         SelectedItem="_selectedBanca" SelectedItemChanged="@OnBancaSelected"
+                         RowStyleFunc="@RowStyleFunc">
+                <Columns>
+                    <TemplateColumn T="AziendaBanca" Title="" CellStyle="width: 30px; padding: 4px;">
+                        <CellTemplate>
+                            @if (context.Item.IsPredefinito)
+                            {
+                                <MudTooltip Text="Conto predefinito">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                                </MudTooltip>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.NomeBanca" Title="Nome Banca" />
+                    <PropertyColumn Property="x => x.Filiale" Title="Filiale" />
+                    <PropertyColumn Property="x => x.Iban" Title="IBAN" />
+                </Columns>
+            </MudDataGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(_selectedBanca == null)"
+                   OnClick="Conferma">
+            Seleziona
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int AziendaId { get; set; }
+
+    private List<AziendaBanca> _banche = new();
+    private AziendaBanca? _selectedBanca;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _banche = await BancaService.GetByAziendaIdAsync(AziendaId);
+
+            // Pre-seleziona la banca predefinita
+            _selectedBanca = _banche.FirstOrDefault(b => b.IsPredefinito) ?? _banche.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore nel caricamento dei conti bancari: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnBancaSelected(AziendaBanca? banca)
+    {
+        _selectedBanca = banca;
+    }
+
+    private string RowStyleFunc(AziendaBanca item, int index)
+    {
+        if (item.IsPredefinito)
+            return "background-color: #FFF8E1;"; // Evidenzia la banca predefinita
+        return string.Empty;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Conferma()
+    {
+        if (_selectedBanca != null)
+        {
+            MudDialog.Close(DialogResult.Ok(_selectedBanca));
+        }
+    }
+}

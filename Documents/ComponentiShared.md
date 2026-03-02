@@ -479,6 +479,30 @@ Dialog per la selezione filtri e stampa dello scadenzario (`Components/Shared/St
 *   **Database**: Utilizza la function `fn_get_scadenzario_stampa` per il filtraggio lato server.
 *   **Utilizzo**: Accessibile da NavMenu → Stampe Contabili → Scadenzario.
 
+### SelezioneBancaDialog
+Dialog per la selezione del conto bancario da stampare sulla fattura attiva (`Components/Shared/SelezioneBancaDialog.razor`).
+*   **Funzionalità**:
+    *   Carica i conti bancari dell'azienda tramite `AziendaBancaService.GetByAziendaIdAsync()`.
+    *   Visualizza `MudDataGrid` con colonne: Stella (predefinito), Nome Banca, Filiale, IBAN.
+    *   Pre-seleziona automaticamente la banca con `IsPredefinito = true`.
+    *   La riga della banca predefinita è evidenziata con sfondo giallo chiaro (`#FFF8E1`) e icona stella.
+    *   Gestisce stati di caricamento (`MudProgressLinear`) e assenza dati (`MudAlert`).
+*   **Parametri Chiave**:
+    *   `AziendaId` (int): ID azienda per caricare i conti bancari.
+*   **Valore Restituito**: `AziendaBanca` selezionata (tramite `DialogResult.Ok()`), oppure `Canceled` se l'utente annulla.
+*   **Utilizzo**:
+    ```razor
+    var parameters = new DialogParameters { ["AziendaId"] = _aziendaIdEffettivo };
+    var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+    var dialog = await DialogService.ShowAsync<SelezioneBancaDialog>("Seleziona Conto Bancario", parameters, options);
+    var result = await dialog.Result;
+    if (result != null && !result.Canceled && result.Data is AziendaBanca selectedBanca)
+    {
+        // Usa selectedBanca
+    }
+    ```
+*   **Contesto**: Utilizzato da `StampaFattureAttivePage` e `MovTransazioniPage` quando l'azienda ha più di un conto bancario. Se l'azienda ha un solo conto, viene usato automaticamente senza mostrare il dialog.
+
 ---
 
 ## Componenti UI Generali

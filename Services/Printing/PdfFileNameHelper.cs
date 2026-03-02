@@ -56,6 +56,18 @@ public static class PdfFileNameHelper
     }
 
     /// <summary>
+    /// Genera il nome file per la stampa "Fattura Attiva"
+    /// </summary>
+    public static string GetFatturaAttivaFileName(
+        string? numeroDocumento, string? controparteNome, DateTime? dataDocumento)
+    {
+        var numDoc = SanitizeFileName(numeroDocumento ?? "ND", maxLength: 20);
+        var nome = SanitizeFileName(controparteNome ?? "Cliente", maxLength: 30);
+        var data = dataDocumento?.ToString("yyyy-MM-dd") ?? "ND";
+        return $"Fattura_{numDoc}_{nome}_{data}.pdf";
+    }
+
+    /// <summary>
     /// Sanitizza un nome file rimuovendo caratteri non validi e limitando la lunghezza
     /// </summary>
     /// <param name="fileName">Nome file da sanitizzare</param>

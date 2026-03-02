@@ -203,9 +203,20 @@
                     OnClick="@OpenStampaRegistroIvaDialog">
             <MudText Typo="Typo.body1">Registro IVA</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.Description"
+                    OnClick="@(() => OpenTabAndNotify("/stampe/fatture-attive", "Stampa Fatture Attive", "description"))">
+            <MudText Typo="Typo.body1">Stampa Fatture Attive</MudText>
+        </MudNavLink>
     </MudNavGroup>
 
 
+
+    <MudNavGroup Title="Estrazione Dati" Icon="@Icons.Material.Filled.Download" Expanded="false">
+        <MudNavLink Icon="@Icons.Material.Filled.Description"
+                    OnClick="@(() => OpenTabAndNotify("/estrazione/viaggi", "Estrazione Viaggi", "download"))">
+            <MudText Typo="Typo.body1">Estrazione Viaggi</MudText>
+        </MudNavLink>
+    </MudNavGroup>
 
     <AuthorizeView Roles="superadmin">
         <MudNavGroup Title="Amministrazione" Icon="@Icons.Material.Filled.AdminPanelSettings" Expanded="false">

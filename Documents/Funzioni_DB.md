@@ -354,6 +354,9 @@ Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 | `fn_get_bilancio_annuale_viaggi` | Estrae l'intero pool di movimenti contabili (Attivi e Passivi) per l'anno di competenza, raggruppandoli per Data Viaggio, garantendo il corretto ordinamento cronologico. Permette la creazione del report a 3 Livelli (Totale Data, Totale Viaggio, Riepilogo Generale). | `p_azienda_id INT, p_anno INT` | `TABLE(viaggio_id, viaggio_descrizione, data_viaggio_id, data_viaggio_data_inizio, importo_netto_eur, importo_lordo_eur, categoria_tipo, ...)` | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/fn_get_bilancio_annuale_viaggi.sql` |
 | `fn_get_anni_bilancio_viaggi` | Recupera dinamicamente solo gli anni in cui vi sono partenze collegate a transazioni contabili reali (ignorando i viaggi non movimentati). Utile per popolare i filtri UI pre-selezionati. Restituisce anche il conteggio dei viaggi unici contabilizzati per anno. | `p_azienda_id INT` | `TABLE(anno INT, numero_viaggi INT)` | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/fn_get_anni_bilancio_viaggi.sql` |
 | `fn_get_registro_iva` | Estrae dati per stampa **Registro IVA** (Libro Acquisti e Vendite) con filtri per azienda, anno e ciclo contabile (ATTIVO/PASSIVO). Restituisce transazioni ordinate per **numero protocollo IVA** (con NULLS LAST, poi per data documento). **Aggiornata 2026-02-22**: Aggiunti campi output `aliquota_iva_natura VARCHAR` (codice natura FE es. N1, N3.1) e `numero_protocollo_iva INTEGER` per conformità normativa registri IVA. Filtra solo transazioni qualificanti IVA (causale_genera_iva = TRUE, valuta EUR, stato != ANNULLATO). | `p_azienda_id INTEGER, p_anno INTEGER, p_causale_ciclo VARCHAR(10)` | `TABLE(transazione_id INTEGER, data_documento DATE, numero_documento VARCHAR, controparte_ragione_sociale VARCHAR, causale_descrizione VARCHAR, causale_ciclo VARCHAR, imponibile_eur NUMERIC, iva_eur NUMERIC, lordo_eur NUMERIC, aliquota_iva_codice VARCHAR, aliquota_iva_percentuale NUMERIC, aliquota_iva_natura VARCHAR, numero_protocollo_iva INTEGER)` | `Services/Printing/RegistroIvaPrintService.cs`, `Services/Printing/RegistroIvaPrintDTO.cs`, `SqlScripts/fn_get_registro_iva.sql` |
+| `fn_get_fattura_attiva_stampa` | Recupera **tutti i dati** necessari per la stampa PDF di una singola fattura attiva. Singola query con JOIN estesi su: azienda (ragione sociale, forma giuridica, P.IVA, C.F., REA, capitale sociale, socio unico, in liquidazione), regime fiscale (`ana_regimi_fiscali`: codice, descrizione, is_iva_detraibile), sede principale (`ana_aziende_sedi` via LATERAL con `is_principale = TRUE`), logo attivo (`ana_aziende_logo` con `is_active = TRUE AND is_default = TRUE`), controparte/cliente (dati anagrafici + SDI + PEC), comuni e province per sede e controparte, causale contabile. **Filtro**: `causale_ciclo = 'ATTIVO'`. | `p_transazione_id INTEGER` | `TABLE(transazione_id INT, transazione_data DATE, transazione_data_documento DATE, transazione_data_scadenza DATE, transazione_numero_documento VARCHAR, transazione_stato VARCHAR, transazione_causale TEXT, transazione_numero_protocollo_iva INT, transazione_imponibile_eur NUMERIC, transazione_iva_eur NUMERIC, transazione_lordo_eur NUMERIC, transazione_tipo_movimento VARCHAR, azienda_id INT, azienda_ragione_sociale VARCHAR, azienda_forma_giuridica VARCHAR, azienda_partita_iva VARCHAR, azienda_codice_fiscale VARCHAR, azienda_telefono VARCHAR, azienda_pec VARCHAR, azienda_sito_web VARCHAR, azienda_codice_sdi VARCHAR, azienda_rea_numero VARCHAR, azienda_rea_provincia_sigla VARCHAR, azienda_capitale_sociale NUMERIC, azienda_socio_unico BOOL, azienda_in_liquidazione BOOL, regime_codice VARCHAR, regime_descrizione VARCHAR, regime_is_iva_detraibile BOOL, sede_indirizzo VARCHAR, sede_numero_civico VARCHAR, sede_cap VARCHAR, sede_comune VARCHAR, sede_provincia_sigla VARCHAR, sede_telefono VARCHAR, sede_email VARCHAR, logo_data BYTEA, controparte_id INT, controparte_ragione_sociale VARCHAR, controparte_indirizzo VARCHAR, controparte_cap VARCHAR, controparte_comune VARCHAR, controparte_provincia_sigla VARCHAR, controparte_partita_iva VARCHAR, controparte_codice_fiscale VARCHAR, controparte_codice_sdi VARCHAR, controparte_pec VARCHAR, controparte_fornitore_estero BOOL, causale_descrizione VARCHAR, causale_ciclo VARCHAR, causale_codice VARCHAR)` | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/220_Create_FnGetFatturaAttivaStampa.sql` |
+| `fn_get_fatture_attive_elenco` | Elenco fatture attive filtrato per la **pagina di ricerca** `/stampe/fatture-attive`. Supporta 7 filtri opzionali: controparte, range date documento, range importo lordo, stato, numero documento (ILIKE parziale). Filtra automaticamente solo causale ciclo ATTIVO. Ordinamento per data documento DESC, created_at DESC. | `p_azienda_id INTEGER, p_controparte_id INTEGER DEFAULT NULL, p_data_doc_da DATE DEFAULT NULL, p_data_doc_a DATE DEFAULT NULL, p_importo_da NUMERIC DEFAULT NULL, p_importo_a NUMERIC DEFAULT NULL, p_stato VARCHAR DEFAULT NULL, p_numero_documento VARCHAR DEFAULT NULL` | `TABLE(transazione_id INT, transazione_data DATE, data_documento DATE, numero_documento VARCHAR, numero_protocollo_iva INT, controparte_ragione_sociale VARCHAR, imponibile_eur NUMERIC, iva_eur NUMERIC, lordo_eur NUMERIC, stato VARCHAR, data_scadenza DATE, causale_descrizione VARCHAR)` | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/221_Create_FnGetFattureAttiveElenco.sql` |
+| `fn_get_anni_fatture_attive` | Recupera gli **anni distinti** in cui esistono fatture attive (causale ciclo ATTIVO) per un'azienda. Usato per popolare il combobox Anno nella pagina `/stampe/fatture-attive`. Utilizza `COALESCE(transazione_data_documento, transazione_data)` per determinare l'anno. Ordinamento DESC (anno più recente per primo). | `p_azienda_id INTEGER` | `TABLE(anno INTEGER)` | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/223_Create_FnGetAnniFattureAttive.sql` |
 
 ### 📝 Note Implementative - Report PDF Transazioni (2026-02-09)
 
@@ -404,6 +407,45 @@ Funzioni per l'estrazione dati e report PDF dei movimenti contabili.
 - **Pivot diverso**: Scadenzario ordinato per data scadenza (futuro), Movimenti per controparte (passato)
 - **Focus**: Scadenzario = Pianificazione finanziaria (cosa succederà), Movimenti = Riconciliazione (cosa è successo)
 - **Campi chiave**: Residuo da pagare, giorni a scadenza, urgenza colorata
+
+### 📝 Note Implementative - Stampa Fatture Attive (2026-03-02)
+
+**Architettura a 3 Livelli**:
+1. **DB Functions** (`fn_get_fattura_attiva_stampa`, `fn_get_fatture_attive_elenco`, `fn_get_anni_fatture_attive`): Estrazione dati con JOIN estesi
+2. **Service Layer** (`FatturaAttivaPrintService.cs`): Orchestrazione caricamento dati, righe fattura, riepilogo IVA
+3. **PDF Generator** (`FatturaAttivaPrinter.cs`): Rendering QuestPDF A4 Portrait con layout fattura professionale
+
+**Flusso Stampa Singola Fattura**:
+1. Utente clicca icona stampa (da `MovTransazioniPage` o `StampaFattureAttivePage`)
+2. `FatturaAttivaPrintService.GetFatturaAttivaDataAsync()` chiama `fn_get_fattura_attiva_stampa` via Dapper (mapping dinamico manuale per struttura nested)
+3. Righe fattura caricate separatamente da `mov_transazioni_righe` JOIN `ana_aliquote_iva`
+4. Riepilogo IVA calcolato raggruppando righe per `AliquotaIvaCodice` (escluso tipo BOLLO)
+5. **Selezione banca**: 0 banche → senza dati bancari; 1 banca → automatica; >1 banche → `SelezioneBancaDialog` con evidenza banca predefinita
+6. `FatturaAttivaPrinter.GeneratePdfAsync()` genera PDF con sezioni: Header (logo + azienda), Identificativo fattura, Destinatario, Dettaglio righe, Riepilogo IVA, Totali, Dati bancari, Scadenza, Note regime fiscale/bollo
+7. PDF aperto tramite `IPdfOpenerService`
+
+**Supporto Regimi Fiscali**:
+- **Forfettario**: Nota legale "Operazione effettuata ai sensi dell'art.1 commi da 54 a 89 L.190/2014" + nessun riepilogo IVA dettagliato
+- **Ordinario/Semplificato**: Riepilogo IVA per aliquota con totali imponibile/IVA/lordo
+- **Bollo**: Se presente riga BOLLO, nota "Imposta di bollo assolta sull'originale"
+
+**Aggiornamento Function Esistenti** (Script 222):
+- `fn_get_all_transazioni` e `fn_get_transazioni_by_azienda` aggiornate con campo output `causale_ciclo CHARACTER VARYING` (da JOIN `ana_tipi_causali`)
+- Necessario per popolare `MovTransazioni.CausaleCiclo` (NotMapped) e abilitare `IsFatturaAttiva` nella DataGrid `MovTransazioniPage`
+
+**Files Coinvolti**:
+- `SqlScripts/220_Create_FnGetFatturaAttivaStampa.sql` (function dati singola fattura)
+- `SqlScripts/221_Create_FnGetFattureAttiveElenco.sql` (function elenco filtrato)
+- `SqlScripts/222_Update_TransazioniFunctions_AddCausaleCiclo.sql` (aggiornamento function esistenti)
+- `Services/Printing/FatturaAttivaPrintDTO.cs` (DTOs: InvoiceCompanyInfo, InvoiceClientInfo, InvoiceLineItem, InvoiceVatSummaryRow, InvoiceBankInfo, FatturaAttivaPrintData, FatturaAttivaListItem)
+- `Services/Printing/FatturaAttivaPrintService.cs` (service layer Dapper)
+- `Services/Printing/FatturaAttivaPrinter.cs` (generatore PDF QuestPDF)
+- `Services/Printing/PdfFileNameHelper.cs` (metodo `GetFatturaAttivaFileName`)
+- `Models/MovTransazioni.cs` (properties NotMapped: CausaleCiclo, IsFatturaAttiva)
+- `Components/Pages/StampaFattureAttivePage.razor` (pagina ricerca `/stampe/fatture-attive`)
+- `Components/Pages/MovTransazioniPage.razor` (icona stampa per fatture attive)
+- `Components/Shared/SelezioneBancaDialog.razor` (dialog selezione banca)
+- `Components/Shared/NavMenu.razor` (voce menu "Stampa Fatture Attive")
 
 ---
 
