@@ -1,4 +1,5 @@
 using Npgsql;
+using GestioneViaggi.Models;
 
 namespace GestioneViaggi.Services.Database;
 
@@ -8,4 +9,6 @@ public interface IDatabaseConnectionManager
     Task InitializePoolAsync();
     Task DisposePoolAsync();
     bool IsConnectionAvailable { get; }
+    string Host { get; }
+    DbEnvironment Environment { get; }
 }

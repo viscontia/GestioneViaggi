@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using GestioneViaggi.Models;
 
 namespace GestioneViaggi.Services.Database;
 
@@ -8,10 +9,16 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
 {
     private readonly string _connectionString;
     private readonly ILogger<DatabaseConnectionManager> _logger;
+    private readonly string _host;
+    private readonly DbEnvironment _environment;
     private NpgsqlDataSource? _dataSource;
     private volatile bool _initialized = false;
 
     public bool IsConnectionAvailable => _dataSource != null && _initialized;
+
+    public string Host => _host;
+
+    public DbEnvironment Environment => _environment;
 
     public DatabaseConnectionManager(
         IConfiguration configuration,
@@ -20,6 +27,35 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
         _connectionString = configuration.GetConnectionString("PostgreSQL")
             ?? throw new InvalidOperationException("Connection string 'PostgreSQL' not found");
         _logger = logger;
+        
+        _host = ExtractHost(_connectionString);
+        _environment = DetermineEnvironment(_host);
+    }
+
+    private static string ExtractHost(string connectionString)
+    {
+        var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var part in parts)
+        {
+            var keyValue = part.Split('=', 2);
+            if (keyValue.Length == 2 && keyValue[0].Trim().Equals("Host", StringComparison.OrdinalIgnoreCase))
+            {
+                return keyValue[1].Trim();
+            }
+        }
+        return string.Empty;
+    }
+
+    private static DbEnvironment DetermineEnvironment(string host)
+    {
+        if (string.IsNullOrEmpty(host))
+            return DbEnvironment.Prod;
+            
+        var lowerHost = host.ToLowerInvariant();
+        if (lowerHost == "localhost" || lowerHost == "127.0.0.1")
+            return DbEnvironment.Test;
+            
+        return DbEnvironment.Prod;
     }
 
     public async Task InitializePoolAsync()

@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Authentication;
+using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.UI;
@@ -7,6 +8,7 @@ namespace GestioneViaggi.Services.UI;
 public class StatusBarService : IStatusBarService, IDisposable
 {
     private readonly IAuthenticationService _authService;
+    private readonly IDatabaseConnectionManager _connectionManager;
     private readonly ILogger<StatusBarService> _logger;
     private CancellationTokenSource? _cts;
     private Task? _refreshTask;
@@ -17,14 +19,17 @@ public class StatusBarService : IStatusBarService, IDisposable
 
     public StatusBarService(
         IAuthenticationService authService,
+        IDatabaseConnectionManager connectionManager,
         ILogger<StatusBarService> logger)
     {
         _authService = authService;
+        _connectionManager = connectionManager;
         _logger = logger;
     }
 
     public async Task InitializeAsync()
     {
+        CurrentStatus.Environment = _connectionManager.Environment;
         await RefreshStatusAsync();
         StartAutoRefresh();
     }

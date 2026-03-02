@@ -7,9 +7,16 @@ public enum DatabaseStatus
     Disconnected
 }
 
+public enum DbEnvironment
+{
+    Test,
+    Prod
+}
+
 public class StatusBarInfo
 {
     public DatabaseStatus DbStatus { get; set; } = DatabaseStatus.Disconnected;
+    public DbEnvironment Environment { get; set; } = DbEnvironment.Prod;
     public string UserFullName { get; set; } = string.Empty;
     public string UserRole { get; set; } = string.Empty;
     public string CompanyName { get; set; } = "Tutte le Aziende";

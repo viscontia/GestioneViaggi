@@ -5,7 +5,7 @@
 
 <div class="status-bar-container">
     <span class="status-icon" title="@GetDbStatusText()">@GetDbEmoji()</span>
-    <span class="status-text">Database</span>
+    <span class="status-text">Database @(GetEnvironmentLabel())</span>
 
     <span class="divider">|</span>
 
@@ -111,6 +111,11 @@
             DatabaseStatus.Disconnected => "🔴",
             _ => "⚪"
         };
+    }
+
+    private string GetEnvironmentLabel()
+    {
+        return StatusBarService.CurrentStatus.Environment == DbEnvironment.Test ? "(Test)" : "(Prod)";
     }
 
     private string GetDbStatusText()
