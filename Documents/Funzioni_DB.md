@@ -492,6 +492,30 @@ Funzioni CRUD per la gestione delle configurazioni API esterne. Tabella globale 
 
 ---
 
+## 10.1 Export Dati
+
+Funzioni dedicate all'estrazione dati per export in formati esterni (Excel, CSV).
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_clienti_export` | Restituisce i dati clienti in formato flat per export Excel. Solo campi business (no FK tecnici, no blob binari). Comuni e province decodificati con JOIN su `ana_geo_comuni` e `ana_geo_province`. Ordinamento per azienda, cognome, nome. Se `p_azienda_id IS NULL`, restituisce clienti di tutte le aziende (SuperAdmin). | `p_azienda_id INTEGER DEFAULT NULL` | `TABLE(cognome VARCHAR, nome VARCHAR, titolo VARCHAR, sesso CHAR(1), data_nascita DATE, comune_nascita TEXT, provincia_nascita VARCHAR, indirizzo_residenza VARCHAR, comune_residenza TEXT, provincia_residenza VARCHAR, prefisso_telefono VARCHAR, telefono VARCHAR, email VARCHAR, codice_fiscale VARCHAR, iban VARCHAR, tipo_documento VARCHAR, numero_documento VARCHAR, documento_rilasciato_da VARCHAR, documento_data_rilascio DATE, documento_data_scadenza DATE, intolleranza TEXT, note TEXT, azienda VARCHAR)` | `Services/Export/ClienteExportService.cs`, `SqlScripts/230_Create_FnGetClientiExport.sql` |
+
+### Note Implementative - Export Dati (2026-03-03)
+
+**Architettura Export**:
+- **DB Function** per estrazione dati flat (decodifica FK lato DB)
+- **ExcelExportService** generico con `ExcelColumnDefinition<T>` per generazione .xlsx (ClosedXML)
+- **FileOpenerService** generico per apertura file post-generazione (Mac + Windows)
+- **ExcelExportButton** componente Blazor riutilizzabile nella toolbar delle DataGrid
+
+**Pattern Riutilizzabilità**:
+- Per aggiungere un nuovo export Excel: creare function DB dedicata, DTO, service con `GetColumnDefinitions()`, e usare `ExcelExportButton` nella pagina
+- `ExcelExportService.ExportToExcelAsync<T>()` accetta qualsiasi tipo T con lista colonne configurabile
+
+**File SQL**: `SqlScripts/230_Create_FnGetClientiExport.sql`
+
+---
+
 ## 11. Implementazioni Service-Side (Logica Applicativa)
 Nota: Queste non sono funzioni DB, ma descrizioni di logica C# rilevante.
 

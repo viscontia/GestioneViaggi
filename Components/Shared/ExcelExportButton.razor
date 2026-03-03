@@ -1,0 +1,46 @@
+@using MudBlazor
+
+<MudTooltip Text="@Tooltip">
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Success"
+               StartIcon="@Icons.Material.Filled.FileDownload"
+               OnClick="@HandleClick"
+               Disabled="@(Disabled || _isExporting)">
+        @if (_isExporting)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            <span>Esportazione...</span>
+        }
+        else
+        {
+            @Label
+        }
+    </MudButton>
+</MudTooltip>
+
+@code {
+    [Parameter] public EventCallback OnExport { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Label { get; set; } = "Esporta Excel";
+    [Parameter] public string Tooltip { get; set; } = "Esporta i dati in formato Excel (.xlsx)";
+
+    private bool _isExporting;
+
+    private async Task HandleClick()
+    {
+        if (_isExporting) return;
+
+        _isExporting = true;
+        StateHasChanged();
+
+        try
+        {
+            await OnExport.InvokeAsync();
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
+        }
+    }
+}

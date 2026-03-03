@@ -73,6 +73,7 @@
 
     <ItemGroup>
         <!-- Pacchetti Nuget -->
+        <PackageReference Include="ClosedXML" Version="0.105.0" />
         <PackageReference Include="Dapper" Version="2.1.66" />
         <PackageReference Include="ExcelDataReader" Version="3.8.0" />
         <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />

@@ -505,6 +505,42 @@ Dialog per la selezione del conto bancario da stampare sulla fattura attiva (`Co
 
 ---
 
+## Componenti Export
+
+### ExcelExportButton
+Componente bottone riutilizzabile per l'export Excel (`Components/Shared/ExcelExportButton.razor`).
+*   **Funzionalità**:
+    *   Bottone con icona download e stile `Variant.Outlined` colore `Color.Success`.
+    *   Mostra spinner di caricamento durante l'esportazione (stato `_isExporting`).
+    *   Impedisce doppio click durante l'esportazione.
+    *   Tooltip configurabile.
+*   **Parametri Chiave**:
+    *   `OnExport` (EventCallback): Callback asincrono per eseguire l'esportazione.
+    *   `Disabled` (bool): Disabilita il bottone (es. quando non ci sono dati).
+    *   `Label` (string): Testo del bottone (default: "Esporta Excel").
+    *   `Tooltip` (string): Testo tooltip (default: "Esporta i dati in formato Excel (.xlsx)").
+*   **Utilizzo**:
+    ```razor
+    <ExcelExportButton OnExport="@ExportToExcel" Disabled="@(!_items.Any())" />
+    ```
+*   **Pattern Completo di Export** (esempio pagina Clienti):
+    ```csharp
+    @inject IClienteExportService ClienteExportService
+    @inject IExcelExportService ExcelExportService
+    @inject IFileOpenerService FileOpenerService
+
+    private async Task ExportToExcel()
+    {
+        var data = await ClienteExportService.GetClientiExportAsync(aziendaId);
+        var columns = ClienteExportService.GetColumnDefinitions();
+        var fileName = $"Anagrafica_Clienti_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+        var outputPath = await ExcelExportService.ExportToExcelAsync(data, columns, fileName, "Clienti");
+        await FileOpenerService.OpenFileAsync(outputPath, "Export Completato");
+    }
+    ```
+
+---
+
 ## Componenti UI Generali
 
 ### AppBreadcrumbs
@@ -648,6 +684,50 @@ Servizio per l'aggiornamento automatico dei tassi di cambio.
     *   `UpdateRateAsync(string isoCode)`: Aggiorna il tasso di cambio per una specifica valuta (es. "USD").
 *   **Dipendenze**: `HttpClient`, `AnaValuteService`, `AnaTassiCambioService`.
 
+
+### FileOpenerService
+Servizio generico per aprire qualsiasi tipo di file dopo la generazione (`Services/Shared/FileOpenerService.cs`).
+*   **Interfaccia**: `IFileOpenerService`
+*   **Metodo**: `Task<bool> OpenFileAsync(string filePath, string title = "File Generato")`
+*   **Funzionalità**:
+    *   Mostra un `DialogService.ShowMessageBox` per chiedere conferma apertura.
+    *   Gestisce l'apertura cross-platform:
+        *   **MacCatalyst**: Usa `System.Diagnostics.Process.Start("open", ...)`.
+        *   **Altro**: Usa `Launcher.Default.OpenAsync`.
+    *   **Gestione errore**: Se l'app non riesce ad aprire il file, mostra un messaggio italiano informando che il file è comunque disponibile nella cartella Downloads.
+*   **Relazione con PdfOpenerService**: `PdfOpenerService` ora delega internamente a `FileOpenerService`, mantenendo retrocompatibilità con tutti i chiamanti esistenti.
+*   **Utilizzo**:
+    ```csharp
+    await FileOpenerService.OpenFileAsync(outputPath, "Export Completato");
+    ```
+
+### ExcelExportService
+Servizio generico per la generazione di file Excel .xlsx (`Services/Export/ExcelExportService.cs`).
+*   **Interfaccia**: `IExcelExportService`
+*   **Libreria**: ClosedXML (MIT license)
+*   **Metodo**: `Task<string> ExportToExcelAsync<T>(IEnumerable<T> data, List<ExcelColumnDefinition<T>> columns, string fileName, string sheetName = "Dati")`
+*   **Funzionalità**:
+    *   Accetta qualsiasi tipo T con configurazione colonne flessibile.
+    *   Genera file .xlsx nella cartella Downloads (`UserProfile/Downloads`).
+    *   Header riga con sfondo blu e testo bianco bold.
+    *   Auto-fit colonne, auto-filter sulla riga header.
+    *   Supporto formattazione date (`dd/MM/yyyy`) e numeri.
+    *   Restituisce il path completo del file generato.
+*   **ExcelColumnDefinition<T>**:
+    *   `Header` (string): Titolo colonna.
+    *   `ValueSelector` (Func<T, object?>): Funzione per estrarre il valore dalla riga.
+    *   `NumberFormat` (string?): Formato numerico/data opzionale.
+*   **Utilizzo**:
+    ```csharp
+    var columns = new List<ExcelColumnDefinition<MyDTO>>
+    {
+        new() { Header = "Nome", ValueSelector = x => x.Nome },
+        new() { Header = "Data", ValueSelector = x => x.Data, NumberFormat = "dd/MM/yyyy" }
+    };
+    var path = await ExcelExportService.ExportToExcelAsync(data, columns, "Export.xlsx");
+    ```
+
+---
 
 ## Gestione Stampe
 

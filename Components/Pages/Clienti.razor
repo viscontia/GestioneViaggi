@@ -4,12 +4,16 @@
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.UI
 @using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Export
+@using GestioneViaggi.Services.Shared
 @using GestioneViaggi.Components.Shared
 @using MudBlazor
 @inject IClienteService ClienteService
+@inject IClienteExportService ClienteExportService
+@inject IExcelExportService ExcelExportService
+@inject IFileOpenerService FileOpenerService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject IStatusBarService StatusBarService
 @inject IStatusBarService StatusBarService
 @inject ITenantContext TenantContext
 @inject NavigationManager Navigation
@@ -59,8 +63,9 @@ else
                     <MudSelectItem Value="3">Viaggi Futuri + Intolleranze</MudSelectItem>
                 </MudSelect>
             </div>
+            <ExcelExportButton OnExport="@ExportToExcel" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                OnClick="@OpenCreateDialog">
+                OnClick="@OpenCreateDialog" Class="ml-2">
                 Nuovo Cliente
             </MudButton>
         </ToolBarActions>
@@ -474,6 +479,33 @@ else
         };
 
         await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
+    }
+
+    private async Task ExportToExcel()
+    {
+        try
+        {
+            int? filterId = _selectedAziendaId > 0 ? _selectedAziendaId : _currentAziendaId;
+            var data = await ClienteExportService.GetClientiExportAsync(filterId);
+
+            if (!data.Any())
+            {
+                Snackbar.Add("Nessun dato da esportare", Severity.Warning);
+                return;
+            }
+
+            var columns = ClienteExportService.GetColumnDefinitions();
+            var fileName = $"Anagrafica_Clienti_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+            var outputPath = await ExcelExportService.ExportToExcelAsync(data, columns, fileName, "Clienti");
+
+            Snackbar.Add($"Esportati {data.Count} clienti", Severity.Success);
+            await FileOpenerService.OpenFileAsync(outputPath, "Export Completato");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante l'esportazione: {ex.Message}", Severity.Error);
+        }
     }
 
     private void ResetFilters()

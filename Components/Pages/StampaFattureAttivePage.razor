@@ -12,6 +12,8 @@
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
 @inject IPdfOpenerService PdfOpenerService
+@inject IJSRuntime JS
+@implements IDisposable
 
 <AppBreadcrumbs />
 
@@ -19,7 +21,7 @@
     <div style="width: 100%; overflow-x: auto;">
 
         <!-- Filters Area -->
-        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap">
+        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap stampa-fatture-filters">
             @if (_isSuperAdmin)
             {
                 <div style="min-width: 200px;">
@@ -29,7 +31,7 @@
             }
 
             <div style="min-width: 120px;">
-                <MudSelect T="int" Label="Anno" @bind-Value="_filterAnno" Variant="Variant.Outlined" Dense="true"
+                <MudSelect T="int" Label="Anno" Value="_filterAnno" ValueChanged="@OnAnnoChanged" Variant="Variant.Outlined" Dense="true"
                            Disabled="@(_anniDisponibili.Count == 0)">
                     @foreach (var anno in _anniDisponibili)
                     {
@@ -38,13 +40,18 @@
                 </MudSelect>
             </div>
 
-            <div style="min-width: 150px;">
-                <MudSelect T="int?" Label="Mese" @bind-Value="_filterMese" Variant="Variant.Outlined" Dense="true" Clearable="true">
-                    @foreach (var m in _mesiItaliani)
-                    {
-                        <MudSelectItem T="int?" Value="@m.Key">@m.Value</MudSelectItem>
-                    }
-                </MudSelect>
+            <div style="min-width: 160px;">
+                <MudDatePicker Label="Data Doc. Da" @bind-Date="_filterDataDa" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                               Placeholder="gg/mm/aaaa" />
+            </div>
+
+            <div style="min-width: 160px;">
+                <MudDatePicker Label="Data Doc. A" @bind-Date="_filterDataA" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                               Placeholder="gg/mm/aaaa" />
             </div>
 
             <div style="min-width: 220px;">
@@ -79,7 +86,8 @@
 
             <div style="min-width: 130px;">
 <MudTextField T="string?" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
-                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
             </div>
 
             <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ResetFilters"
@@ -162,6 +170,7 @@
 </MudContainer>
 
 @code {
+#nullable enable
     private List<FatturaAttivaListItem> _items = new();
     private bool _isSuperAdmin;
     private int? _currentAziendaId;
@@ -172,18 +181,18 @@
     private int _aziendaIdEffettivo => _isSuperAdmin ? (_selectedAziendaId ?? 0) : (_currentAziendaId ?? 0);
     private List<int> _anniDisponibili = new();
     private int _filterAnno;
-    private int? _filterMese;
+    private DateTime? _filterDataDa;
+    private DateTime? _filterDataA;
     private int _filterControparteId;
     private decimal? _filterImportoDa;
     private decimal? _filterImportoA;
     private string? _filterStato;
     private string? _filterNumeroDocumento;
 
-    private static readonly Dictionary<int, string> _mesiItaliani = new()
+    private Converter<string?> _uppercaseConverter = new Converter<string?>
     {
-        { 1, "Gennaio" }, { 2, "Febbraio" }, { 3, "Marzo" }, { 4, "Aprile" },
-        { 5, "Maggio" }, { 6, "Giugno" }, { 7, "Luglio" }, { 8, "Agosto" },
-        { 9, "Settembre" }, { 10, "Ottobre" }, { 11, "Novembre" }, { 12, "Dicembre" }
+        SetFunc = value => value?.ToUpperInvariant(),
+        GetFunc = text => text?.ToUpperInvariant()
     };
 
     protected override async Task OnInitializedAsync()
@@ -214,7 +223,7 @@
     private void ResetFilters()
     {
         _filterAnno = _anniDisponibili.FirstOrDefault();
-        _filterMese = null;
+        ImpostaDateDaAnno(_filterAnno);
         _filterControparteId = 0;
         _filterImportoDa = null;
         _filterImportoA = null;
@@ -230,11 +239,34 @@
         {
             _anniDisponibili.Clear();
             _filterAnno = 0;
+            _filterDataDa = null;
+            _filterDataA = null;
             return;
         }
 
         _anniDisponibili = await PrintService.GetAnniDisponibiliAsync(_aziendaIdEffettivo);
         _filterAnno = _anniDisponibili.FirstOrDefault();
+        ImpostaDateDaAnno(_filterAnno);
+    }
+
+    private void OnAnnoChanged(int anno)
+    {
+        _filterAnno = anno;
+        ImpostaDateDaAnno(anno);
+    }
+
+    private void ImpostaDateDaAnno(int anno)
+    {
+        if (anno > 0)
+        {
+            _filterDataDa = new DateTime(anno, 1, 1);
+            _filterDataA = new DateTime(anno, 12, 31);
+        }
+        else
+        {
+            _filterDataDa = null;
+            _filterDataA = null;
+        }
     }
 
     private async Task CercaAsync()
@@ -246,9 +278,17 @@
             return;
         }
 
-        if (_filterAnno <= 0)
+        // Validazione date: entrambe o nessuna
+        if (_filterDataDa.HasValue != _filterDataA.HasValue)
         {
-            Snackbar.Add("Nessun anno disponibile con fatture attive per questa azienda.", Severity.Warning);
+            Snackbar.Add("Inserire entrambe le date (Da e A) oppure nessuna.", Severity.Warning);
+            return;
+        }
+
+        // Validazione date: A non può essere anteriore a Da
+        if (_filterDataDa.HasValue && _filterDataA.HasValue && _filterDataA < _filterDataDa)
+        {
+            Snackbar.Add("La data 'A' non può essere anteriore alla data 'Da'.", Severity.Warning);
             return;
         }
 
@@ -258,32 +298,17 @@
             return;
         }
 
-        // Calcola range date da Anno/Mese
-        DateTime? dataDocDa = null;
-        DateTime? dataDocA = null;
-
-        if (_filterMese.HasValue)
-        {
-            dataDocDa = new DateTime(_filterAnno, _filterMese.Value, 1);
-            dataDocA = dataDocDa.Value.AddMonths(1).AddDays(-1);
-        }
-        else
-        {
-            dataDocDa = new DateTime(_filterAnno, 1, 1);
-            dataDocA = new DateTime(_filterAnno, 12, 31);
-        }
-
         try
         {
             _items = await PrintService.GetElencoFattureAttiveAsync(
                 _aziendaIdEffettivo,
                 _filterControparteId > 0 ? _filterControparteId : null,
-                dataDocDa,
-                dataDocA,
+                _filterDataDa,
+                _filterDataA,
                 _filterImportoDa,
                 _filterImportoA,
                 _filterStato,
-                !string.IsNullOrWhiteSpace(_filterNumeroDocumento) ? _filterNumeroDocumento : null);
+                !string.IsNullOrWhiteSpace(_filterNumeroDocumento) ? _filterNumeroDocumento.ToUpperInvariant() : null);
 
             if (_items.Count == 0)
             {
@@ -390,4 +415,28 @@
 
         return false;
     };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".stampa-fatture-filters");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error setting up tab navigation: {ex.Message}");
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup", ".stampa-fatture-filters");
+        }
+        catch { }
+    }
 }

@@ -209,6 +209,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<FatturaAttivaPrintService>();
         builder.Services.AddScoped<IPdfOpenerService, PdfOpenerService>();
 
+        // File Opener & Export Services
+        builder.Services.AddScoped<Services.Shared.IFileOpenerService, Services.Shared.FileOpenerService>();
+        builder.Services.AddScoped<Services.Export.IExcelExportService, Services.Export.ExcelExportService>();
+        builder.Services.AddScoped<Services.Export.IClienteExportService, Services.Export.ClienteExportService>();
+
         // External APIs
         builder.Services.AddHttpClient<GestioneViaggi.Services.ExternalApis.ICurrencyApiService, GestioneViaggi.Services.ExternalApis.CurrencyApiService>();
 
