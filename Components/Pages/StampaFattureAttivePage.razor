@@ -76,16 +76,16 @@
             </div>
 
             <div style="min-width: 150px;">
-                <MudSelect T="string?" Label="Stato" @bind-Value="_filterStato" Variant="Variant.Outlined" Dense="true" Clearable="true">
-                    <MudSelectItem T="string?" Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
-                    <MudSelectItem T="string?" Value="@("PAGATO")">Pagato</MudSelectItem>
-                    <MudSelectItem T="string?" Value="@("PARZIALMENTE_PAGATO")">Parz. Pagato</MudSelectItem>
-                    <MudSelectItem T="string?" Value="@("ANNULLATO")">Annullato</MudSelectItem>
+                <MudSelect T="string" Label="Stato" @bind-Value="_filterStato" Variant="Variant.Outlined" Dense="true" Clearable="true">
+                    <MudSelectItem T="string" Value="@("DA_PAGARE")">Da Pagare</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("PAGATO")">Pagato</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("PARZIALMENTE_PAGATO")">Parz. Pagato</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("ANNULLATO")">Annullato</MudSelectItem>
                 </MudSelect>
             </div>
 
             <div style="min-width: 130px;">
-<MudTextField T="string?" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
+<MudTextField T="string" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
                              Variant="Variant.Outlined" Margin="Margin.Dense"
                              Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
             </div>
@@ -170,7 +170,6 @@
 </MudContainer>
 
 @code {
-#nullable enable
     private List<FatturaAttivaListItem> _items = new();
     private bool _isSuperAdmin;
     private int? _currentAziendaId;
@@ -189,7 +188,7 @@
     private string? _filterStato;
     private string? _filterNumeroDocumento;
 
-    private Converter<string?> _uppercaseConverter = new Converter<string?>
+    private Converter<string> _uppercaseConverter = new Converter<string>
     {
         SetFunc = value => value?.ToUpperInvariant(),
         GetFunc = text => text?.ToUpperInvariant()
