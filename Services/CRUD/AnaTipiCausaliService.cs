@@ -111,7 +111,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     @IsActive,
                     @CreatedBy,
                     @UpdatedBy,
-                    @CausaleConcorreFatturato
+                    @CausaleConcorreFatturato,
+                    @TipoDocumentoSdi::VARCHAR
                 )",
                 new
                 {
@@ -130,7 +131,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     entity.IsActive,
                     entity.CreatedBy,
                     entity.UpdatedBy,
-                    entity.CausaleConcorreFatturato
+                    entity.CausaleConcorreFatturato,
+                    entity.TipoDocumentoSdi
                 }
             );
 
@@ -174,7 +176,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     @CausaleAliquotaIvaDefaultFk,
                     @IsActive,
                     @UpdatedBy,
-                    @CausaleConcorreFatturato
+                    @CausaleConcorreFatturato,
+                    @TipoDocumentoSdi::VARCHAR
                 )",
                 new
                 {
@@ -192,7 +195,8 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
                     entity.CausaleAliquotaIvaDefaultFk,
                     entity.IsActive,
                     entity.UpdatedBy,
-                    entity.CausaleConcorreFatturato
+                    entity.CausaleConcorreFatturato,
+                    entity.TipoDocumentoSdi
                 }
             );
 
@@ -259,6 +263,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
             CausaleRichiedeIva = reader.GetBoolean(reader.GetOrdinal("causale_richiede_iva")),
             CausaleAliquotaIvaDefaultFk = ReadNullableInt(reader, "causale_aliquota_iva_default_fk"),
             CausaleConcorreFatturato = reader.GetBoolean(reader.GetOrdinal("causale_concorre_fatturato")),
+            TipoDocumentoSdi = ReadNullableString(reader, "tipo_documento_sdi"),
             IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
             Created = ReadNullableDateTime(reader, "created_at"),
             CreatedBy = ReadNullableString(reader, "created_by"),

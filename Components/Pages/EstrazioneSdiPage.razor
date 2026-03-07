@@ -1,4 +1,4 @@
-@page "/stampe/fatture-attive"
+@page "/estrazione/sdi"
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.Authentication
@@ -13,7 +13,6 @@
 @inject ISnackbar Snackbar
 @inject ITenantContext TenantContext
 @inject ISessionManager SessionManager
-@inject IPdfOpenerService PdfOpenerService
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -23,7 +22,7 @@
     <div style="width: 100%; overflow-x: auto;">
 
         <!-- Filters Area -->
-        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap stampa-fatture-filters">
+        <MudPaper Elevation="0" Class="mb-4 pa-4 d-flex gap-4 align-center flex-wrap estrazione-sdi-filters">
             @if (_isSuperAdmin)
             {
                 <div style="min-width: 200px;">
@@ -34,7 +33,8 @@
 
             <div style="min-width: 120px;">
                 <MudSelect T="int" Label="Anno" Value="_filterAnno" ValueChanged="@OnAnnoChanged" Variant="Variant.Outlined" Dense="true"
-                           Disabled="@(_anniDisponibili.Count == 0)">
+                           Disabled="@(_anniDisponibili.Count == 0)"
+                          >
                     @foreach (var anno in _anniDisponibili)
                     {
                         <MudSelectItem Value="@anno">@anno</MudSelectItem>
@@ -66,13 +66,13 @@
             </div>
 
             <div style="min-width: 120px;">
-<MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_filterImportoDa"
+                <MudNumericField T="decimal?" Label="Importo Da" @bind-Value="_filterImportoDa"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2"
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
             </div>
 
             <div style="min-width: 120px;">
-<MudNumericField T="decimal?" Label="Importo A" @bind-Value="_filterImportoA"
+                <MudNumericField T="decimal?" Label="Importo A" @bind-Value="_filterImportoA"
                                  Variant="Variant.Outlined" Margin="Margin.Dense" Format="N2"
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Euro" />
             </div>
@@ -87,9 +87,9 @@
             </div>
 
             <div style="min-width: 130px;">
-<MudTextField T="string" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
-                             Variant="Variant.Outlined" Margin="Margin.Dense"
-                             Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
+                <MudTextField T="string" Label="N. Documento" @bind-Value="_filterNumeroDocumento"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                 Class="uppercase-input" Immediate="true" Converter="@_uppercaseConverter" />
             </div>
 
             <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ResetFilters"
@@ -104,7 +104,24 @@
         </MudPaper>
 
         <!-- DataGrid risultati -->
-        <EnterpriseDataGrid T="FatturaAttivaListItem" Items="_items" Title="Fatture Attive">
+        <EnterpriseDataGrid T="FatturaAttivaListItem" Items="_items" Title="Fatture Attive per Export SDI">
+            <ToolBarActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.FileDownload"
+                           OnClick="EsportaTuttiXml"
+                           Disabled="@(!_items.Any() || _isExporting)"
+                           Size="Size.Small">
+                    @if (_isExporting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="ms-n1 mr-2" />
+                        <span>Esportazione...</span>
+                    }
+                    else
+                    {
+                        <span>Esporta Tutti XML SDI (@_items.Count)</span>
+                    }
+                </MudButton>
+            </ToolBarActions>
             <Columns>
                 <PropertyColumn Property="x => x.DataDocumentoFormatted" Title="Data Doc."
                                 CellStyle="white-space: nowrap; padding: 8px 6px;"
@@ -149,32 +166,6 @@
                 <PropertyColumn Property="x => x.DataScadenzaFormatted" Title="Scadenza"
                                 CellStyle="white-space: nowrap; padding: 8px 6px;"
                                 HeaderStyle="padding: 8px 6px; width: 100px;" />
-
-                <TemplateColumn T="FatturaAttivaListItem" Tag="@("Actions")" Sortable="false" StickyLeft="true"
-                                HeaderClass="sticky-actions-column" CellClass="sticky-actions-column">
-                    <HeaderTemplate>
-                        <MudText Typo="Typo.caption"
-                            Style="font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Azioni</MudText>
-                    </HeaderTemplate>
-                    <CellTemplate Context="cellContext">
-                        <div class="d-flex gap-1">
-                            <MudTooltip Text="Stampa Fattura">
-                                <MudIconButton Icon="@Icons.Material.Filled.Print"
-                                               Size="Size.Small"
-                                               Color="Color.Info"
-                                               Class="inline-action-btn print-btn"
-                                               OnClick="@(() => StampaFatturaAttiva(cellContext.Item))" />
-                            </MudTooltip>
-                            <MudTooltip Text="Esporta XML FatturaPA (SDI)">
-                                <MudIconButton Icon="@Icons.Material.Filled.Code"
-                                               Size="Size.Small"
-                                               Color="Color.Success"
-                                               Class="inline-action-btn"
-                                               OnClick="@(() => EsportaXmlSdi(cellContext.Item))" />
-                            </MudTooltip>
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
             </Columns>
         </EnterpriseDataGrid>
     </div>
@@ -184,6 +175,7 @@
     private List<FatturaAttivaListItem> _items = new();
     private bool _isSuperAdmin;
     private int? _currentAziendaId;
+    private bool _isExporting;
 
     // Filtri
     private int _selectedAziendaIdInt;
@@ -281,30 +273,27 @@
 
     private async Task CercaAsync()
     {
-        // Validazioni
         if (_aziendaIdEffettivo <= 0)
         {
             Snackbar.Add("Seleziona un'azienda prima di cercare.", Severity.Warning);
             return;
         }
 
-        // Validazione date: entrambe o nessuna
         if (_filterDataDa.HasValue != _filterDataA.HasValue)
         {
             Snackbar.Add("Inserire entrambe le date (Da e A) oppure nessuna.", Severity.Warning);
             return;
         }
 
-        // Validazione date: A non può essere anteriore a Da
         if (_filterDataDa.HasValue && _filterDataA.HasValue && _filterDataA < _filterDataDa)
         {
-            Snackbar.Add("La data 'A' non può essere anteriore alla data 'Da'.", Severity.Warning);
+            Snackbar.Add("La data 'A' non puo' essere anteriore alla data 'Da'.", Severity.Warning);
             return;
         }
 
         if (_filterImportoDa.HasValue && _filterImportoA.HasValue && _filterImportoDa > _filterImportoA)
         {
-            Snackbar.Add("L'importo 'Da' non può essere superiore all'importo 'A'.", Severity.Warning);
+            Snackbar.Add("L'importo 'Da' non puo' essere superiore all'importo 'A'.", Severity.Warning);
             return;
         }
 
@@ -335,80 +324,16 @@
         }
     }
 
-    private Color GetStatoColor(string stato) => stato switch
+    private async Task EsportaTuttiXml()
     {
-        "PAGATO" => Color.Success,
-        "DA_PAGARE" => Color.Warning,
-        "PARZIALMENTE_PAGATO" => Color.Info,
-        "ANNULLATO" => Color.Error,
-        _ => Color.Default
-    };
+        if (!_items.Any()) return;
 
-    private async Task StampaFatturaAttiva(FatturaAttivaListItem item)
-    {
+        _isExporting = true;
+        StateHasChanged();
+
         try
         {
-            Snackbar.Add("Caricamento dati fattura...", Severity.Info);
-
-            // 1. Carica dati fattura
-            var printData = await PrintService.GetFatturaAttivaDataAsync(item.TransazioneId);
-            if (printData == null)
-            {
-                Snackbar.Add("Impossibile caricare i dati della fattura", Severity.Error);
-                return;
-            }
-
-            // 2. Gestione selezione banca
-            var banche = await AziendaBancaService.GetByAziendaIdAsync(_aziendaIdEffettivo);
-
-            if (banche.Count == 1)
-            {
-                printData.Bank = MapBancaToInvoice(banche[0]);
-            }
-            else if (banche.Count > 1)
-            {
-                var parameters = new DialogParameters { ["AziendaId"] = _aziendaIdEffettivo };
-                var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-                var dialog = await DialogService.ShowAsync<SelezioneBancaDialog>("Seleziona Conto Bancario", parameters, options);
-                var result = await dialog.Result;
-
-                if (result == null || result.Canceled)
-                    return;
-
-                if (result.Data is AziendaBanca selectedBanca)
-                {
-                    printData.Bank = MapBancaToInvoice(selectedBanca);
-                }
-            }
-
-            // 3. Genera PDF
-            Snackbar.Add("Generazione PDF in corso...", Severity.Info);
-
-            var session = await SessionManager.GetSessionAsync();
-            printData.UtenteStampa = session?.User?.FullName ?? "System";
-
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-            var fileName = PdfFileNameHelper.GetFatturaAttivaFileName(
-                printData.NumeroDocumento, printData.Client.RagioneSociale, printData.DataDocumento);
-            var outputPath = Path.Combine(targetFolder, fileName);
-
-            if (File.Exists(outputPath))
-                File.Delete(outputPath);
-
-            await FatturaAttivaPrinter.GeneratePdfAsync(printData, outputPath);
-            await PdfOpenerService.OpenPdfAsync(outputPath, "Fattura Generata");
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Errore durante la stampa della fattura: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task EsportaXmlSdi(FatturaAttivaListItem item)
-    {
-        try
-        {
-            // 1. Gestione selezione banca (opzionale per DatiPagamento)
+            // 1. Selezione banca (una volta per tutte le fatture)
             InvoiceBankInfo? bankInfo = null;
             var banche = await AziendaBancaService.GetByAziendaIdAsync(_aziendaIdEffettivo);
 
@@ -424,29 +349,58 @@
                 var result = await dialog.Result;
 
                 if (result == null || result.Canceled)
+                {
+                    _isExporting = false;
+                    StateHasChanged();
                     return;
+                }
 
                 if (result.Data is AziendaBanca selectedBanca)
                     bankInfo = MapBancaToInvoice(selectedBanca);
             }
 
-            // 2. Genera XML (validazione + export inclusi nel service)
-            Snackbar.Add("Generazione XML FatturaPA in corso...", Severity.Info);
+            // 2. Export massivo
+            var totale = _items.Count;
+            var esportate = 0;
+            var errori = new List<string>();
 
-            var filePath = await FatturaElettronicaXmlService.GeneraXmlFatturaAsync(item.TransazioneId, bankInfo);
-            Snackbar.Add($"XML generato: {Path.GetFileName(filePath)}", Severity.Success);
-        }
-        catch (InvalidOperationException ex)
-        {
-            // Errori di validazione con messaggi leggibili
+            foreach (var item in _items)
+            {
+                try
+                {
+                    await FatturaElettronicaXmlService.GeneraXmlFatturaAsync(item.TransazioneId, bankInfo);
+                    esportate++;
+                }
+                catch (InvalidOperationException ex)
+                {
+                    errori.Add($"N. {item.NumeroDocumento ?? item.TransazioneId.ToString()} - {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    errori.Add($"N. {item.NumeroDocumento ?? item.TransazioneId.ToString()} - Errore: {ex.Message}");
+                }
+            }
+
+            // 3. Report finale
+            var messaggio = $"Fatture esportate: {esportate} su {totale}";
+            if (errori.Any())
+            {
+                messaggio += $"\n\nErrori ({errori.Count}):\n" + string.Join("\n", errori.Select(e => $"- {e}"));
+            }
+
             await DialogService.ShowMessageBox(
-                "Impossibile Generare XML FatturaPA",
-                ex.Message,
+                "Esportazione XML Completata",
+                messaggio,
                 yesText: "OK");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore esportazione XML: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Errore durante l'esportazione: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+            StateHasChanged();
         }
     }
 
@@ -461,15 +415,13 @@
         };
     }
 
-    private Func<FatturaAttivaListItem, string, bool> Search => (item, searchString) =>
+    private Color GetStatoColor(string stato) => stato switch
     {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-
-        if (item.NumeroDocumento?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.ControparteRagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.CausaleDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-
-        return false;
+        "PAGATO" => Color.Success,
+        "DA_PAGARE" => Color.Warning,
+        "PARZIALMENTE_PAGATO" => Color.Info,
+        "ANNULLATO" => Color.Error,
+        _ => Color.Default
     };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -478,7 +430,7 @@
         {
             try
             {
-                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".stampa-fatture-filters");
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".estrazione-sdi-filters");
             }
             catch (Exception ex)
             {
@@ -491,7 +443,7 @@
     {
         try
         {
-            JS.InvokeVoidAsync("dialogFormHelper.cleanup", ".stampa-fatture-filters");
+            JS.InvokeVoidAsync("dialogFormHelper.cleanup", ".estrazione-sdi-filters");
         }
         catch { }
     }

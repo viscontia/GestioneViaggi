@@ -59,6 +59,12 @@ namespace GestioneViaggi.Models
         [Column("causale_aliquota_iva_default_fk")]
         public int? CausaleAliquotaIvaDefaultFk { get; set; }
 
+        // ===== CODICE SDI (FatturaPA) =====
+
+        [Column("tipo_documento_sdi")]
+        [StringLength(4)]
+        public string? TipoDocumentoSdi { get; set; }
+
         // ===== FATTURATO =====
 
         [Column("causale_concorre_fatturato")]

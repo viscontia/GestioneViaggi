@@ -135,12 +135,43 @@
                                   tabindex="11" />
                 </MudItem>
 
+                <!-- Codici SDI (FatturaPA) -->
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Codici SDI (FatturaPA)</MudText>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Codice Regime Fiscale SDI"
+                                  Value="@Regime.RegimeCodiceSdi"
+                                  ValueChanged="@((string? s) => Regime.RegimeCodiceSdi = s?.ToUpper())"
+                                  MaxLength="4"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. RF01, RF19, RF02"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Code"
+                                  Class="uppercase-input"
+                                  tabindex="12" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField Label="Tipo Cassa Previdenziale SDI"
+                                  Value="@Regime.TipoCassaSdi"
+                                  ValueChanged="@((string? s) => Regime.TipoCassaSdi = s?.ToUpper())"
+                                  MaxLength="4"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Es. TC22 (INPS Gest. Sep.)"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Code"
+                                  Class="uppercase-input"
+                                  tabindex="13" />
+                </MudItem>
+
                 <!-- Stato -->
                 <MudItem xs="12">
                     <MudDivider Class="my-2" />
                 </MudItem>
                 <MudItem xs="12" Class="d-flex align-center">
-                    <MudSwitch @bind-Value="Regime.Attivo" Label="Attivo" Color="Color.Success" tabindex="12" />
+                    <MudSwitch @bind-Value="Regime.Attivo" Label="Attivo" Color="Color.Success" tabindex="14" />
                 </MudItem>
 
                 <!-- Warning se helper calcolo attivo ma parametri incompleti -->

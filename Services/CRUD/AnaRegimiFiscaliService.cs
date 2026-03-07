@@ -37,6 +37,8 @@ public class AnaRegimiFiscaliService
         bollo_soglia AS BolloSoglia,
         bollo_importo AS BolloImporto,
         bollo_aliquota_codice AS BolloAliquotaCodice,
+        regime_codice_sdi AS RegimeCodiceSdi,
+        tipo_cassa_sdi AS TipoCassaSdi,
         attivo AS Attivo,
         created_at AS Created,
         created_by AS CreatedBy,
@@ -133,12 +135,14 @@ public class AnaRegimiFiscaliService
                     show_helper_calcolo, default_aliquota_iva_codice, is_iva_detraibile,
                     cassa_prev_percentuale, cassa_prev_descrizione, cassa_prev_aliquota_codice,
                     bollo_soglia, bollo_importo, bollo_aliquota_codice,
+                    regime_codice_sdi, tipo_cassa_sdi,
                     attivo, created_at, created_by
                 ) VALUES (
                     @RegimeCodice, @RegimeDescrizione,
                     @ShowHelperCalcolo, @DefaultAliquotaIvaCodice, @IsIvaDetraibile,
                     @CassaPrevPercentuale, @CassaPrevDescrizione, @CassaPrevAliquotaCodice,
                     @BolloSoglia, @BolloImporto, @BolloAliquotaCodice,
+                    @RegimeCodiceSdi, @TipoCassaSdi,
                     @Attivo, NOW(), @CreatedBy
                 )
                 RETURNING regime_id";
@@ -177,6 +181,8 @@ public class AnaRegimiFiscaliService
                     bollo_soglia = @BolloSoglia,
                     bollo_importo = @BolloImporto,
                     bollo_aliquota_codice = @BolloAliquotaCodice,
+                    regime_codice_sdi = @RegimeCodiceSdi,
+                    tipo_cassa_sdi = @TipoCassaSdi,
                     attivo = @Attivo,
                     updated_by = @UpdatedBy
                 WHERE regime_id = @RegimeId";

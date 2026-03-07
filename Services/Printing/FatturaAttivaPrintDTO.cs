@@ -31,6 +31,11 @@ public class InvoiceCompanyInfo
     public string? RegimeDescrizione { get; set; }
     public bool IsIvaDetraibile { get; set; } = true;
 
+    // SDI - FatturaPA
+    public string? RegimeCodiceSdi { get; set; }
+    public string? TipoCassaSdi { get; set; }
+    public decimal? CassaPrevPercentuale { get; set; }
+
     // Capitale Sociale
     public decimal? CapitaleSociale { get; set; }
     public bool SocioUnico { get; set; }
@@ -108,6 +113,7 @@ public class InvoiceLineItem
     public decimal? AliquotaIvaPercentuale { get; set; }
     public decimal RigaIvaValore { get; set; }
     public decimal RigaLordo { get; set; }
+    public string? AliquotaIvaNatura { get; set; }
 
     public string AliquotaDisplay => AliquotaIvaPercentuale.HasValue && AliquotaIvaPercentuale > 0
         ? $"{AliquotaIvaPercentuale:0.##}%"
@@ -133,6 +139,7 @@ public class InvoiceVatSummaryRow
     public decimal TotaleImponibile { get; set; }
     public decimal TotaleIva { get; set; }
     public decimal TotaleLordo { get; set; }
+    public string? AliquotaNatura { get; set; }
 
     public string AliquotaDisplay => AliquotaPercentuale > 0
         ? $"{AliquotaCodice} ({AliquotaPercentuale:0.##}%)"
@@ -165,6 +172,7 @@ public class FatturaAttivaPrintData
     public string? CausaleDescrizione { get; set; }
     public string? CausaleCodice { get; set; }
     public int? NumeroProtocolloIva { get; set; }
+    public string? TipoDocumentoSdi { get; set; }
 
     // Totali da transazione header
     public decimal ImponibileEur { get; set; }

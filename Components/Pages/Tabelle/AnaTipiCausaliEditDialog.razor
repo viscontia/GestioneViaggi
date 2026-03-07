@@ -62,6 +62,16 @@
                                Label="Concorre al Fatturato"
                                Color="Color.Tertiary" />
                 </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Tipo Documento SDI"
+                                  Value="@Entity.TipoDocumentoSdi"
+                                  ValueChanged="@((string? val) => Entity.TipoDocumentoSdi = val?.ToUpper())"
+                                  MaxLength="4"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Class="uppercase-input"
+                                  HelperText="Es: TD01, TD04, TD05" />
+                </MudItem>
             </MudGrid>
             <div class="d-flex justify-end mt-6">
                 <MudButton ButtonType="ButtonType.Button" OnClick="Cancel" Class="mr-2">Annulla</MudButton>

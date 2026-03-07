@@ -57,6 +57,7 @@ public class FatturaAttivaPrintService
                 LordoEur = (decimal)row.transazione_lordo_eur,
                 CausaleDescrizione = (string?)row.causale_descrizione,
                 CausaleCodice = (string?)row.causale_codice,
+                TipoDocumentoSdi = (string?)row.tipo_documento_sdi,
                 DataStampa = DateTime.Now,
 
                 Company = new InvoiceCompanyInfo
@@ -82,7 +83,10 @@ public class FatturaAttivaPrintService
                     InLiquidazione = (bool?)row.azienda_in_liquidazione ?? false,
                     RegimeCodice = (string?)row.regime_codice,
                     RegimeDescrizione = (string?)row.regime_descrizione,
-                    IsIvaDetraibile = (bool?)row.regime_is_iva_detraibile ?? true
+                    IsIvaDetraibile = (bool?)row.regime_is_iva_detraibile ?? true,
+                    RegimeCodiceSdi = (string?)row.regime_codice_sdi,
+                    TipoCassaSdi = (string?)row.tipo_cassa_sdi,
+                    CassaPrevPercentuale = (decimal?)row.cassa_prev_percentuale
                 },
 
                 Client = new InvoiceClientInfo
@@ -110,6 +114,7 @@ public class FatturaAttivaPrintService
                     r.riga_imponibile AS RigaImponibile,
                     a.iva_codice AS AliquotaIvaCodice,
                     a.iva_percentuale AS AliquotaIvaPercentuale,
+                    a.iva_natura AS AliquotaIvaNatura,
                     r.riga_iva_valore AS RigaIvaValore,
                     r.riga_lordo AS RigaLordo
                 FROM mov_transazioni_righe r
@@ -122,11 +127,12 @@ public class FatturaAttivaPrintService
             // 4. Calcola riepilogo IVA raggruppato per aliquota (escluso BOLLO)
             result.RiepilogoIva = result.Righe
                 .Where(r => r.RigaTipo != "BOLLO")
-                .GroupBy(r => new { Codice = r.AliquotaIvaCodice ?? "N/D", Percentuale = r.AliquotaIvaPercentuale ?? 0 })
+                .GroupBy(r => new { Codice = r.AliquotaIvaCodice ?? "N/D", Percentuale = r.AliquotaIvaPercentuale ?? 0, Natura = r.AliquotaIvaNatura })
                 .Select(g => new InvoiceVatSummaryRow
                 {
                     AliquotaCodice = g.Key.Codice,
                     AliquotaPercentuale = g.Key.Percentuale,
+                    AliquotaNatura = g.Key.Natura,
                     TotaleImponibile = g.Sum(r => r.RigaImponibile),
                     TotaleIva = g.Sum(r => r.RigaIvaValore),
                     TotaleLordo = g.Sum(r => r.RigaLordo)

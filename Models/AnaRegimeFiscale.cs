@@ -51,6 +51,15 @@ namespace GestioneViaggi.Models
         [MaxLength(10)]
         public string? CassaPrevAliquotaCodice { get; set; }
 
+        // Codici SDI (FatturaPA)
+        [Column("regime_codice_sdi")]
+        [MaxLength(4)]
+        public string? RegimeCodiceSdi { get; set; }
+
+        [Column("tipo_cassa_sdi")]
+        [MaxLength(4)]
+        public string? TipoCassaSdi { get; set; }
+
         // Imposta di Bollo
         [Column("bollo_soglia")]
         public decimal? BolloSoglia { get; set; }
