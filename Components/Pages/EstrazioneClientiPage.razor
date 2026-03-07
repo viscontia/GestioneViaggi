@@ -1,0 +1,92 @@
+@page "/estrazione/clienti"
+@using GestioneViaggi.Services.Export
+@using GestioneViaggi.Services.Shared
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@using Microsoft.AspNetCore.Authorization
+@inject IClienteExportService ClienteExportService
+@inject IExcelExportService ExcelExportService
+@inject IFileOpenerService FileOpenerService
+@inject ISnackbar Snackbar
+@inject ITenantContext TenantContext
+@attribute [Authorize]
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8 d-flex flex-column align-center gap-4">
+    @if (_isExporting)
+    {
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h6">Esportazione in corso...</MudText>
+    }
+    else if (_exportDone)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+        <MudText Typo="Typo.h6">@_resultMessage</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="ExportClienti">Esporta di nuovo</MudButton>
+    }
+    else if (_hasError)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large" />
+        <MudText Typo="Typo.h6" Color="Color.Error">@_resultMessage</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="ExportClienti">Riprova</MudButton>
+    }
+</MudContainer>
+
+@code {
+    private bool _isExporting;
+    private bool _exportDone;
+    private bool _hasError;
+    private string _resultMessage = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ExportClienti();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportClienti()
+    {
+        _isExporting = true;
+        _exportDone = false;
+        _hasError = false;
+        StateHasChanged();
+
+        try
+        {
+            var aziendaId = TenantContext.AziendaId;
+            var data = await ClienteExportService.GetClientiExportAsync(aziendaId);
+
+            if (!data.Any())
+            {
+                _isExporting = false;
+                _hasError = true;
+                _resultMessage = "Nessun cliente da esportare per l'azienda corrente.";
+                Snackbar.Add(_resultMessage, Severity.Warning);
+                return;
+            }
+
+            var columns = ClienteExportService.GetColumnDefinitions();
+            var fileName = $"Anagrafica_Clienti_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+            var outputPath = await ExcelExportService.ExportToExcelAsync(data, columns, fileName, "Clienti");
+
+            _isExporting = false;
+            _exportDone = true;
+            _resultMessage = $"Esportati {data.Count} clienti in {fileName}";
+            Snackbar.Add(_resultMessage, Severity.Success);
+            await FileOpenerService.OpenFileAsync(outputPath, "Export Completato");
+        }
+        catch (Exception ex)
+        {
+            _isExporting = false;
+            _hasError = true;
+            _resultMessage = $"Errore durante l'esportazione: {ex.Message}";
+            Snackbar.Add(_resultMessage, Severity.Error);
+        }
+    }
+}

@@ -216,6 +216,10 @@
                     OnClick="@(() => OpenTabAndNotify("/estrazione/sdi", "Estrazione Dati SDI", "download"))">
             <MudText Typo="Typo.body1">Estrazione Dati per SDI</MudText>
         </MudNavLink>
+        <MudNavLink Icon="@Icons.Material.Filled.People"
+                    OnClick="@(() => OpenTabAndNotify("/estrazione/clienti", "Estrazione Anagrafica Clienti", "download"))">
+            <MudText Typo="Typo.body1">Estrazione Anagrafica Clienti</MudText>
+        </MudNavLink>
     </MudNavGroup>
 
     <AuthorizeView Roles="superadmin">
