@@ -59,7 +59,7 @@
 
         try
         {
-            var aziendaId = TenantContext.AziendaId;
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
             var data = await ClienteExportService.GetClientiExportAsync(aziendaId);
 
             if (!data.Any())
