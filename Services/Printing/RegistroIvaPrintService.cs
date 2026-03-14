@@ -46,7 +46,7 @@ public class RegistroIvaPrintService
 
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             // 1. Recupera dettagli fatture con IVA
             var sql = @"
@@ -175,7 +175,7 @@ public class RegistroIvaPrintService
     {
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";
             var companyRaw = await connection.QueryFirstOrDefaultAsync<dynamic>(companySql, new { AziendaId = aziendaId });

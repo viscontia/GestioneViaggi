@@ -460,7 +460,7 @@ public class FatturaElettronicaXmlService : IFatturaElettronicaXmlService
 
     private async Task<string> GetNextProgressivoAsync(InvoiceCompanyInfo company)
     {
-        using var connection = await _dbService.GetConnectionAsync();
+        await using var connection = await _dbService.GetConnectionAsync();
 
         // Recupera azienda_id dalla partita IVA
         var aziendaId = await connection.QueryFirstAsync<int>(

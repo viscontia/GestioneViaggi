@@ -45,7 +45,7 @@ public class MovTransazioniPrintService
 
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             // 1. Recupera dettagli transazioni
             // Mapping 1:1 con le colonne restituite da fn_get_transazioni_stampa_dettaglio
@@ -236,7 +236,7 @@ public class MovTransazioniPrintService
     {
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
             
             // Use the shared function for consistent company info including logo
             var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";

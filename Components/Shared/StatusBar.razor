@@ -31,6 +31,12 @@
 
     <div style="flex: 1;"></div>
 
+    @if (!string.IsNullOrWhiteSpace(StatusBarService.CurrentStatus.AppVersion))
+    {
+        <span class="status-text status-version">@StatusBarService.CurrentStatus.AppVersion</span>
+        <span class="divider">|</span>
+    }
+
     <span class="status-icon">🕒</span>
     <span class="status-text status-mono">@StatusBarService.CurrentStatus.CurrentDateTime.ToString("dd/MM/yyyy HH:mm:ss")</span>
 </div>
@@ -71,6 +77,12 @@
     .divider {
         color: var(--mud-palette-divider, #e0e0e0);
         margin: 0 4px;
+    }
+
+    .status-version {
+        font-size: 0.75rem;
+        color: var(--mud-palette-text-disabled, #999);
+        font-style: italic;
     }
 </style>
 

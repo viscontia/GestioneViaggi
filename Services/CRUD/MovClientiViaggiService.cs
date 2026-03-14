@@ -20,7 +20,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 var p = new DynamicParameters();
                 p.Add("p_viaggio_id", entity.ViaggioIdFk);
                 p.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
@@ -62,7 +62,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 var p = new DynamicParameters();
                 p.Add("p_viaggio_id", entity.ViaggioIdFk);
                 p.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
@@ -103,7 +103,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 var p = new DynamicParameters();
                 p.Add("p_viaggio_id", viaggioId);
                 p.Add("p_data_viaggio_id", dataId);
@@ -131,7 +131,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 // Manual mapping via aliases to safe PascalCase
                 string sql = @"
                     SELECT
@@ -164,7 +164,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 string sql = @"
                     SELECT
                         v.viaggio_id_fk as ViaggioId,
@@ -212,7 +212,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 return await conn.QueryFirstOrDefaultAsync<string>(
                     "SELECT get_viaggio_partecipanti_summary(@dataId)",
                     new { dataId = dataViaggioId }) ?? "Nessun partecipante";
@@ -231,7 +231,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 string sql = @"
                     SELECT
                         v.viaggio_descrizione_breve || ' (Dal ' || TO_CHAR(d.data_viaggio_data_inizio, 'DD/MM/YYYY') || ' al ' || TO_CHAR(d.data_viaggio_data_fine, 'DD/MM/YYYY') || ')'
@@ -260,7 +260,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(@"
                     SELECT 
@@ -299,7 +299,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(
                     "SELECT * FROM get_participants_without_accommodation(@dataId)",
                     new { dataId = dataViaggioId });
@@ -323,7 +323,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 return await conn.QuerySingleAsync<int>(
                     "SELECT get_participants_count(@dataId)",
                     new { dataId = dataViaggioId });

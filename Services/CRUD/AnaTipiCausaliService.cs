@@ -30,7 +30,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var results = await conn.QueryAsync<AnaTipoCausale>(
                 "SELECT * FROM fn_ana_tipi_causali_get_all(@AziendaId)",
                 new { AziendaId = aziendaId }
@@ -51,7 +51,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var results = await conn.QueryAsync<AnaTipoCausale>(
                 "SELECT * FROM fn_ana_tipi_causali_get_active(@AziendaId)",
                 new { AziendaId = aziendaId }
@@ -72,7 +72,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var results = await conn.QueryAsync<AnaTipoCausale>(
                 "SELECT * FROM fn_ana_tipi_causali_get_active_by_ciclo(@AziendaId, @Ciclo)",
                 new { AziendaId = aziendaId, Ciclo = ciclo }
@@ -92,7 +92,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
 
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             entity.CausaleId = await conn.ExecuteScalarAsync<int>(
                 @"SELECT sp_ana_tipi_causali_create(
@@ -158,7 +158,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
 
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             await conn.ExecuteAsync(
                 @"SELECT sp_ana_tipi_causali_update(
@@ -220,7 +220,7 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             await conn.ExecuteAsync(
                 "SELECT sp_ana_tipi_causali_delete(@CausaleId)",

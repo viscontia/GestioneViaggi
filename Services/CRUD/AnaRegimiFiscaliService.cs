@@ -53,7 +53,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali ORDER BY regime_codice";
 
@@ -70,7 +70,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE attivo = TRUE ORDER BY regime_codice";
 
@@ -87,7 +87,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_id = @Id";
 
@@ -104,7 +104,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_codice = @Codice";
 
@@ -125,7 +125,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             item.RegimeCodice = item.RegimeCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.RegimeCodice));
 
@@ -164,7 +164,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             item.RegimeCodice = item.RegimeCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.RegimeCodice));
 
@@ -204,7 +204,7 @@ public class AnaRegimiFiscaliService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = "DELETE FROM ana_regimi_fiscali WHERE regime_id = @Id";
 

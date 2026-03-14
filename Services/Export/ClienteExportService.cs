@@ -24,7 +24,7 @@ public class ClienteExportService : IClienteExportService
 
     public async Task<List<ClienteExportDTO>> GetClientiExportAsync(int? aziendaId)
     {
-        using var connection = await _dbService.GetConnectionAsync();
+        await using var connection = await _dbService.GetConnectionAsync();
 
         var sql = "SELECT * FROM fn_get_clienti_export(@AziendaId)";
         var result = await connection.QueryAsync<ClienteExportDTO>(sql, new { AziendaId = aziendaId });

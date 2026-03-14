@@ -23,7 +23,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
 
                 // PostgreSQL FUNCTION (not PROCEDURE), use SELECT instead of CALL
                 string sql = @"
@@ -74,7 +74,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
 
                 // PostgreSQL FUNCTION (not PROCEDURE), use SELECT instead of CALL
                 string sql = @"
@@ -127,7 +127,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
 
                 // PostgreSQL FUNCTION (not PROCEDURE), use SELECT instead of CALL
                 string sql = "SELECT sp_mov_clienti_alloggi_delete(@p_pk)";
@@ -148,7 +148,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 string sql = @"
                     SELECT
                         mov_clienti_alloggio_pk as MovClientiAlloggioPk,
@@ -185,7 +185,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>(@"
                     SELECT 
@@ -219,7 +219,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 return await conn.QuerySingleAsync<bool>(
                     "SELECT sp_assign_to_first_free_slot(@pk, @clienteId)",
                     new { pk = alloggioPk, clienteId });
@@ -247,7 +247,7 @@ namespace GestioneViaggi.Services.CRUD
         {
             try
             {
-                using var conn = await _connectionManager.GetConnectionAsync();
+                await using var conn = await _connectionManager.GetConnectionAsync();
                 return await conn.QuerySingleAsync<int>(
                     "SELECT get_rooms_count(@dataId)",
                     new { dataId = dataViaggioId });
@@ -281,7 +281,7 @@ namespace GestioneViaggi.Services.CRUD
     {
         try
         {
-            using var conn = await _connectionManager.GetConnectionAsync();
+            await using var conn = await _connectionManager.GetConnectionAsync();
             
             // Use aliases to map snake_case columns to PascalCase properties automatically with Dapper
             var sql = @"
@@ -312,7 +312,7 @@ namespace GestioneViaggi.Services.CRUD
     {
         try
         {
-            using var conn = await _connectionManager.GetConnectionAsync();
+            await using var conn = await _connectionManager.GetConnectionAsync();
             var sql = "SELECT sp_resolve_room_violation_move(@oldRoomId, @newTipo, @survivors)";
             
             await conn.ExecuteAsync(sql, new 
@@ -333,7 +333,7 @@ namespace GestioneViaggi.Services.CRUD
     {
         try
         {
-            using var conn = await _connectionManager.GetConnectionAsync();
+            await using var conn = await _connectionManager.GetConnectionAsync();
             var sql = "SELECT sp_resolve_room_violation_park(@roomId, @survivors)";
             
             await conn.ExecuteAsync(sql, new 

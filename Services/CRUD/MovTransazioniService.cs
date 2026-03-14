@@ -36,7 +36,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             string sql = "SELECT * FROM fn_get_viaggi_with_transazioni(@AziendaId)";
             var result = await conn.QueryAsync<AnaViaggi>(sql, new { AziendaId = aziendaId });
             return result;
@@ -55,7 +55,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             string sql = "SELECT * FROM fn_get_date_viaggi_with_transazioni(@ViaggioId)";
             var result = await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
             return result;
@@ -81,7 +81,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             // La function ritorna già tutti i campi incluse le descrizioni in join.
             // Non serve fare ulteriori JOIN qui, ma Dapper mapperà le colonne snake_case sulle proprietà PascalCase.
             string sql = @"SELECT * FROM fn_get_all_transazioni(@ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
@@ -118,7 +118,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             // La function ritorna già tutti i campi incluse le descrizioni in join.
             // Non serve fare ulteriori JOIN qui, ma Dapper mapperà le colonne snake_case sulle proprietà PascalCase.
             string sql = @"SELECT * FROM fn_get_transazioni_by_azienda(@AziendaId, @ViaggioId, @DataViaggioId, @DataTransazione, @SoloDaPagare, @CausaleTipoId)";
@@ -146,7 +146,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 SELECT
                     t.*,
@@ -192,7 +192,7 @@ public class MovTransazioniService
     public async Task<(int TransazioneId, string? WarningMessage)> CreateAsync(MovTransazioni item)
     {
         string? warningMessage = null;
-        using var conn = await _dbService.GetConnectionAsync();
+        await using var conn = await _dbService.GetConnectionAsync();
         using var transaction = conn.BeginTransaction();
 
         try
@@ -330,7 +330,7 @@ public class MovTransazioniService
     public async Task<string?> UpdateAsync(MovTransazioni item)
     {
         string? warningMessage = null;
-        using var conn = await _dbService.GetConnectionAsync();
+        await using var conn = await _dbService.GetConnectionAsync();
         using var transaction = conn.BeginTransaction();
 
         try
@@ -479,7 +479,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             // Blocca eliminazione se la transazione ha un protocollo IVA assegnato
             var protocollo = await conn.QueryFirstOrDefaultAsync<int?>(
@@ -525,7 +525,7 @@ public class MovTransazioniService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             // Chiama la stored function sp_registra_pagamento
             string sql = @"

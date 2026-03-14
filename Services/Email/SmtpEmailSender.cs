@@ -29,7 +29,7 @@ public class SmtpEmailSender : IEmailSender
         try
         {
             // Recupera config SMTP dall'azienda
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
             var configJson = await connection.ExecuteScalarAsync<string>(
                 "SELECT fn_get_smtp_config_for_email(@AziendaId)",
                 new { AziendaId = _aziendaId }
@@ -96,7 +96,7 @@ public class SmtpEmailSender : IEmailSender
     {
         try
         {
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
             var configJson = await connection.ExecuteScalarAsync<string>(
                 "SELECT fn_get_smtp_config_for_email(@AziendaId)",
                 new { AziendaId = _aziendaId }

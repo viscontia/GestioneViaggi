@@ -36,7 +36,7 @@ public class ApiConfigService
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var results = await conn.QueryAsync<ApiConfig>(
                 "SELECT * FROM fn_ana_api_config_get_all()"
             );
@@ -56,7 +56,7 @@ public class ApiConfigService
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var results = await conn.QueryAsync<ApiConfig>(
                 "SELECT * FROM fn_ana_api_config_get_by_service(@ServiceCode)",
                 new { ServiceCode = serviceCode }
@@ -96,7 +96,7 @@ public class ApiConfigService
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             var value = await conn.ExecuteScalarAsync<string>(
                 "SELECT fn_get_api_config_value(@ServiceCode, @ConfigKey)",
                 new { ServiceCode = serviceCode, ConfigKey = configKey }
@@ -127,7 +127,7 @@ public class ApiConfigService
 
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             entity.ConfigId = await conn.ExecuteScalarAsync<int>(
                 @"SELECT sp_ana_api_config_create(
@@ -185,7 +185,7 @@ public class ApiConfigService
 
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             await conn.ExecuteAsync(
                 @"SELECT sp_ana_api_config_update(
@@ -240,7 +240,7 @@ public class ApiConfigService
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             await conn.ExecuteAsync(
                 "SELECT sp_ana_api_config_delete(@ConfigId)",
@@ -270,7 +270,7 @@ public class ApiConfigService
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
 
             await conn.ExecuteAsync(
                 "SELECT sp_ana_api_config_delete_service(@ServiceCode)",

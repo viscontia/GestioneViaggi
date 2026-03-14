@@ -35,7 +35,7 @@ public class FiscalCalculationService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
                 SELECT regime_fiscale_fk

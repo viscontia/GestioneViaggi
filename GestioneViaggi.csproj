@@ -22,8 +22,8 @@
         <ApplicationId>com.adrianovisconti.gestioneviaggi</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
+        <ApplicationVersion>2</ApplicationVersion>
 
         <WindowsPackageType>None</WindowsPackageType>
 
@@ -50,6 +50,7 @@
         <Content Remove="appsettings.Development.json" />
         <EmbeddedResource Include="appsettings.json" />
         <EmbeddedResource Include="appsettings.Development.json" />
+        <EmbeddedResource Include="Resources\Version\Versione.txt" />
     </ItemGroup>
 
     <ItemGroup>
@@ -118,5 +119,6 @@
 
     <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->
     <!-- QuestPDF fonts inclusion removed due to version mismatch and build errors -->
+
 
 </Project>

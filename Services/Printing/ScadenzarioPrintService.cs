@@ -44,7 +44,7 @@ public class ScadenzarioPrintService
 
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             // Chiamata alla function DB fn_get_scadenzario_stampa
             var dettagli = await connection.QueryAsync<ScadenzarioItem>(
@@ -146,7 +146,7 @@ public class ScadenzarioPrintService
     {
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(
                 "SELECT * FROM get_company_print_info(@AziendaId)",
                 new { AziendaId = aziendaId }) ?? new CompanyPrintInfo();

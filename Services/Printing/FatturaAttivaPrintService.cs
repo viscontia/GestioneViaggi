@@ -30,7 +30,7 @@ public class FatturaAttivaPrintService
 
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             // 1. Recupera dati principali dalla function DB
             var sql = "SELECT * FROM fn_get_fattura_attiva_stampa(@TransazioneId)";
@@ -162,7 +162,7 @@ public class FatturaAttivaPrintService
     {
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             var sql = "SELECT anno FROM fn_get_anni_fatture_attive(@AziendaId)";
 
@@ -195,7 +195,7 @@ public class FatturaAttivaPrintService
 
         try
         {
-            using var connection = await _dbService.GetConnectionAsync();
+            await using var connection = await _dbService.GetConnectionAsync();
 
             var sql = @"
                 SELECT

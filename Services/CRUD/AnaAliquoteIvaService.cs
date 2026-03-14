@@ -30,7 +30,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
                 SELECT
@@ -66,7 +66,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
                 SELECT
@@ -103,7 +103,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
                 SELECT
@@ -137,7 +137,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
                 SELECT
@@ -175,7 +175,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             // Normalizza codice (UPPER CASE)
             item.IvaCodice = item.IvaCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.IvaCodice));
@@ -210,7 +210,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             item.IvaCodice = item.IvaCodice?.ToUpper() ?? throw new ArgumentNullException(nameof(item.IvaCodice));
 
@@ -244,7 +244,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             await conn.OpenAsync();
 
             using var transaction = await conn.BeginTransactionAsync();
@@ -293,7 +293,7 @@ public class AnaAliquoteIvaService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
 
             // Delete fisico per attivare i vincoli di integrità del DB (RESTRICT)
             const string sql = @"

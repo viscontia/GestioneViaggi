@@ -31,7 +31,7 @@ public class PasswordResetService
     {
         try
         {
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
             var resultJson = await connection.ExecuteScalarAsync<string>(
                 "SELECT fn_app_request_password_reset(@Email::citext)",
                 new { Email = email }
@@ -103,7 +103,7 @@ public class PasswordResetService
     {
         try
         {
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
             var result = await connection.ExecuteScalarAsync<string>(
                 "SELECT validate_reset_token(@Token)",
                 new { Token = resetCode }
@@ -146,7 +146,7 @@ public class PasswordResetService
     {
         try
         {
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
 
             // Usa la versione che accetta password in chiaro (il DB fa l'hashing con bcrypt)
             var result = await connection.ExecuteScalarAsync<string>(

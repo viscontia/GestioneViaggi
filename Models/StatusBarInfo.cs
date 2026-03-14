@@ -22,4 +22,5 @@ public class StatusBarInfo
     public string CompanyName { get; set; } = "Tutte le Aziende";
     public DateTime CurrentDateTime { get; set; } = DateTime.Now;
     public string? CurrentTableName { get; set; }
+    public string AppVersion { get; set; } = string.Empty;
 }

@@ -25,7 +25,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
     {
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             // Ordiniamo EUR per primo, poi alfabetico
             string sql = @"
                 SELECT * FROM ana_valute 
@@ -49,7 +49,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         await PopulateAuditFieldsAsync(entity, true);
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             string sql = @"
                 INSERT INTO ana_valute (
                     valuta_codice_iso,
@@ -90,7 +90,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         await PopulateAuditFieldsAsync(entity, false);
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             string sql = @"
                 UPDATE ana_valute SET 
                     valuta_codice_iso = @ValutaCodiceIso,

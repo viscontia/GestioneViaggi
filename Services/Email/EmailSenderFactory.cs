@@ -46,7 +46,7 @@ public class EmailSenderFactory
     {
         try
         {
-            using var connection = await _databaseService.GetConnectionAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
             var result = await connection.ExecuteScalarAsync<string>(
                 "SELECT fn_get_smtp_config_for_email(@AziendaId)",
                 new { AziendaId = aziendaId }

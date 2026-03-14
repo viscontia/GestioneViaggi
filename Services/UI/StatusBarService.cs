@@ -30,8 +30,29 @@ public class StatusBarService : IStatusBarService, IDisposable
     public async Task InitializeAsync()
     {
         CurrentStatus.Environment = _connectionManager.Environment;
+        CurrentStatus.AppVersion = LoadAppVersion();
         await RefreshStatusAsync();
         StartAutoRefresh();
+    }
+
+    private static string LoadAppVersion()
+    {
+        try
+        {
+            var assembly = typeof(StatusBarService).Assembly;
+            using var stream = assembly.GetManifestResourceStream("GestioneViaggi.Resources.Version.Versione.txt");
+            if (stream == null) return "N/D";
+
+            using var reader = new StreamReader(stream);
+            var version = reader.ReadLine()?.Trim() ?? "N/D";
+            var date = reader.ReadLine()?.Trim();
+
+            return string.IsNullOrEmpty(date) ? version : $"v{version} ({date})";
+        }
+        catch
+        {
+            return "N/D";
+        }
     }
 
     public async Task RefreshStatusAsync()

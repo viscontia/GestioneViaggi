@@ -23,7 +23,7 @@ public class AnaDateViaggiService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 SELECT
                     data_viaggio_id as DataViaggioId,
@@ -51,7 +51,7 @@ public class AnaDateViaggiService
     {
         try
         {
-            using var conn = await _dbService.GetConnectionAsync();
+            await using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
                 SELECT 
                     data_viaggio_id as DataViaggioId,

@@ -24,7 +24,7 @@ public class TravelPrintService : ITravelPrintService
     {
         try
         {
-            using var conn = await _connectionManager.GetConnectionAsync();
+            await using var conn = await _connectionManager.GetConnectionAsync();
             var data = new TravelPrintDTO();
 
             // 1. Fetch Header Info

@@ -551,3 +551,102 @@ Nota: Queste non sono funzioni DB, ma descrizioni di logica C# rilevante.
 | :--- | :--- | :--- | :--- |
 | `ComuneService` | Decodifica Geografica | Esegue JOIN su `ana_geo_province`, `ana_geo_regioni_ita` per recuperare Sigla Provincia e Nome Regione. | `Services/CRUD/ComuneService.cs` |
 
+---
+
+## 12. Wizard Iscrizione Viaggi (Flask)
+
+Funzioni PostgreSQL dedicate al wizard di iscrizione viaggi online (applicazione Flask + React, separata dall'app MAUI). Tutte le funzioni usano il prefisso `fn_wizard_*` per distinguerle dalle funzioni dell'app MAUI. Create durante la migrazione Oracle → PostgreSQL (Marzo 2026).
+
+**Progetto**: `Iscrizione-Viaggi-Offroad PostgreSQL` (Flask 3.1 + React 18 + psycopg v3)
+**Azienda**: Sardegna Fuori Traccia (AZIENDA_ID = 2)
+**Repository**: separato dal repository MAUI
+
+### 12.1 Step 1 - Selezione Viaggio, Data, Email
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_viaggi_disponibili` | Restituisce i viaggi attivi che hanno almeno una data futura. JOIN con `ana_date_viaggi` per filtrare solo viaggi con partenze future. Ordinamento per descrizione. | `p_azienda_id INT` | `TABLE(viaggio_id, viaggio_descrizione_breve, viaggio_descrizione_estesa, ...)` | `Classi_Tabelle_DB/lista_viaggi.py` |
+| `fn_wizard_get_viaggio_by_id` | Restituisce il dettaglio di un singolo viaggio con JOIN su nazione (`ana_geo_nazioni`) e tipo pernottamento (`ana_tipo_pernottamento`). Include flag `albergo_sino` per determinare se il viaggio prevede alloggio. | `p_viaggio_id INT` | `TABLE(viaggio_id, viaggio_descrizione_breve, nazione_nome, pernottamento_descrizione, albergo_sino, ...)` | `Classi_Tabelle_DB/lista_viaggi.py` |
+| `fn_wizard_get_date_viaggio` | Restituisce le date future disponibili per un viaggio. Filtra `data_inizio >= CURRENT_DATE`. Ordinamento cronologico. | `p_viaggio_id INT` | `TABLE(data_viaggio_id, data_inizio, data_fine, ...)` | `Classi_Tabelle_DB/lista_date_viaggi.py` |
+| `fn_wizard_get_date_by_id` | Restituisce il dettaglio di una singola data viaggio con formattazione date in italiano (`TO_CHAR` con locale `it_IT`). Usato per visualizzare le date nel riepilogo. | `p_data_viaggio_id INT` | `TABLE(data_viaggio_id, data_inizio, data_fine, data_inizio_label, data_fine_label, ...)` | `Classi_Tabelle_DB/lista_date_viaggi.py` |
+| `fn_wizard_verifica_cliente` | Verifica se un cliente esiste nel database per email e azienda. Usato nello Step 1 per determinare se precompilare il form (cliente esistente) o mostrare form vuoto (nuovo cliente). | `p_email VARCHAR, p_azienda_id INT` | `TABLE(cliente_exists BOOLEAN, cliente_id INT)` | `Classi_Tabelle_DB/cliente.py` |
+| `fn_wizard_leggi_dati_cliente` | Recupera tutti i dati anagrafici di un cliente per email, incluse descrizioni comuni (residenza e nascita) tramite JOIN su `ana_geo_comuni`. Usato per precompilare il form dello Step 2. | `p_email VARCHAR` | `TABLE(cliente_id, cliente_titolo, cliente_cognome, cliente_nome, cliente_sesso, cliente_email, cliente_codicefiscale, descrizione_comune_residenza, descrizione_comune_nascita, ...)` | `Classi_Tabelle_DB/cliente.py` |
+| `fn_wizard_is_cliente_registrato` | Verifica se un cliente e gia iscritto a uno specifico viaggio/data. Previene prenotazioni duplicate. Restituisce TRUE se esiste gia un record in `mov_clienti_viaggi`. | `p_cliente_id INT, p_viaggio_id INT, p_data_viaggio_id INT` | `BOOLEAN` | `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` |
+
+### 12.2 Step 2 - Dati Pilota/Cliente
+
+Le operazioni CRUD sul cliente (INSERT, UPDATE) e le verifiche di unicita (CF, email per anagrafica) usano **SQL diretto** nei DAO Python, non funzioni `fn_wizard_*`. Questo perche la logica e semplice e lineare (singolo INSERT/UPDATE con RETURNING).
+
+**Tabelle coinvolte**: `ana_clienti`, `ana_geo_comuni`
+**DAO**: `Classi_Tabelle_DB/cliente.py`
+
+Operazioni:
+- `insert_cliente()` → INSERT INTO ana_clienti ... RETURNING cliente_id
+- `update_cliente()` → UPDATE ana_clienti SET ... WHERE cliente_id = ?
+- `get_client_data()` → SELECT da ana_clienti JOIN ana_geo_comuni (per validazione CF)
+- `find_existing_email_by_anagrafica()` → SELECT cliente_email WHERE cognome+nome+cf
+- `find_existing_email_by_cf()` → SELECT cliente_email WHERE codicefiscale
+- `check_codice_fiscale_esistenza()` → SELECT 1 WHERE codicefiscale (con esclusione ID)
+
+**Gestione errori**: `UniqueViolation` su codice fiscale genera `UniqueConstraintViolationError` con email del cliente esistente.
+
+**Dati geografici**: Riutilizzano le funzioni MAUI esistenti `fn_app_get_comuni_lookup` e `fn_app_get_comune_by_id` (sezione 3).
+
+### 12.3 Step 3 - Passeggeri
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_partecipanti` | Recupera dati anagrafici per un array di ID cliente. Usa `WHERE cliente_id = ANY(p_ids)`. Usato per visualizzare la lista passeggeri selezionati. | `p_ids INT[]` | `TABLE(cliente_id, cliente_cognome, cliente_nome, cliente_email, cliente_data_nascita)` | `app.py` (endpoint `/api/partecipanti`) |
+
+### 12.4 Step 4 - Veicolo
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_tipi_mezzi` | Restituisce tutti i tipi di mezzi ordinati per descrizione. Usato per popolare il combobox tipo mezzo. | - | `TABLE(ana_tipo_mezzo_id, ana_tipo_mezzo_descrizione)` | `tipo_mezzo.py`, `app.py` |
+| `fn_wizard_get_all_mezzi` | Restituisce tutte le marche di veicoli ordinate per descrizione. Usato per popolare il combobox marca. | - | `TABLE(ana_mezzi_id, ana_mezzi_descrizione)` | `mezzi.py`, `Classi_Tabelle_Statiche/ana_mezzi_dao.py` |
+| `fn_wizard_get_mezzo_by_id` | Restituisce il dettaglio di una singola marca per ID. | `p_mezzo_id INT` | `TABLE(ana_mezzi_id, ana_mezzi_descrizione)` | `mezzi.py` |
+| `fn_wizard_get_mezzi_by_tipo` | Restituisce tutte le marche che hanno almeno un modello del tipo specificato, ordinate per descrizione. Usato per filtrare il combobox marca in base al tipo selezionato. | `p_tipo_id INT` | `TABLE(ana_mezzi_id, ana_mezzi_descrizione)` | `mezzi.py`, `app.py` |
+| `fn_wizard_get_modelli_by_mezzo` | Restituisce tutti i modelli per una marca specifica, ordinati per descrizione. Usato per popolare il combobox modello. | `p_mezzo_id INT` | `TABLE(mezzo_modello_id, mezzo_modello_descrizione, ana_mezzi_id_fk)` | `modelli_mezzi.py`, `Classi_Tabelle_Statiche/ana_mezzi_modelli_dao.py` |
+| `fn_wizard_get_modelli_by_mezzo_and_tipo` | Restituisce tutti i modelli per una marca specifica filtrati per tipo, ordinati per descrizione. Usato per popolare il combobox modello con solo i modelli pertinenti al tipo selezionato. | `p_mezzo_id INT, p_tipo_id INT` | `TABLE(mezzo_modello_id, mezzo_modello_descrizione, mezzo_modello_mezzo_fk, mezzo_modello_tipo_fk)` | `modelli_mezzi.py`, `app.py` |
+| `fn_wizard_get_modello_by_id` | Restituisce il dettaglio di un singolo modello per ID. | `p_modello_id INT` | `TABLE(mezzo_modello_id, mezzo_modello_descrizione, ana_mezzi_id_fk)` | `modelli_mezzi.py` |
+| `fn_wizard_get_mezzi_by_ids` | Lookup marche per array di ID. Usato nel riepilogo finale per risolvere gli ID in descrizioni leggibili. | `p_ids INT[]` | `TABLE(ana_mezzi_id, ana_mezzi_descrizione)` | `mezzi.py`, `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` |
+| `fn_wizard_get_modelli_by_ids` | Lookup modelli per array di ID. Usato nel riepilogo finale per risolvere gli ID in descrizioni leggibili. | `p_ids INT[]` | `TABLE(mezzo_modello_id, mezzo_modello_descrizione)` | `modelli_mezzi.py`, `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` |
+
+### 12.5 Step 5 - Alloggi e Riepilogo
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_tipi_alloggio` | Restituisce tutti i tipi di alloggio ordinati per descrizione. Usato per popolare il combobox alloggio. | - | `TABLE(tipo_alloggio_id, tipo_alloggio_descrizione)` | `tipo_alloggio.py` |
+| `fn_wizard_get_tipi_alloggio_by_ids` | Lookup tipi alloggio per array di ID. Usato nel riepilogo finale. | `p_ids INT[]` | `TABLE(tipo_alloggio_id, tipo_alloggio_descrizione)` | `tipo_alloggio.py`, `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` |
+| `fn_wizard_get_albergo_sino` | Restituisce il flag albergo (Y/N) per un tipo di pernottamento. Determina se mostrare la sezione alloggi nel wizard. | `p_pernottamento_id INT` | `CHAR(1)` ('Y' o 'N') | `Classi_Tabelle_DB/tipo_pernottamento.py` |
+
+### 12.6 Finalizzazione e Email
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_smtp_config` | Recupera la configurazione SMTP per un'azienda dalla tabella `ana_aziende_smtp`. Restituisce host, porta, username, password (da `password_enc->>'value'`), metodo sicurezza, email e nome mittente. Usato da `create_app()` per configurare Flask-Mail. | `p_azienda_id INT` | `TABLE(host, port, username, password, security_method, from_email, from_name)` | `app.py` (funzione `create_app()`) |
+
+La finalizzazione della prenotazione (INSERT in `mov_clienti_viaggi` e `mov_clienti_alloggi`) usa **SQL diretto** con transazione esplicita, non stored procedure. I campi audit (`created_by`, `updated_by`) sono gestiti tramite trigger di tabella che leggono `current_setting('my.app_user', true)`.
+
+Le stored procedure MAUI `sp_mov_clienti_viaggi_create` e `sp_mov_clienti_alloggi_create` (sezione 5) **non sono usate** dal wizard perche hanno una signature diversa e logica aggiuntiva specifica per l'app MAUI.
+
+### Note Implementative - Wizard Iscrizione Viaggi (2026-03-10)
+
+**Architettura**:
+- **Driver**: psycopg v3 con `psycopg_pool.ConnectionPool(min_size=1, max_size=5)`
+- **Pattern DAO**: `conn = db_manager.get_connection()` → `cursor.execute()` → `db_manager.release_connection(conn)`
+- **Bind params**: `%(nome_parametro)s` (named params psycopg)
+- **Approccio misto**: Funzioni `fn_wizard_*` per query di lettura complesse (JOIN, filtri, formattazione); SQL diretto per operazioni CRUD semplici (INSERT/UPDATE con RETURNING)
+
+**Tabelle coinvolte**:
+- `ana_viaggi`, `ana_date_viaggi` → Selezione viaggio e data
+- `ana_clienti` → Anagrafica pilota e passeggeri
+- `ana_geo_comuni`, `ana_geo_province`, `ana_geo_regioni_ita`, `ana_geo_nazioni` → Dati geografici
+- `ana_mezzi`, `ana_mezzi_modelli` → Veicoli
+- `ana_tipo_alloggio`, `ana_tipo_pernottamento` → Alloggi
+- `mov_clienti_viaggi` → Iscrizioni al viaggio
+- `mov_clienti_alloggi` → Assegnazione camere
+- `ana_aziende_smtp` → Configurazione email
+
+**Totale funzioni fn_wizard_***: 18 (7 Step 1 + 1 Step 3 + 6 Step 4 + 3 Step 5 + 1 Email)
+

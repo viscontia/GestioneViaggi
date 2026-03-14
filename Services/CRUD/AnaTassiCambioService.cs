@@ -41,7 +41,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                 JOIN ana_valute v2 ON t.tasso_valuta_a_fk = v2.valuta_id
                 ORDER BY t.tasso_data_validita DESC, v1.valuta_codice_iso ASC";
 
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             return await conn.QueryAsync<AnaTassiCambio>(sql);
         }
         catch (Exception ex)
@@ -56,7 +56,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
         await PopulateAuditFieldsAsync(entity, true);
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             string sql = @"
                 INSERT INTO ana_tassi_cambio (
                     tasso_valuta_da_fk,
@@ -101,7 +101,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
         await PopulateAuditFieldsAsync(entity, false);
         try
         {
-            using var conn = await _databaseService.GetConnectionAsync();
+            await using var conn = await _databaseService.GetConnectionAsync();
             string sql = @"
                 UPDATE ana_tassi_cambio SET
                     tasso_valuta_da_fk = @TassoValutaDaId,

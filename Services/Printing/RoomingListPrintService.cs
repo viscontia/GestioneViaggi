@@ -24,7 +24,7 @@ public class RoomingListPrintService : IRoomingListPrintService
     {
         try
         {
-            using var conn = await _connectionManager.GetConnectionAsync();
+            await using var conn = await _connectionManager.GetConnectionAsync();
             var data = new RoomingListPrintDTO();
 
             // 1. Fetch Header Info (reuse same function as Travel Print)

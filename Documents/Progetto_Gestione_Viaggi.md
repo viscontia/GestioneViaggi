@@ -15,6 +15,7 @@ Questo documento raccoglie tutte le informazioni critiche del progetto Gestione 
 6. [Elenco Utenti Applicativi](#-elenco-utenti-applicativi)
 7. [Schema del Database (E/R)](#-schema-del-database-er)
 8. [Configurazione SMTP](#-configurazione-smtp)
+9. [Gestione Versione Applicazione](#-gestione-versione-applicazione)
 
 ---
 
@@ -147,6 +148,18 @@ Per ottimizzare i tempi di sviluppo e test:
   ```bash
   open bin/Release/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app
   ```
+
+### Clean Build per Release
+
+> [!WARNING]
+> Dopo modifiche al `.csproj` (aggiunta/rimozione di `EmbeddedResource`, pacchetti NuGet, configurazione risorse) **eseguire sempre una clean build** prima di avviare in Release. Un build incrementale potrebbe produrre un `.app` con artefatti stale, causando l'errore fatale **"There is no content at"** nel BlazorWebView all'avvio.
+
+**Caso reale (2026-03-08):** Dopo l'aggiunta di `Resources/Version/Versione.txt` come `EmbeddedResource` e le modifiche a `StatusBar`/`StatusBarService`, l'app in Release mostrava "There is no content at" e non si avviava. Il build Debug funzionava regolarmente. Una clean build ha risolto il problema.
+
+```bash
+# Clean + Rebuild Release
+dotnet clean -c Release -f net9.0-maccatalyst && dotnet build -c Release -f net9.0-maccatalyst
+```
 
 ---
 
@@ -309,3 +322,48 @@ Dettagli per l'invio delle email di sistema.
 - **Password**: `qrdq shro bhsg skgw` (App Password)
 - **Sicurezza**: TLS Disattivo, StartTLS Attivo
 - **Protocollo**: SMTP
+
+---
+
+## 🏷️ Gestione Versione Applicazione
+
+La versione dell'applicazione è gestita tramite un file di testo esterno, separato dal codice sorgente, per semplificare gli aggiornamenti.
+
+### File Sorgente
+```
+Resources/Version/Versione.txt
+```
+
+### Formato
+Il file contiene due righe:
+```
+1.1
+2026-03-07
+```
+- **Riga 1**: Numero di versione (es. `1.1`)
+- **Riga 2**: Data di rilascio in formato `YYYY-MM-DD`
+
+### Come Funziona
+1. Il file è incluso nel progetto come **EmbeddedResource** (configurato in `GestioneViaggi.csproj`)
+2. All'avvio dell'app, `StatusBarService.LoadAppVersion()` legge la risorsa embedded dall'assembly
+3. La versione viene visualizzata nella **StatusBar** in basso a destra, nel formato `v1.1 (2026-03-07)`
+
+### Come Aggiornare la Versione
+Per rilasciare una nuova versione è sufficiente:
+1. Modificare `Resources/Version/Versione.txt` con il nuovo numero e la data
+2. Aggiornare `ApplicationDisplayVersion` e `ApplicationVersion` nel `.csproj` per coerenza con il sistema operativo
+
+### File Coinvolti
+| File | Ruolo |
+|------|-------|
+| `Resources/Version/Versione.txt` | Sorgente unico della versione |
+| `GestioneViaggi.csproj` | Include il file come EmbeddedResource + versioni OS |
+| `Models/StatusBarInfo.cs` | Proprietà `AppVersion` |
+| `Services/UI/StatusBarService.cs` | Metodo `LoadAppVersion()` che legge la risorsa |
+| `Components/Shared/StatusBar.razor` | Visualizzazione nella barra di stato |
+
+### Storico Versioni
+| Versione | Data | Note |
+|----------|------|------|
+| 1.0 | - | Versione iniziale |
+| 1.1 | 2026-03-07 | Export XML FatturaPA SDI, estrazione clienti, versioning esternalizzato |
