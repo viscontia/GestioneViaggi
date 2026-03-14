@@ -732,3 +732,35 @@ Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica c
 | `fn_get_scadenzario_print_data` | **Fat Init**: Ottimizzazione per la stampa dello Scadenzario. Consolida i dati dell'azienda e l'estrazione dettagliata dello scadenzario finanziario (via `fn_get_scadenzario_stampa`). Supporta tutti i filtri di ricerca e raggruppamento dinamico (URGENZA/MESE/CONTROPARTE). | `p_azienda_id INTEGER, p_controparte_id INTEGER, p_causale_ciclo VARCHAR(10), p_urgenza VARCHAR(20), p_data_scadenza_da DATE, p_data_scadenza_a DATE, p_viaggio_id INTEGER, p_solo_con_viaggio BOOLEAN, p_solo_senza_viaggio BOOLEAN, p_raggruppamento VARCHAR(20)` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/ScadenzarioPrintService.cs`, `SqlScripts/330_Create_FnGetScadenzarioPrintData.sql` |
 | `fn_get_bilancio_viaggio_print_data` | **Fat Init**: Ottimizzazione per il report Bilancio Viaggio (Singolo o Annuale). Consolida 3-4 query: Info Azienda, Logo binario e dati economici (via `fn_get_bilancio_viaggio` o `fn_get_bilancio_annuale_viaggi`). Permette di generare il bilancio economico completo in un unico passaggio. | `p_azienda_id INT, p_viaggio_ids INT[], p_data_da DATE, p_data_a DATE, p_anno INT, p_valuta_target_id INT, p_data_viaggio_id INT` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/340_Create_FnGetBilancioViaggioPrintData.sql` |
 | `fn_get_fattura_attiva_print_data` | **Fat Init**: Ottimizzazione per la stampa della Fattura Attiva. Risolve il problema delle query multiple per testata (Azienda+Cliente) e righe di dettaglio. Restituisce un oggetto JSONB completo pronto per il mapping nel DTO `FatturaAttivaPrintData`. Include campi SDI per fatturazione elettronica. | `p_transazione_id INTEGER` | `JSONB` (chiavi: testata, righe) | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/350_Create_FnGetFatturaAttivaPrintData.sql` |
+
+---
+
+## Allineamento Database (2026-03-15)
+
+### Funzioni Allineate
+
+In data 2026-03-15 è stato effettuato un allineamento completo delle funzioni tra il database locale (Docker) e Supabase (produzione).
+
+| Funzione | Azione | Note |
+|----------|--------|------|
+| `fn_get_controparte_init_data` | Creata su entrambi | Script `263_Create_FnGetControparteInitData.sql` corretto (nomi colonne tabelle geografiche) |
+| `fn_get_cliente_init_data` | Aggiornata su entrambi | Script `262_Create_FnGetClienteInitData.sql` corretto (`ana_geo_regioni` → `ana_geo_regioni_ita`, `provincia_regione_fk` → `regione_id_fk`) |
+| `fn_get_azienda_badge_counts` | Creata su Docker | Era presente solo su Supabase |
+| `fn_wizard_*` (21 funzioni) | Migrate su Supabase | Funzioni wizard iscrizione online |
+
+### Correzioni Script SQL
+
+Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle tabelle geografiche:
+
+| Errore | Correzione |
+|--------|------------|
+| `c.comune` | `c.comune_descrizione` |
+| `c.cap` | `c.comune_cap` |
+| `ana_geo_regioni` | `ana_geo_regioni_ita` |
+| `p.provincia_regione_fk` | `p.regione_id_fk` |
+
+### Stato Finale
+
+- **Docker (locale)**: 169 funzioni `fn_*`
+- **Supabase (prod)**: 169 funzioni `fn_*`
+- **Differenze**: Nessuna

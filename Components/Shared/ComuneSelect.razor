@@ -62,11 +62,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Priorità 1: Se SelectedComune è già fornito dal genitore, usalo subito
+        if (SelectedComune != null)
+        {
+            _selectedComune = SelectedComune;
+        }
+
         if (Items != null && Items.Count > 0)
         {
             _allComuni = Items;
             _loaded = true;
-            UpdateSelectedComune();
+            SyncSelectedComune();
         }
         else
         {
@@ -81,11 +87,26 @@
             _allComuni = Items;
             _loaded = true;
         }
-        UpdateSelectedComune();
+        SyncSelectedComune();
     }
 
-    private void UpdateSelectedComune()
+    private void SyncSelectedComune()
     {
+        // Priorità 1: Se SelectedComune è fornito dal genitore, usalo direttamente
+        // Questo gestisce il caso in cui il genitore ha già caricato l'oggetto Comune
+        if (SelectedComune != null)
+        {
+            if (_selectedComune?.Id != SelectedComune.Id)
+            {
+                // Cerca nella lista per consistenza, altrimenti usa l'oggetto passato
+                _selectedComune = _loaded && _allComuni.Count > 0
+                    ? _allComuni.FirstOrDefault(c => c.Id == SelectedComune.Id) ?? SelectedComune
+                    : SelectedComune;
+            }
+            return;
+        }
+
+        // Priorità 2: Usa SelectedComuneId per cercare nella lista
         if (!_loaded || _allComuni.Count == 0) return;
 
         if (SelectedComuneId.HasValue)
@@ -112,7 +133,7 @@
         {
             _allComuni = await ComuneService.GetAllAsync();
             _loaded = true;
-            UpdateSelectedComune();
+            SyncSelectedComune();
         }
         catch (Exception ex)
         {

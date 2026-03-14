@@ -26,13 +26,13 @@ BEGIN
                 'ProvinciaSigla', p.provincia_sigla,
                 'RegioneDescrizione', r.regione_descrizione,
                 'ComuneEstero', (c.comune_estero = 'Y')
-            )) 
+            ))
             FROM ana_geo_comuni c
             JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-            JOIN ana_geo_regioni r ON p.provincia_regione_fk = r.regione_id
+            JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
             ORDER BY c.comune_descrizione
         ),
-        'Aziende', (SELECT json_agg(json_build_object('Id', azienda_id, 'RagioneSociale', azienda_ragione_sociale)) FROM ana_aziende ORDER BY azienda_ragione_sociale),
+        'Aziende', (SELECT json_agg(json_build_object('Id', azienda_id, 'RagioneSociale', ragione_sociale)) FROM ana_aziende ORDER BY ragione_sociale),
         'ComuneNascita', (
             SELECT json_build_object(
                 'Id', c.comune_id,
@@ -44,7 +44,7 @@ BEGIN
             )
             FROM ana_geo_comuni c
             JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-            JOIN ana_geo_regioni r ON p.provincia_regione_fk = r.regione_id
+            JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
             WHERE c.comune_id = v_nascita_id
         ),
         'ComuneResidenza', (
@@ -58,7 +58,7 @@ BEGIN
             )
             FROM ana_geo_comuni c
             JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-            JOIN ana_geo_regioni r ON p.provincia_regione_fk = r.regione_id
+            JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
             WHERE c.comune_id = v_residenza_id
         )
     ) INTO v_result;

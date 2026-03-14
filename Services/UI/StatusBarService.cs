@@ -47,7 +47,14 @@ public class StatusBarService : IStatusBarService, IDisposable
             var version = reader.ReadLine()?.Trim() ?? "N/D";
             var date = reader.ReadLine()?.Trim();
 
-            return string.IsNullOrEmpty(date) ? version : $"v{version} ({date})";
+            if (string.IsNullOrEmpty(date))
+                return version;
+
+            // Converti data da formato ISO (yyyy-MM-dd) a formato italiano (dd/MM/yyyy)
+            if (DateTime.TryParse(date, out var parsedDate))
+                date = parsedDate.ToString("dd/MM/yyyy");
+
+            return $"v{version} ({date})";
         }
         catch
         {

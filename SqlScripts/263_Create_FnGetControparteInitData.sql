@@ -17,17 +17,17 @@ BEGIN
     -- 1. Caricamento Comuni (formattati per il DTO C#)
     SELECT json_agg(t) INTO v_comuni
     FROM (
-        SELECT 
+        SELECT
             c.comune_id as "Id",
-            c.comune as "Nome",
-            c.cap as "Cap",
+            c.comune_descrizione as "Nome",
+            c.comune_cap as "Cap",
             p.provincia_sigla as "ProvinciaSigla",
             r.regione_descrizione as "RegioneDescrizione",
             c.comune_estero as "ComuneEstero"
         FROM ana_geo_comuni c
         LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-        LEFT JOIN ana_geo_regioni_ita r ON p.provincia_regione_fk = r.regione_id
-        ORDER BY c.comune ASC
+        LEFT JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
+        ORDER BY c.comune_descrizione ASC
     ) t;
 
     -- 2. Caricamento Aziende (solo ID e Ragione Sociale)
@@ -55,8 +55,8 @@ BEGIN
     IF p_controparte_id IS NOT NULL THEN
         SELECT json_build_object(
             'Id', c.comune_id,
-            'Nome', c.comune,
-            'Cap', c.cap,
+            'Nome', c.comune_descrizione,
+            'Cap', c.comune_cap,
             'ProvinciaSigla', p.provincia_sigla,
             'RegioneDescrizione', r.regione_descrizione,
             'ComuneEstero', c.comune_estero
@@ -64,7 +64,7 @@ BEGIN
         FROM ana_controparti cont
         JOIN ana_geo_comuni c ON cont.comune_fk = c.comune_id
         LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
-        LEFT JOIN ana_geo_regioni_ita r ON p.provincia_regione_fk = r.regione_id
+        LEFT JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
         WHERE cont.controparte_id = p_controparte_id;
     END IF;
 
