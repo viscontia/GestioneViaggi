@@ -20,6 +20,33 @@ public class ContropartiService : BaseCrudService<AnaControparte>
     }
 
     /// <summary>
+    /// Recupera i dati di inizializzazione per il dialog controparte (FAT INIT)
+    /// </summary>
+    public async Task<GestioneViaggi.Models.DTOs.ControparteInitData> GetControparteInitDataAsync(int? controparteId = null)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            using (var cmd = new NpgsqlCommand("SELECT fn_get_controparte_init_data(@p_controparte_id)", conn))
+            {
+                cmd.Parameters.AddWithValue("p_controparte_id", (object?)controparteId ?? DBNull.Value);
+                var result = await cmd.ExecuteScalarAsync();
+                var jsonResult = result?.ToString() ?? "{}";
+
+                return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ControparteInitData>(jsonResult, new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new GestioneViaggi.Models.DTOs.ControparteInitData();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore Fat Init Controparte per ID {ControparteId}", controparteId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
+    /// <summary>
     /// GetAllAsync con filtro multitenant e JOIN per descrizioni.
     /// Supporta filtro opzionale per tipo (fornitore/cliente).
     /// </summary>

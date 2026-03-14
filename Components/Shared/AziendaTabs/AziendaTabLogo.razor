@@ -3,6 +3,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@implements IDisposable
 @inject AziendaLogoService LogoService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -95,21 +96,37 @@
 
     private List<AziendaLogo> _logos = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadLogosAsync();
+            return;
         }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadLogosAsync(_cts.Token);
     }
 
-    private async Task LoadLogosAsync()
+    private async Task LoadLogosAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
             _logos = await LogoService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -119,6 +136,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private string FormatFileSize(int bytes)

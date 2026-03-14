@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@implements IDisposable
 @inject RepartoAziendaleService RepartoService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -81,21 +82,37 @@
 
     private List<RepartoAziendale> _reparti = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadRepartiAsync();
+            return;
         }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadRepartiAsync(_cts.Token);
     }
 
-    private async Task LoadRepartiAsync()
+    private async Task LoadRepartiAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
             _reparti = await RepartoService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -105,6 +122,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private async Task OpenRepartoDialog(RepartoAziendale? reparto)

@@ -2,12 +2,14 @@ using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GestioneViaggi.Services.Printing;
 
 /// <summary>
 /// Service per l'estrazione dei dati per la stampa del Registro IVA (Acquisti e Vendite).
-/// Utilizza la function DB fn_get_registro_iva.
+/// Utilizza la function DB Fat Init fn_get_registro_iva_print_data.
 /// </summary>
 public class RegistroIvaPrintService
 {
@@ -23,7 +25,7 @@ public class RegistroIvaPrintService
     }
 
     /// <summary>
-    /// Recupera tutti i dati necessari per la stampa del Registro IVA.
+    /// Recupera tutti i dati necessari per la stampa del Registro IVA tramite pattern Fat Init.
     /// </summary>
     public async Task<RegistroIvaPrintData> GetRegistroIvaDataAsync(
         int aziendaId,
@@ -33,7 +35,7 @@ public class RegistroIvaPrintService
         decimal creditoIvaPrecedente = 0m)
     {
         _logger.LogInformation(
-            "Inizio estrazione dati Registro IVA. Azienda: {AziendaId}, Periodo: {Da} - {A}",
+            "Inizio estrazione dati Registro IVA (Fat Init). Azienda: {AziendaId}, Periodo: {Da} - {A}",
             aziendaId, periodoDa, periodoA);
 
         var result = new RegistroIvaPrintData
@@ -48,73 +50,75 @@ public class RegistroIvaPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
 
-            // 1. Recupera dettagli fatture con IVA
-            var sql = @"
-                SELECT
-                    causale_ciclo AS CausaleCiclo,
-                    transazione_id AS TransazioneId,
-                    transazione_data_documento AS TransazioneDataDocumento,
-                    transazione_numero_documento AS TransazioneNumeroDocumento,
-                    controparte_ragione_sociale AS ControparteRagioneSociale,
-                    causale_codice AS CausaleCodice,
-                    causale_descrizione AS CausaleDescrizione,
-                    aliquota_iva_codice AS AliquotaIvaCodice,
-                    aliquota_iva_percentuale AS AliquotaIvaPercentuale,
-                    aliquota_iva_descrizione AS AliquotaIvaDescrizione,
-                    aliquota_iva_natura AS AliquotaIvaNatura,
-                    numero_protocollo_iva AS NumeroProtocollo,
-                    imponibile_eur AS ImponibileEur,
-                    iva_eur AS IvaEur,
-                    lordo_eur AS LordoEur,
-                    causale_segno AS CausaleSegno
-                FROM fn_get_registro_iva(@AziendaId, @PeriodoDa::date, @PeriodoA::date)";
+            var sql = "SELECT fn_get_registro_iva_print_data(@AziendaId, @PeriodoDa::date, @PeriodoA::date)";
 
-            var items = (await connection.QueryAsync<RegistroIvaItem>(sql, new
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
             {
                 AziendaId = aziendaId,
                 PeriodoDa = periodoDa,
                 PeriodoA = periodoA
-            })).ToList();
+            });
 
-            // 2. Separa Acquisti e Vendite
-            result.Acquisti = items.Where(i => i.CausaleCiclo == "PASSIVO").ToList();
-            result.Vendite = items.Where(i => i.CausaleCiclo == "ATTIVO").ToList();
+            if (string.IsNullOrEmpty(jsonResponse)) return result;
 
-            // 3. Calcola sub-totali per aliquota (Acquisti)
-            result.SubTotaliAcquisti = CalcolaSubTotaliPerAliquota(result.Acquisti);
-            result.TotaleImponibileAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleImponibile);
-            result.TotaleIvaAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleIva);
-            result.TotaleLordoAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleLordo);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var rawData = JsonSerializer.Deserialize<RegistroIvaRawResponse>(jsonResponse, options);
 
-            // 4. Calcola sub-totali per aliquota (Vendite)
-            result.SubTotaliVendite = CalcolaSubTotaliPerAliquota(result.Vendite);
-            result.TotaleImponibileVendite = result.SubTotaliVendite.Sum(s => s.TotaleImponibile);
-            result.TotaleIvaVendite = result.SubTotaliVendite.Sum(s => s.TotaleIva);
-            result.TotaleLordoVendite = result.SubTotaliVendite.Sum(s => s.TotaleLordo);
-
-            // 5. Riepilogo cross Acquisti/Vendite per aliquota
-            result.RiepilogoPerAliquota = CalcolaRiepilogoPerAliquota(result.SubTotaliAcquisti, result.SubTotaliVendite);
-
-            // 6. Liquidazione IVA
-            result.Liquidazione = new LiquidazioneIva
+            if (rawData != null)
             {
-                IvaDebito = result.TotaleIvaVendite,
-                IvaCredito = result.TotaleIvaAcquisti,
-                CreditoPrecedente = creditoIvaPrecedente
-            };
+                // Mappatura Info Azienda
+                if (rawData.Azienda != null)
+                {
+                    result.Azienda = new CompanyPrintInfo
+                    {
+                        RagioneSociale = rawData.Azienda.RagioneSociale ?? "",
+                        Telefono = rawData.Azienda.Telefono ?? "",
+                        Email = rawData.Azienda.Email ?? "",
+                        SitoWeb = rawData.Azienda.SitoWeb ?? "",
+                        Piva = rawData.Azienda.Piva ?? "",
+                        LogoData = rawData.Azienda.LogoData ?? Array.Empty<byte>()
+                    };
+                }
 
-            // 7. Info azienda
-            result.Azienda = await GetAziendaInfoAsync(aziendaId);
+                var items = rawData.Items ?? new List<RegistroIvaItem>();
+
+                // 2. Separa Acquisti e Vendite
+                result.Acquisti = items.Where(i => i.CausaleCiclo == "PASSIVO").ToList();
+                result.Vendite = items.Where(i => i.CausaleCiclo == "ATTIVO").ToList();
+
+                // 3. Calcola sub-totali per aliquota (Acquisti)
+                result.SubTotaliAcquisti = CalcolaSubTotaliPerAliquota(result.Acquisti);
+                result.TotaleImponibileAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleImponibile);
+                result.TotaleIvaAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleIva);
+                result.TotaleLordoAcquisti = result.SubTotaliAcquisti.Sum(s => s.TotaleLordo);
+
+                // 4. Calcola sub-totali per aliquota (Vendite)
+                result.SubTotaliVendite = CalcolaSubTotaliPerAliquota(result.Vendite);
+                result.TotaleImponibileVendite = result.SubTotaliVendite.Sum(s => s.TotaleImponibile);
+                result.TotaleIvaVendite = result.SubTotaliVendite.Sum(s => s.TotaleIva);
+                result.TotaleLordoVendite = result.SubTotaliVendite.Sum(s => s.TotaleLordo);
+
+                // 5. Riepilogo cross Acquisti/Vendite per aliquota
+                result.RiepilogoPerAliquota = CalcolaRiepilogoPerAliquota(result.SubTotaliAcquisti, result.SubTotaliVendite);
+
+                // 6. Liquidazione IVA
+                result.Liquidazione = new LiquidazioneIva
+                {
+                    IvaDebito = result.TotaleIvaVendite,
+                    IvaCredito = result.TotaleIvaAcquisti,
+                    CreditoPrecedente = creditoIvaPrecedente
+                };
+            }
 
             _logger.LogInformation(
-                "Registro IVA estratto: {Acquisti} acquisti, {Vendite} vendite",
+                "Registro IVA (Fat Init) estratto: {Acquisti} acquisti, {Vendite} vendite",
                 result.Acquisti.Count, result.Vendite.Count);
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei dati per il Registro IVA");
+            _logger.LogError(ex, "Errore durante il recupero dei dati per il Registro IVA (Fat Init)");
             throw;
         }
     }
@@ -171,34 +175,20 @@ public class RegistroIvaPrintService
         }).ToList();
     }
 
-    private async Task<CompanyPrintInfo> GetAziendaInfoAsync(int aziendaId)
+    // Helper classes for JSON Deserialization
+    private class RegistroIvaRawResponse
     {
-        try
-        {
-            await using var connection = await _dbService.GetConnectionAsync();
+        public RegIvaAziendaRaw? Azienda { get; set; }
+        public List<RegistroIvaItem>? Items { get; set; }
+    }
 
-            var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";
-            var companyRaw = await connection.QueryFirstOrDefaultAsync<dynamic>(companySql, new { AziendaId = aziendaId });
-
-            if (companyRaw != null)
-            {
-                return new CompanyPrintInfo
-                {
-                    RagioneSociale = (string)companyRaw.ragione_sociale ?? "",
-                    Telefono = (string)companyRaw.telefono ?? "",
-                    Email = (string)companyRaw.email ?? "",
-                    SitoWeb = (string)companyRaw.sito_web ?? "",
-                    Piva = (string)companyRaw.piva ?? "",
-                    LogoData = companyRaw.logo_data != null ? (byte[])companyRaw.logo_data : Array.Empty<byte>()
-                };
-            }
-
-            return new CompanyPrintInfo();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore nel recupero info azienda {Id} per Registro IVA", aziendaId);
-            return new CompanyPrintInfo();
-        }
+    private class RegIvaAziendaRaw
+    {
+        [JsonPropertyName("ragione_sociale")] public string? RagioneSociale { get; set; }
+        [JsonPropertyName("telefono")] public string? Telefono { get; set; }
+        [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("sito_web")] public string? SitoWeb { get; set; }
+        [JsonPropertyName("piva")] public string? Piva { get; set; }
+        [JsonPropertyName("logo_data")] public byte[]? LogoData { get; set; }
     }
 }

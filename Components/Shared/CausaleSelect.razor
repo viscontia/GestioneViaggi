@@ -34,6 +34,7 @@
     [Parameter] public bool Disabled { get; set; } = false;
     [Parameter] public int? AziendaId { get; set; }
     [Parameter] public string? CycleType { get; set; }
+    [Parameter] public List<AnaTipoCausale>? Items { get; set; }
 
     private List<AnaTipoCausale> _causali = new();
     private AnaTipoCausale? _selectedCausale;
@@ -43,7 +44,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadCausali();
+        if (Items != null && Items.Any())
+        {
+            _causali = Items;
+            _loaded = true;
+            _isLoading = false;
+            UpdateSelectedCausale();
+        }
+        else
+        {
+            await LoadCausali();
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -86,9 +97,17 @@
             // Determina l'aziendaId da usare
             int targetAziendaId = AziendaId ?? await TenantContext.GetRequiredAziendaIdAsync();
             
+        if (Items != null && Items.Any())
+        {
+            _causali = Items;
+            _loaded = true;
+        }
+        else
+        {
             var causali = await CausaliService.GetActiveByAziendaAsync(targetAziendaId);
             _causali = causali?.ToList() ?? new List<AnaTipoCausale>();
             _loaded = true;
+        }
 
             if (_pendingCausaleId > 0)
             {

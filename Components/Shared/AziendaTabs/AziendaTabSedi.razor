@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@implements IDisposable
 @inject AziendaSedeService SedeService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -78,26 +79,37 @@
 
     private List<AziendaSede> _sedi = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        Console.WriteLine($"AziendaTabSedi - OnParametersSetAsync: AziendaId = {AziendaId}");
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadSediAsync();
+            return;
         }
-        else
-        {
-            Console.WriteLine("AziendaTabSedi - AziendaId is 0, skipping load");
-        }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadSediAsync(_cts.Token);
     }
 
-    private async Task LoadSediAsync()
+    private async Task LoadSediAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
             _sedi = await SedeService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -107,6 +119,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private Color GetSedeTypeColor(string tipoSede)

@@ -1,6 +1,7 @@
 using Dapper;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace GestioneViaggi.Services.Printing;
 
@@ -25,91 +26,80 @@ public class RoomingListPrintService : IRoomingListPrintService
         try
         {
             await using var conn = await _connectionManager.GetConnectionAsync();
+            
+            // Fat Init: Single call to get everything for Rooming List
+            var sql = "SELECT fn_get_rooming_list_print_data(@DataViaggioId)";
+            var jsonRes = await conn.ExecuteScalarAsync<string>(sql, new { DataViaggioId = dataViaggioId });
+
+            if (string.IsNullOrEmpty(jsonRes))
+            {
+                throw new Exception($"Nessun dato trovato per la Rooming List della data viaggio {dataViaggioId}");
+            }
+
+            var raw = JsonSerializer.Deserialize<RoomingListRawResponse>(jsonRes, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (raw == null || raw.Header == null)
+            {
+                throw new Exception("Errore durante la deserializzazione dei dati della Rooming List");
+            }
+
             var data = new RoomingListPrintDTO();
 
-            // 1. Fetch Header Info (reuse same function as Travel Print)
-            var headerSql = "SELECT * FROM get_all_travel_detail(@DataViaggioId)";
-            var headerRaw = await conn.QueryFirstOrDefaultAsync<dynamic>(headerSql, new { DataViaggioId = dataViaggioId });
-
-            if (headerRaw == null)
+            // 1. Map Header
+            data.Header = new TravelHeaderInfo
             {
-                throw new Exception($"Nessun viaggio trovato con ID {dataViaggioId}");
-            }
-
-            var header = new TravelHeaderInfo
-            {
-                DataViaggioId = (int)headerRaw.data_viaggio_id,
-                ViaggioId = (int)headerRaw.viaggio_id,
-                Titolo = (string)headerRaw.titolo ?? "N/D",
-                Descrizione = (string)headerRaw.descrizione_estesa ?? "",
-                DescrizioneBreve = (string)headerRaw.titolo ?? "N/D",
-                Destinazione = (string)headerRaw.nazione ?? "",
-                DataInizio = (DateTime?)headerRaw.data_inizio,
-                DataFine = (DateTime?)headerRaw.data_fine,
-                Note = (string)headerRaw.note_data_viaggio ?? "",
-                TipoViaggio = (string)headerRaw.tipo ?? "",
-                Giorni = (int?)headerRaw.giorni ?? 0,
-                Notti = (int?)headerRaw.notti ?? 0,
-                Trattamento = (string)headerRaw.trattamento ?? "",
-                PastiSacco = ((string)headerRaw.pasti_al_sacco ?? "N") == "Y" || ((string)headerRaw.pasti_al_sacco ?? "N") == "S",
-                Km = (int?)headerRaw.km ?? 0
+                DataViaggioId = raw.Header.data_viaggio_id,
+                ViaggioId = raw.Header.viaggio_id,
+                Titolo = raw.Header.titolo ?? "N/D",
+                Descrizione = raw.Header.descrizione_estesa ?? "",
+                DescrizioneBreve = raw.Header.titolo ?? "N/D",
+                Destinazione = raw.Header.nazione ?? "",
+                DataInizio = raw.Header.data_inizio,
+                DataFine = raw.Header.data_fine,
+                Note = raw.Header.note_data_viaggio ?? "",
+                TipoViaggio = raw.Header.tipo ?? "",
+                Giorni = raw.Header.giorni ?? 0,
+                Notti = raw.Header.notti ?? 0,
+                Trattamento = raw.Header.trattamento ?? "",
+                PastiSacco = (raw.Header.pasti_al_sacco ?? "N") == "Y" || (raw.Header.pasti_al_sacco ?? "N") == "S",
+                Km = raw.Header.km ?? 0
             };
 
-            data.Header = header;
+            // 2. Map Company
+            data.Company = raw.Company ?? new CompanyPrintInfo();
+            // Handle logo if it was encoded as base64 in SQL (optional, depending on how Dapper/Postgres handles bytea in json_build_object)
+            // If it's already a byte array in the DTO from deserialization, it's fine. 
+            // Postgres json_build_object typically encodes bytea as base64 string.
+            // System.Text.Json automatically handles base64 string to byte[] conversion if the property is byte[].
 
-            // 2. Fetch Company Info
-            int aziendaId = (int?)headerRaw.azienda_id ?? 0;
-
-            if (aziendaId > 0)
+            // 3. Map Participants
+            var participants = (raw.Participants ?? new List<RoomingParticipantRaw>()).Select(p => new RoomingListParticipant
             {
-                var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";
-                var companyRaw = await conn.QueryFirstOrDefaultAsync<dynamic>(companySql, new { AziendaId = aziendaId });
-
-                if (companyRaw != null)
-                {
-                    data.Company = new CompanyPrintInfo
-                    {
-                        RagioneSociale = (string)companyRaw.ragione_sociale ?? "",
-                        Telefono = (string)companyRaw.telefono ?? "",
-                        Email = (string)companyRaw.email ?? "",
-                        SitoWeb = (string)companyRaw.sito_web ?? "",
-                        Piva = (string)companyRaw.piva ?? "",
-                        LogoData = companyRaw.logo_data != null ? (byte[])companyRaw.logo_data : Array.Empty<byte>()
-                    };
-                }
-            }
-
-            // 3. Fetch Rooming List Data
-            var roomingListSql = "SELECT * FROM get_rooming_list_data(@DataViaggioId)";
-            var participantsRaw = await conn.QueryAsync<dynamic>(roomingListSql, new { DataViaggioId = dataViaggioId });
-
-            var participants = participantsRaw.Select(p => new RoomingListParticipant
-            {
-                ClienteId = (int?)p.cliente_id ?? 0,
-                RoomId = (int?)p.room_id ?? 0,
-                Nominativo = (string)p.nominativo ?? "N/D",
-                Eta = (int?)p.eta ?? 0,
-                DataNascita = p.data_nascita as DateTime?,
-                LuogoNascita = (string)p.luogo_nascita ?? "",
-                IndirizzoResidenza = (string)p.indirizzo_residenza ?? "",
-                CittaResidenza = (string)p.citta_residenza ?? "",
-                ResidenzaCompleta = (string)p.residenza_completa ?? "",
-                CountryCode = (string)p.country_code ?? "IT",
-                CountryName = (string)p.country_name ?? "ITALY",
-                Nationality = (string)p.nationality ?? "ITALIAN",
-                TipoDocumento = (string)p.tipo_documento ?? "",
-                NumeroDocumento = (string)p.numero_documento ?? "",
-                EnteRilascio = (string)p.ente_rilascio ?? "",
-                DataRilascio = p.data_rilascio as DateTime?,
-                DataScadenza = p.data_scadenza as DateTime?,
-                Intolleranze = (string)p.intolleranze ?? "",
-                TipoAlloggioId = (int?)p.tipo_alloggio_id ?? 0,
-                TipoAlloggioDescrizione = (string)p.tipo_alloggio_descrizione ?? "NESSUNA CAMERA ASSEGNATA",
-                MaxOccupanti = (int?)p.max_occupanti ?? 0
+                ClienteId = p.cliente_id ?? 0,
+                RoomId = p.room_id ?? 0,
+                Nominativo = p.nominativo ?? "N/D",
+                Eta = p.eta ?? 0,
+                DataNascita = p.data_nascita,
+                LuogoNascita = p.luogo_nascita ?? "",
+                IndirizzoResidenza = p.indirizzo_residenza ?? "",
+                CittaResidenza = p.citta_residenza ?? "",
+                ResidenzaCompleta = p.residenza_completa ?? "",
+                CountryCode = p.country_code ?? "IT",
+                CountryName = p.country_name ?? "ITALY",
+                Nationality = p.nationality ?? "ITALIAN",
+                TipoDocumento = p.tipo_documento ?? "",
+                NumeroDocumento = p.numero_documento ?? "",
+                EnteRilascio = p.ente_rilascio ?? "",
+                DataRilascio = p.data_rilascio,
+                DataScadenza = p.data_scadenza,
+                Intolleranze = p.intolleranze ?? "",
+                TipoAlloggioId = p.tipo_alloggio_id ?? 0,
+                TipoAlloggioDescrizione = p.tipo_alloggio_descrizione ?? "NESSUNA CAMERA ASSEGNATA",
+                MaxOccupanti = p.max_occupanti ?? 0
             }).ToList();
 
-            // 4. Group by Room Type
-            var roomGroups = participants
+            // 4. Group by Room Type (Keep existing C# logic as it's efficient enough for UI presentation)
+            data.RoomGroups = participants
                 .GroupBy(p => new
                 {
                     p.TipoAlloggioId,
@@ -127,8 +117,6 @@ public class RoomingListPrintService : IRoomingListPrintService
                 .OrderBy(g => g.TipoAlloggioId)
                 .ToList();
 
-            data.RoomGroups = roomGroups;
-
             // 5. Calculate totals
             data.TotalParticipants = participants.Count;
             data.TotalRooms = participants.Where(p => p.RoomId > 0).Select(p => p.RoomId).Distinct().Count();
@@ -142,3 +130,58 @@ public class RoomingListPrintService : IRoomingListPrintService
         }
     }
 }
+
+#region Helper Classes for JSON Deserialization
+
+public class RoomingListRawResponse
+{
+    public RoomingHeaderRaw Header { get; set; } = new();
+    public CompanyPrintInfo Company { get; set; } = new();
+    public List<RoomingParticipantRaw> Participants { get; set; } = new();
+}
+
+public class RoomingHeaderRaw
+{
+    public int data_viaggio_id { get; set; }
+    public int viaggio_id { get; set; }
+    public string? titolo { get; set; }
+    public string? descrizione_estesa { get; set; }
+    public string? nazione { get; set; }
+    public DateTime? data_inizio { get; set; }
+    public DateTime? data_fine { get; set; }
+    public string? note_data_viaggio { get; set; }
+    public string? tipo { get; set; }
+    public int? giorni { get; set; }
+    public int? notti { get; set; }
+    public string? trattamento { get; set; }
+    public string? pasti_al_sacco { get; set; }
+    public int? km { get; set; }
+    public int? azienda_id { get; set; }
+}
+
+public class RoomingParticipantRaw
+{
+    public int? cliente_id { get; set; }
+    public int? room_id { get; set; }
+    public string? nominativo { get; set; }
+    public int? eta { get; set; }
+    public DateTime? data_nascita { get; set; }
+    public string? luogo_nascita { get; set; }
+    public string? indirizzo_residenza { get; set; }
+    public string? citta_residenza { get; set; }
+    public string? residenza_completa { get; set; }
+    public string? country_code { get; set; }
+    public string? country_name { get; set; }
+    public string? nationality { get; set; }
+    public string? tipo_documento { get; set; }
+    public string? numero_documento { get; set; }
+    public string? ente_rilascio { get; set; }
+    public DateTime? data_rilascio { get; set; }
+    public DateTime? data_scadenza { get; set; }
+    public string? intolleranze { get; set; }
+    public int? tipo_alloggio_id { get; set; }
+    public string? tipo_alloggio_descrizione { get; set; }
+    public int? max_occupanti { get; set; }
+}
+
+#endregion

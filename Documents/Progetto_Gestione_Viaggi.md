@@ -16,6 +16,7 @@ Questo documento raccoglie tutte le informazioni critiche del progetto Gestione 
 7. [Schema del Database (E/R)](#-schema-del-database-er)
 8. [Configurazione SMTP](#-configurazione-smtp)
 9. [Gestione Versione Applicazione](#-gestione-versione-applicazione)
+10. [Fix Static Web Assets in Release Build](#-fix-static-web-assets-in-release-build)
 
 ---
 
@@ -115,14 +116,17 @@ Attualmente, la stringa di connessione è hardcoded in `MauiProgram.cs:L74` tram
 ### File di Configurazione
 
 #### [NEW] `appsettings.json` (Produzione - Supabase)
-Utilizzato per l'ambiente di produzione in Cloud.
+Utilizzato per l'ambiente di produzione in Cloud (Transaction Pooler).
 ```json
 {
   "ConnectionStrings": {
-    "PostgreSQL": "Host=aws-1-eu-central-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wqbqvhshojbfuwcuiams;Password=U9Y7KSjQVfZ3N1Ca;Pooling=true;MinPoolSize=1;MaxPoolSize=20;Timeout=30;CommandTimeout=30;SSL Mode=Require;Trust Server Certificate=true;"
+    "PostgreSQL": "Host=aws-1-eu-central-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wqbqvhshojbfuwcuiams;Password=U9Y7KSjQVfZ3N1Ca;Pooling=false;Multiplexing=true;Timeout=30;CommandTimeout=30;SSL Mode=Require;Trust Server Certificate=true;"
   }
 }
 ```
+
+> [!IMPORTANT]
+> **`Multiplexing=true`** è **obbligatorio** per il Transaction Pooler di Supabase (PgBouncer). Senza questo parametro, Npgsql usa prepared statements che non sono supportati in modalità transaction pooling, causando il blocco delle query.
 
 #### [NEW] `appsettings.Development.json` (Sviluppo - Docker Locale)
 Utilizzato per lo sviluppo locale su Docker.
@@ -177,19 +181,26 @@ Dati per la connessione al database PostgreSQL in esecuzione su Docker.
 | **Password** | `postgres` |
 
 ### Database Supabase
-Credenziali per il database in Cloud.
+Credenziali per il database in Cloud (Transaction Pooler).
 
 | Parametro | Valore |
 |-----------|--------|
 | **Project Name** | `Gestione Viaggi` |
 | **Project ID** | `wqbqvhshojbfuwcuiams` |
 | **Host** | `aws-1-eu-central-1.pooler.supabase.com` |
-| **Porta** | `5432` |
+| **Porta** | `6543` |
 | **Database** | `postgres` |
 | **Username** | `postgres.wqbqvhshojbfuwcuiams` |
 | **Password** | `U9Y7KSjQVfZ3N1Ca` |
-| **Session Pooler (URI)** | `postgresql://postgres.wqbqvhshojbfuwcuiams:U9Y7KSjQVfZ3N1Ca@aws-1-eu-central-1.pooler.supabase.com:5432/postgres` |
-| **Type** | `URI` |
+| **Pool Mode** | `transaction` |
+| **Transaction Pooler (URI)** | `postgresql://postgres.wqbqvhshojbfuwcuiams:U9Y7KSjQVfZ3N1Ca@aws-1-eu-central-1.pooler.supabase.com:6543/postgres` |
+| **IPv4 Compatible** | Sì |
+| **Npgsql Required** | `Pooling=false;Multiplexing=true;` |
+
+> [!NOTE]
+> **Parametri Npgsql per Transaction Pooler:**
+> - `Pooling=false`: Disabilita il pooling lato client (il pooling è gestito da Supabase)
+> - `Multiplexing=true`: Abilita la modalità multiplexing di Npgsql, necessaria per PgBouncer in transaction mode (evita prepared statements non supportati)
 
 ---
 
@@ -367,3 +378,87 @@ Per rilasciare una nuova versione è sufficiente:
 |----------|------|------|
 | 1.0 | - | Versione iniziale |
 | 1.1 | 2026-03-07 | Export XML FatturaPA SDI, estrazione clienti, versioning esternalizzato |
+
+---
+
+## 🔧 Fix Static Web Assets in Release Build
+
+### Il Problema
+In MAUI Blazor Hybrid con .NET 9+, le build in modalità **Release** includono solo le versioni compresse (`.br`, `.gz`) dei file statici (CSS, JS, HTML) nella cartella `wwwroot`. I file originali non compressi vengono omessi per ridurre le dimensioni del pacchetto.
+
+Questo causa il fallimento del caricamento dell'interfaccia:
+- **Sintomo**: La pagina di login appare senza stile (CSS non caricato), layout completamente rotto
+- **Causa**: Il BlazorWebView non riesce a servire i file `.br`/`.gz` direttamente, necessita dei file originali
+
+### File Coinvolti
+Il problema riguarda:
+1. **File del progetto** (`wwwroot/`): `index.html`, `app.css`, file JS
+2. **File da NuGet packages** (`_content/`): MudBlazor CSS/JS, Blazored.TextEditor, ecc.
+
+### La Soluzione
+È stato aggiunto un **MSBuild Target** nel file `GestioneViaggi.csproj` che copia i file originali non compressi dopo ogni build Release:
+
+```xml
+<!-- Fix static web assets in Release builds - copy uncompressed files -->
+<Target Name="CopyUncompressedWwwroot" AfterTargets="Build"
+        Condition="'$(Configuration)' == 'Release' AND '$(TargetFramework)' == 'net9.0-maccatalyst'">
+    <PropertyGroup>
+        <WwwrootDestination>$(OutputPath)maccatalyst-arm64\$(AssemblyName).app\Contents\Resources\wwwroot\</WwwrootDestination>
+        <NuGetPackagesPath Condition="'$(NuGetPackagesPath)' == ''">$(HOME)/.nuget/packages</NuGetPackagesPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- Project wwwroot files -->
+        <WwwrootFiles Include="$(ProjectDir)wwwroot\**\*.*"
+                      Exclude="$(ProjectDir)wwwroot\**\*.br;$(ProjectDir)wwwroot\**\*.gz;$(ProjectDir)wwwroot\**\.DS_Store" />
+        <!-- MudBlazor static assets from NuGet -->
+        <MudBlazorFiles Include="$(NuGetPackagesPath)/mudblazor/8.15.0/staticwebassets/*.*" />
+        <!-- Blazored.TextEditor static assets from NuGet -->
+        <BlazoredTextEditorFiles Include="$(NuGetPackagesPath)/blazored.texteditor/1.1.0/staticwebassets/**/*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WwwrootFiles)"
+          DestinationFiles="@(WwwrootFiles->'$(WwwrootDestination)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(MudBlazorFiles)"
+          DestinationFolder="$(WwwrootDestination)_content/MudBlazor/"
+          SkipUnchangedFiles="false" />
+    <Copy SourceFiles="@(BlazoredTextEditorFiles)"
+          DestinationFiles="@(BlazoredTextEditorFiles->'$(WwwrootDestination)_content/Blazored.TextEditor/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="false" />
+</Target>
+```
+
+### Come Funziona
+1. **Esecuzione**: Il target si attiva automaticamente dopo ogni `dotnet build -c Release`
+2. **Copia wwwroot**: Copia tutti i file dal `wwwroot/` del progetto (esclusi `.br`, `.gz`, `.DS_Store`)
+3. **Copia MudBlazor**: Recupera i file CSS/JS originali dalla cache NuGet (`~/.nuget/packages/mudblazor/...`)
+4. **Copia Blazored.TextEditor**: Idem per il rich text editor
+
+### Manutenzione
+> [!WARNING]
+> Se aggiorni la versione di **MudBlazor** o **Blazored.TextEditor** nel progetto, devi aggiornare anche i path nel target MSBuild con la nuova versione del pacchetto.
+
+Esempio: se MudBlazor passa da `8.15.0` a `8.16.0`:
+```xml
+<!-- Vecchio -->
+<MudBlazorFiles Include="$(NuGetPackagesPath)/mudblazor/8.15.0/staticwebassets/*.*" />
+<!-- Nuovo -->
+<MudBlazorFiles Include="$(NuGetPackagesPath)/mudblazor/8.16.0/staticwebassets/*.*" />
+```
+
+### Verifica
+Per verificare che i file siano stati copiati correttamente:
+```bash
+# Dopo il build Release
+ls -la bin/Release/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app/Contents/Resources/wwwroot/
+
+# Deve mostrare sia file originali che compressi:
+# index.html        (originale)
+# index.html.br     (compresso)
+# index.html.gz     (compresso)
+
+# Verifica MudBlazor
+ls -la bin/Release/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app/Contents/Resources/wwwroot/_content/MudBlazor/
+# Deve contenere:
+# MudBlazor.min.css (originale ~610KB)
+# MudBlazor.min.js  (originale ~75KB)
+```

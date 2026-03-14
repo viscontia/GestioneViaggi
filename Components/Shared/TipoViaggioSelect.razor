@@ -34,16 +34,29 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    [Parameter] public List<TipoViaggio>? Items { get; set; }
+
     private List<TipoViaggio>? _allItems;
 
     protected override async Task OnInitializedAsync()
     {
-        _allItems = await Service.GetAllAsync();
+        if (Items != null)
+        {
+            _allItems = Items;
+        }
+        else
+        {
+            _allItems = await Service.GetAllAsync();
+        }
         UpdateSelectedItem();
     }
 
     protected override void OnParametersSet()
     {
+        if (Items != null)
+        {
+            _allItems = Items;
+        }
         UpdateSelectedItem();
     }
 
@@ -80,7 +93,6 @@
         _selectedItem = item;
         var newId = item?.Id;
         
-        // Prevent infinite loop if value logic is tricky, but here it's straight forward
         if (SelectedId != newId)
         {
             SelectedId = newId;

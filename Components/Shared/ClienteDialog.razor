@@ -64,7 +64,7 @@
                                 @if (IsSuperAdmin)
                                 {
                                     <MudItem xs="12">
-                                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" />
+                                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" Items="@_initData.Aziende" />
                                     </MudItem>
                                 }
 
@@ -112,7 +112,7 @@
                                             <ComuneSelect @bind-SelectedComuneId="ComuneNascitaIdProxy" 
                                                           @bind-SelectedComune="Entity.ComuneNascita"
                                                           Label="Comune di Nascita" Required="true"
-                                                          RequiredError="Obbligatorio" />
+                                                          RequiredError="Obbligatorio" Items="@_initData.Comuni" />
                                         </MudItem>
                                         <!-- Dettagli Geografici Nascita -->
                                         <MudItem xs="3">
@@ -151,7 +151,7 @@
                                         <MudItem xs="12">
                                             <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
                                             @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
-                                                RequiredError="Obbligatorio" />
+                                                RequiredError="Obbligatorio" Items="@_initData.Comuni" />
                                         </MudItem>
                                         <!-- Dettagli Geografici Residenza -->
                                         <MudItem xs="3">

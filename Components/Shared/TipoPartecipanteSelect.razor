@@ -45,13 +45,28 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    [Parameter]
+    public List<TipoPartecipante>? Items { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
+        if (Items != null)
+        {
+            _items = Items.OrderBy(x => x.Descrizione).ToList();
+            UpdateSelection();
+        }
+        else
+        {
+            await LoadDataAsync();
+        }
     }
 
     protected override void OnParametersSet()
     {
+        if (Items != null)
+        {
+            _items = Items.OrderBy(x => x.Descrizione).ToList();
+        }
         UpdateSelection();
     }
 
@@ -89,7 +104,6 @@
     private async Task OnValueChanged(TipoPartecipante item)
     {
         _selectedItem = item;
-        // Se item è null, passiamo null. Gestione del valore '0' risolta (è null).
         await SelectedIdChanged.InvokeAsync(item?.Id);
     }
 

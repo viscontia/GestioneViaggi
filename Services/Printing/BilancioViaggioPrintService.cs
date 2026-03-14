@@ -1,10 +1,11 @@
 using GestioneViaggi.Models.DTOs;
 using GestioneViaggi.Services.Database;
-using GestioneViaggi.Services.CRUD;
-using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
+using Dapper;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -26,137 +27,130 @@ public class BilancioViaggioPrintData
 public class BilancioViaggioPrintService
 {
     private readonly IDatabaseService _databaseService;
-    private readonly AziendaService _aziendaService;
-    private readonly AziendaLogoService _aziendaLogoService;
-    private readonly ITenantContext _tenantContext;
     private readonly ILogger<BilancioViaggioPrintService> _logger;
 
     public BilancioViaggioPrintService(
         IDatabaseService databaseService,
-        AziendaService aziendaService,
-        AziendaLogoService aziendaLogoService,
-        ITenantContext tenantContext,
         ILogger<BilancioViaggioPrintService> logger)
     {
         _databaseService = databaseService;
-        _aziendaService = aziendaService;
-        _aziendaLogoService = aziendaLogoService;
-        _tenantContext = tenantContext;
         _logger = logger;
     }
 
     public async Task<BilancioViaggioPrintData> GetBilancioPrintDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, string utenteStampa, int? valutaTargetId = null)
     {
+        _logger.LogInformation("Inizio estrazione Bilancio Viaggio (Fat Init). Viaggio: {ViaggioId}", viaggioId);
+        
         var data = new BilancioViaggioPrintData
         {
             UtenteStampa = utenteStampa,
             DataStampa = DateTime.Now
         };
 
-        // 1. Fetch Company Info
-        var azienda = await _aziendaService.GetByIdAsync(aziendaId);
-        if (azienda != null)
-        {
-            data.Azienda.RagioneSociale = azienda.RagioneSociale;
-            data.Azienda.Piva = azienda.PartitaIva;
-            data.Azienda.Telefono = azienda.TelefonoPrincipale;
-            data.Azienda.Email = azienda.Pec ?? "";
-            data.Azienda.SitoWeb = azienda.SitoWeb ?? "";
-
-            // 2. Fetch Logo
-            try
-            {
-                var logos = await _aziendaLogoService.GetByAziendaIdAsync(aziendaId);
-                var primaryLogo = logos.FirstOrDefault(l => l.IsDefault) ?? logos.FirstOrDefault();
-                if (primaryLogo != null)
-                {
-                    var logoData = await _aziendaLogoService.GetBinaryDataAsync(primaryLogo.Id);
-                    if (logoData != null)
-                    {
-                        data.Azienda.LogoData = logoData;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Impossibile recuperare il logo per l'azienda {AziendaId}", aziendaId);
-            }
-        }
-
-        // 3. Fetch Details
-        data.Dettagli = await GetBilancioDataAsync(aziendaId, viaggioId, dataViaggioId, dataDa, dataA, valutaTargetId);
-
-        return data;
-    }
-
-    public async Task<List<BilancioViaggioDTO>> GetBilancioDataAsync(int aziendaId, int viaggioId, int? dataViaggioId, DateTime? dataDa, DateTime? dataA, int? valutaTargetId = null)
-    {
-        var result = new List<BilancioViaggioDTO>();
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_bilancio_viaggio(@aziendaId, @viaggioId, @dataViaggioId, @dataDa, @dataA, @valutaTargetId)";
+            var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("aziendaId", aziendaId);
-            command.Parameters.AddWithValue("viaggioId", viaggioId);
-            
-            var pDataViaggioId = new NpgsqlParameter("dataViaggioId", NpgsqlDbType.Integer) { Value = (object?)dataViaggioId ?? DBNull.Value, IsNullable = true };
-            command.Parameters.Add(pDataViaggioId);
-
-            // Handle nullable dates explicitly
-            var pDataDa = new NpgsqlParameter("dataDa", NpgsqlDbType.Date) { Value = (object?)dataDa ?? DBNull.Value, IsNullable = true };
-            var pDataA = new NpgsqlParameter("dataA", NpgsqlDbType.Date) { Value = (object?)dataA ?? DBNull.Value, IsNullable = true };
-            
-            command.Parameters.Add(pDataDa);
-            command.Parameters.Add(pDataA);
-
-            var pValutaTargetId = new NpgsqlParameter("valutaTargetId", NpgsqlDbType.Integer) { Value = (object?)valutaTargetId ?? DBNull.Value, IsNullable = true };
-            command.Parameters.Add(pValutaTargetId);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
             {
-                result.Add(new BilancioViaggioDTO
+                AziendaId = aziendaId,
+                ViaggioId = viaggioId,
+                DataViaggioId = dataViaggioId,
+                DataDa = dataDa,
+                DataA = dataA,
+                Anno = (int?)null,
+                ValutaTargetId = valutaTargetId
+            });
+
+            if (!string.IsNullOrEmpty(jsonResponse))
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, options);
+
+                if (rawData != null)
                 {
-                    ViaggioId = reader.GetInt32(reader.GetOrdinal("viaggio_id")),
-                    ViaggioDescrizione = reader.GetString(reader.GetOrdinal("viaggio_descrizione")),
-                    ViaggioDataInizio = reader.IsDBNull(reader.GetOrdinal("viaggio_data_inizio")) ? null : reader.GetDateTime(reader.GetOrdinal("viaggio_data_inizio")),
-                    ViaggioDataFine = reader.IsDBNull(reader.GetOrdinal("viaggio_data_fine")) ? null : reader.GetDateTime(reader.GetOrdinal("viaggio_data_fine")),
-                    ViaggioNumeroPartecipanti = reader.GetInt32(reader.GetOrdinal("viaggio_numero_partecipanti")),
-                    ViaggioNumeroMezzi = reader.GetInt32(reader.GetOrdinal("viaggio_numero_mezzi")),
-
-                    // Fallback to default if column doesn't exist (since old fn doesn't have them)
-                    DataViaggioId = HasColumn(reader, "data_viaggio_id") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_id")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_id")) : null,
-                    DataViaggioDataInizio = HasColumn(reader, "data_viaggio_data_inizio") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_inizio")) ? reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_inizio")) : null,
-                    DataViaggioDataFine = HasColumn(reader, "data_viaggio_data_fine") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_fine")) ? reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_fine")) : null,
-                    DataViaggioNumeroPartecipanti = HasColumn(reader, "data_viaggio_numero_partecipanti") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_numero_partecipanti")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_partecipanti")) : 0,
-                    DataViaggioNumeroMezzi = HasColumn(reader, "data_viaggio_numero_mezzi") && !reader.IsDBNull(reader.GetOrdinal("data_viaggio_numero_mezzi")) ? reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_mezzi")) : 0,
-
-                    TransazioneId = reader.GetInt32(reader.GetOrdinal("transazione_id")),
-                    DataDocumento = reader.IsDBNull(reader.GetOrdinal("data_documento")) ? null : reader.GetDateTime(reader.GetOrdinal("data_documento")),
-                    DataRegistrazione = reader.GetDateTime(reader.GetOrdinal("data_registrazione")),
-                    NumeroDocumento = reader.GetString(reader.GetOrdinal("numero_documento")),
-                    TransazioneDescrizione = reader.GetString(reader.GetOrdinal("transazione_descrizione")),
-
-                    ControparteRagioneSociale = reader.GetString(reader.GetOrdinal("controparte_ragione_sociale")),
-                    CategoriaNome = reader.GetString(reader.GetOrdinal("categoria_nome")),
-                    CategoriaTipo = reader.GetString(reader.GetOrdinal("categoria_tipo")),
-
-                    ImportoNettoEur = reader.GetDecimal(reader.GetOrdinal("importo_netto_eur")),
-                    ImportoIvaEur = reader.GetDecimal(reader.GetOrdinal("importo_iva_eur")),
-                    ImportoLordoEur = reader.GetDecimal(reader.GetOrdinal("importo_lordo_eur")),
-                    ImportoPagatoEur = reader.GetDecimal(reader.GetOrdinal("importo_pagato_eur")),
-                    StatoPagamento = reader.GetString(reader.GetOrdinal("stato_pagamento"))
-                });
+                    if (rawData.Azienda != null)
+                    {
+                        data.Azienda = new CompanyPrintInfo
+                        {
+                            RagioneSociale = rawData.Azienda.RagioneSociale ?? "",
+                            Telefono = rawData.Azienda.Telefono ?? "",
+                            Email = rawData.Azienda.Email ?? "",
+                            SitoWeb = rawData.Azienda.SitoWeb ?? "",
+                            Piva = rawData.Azienda.Piva ?? "",
+                            LogoData = rawData.Azienda.LogoData ?? Array.Empty<byte>()
+                        };
+                    }
+                    data.Dettagli = rawData.Dettagli ?? new List<BilancioViaggioDTO>();
+                }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore recupero dati bilancio viaggio");
+            _logger.LogError(ex, "Errore Fat Init Bilancio Viaggio");
             throw;
         }
-        return result;
+
+        return data;
+    }
+
+    public async Task<BilancioViaggioPrintData> GetBilancioAnnualePrintDataAsync(int aziendaId, int anno, string utenteStampa, int? valutaTargetId = null)
+    {
+        _logger.LogInformation("Inizio estrazione Bilancio Annuale (Fat Init). Anno: {Anno}", anno);
+
+        var data = new BilancioViaggioPrintData
+        {
+            UtenteStampa = utenteStampa,
+            DataStampa = DateTime.Now
+        };
+
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
+
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
+            {
+                AziendaId = aziendaId,
+                ViaggioId = (int?)null,
+                DataViaggioId = (int?)null,
+                DataDa = (DateTime?)null,
+                DataA = (DateTime?)null,
+                Anno = anno,
+                ValutaTargetId = valutaTargetId
+            });
+
+            if (!string.IsNullOrEmpty(jsonResponse))
+            {
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, options);
+
+                if (rawData != null)
+                {
+                    if (rawData.Azienda != null)
+                    {
+                        data.Azienda = new CompanyPrintInfo
+                        {
+                            RagioneSociale = rawData.Azienda.RagioneSociale ?? "",
+                            Telefono = rawData.Azienda.Telefono ?? "",
+                            Email = rawData.Azienda.Email ?? "",
+                            SitoWeb = rawData.Azienda.SitoWeb ?? "",
+                            Piva = rawData.Azienda.Piva ?? "",
+                            LogoData = rawData.Azienda.LogoData ?? Array.Empty<byte>()
+                        };
+                    }
+                    data.Dettagli = rawData.Dettagli ?? new List<BilancioViaggioDTO>();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore Fat Init Bilancio Annuale");
+            throw;
+        }
+
+        return data;
     }
 
     public async Task<List<AnnoBilancioDTO>> GetAnniBilancioDisponibiliAsync(int aziendaId)
@@ -165,137 +159,33 @@ public class BilancioViaggioPrintService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("aziendaId", aziendaId);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                result.Add(new AnnoBilancioDTO
-                {
-                    Anno = reader.GetInt32(reader.GetOrdinal("anno")),
-                    NumeroViaggi = reader.GetInt32(reader.GetOrdinal("numero_viaggi"))
-                });
-            }
+            result = (await connection.QueryAsync<AnnoBilancioDTO>("SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)", new { aziendaId })).ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore recupero anni disponibili per bilancio");
-            // Gestione graceful: fall back to current year if error
             result.Add(new AnnoBilancioDTO { Anno = DateTime.Now.Year, NumeroViaggi = 0 });
         }
         return result;
     }
 
-    public async Task<BilancioViaggioPrintData> GetBilancioAnnualePrintDataAsync(int aziendaId, int anno, string utenteStampa, int? valutaTargetId = null)
+    // JSON Raw Classes
+    private class BilancioRawResponse
     {
-        var data = new BilancioViaggioPrintData
-        {
-            UtenteStampa = utenteStampa,
-            DataStampa = DateTime.Now
-        };
-
-        // 1. Fetch Company Info
-        var azienda = await _aziendaService.GetByIdAsync(aziendaId);
-        if (azienda != null)
-        {
-            data.Azienda.RagioneSociale = azienda.RagioneSociale;
-            data.Azienda.Piva = azienda.PartitaIva;
-            data.Azienda.Telefono = azienda.TelefonoPrincipale;
-            data.Azienda.Email = azienda.Pec ?? "";
-            data.Azienda.SitoWeb = azienda.SitoWeb ?? "";
-
-            // 2. Fetch Logo
-            try
-            {
-                var logos = await _aziendaLogoService.GetByAziendaIdAsync(aziendaId);
-                var primaryLogo = logos.FirstOrDefault(l => l.IsDefault) ?? logos.FirstOrDefault();
-                if (primaryLogo != null)
-                {
-                    var logoData = await _aziendaLogoService.GetBinaryDataAsync(primaryLogo.Id);
-                    if (logoData != null)
-                    {
-                        data.Azienda.LogoData = logoData;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Impossibile recuperare il logo per l'azienda {AziendaId}", aziendaId);
-            }
-        }
-
-        // 3. Fetch Details
-        data.Dettagli = await GetBilancioAnnualeDataAsync(aziendaId, anno, valutaTargetId);
-
-        return data;
+        public BilancioAziendaRaw? Azienda { get; set; }
+        public List<BilancioViaggioDTO>? Dettagli { get; set; }
     }
 
-    public async Task<List<BilancioViaggioDTO>> GetBilancioAnnualeDataAsync(int aziendaId, int anno, int? valutaTargetId = null)
+    private class BilancioAziendaRaw
     {
-        var result = new List<BilancioViaggioDTO>();
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_bilancio_annuale_viaggi(@aziendaId, @anno, @valutaTargetId)";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("aziendaId", aziendaId);
-            command.Parameters.AddWithValue("anno", anno);
-
-            var pValutaTargetId = new NpgsqlParameter("valutaTargetId", NpgsqlDbType.Integer) { Value = (object?)valutaTargetId ?? DBNull.Value, IsNullable = true };
-            command.Parameters.Add(pValutaTargetId);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                result.Add(new BilancioViaggioDTO
-                {
-                    ViaggioId = reader.GetInt32(reader.GetOrdinal("viaggio_id")),
-                    ViaggioDescrizione = reader.GetString(reader.GetOrdinal("viaggio_descrizione")),
-                    
-                    DataViaggioId = reader.GetInt32(reader.GetOrdinal("data_viaggio_id")),
-                    DataViaggioDataInizio = reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_inizio")),
-                    DataViaggioDataFine = reader.IsDBNull(reader.GetOrdinal("data_viaggio_data_fine")) ? null : reader.GetDateTime(reader.GetOrdinal("data_viaggio_data_fine")),
-                    DataViaggioNumeroPartecipanti = reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_partecipanti")),
-                    DataViaggioNumeroMezzi = reader.GetInt32(reader.GetOrdinal("data_viaggio_numero_mezzi")),
-
-                    TransazioneId = reader.GetInt32(reader.GetOrdinal("transazione_id")),
-                    DataDocumento = reader.IsDBNull(reader.GetOrdinal("data_documento")) ? null : reader.GetDateTime(reader.GetOrdinal("data_documento")),
-                    DataRegistrazione = reader.GetDateTime(reader.GetOrdinal("data_registrazione")),
-                    NumeroDocumento = reader.GetString(reader.GetOrdinal("numero_documento")),
-                    TransazioneDescrizione = reader.GetString(reader.GetOrdinal("transazione_descrizione")),
-
-                    ControparteRagioneSociale = reader.GetString(reader.GetOrdinal("controparte_ragione_sociale")),
-                    CategoriaNome = reader.GetString(reader.GetOrdinal("categoria_nome")),
-                    CategoriaTipo = reader.GetString(reader.GetOrdinal("categoria_tipo")),
-
-                    ImportoNettoEur = reader.GetDecimal(reader.GetOrdinal("importo_netto_eur")),
-                    ImportoIvaEur = reader.GetDecimal(reader.GetOrdinal("importo_iva_eur")),
-                    ImportoLordoEur = reader.GetDecimal(reader.GetOrdinal("importo_lordo_eur")),
-                    ImportoPagatoEur = reader.GetDecimal(reader.GetOrdinal("importo_pagato_eur")),
-                    StatoPagamento = reader.GetString(reader.GetOrdinal("stato_pagamento"))
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore recupero dati bilancio annuale viaggi");
-            throw;
-        }
-        return result;
+        [JsonPropertyName("ragione_sociale")] public string? RagioneSociale { get; set; }
+        [JsonPropertyName("telefono")] public string? Telefono { get; set; }
+        [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("sito_web")] public string? SitoWeb { get; set; }
+        [JsonPropertyName("piva")] public string? Piva { get; set; }
+        [JsonPropertyName("logo_data")] public byte[]? LogoData { get; set; }
     }
 
-    private bool HasColumn(NpgsqlDataReader reader, string columnName)
-    {
-        for (int i = 0; i < reader.FieldCount; i++)
-        {
-            if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
-    }
 
     public async Task<byte[]> GeneratePdfAsync(BilancioViaggioPrintData printData)
     {

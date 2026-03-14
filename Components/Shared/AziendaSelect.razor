@@ -29,11 +29,28 @@
     [Parameter] public bool Clearable { get; set; } = false;
     [Parameter] public bool ShowAllOption { get; set; } = false;
 
+    [Parameter] public List<Azienda>? Items { get; set; }
+
     private List<Azienda> _aziende = new();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAziendeAsync();
+        if (Items != null)
+        {
+            _aziende = Items;
+        }
+        else
+        {
+            await LoadAziendeAsync();
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (Items != null)
+        {
+            _aziende = Items;
+        }
     }
 
     private async Task LoadAziendeAsync()

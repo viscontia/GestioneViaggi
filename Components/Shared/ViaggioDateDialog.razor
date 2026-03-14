@@ -155,9 +155,9 @@
         return duration != DurationDays;
     }
 
-    private void Submit()
+    private async Task Submit()
     {
-        _form.Validate();
+        await _form.Validate();
         if (_form.IsValid)
         {
             // Validate Date Logic

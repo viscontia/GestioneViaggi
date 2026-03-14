@@ -2,12 +2,14 @@ using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GestioneViaggi.Services.Printing;
 
 /// <summary>
 /// Service per l'estrazione dei dati per la stampa PDF dei movimenti contabili.
-/// Utilizza le function DB fn_get_transazioni_stampa_dettaglio e fn_get_transazioni_stampa_subtotali.
+/// Utilizza la function DB Fat Init fn_get_mov_transazioni_print_data.
 /// </summary>
 public class MovTransazioniPrintService
 {
@@ -23,7 +25,7 @@ public class MovTransazioniPrintService
     }
 
     /// <summary>
-    /// Recupera tutti i dati necessari per la stampa PDF delle transazioni.
+    /// Recupera tutti i dati necessari per la stampa PDF delle transazioni tramite pattern Fat Init.
     /// </summary>
     public async Task<TransazioniPrintData> GetDataPerStampaAsync(
         TransazioniFiltriDTO filtri,
@@ -32,7 +34,7 @@ public class MovTransazioniPrintService
         string valutaTargetIso,
         UserInfo currentUser)
     {
-        _logger.LogInformation("Inizio estrazione dati stampa transazioni. Ordinamento: {Ord}", ordinamento);
+        _logger.LogInformation("Inizio estrazione dati stampa transazioni (Fat Init). Ordinamento: {Ord}", ordinamento);
 
         var result = new TransazioniPrintData
         {
@@ -40,153 +42,16 @@ public class MovTransazioniPrintService
             ValutaTargetCodiceIso = valutaTargetIso,
             DataStampa = DateTime.Now,
             UtenteStampa = currentUser.FullName,
-            Filtri = filtri.ToFiltriApplicatiInfo() // Mappa i filtri per la visualizzazione
+            Filtri = filtri.ToFiltriApplicatiInfo()
         };
 
         try
         {
             await using var connection = await _dbService.GetConnectionAsync();
 
-            // 1. Recupera dettagli transazioni
-            // Mapping 1:1 con le colonne restituite da fn_get_transazioni_stampa_dettaglio
-            var dettagliSql = @"
-                SELECT 
-                    gruppo_chiave as GruppoChiave,
-                    gruppo_display as GruppoDisplay,
-                    gruppo_ordine as GruppoOrdine,
-                    transazione_id as TransazioneId,
-                    transazione_data as DataTransazione,
-                    transazione_data_documento as DataDocumento,
-                    transazione_data_scadenza as DataScadenza,
-                    transazione_data_pagamento as DataPagamento,
-                    
-                    controparte_ragione_sociale as ControparteRagioneSociale, -- ex Fornitore
-                    
-                    tipo_movimento_codice as TipoMovimentoCodice,
-                    tipo_movimento_descrizione as TipoMovimentoDescrizione,
-                    causale_segno as CausaleSegno,
-                    transazione_causale as Causale,
-                    causale_ciclo as CausaleCiclo, -- Nuovo
-                    
-                    transazione_stato as Stato,
-                    transazione_numero_documento as NumeroDocumento,
-                    valuta_codice_iso as ValutaCodiceIso,
-                    
-                    -- Valori Originali
-                    imponibile_eur as ImponibileEur,
-                    iva_eur as IvaEur,
-                    lordo_eur as LordoEur, -- ex Importo
+            var sql = "SELECT fn_get_mov_transazioni_print_data(@AziendaId, @ControparteId, @CausaleTipoId, @Stati, @ViaggioId, @DataViaggioId, @ValutaId, @DataTransazioneDa, @DataTransazioneA, @DataDocumentoDa, @DataDocumentoA, @ImportoDa, @ImportoA, @NumeroDocumento, @SoloConDocumento, @SoloScadute, @SoloConViaggio, @SoloSenzaViaggio, @SoloConFattura, @Ordinamento, @ValutaTargetId, @CausaleCiclo)";
 
-                    -- Dati IVA
-                    aliquota_iva_codice as AliquotaIvaCodice,
-                    aliquota_iva_percentuale as AliquotaIvaPercentuale,
-
-                    -- Valori Convertiti
-                    importo_valuta_target as ImportoValutaTarget,
-                    valuta_target_iso as ValutaTargetIso,
-                    
-                    viaggio_descrizione as ViaggioDescrizione,
-                    data_viaggio_inizio as DataViaggioInizio
-                FROM fn_get_transazioni_stampa_dettaglio(
-                    @AziendaId,
-                    @ControparteId, -- ex FornitoreId
-                    @CausaleTipoId,
-                    @Stati,
-                    @ViaggioId,
-                    @DataViaggioId,
-                    @ValutaId,
-                    @DataTransazioneDa,
-                    @DataTransazioneA,
-                    @DataDocumentoDa,
-                    @DataDocumentoA,
-                    @ImportoDa,
-                    @ImportoA,
-                    @NumeroDocumento,
-                    @SoloConDocumento,
-                    @SoloScadute,
-                    @SoloConViaggio,
-                    @SoloSenzaViaggio,
-                    @SoloConFattura,
-                    @Ordinamento,
-                    @ValutaTargetId,
-                    @CausaleCiclo -- Nuovo
-                )";
-
-            var dettagli = await connection.QueryAsync<TransazionePrintItem>(dettagliSql, new
-            {
-                AziendaId = filtri.AziendaId,
-                ControparteId = filtri.ControparteId, // ex FornitoreId
-                CausaleTipoId = filtri.CausaleTipoId,
-                Stati = filtri.Stati,
-                ViaggioId = filtri.ViaggioId,
-                DataViaggioId = filtri.DataViaggioId,
-                ValutaId = filtri.ValutaId,
-                DataTransazioneDa = filtri.DataTransazioneDa,
-                DataTransazioneA = filtri.DataTransazioneA,
-                DataDocumentoDa = filtri.DataDocumentoDa,
-                DataDocumentoA = filtri.DataDocumentoA,
-                ImportoDa = filtri.ImportoDa,
-                ImportoA = filtri.ImportoA,
-                NumeroDocumento = filtri.NumeroDocumento,
-                SoloConDocumento = filtri.SoloConDocumento,
-                SoloScadute = filtri.SoloScadute,
-                SoloConViaggio = filtri.SoloConViaggio,
-                SoloSenzaViaggio = filtri.SoloSenzaViaggio,
-                SoloConFattura = filtri.SoloConFattura,
-                Ordinamento = ordinamento,
-                ValutaTargetId = valutaTargetId,
-                CausaleCiclo = filtri.CausaleCiclo
-            });
-
-            result.Dettagli = dettagli.ToList();
-
-            // 2. Recupera subtotali per gruppo
-            var subtotaliSql = @"
-                SELECT
-                    gruppo_chiave as GruppoChiave,
-                    gruppo_display as GruppoDisplay,
-                    gruppo_ordine as GruppoOrdine,
-                    valuta_codice_iso as ValutaCodiceIso,
-                    
-                    totale_valuta_originale as TotaleValutaOriginale,
-                    totale_valuta_target as TotaleValutaTarget,
-                    
-                    totale_fatturato_target as TotaleFatturatoTarget,
-                    totale_pagato_target as TotalePagatoTarget,
-                    
-                    -- Nuovi Totali
-                    totale_imponibile_target as TotaleImponibileTarget,
-                    totale_iva_target as TotaleIvaTarget,
-
-                    valuta_target_iso as ValutaTargetIso,
-                    conteggio_transazioni as ConteggioTransazioni,
-                    is_totale_generale as IsTotaleGenerale
-                FROM fn_get_transazioni_stampa_subtotali(
-                    @AziendaId,
-                    @ControparteId, -- ex FornitoreId
-                    @CausaleTipoId,
-                    @Stati,
-                    @ViaggioId,
-                    @DataViaggioId,
-                    @ValutaId,
-                    @DataTransazioneDa,
-                    @DataTransazioneA,
-                    @DataDocumentoDa,
-                    @DataDocumentoA,
-                    @ImportoDa,
-                    @ImportoA,
-                    @NumeroDocumento,
-                    @SoloConDocumento,
-                    @SoloScadute,
-                    @SoloConViaggio,
-                    @SoloSenzaViaggio,
-                    @SoloConFattura,
-                    @Ordinamento,
-                    @ValutaTargetId,
-                    @CausaleCiclo -- Nuovo
-                )";
-
-            var subtotali = await connection.QueryAsync<SubTotaleItem>(subtotaliSql, new
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
             {
                 AziendaId = filtri.AziendaId,
                 ControparteId = filtri.ControparteId,
@@ -212,56 +77,62 @@ public class MovTransazioniPrintService
                 CausaleCiclo = filtri.CausaleCiclo
             });
 
-            result.Subtotali = subtotali.ToList();
+            if (string.IsNullOrEmpty(jsonResponse)) return result;
 
-            // 3. Calcola il totale generale
-            result.TotaleGeneraleValutaTarget = result.Subtotali.Where(s => s.IsTotaleGenerale).Sum(s => s.TotaleValutaTarget);
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var rawData = JsonSerializer.Deserialize<MovTransazioniRawResponse>(jsonResponse, options);
 
-            // 4. Se filtrato per azienda, recupera info azienda
-            if (filtri.AziendaId.HasValue)
+            if (rawData != null)
             {
-                result.Azienda = await GetAziendaInfoAsync(filtri.AziendaId.Value);
+                // Mappatura Info Azienda
+                if (rawData.Azienda != null)
+                {
+                    result.Azienda = new CompanyPrintInfo
+                    {
+                        RagioneSociale = rawData.Azienda.RagioneSociale ?? "",
+                        Telefono = rawData.Azienda.Telefono ?? "",
+                        Email = rawData.Azienda.Email ?? "",
+                        SitoWeb = rawData.Azienda.SitoWeb ?? "",
+                        Piva = rawData.Azienda.Piva ?? "",
+                        LogoData = rawData.Azienda.LogoData ?? Array.Empty<byte>()
+                    };
+                }
+
+                // Mappatura Dettagli e Subtotali
+                result.Dettagli = rawData.Dettagli ?? new List<TransazionePrintItem>();
+                result.Subtotali = rawData.Subtotali ?? new List<SubTotaleItem>();
+
+                // Calcolo Totale Generale
+                result.TotaleGeneraleValutaTarget = result.Subtotali
+                    .Where(s => s.IsTotaleGenerale)
+                    .Sum(s => s.TotaleValutaTarget);
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei dati per la stampa");
+            _logger.LogError(ex, "Errore durante il recupero dei dati per la stampa (Fat Init)");
             throw;
         }
     }
 
-    private async Task<CompanyPrintInfo> GetAziendaInfoAsync(int aziendaId)
+    // Helper classes for JSON Deserialization
+    private class MovTransazioniRawResponse
     {
-        try
-        {
-            await using var connection = await _dbService.GetConnectionAsync();
-            
-            // Use the shared function for consistent company info including logo
-            var companySql = "SELECT * FROM get_company_print_info(@AziendaId)";
-            var companyRaw = await connection.QueryFirstOrDefaultAsync<dynamic>(companySql, new { AziendaId = aziendaId });
+        public MovAziendaRaw? Azienda { get; set; }
+        public List<TransazionePrintItem>? Dettagli { get; set; }
+        public List<SubTotaleItem>? Subtotali { get; set; }
+    }
 
-            if (companyRaw != null)
-            {
-                return new CompanyPrintInfo
-                {
-                    RagioneSociale = (string)companyRaw.ragione_sociale ?? "",
-                    Telefono = (string)companyRaw.telefono ?? "",
-                    Email = (string)companyRaw.email ?? "",
-                    SitoWeb = (string)companyRaw.sito_web ?? "",
-                    Piva = (string)companyRaw.piva ?? "",
-                    LogoData = companyRaw.logo_data != null ? (byte[])companyRaw.logo_data : Array.Empty<byte>()
-                };
-            }
-            
-            return new CompanyPrintInfo();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore nel recupero info azienda {Id} per stampa", aziendaId);
-            return new CompanyPrintInfo();
-        }
+    private class MovAziendaRaw
+    {
+        [JsonPropertyName("ragione_sociale")] public string? RagioneSociale { get; set; }
+        [JsonPropertyName("telefono")] public string? Telefono { get; set; }
+        [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("sito_web")] public string? SitoWeb { get; set; }
+        [JsonPropertyName("piva")] public string? Piva { get; set; }
+        [JsonPropertyName("logo_data")] public byte[]? LogoData { get; set; }
     }
 }
 

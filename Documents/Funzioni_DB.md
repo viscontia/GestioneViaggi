@@ -48,6 +48,7 @@ Funzioni per la gestione della struttura SaaS (Tenant, Aziende, Organizzazioni) 
 | `fn_app_toggle_azienda_status` | Attiva/disattiva stato azienda (solo SuperAdmin) | `p_azienda_id integer, ...` | `jsonb` | - |
 | `fn_app_get_all_aziende` | Recupera lista paginata di tutte le aziende con filtri e ricerca per SuperAdmin | `p_user_id uuid, ...` | `jsonb` | - |
 | `fn_app_get_azienda_by_id` | Recupera dettaglio singola azienda per ID o tenant_id | `p_azienda_id integer` | `jsonb` | - |
+| `fn_get_azienda_badge_counts` | **Ottimizzazione Connection Leak**: Recupera in un'unica chiamata tutti i conteggi per i tab del dialog Azienda (Sedi, Contatti, Banche, Email, Reparti, SMTP, Logo). Riduce il numero di sessioni da 7 a 1. | `p_azienda_id integer` | `TABLE(sedi INT, contatti INT, banche INT, email INT, reparti INT, smtp INT, logo INT)` | `Components/Shared/AziendaDialog.razor`, `SqlScripts/250_Create_FnGetAziendaBadgeCounts.sql` |
 | `current_azienda` | Restituisce ID azienda corrente per ruoli azienda-specifici | - | `integer` | - |
 | `fn_superadmin_get_all_companies` | Recupera tutte le aziende cross-tenant per SuperAdmin | `p_user_id uuid, ...` | `jsonb` | - |
 | `fn_superadmin_query_table` | SELECT generico per SuperAdmin su qualsiasi tabella | `p_user_id uuid, p_table_name character varying, ...` | `jsonb` | - |
@@ -650,3 +651,84 @@ Le stored procedure MAUI `sp_mov_clienti_viaggi_create` e `sp_mov_clienti_allogg
 
 **Totale funzioni fn_wizard_***: 18 (7 Step 1 + 1 Step 3 + 6 Step 4 + 3 Step 5 + 1 Email)
 
+### `fn_get_viaggi_init_data`
+Recupera tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio in un'unica chiamata JSON. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
+
+- **Parametri**:
+  - `p_viaggio_id` (INT, default NULL): ID del viaggio per recuperare le date (modalità edit).
+- **Ritorna**: `JSON` contenente gli array di lookup e le date.
+- **Utilizzo**: `AnaViaggiService.GetViaggiInitDataAsync(int? viaggioId)`
+
+### `fn_get_viaggio_partecipanti_init_data`
+Recupera l'intero stato iniziale del dialog gestione partecipanti, inclusi partecipanti (ordinati e senza camera), contatori, riepiloghi, liste camere con occupanti, intestazione viaggio e lookups necessari. Consolidamento di circa 9 chiamate separate.
+
+- **Parametri**:
+  - `p_viaggio_id` (INT): ID del viaggio.
+  - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
+- **Ritorna**: `JSON` con lo stato completo del dialog.
+- **Utilizzo**: `MovClientiViaggiService.GetPartecipantiInitDataAsync(int viaggioId, int dataViaggioId)`
+
+### `fn_get_cliente_init_data`
+Recupera in un'unica chiamata JSON tutti i dati necessari per l'inizializzazione del dialog Cliente: lista completa dei comuni (per ricerca), lista aziende (per SuperAdmin) e dettagli geografici del cliente (nascita e residenza). Ottimizzazione che riduce le connessioni parallele e il carico di memoria.
+
+- **Parametri**:
+  - `p_cliente_id` (INT, default NULL): ID del cliente per recuperare i dettagli comuni esistenti.
+- **Ritorna**: `JSON` contenente `Comuni`, `Aziende`, `ComuneNascita` e `ComuneResidenza`.
+- **Utilizzo**: `ClienteService.GetClienteInitDataAsync(int? clienteId)`
+
+### `fn_get_viaggi_init_data`
+Recupera in un'unica chiamata JSON tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
+
+- **Parametri**:
+  - `p_viaggio_id` (INT, default NULL): ID del viaggio per recuperare le date (modalità edit).
+- **Ritorna**: `JSON` contenente gli array di lookup e le date.
+- **Utilizzo**: `AnaViaggiService.GetViaggiInitDataAsync(int? viaggioId)`
+
+### `fn_get_viaggio_partecipanti_init_data`
+Recupera l'intero stato iniziale del dialog gestione partecipanti, inclusi partecipanti (ordinati e senza camera), contatori, riepiloghi, liste camere con occupanti, intestazione viaggio e lookups necessari. Consolidamento di circa 9 chiamate separate.
+
+- **Parametri**:
+  - `p_viaggio_id` (INT): ID del viaggio.
+  - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
+- **Ritorna**: `JSON` con lo stato completo del dialog.
+- **Utilizzo**: `MovClientiViaggiService.GetPartecipantiInitDataAsync(int viaggioId, int dataViaggioId)`
+
+### `fn_get_controparte_init_data`
+Recupera in un'unica chiamata JSON tutti i dati necessari per l'inizializzazione del dialog Controparte: comuni, aziende (per SuperAdmin), tipi fornitore e dettaglio comune della controparte.
+
+- **Parametri**:
+  - `p_controparte_id` (INT, default NULL): ID della controparte per recuperare i dettagli comuni esistenti.
+- **Ritorna**: `JSON` contenente `Comuni`, `Aziende`, `TipiFornitore` e `Comune`.
+- **Utilizzo**: `ContropartiService.GetControparteInitDataAsync(int? controparteId)`
+
+## Area: Movimenti Contabili
+
+### `fn_get_transazione_init_data`
+Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica chiamata JSON tutti i lookups (Causali, IVA, Valute), le liste di azienda (Controparti, Viaggi) e opzionalmente i dati di una transazione esistente con le sue righe.
+
+- **Parametri**:
+  - `p_azienda_id` (INT): ID dell'azienda per filtrare lookups e liste.
+  - `p_transazione_id` (INT, default NULL): ID della transazione per recuperare i dettagli (modalità edit).
+- **Ritorna**: `JSON` contenente `Causali`, `AliquoteIva`, `Valute`, `Controparti`, `Viaggi`, `ShowHelperCalcolo` e `TransazioneJson`.
+- **Utilizzo**: `MovTransazioniService.GetTransazioneInitDataAsync(int aziendaId, int? transazioneId)`
+
+### `fn_get_travel_print_data`
+- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della scheda viaggio. Aggrega i dati di testata, azienda, partecipanti, statistiche e mezzi in un'unica chiamata JSON. Consolidamento di 5 chiamate separate.
+- **Parametri**:
+  - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
+- **Ritorna**: `JSON` con chiavi `Header`, `Company`, `Participants`, `Stats`, `PilotsByVehicle`.
+- **Utilizzo**: `TravelPrintService.GetPrintDataAsync(int dataViaggioId)`
+
+### `fn_get_rooming_list_print_data`
+- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della Rooming List. Aggrega i dati di testata, azienda e partecipanti (camere) in un'unica chiamata JSON. Consolidamento di 3 chiamate separate.
+- **Parametri**:
+  - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
+- **Ritorna**: `JSON` con chiavi `Header`, `Company`, `Participants`.
+- **Utilizzo**: `RoomingListPrintService.GetRoomingListDataAsync(int dataViaggioId)`
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_mov_transazioni_print_data` | **Fat Init**: Ottimizzazione per la stampa dei movimenti contabili. Aggrega Info Azienda (Ragione Sociale, P.IVA, etc.), Dettagli transazioni (via `fn_get_transazioni_stampa_dettaglio`) e Subtotali (via `fn_get_transazioni_stampa_subtotali`) in un unico JSONB. Riduce le connessioni parallele da 3 a 1. | `p_azienda_id INT, p_controparte_id INT, p_causale_tipo_id INT, p_stati VARCHAR[], p_viaggio_id INT, p_data_viaggio_id INT, p_valuta_id INT, p_data_transazione_da DATE, p_data_transazione_a DATE, p_data_documento_da DATE, p_data_documento_a DATE, p_importo_da NUMERIC, p_importo_a NUMERIC, p_numero_documento VARCHAR, p_solo_con_documento BOOL, p_solo_scadute BOOL, p_solo_con_viaggio BOOL, p_solo_senza_viaggio BOOL, p_solo_con_fattura BOOL, p_ordinamento VARCHAR, p_valuta_target_id INT, p_causale_ciclo VARCHAR` | `JSONB` (chiavi: azienda, dettagli, subtotali) | `Services/Printing/MovTransazioniPrintService.cs`, `SqlScripts/310_Create_FnGetMovTransazioniPrintData.sql` |
+| `fn_get_registro_iva_print_data` | **Fat Init**: Ottimizzazione per la stampa del Registro IVA. Aggrega i dati dell'azienda emittente (inclusi logo e sede) e l'elenco delle transazioni (via `fn_get_registro_iva`) filtrate per anno e ciclo contabile (ATTIVO/PASSIVO). | `p_azienda_id INTEGER, p_anno INTEGER, p_causale_ciclo VARCHAR(10)` | `JSONB` (chiavi: azienda, items) | `Services/Printing/RegistroIvaPrintService.cs`, `SqlScripts/320_Create_FnGetRegistroIvaPrintData.sql` |
+| `fn_get_scadenzario_print_data` | **Fat Init**: Ottimizzazione per la stampa dello Scadenzario. Consolida i dati dell'azienda e l'estrazione dettagliata dello scadenzario finanziario (via `fn_get_scadenzario_stampa`). Supporta tutti i filtri di ricerca e raggruppamento dinamico (URGENZA/MESE/CONTROPARTE). | `p_azienda_id INTEGER, p_controparte_id INTEGER, p_causale_ciclo VARCHAR(10), p_urgenza VARCHAR(20), p_data_scadenza_da DATE, p_data_scadenza_a DATE, p_viaggio_id INTEGER, p_solo_con_viaggio BOOLEAN, p_solo_senza_viaggio BOOLEAN, p_raggruppamento VARCHAR(20)` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/ScadenzarioPrintService.cs`, `SqlScripts/330_Create_FnGetScadenzarioPrintData.sql` |
+| `fn_get_bilancio_viaggio_print_data` | **Fat Init**: Ottimizzazione per il report Bilancio Viaggio (Singolo o Annuale). Consolida 3-4 query: Info Azienda, Logo binario e dati economici (via `fn_get_bilancio_viaggio` o `fn_get_bilancio_annuale_viaggi`). Permette di generare il bilancio economico completo in un unico passaggio. | `p_azienda_id INT, p_viaggio_ids INT[], p_data_da DATE, p_data_a DATE, p_anno INT, p_valuta_target_id INT, p_data_viaggio_id INT` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/340_Create_FnGetBilancioViaggioPrintData.sql` |
+| `fn_get_fattura_attiva_print_data` | **Fat Init**: Ottimizzazione per la stampa della Fattura Attiva. Risolve il problema delle query multiple per testata (Azienda+Cliente) e righe di dettaglio. Restituisce un oggetto JSONB completo pronto per il mapping nel DTO `FatturaAttivaPrintData`. Include campi SDI per fatturazione elettronica. | `p_transazione_id INTEGER` | `JSONB` (chiavi: testata, righe) | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/350_Create_FnGetFatturaAttivaPrintData.sql` |

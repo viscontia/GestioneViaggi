@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@implements IDisposable
 @inject AziendaEmailService EmailService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -74,21 +75,37 @@
 
     private List<AziendaEmail> _emails = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadEmailsAsync();
+            return;
         }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadEmailsAsync(_cts.Token);
     }
 
-    private async Task LoadEmailsAsync()
+    private async Task LoadEmailsAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
             _emails = await EmailService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -98,6 +115,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private async Task OpenEmailDialog(AziendaEmail? email)

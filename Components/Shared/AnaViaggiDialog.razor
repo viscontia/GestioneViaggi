@@ -20,7 +20,8 @@
                         else
                         {
                             <AziendaSelect @bind-Value="Entity.AziendaId" Label="Azienda" Required="true"
-                                Disabled="@(!IsSuperAdmin)" RequiredError="Selezionare l'azienda" Class="mb-4" />
+                                Disabled="@(!IsSuperAdmin)" RequiredError="Selezionare l'azienda" Class="mb-4"
+                                Items="@_initData?.Aziende" />
                         }
 
                         <!-- 2. DATI PRINCIPALI VIAGGIO -->
@@ -29,14 +30,14 @@
                             <MudItem xs="12" sm="6">
                                 <CountrySelect SelectedCountryId="@((int?)Entity.NazioneIdFk)"
                                     SelectedCountryIdChanged="@(val => Entity.NazioneIdFk = val ?? 0)" Label="Nazione"
-                                    Required="true" Class="mb-3" />
+                                    Required="true" Class="mb-3" Items="@_initData?.Nazioni" />
                             </MudItem>
 
                             <!-- Tipo Viaggio -->
                             <MudItem xs="12" sm="6">
                                 <TipoViaggioSelect SelectedId="@((int?)Entity.TipoViaggioIdFk)"
                                     SelectedIdChanged="@(val => Entity.TipoViaggioIdFk = val ?? 0)" Label="Tipo Viaggio"
-                                    Required="true" Class="mb-3" />
+                                    Required="true" Class="mb-3" Items="@_initData?.TipiViaggio" />
                             </MudItem>
 
                             <!-- Descrizione Breve -->
@@ -90,19 +91,19 @@
                             <MudItem xs="12" sm="4">
                                 <TipoTrattamentoSelect SelectedId="@((int?)Entity.TipoTrattamentoIdFk)"
                                     SelectedIdChanged="@(val => Entity.TipoTrattamentoIdFk = val ?? 0)" Label="Trattamento"
-                                    Required="true" />
+                                    Required="true" Items="@_initData?.TipiTrattamento" />
                             </MudItem>
                             <!-- Tipo Pernottamento -->
                             <MudItem xs="12" sm="4">
                                 <TipoPernottamentoSelect SelectedId="@((int?)Entity.TipoPernottamentoIdFk)"
                                     SelectedIdChanged="@(val => Entity.TipoPernottamentoIdFk = val ?? 0)" Label="Pernottamento"
-                                    Required="true" />
+                                    Required="true" Items="@_initData?.TipiPernottamento" />
                             </MudItem>
                             <!-- Tipo Avvicinamento -->
                             <MudItem xs="12" sm="4">
                                 <TipoAvvicinamentoSelect SelectedId="@((int?)Entity.TipoAvvicinamentoIdFk)"
                                     SelectedIdChanged="@(val => Entity.TipoAvvicinamentoIdFk = val ?? 0)" Label="Avvicinamento"
-                                    Required="true" />
+                                    Required="true" Items="@_initData?.TipiAvvicinamento" />
                             </MudItem>
                         </MudGrid>
 
@@ -194,6 +195,7 @@
     private bool _isSaving;
     private List<AnaDataViaggio> _dates = new();
     private ViaggioDatesManager? _datesManager;
+    private GestioneViaggi.Models.DTOs.ViaggiInitData _initData = new();
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -220,6 +222,22 @@
     {
         if (StartOnDatesTab) _activeTabIndex = 1;
 
+        try
+        {
+            // FAT INIT: Carica tutti i lookup e (se edit) le date in un'unica chiamata
+            _initData = await ViaggiService.GetViaggiInitDataAsync(IsEditMode ? Entity.Id : (int?)null);
+            
+            if (IsEditMode)
+            {
+                _dates = _initData.Dates;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Errore caricamento dati inizializzazione", Severity.Error);
+            Console.WriteLine($"Fat Init Error: {ex.Message}");
+        }
+
         // Init Azienda Logic
         if (!IsEditMode)
         {
@@ -233,18 +251,6 @@
             if (Entity.NumeroGiorni == 0) Entity.NumeroGiorni = 1;
             
             // Dates list empty for new
-        }
-        else
-        {
-            // Load dates
-            try 
-            {
-                _dates = await ViaggiService.GetDatesByTripIdAsync(Entity.Id);
-            }
-            catch (Exception)
-            {
-                Snackbar.Add("Errore caricamento date viaggio", Severity.Error);
-            }
         }
     }
 

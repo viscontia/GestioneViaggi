@@ -15,6 +15,10 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
 
+        <!-- Mantieni file originali static web assets (non solo compressi) -->
+        <StaticWebAssetsEnabled>true</StaticWebAssetsEnabled>
+        <GenerateStaticWebAssetsManifest>true</GenerateStaticWebAssetsManifest>
+
         <!-- Display name -->
         <ApplicationTitle>GestioneViaggi</ApplicationTitle>
 
@@ -120,5 +124,30 @@
     <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->
     <!-- QuestPDF fonts inclusion removed due to version mismatch and build errors -->
 
+    <!-- Fix static web assets in Release builds - copy uncompressed files -->
+    <Target Name="CopyUncompressedWwwroot" AfterTargets="Build" Condition="'$(Configuration)' == 'Release' AND '$(TargetFramework)' == 'net9.0-maccatalyst'">
+        <PropertyGroup>
+            <WwwrootDestination>$(OutputPath)maccatalyst-arm64\$(AssemblyName).app\Contents\Resources\wwwroot\</WwwrootDestination>
+            <NuGetPackagesPath Condition="'$(NuGetPackagesPath)' == ''">$(HOME)/.nuget/packages</NuGetPackagesPath>
+        </PropertyGroup>
+        <ItemGroup>
+            <!-- Project wwwroot files -->
+            <WwwrootFiles Include="$(ProjectDir)wwwroot\**\*.*" Exclude="$(ProjectDir)wwwroot\**\*.br;$(ProjectDir)wwwroot\**\*.gz;$(ProjectDir)wwwroot\**\.DS_Store" />
+            <!-- MudBlazor static assets from NuGet -->
+            <MudBlazorFiles Include="$(NuGetPackagesPath)/mudblazor/8.15.0/staticwebassets/*.*" />
+            <!-- Blazored.TextEditor static assets from NuGet -->
+            <BlazoredTextEditorFiles Include="$(NuGetPackagesPath)/blazored.texteditor/1.1.0/staticwebassets/**/*.*" />
+        </ItemGroup>
+        <Message Importance="high" Text="Copying uncompressed wwwroot files to: $(WwwrootDestination)" />
+        <Copy SourceFiles="@(WwwrootFiles)"
+              DestinationFiles="@(WwwrootFiles->'$(WwwrootDestination)%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(MudBlazorFiles)"
+              DestinationFolder="$(WwwrootDestination)_content/MudBlazor/"
+              SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(BlazoredTextEditorFiles)"
+              DestinationFiles="@(BlazoredTextEditorFiles->'$(WwwrootDestination)_content/Blazored.TextEditor/%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="false" />
+    </Target>
 
 </Project>

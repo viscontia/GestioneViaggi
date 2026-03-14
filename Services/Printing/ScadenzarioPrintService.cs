@@ -2,12 +2,14 @@ using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GestioneViaggi.Services.Printing;
 
 /// <summary>
 /// Service per l'estrazione dei dati per la stampa PDF dello scadenzario.
-/// Architettura DB-First: utilizza fn_get_scadenzario_stampa per query.
+/// Utilizza la function DB Fat Init fn_get_scadenzario_print_data.
 /// </summary>
 public class ScadenzarioPrintService
 {
@@ -23,8 +25,7 @@ public class ScadenzarioPrintService
     }
 
     /// <summary>
-    /// Recupera tutti i dati necessari per la stampa PDF dello scadenzario.
-    /// Utilizza la function DB fn_get_scadenzario_stampa.
+    /// Recupera tutti i dati necessari per la stampa PDF dello scadenzario tramite pattern Fat Init.
     /// </summary>
     public async Task<ScadenzarioPrintData> GetDataPerStampaAsync(
         ScadenzarioFiltriDTO filtri,
@@ -32,7 +33,7 @@ public class ScadenzarioPrintService
         string? valutaTargetIso,
         UserInfo currentUser)
     {
-        _logger.LogInformation("Inizio estrazione dati stampa scadenzario. Raggruppamento: {Ragg}", raggruppamento);
+        _logger.LogInformation("Inizio estrazione dati stampa scadenzario (Fat Init). Raggruppamento: {Ragg}", raggruppamento);
 
         var result = new ScadenzarioPrintData
         {
@@ -46,58 +47,69 @@ public class ScadenzarioPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
 
-            // Chiamata alla function DB fn_get_scadenzario_stampa
-            var dettagli = await connection.QueryAsync<ScadenzarioItem>(
-                "SELECT * FROM fn_get_scadenzario_stampa(@AziendaId, @ControparteId, @CausaleCiclo, @Urgenza, @DataScadenzaDa, @DataScadenzaA, @ViaggioId, @SoloConViaggio, @SoloSenzaViaggio, @Raggruppamento)",
-                new
-                {
-                    AziendaId = filtri.AziendaId,
-                    ControparteId = filtri.ControparteId,
-                    CausaleCiclo = filtri.CausaleCiclo,
-                    Urgenza = filtri.Urgenza,
-                    DataScadenzaDa = filtri.DataScadenzaDa,
-                    DataScadenzaA = filtri.DataScadenzaA,
-                    ViaggioId = filtri.ViaggioId,
-                    SoloConViaggio = filtri.SoloConViaggio,
-                    SoloSenzaViaggio = filtri.SoloSenzaViaggio,
-                    Raggruppamento = raggruppamento
-                });
+            var sql = "SELECT fn_get_scadenzario_print_data(@AziendaId, @ControparteId, @CausaleCiclo, @Urgenza, @DataScadenzaDa, @DataScadenzaA, @ViaggioId, @SoloConViaggio, @SoloSenzaViaggio, @Raggruppamento)";
 
-            result.Dettagli = dettagli.ToList();
-
-            // Calcola subtotali per gruppo (logica applicativa su dati già estratti)
-            result.Subtotali = CalcolaSubtotali(result.Dettagli);
-
-            // Calcola totali generali
-            result.TotaleGeneraleAttivo = result.Dettagli
-                .Where(d => d.CausaleCiclo == "ATTIVO")
-                .Sum(d => d.Residuo);
-
-            result.TotaleGeneralePassivo = result.Dettagli
-                .Where(d => d.CausaleCiclo == "PASSIVO")
-                .Sum(d => Math.Abs(d.Residuo)); // Valore assoluto per le uscite
-
-            result.SaldoNetto = result.TotaleGeneraleAttivo - result.TotaleGeneralePassivo;
-
-            // Se filtrato per azienda, recupera info azienda tramite function DB
-            if (filtri.AziendaId.HasValue)
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
             {
-                result.Azienda = await GetAziendaInfoAsync(filtri.AziendaId.Value);
+                AziendaId = filtri.AziendaId,
+                ControparteId = filtri.ControparteId,
+                CausaleCiclo = filtri.CausaleCiclo,
+                Urgenza = filtri.Urgenza,
+                DataScadenzaDa = filtri.DataScadenzaDa,
+                DataScadenzaA = filtri.DataScadenzaA,
+                ViaggioId = filtri.ViaggioId,
+                SoloConViaggio = filtri.SoloConViaggio,
+                SoloSenzaViaggio = filtri.SoloSenzaViaggio,
+                Raggruppamento = raggruppamento
+            });
+
+            if (string.IsNullOrEmpty(jsonResponse)) return result;
+
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var rawData = JsonSerializer.Deserialize<ScadenzarioRawResponse>(jsonResponse, options);
+
+            if (rawData != null)
+            {
+                // Mappatura Info Azienda
+                if (rawData.Azienda != null)
+                {
+                    result.Azienda = new CompanyPrintInfo
+                    {
+                        RagioneSociale = rawData.Azienda.RagioneSociale ?? "",
+                        Telefono = rawData.Azienda.Telefono ?? "",
+                        Email = rawData.Azienda.Email ?? "",
+                        SitoWeb = rawData.Azienda.SitoWeb ?? "",
+                        Piva = rawData.Azienda.Piva ?? "",
+                        LogoData = rawData.Azienda.LogoData ?? Array.Empty<byte>()
+                    };
+                }
+
+                result.Dettagli = rawData.Dettagli ?? new List<ScadenzarioItem>();
+
+                // Calcola subtotali per gruppo
+                result.Subtotali = CalcolaSubtotali(result.Dettagli);
+
+                // Calcola totali generali
+                result.TotaleGeneraleAttivo = result.Dettagli
+                    .Where(d => d.CausaleCiclo == "ATTIVO")
+                    .Sum(d => d.Residuo);
+
+                result.TotaleGeneralePassivo = result.Dettagli
+                    .Where(d => d.CausaleCiclo == "PASSIVO")
+                    .Sum(d => Math.Abs(d.Residuo));
+
+                result.SaldoNetto = result.TotaleGeneraleAttivo - result.TotaleGeneralePassivo;
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il recupero dei dati per la stampa scadenzario");
+            _logger.LogError(ex, "Errore durante il recupero dei dati per la stampa scadenzario (Fat Init)");
             throw;
         }
     }
 
-    /// <summary>
-    /// Calcola subtotali per gruppo aggregando i dati già estratti.
-    /// Questa è logica applicativa che opera su dati in memoria.
-    /// </summary>
     private List<ScadenzarioSubTotale> CalcolaSubtotali(List<ScadenzarioItem> dettagli)
     {
         var subtotali = dettagli
@@ -114,13 +126,11 @@ public class ScadenzarioPrintService
             })
             .ToList();
 
-        // Calcola saldo netto per ogni gruppo
         foreach (var sub in subtotali)
         {
             sub.SaldoNetto = sub.TotaleAttivo - sub.TotalePassivo;
         }
 
-        // Aggiungi totale generale
         if (subtotali.Any())
         {
             subtotali.Add(new ScadenzarioSubTotale
@@ -139,22 +149,20 @@ public class ScadenzarioPrintService
         return subtotali;
     }
 
-    /// <summary>
-    /// Recupera info azienda tramite function DB get_company_print_info.
-    /// </summary>
-    private async Task<CompanyPrintInfo> GetAziendaInfoAsync(int aziendaId)
+    // Helper classes for JSON Deserialization
+    private class ScadenzarioRawResponse
     {
-        try
-        {
-            await using var connection = await _dbService.GetConnectionAsync();
-            return await connection.QueryFirstOrDefaultAsync<CompanyPrintInfo>(
-                "SELECT * FROM get_company_print_info(@AziendaId)",
-                new { AziendaId = aziendaId }) ?? new CompanyPrintInfo();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore nel recupero info azienda {Id} per stampa", aziendaId);
-            return new CompanyPrintInfo();
-        }
+        public ScadAziendaRaw? Azienda { get; set; }
+        public List<ScadenzarioItem>? Dettagli { get; set; }
+    }
+
+    private class ScadAziendaRaw
+    {
+        [JsonPropertyName("ragione_sociale")] public string? RagioneSociale { get; set; }
+        [JsonPropertyName("telefono")] public string? Telefono { get; set; }
+        [JsonPropertyName("email")] public string? Email { get; set; }
+        [JsonPropertyName("sito_web")] public string? SitoWeb { get; set; }
+        [JsonPropertyName("piva")] public string? Piva { get; set; }
+        [JsonPropertyName("logo_data")] public byte[]? LogoData { get; set; }
     }
 }

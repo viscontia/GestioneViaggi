@@ -1,5 +1,6 @@
 -- Function: get_datetrips_fromtrip
 -- Description: Returns all management fields for a given trip ID + vehicle count + participant count, ordered by start date DESC.
+-- Updated to return NUMERIC for costs for better precision.
 DROP FUNCTION IF EXISTS get_datetrips_fromtrip(integer);
 CREATE OR REPLACE FUNCTION get_datetrips_fromtrip(p_viaggio_id integer) RETURNS TABLE (
         data_viaggio_id integer,
@@ -7,12 +8,12 @@ CREATE OR REPLACE FUNCTION get_datetrips_fromtrip(p_viaggio_id integer) RETURNS 
         data_viaggio_data_inizio timestamp without time zone,
         data_viaggio_data_fine timestamp without time zone,
         data_viaggio_effettuato_sino character varying,
-        data_viaggio_costo_pilota integer,
-        data_viaggio_costo_passeggero integer,
-        data_viaggio_costo_passeggero_auto_guida integer,
-        data_viaggio_costo_bambino_0_2 integer,
-        data_viaggio_costo_bambino_2_6 integer,
-        data_viaggio_costo_bambino_6_12 integer,
+        data_viaggio_costo_pilota numeric,
+        data_viaggio_costo_passeggero numeric,
+        data_viaggio_costo_passeggero_auto_guida numeric,
+        data_viaggio_costo_bambino_0_2 numeric,
+        data_viaggio_costo_bambino_2_6 numeric,
+        data_viaggio_costo_bambino_6_12 numeric,
         data_viaggio_note character varying,
         azienda_id integer,
         tot_mezzi integer,

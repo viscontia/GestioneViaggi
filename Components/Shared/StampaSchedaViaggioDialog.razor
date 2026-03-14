@@ -1,0 +1,103 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.Printing
+@inject ITravelPrintService PrintService
+@inject IPdfOpenerService PdfOpenerService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
+            Opzioni di Stampa
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">Seleziona il tipo di scheda da stampare per il viaggio:</MudText>
+        <MudRadioGroup @bind-Value="_selectedType" T="PrintType">
+            <MudStack Spacing="2">
+                <MudRadio Value="@PrintType.TravelDataSheet" Color="Color.Primary">
+                    <MudText Typo="Typo.body1"><b>Scheda Sintetica</b></MudText>
+                    <MudText Typo="Typo.caption">Riepilogo equipaggi, mezzi e caratteristiche viaggio (Standard).</MudText>
+                </MudRadio>
+                <MudRadio Value="@PrintType.TravelDataSheetDetailed" Color="Color.Secondary">
+                    <MudText Typo="Typo.body1"><b>Scheda Dettagliata</b></MudText>
+                    <MudText Typo="Typo.caption">Elenco completo partecipanti con dati anagrafici, telefoni e documenti.</MudText>
+                </MudRadio>
+            </MudStack>
+        </MudRadioGroup>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PictureAsPdf" OnClick="EseguiStampa" Disabled="_isProcessing">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                <MudText Class="ms-2">Generazione...</MudText>
+            }
+            else
+            {
+                <MudText>Genera PDF</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int DataViaggioId { get; set; }
+    [Parameter] public AnaViaggi? Trip { get; set; }
+
+    private PrintType _selectedType = PrintType.TravelDataSheet;
+    private bool _isProcessing = false;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task EseguiStampa()
+    {
+        if (_isProcessing) return;
+        _isProcessing = true;
+        StateHasChanged();
+
+        try 
+        {
+            // 1. Recupero dati tramite il service
+            var data = await PrintService.GetPrintDataAsync(DataViaggioId);
+
+            // 2. Definizione nome file
+            var prefix = _selectedType == PrintType.TravelDataSheetDetailed ? "Scheda_Dettagliata" : "Scheda_Sintetica";
+            var tripName = !string.IsNullOrEmpty(data.Header.DescrizioneBreve) 
+                ? data.Header.DescrizioneBreve.Replace(" ", "_").Replace("/", "-") 
+                : "Viaggio";
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var fullFileName = $"{prefix}_{tripName}_{timestamp}.pdf";
+            
+            // 3. Percorso di salvataggio (Downloads)
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var outputPath = Path.Combine(targetFolder, fullFileName);
+
+            // 4. Generazione PDF
+            if (_selectedType == PrintType.TravelDataSheetDetailed)
+            {
+                await ViaggiPrinter.GenerateDetailedPdfAsync(data, outputPath);
+            }
+            else
+            {
+                await ViaggiPrinter.GeneratePdfAsync(data, outputPath);
+            }
+
+            // 5. Apertura PDF tramite service dedicato
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Scheda Viaggio generata con successo");
+            
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante la generazione della stampa: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isProcessing = false;
+            StateHasChanged();
+        }
+    }
+}

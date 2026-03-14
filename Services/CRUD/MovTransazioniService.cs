@@ -142,6 +142,61 @@ public class MovTransazioniService
         }
     }
 
+    /// <summary>
+    /// Recupera tutti i dati necessari per l'inizializzazione del dialog MovTransazioni in un'unica chiamata.
+    /// </summary>
+    public async Task<TransazioneInitData> GetTransazioneInitDataAsync(int aziendaId, int? transazioneId = null)
+    {
+        try
+        {
+            await using var conn = await _dbService.GetConnectionAsync();
+            string sql = "SELECT fn_get_transazione_init_data(@AziendaId, @TransazioneId)";
+            
+            var json = await conn.ExecuteScalarAsync<string>(sql, new { AziendaId = aziendaId, TransazioneId = transazioneId });
+            
+            if (string.IsNullOrEmpty(json)) return new TransazioneInitData();
+
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var rawData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json, options);
+            
+            var result = new TransazioneInitData();
+            
+            if (rawData.TryGetProperty("Causali", out var causali))
+                result.Causali = System.Text.Json.JsonSerializer.Deserialize<List<AnaTipoCausale>>(causali.GetRawText(), options) ?? new();
+            
+            if (rawData.TryGetProperty("AliquoteIva", out var aliquote))
+                result.AliquoteIva = System.Text.Json.JsonSerializer.Deserialize<List<AnaAliquotaIva>>(aliquote.GetRawText(), options) ?? new();
+            
+            if (rawData.TryGetProperty("Valute", out var valute))
+                result.Valute = System.Text.Json.JsonSerializer.Deserialize<List<AnaValute>>(valute.GetRawText(), options) ?? new();
+            
+            if (rawData.TryGetProperty("Controparti", out var controparti))
+                result.Controparti = System.Text.Json.JsonSerializer.Deserialize<List<AnaControparte>>(controparti.GetRawText(), options) ?? new();
+            
+            if (rawData.TryGetProperty("Viaggi", out var viaggi))
+                result.Viaggi = System.Text.Json.JsonSerializer.Deserialize<List<AnaViaggi>>(viaggi.GetRawText(), options) ?? new();
+            
+            if (rawData.TryGetProperty("ShowHelperCalcolo", out var showHelper))
+                result.ShowHelperCalcolo = showHelper.GetBoolean();
+
+            if (rawData.TryGetProperty("TransazioneJson", out var transElem) && transElem.ValueKind != System.Text.Json.JsonValueKind.Null)
+            {
+                if (transElem.TryGetProperty("transazione", out var t))
+                    result.Transazione = System.Text.Json.JsonSerializer.Deserialize<MovTransazioni>(t.GetRawText(), options);
+                
+                if (result.Transazione != null && transElem.TryGetProperty("righe", out var righe))
+                    result.Transazione.Righe = System.Text.Json.JsonSerializer.Deserialize<List<MovTransazioniRighe>>(righe.GetRawText(), options) ?? new();
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero dati init per transazione. Azienda: {AziendaId}, ID: {TransazioneId}", aziendaId, transazioneId);
+            return new TransazioneInitData();
+        }
+    }
+
     public async Task<MovTransazioni?> GetByIdAsync(int id)
     {
         try

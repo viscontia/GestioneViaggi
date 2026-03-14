@@ -388,4 +388,38 @@ public class AziendaService : BaseCrudService<Azienda>
         command.Parameters.AddWithValue("regimeFiscaleFk", entity.RegimeFiscaleFk);
     }
 
+    public async Task<AziendaBadgeCounts> GetBadgeCountsAsync(int aziendaId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_get_azienda_badge_counts(@aziendaId)";
+            
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+            
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new AziendaBadgeCounts
+                {
+                    Sedi = reader.GetInt32(0),
+                    Contatti = reader.GetInt32(1),
+                    Banche = reader.GetInt32(2),
+                    Email = reader.GetInt32(3),
+                    Reparti = reader.GetInt32(4),
+                    Smtp = reader.GetInt32(5),
+                    Logo = reader.GetInt32(6)
+                };
+            }
+            
+            return new AziendaBadgeCounts();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il recupero dei conteggi badge per azienda {AziendaId}", aziendaId);
+            // Non blocca l'applicazione, restituisce un oggetto vuoto
+            return new AziendaBadgeCounts();
+        }
+    }
 }

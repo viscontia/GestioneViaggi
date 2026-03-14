@@ -5,6 +5,7 @@ namespace GestioneViaggi.Services.Printing;
 /// </summary>
 public class InvoiceCompanyInfo
 {
+    public int AziendaId { get; set; }
     public string RagioneSociale { get; set; } = string.Empty;
     public string FormaGiuridica { get; set; } = string.Empty;
     public string PartitaIva { get; set; } = string.Empty;

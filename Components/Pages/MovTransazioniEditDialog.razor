@@ -3,6 +3,7 @@
 @using GestioneViaggi.Services.Authentication
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
+@using GestioneViaggi.Models.DTOs
 @using Microsoft.Extensions.Logging
 @inject MovTransazioniService TransazioniService
 @inject AnaTipiCausaliService CausaliService
@@ -51,6 +52,7 @@
                     <CausaleSelect SelectedCausaleId="Transazione.TransazioneCausaleTipoId"
                                    SelectedCausaleIdChanged="@OnCausaleChanged"
                                    AziendaId="@AziendaId"
+                                   Items="@_initData.Causali"
                                    Label="Causale Contabile *"
                                    Required="true" />
                 </MudItem>
@@ -59,6 +61,7 @@
                 <MudItem xs="12" sm="6">
                     <ControparteSelect @bind-SelectedControparteId="Transazione.TransazioneControparteId"
                                        AziendaId="@AziendaId"
+                                       Items="@_initData.Controparti"
                                        CausaleCiclo="@_causaleCicloCorrente"
                                        Label="@(_causaleCicloCorrente == "ATTIVO" ? "Cliente *" : _causaleCicloCorrente == "PASSIVO" ? "Fornitore *" : "Controparte *")"
                                        Required="true" />
@@ -86,6 +89,7 @@
                 <MudItem xs="6">
                     <ValutaSelect SelectedValutaId="Transazione.TransazioneValutaId"
                                   SelectedValutaIdChanged="@OnValutaChanged"
+                                  Items="@_initData.Valute"
                                   Label="Valuta *"
                                   Required="true" />
                 </MudItem>
@@ -152,7 +156,8 @@
                                 <EditTemplate>
                                     <AliquotaIvaSelect SelectedAliquotaId="context.Item.RigaAliquotaIvaFk"
                                                       SelectedAliquotaIdChanged="@((id) => OnRigaAliquotaChanged(context.Item, id))"
-                                                      AziendaId="@AziendaId" />
+                                                      AziendaId="@AziendaId"
+                                                      Items="@_initData.AliquoteIva" />
                                 </EditTemplate>
                                 <CellTemplate>
                                     @(context.Item != null ? $"{context.Item.AliquotaIvaCodice} ({context.Item.AliquotaIvaPercentuale}%)" : "")
@@ -257,6 +262,7 @@
                 <MudItem xs="6">
                     <ViaggioSelect @bind-SelectedViaggioId="Transazione.TransazioneViaggioId"
                                    AziendaId="@AziendaId"
+                                   CustomItems="@_initData.Viaggi"
                                    Clearable="true" />
                 </MudItem>
                 <MudItem xs="6">
@@ -337,88 +343,81 @@
 
     // Loading flag
     private bool _isLoading = false;
+    private TransazioneInitData _initData = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // Init dates from model
-        if (Transazione.TransazioneId == 0)
+        _isLoading = true;
+        try
         {
-            _dataTransazione = DateTime.Today;
-            Transazione.TransazioneStato = "DA_PAGARE";
-            // Tipo movimento sarà impostato automaticamente dal service in base al causale_ciclo
-            // Use AziendaId parameter (passed from parent page)
-            Transazione.TransazioneAziendaId = AziendaId;
+            // FAT INIT: Carica tutto in un'unica chiamata
+            _initData = await TransazioniService.GetTransazioneInitDataAsync(AziendaId, 
+                Transazione.TransazioneId > 0 ? Transazione.TransazioneId : null);
 
-            // Imposta la valuta di default dell'utente corrente
-            try
+            _showHelperCalcolo = _initData.ShowHelperCalcolo;
+
+            if (Transazione.TransazioneId == 0)
             {
+                _dataTransazione = DateTime.Today;
+                Transazione.TransazioneStato = "DA_PAGARE";
+                Transazione.TransazioneAziendaId = AziendaId;
+
+                // Imposta la valuta di default dell'utente corrente
                 var session = await SessionManager.GetSessionAsync();
                 if (session?.User?.ValutaDefaultId.HasValue == true)
                 {
                     Transazione.TransazioneValutaId = session.User.ValutaDefaultId.Value;
-                    var defaultValuta = await ValuteService.GetByIdAsync(Transazione.TransazioneValutaId);
+                    var defaultValuta = _initData.Valute.FirstOrDefault(v => v.ValutaId == Transazione.TransazioneValutaId);
                     if (defaultValuta != null)
                     {
                         Transazione.ValutaCodiceIso = defaultValuta.ValutaCodiceIso;
                     }
-                    System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Valuta default impostata: {session.User.ValutaDefaultId.Value}");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Nessuna valuta default trovata per l'utente");
                 }
             }
-            catch (Exception ex)
+            else
             {
-                System.Diagnostics.Debug.WriteLine($"[MovTransazioniEditDialog] Errore recupero valuta default: {ex.Message}");
-            }
-        }
-        else
-        {
-            _dataTransazione = Transazione.TransazioneData;
-            _dataDocumento = Transazione.TransazioneDataDocumento;
-            _dataScadenza = Transazione.TransazioneDataScadenza;
-            _dataPagamento = Transazione.TransazioneDataPagamento;
-
-            // Carica la causale per impostare il ciclo contabile in modalità modifica
-            if (Transazione.TransazioneCausaleTipoId > 0)
-            {
-                _selectedCausale = await CausaliService.GetByIdAsync(Transazione.TransazioneCausaleTipoId);
-                if (_selectedCausale != null)
+                // Se i dati della transazione sono ritornati dal Fat Init (già mappati con join), usiamoli
+                if (_initData.Transazione != null)
                 {
-                    _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
-                    _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
-                    _causaleCicloCorrente = _selectedCausale.CausaleCiclo;
+                    Transazione = _initData.Transazione;
+                }
 
-                    // =========================================
-                    // LOGICA IVA - Carica metadati in modifica
-                    // =========================================
-                    _causaleGeneraIva = _selectedCausale.CausaleGeneraIva;
-                    _causaleRichiedeIva = _selectedCausale.CausaleRichiedeIva;
+                _dataTransazione = Transazione.TransazioneData;
+                _dataDocumento = Transazione.TransazioneDataDocumento;
+                _dataScadenza = Transazione.TransazioneDataScadenza;
+                _dataPagamento = Transazione.TransazioneDataPagamento;
 
-                    // Copia la percentuale IVA se già presente (caricata dal DB via JOIN)
-                    _aliquotaPercentuale = Transazione.AliquotaIvaPercentuale;
+                if (Transazione.TransazioneCausaleTipoId > 0)
+                {
+                    _selectedCausale = _initData.Causali.FirstOrDefault(c => c.CausaleId == Transazione.TransazioneCausaleTipoId);
+                    if (_selectedCausale != null)
+                    {
+                        _scadenzaObbligatoria = _selectedCausale.CausaleRichiedeScadenza;
+                        _giorniScadenzaDefault = _selectedCausale.CausaleGiorniScadenzaDefault;
+                        _causaleCicloCorrente = _selectedCausale.CausaleCiclo;
+                        _causaleGeneraIva = _selectedCausale.CausaleGeneraIva;
+                        _causaleRichiedeIva = _selectedCausale.CausaleRichiedeIva;
+                        _aliquotaPercentuale = Transazione.AliquotaIvaPercentuale;
+                    }
                 }
             }
+            
+            _valutaIsEur = (Transazione.ValutaCodiceIso == "EUR");
+
+            if (Transazione.TransazioneId == 0 && !Transazione.Righe.Any() && Transazione.TransazioneImporto > 0)
+            {
+                AddRigaDefault();
+            }
         }
-
-        // =========================================
-        // Inizializza flag helper calcolo regime fiscale
-        // =========================================
-        _showHelperCalcolo = await FiscalCalcService.ShouldShowHelperCalcoloAsync(AziendaId);
-
-        // =========================================
-        // Inizializza flag valuta (sia new che modifica)
-        // =========================================
-        _valutaIsEur = (Transazione.ValutaCodiceIso == "EUR");
-
-        // Se in creazione e non abbiamo righe, proviamo a generarne una di default se importo > 0
-        if (Transazione.TransazioneId == 0 && !Transazione.Righe.Any() && Transazione.TransazioneImporto > 0)
+        catch (Exception ex)
         {
-            AddRigaDefault();
+            _logger.LogError(ex, "Errore durante l'inizializzazione del dialog transazioni");
+            Snackbar.Add("Errore durante il caricamento dei dati iniziali", Severity.Error);
         }
-
-        await Task.CompletedTask;
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private void AddRigaDefault()
@@ -640,7 +639,7 @@
     private async Task OnCausaleChanged(int causaleId)
     {
         Transazione.TransazioneCausaleTipoId = causaleId;
-        _selectedCausale = await CausaliService.GetByIdAsync(causaleId);
+        _selectedCausale = _initData.Causali.FirstOrDefault(c => c.CausaleId == causaleId);
 
         if (_selectedCausale != null)
         {
@@ -672,7 +671,7 @@
                 Transazione.TransazioneAliquotaIvaFk = _selectedCausale.CausaleAliquotaIvaDefaultFk.Value;
 
                 // Recupera la percentuale IVA per l'aliquota default
-                var aliquota = await AliquoteIvaService.GetByIdAsync(_selectedCausale.CausaleAliquotaIvaDefaultFk.Value);
+                var aliquota = _initData.AliquoteIva.FirstOrDefault(a => a.IvaId == _selectedCausale.CausaleAliquotaIvaDefaultFk.Value);
                 if (aliquota != null)
                 {
                     Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
@@ -712,7 +711,7 @@
         // Recupera informazioni valuta per verificare se è EUR
         if (valutaId > 0)
         {
-            var valuta = await ValuteService.GetByIdAsync(valutaId);
+            var valuta = _initData.Valute.FirstOrDefault(v => v.ValutaId == valutaId);
             _valutaIsEur = valuta?.ValutaIsBase ?? false; // ValutaIsBase = true solo per EUR
 
             // Aggiorna anche il codice ISO sul modello (utile per altri componenti)
@@ -747,8 +746,8 @@
 
         if (aliquotaId.HasValue)
         {
-            // Recupera la percentuale IVA dal service
-            var aliquota = await AliquoteIvaService.GetByIdAsync(aliquotaId.Value);
+            // Recupera la percentuale IVA dai dati init
+            var aliquota = _initData.AliquoteIva.FirstOrDefault(a => a.IvaId == aliquotaId.Value);
             if (aliquota != null)
             {
                 Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
@@ -795,12 +794,12 @@
         StateHasChanged();
     }
 
-    private async Task OnRigaAliquotaChanged(MovTransazioniRighe riga, int? id)
+    private void OnRigaAliquotaChanged(MovTransazioniRighe riga, int? id)
     {
         riga.RigaAliquotaIvaFk = id ?? 0;
         if (id.HasValue && id.Value > 0)
         {
-            var al = await AliquoteIvaService.GetByIdAsync(id.Value);
+            var al = _initData.AliquoteIva.FirstOrDefault(a => a.IvaId == id.Value);
             if (al != null)
             {
                 riga.AliquotaIvaCodice = al.IvaCodice;

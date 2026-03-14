@@ -16,6 +16,7 @@
 @inject IJSRuntime JS
 @inject IPdfOpenerService PdfOpenerService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
+@inject Services.Printing.ITravelPrintService TravelPrintService
 
 <MudDialog>
     <TitleContent>
@@ -47,10 +48,10 @@
                                             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.ArrowDropDown" Style="min-width: 32px; padding: 0;" />
                                         </ActivatorContent>
                                         <ChildContent>
-                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Scheda Data Viaggio"))">
+                                            <MudMenuItem OnClick="OnStampaSchedaViaggioClick">
                                                 <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Scheda Data Viaggio</MudText>
                                             </MudMenuItem>
-                                            <MudMenuItem OnClick="@(() => ShowDevelopmentMessage("Stampa Dettaglio Data Viaggio"))">
+                                            <MudMenuItem OnClick="OnStampaDettaglioViaggioClick">
                                                 <MudText Typo="Typo.body1" Style="font-size: 16px !important;">Stampa Dettaglio Data Viaggio</MudText>
                                             </MudMenuItem>
                                             <MudMenuItem OnClick="OnStampaRoomingListClick">
@@ -346,7 +347,8 @@
                                      <MudItem xs="6">
                                          <TipoPartecipanteSelect SelectedId="@(_currentEntity.TipoPartecipanteIdFk == 0 ? (int?)null : _currentEntity.TipoPartecipanteIdFk)"
                                                                  SelectedIdChanged="@OnRoleChangedAsync"
-                                                                 Required="true" />
+                                                                 Required="true"
+                                                                 Items="@_tipoPartecipanti" />
                                  </MudItem>
                                  <MudItem xs="6" Class="d-flex align-center">
                                      <MudCheckBox @bind-Value="@_hasDog" Label="Con Cane" Color="Color.Warning" Dense="true" />
@@ -583,6 +585,7 @@
     private List<TipoPartecipante> _tipoPartecipanti = new();
     private List<TipoAlloggio> _tipoAlloggi = new();
     private List<RoomCardViewModel> _existingRooms = new(); // Camere già create per questo viaggio
+    private GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData _initData = new();
 
     // Counters from DB
     private int _participantsCount = 0; // DB: get_participants_count() - più efficiente di _participants.Count
@@ -610,39 +613,44 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            if (!string.IsNullOrEmpty(HeaderTitle))
-            {
-                _headerTitle = HeaderTitle;
-            }
-            else
-            {
-                // Fallback to async load only if strictly necessary (should be avoided now)
-                await LoadHeaderInfoAsync();
-            }
-
-            await LoadLookupsAsync();
-            await LoadListAsync();
-            await LoadRoomsAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Errore inizializzazione: {ex.Message}", Severity.Error);
-        }
+        await LoadListAsync(true);
     }
 
-    private async Task LoadHeaderInfoAsync()
+    private async Task OnStampaSchedaViaggioClick()
     {
+        var parameters = new DialogParameters { ["DataViaggioId"] = DataViaggioId };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<StampaSchedaViaggioDialog>("Opzioni di Stampa", parameters, options);
+    }
+
+    private async Task OnStampaDettaglioViaggioClick()
+    {
+        if (DataViaggioId <= 0)
+        {
+            Snackbar.Add("Impossibile stampare: ID Viaggio non valido", Severity.Error);
+            return;
+        }
+
         try
         {
-            // Fallback: use optimized query if no title passed
-            _headerTitle = await MovClientiService.GetTripHeaderStringAsync(ViaggioId, DataViaggioId);
+            // Direct call for detailed sheet as requested by the shortcut menu
+            var data = await TravelPrintService.GetPrintDataAsync(DataViaggioId);
+            
+            var tripName = !string.IsNullOrEmpty(data.Header.DescrizioneBreve) 
+                ? data.Header.DescrizioneBreve.Replace(" ", "_").Replace("/", "-") 
+                : "Viaggio";
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var fileName = $"Scheda_Dettagliata_{tripName}_{timestamp}.pdf";
+            
+            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var outputPath = Path.Combine(targetFolder, fileName);
+
+            await ViaggiPrinter.GenerateDetailedPdfAsync(data, outputPath);
+            await PdfOpenerService.OpenPdfAsync(outputPath, "Stampa Dettagliata Completata");
         }
-        catch (Exception ex)
+        catch(Exception ex)
         {
-            _headerTitle = $"ERR: {ex.Message}";
-            // Console.WriteLine($"Error loading header info: {ex.Message}");
+            Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
         }
     }
 
@@ -686,45 +694,43 @@
         }
     }
 
-    private async Task LoadLookupsAsync()
-    {
-        _tipoPartecipanti = (await TipoPartecipanteService.GetAllAsync()).ToList();
-        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
-    }
-
-    private async Task LoadListAsync()
+    private async Task LoadListAsync(bool isFullInit = false)
     {
         _isLoadingList = true;
         try
         {
-            // DB: get_participants_sorted(p_data_viaggio_id)
-            // → Returns: Partecipanti ordinati per cognome pilota, pilota prima dei passeggeri, cognome passeggeri
-            var rawList = await MovClientiService.GetParticipantsSortedAsync(DataViaggioId);
-            _participants = rawList.ToList();
+            // Se è la prima volta o HeaderTitle è vuoto, chiediamo tutto
+            _initData = await MovClientiService.GetPartecipantiInitDataAsync(ViaggioId, DataViaggioId);
 
-            // DB: get_participants_count(p_data_viaggio_id)
-            // → Returns: Conteggio totale partecipanti (più efficiente di _participants.Count)
-            _participantsCount = await MovClientiService.GetParticipantsCountAsync(DataViaggioId);
+            if (isFullInit || string.IsNullOrEmpty(_headerTitle) || _headerTitle == "Caricamento...")
+            {
+                _headerTitle = _initData.HeaderTitle;
+                _tipoPartecipanti = _initData.TipoPartecipanti;
+                _tipoAlloggi = _initData.TipoAlloggi;
+            }
 
-            // DB: get_participants_without_accommodation(p_data_viaggio_id)
-            // → Returns: Solo partecipanti senza camera assegnata (LEFT JOIN atomico)
-            var withoutRoom = await MovClientiService.GetParticipantsWithoutAccommodationAsync(DataViaggioId);
-            _participantsWithoutRoom = withoutRoom.ToList();
-
-            // DB: get_viaggio_partecipanti_summary(p_data_viaggio_id)
-            // → Returns: String riepilogo (es. "3 Piloti, 5 Passeggeri")
-            _summaryTitle = await MovClientiService.GetParticipantsSummaryAsync(DataViaggioId);
-
-            // Reload rooms after participants list changes
-            await LoadRoomsAsync();
-
-            // DB: get_rooms_count(p_data_viaggio_id)
-            // → Returns: Conteggio totale camere (più efficiente di _existingRooms.Count)
-            _roomsCount = await AlloggiService.GetRoomsCountAsync(DataViaggioId);
+            _summaryTitle = _initData.SummaryTitle;
+            _participants = _initData.Participants;
+            _participantsWithoutRoom = _initData.ParticipantsWithoutRoom;
+            _participantsCount = _initData.ParticipantsCount;
+            _roomsCount = _initData.RoomsCount;
+            
+            // Mapping DTO -> ViewModel per la visualizzazione delle card camere
+            _existingRooms = _initData.Rooms.Select(dto => new RoomCardViewModel
+            {
+                RoomId = dto.AlloggioPk,
+                RoomType = dto.TipoAlloggio,
+                MaxOccupants = dto.MaxOccupants,
+                CurrentOccupants = dto.CurrentOccupants,
+                OccupantNames = dto.OccupantNames.ToList(),
+                OccupantIds = dto.OccupantIds.ToList(),
+                HasSupplement = dto.HasSupplement,
+                RoomEntity = new MovClientiAlloggi() 
+            }).ToList();
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore caricamento lista: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Errore caricamento dati: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -1330,36 +1336,6 @@
         return suitable?.Id ?? 0;
     }
 
-    private async Task LoadRoomsAsync()
-    {
-        try
-        {
-            // DB: get_rooms_with_occupants(p_data_viaggio_id)
-            // → Returns: Camere con occupanti aggregati (ARRAY_AGG di nomi e IDs)
-            // → Elimina necessità di loop su 6 slot + lookup partecipanti in memoria
-            var roomsDto = await AlloggiService.GetRoomsWithOccupantsAsync(DataViaggioId);
-
-            _existingRooms.Clear();
-            foreach (var dto in roomsDto)
-            {
-                _existingRooms.Add(new RoomCardViewModel
-                {
-                    RoomId = dto.AlloggioPk,
-                    RoomType = dto.TipoAlloggio,
-                    MaxOccupants = dto.MaxOccupants,
-                    CurrentOccupants = dto.CurrentOccupants,
-                    OccupantNames = dto.OccupantNames.ToList(),
-                    OccupantIds = dto.OccupantIds.ToList(),
-                    HasSupplement = dto.HasSupplement,
-                    RoomEntity = new MovClientiAlloggi() // TODO: Remove when all SaveAsync refactored
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Errore caricamento camere: {ex.Message}", Severity.Error);
-        }
-    }
 
     // Helper class for room visualization
     public class RoomCardViewModel

@@ -32,6 +32,7 @@
     [Parameter] public bool Clearable { get; set; } = true;
     [Parameter] public bool Disabled { get; set; } = false;
     [Parameter] public int? AziendaId { get; set; }
+    [Parameter] public List<AnaAliquotaIva>? Items { get; set; }
 
     private List<AnaAliquotaIva> _aliquote = new();
     private AnaAliquotaIva? _selectedAliquota;
@@ -41,7 +42,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAliquote();
+        if (Items != null && Items.Any())
+        {
+            _aliquote = Items;
+            _loaded = true;
+            _isLoading = false;
+            UpdateSelectedAliquota();
+        }
+        else
+        {
+            await LoadAliquote();
+        }
     }
 
     protected override async Task OnParametersSetAsync()
@@ -83,9 +94,17 @@
             // Determina l'aziendaId da usare
             int targetAziendaId = AziendaId ?? await TenantContext.GetRequiredAziendaIdAsync();
             
+        if (Items != null && Items.Any())
+        {
+            _aliquote = Items;
+            _loaded = true;
+        }
+        else
+        {
             var aliquote = await AliquoteService.GetActiveByAziendaAsync(targetAziendaId);
             _aliquote = aliquote?.ToList() ?? new List<AnaAliquotaIva>();
             _loaded = true;
+        }
 
             if (_pendingAliquotaId.HasValue && _pendingAliquotaId > 0)
             {

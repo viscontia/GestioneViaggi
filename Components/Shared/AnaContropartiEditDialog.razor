@@ -5,6 +5,7 @@
 @using GestioneViaggi.Validation.Semantic
 @inject TipoFornitoreService TipoFornitoreService
 @inject ComuneService ComuneService
+@inject ContropartiService ContropartiService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @implements IDisposable
@@ -28,7 +29,7 @@
                 @if (IsSuperAdmin)
                 {
                     <MudItem xs="12">
-                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" />
+                        <AziendaSelect @bind-Value="Entity.AziendaFk" Required="true" Label="Azienda *" Items="@_initData.Aziende" />
                     </MudItem>
                 }
 
@@ -68,7 +69,7 @@
                         Variant="Variant.Outlined" Required="@Entity.IsFornitore"
                         RequiredError="Obbligatorio per fornitori" AnchorOrigin="Origin.BottomCenter"
                         Disabled="@(!Entity.IsFornitore)">
-                        @foreach (var tipo in _tipiFornitore)
+                        @foreach (var tipo in _initData.TipiFornitore)
                         {
                             <MudSelectItem Value="@((int?)tipo.Id)">@tipo.Descrizione</MudSelectItem>
                         }
@@ -97,7 +98,7 @@
                                           SelectedComune="Entity.Comune"
                                           SelectedComuneChanged="HandleComuneChanged"
                                           Label="Comune (Sede)"
-                                          Required="false" />
+                                          Required="false" Items="@_initData.Comuni" />
                         </MudItem>
                         <!-- Dettagli Geografici -->
                         <MudItem xs="3">
@@ -302,7 +303,7 @@
     // UI State
     private MudForm _form = default!;
     private MudTextField<string>? _firstField;
-    private List<AnaTipoFornitore> _tipiFornitore = new();
+    private GestioneViaggi.Models.DTOs.ControparteInitData _initData = new();
     private string? _debugError;
 
     protected override void OnInitialized()
@@ -326,20 +327,16 @@
         Console.WriteLine($"[AnaContropartiEditDialog] OnInitializedAsync Start. AziendaFk: {AziendaFk}, EditMode: {IsEditMode}");
         try
         {
-            await LoadTipiFornitore();
-            Console.WriteLine($"[AnaContropartiEditDialog] Tipi loaded: {_tipiFornitore.Count}");
+            // FAT INIT: Carica comuni, aziende, tipi fornitore e dettaglio geografico in un unico colpo
+            _initData = await ContropartiService.GetControparteInitDataAsync(IsEditMode ? Entity.Id : null);
+            Console.WriteLine($"[AnaContropartiEditDialog] Data loaded. Comuni: {_initData.Comuni.Count}, Tipi: {_initData.TipiFornitore.Count}");
 
-            // Load Comune navigation property if editing existing entity
-            if (IsEditMode && Entity.ComuneFk.HasValue && Entity.ComuneFk.Value > 0 && Entity.Comune == null)
+            if (IsEditMode)
             {
-                try
+                // Popola l'oggetto Comune se presente nei dati di init
+                if (Entity.ComuneFk.HasValue && Entity.ComuneFk.Value > 0)
                 {
-                    Entity.Comune = await ComuneService.GetByIdAsync(Entity.ComuneFk.Value);
-                    Console.WriteLine($"[AnaContropartiEditDialog] Comune loaded: {Entity.Comune?.Nome}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[AnaContropartiEditDialog] Error loading comune: {ex.Message}");
+                    Entity.Comune = _initData.Comune;
                 }
             }
         }
@@ -396,18 +393,6 @@
         catch { }
     }
 
-    private async Task LoadTipiFornitore()
-    {
-        try 
-        {
-            int? filter = AziendaFk > 0 ? AziendaFk : null;
-            _tipiFornitore = await TipoFornitoreService.GetAllAsync(filter);
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Errore caricamento tipi fornitore", Severity.Error);
-        }
-    }
 
     private async Task Submit()
     {

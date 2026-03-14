@@ -69,10 +69,24 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
         try
         {
             var builder = new NpgsqlDataSourceBuilder(_connectionString);
-            
-            builder.ConnectionStringBuilder.Pooling = true;
-            builder.ConnectionStringBuilder.MinPoolSize = 1;
-            builder.ConnectionStringBuilder.MaxPoolSize = 20;
+
+            // Configurazione pooling differenziata per ambiente:
+            // - Test (Docker locale): pool più ampio senza multiplexing
+            // - Prod (Supabase/PgBouncer): pool minimo con multiplexing (dalla connection string)
+            if (_environment == DbEnvironment.Test)
+            {
+                builder.ConnectionStringBuilder.Pooling = true;
+                builder.ConnectionStringBuilder.MinPoolSize = 1;
+                builder.ConnectionStringBuilder.MaxPoolSize = 20;
+            }
+            else
+            {
+                // Per PgBouncer: pooling minimo lato Npgsql, multiplexing gestisce la concorrenza
+                builder.ConnectionStringBuilder.Pooling = true;
+                builder.ConnectionStringBuilder.MinPoolSize = 0;
+                builder.ConnectionStringBuilder.MaxPoolSize = 5;
+            }
+
             builder.ConnectionStringBuilder.Timeout = 30;
 
             _dataSource = builder.Build();

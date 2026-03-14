@@ -5,6 +5,7 @@ using GestioneViaggi.Validation.Business;
 using GestioneViaggi.Validation.Fiscal;
 using GestioneViaggi.Validation.Syntax;
 using GestioneViaggi.Validation.Exceptions;
+using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -14,9 +15,10 @@ namespace GestioneViaggi.Services.CRUD;
 /// Service per gestione clienti con validazioni business complete
 /// Orchestrazione tra Repository e Validators
 /// </summary>
-public class ClienteService(IClienteRepository repository, ILogger<ClienteService> logger) : IClienteService
+public class ClienteService(IClienteRepository repository, IDatabaseService databaseService, ILogger<ClienteService> logger) : IClienteService
 {
     private readonly IClienteRepository _repository = repository;
+    private readonly IDatabaseService _databaseService = databaseService;
     private readonly ILogger<ClienteService> _logger = logger;
 
     #region CRUD Operations
@@ -254,6 +256,30 @@ public class ClienteService(IClienteRepository repository, ILogger<ClienteServic
         {
             _logger.LogError(ex, "Errore durante il recupero dei partecipanti per viaggio {DataViaggioId}", dataViaggioId);
             throw;
+        }
+    }
+
+    public async Task<GestioneViaggi.Models.DTOs.ClienteInitData> GetClienteInitDataAsync(int? clienteId = null)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            using (var cmd = new NpgsqlCommand("SELECT fn_get_cliente_init_data(@p_cliente_id)", conn))
+            {
+                cmd.Parameters.AddWithValue("p_cliente_id", (object?)clienteId ?? DBNull.Value);
+                var result = await cmd.ExecuteScalarAsync();
+                var jsonResult = result?.ToString() ?? "{}";
+
+                return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ClienteInitData>(jsonResult, new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new GestioneViaggi.Models.DTOs.ClienteInitData();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore Fat Init Cliente per ID {ClienteId}", clienteId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, "ana_clienti");
         }
     }
 

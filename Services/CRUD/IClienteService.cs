@@ -27,4 +27,5 @@ public interface IClienteService
     Task<IEnumerable<TravelPassenger>> GetTravelPassengersAsync(int dataViaggioId, int excludeClienteId);
     Task<List<string>> GetAllParticipantsTravelAsync(int dataViaggioId);
     Task<List<Cliente>> SearchAsync(string searchTerm, int aziendaFk);
+    Task<GestioneViaggi.Models.DTOs.ClienteInitData> GetClienteInitDataAsync(int? clienteId = null);
 }

@@ -57,8 +57,8 @@ public class FatturaElettronicaXmlService : IFatturaElettronicaXmlService
                 "Impossibile generare il file XML per lo SDI.\n\n" +
                 string.Join("\n", errors.Select((e, i) => $"  {i + 1}. {e}")));
 
-        // 3. Ottieni progressivo invio
-        var progressivo = await GetNextProgressivoAsync(data.Company);
+        // 3. Ottieni progressivo invio (usa aziendaId già presente nei dati fattura)
+        var progressivo = await GetNextProgressivoAsync(data.Company.AziendaId);
 
         // 4. Genera XML
         var xml = BuildFatturaElettronicaXml(data, bank, progressivo);
@@ -458,15 +458,11 @@ public class FatturaElettronicaXmlService : IFatturaElettronicaXmlService
     // HELPERS
     // ============================================================
 
-    private async Task<string> GetNextProgressivoAsync(InvoiceCompanyInfo company)
+    private async Task<string> GetNextProgressivoAsync(int aziendaId)
     {
         await using var connection = await _dbService.GetConnectionAsync();
 
-        // Recupera azienda_id dalla partita IVA
-        var aziendaId = await connection.QueryFirstAsync<int>(
-            "SELECT azienda_id FROM ana_aziende WHERE partita_iva = @PartitaIva",
-            new { PartitaIva = company.PartitaIva.Trim() });
-
+        // aziendaId proviene direttamente dai dati della fattura: nessun lookup necessario
         var progressivo = await connection.QueryFirstAsync<string>(
             "SELECT fn_fatturapa_get_next_progressivo(@AziendaId)",
             new { AziendaId = aziendaId });

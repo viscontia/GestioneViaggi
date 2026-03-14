@@ -942,17 +942,24 @@ else
     private async Task LoadStatsAsync()
     {
         // Load Statistics - SuperAdmin sees ALL data (aziendaId = null)
-        var tasks = new Task[]
-        {
-Task.Run(async () => _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, null, _comparisonMode)),
-Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
-Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, null, _comparisonMode)),
-Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode, _currentUser?.ValutaDefaultId)),
-Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, null, _comparisonMode)),
-Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, null, _comparisonMode))
-        };
+        // SEQUENTIAL LOADING: To prevent "Too Many Sessions" on Supabase/Postgres
+        _statsAziende = await StatAziende.GetStatsAsync(_selectedYear, null, _comparisonMode);
+        StateHasChanged();
 
-        await Task.WhenAll(tasks);
+        _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, null, _comparisonMode);
+        StateHasChanged();
+
+        _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, null, _comparisonMode);
+        StateHasChanged();
+
+        _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, null, _comparisonMode, _currentUser?.ValutaDefaultId);
+        StateHasChanged();
+
+        _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, null, _comparisonMode);
+        StateHasChanged();
+
+        _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, null, _comparisonMode);
+        StateHasChanged();
     }
 
     private void OnPartenzeDaFareClick()

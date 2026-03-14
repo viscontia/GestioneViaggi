@@ -12,7 +12,7 @@ LOCAL_DB="gestione_viaggi"
 LOCAL_USER="postgres"
 
 SUPABASE_HOST="aws-1-eu-central-1.pooler.supabase.com"
-SUPABASE_PORT="5432"
+SUPABASE_PORT="6543"
 SUPABASE_DB="postgres"
 SUPABASE_USER="postgres.wqbqvhshojbfuwcuiams"
 SUPABASE_PASSWORD="U9Y7KSjQVfZ3N1Ca"

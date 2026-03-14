@@ -13,6 +13,7 @@
 @inject RepartoAziendaleService RepartoService
 @inject AziendaSmtpService SmtpService
 @inject AziendaLogoService LogoService
+@inject AziendaService AziendaService
 @inject AnaRegimiFiscaliService RegimiFiscaliService
 @implements IDisposable
 @implements IAsyncDisposable
@@ -161,8 +162,9 @@
         }
         else
         {
-            <!-- MODIFICA: Form con TAB per detail -->
-            <MudTabs Elevation="0" Rounded="true" PanelClass="pa-4" Color="Color.Primary" KeepPanelsAlive="true" ApplyEffectsToContainer="true">
+            <!-- MODIFICA: Form con TAB per detail. KeepPanelsAlive rimosso intenzionalmente:
+                 ogni tab carica i dati solo al click, evitando connessioni simultanee a PgBouncer -->
+            <MudTabs Elevation="0" Rounded="true" PanelClass="pa-4" Color="Color.Primary" ApplyEffectsToContainer="true">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Business">
                     <MudForm @ref="_form" Model="@Entity">
                         <!-- Ragione Sociale - OBBLIGATORIO -->
@@ -476,29 +478,21 @@
     {
         try
         {
-            var sediTask = SedeService.GetByAziendaIdAsync(Entity.Id);
-            var contattiTask = ContattoService.GetByAziendaIdAsync(Entity.Id);
-            var bancheTask = BancaService.GetByAziendaIdAsync(Entity.Id);
-            var emailTask = EmailService.GetByAziendaIdAsync(Entity.Id);
-            var repartiTask = RepartoService.GetByAziendaIdAsync(Entity.Id);
-            var smtpTask = SmtpService.GetByAziendaIdAsync(Entity.Id);
-            var logoTask = LogoService.GetByAziendaIdAsync(Entity.Id);
+            var counts = await AziendaService.GetBadgeCountsAsync(Entity.Id);
 
-            await Task.WhenAll(sediTask, contattiTask, bancheTask, emailTask, repartiTask, smtpTask, logoTask);
-
-            _sediCount = sediTask.Result.Count;
-            _contattiCount = contattiTask.Result.Count;
-            _bancheCount = bancheTask.Result.Count;
-            _emailCount = emailTask.Result.Count;
-            _repartiCount = repartiTask.Result.Count;
-            _smtpCount = smtpTask.Result.Count;
-            _logoCount = logoTask.Result.Count;
+            _sediCount = counts.Sedi;
+            _contattiCount = counts.Contatti;
+            _bancheCount = counts.Banche;
+            _emailCount = counts.Email;
+            _repartiCount = counts.Reparti;
+            _smtpCount = counts.Smtp;
+            _logoCount = counts.Logo;
 
             StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Errore durante il caricamento dei badge counts: {ex.Message}");
+            Console.WriteLine($"Errore durante il caricamento dei badge counts ottimizzato: {ex.Message}");
         }
     }
 

@@ -954,18 +954,21 @@
         int? valutaDefaultId = _currentUser?.ValutaDefaultId;
 
         // SECURITY FIX: Pass aziendaId to all statistics for multi-tenant filtering
-        var tasks = new Task[]
-        {
-Task.Run(async () => _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
-Task.Run(async () => _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode)),
-Task.Run(async () => _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode, valutaDefaultId)),
-Task.Run(async () => _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, aziendaId,
-_comparisonMode)),
-Task.Run(async () => _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, aziendaId,
-_comparisonMode))
-        };
+        // SEQUENTIAL LOADING: To prevent "Too Many Sessions" on Supabase/Postgres
+        _statsClienti = await StatClienti.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode);
+        StateHasChanged(); // Update UI for first card
 
-        await Task.WhenAll(tasks);
+        _statsViaggi = await StatViaggi.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode);
+        StateHasChanged();
+
+        _statsRevenue = await StatRevenue.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode, valutaDefaultId);
+        StateHasChanged();
+
+        _statsViaggiFatti = await StatViaggiFatti.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode);
+        StateHasChanged();
+
+        _statsViaggiDaFare = await StatViaggiDaFare.GetStatsAsync(_selectedYear, aziendaId, _comparisonMode);
+        StateHasChanged();
     }
 
     private DateTime GetEffectiveEndDate()

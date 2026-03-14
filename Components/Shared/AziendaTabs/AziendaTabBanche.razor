@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@implements IDisposable
 @inject AziendaBancaService BancaService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -82,21 +83,37 @@
 
     private List<AziendaBanca> _banche = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadBancheAsync();
+            return;
         }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadBancheAsync(_cts.Token);
     }
 
-    private async Task LoadBancheAsync()
+    private async Task LoadBancheAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
             _banche = await BancaService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -106,6 +123,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private async Task OpenBancaDialog(AziendaBanca? banca)

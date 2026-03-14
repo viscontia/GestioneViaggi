@@ -11,10 +11,10 @@
             OnClick="AddDate">Aggiungi Data</MudButton>
     </ToolBarContent>
     <Columns>
-        <!-- Azioni: Fixed 180px to fit 4 icons comfortably -->
+        <!-- Azioni: Fixed 210px to fit 5 icons comfortably -->
         <TemplateColumn Title="AZIONI" Sortable="false" Filterable="false"
-            CellStyle="width:180px; min-width:180px; max-width:180px; text-align:center; padding:0;"
-            HeaderStyle="width:180px; min-width:180px; max-width:180px; text-align:center;" StickyLeft="true">
+            CellStyle="width:210px; min-width:210px; max-width:210px; text-align:center; padding:0;"
+            HeaderStyle="width:210px; min-width:210px; max-width:210px; text-align:center;" StickyLeft="true">
             <CellTemplate>
                 <div class="d-flex justify-center align-center">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
@@ -25,6 +25,8 @@
                         OnClick="@(() => OpenParticipantsDialog(context.Item))" title="Partecipanti" />
                     <MudIconButton Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Success"
                         OnClick="@(() => OpenEmailDialog(context.Item))" title="Invia Email Partecipanti" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Default"
+                        OnClick="@(() => OpenPrintDialog(context.Item))" title="Stampa Scheda Data Viaggio" />
                 </div>
             </CellTemplate>
         </TemplateColumn>
@@ -177,6 +179,18 @@
         };
 
         await DialogService.ShowAsync<SendEmailDialog>("", parameters, options);
+    }
+    
+    private async Task OpenPrintDialog(AnaDataViaggio date)
+    {
+        var parameters = new DialogParameters
+        {
+            ["DataViaggioId"] = date.Id,
+            ["Trip"] = Trip
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        await DialogService.ShowAsync<StampaSchedaViaggioDialog>("Stampa Scheda Viaggio", parameters, options);
     }
 
     private async Task DeleteDate(AnaDataViaggio date)

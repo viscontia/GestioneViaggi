@@ -822,7 +822,33 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             _logger.LogError(ex, "Errore recupero dati TreeView per azienda {AziendaId}", aziendaId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
+
         return result;
+    }
+
+    public async Task<GestioneViaggi.Models.DTOs.ViaggiInitData> GetViaggiInitDataAsync(int? viaggioId = null)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            
+            // PostgreSQL logic: call fn_get_viaggi_init_data which returns a single JSON string
+            using var command = new NpgsqlCommand("SELECT fn_get_viaggi_init_data(@vid)", connection);
+            command.Parameters.AddWithValue("vid", (object?)viaggioId ?? DBNull.Value);
+            
+            var json = await command.ExecuteScalarAsync() as string;
+            
+            if (string.IsNullOrEmpty(json)) return new GestioneViaggi.Models.DTOs.ViaggiInitData();
+
+            return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ViaggiInitData>(json, 
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+                ?? new GestioneViaggi.Models.DTOs.ViaggiInitData();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il caricamento dei dati di inizializzazione viaggi per ID {ViaggioId}", viaggioId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
     }
 }
 

@@ -71,6 +71,7 @@
     /// - null → mostra tutti
     /// </summary>
     [Parameter] public string? CausaleCiclo { get; set; }
+    [Parameter] public List<AnaControparte>? Items { get; set; }
 
     private List<AnaControparte> _controparti = new List<AnaControparte>();
     private AnaControparte? _selectedControparte;
@@ -118,21 +119,33 @@
 
         if (aziendaId.HasValue && aziendaId.Value > 0)
         {
-            // Determina i filtri in base al CausaleCiclo
-            bool? soloFornitori = null;
-            bool? soloClienti = null;
-
-            if (CausaleCiclo == "PASSIVO")
+            IEnumerable<AnaControparte> result;
+            
+            if (Items != null && Items.Any())
             {
-                soloFornitori = true;
+                // Filtro locale se Items è fornito
+                result = Items;
+                if (CausaleCiclo == "PASSIVO") result = result.Where(c => c.IsFornitore);
+                else if (CausaleCiclo == "ATTIVO") result = result.Where(c => c.IsCliente);
             }
-            else if (CausaleCiclo == "ATTIVO")
+            else
             {
-                soloClienti = true;
-            }
-            // Se CausaleCiclo è null → mostra tutti
+                // Determina i filtri in base al CausaleCiclo
+                bool? soloFornitori = null;
+                bool? soloClienti = null;
 
-            var result = await ContropartiService.GetAllAsync(aziendaId.Value, soloFornitori, soloClienti);
+                if (CausaleCiclo == "PASSIVO")
+                {
+                    soloFornitori = true;
+                }
+                else if (CausaleCiclo == "ATTIVO")
+                {
+                    soloClienti = true;
+                }
+                // Se CausaleCiclo è null → mostra tutti
+
+                result = await ContropartiService.GetAllAsync(aziendaId.Value, soloFornitori, soloClienti);
+            }
 
             // Inserisce l'opzione virtuale per la selezione globale (Stampa Tutti)
             _controparti = new List<AnaControparte>

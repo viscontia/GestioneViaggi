@@ -48,6 +48,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private string? _photoPreviewUrl;
     private const long MaxFileSize = 1024 * 1024 * 5; // 5MB
 
+    private GestioneViaggi.Models.DTOs.ClienteInitData _initData = new();
+
     private bool _isSaving = false;
     private bool _validationRequested = false;
 
@@ -101,30 +103,25 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        // Carica i dettagli del Comune di Residenza per la visualizzazione/validazione
-        if (Entity.ComuneResidenzaFk > 0 && Entity.ComuneResidenza == null)
+        try
         {
-            try
+            // FAT INIT: Carica comuni, aziende e dettagli geografici in un unico colpo
+            _initData = await ClienteService.GetClienteInitDataAsync(IsEditMode ? Entity.ClienteId : null);
+
+            if (IsEditMode)
             {
-                Entity.ComuneResidenza = await ComuneService.GetByIdAsync(Entity.ComuneResidenzaFk);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Impossibile caricare il comune di residenza");
+                // Popola gli oggetti Comune se presenti nei dati di init
+                if (Entity.ComuneNascitaFk > 0)
+                    Entity.ComuneNascita = _initData.ComuneNascita;
+                
+                if (Entity.ComuneResidenzaFk > 0)
+                    Entity.ComuneResidenza = _initData.ComuneResidenza;
             }
         }
-
-        // Carica i dettagli del Comune di Nascita per la visualizzazione
-        if (Entity.ComuneNascitaFk > 0 && Entity.ComuneNascita == null)
+        catch (Exception ex)
         {
-            try
-            {
-                Entity.ComuneNascita = await ComuneService.GetByIdAsync(Entity.ComuneNascitaFk);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Impossibile caricare il comune di nascita");
-            }
+            Logger.LogError(ex, "Errore durante il caricamento dei dati di inizializzazione cliente");
+            Snackbar.Add("Errore caricamento dati iniziali", Severity.Error);
         }
     }
 

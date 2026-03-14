@@ -1,6 +1,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@implements IDisposable
 @inject AziendaContattoService ContattoService
 @inject AziendaSedeService SedeService
 @inject IDialogService DialogService
@@ -87,27 +88,40 @@
     private List<AziendaContatto> _contatti = new();
     private List<AziendaSede> _sedi = new();
     private bool _loading = true;
+    private int _lastLoadedAziendaId;
+    private CancellationTokenSource? _cts;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (AziendaId > 0)
+        // Protezione contro reentrance: evita chiamate multiple per lo stesso AziendaId
+        if (AziendaId <= 0 || AziendaId == _lastLoadedAziendaId)
         {
-            await LoadDataAsync();
+            return;
         }
+
+        // Cancella operazioni in corso se presenti
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _lastLoadedAziendaId = AziendaId;
+        await LoadDataAsync(_cts.Token);
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadDataAsync(CancellationToken cancellationToken = default)
     {
         _loading = true;
         try
         {
-            var sediTask = SedeService.GetByAziendaIdAsync(AziendaId);
-            var contattiTask = ContattoService.GetByAziendaIdAsync(AziendaId);
-            
-            await Task.WhenAll(sediTask, contattiTask);
-            
-            _sedi = sediTask.Result;
-            _contatti = contattiTask.Result;
+            // Check cancellation prima di operazioni DB
+            cancellationToken.ThrowIfCancellationRequested();
+            _sedi = await SedeService.GetByAziendaIdAsync(AziendaId);
+
+            cancellationToken.ThrowIfCancellationRequested();
+            _contatti = await ContattoService.GetByAziendaIdAsync(AziendaId);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operazione cancellata, normale quando si cambia tab rapidamente
         }
         catch (Exception ex)
         {
@@ -117,6 +131,12 @@
         {
             _loading = false;
         }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
     }
 
     private async Task LoadContattiAsync()

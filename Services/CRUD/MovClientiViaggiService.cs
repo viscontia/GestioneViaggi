@@ -337,5 +337,21 @@ namespace GestioneViaggi.Services.CRUD
                 throw new InvalidOperationException("Si è verificato un errore imprevisto. Riprova.", ex);
             }
         }
+
+        public async Task<GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData> GetPartecipantiInitDataAsync(int viaggioId, int dataViaggioId)
+        {
+            try
+            {
+                await using var conn = await _connectionManager.GetConnectionAsync();
+                var json = await conn.QuerySingleAsync<string>("SELECT fn_get_viaggio_partecipanti_init_data(@vid, @did)", new { vid = viaggioId, did = dataViaggioId });
+                return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData>(json, 
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+                    ?? new GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Errore durante il caricamento consolidato dei partecipanti: {ex.Message}", ex);
+            }
+        }
     }
 }

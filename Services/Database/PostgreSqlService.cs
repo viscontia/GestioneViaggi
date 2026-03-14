@@ -58,9 +58,22 @@ public class PostgreSqlService : IDatabaseService
         }
         catch (Exception ex)
         {
-            // Logging but not failing - audit is important but shouldn't break the app if fails? 
-            // Better to log only debug to avoid noise, or warning.
-            _logger.LogWarning(ex, "Failed to set audit user session variable");
+            // Se il comando set_config fallisce, la connessione è in stato "broken" e non può essere riutilizzata.
+            // Chiudiamo questa connessione e ne otteniamo una nuova dal pool.
+            _logger.LogWarning(ex, "Failed to set audit user session variable. Getting a fresh connection.");
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch
+            {
+                // Ignora errori durante la chiusura della connessione rotta
+            }
+
+            // Ottieni una nuova connessione senza tentare di impostare l'audit user
+            // per evitare loop infiniti se il problema persiste
+            return await _connectionManager.GetConnectionAsync();
         }
 
         return connection;

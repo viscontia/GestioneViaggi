@@ -19,16 +19,29 @@
     [Parameter] public string? Class { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    [Parameter] public List<TipoTrattamento>? Items { get; set; }
+
     private List<TipoTrattamento>? _allItems;
 
     protected override async Task OnInitializedAsync()
     {
-        _allItems = await Service.GetAllAsync();
+        if (Items != null)
+        {
+            _allItems = Items;
+        }
+        else
+        {
+            _allItems = await Service.GetAllAsync();
+        }
         UpdateSelectedItem();
     }
 
     protected override void OnParametersSet()
     {
+        if (Items != null)
+        {
+            _allItems = Items;
+        }
         UpdateSelectedItem();
     }
 

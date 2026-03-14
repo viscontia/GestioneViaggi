@@ -45,13 +45,28 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    [Parameter]
+    public List<Country>? Items { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadCountriesAsync();
+        if (Items != null)
+        {
+            _countries = Items;
+            UpdateSelectedCountry();
+        }
+        else
+        {
+            await LoadCountriesAsync();
+        }
     }
 
     protected override void OnParametersSet()
     {
+        if (Items != null)
+        {
+            _countries = Items;
+        }
         UpdateSelectedCountry();
     }
 

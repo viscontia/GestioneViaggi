@@ -48,6 +48,9 @@
     [Parameter]
     public string? Class { get; set; } = "mb-3";
 
+    [Parameter]
+    public List<Comune>? Items { get; set; }
+
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
@@ -59,11 +62,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadComuniAsync();
+        if (Items != null && Items.Count > 0)
+        {
+            _allComuni = Items;
+            _loaded = true;
+            UpdateSelectedComune();
+        }
+        else
+        {
+            await LoadComuniAsync();
+        }
     }
 
     protected override void OnParametersSet()
     {
+        if (Items != null && Items.Count > 0)
+        {
+            _allComuni = Items;
+            _loaded = true;
+        }
         UpdateSelectedComune();
     }
 
@@ -149,4 +166,3 @@
         return startsWithResults.Concat(containsResults).ToList();
     }
 }
-

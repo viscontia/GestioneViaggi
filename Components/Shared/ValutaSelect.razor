@@ -40,6 +40,7 @@
     [Parameter] public bool Required { get; set; } = false;
     [Parameter] public string RequiredError { get; set; } = "Campo obbligatorio";
     [Parameter] public bool Clearable { get; set; } = false;
+    [Parameter] public List<AnaValute>? Items { get; set; }
 
     private List<AnaValute> _valute = new();
     private AnaValute? _selectedValuta;
@@ -49,7 +50,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadValute();
+        if (Items != null && Items.Any())
+        {
+            _valute = Items;
+            _loaded = true;
+            _isLoading = false;
+            UpdateSelectedValuta();
+        }
+        else
+        {
+            await LoadValute();
+        }
     }
 
     protected override void OnParametersSet()
@@ -91,9 +102,17 @@
         try
         {
             _isLoading = true;
-            var valute = await ValuteService.GetAllValuteAsync();
-            _valute = valute?.ToList() ?? new List<AnaValute>();
-            _loaded = true;
+            if (Items != null && Items.Any())
+            {
+                _valute = Items;
+                _loaded = true;
+            }
+            else
+            {
+                var valute = await ValuteService.GetAllValuteAsync();
+                _valute = valute?.ToList() ?? new List<AnaValute>();
+                _loaded = true;
+            }
 
             // Se c'era un valore in attesa, applicalo ora che le valute sono caricate
             if (_pendingValutaId > 0)
