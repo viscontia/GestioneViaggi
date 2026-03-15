@@ -55,7 +55,7 @@ Funzioni per la gestione della struttura SaaS (Tenant, Aziende, Organizzazioni) 
 | `fn_superadmin_update_table` | UPDATE generico per SuperAdmin su qualsiasi tabella | `p_user_id uuid, p_table_name character varying, ...` | `jsonb` | - |
 | `fn_superadmin_delete_from_table` | DELETE generico per SuperAdmin su qualsiasi tabella | `p_user_id uuid, p_table_name character varying, ...` | `jsonb` | - |
 | `fn_superadmin_describe_table` | DESCRIBE schema tabella per SuperAdmin | `p_user_id uuid, p_table_name character varying` | `jsonb` | - |
-| `get_company_print_info` | Recupera dati intestazione azienda (Ragione Sociale, Tel, PEC, Sito) per stampe | `p_azienda_id integer` | `TABLE(ragione_sociale text, telefono text, email text, sito_web text, piva text, logo_data bytea)` | `Services/Printing/TravelPrintService.cs` |
+| `get_company_print_info` | Recupera dati intestazione azienda (Ragione Sociale, Tel, PEC, Sito) per stampe. **Logo convertito in base64** per compatibilità JSON. | `p_azienda_id integer` | `TABLE(ragione_sociale text, telefono text, email text, sito_web text, piva text, logo_data text)` | `Services/Printing/TravelPrintService.cs` |
 | `fn_logo_setup_master_detail_relation` | - | - | `jsonb` | - |
 
 ---
@@ -713,25 +713,50 @@ Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica c
 - **Utilizzo**: `MovTransazioniService.GetTransazioneInitDataAsync(int aziendaId, int? transazioneId)`
 
 ### `fn_get_travel_print_data`
-- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della scheda viaggio. Aggrega i dati di testata, azienda, partecipanti, statistiche e mezzi in un'unica chiamata JSON. Consolidamento di 5 chiamate separate.
+- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della scheda viaggio. Aggrega i dati di testata, azienda, partecipanti, statistiche e mezzi in un'unica chiamata JSON. Consolidamento di 5 chiamate separate. **Logo convertito in base64 per compatibilità JSON**.
 - **Parametri**:
   - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
 - **Ritorna**: `JSON` con chiavi `Header`, `Company`, `Participants`, `Stats`, `PilotsByVehicle`.
 - **Utilizzo**: `TravelPrintService.GetPrintDataAsync(int dataViaggioId)`
 
 ### `fn_get_rooming_list_print_data`
-- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della Rooming List. Aggrega i dati di testata, azienda e partecipanti (camere) in un'unica chiamata JSON. Consolidamento di 3 chiamate separate.
+- **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della Rooming List. Aggrega i dati di testata, azienda e partecipanti (camere) in un'unica chiamata JSON. Consolidamento di 3 chiamate separate. **Logo convertito in base64 per compatibilità JSON**.
 - **Parametri**:
   - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
 - **Ritorna**: `JSON` con chiavi `Header`, `Company`, `Participants`.
 - **Utilizzo**: `RoomingListPrintService.GetRoomingListDataAsync(int dataViaggioId)`
 | Nome della Function | Scopo | Input | Output | Files Coinvolti |
 | :--- | :--- | :--- | :--- | :--- |
-| `fn_get_mov_transazioni_print_data` | **Fat Init**: Ottimizzazione per la stampa dei movimenti contabili. Aggrega Info Azienda (Ragione Sociale, P.IVA, etc.), Dettagli transazioni (via `fn_get_transazioni_stampa_dettaglio`) e Subtotali (via `fn_get_transazioni_stampa_subtotali`) in un unico JSONB. Riduce le connessioni parallele da 3 a 1. | `p_azienda_id INT, p_controparte_id INT, p_causale_tipo_id INT, p_stati VARCHAR[], p_viaggio_id INT, p_data_viaggio_id INT, p_valuta_id INT, p_data_transazione_da DATE, p_data_transazione_a DATE, p_data_documento_da DATE, p_data_documento_a DATE, p_importo_da NUMERIC, p_importo_a NUMERIC, p_numero_documento VARCHAR, p_solo_con_documento BOOL, p_solo_scadute BOOL, p_solo_con_viaggio BOOL, p_solo_senza_viaggio BOOL, p_solo_con_fattura BOOL, p_ordinamento VARCHAR, p_valuta_target_id INT, p_causale_ciclo VARCHAR` | `JSONB` (chiavi: azienda, dettagli, subtotali) | `Services/Printing/MovTransazioniPrintService.cs`, `SqlScripts/310_Create_FnGetMovTransazioniPrintData.sql` |
-| `fn_get_registro_iva_print_data` | **Fat Init**: Ottimizzazione per la stampa del Registro IVA. Aggrega i dati dell'azienda emittente (inclusi logo e sede) e l'elenco delle transazioni (via `fn_get_registro_iva`) filtrate per anno e ciclo contabile (ATTIVO/PASSIVO). | `p_azienda_id INTEGER, p_anno INTEGER, p_causale_ciclo VARCHAR(10)` | `JSONB` (chiavi: azienda, items) | `Services/Printing/RegistroIvaPrintService.cs`, `SqlScripts/320_Create_FnGetRegistroIvaPrintData.sql` |
-| `fn_get_scadenzario_print_data` | **Fat Init**: Ottimizzazione per la stampa dello Scadenzario. Consolida i dati dell'azienda e l'estrazione dettagliata dello scadenzario finanziario (via `fn_get_scadenzario_stampa`). Supporta tutti i filtri di ricerca e raggruppamento dinamico (URGENZA/MESE/CONTROPARTE). | `p_azienda_id INTEGER, p_controparte_id INTEGER, p_causale_ciclo VARCHAR(10), p_urgenza VARCHAR(20), p_data_scadenza_da DATE, p_data_scadenza_a DATE, p_viaggio_id INTEGER, p_solo_con_viaggio BOOLEAN, p_solo_senza_viaggio BOOLEAN, p_raggruppamento VARCHAR(20)` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/ScadenzarioPrintService.cs`, `SqlScripts/330_Create_FnGetScadenzarioPrintData.sql` |
-| `fn_get_bilancio_viaggio_print_data` | **Fat Init**: Ottimizzazione per il report Bilancio Viaggio (Singolo o Annuale). Consolida 3-4 query: Info Azienda, Logo binario e dati economici (via `fn_get_bilancio_viaggio` o `fn_get_bilancio_annuale_viaggi`). Permette di generare il bilancio economico completo in un unico passaggio. | `p_azienda_id INT, p_viaggio_ids INT[], p_data_da DATE, p_data_a DATE, p_anno INT, p_valuta_target_id INT, p_data_viaggio_id INT` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/340_Create_FnGetBilancioViaggioPrintData.sql` |
-| `fn_get_fattura_attiva_print_data` | **Fat Init**: Ottimizzazione per la stampa della Fattura Attiva. Risolve il problema delle query multiple per testata (Azienda+Cliente) e righe di dettaglio. Restituisce un oggetto JSONB completo pronto per il mapping nel DTO `FatturaAttivaPrintData`. Include campi SDI per fatturazione elettronica. | `p_transazione_id INTEGER` | `JSONB` (chiavi: testata, righe) | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/350_Create_FnGetFatturaAttivaPrintData.sql` |
+| `fn_get_mov_transazioni_print_data` | **Fat Init**: Ottimizzazione per la stampa dei movimenti contabili. Aggrega Info Azienda (Ragione Sociale, P.IVA, etc.), Dettagli transazioni (via `fn_get_transazioni_stampa_dettaglio`) e Subtotali (via `fn_get_transazioni_stampa_subtotali`) in un unico JSONB. Riduce le connessioni parallele da 3 a 1. **Logo convertito in base64 per compatibilità JSON**. | `p_azienda_id INT, p_controparte_id INT, p_causale_tipo_id INT, p_stati VARCHAR[], p_viaggio_id INT, p_data_viaggio_id INT, p_valuta_id INT, p_data_transazione_da DATE, p_data_transazione_a DATE, p_data_documento_da DATE, p_data_documento_a DATE, p_importo_da NUMERIC, p_importo_a NUMERIC, p_numero_documento VARCHAR, p_solo_con_documento BOOL, p_solo_scadute BOOL, p_solo_con_viaggio BOOL, p_solo_senza_viaggio BOOL, p_solo_con_fattura BOOL, p_ordinamento VARCHAR, p_valuta_target_id INT, p_causale_ciclo VARCHAR` | `JSONB` (chiavi: azienda, dettagli, subtotali) | `Services/Printing/MovTransazioniPrintService.cs`, `SqlScripts/310_Create_FnGetMovTransazioniPrintData.sql` |
+| `fn_get_registro_iva_print_data` | **Fat Init**: Ottimizzazione per la stampa del Registro IVA. Aggrega i dati dell'azienda emittente (inclusi logo e sede) e l'elenco delle transazioni (via `fn_get_registro_iva`) filtrate per anno e ciclo contabile (ATTIVO/PASSIVO). **Logo convertito in base64 per compatibilità JSON**. | `p_azienda_id INTEGER, p_anno INTEGER, p_causale_ciclo VARCHAR(10)` | `JSONB` (chiavi: azienda, items) | `Services/Printing/RegistroIvaPrintService.cs`, `SqlScripts/320_Create_FnGetRegistroIvaPrintData.sql` |
+| `fn_get_scadenzario_print_data` | **Fat Init**: Ottimizzazione per la stampa dello Scadenzario. Consolida i dati dell'azienda e l'estrazione dettagliata dello scadenzario finanziario (via `fn_get_scadenzario_stampa`). Supporta tutti i filtri di ricerca e raggruppamento dinamico (URGENZA/MESE/CONTROPARTE). **Logo convertito in base64 per compatibilità JSON**. | `p_azienda_id INTEGER, p_controparte_id INTEGER, p_causale_ciclo VARCHAR(10), p_urgenza VARCHAR(20), p_data_scadenza_da DATE, p_data_scadenza_a DATE, p_viaggio_id INTEGER, p_solo_con_viaggio BOOLEAN, p_solo_senza_viaggio BOOLEAN, p_raggruppamento VARCHAR(20)` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/ScadenzarioPrintService.cs`, `SqlScripts/330_Create_FnGetScadenzarioPrintData.sql` |
+| `fn_get_bilancio_viaggio_print_data` | **Fat Init**: Ottimizzazione per il report Bilancio Viaggio (Singolo o Annuale). Consolida 3-4 query: Info Azienda, Logo binario e dati economici (via `fn_get_bilancio_viaggio` o `fn_get_bilancio_annuale_viaggi`). Permette di generare il bilancio economico completo in un unico passaggio. **Logo convertito in base64 per compatibilità JSON**. | `p_azienda_id INT, p_viaggio_ids INT[], p_data_da DATE, p_data_a DATE, p_anno INT, p_valuta_target_id INT, p_data_viaggio_id INT` | `JSONB` (chiavi: azienda, dettagli) | `Services/Printing/BilancioViaggioPrintService.cs`, `SqlScripts/340_Create_FnGetBilancioViaggioPrintData.sql` |
+| `fn_get_fattura_attiva_print_data` | **Fat Init**: Ottimizzazione per la stampa della Fattura Attiva. Risolve il problema delle query multiple per testata (Azienda+Cliente) e righe di dettaglio. Restituisce un oggetto JSONB completo pronto per il mapping nel DTO `FatturaAttivaPrintData`. Include campi SDI per fatturazione elettronica. **Logo convertito in base64 per compatibilità JSON**. | `p_transazione_id INTEGER` | `JSONB` (chiavi: testata, righe) | `Services/Printing/FatturaAttivaPrintService.cs`, `SqlScripts/350_Create_FnGetFatturaAttivaPrintData.sql` |
+
+---
+
+## Fix Logo Stampe (2026-03-15)
+
+**Problema**: PostgreSQL serializzava i campi BYTEA in formato esadecimale (`\x...`) quando convertiti in JSONB, mentre il codice C# si aspettava stringhe base64.
+
+**Soluzione**: Modificate tutte le funzioni di stampa per convertire i logo in base64 direttamente in PostgreSQL usando `encode(binary_data, 'base64')`.
+
+### Funzioni Modificate
+
+| Funzione | Tipo Modifica | File Script |
+|----------|---------------|-------------|
+| `get_company_print_info` | Cambiato tipo ritorno `logo_data` da `BYTEA` a `TEXT`, aggiunto `encode()` | `SqlScripts/get_company_print_info.sql` |
+| `fn_get_rooming_list_print_data` | Rimosso `encode()` duplicato (già fatto da `get_company_print_info`) | `SqlScripts/300_Create_FnGetRoomingListPrintData.sql` |
+| `fn_get_fattura_attiva_stampa` | Cambiato tipo `logo_data` da `BYTEA` a `TEXT`, aggiunto `encode()` | `SqlScripts/220_Create_FnGetFatturaAttivaStampa.sql`, `SqlScripts/241_Update_FnGetFatturaAttivaStampa_SDI.sql` |
+
+### Funzioni Non Modificate (Già Corrette)
+
+Le seguenti funzioni usavano `get_company_print_info` e passavano direttamente `logo_data`, quindi funzionano correttamente senza modifiche:
+- `fn_get_mov_transazioni_print_data`
+- `fn_get_registro_iva_print_data`
+- `fn_get_scadenzario_print_data`
+- `fn_get_bilancio_viaggio_print_data`
+- `fn_get_travel_print_data`
 
 ---
 

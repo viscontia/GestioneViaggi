@@ -46,7 +46,7 @@ RETURNS TABLE (
     sede_telefono VARCHAR,
     sede_email VARCHAR,
     -- Logo
-    logo_data BYTEA,
+    logo_data TEXT,
     -- Controparte (cliente)
     controparte_id INTEGER,
     controparte_ragione_sociale VARCHAR,
@@ -110,7 +110,7 @@ BEGIN
         s.telefono AS sede_telefono,
         s.email AS sede_email,
         -- Logo
-        (SELECT al.binary_data
+        (SELECT encode(al.binary_data, 'base64')
          FROM ana_aziende_logo al
          WHERE al.azienda_fk = a.azienda_id
            AND al.is_active = true

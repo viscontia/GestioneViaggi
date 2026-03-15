@@ -45,7 +45,7 @@ BEGIN
             'email', email,
             'sito_web', sito_web,
             'piva', piva,
-            'logo_data', encode(logo_data, 'base64') -- Encode bytea as base64 for JSON
+            'logo_data', logo_data -- Already base64 from get_company_print_info
         ) INTO v_company
         FROM get_company_print_info(v_azienda_id);
     ELSE
