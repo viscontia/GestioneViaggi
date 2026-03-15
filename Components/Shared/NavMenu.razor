@@ -10,6 +10,7 @@
 @inject IDialogService DialogService
 @inject ITravelPrintService PrintService
 @inject IRoomingListPrintService RoomingListPrintService
+@inject IPdfOpenerService PdfOpenerService
 
 <MudNavMenu>
     <MudNavLink Icon="@Icons.Material.Filled.Dashboard"
@@ -235,6 +236,10 @@
         </MudNavGroup>
 
         <MudNavGroup Title="Utilità" Icon="@Icons.Material.Filled.Build" Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Filled.BugReport"
+                        OnClick="@(() => OpenTabAndNotify("/pdf-diagnostic", "Test Diagnostico PDF", "bug_report"))">
+                <MudText Typo="Typo.body1">🔧 Test Diagnostico PDF</MudText>
+            </MudNavLink>
             <MudNavLink Icon="@Icons.Material.Filled.ImportExport"
                         OnClick="@(() => OpenTabAndNotify("/tools/oracle-import", "Importazione Dati da Oracle", "import_export"))">
                 <MudText Typo="Typo.body1">Importazione Dati da Oracle</MudText>
@@ -330,8 +335,8 @@
             {
                 var data = await PrintService.GetPrintDataAsync(dataViaggioId);
 
-                // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
@@ -390,8 +395,8 @@
             {
                 var data = await PrintService.GetPrintDataAsync(dataViaggioId);
 
-                // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);

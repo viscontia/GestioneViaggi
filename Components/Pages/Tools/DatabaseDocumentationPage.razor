@@ -4,6 +4,7 @@
 @inject IDatabaseDocumentationService DocService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject Services.Printing.IPdfOpenerService PdfOpenerService
 @using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "superadmin")]
 
@@ -49,7 +50,7 @@
         {
             var fileName = "Funzioni_DB.pdf";
             // Use user's Downloads folder
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fullPath = Path.Combine(targetFolder, fileName);
 
             // 1. Automatic Overwrite: Delete if exists

@@ -262,7 +262,7 @@
             var pdfBytes = await PrintService.GeneratePdfAsync(printData);
 
             // Save and Open
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fileName = $"Bilancio_Viaggi_{DateTime.Now:yyyyMMddHHmmss}.pdf";
             var outputPath = Path.Combine(targetFolder, fileName);
             

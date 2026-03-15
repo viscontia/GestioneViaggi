@@ -280,7 +280,7 @@
 
             Snackbar.Add("Generazione PDF in corso...", Severity.Info);
 
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fileName = GetScadenzarioFileName(filtri);
             var outputPath = Path.Combine(targetFolder, fileName);
 

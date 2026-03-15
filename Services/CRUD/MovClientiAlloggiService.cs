@@ -132,7 +132,9 @@ namespace GestioneViaggi.Services.CRUD
                 // PostgreSQL FUNCTION (not PROCEDURE), use SELECT instead of CALL
                 string sql = "SELECT sp_mov_clienti_alloggi_delete(@p_pk)";
 
-                await conn.ExecuteAsync(sql, new { p_pk = pk });
+                var parameters = new DynamicParameters();
+                parameters.Add("p_pk", pk);
+                await conn.ExecuteAsync(sql, parameters);
             }
             catch (PostgresException ex)
             {
@@ -163,7 +165,9 @@ namespace GestioneViaggi.Services.CRUD
                         cliente_id6_fk as ClienteId6Fk
                     FROM mov_clienti_alloggi
                     WHERE data_viaggio_id_fk = @dataId";
-                return await conn.QueryAsync<MovClientiAlloggi>(sql, new { dataId = dataViaggioId });
+                var parameters = new DynamicParameters();
+                parameters.Add("dataId", dataViaggioId);
+                return await conn.QueryAsync<MovClientiAlloggi>(sql, parameters);
             }
             catch (PostgresException ex)
             {
@@ -187,8 +191,10 @@ namespace GestioneViaggi.Services.CRUD
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
                 // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
+                var parameters = new DynamicParameters();
+                parameters.Add("dataId", dataViaggioId);
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.RoomWithOccupantsDTO>(@"
-                    SELECT 
+                    SELECT
                         alloggio_pk as AlloggioPk,
                         tipo_alloggio as TipoAlloggio,
                         max_occupants as MaxOccupants,
@@ -197,7 +203,7 @@ namespace GestioneViaggi.Services.CRUD
                         occupant_ids as OccupantIds,
                         has_supplement as HasSupplement
                     FROM get_rooms_with_occupants(@dataId)",
-                    new { dataId = dataViaggioId });
+                    parameters);
             }
             catch (PostgresException ex)
             {

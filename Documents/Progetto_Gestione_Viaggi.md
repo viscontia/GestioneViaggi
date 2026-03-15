@@ -17,6 +17,7 @@ Questo documento raccoglie tutte le informazioni critiche del progetto Gestione 
 8. [Configurazione SMTP](#-configurazione-smtp)
 9. [Gestione Versione Applicazione](#-gestione-versione-applicazione)
 10. [Fix Static Web Assets in Release Build](#-fix-static-web-assets-in-release-build)
+11. [Gestione Percorsi PDF e Sandbox macOS](#-gestione-percorsi-pdf-e-sandbox-macos)
 
 ---
 
@@ -462,3 +463,196 @@ ls -la bin/Release/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app/Conte
 # MudBlazor.min.css (originale ~610KB)
 # MudBlazor.min.js  (originale ~75KB)
 ```
+
+---
+
+## 📄 Gestione Percorsi PDF e Sandbox macOS
+
+### Il Problema
+
+Su macOS, le applicazioni MAUI sono **sandboxate** per motivi di sicurezza. Questo significa che l'app viene eseguita in un container isolato (`/Users/[user]/Library/Containers/[bundle-id]/Data/`) e non può accedere liberamente al filesystem dell'utente.
+
+**Sintomo dell'errore:**
+```
+UnauthorizedAccess_IODenied_Path, /Users/[user]/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Downloads/
+```
+
+Quando l'applicazione tentava di salvare i PDF generati usando il percorso standard `Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "Downloads"`, il sistema restituiva un errore di permessi perché:
+1. La cartella Downloads **non esisteva** nel container sandboxato
+2. L'app non aveva i permessi per crearla in quel percorso specifico
+
+### La Soluzione Implementata
+
+È stato creato un **metodo centralizzato** nel servizio `IPdfOpenerService` che gestisce automaticamente i percorsi dei PDF in modo cross-platform e compatibile con il sandboxing:
+
+#### File Modificato
+- **`Services/Printing/PdfOpenerService.cs`**
+
+#### Implementazione (Versione Finale)
+
+```csharp
+public interface IPdfOpenerService
+{
+    Task<bool> OpenPdfAsync(string filePath, string title = "Stampa Completata");
+    string GetPdfOutputFolder();
+}
+
+public class PdfOpenerService : IPdfOpenerService
+{
+    public string GetPdfOutputFolder()
+    {
+        // Su macOS/iOS/Android le app sono sandboxate e non possono scrivere
+        // liberamente nel filesystem. Usiamo direttamente la cache dell'app.
+        #if MACCATALYST || IOS || ANDROID
+        return FileSystem.CacheDirectory;
+        #else
+        // Su Windows/Linux proviamo la cartella Downloads standard
+        var targetFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads"
+        );
+
+        try
+        {
+            if (!Directory.Exists(targetFolder))
+                Directory.CreateDirectory(targetFolder);
+
+            // Test di scrittura per verificare i permessi
+            var testFile = Path.Combine(targetFolder, ".write_test");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+
+            return targetFolder;
+        }
+        catch
+        {
+            return FileSystem.CacheDirectory;
+        }
+        #endif
+    }
+}
+```
+
+**Modifica chiave**: Su macOS usa **direttamente** `FileSystem.CacheDirectory` senza tentare di creare Downloads, evitando errori di permessi.
+
+### Come Funziona
+
+#### Su piattaforme sandboxate (macOS/iOS/Android)
+Usa **direttamente** `FileSystem.CacheDirectory`:
+```csharp
+#if MACCATALYST || IOS || ANDROID
+return FileSystem.CacheDirectory;
+#endif
+```
+- **Nessun tentativo** di creare Downloads
+- **Nessun errore** di permessi possibile
+- Percorso garantito accessibile
+
+#### Su Windows/Linux
+1. **Tenta Downloads**: `Path.Combine(UserProfile, "Downloads")`
+2. **Test permessi**: Crea e cancella un file di test
+3. **Fallback cache**: Se fallisce, usa `FileSystem.CacheDirectory`
+
+### Percorsi Utilizzati
+
+#### macOS (Release) - **CACHE SEMPRE**
+```
+/Users/[user]/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/
+```
+✅ **Comando per aprire**: `open ~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/`
+
+#### Windows
+```
+C:\Users\[user]\Downloads\
+```
+Fallback: `C:\Users\[user]\AppData\Local\Packages\[AppId]\LocalCache\`
+
+#### Linux
+```
+/home/[user]/Downloads/
+```
+
+### File Aggiornati
+
+Tutti i componenti che generano PDF sono stati aggiornati per usare il metodo centralizzato `GetPdfOutputFolder()` invece di costruire manualmente il percorso:
+
+| File | Modifiche |
+|------|-----------|
+| `Services/Printing/PdfOpenerService.cs` | Implementazione metodo centralizzato |
+| `Components/Shared/StampaSchedaViaggioDialog.razor` | Usa metodo centralizzato |
+| `Components/Shared/NavMenu.razor` | Aggiunto inject + usa metodo centralizzato |
+| `Components/Shared/ViaggioPartecipantiManagerDialog.razor` | Usa metodo centralizzato |
+| `Components/Pages/DashboardSuperAdmin.razor` | Aggiunto inject + usa metodo centralizzato |
+| `Components/Pages/DashboardAdmin.razor` | Aggiunto inject + usa metodo centralizzato |
+| `Components/Pages/StampaFattureAttivePage.razor` | Usa metodo centralizzato |
+| `Components/Pages/MovTransazioniPage.razor` | Usa metodo centralizzato |
+| `Components/Shared/StampaRegistroIvaDialog.razor` | Usa metodo centralizzato |
+| `Components/Shared/StampaBilancioViaggioDialog.razor` | Usa metodo centralizzato |
+| `Components/Shared/StampaBilancioAnnualeViaggiDialog.razor` | Usa metodo centralizzato |
+| `Components/Shared/StampaScadenzarioDialog.razor` | Usa metodo centralizzato |
+| `Components/Shared/StampaMovimentiDialog.razor` | Usa metodo centralizzato |
+| `Components/Pages/Tools/DatabaseDocumentationPage.razor` | Aggiunto inject + usa metodo centralizzato |
+
+### Pattern di Utilizzo
+
+**Prima (vecchio approccio - problematico):**
+```csharp
+var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+var outputPath = Path.Combine(targetFolder, fileName);
+```
+
+**Dopo (nuovo approccio - centralizzato):**
+```csharp
+var targetFolder = PdfOpenerService.GetPdfOutputFolder();
+var outputPath = Path.Combine(targetFolder, fileName);
+```
+
+### Compatibilità Cross-Platform
+
+✅ **macOS (Sandboxed)**: Crea automaticamente la cartella nel container, fallback su cache
+✅ **Windows**: Usa la cartella Downloads standard dell'utente
+✅ **Linux**: Usa la cartella Downloads standard dell'utente
+✅ **iOS/Android**: `FileSystem.CacheDirectory` funziona nativamente
+
+### Vantaggi
+
+1. **Centralizzazione**: Un unico punto di gestione dei percorsi PDF
+2. **Resilienza**: Fallback automatico in caso di errori di permessi
+3. **Cross-platform**: Funziona su tutte le piattaforme MAUI
+4. **Manutenibilità**: Facile da modificare in futuro (es. permettere all'utente di scegliere il percorso)
+5. **Sandbox-friendly**: Compatibile con le restrizioni di sicurezza macOS
+
+### Dove trovare i PDF salvati
+
+#### macOS (Release/Production)
+Su macOS in modalità Release, i PDF vengono salvati nella **cache dell'app**:
+```bash
+# Visualizzare i PDF salvati
+ls -la ~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/
+
+# Aprire la cartella nel Finder
+open ~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/
+```
+
+#### Windows
+```bash
+# Percorso standard Downloads
+C:\Users\[username]\Downloads\
+
+# Fallback (se Downloads non accessibile)
+C:\Users\[username]\AppData\Local\Packages\[AppId]\LocalCache\
+```
+
+### Troubleshooting
+
+Se i PDF non vengono trovati:
+1. Verificare i log dell'applicazione per il percorso effettivo utilizzato
+2. Su macOS, usare sempre il comando `open` per aprire la cartella cache
+3. L'app apre automaticamente il PDF dopo la generazione tramite `IPdfOpenerService.OpenPdfAsync()`
+
+### Sviluppi Futuri
+
+Possibili miglioramenti:
+- Aggiungere un **file picker** per permettere all'utente di scegliere dove salvare il PDF
+- Implementare una **preferenza utente** per il percorso di salvataggio predefinito
+- Aggiungere un **dialog di conferma** dopo il salvataggio con link per aprire la cartella

@@ -38,7 +38,9 @@ public class MovTransazioniService
         {
             await using var conn = await _dbService.GetConnectionAsync();
             string sql = "SELECT * FROM fn_get_viaggi_with_transazioni(@AziendaId)";
-            var result = await conn.QueryAsync<AnaViaggi>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            var result = await conn.QueryAsync<AnaViaggi>(sql, parameters);
             return result;
         }
         catch (Exception ex)
@@ -57,7 +59,9 @@ public class MovTransazioniService
         {
             await using var conn = await _dbService.GetConnectionAsync();
             string sql = "SELECT * FROM fn_get_date_viaggi_with_transazioni(@ViaggioId)";
-            var result = await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
+            var parameters = new DynamicParameters();
+            parameters.Add("ViaggioId", viaggioId);
+            var result = await conn.QueryAsync<DataViaggioDTO>(sql, parameters);
             return result;
         }
         catch (Exception ex)
@@ -151,8 +155,11 @@ public class MovTransazioniService
         {
             await using var conn = await _dbService.GetConnectionAsync();
             string sql = "SELECT fn_get_transazione_init_data(@AziendaId, @TransazioneId)";
-            
-            var json = await conn.ExecuteScalarAsync<string>(sql, new { AziendaId = aziendaId, TransazioneId = transazioneId });
+
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            parameters.Add("TransazioneId", transazioneId);
+            var json = await conn.ExecuteScalarAsync<string>(sql, parameters);
             
             if (string.IsNullOrEmpty(json)) return new TransazioneInitData();
 
@@ -219,7 +226,9 @@ public class MovTransazioniService
                 LEFT JOIN ana_aliquote_iva aiva ON t.transazione_aliquota_iva_fk = aiva.iva_id
                 WHERE t.transazione_id = @Id";
 
-            var transazione = await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, new { Id = id });
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id);
+            var transazione = await conn.QueryFirstOrDefaultAsync<MovTransazioni>(sql, parameters);
 
             if (transazione != null)
             {
@@ -231,7 +240,9 @@ public class MovTransazioniService
                     WHERE r.transazione_fk = @Id
                     ORDER BY r.riga_numero";
                 
-                var righe = await conn.QueryAsync<MovTransazioniRighe>(sqlRighe, new { Id = id });
+                var righeParams = new DynamicParameters();
+                righeParams.Add("Id", id);
+                var righe = await conn.QueryAsync<MovTransazioniRighe>(sqlRighe, righeParams);
                 transazione.Righe = righe.ToList();
             }
 
@@ -363,9 +374,11 @@ public class MovTransazioniService
             // =============================================
             try
             {
+                var protParams = new DynamicParameters();
+                protParams.Add("TransazioneId", transazioneId);
                 await conn.ExecuteAsync(
                     "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
-                    new { TransazioneId = transazioneId });
+                    protParams);
             }
             catch (Exception exProt)
             {
@@ -470,9 +483,11 @@ public class MovTransazioniService
             // =============================================
             
             // 1. Cancella righe vecchie
+            var deleteParams = new DynamicParameters();
+            deleteParams.Add("Id", item.TransazioneId);
             await conn.ExecuteAsync(
-                "DELETE FROM mov_transazioni_righe WHERE transazione_fk = @Id", 
-                new { Id = item.TransazioneId }, 
+                "DELETE FROM mov_transazioni_righe WHERE transazione_fk = @Id",
+                deleteParams,
                 transaction);
 
             // 2. Inserisce nuove righe
@@ -511,9 +526,11 @@ public class MovTransazioniService
             // =============================================
             try
             {
+                var protParams2 = new DynamicParameters();
+                protParams2.Add("TransazioneId", item.TransazioneId);
                 await conn.ExecuteAsync(
                     "SELECT sp_assegna_protocollo_iva(@TransazioneId)",
-                    new { TransazioneId = item.TransazioneId });
+                    protParams2);
             }
             catch (Exception exProt)
             {
@@ -537,9 +554,11 @@ public class MovTransazioniService
             await using var conn = await _dbService.GetConnectionAsync();
 
             // Blocca eliminazione se la transazione ha un protocollo IVA assegnato
+            var checkParams = new DynamicParameters();
+            checkParams.Add("Id", id);
             var protocollo = await conn.QueryFirstOrDefaultAsync<int?>(
                 "SELECT transazione_numero_protocollo_iva FROM mov_transazioni WHERE transazione_id = @Id",
-                new { Id = id });
+                checkParams);
 
             if (protocollo.HasValue)
             {
@@ -548,7 +567,9 @@ public class MovTransazioniService
                     "Per annullarla, cambia lo stato in ANNULLATO dalla scheda di modifica.");
             }
 
-            await conn.ExecuteAsync("DELETE FROM mov_transazioni WHERE transazione_id = @Id", new { Id = id });
+            var delParams = new DynamicParameters();
+            delParams.Add("Id", id);
+            await conn.ExecuteAsync("DELETE FROM mov_transazioni WHERE transazione_id = @Id", delParams);
         }
         catch (InvalidOperationException)
         {

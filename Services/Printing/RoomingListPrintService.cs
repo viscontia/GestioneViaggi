@@ -26,10 +26,12 @@ public class RoomingListPrintService : IRoomingListPrintService
         try
         {
             await using var conn = await _connectionManager.GetConnectionAsync();
-            
+
             // Fat Init: Single call to get everything for Rooming List
             var sql = "SELECT fn_get_rooming_list_print_data(@DataViaggioId)";
-            var jsonRes = await conn.ExecuteScalarAsync<string>(sql, new { DataViaggioId = dataViaggioId });
+            var parameters = new DynamicParameters();
+            parameters.Add("DataViaggioId", dataViaggioId);
+            var jsonRes = await conn.ExecuteScalarAsync<string>(sql, parameters);
 
             if (string.IsNullOrEmpty(jsonRes))
             {
@@ -61,7 +63,7 @@ public class RoomingListPrintService : IRoomingListPrintService
                 Giorni = raw.Header.giorni ?? 0,
                 Notti = raw.Header.notti ?? 0,
                 Trattamento = raw.Header.trattamento ?? "",
-                PastiSacco = (raw.Header.pasti_al_sacco ?? "N") == "Y" || (raw.Header.pasti_al_sacco ?? "N") == "S",
+                PastiAlSaccoRaw = raw.Header.pasti_al_sacco,
                 Km = raw.Header.km ?? 0
             };
 

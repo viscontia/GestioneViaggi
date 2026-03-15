@@ -91,7 +91,9 @@ public class AnaRegimiFiscaliService
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_id = @Id";
 
-            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, new { Id = id });
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id);
+            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -108,7 +110,9 @@ public class AnaRegimiFiscaliService
 
             var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_codice = @Codice";
 
-            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, new { Codice = codice.ToUpper() });
+            var parameters = new DynamicParameters();
+            parameters.Add("Codice", codice.ToUpper());
+            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -208,7 +212,9 @@ public class AnaRegimiFiscaliService
 
             const string sql = "DELETE FROM ana_regimi_fiscali WHERE regime_id = @Id";
 
-            await conn.ExecuteAsync(sql, new { Id = id });
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id);
+            await conn.ExecuteAsync(sql, parameters);
         }
         catch (Exception ex)
         {

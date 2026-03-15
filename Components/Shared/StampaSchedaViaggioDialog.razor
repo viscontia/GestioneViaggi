@@ -71,8 +71,8 @@
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var fullFileName = $"{prefix}_{tripName}_{timestamp}.pdf";
             
-            // 3. Percorso di salvataggio (Downloads)
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            // 3. Percorso di salvataggio (usa il metodo centralizzato per gestire macOS sandboxato)
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var outputPath = Path.Combine(targetFolder, fullFileName);
 
             // 4. Generazione PDF

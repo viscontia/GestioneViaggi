@@ -535,7 +535,7 @@
             var session = await SessionManager.GetSessionAsync();
             printData.UtenteStampa = session?.User?.FullName ?? "System";
 
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fileName = PdfFileNameHelper.GetFatturaAttivaFileName(
                 printData.NumeroDocumento, printData.Client.RagioneSociale, printData.DataDocumento);
             var outputPath = Path.Combine(targetFolder, fileName);

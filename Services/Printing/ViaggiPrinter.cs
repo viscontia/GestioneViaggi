@@ -625,6 +625,263 @@ public static class PdfUtils
     private static bool _questPdfInitialized = false;
     private static readonly SemaphoreSlim _initLock = new SemaphoreSlim(1, 1);
 
+    /// <summary>
+    /// Test diagnostico per identificare dove fallisce QuestPDF su Mac Catalyst.
+    /// Ritorna un messaggio che indica quale step ha fallito.
+    /// </summary>
+    public static async Task<string> RunDiagnosticTestAsync()
+    {
+        var results = new System.Text.StringBuilder();
+        results.AppendLine("=== DIAGNOSTIC TEST QUESTPDF ===");
+
+        try
+        {
+            // STEP 1: Base QuestPDF Settings
+            results.AppendLine("STEP 1: Inizializzazione base QuestPDF...");
+            QuestPDF.Settings.License = LicenseType.Community;
+            QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+            results.AppendLine("✓ STEP 1: OK - QuestPDF Settings configurati");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 1: FAILED - {ex.GetType().Name}: {ex.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 2: Font Loading
+            results.AppendLine("STEP 2: Caricamento font custom...");
+            var fonts = new[] { "Lato-Regular.ttf", "Lato-Bold.ttf", "Lato-Italic.ttf", "Lato-BoldItalic.ttf" };
+            foreach (var font in fonts)
+            {
+                try
+                {
+                    using var stream = await FileSystem.OpenAppPackageFileAsync(font);
+                    using var ms = new MemoryStream();
+                    await stream.CopyToAsync(ms);
+                    ms.Position = 0;
+                    QuestPDF.Drawing.FontManager.RegisterFont(ms);
+                    results.AppendLine($"  ✓ Font caricato: {font}");
+                }
+                catch (Exception fontEx)
+                {
+                    results.AppendLine($"  ✗ Font fallito: {font} - {fontEx.GetType().Name}: {fontEx.Message}");
+                    throw; // Re-throw per catturare nel blocco esterno
+                }
+            }
+            results.AppendLine("✓ STEP 2: OK - Tutti i font caricati");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 2: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 3: Minimal Document Creation
+            results.AppendLine("STEP 3: Creazione documento minimale...");
+            var testPath = Path.Combine(Path.GetTempPath(), "questpdf_test.pdf");
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.Content().Text("Test Document").FontSize(12);
+                });
+            }).GeneratePdf(testPath);
+
+            results.AppendLine($"✓ STEP 3: OK - PDF generato: {testPath}");
+
+            // Cleanup
+            if (File.Exists(testPath))
+                File.Delete(testPath);
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 3: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        results.AppendLine("=== TUTTI I TEST PASSATI ===");
+        return results.ToString();
+    }
+
+    /// <summary>
+    /// Test diagnostico avanzato per identificare dove fallisce nel recupero dati stampa.
+    /// Testa: Dapper, JSON deserialization, LINQ GroupBy
+    /// </summary>
+    public static async Task<string> RunDataRetrievalTestAsync(GestioneViaggi.Services.Database.IDatabaseConnectionManager connectionManager)
+    {
+        var results = new System.Text.StringBuilder();
+        results.AppendLine("=== DIAGNOSTIC TEST DATA RETRIEVAL ===");
+
+        try
+        {
+            // STEP 4: Database Connection
+            results.AppendLine("STEP 4: Test connessione database...");
+            await using var conn = await connectionManager.GetConnectionAsync();
+            results.AppendLine($"✓ STEP 4: OK - Connessione DB aperta");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 4: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 5: Dapper Query (Simple)
+            results.AppendLine("STEP 5: Test Dapper query semplice...");
+            await using var conn = await connectionManager.GetConnectionAsync();
+            var simpleResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT 1");
+            results.AppendLine($"✓ STEP 5: OK - Dapper query semplice: {simpleResult}");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 5: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 6: Dapper Query with Parameters (Anonymous Object) - KNOWN TO FAIL
+            results.AppendLine("STEP 6: Test Dapper query con parametri (oggetto anonimo)...");
+            await using var conn = await connectionManager.GetConnectionAsync();
+            var paramResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", new { value = 42 });
+            results.AppendLine($"✓ STEP 6: OK - Dapper query parametrica: {paramResult}");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 6: FAILED (EXPECTED) - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            // Non return - continua con i test
+        }
+
+        try
+        {
+            // STEP 6B: Dapper Query with DynamicParameters (WORKAROUND)
+            results.AppendLine("STEP 6B: Test Dapper con DynamicParameters (soluzione)...");
+            await using var conn = await connectionManager.GetConnectionAsync();
+            var dynParams = new Dapper.DynamicParameters();
+            dynParams.Add("value", 42);
+            var dynamicResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", dynParams);
+            results.AppendLine($"✓ STEP 6B: OK - DynamicParameters funziona: {dynamicResult}");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 6B: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 7: JSON Deserialization
+            results.AppendLine("STEP 7: Test deserializzazione JSON...");
+            var testJson = "{\"name\":\"Test\",\"value\":123}";
+            var testObj = System.Text.Json.JsonSerializer.Deserialize<TestJsonClass>(testJson);
+            results.AppendLine($"✓ STEP 7: OK - JSON deserializzato: {testObj?.Name}, {testObj?.Value}");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 7: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 8: LINQ GroupBy (Simple)
+            results.AppendLine("STEP 8: Test LINQ GroupBy semplice...");
+            var testData = new[] {
+                new { Category = "A", Value = 1 },
+                new { Category = "B", Value = 2 },
+                new { Category = "A", Value = 3 }
+            };
+            var grouped = testData.GroupBy(x => x.Category).Select(g => new { Category = g.Key, Count = g.Count() }).ToList();
+            results.AppendLine($"✓ STEP 8: OK - LINQ GroupBy: {grouped.Count} gruppi");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 8: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return results.ToString();
+        }
+
+        try
+        {
+            // STEP 9: LINQ GroupBy (Complex - like TravelPrintService)
+            results.AppendLine("STEP 9: Test LINQ GroupBy complesso (come TravelPrintService)...");
+            var testVehicles = new[] {
+                new TestVehicle { Marca = "Toyota", Modello = "Land Cruiser", Pilota = "Mario" },
+                new TestVehicle { Marca = "Toyota", Modello = "Land Cruiser", Pilota = "Luigi" },
+                new TestVehicle { Marca = "Jeep", Modello = "Wrangler", Pilota = "Paolo" }
+            };
+            var vehicleGroups = testVehicles
+                .GroupBy(p => new { Marca = p.Marca ?? "N/D", Modello = p.Modello ?? "N/D" })
+                .Select(g => new TestVehicleGroup
+                {
+                    Marca = g.Key.Marca,
+                    Modello = g.Key.Modello,
+                    Count = g.Count(),
+                    Pilots = g.ToList()
+                })
+                .OrderBy(g => g.Marca)
+                .ThenBy(g => g.Modello)
+                .ToList();
+            results.AppendLine($"✓ STEP 9: OK - LINQ GroupBy complesso: {vehicleGroups.Count} gruppi veicoli");
+        }
+        catch (Exception ex)
+        {
+            results.AppendLine($"✗ STEP 9: FAILED - {ex.GetType().Name}: {ex.Message}");
+            if (ex.InnerException != null)
+                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            results.AppendLine($"  Stack Trace: {ex.StackTrace}");
+            return results.ToString();
+        }
+
+        results.AppendLine("=== TUTTI I TEST DATA RETRIEVAL PASSATI ===");
+        return results.ToString();
+    }
+
+    // Helper classes for testing
+    private class TestJsonClass
+    {
+        public string? Name { get; set; }
+        public int Value { get; set; }
+    }
+
+    private class TestVehicle
+    {
+        public string? Marca { get; set; }
+        public string? Modello { get; set; }
+        public string? Pilota { get; set; }
+    }
+
+    private class TestVehicleGroup
+    {
+        public string Marca { get; set; } = string.Empty;
+        public string Modello { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public List<TestVehicle> Pilots { get; set; } = new();
+    }
+
     public static async Task EnsureQuestPdfInitializedAsync()
     {
         if (_questPdfInitialized) return;
@@ -654,7 +911,7 @@ public static class PdfUtils
                     Console.WriteLine($"[QuestPDF] Failed to load font {font}: {ex.Message}");
                 }
             }
-            
+
             _questPdfInitialized = true;
         }
         finally

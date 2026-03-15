@@ -25,9 +25,11 @@ public class TravelPrintService : ITravelPrintService
         try
         {
             await using var conn = await _connectionManager.GetConnectionAsync();
-            
+
             var sql = "SELECT fn_get_travel_print_data(@DataViaggioId)";
-            var json = await conn.ExecuteScalarAsync<string>(sql, new { DataViaggioId = dataViaggioId });
+            var parameters = new DynamicParameters();
+            parameters.Add("DataViaggioId", dataViaggioId);
+            var json = await conn.ExecuteScalarAsync<string>(sql, parameters);
 
             if (string.IsNullOrEmpty(json))
             {

@@ -205,7 +205,7 @@
             var pdfBytes = await PrintService.GenerateAnnualePdfAsync(printData, _selectedAnno.Anno);
 
             // Save and Open
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fileName = $"Bilancio_Annuale_Viaggi_{_selectedAnno.Anno}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
             var outputPath = Path.Combine(targetFolder, fileName);
             

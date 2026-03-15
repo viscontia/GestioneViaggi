@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 
 namespace GestioneViaggi.Services.Printing;
 
@@ -12,25 +13,60 @@ public class TravelPrintDTO
 
 public class TravelHeaderInfo
 {
+    [JsonPropertyName("data_viaggio_id")]
     public int DataViaggioId { get; set; }
+
+    [JsonPropertyName("viaggio_id")]
     public int ViaggioId { get; set; }
+
+    [JsonPropertyName("azienda_id")]
+    public int AziendaId { get; set; }
+
+    [JsonPropertyName("titolo")]
     public string Titolo { get; set; } = string.Empty;
+
+    [JsonPropertyName("descrizione_estesa")]
     public string Descrizione { get; set; } = string.Empty;
-    public string DescrizioneBreve { get; set; } = string.Empty; // For file naming
-    public string Destinazione { get; set; } = string.Empty; // e.g., "Tunisia" from description or tags? Or simply Country
+
+    // DescrizioneBreve can be set explicitly or defaults to Titolo
+    public string DescrizioneBreve { get; set; } = string.Empty;
+
+    [JsonPropertyName("nazione")]
+    public string Destinazione { get; set; } = string.Empty;
+
+    [JsonPropertyName("data_inizio")]
     public DateTime? DataInizio { get; set; }
+
+    [JsonPropertyName("data_fine")]
     public DateTime? DataFine { get; set; }
+
+    [JsonPropertyName("note_viaggio")]
     public string Note { get; set; } = string.Empty;
+
     public int TotalParticipants { get; set; }
     public int TotalVehicles { get; set; }
     public int TotalCrews { get; set; }
-    
+
     // Characteristics
+    [JsonPropertyName("tipo")]
     public string TipoViaggio { get; set; } = string.Empty;
+
+    [JsonPropertyName("giorni")]
     public int Giorni { get; set; }
+
+    [JsonPropertyName("notti")]
     public int Notti { get; set; }
+
+    [JsonPropertyName("trattamento")]
     public string Trattamento { get; set; } = string.Empty;
-    public bool PastiSacco { get; set; }
+
+    [JsonPropertyName("pasti_al_sacco")]
+    public string? PastiAlSaccoRaw { get; set; }
+
+    // Computed property: converts "Y" or "S" to true, "N" to false
+    public bool PastiSacco => (PastiAlSaccoRaw ?? "N") == "Y" || (PastiAlSaccoRaw ?? "N") == "S";
+
+    [JsonPropertyName("km")]
     public int Km { get; set; }
 
     public string DateFormatted

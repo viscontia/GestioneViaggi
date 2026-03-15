@@ -21,6 +21,7 @@
 @inject Services.Shared.IRecentActivityService ActivityService
 @inject Services.Printing.ITravelPrintService PrintService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
+@inject Services.Printing.IPdfOpenerService PdfOpenerService
 
 @if (!_isLoaded)
 {
@@ -1236,8 +1237,8 @@ else
             {
                 var data = await PrintService.GetPrintDataAsync(dataViaggioId);
 
-                // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
@@ -1298,8 +1299,8 @@ else
             {
                 var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
 
-                // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);

@@ -642,7 +642,7 @@
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var fileName = $"Scheda_Dettagliata_{tripName}_{timestamp}.pdf";
             
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var outputPath = Path.Combine(targetFolder, fileName);
 
             await ViaggiPrinter.GenerateDetailedPdfAsync(data, outputPath);
@@ -672,7 +672,7 @@
             var data = await RoomingListPrintService.GetRoomingListDataAsync(DataViaggioId);
 
             // Save to Downloads
-            var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
             // Create descriptive filename
             var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);

@@ -50,7 +50,9 @@ public class AnaAliquoteIvaService
                 FROM ana_aliquote_iva
                 WHERE iva_id = @Id";
 
-            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, new { Id = id });
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id);
+            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -87,7 +89,9 @@ public class AnaAliquoteIvaService
                 WHERE azienda_fk = @AziendaId
                 ORDER BY ordinamento, iva_descrizione";
 
-            return await conn.QueryAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            return await conn.QueryAsync<AnaAliquotaIva>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -121,7 +125,9 @@ public class AnaAliquoteIvaService
                   AND is_active = TRUE
                 ORDER BY ordinamento, iva_descrizione";
 
-            return await conn.QueryAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            return await conn.QueryAsync<AnaAliquotaIva>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -155,7 +161,9 @@ public class AnaAliquoteIvaService
                   AND is_default = TRUE
                 LIMIT 1";
 
-            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -257,7 +265,9 @@ public class AnaAliquoteIvaService
                     SET is_default = FALSE
                     WHERE azienda_fk = @AziendaId";
 
-                await conn.ExecuteAsync(sqlRemove, new { AziendaId = aziendaId }, transaction);
+                var removeParams = new DynamicParameters();
+                removeParams.Add("AziendaId", aziendaId);
+                await conn.ExecuteAsync(sqlRemove, removeParams, transaction);
 
                 // Imposta flag default sulla aliquota selezionata
                 const string sqlSet = @"
@@ -265,7 +275,10 @@ public class AnaAliquoteIvaService
                     SET is_default = TRUE
                     WHERE iva_id = @IvaId AND azienda_fk = @AziendaId";
 
-                await conn.ExecuteAsync(sqlSet, new { IvaId = ivaId, AziendaId = aziendaId }, transaction);
+                var setParams = new DynamicParameters();
+                setParams.Add("IvaId", ivaId);
+                setParams.Add("AziendaId", aziendaId);
+                await conn.ExecuteAsync(sqlSet, setParams, transaction);
 
                 await transaction.CommitAsync();
             }
@@ -300,7 +313,9 @@ public class AnaAliquoteIvaService
                 DELETE FROM ana_aliquote_iva
                 WHERE iva_id = @Id";
 
-            await conn.ExecuteAsync(sql, new { Id = id });
+            var parameters = new DynamicParameters();
+            parameters.Add("Id", id);
+            await conn.ExecuteAsync(sql, parameters);
         }
         catch (Exception ex)
         {

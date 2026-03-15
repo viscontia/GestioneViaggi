@@ -16,6 +16,7 @@
 @inject Services.Shared.IRecentActivityService ActivityService
 @inject Services.Printing.ITravelPrintService PrintService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
+@inject Services.Printing.IPdfOpenerService PdfOpenerService
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="4" Class="@(_isLoading ? "" : "fade-in-content")">
@@ -1283,7 +1284,7 @@
                 var data = await PrintService.GetPrintDataAsync(dataViaggioId);
 
                 // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
@@ -1344,7 +1345,7 @@
                 var data = await PrintService.GetPrintDataAsync(dataViaggioId);
 
                 // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
                 var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
                 var filePath = Path.Combine(targetFolder, fileName);
 
@@ -1393,7 +1394,7 @@
                 var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
 
                 // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
