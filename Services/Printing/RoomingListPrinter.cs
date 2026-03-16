@@ -164,6 +164,17 @@ public class RoomingListPrinter
                         // PARTICIPANT BOX
                         contentCol.Item().ShowEntire().PaddingTop(5).Column(partCol =>
                         {
+                            // Badge pilota (se è il pilota della camera)
+                            if (participant.IsPilot)
+                            {
+                                partCol.Item().PaddingBottom(3).Row(badgeRow =>
+                                {
+                                    badgeRow.ConstantItem(60).Background(BrandColors.Accent)
+                                        .Padding(2).AlignCenter()
+                                        .Text("PILOTA").FontSize(7).Bold().FontColor(Colors.White);
+                                });
+                            }
+
                             // Linea 1: Nome (età) - Nato il [data] a [luogo] e residente a [città] in [indirizzo]
                             partCol.Item().Text(text =>
                             {

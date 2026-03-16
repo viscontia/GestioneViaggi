@@ -317,6 +317,10 @@ public class RoomingListParticipant
     public string TipoAlloggioDescrizione { get; set; } = string.Empty;
     public int MaxOccupanti { get; set; }
 
+    // Ordinamento pilota/passeggeri
+    public int PositionNumber { get; set; }
+    public bool IsPilot { get; set; }
+
     // Formatted strings for PDF
     public string DataNascitaFormatted => DataNascita.HasValue ? DataNascita.Value.ToString("dd/MM/yyyy") : "";
     public string DataRilascioFormatted => DataRilascio.HasValue ? DataRilascio.Value.ToString("dd/MM/yyyy") : "";

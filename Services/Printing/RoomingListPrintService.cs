@@ -97,7 +97,9 @@ public class RoomingListPrintService : IRoomingListPrintService
                 Intolleranze = p.intolleranze ?? "",
                 TipoAlloggioId = p.tipo_alloggio_id ?? 0,
                 TipoAlloggioDescrizione = p.tipo_alloggio_descrizione ?? "NESSUNA CAMERA ASSEGNATA",
-                MaxOccupanti = p.max_occupanti ?? 0
+                MaxOccupanti = p.max_occupanti ?? 0,
+                PositionNumber = p.position_number ?? 999,
+                IsPilot = p.is_pilot ?? false
             }).ToList();
 
             // 4. Group by Room Type (Keep existing C# logic as it's efficient enough for UI presentation)
@@ -113,7 +115,7 @@ public class RoomingListPrintService : IRoomingListPrintService
                     TipoAlloggioId = g.Key.TipoAlloggioId,
                     TipoAlloggioDescrizione = g.Key.TipoAlloggioDescrizione,
                     MaxOccupanti = g.Key.MaxOccupanti,
-                    Participants = g.OrderBy(p => p.RoomId).ThenBy(p => p.Nominativo).ToList(),
+                    Participants = g.ToList(), // Il SQL ordina già tutto (DB-First)
                     RoomCount = g.Select(p => p.RoomId).Distinct().Count()
                 })
                 .OrderBy(g => g.TipoAlloggioId)
@@ -184,6 +186,8 @@ public class RoomingParticipantRaw
     public int? tipo_alloggio_id { get; set; }
     public string? tipo_alloggio_descrizione { get; set; }
     public int? max_occupanti { get; set; }
+    public int? position_number { get; set; }
+    public bool? is_pilot { get; set; }
 }
 
 #endregion
