@@ -147,8 +147,8 @@
                      {
                          <MudAlert Severity="Severity.Info" Class="mb-3">Inserisci le date pianificate. Saranno salvate insieme al viaggio.</MudAlert>
                      }
-                     
-                     <ViaggioDatesManager @ref="_datesManager" Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()" 
+
+                     <ViaggioDatesManager @ref="_datesManager" Dates="@_dates" IsLiveMode="@IsEditMode" TripId="@Entity.Id" AziendaId="@GetAziendaId()"
                                           DurationDays="@Entity.NumeroGiorni" Trip="@Entity"
                                           DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
                      </ChildContent>
@@ -196,6 +196,7 @@
     private List<AnaDataViaggio> _dates = new();
     private ViaggioDatesManager? _datesManager;
     private GestioneViaggi.Models.DTOs.ViaggiInitData _initData = new();
+    private bool _hasLoadedData = false;
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -218,24 +219,38 @@
         return AziendaFk;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (StartOnDatesTab) _activeTabIndex = 1;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Solo carica i dati una volta, quando i parametri sono impostati
+        if (_hasLoadedData) return;
 
         try
         {
             // FAT INIT: Carica tutti i lookup e (se edit) le date in un'unica chiamata
             _initData = await ViaggiService.GetViaggiInitDataAsync(IsEditMode ? Entity.Id : (int?)null);
-            
+
             if (IsEditMode)
             {
-                _dates = _initData.Dates;
+                // CRITICAL: Create a new list instance to trigger Blazor's parameter change detection
+                // Simply mutating the existing list might not trigger MudDataGrid to re-render
+                _dates = _initData.Dates != null && _initData.Dates.Any()
+                    ? new List<AnaDataViaggio>(_initData.Dates)
+                    : new List<AnaDataViaggio>();
+
+                // Force UI update after data load
+                StateHasChanged();
             }
+
+            _hasLoadedData = true;
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Errore caricamento dati inizializzazione", Severity.Error);
-            Console.WriteLine($"Fat Init Error: {ex.Message}");
+            Snackbar.Add($"Errore caricamento: {ex.Message}", Severity.Error);
         }
 
         // Init Azienda Logic
@@ -249,7 +264,7 @@
 
             // Set default scalar values if needed
             if (Entity.NumeroGiorni == 0) Entity.NumeroGiorni = 1;
-            
+
             // Dates list empty for new
         }
     }

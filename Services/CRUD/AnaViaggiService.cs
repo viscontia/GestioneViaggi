@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
 using GestioneViaggi.Models.DTOs;
+using Dapper;
 
 using GestioneViaggi.Services.Session;
 
@@ -13,6 +14,12 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 {
     protected override string TableName => "ana_viaggi";
     protected override string IdColumnName => "viaggio_id";
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
 
     public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger, ITenantContext tenantContext)
         : base(databaseService, logger, tenantContext)
@@ -57,56 +64,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
     public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null, bool? futureOnly = null)
     {
-        // Override to include JOINs for descriptions
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT v.*,
-                       c.name as nazione_nome,
-                       t.tipo_viaggi_descrizione,
-                       tr.tipo_trattamento_descrizione,
-                       p.ana_tipo_pernottamento_descrizione,
-                       a.tipo_avvicinamento_descrizione,
-                       az.ragione_sociale as azienda_nome,
-                       (
-                            SELECT COUNT(1) 
-                            FROM ana_date_viaggi d 
-                            WHERE d.viaggio_id_fk = v.viaggio_id 
-                            AND (@filterYear IS NULL OR EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear)
-                            AND (@onlyCompleted IS NULL 
-                                OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
-                                OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
-                            AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio >= CURRENT_DATE))
-                       ) as matching_dates_count
-                FROM ana_viaggi v
-                LEFT JOIN eba_countries c ON v.viaggio_nazione_fk = c.country_id
-                LEFT JOIN ana_tipo_viaggi t ON v.viaggio_tipo_viaggio_fk = t.tipo_viaggi_id
-                LEFT JOIN ana_tipo_trattamento tr ON v.viaggio_tipo_trattamento_fk = tr.tipo_trattamento_id
-                LEFT JOIN ana_tipo_pernottamento p ON v.viaggio_tipo_pernottamento_fk = p.ana_tipo_pernottamento_id
-                LEFT JOIN ana_tipo_avvicinamento a ON v.viaggio_tipo_avvicinamento_fk = a.tipo_avvicinamento_id
-                LEFT JOIN ana_aziende az ON v.azienda_id = az.azienda_id
-                WHERE (@aziendaId IS NULL OR @aziendaId = 0 OR v.azienda_id = @aziendaId)
-                AND (@filterYear IS NULL OR EXISTS (
-                    SELECT 1 FROM ana_date_viaggi d 
-                    WHERE d.viaggio_id_fk = v.viaggio_id 
-                    AND EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = @filterYear
-                    AND (@onlyCompleted IS NULL 
-                        OR (@onlyCompleted = TRUE AND d.data_viaggio_effettuato_sino = 'Y')
-                        OR (@onlyCompleted = FALSE AND d.data_viaggio_effettuato_sino = 'N'))
-                    AND (@futureOnly IS NULL OR (@futureOnly = TRUE AND d.data_viaggio_data_inizio >= CURRENT_DATE))
-                ))
-                ORDER BY c.name, t.tipo_viaggi_descrizione, v.viaggio_descrizione_breve";
+            var sql = "SELECT * FROM fn_ana_viaggi_get_all(@aziendaId, @filterYear, @onlyCompleted, @futureOnly)";
 
             await using var command = new NpgsqlCommand(sql, connection);
-            // Explicitly define type to avoid 42P08 when value is NULL
-            var param = new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
+            command.Parameters.Add(new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
             {
-                Value = (object?)aziendaId ?? DBNull.Value,
+                Value = aziendaId.HasValue && aziendaId.Value > 0 ? aziendaId.Value : (object)DBNull.Value,
                 IsNullable = true
-            };
-            command.Parameters.Add(param);
-
+            });
             command.Parameters.Add(new NpgsqlParameter("filterYear", NpgsqlDbType.Integer)
             {
                 Value = (object?)filterYear ?? DBNull.Value,
@@ -188,31 +156,18 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT v.*,
-                       c.name as nazione_nome,
-                       t.tipo_viaggi_descrizione,
-                       tr.tipo_trattamento_descrizione,
-                       p.ana_tipo_pernottamento_descrizione,
-                       a.tipo_avvicinamento_descrizione,
-                       az.ragione_sociale as azienda_nome
-                FROM ana_viaggi v
-                LEFT JOIN eba_countries c ON v.viaggio_nazione_fk = c.country_id
-                LEFT JOIN ana_tipo_viaggi t ON v.viaggio_tipo_viaggio_fk = t.tipo_viaggi_id
-                LEFT JOIN ana_tipo_trattamento tr ON v.viaggio_tipo_trattamento_fk = tr.tipo_trattamento_id
-                LEFT JOIN ana_tipo_pernottamento p ON v.viaggio_tipo_pernottamento_fk = p.ana_tipo_pernottamento_id
-                LEFT JOIN ana_tipo_avvicinamento a ON v.viaggio_tipo_avvicinamento_fk = a.tipo_avvicinamento_id
-                LEFT JOIN ana_aziende az ON v.azienda_id = az.azienda_id
-                WHERE v.viaggio_id = @id";
 
+            // Use NpgsqlDataReader instead of Dapper to handle prefixed column names correctly
+            var sql = "SELECT * FROM fn_ana_viaggi_get_by_id(@p_viaggio_id)";
             await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("id", id);
+            command.Parameters.AddWithValue("p_viaggio_id", id);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 return MapFromReader(reader);
             }
+
             return null;
         }
         catch (Exception ex)
@@ -225,50 +180,46 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     public override async Task<AnaViaggi> CreateAsync(AnaViaggi entity)
     {
         await PopulateAuditFieldsAsync(entity, true);
-        return await CreateAsyncInternal(entity, true);
+        return await CreateAsyncInternal(entity);
     }
 
-    private async Task<AnaViaggi> CreateAsyncInternal(AnaViaggi entity, bool allowRetry)
+    private async Task<AnaViaggi> CreateAsyncInternal(AnaViaggi entity)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                INSERT INTO ana_viaggi (
-                    viaggio_descrizione_breve, viaggio_descrizione_estesa,
-                    viaggio_numero_giorni, viaggio_numero_notti,
-                    viaggio_pasti_al_sacco, viaggio_num_km,
-                    viaggio_tipo_avvicinamento_fk,
-                    viaggio_note, viaggio_link,
-                    viaggio_nazione_fk, viaggio_tipo_viaggio_fk,
-                    viaggio_tipo_trattamento_fk, viaggio_tipo_pernottamento_fk,
-                    azienda_id,
-                    created_by, created, updated_by, updated
-                ) VALUES (
-                    @descBreve, @descEstesa,
-                    @giorni, @notti,
-                    @pasti, @km,
-                    @avvicinamento,
-                    @note, @link,
-                    @nazione, @tipo,
-                    @trattamento, @pernottamento,
-                    @aziendaId,
-                    @createdBy, @created, @updatedBy, @updated
-                )
-                RETURNING viaggio_id";
 
-            await using var command = new NpgsqlCommand(sql, connection);
+            var parameters = new DynamicParameters();
+            parameters.Add("p_viaggio_descrizione_breve", entity.DescrizioneBreve.ToUpper());
+            parameters.Add("p_viaggio_descrizione_estesa", entity.DescrizioneEstesa.ToUpper());
+            parameters.Add("p_viaggio_numero_giorni", entity.NumeroGiorni);
+            parameters.Add("p_viaggio_numero_notti", entity.NumeroNotti);
+            parameters.Add("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
+            parameters.Add("p_viaggio_num_km", entity.Km);
+            parameters.Add("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
+            parameters.Add("p_viaggio_note", entity.Note?.ToUpper());
+            parameters.Add("p_viaggio_link", entity.Link);
+            parameters.Add("p_viaggio_nazione_fk", entity.NazioneIdFk);
+            parameters.Add("p_viaggio_tipo_viaggio_fk", entity.TipoViaggioIdFk);
+            parameters.Add("p_viaggio_tipo_trattamento_fk", entity.TipoTrattamentoIdFk);
+            parameters.Add("p_viaggio_tipo_pernottamento_fk", entity.TipoPernottamentoIdFk);
+            parameters.Add("p_azienda_id", entity.AziendaId);
+            parameters.Add("p_created_by", entity.CreatedBy);
+            parameters.Add("p_created", entity.Created);
+            parameters.Add("p_updated_by", entity.UpdatedBy);
+            parameters.Add("p_updated", entity.Updated);
 
-            AddParameters(command, entity);
+            entity.Id = await connection.ExecuteScalarAsync<int>(
+                "SELECT sp_ana_viaggi_create(@p_viaggio_descrizione_breve, @p_viaggio_descrizione_estesa, " +
+                "@p_viaggio_numero_giorni, @p_viaggio_numero_notti, @p_viaggio_pasti_al_sacco, " +
+                "@p_viaggio_num_km, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
+                "@p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, @p_viaggio_tipo_trattamento_fk, " +
+                "@p_viaggio_tipo_pernottamento_fk, @p_azienda_id, @p_created_by::VARCHAR, @p_created, " +
+                "@p_updated_by::VARCHAR, @p_updated)",
+                parameters
+            );
 
-            entity.Id = (int)(await command.ExecuteScalarAsync() ?? 0);
             return entity;
-        }
-        catch (PostgresException ex) when (allowRetry && ex.SqlState == "42P01" && ex.Message.Contains("ana_viaggi_seq"))
-        {
-            _logger.LogWarning(ex, "Sequence ana_viaggi_seq mancante. Tentativo fix.");
-            await FixSequenceAsync();
-            return await CreateAsyncInternal(entity, false);
         }
         catch (Exception ex)
         {
@@ -283,31 +234,36 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                UPDATE ana_viaggi SET
-                    viaggio_descrizione_breve = @descBreve,
-                    viaggio_descrizione_estesa = @descEstesa,
-                    viaggio_numero_giorni = @giorni,
-                    viaggio_numero_notti = @notti,
-                    viaggio_pasti_al_sacco = @pasti,
-                    viaggio_num_km = @km,
-                    viaggio_tipo_avvicinamento_fk = @avvicinamento,
-                    viaggio_note = @note,
-                    viaggio_link = @link,
-                    viaggio_nazione_fk = @nazione,
-                    viaggio_tipo_viaggio_fk = @tipo,
-                    viaggio_tipo_trattamento_fk = @trattamento,
-                    viaggio_tipo_pernottamento_fk = @pernottamento,
-                    azienda_id = @aziendaId,
-                    updated_by = @updatedBy,
-                    updated = @updated
-                WHERE viaggio_id = @id";
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("id", entity.Id);
-            AddParameters(command, entity);
+            var parameters = new DynamicParameters();
+            parameters.Add("p_viaggio_id", entity.Id);
+            parameters.Add("p_viaggio_descrizione_breve", entity.DescrizioneBreve.ToUpper());
+            parameters.Add("p_viaggio_descrizione_estesa", entity.DescrizioneEstesa.ToUpper());
+            parameters.Add("p_viaggio_numero_giorni", entity.NumeroGiorni);
+            parameters.Add("p_viaggio_numero_notti", entity.NumeroNotti);
+            parameters.Add("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
+            parameters.Add("p_viaggio_num_km", entity.Km);
+            parameters.Add("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
+            parameters.Add("p_viaggio_note", entity.Note?.ToUpper());
+            parameters.Add("p_viaggio_link", entity.Link);
+            parameters.Add("p_viaggio_nazione_fk", entity.NazioneIdFk);
+            parameters.Add("p_viaggio_tipo_viaggio_fk", entity.TipoViaggioIdFk);
+            parameters.Add("p_viaggio_tipo_trattamento_fk", entity.TipoTrattamentoIdFk);
+            parameters.Add("p_viaggio_tipo_pernottamento_fk", entity.TipoPernottamentoIdFk);
+            parameters.Add("p_azienda_id", entity.AziendaId);
+            parameters.Add("p_updated_by", entity.UpdatedBy);
+            parameters.Add("p_updated", entity.Updated);
 
-            await command.ExecuteNonQueryAsync();
+            await connection.ExecuteAsync(
+                "SELECT sp_ana_viaggi_update(@p_viaggio_id, @p_viaggio_descrizione_breve, " +
+                "@p_viaggio_descrizione_estesa, @p_viaggio_numero_giorni, @p_viaggio_numero_notti, " +
+                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_tipo_avvicinamento_fk, " +
+                "@p_viaggio_note, @p_viaggio_link, @p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, " +
+                "@p_viaggio_tipo_trattamento_fk, @p_viaggio_tipo_pernottamento_fk, @p_azienda_id, " +
+                "@p_updated_by::VARCHAR, @p_updated)",
+                parameters
+            );
+
             return entity;
         }
         catch (Exception ex)
@@ -323,61 +279,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // 0. Pre-Delete Validation: Check for existing dependencies
-            var checkSql = @"
-                SELECT
-                    (SELECT COUNT(1) FROM mov_clienti_viaggi WHERE viaggio_id_fk = @id) as clienti_count,
-                    (SELECT COUNT(1) FROM mov_clienti_alloggi WHERE viaggio_id_fk = @id) as alloggi_count";
+            var result = await connection.QueryFirstOrDefaultAsync<(bool deleted, string error_message)>(
+                "SELECT * FROM sp_ana_viaggi_delete(@p_viaggio_id)",
+                new { p_viaggio_id = id }
+            );
 
-            await using var cmdCheck = new NpgsqlCommand(checkSql, connection);
-            cmdCheck.Parameters.AddWithValue("id", id);
-
-            await using var reader = await cmdCheck.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+            if (!result.deleted && !string.IsNullOrEmpty(result.error_message))
             {
-                var clientiCount = reader.GetInt64(0);
-                var alloggiCount = reader.GetInt64(1);
-
-                if (clientiCount > 0 || alloggiCount > 0)
-                {
-                    // Found dependencies
-                    var msg = "Impossibile eliminare il viaggio: esistono dati collegati (";
-                    if (clientiCount > 0) msg += $"{clientiCount} clienti ";
-                    if (clientiCount > 0 && alloggiCount > 0) msg += "e ";
-                    if (alloggiCount > 0) msg += $"{alloggiCount} alloggi";
-                    msg += ").";
-
-                    throw new InvalidOperationException(msg);
-                }
+                throw new InvalidOperationException(result.error_message);
             }
-            await reader.CloseAsync(); // Close reader before starting transaction on same connection?
-            // Better: Connection is open, reader closed.
 
-            await using var transaction = await connection.BeginTransactionAsync();
-
-            try
-            {
-                // 1. Delete associated dates (manual cascade)
-                var sqlDates = "DELETE FROM ana_date_viaggi WHERE viaggio_id_fk = @id";
-                await using var cmdDates = new NpgsqlCommand(sqlDates, connection, transaction);
-                cmdDates.Parameters.AddWithValue("id", id);
-                await cmdDates.ExecuteNonQueryAsync();
-
-                // 2. Delete Trip
-                var sqlTrip = $"DELETE FROM {TableName} WHERE {IdColumnName} = @id";
-                await using var cmdTrip = new NpgsqlCommand(sqlTrip, connection, transaction);
-                cmdTrip.Parameters.AddWithValue("id", id);
-
-                var rowsAffected = await cmdTrip.ExecuteNonQueryAsync();
-
-                await transaction.CommitAsync();
-                return rowsAffected > 0;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            return result.deleted;
         }
         catch (InvalidOperationException)
         {
@@ -386,7 +298,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante l'eliminazione del viaggio {Id} e delle sue date", id);
+            _logger.LogError(ex, "Errore eliminazione viaggio {Id}", id);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -611,26 +523,36 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                UPDATE ana_date_viaggi SET
-                    data_viaggio_data_inizio = @inizio,
-                    data_viaggio_data_fine = @fine,
-                    data_viaggio_effettuato_sino = @effettuato,
-                    data_viaggio_costo_pilota = @costoPilota,
-                    data_viaggio_costo_passeggero = @costoPass,
-                    data_viaggio_costo_passeggero_auto_guida = @costoPassAuto,
-                    data_viaggio_costo_bambino_0_2 = @costoB02,
-                    data_viaggio_costo_bambino_2_6 = @costoB26,
-                    data_viaggio_costo_bambino_6_12 = @costoB612,
-                    data_viaggio_note = @note,
-                    azienda_id = @aziendaId
-                WHERE data_viaggio_id = @id";
 
-            await using var cmd = new NpgsqlCommand(sql, connection);
-            AddDateParameters(cmd, date);
-            cmd.Parameters.AddWithValue("id", date.Id);
+            // Get current user from context
+            var user = _tenantContext != null ? await _tenantContext.GetCurrentUserAsync() : null;
+            var currentUser = user?.Username ?? "SYSTEM";
 
-            await cmd.ExecuteNonQueryAsync();
+            var parameters = new DynamicParameters();
+            parameters.Add("p_data_viaggio_id", date.Id);
+            parameters.Add("p_data_viaggio_data_inizio", date.DataInizio);
+            parameters.Add("p_data_viaggio_data_fine", date.DataFine);
+            parameters.Add("p_data_viaggio_effettuato_sino", date.EffettuatoSino ?? "N");
+            parameters.Add("p_data_viaggio_costo_pilota", date.CostoPilota.HasValue ? (int)date.CostoPilota.Value : 0);
+            parameters.Add("p_data_viaggio_costo_passeggero", date.CostoPasseggero.HasValue ? (int)date.CostoPasseggero.Value : 0);
+            parameters.Add("p_data_viaggio_costo_passeggero_auto_guida", date.CostoPasseggeroAutoGuida.HasValue ? (int?)date.CostoPasseggeroAutoGuida.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_0_2", date.CostoBambino02.HasValue ? (int?)date.CostoBambino02.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_2_6", date.CostoBambino26.HasValue ? (int?)date.CostoBambino26.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_6_12", date.CostoBambino612.HasValue ? (int?)date.CostoBambino612.Value : null);
+            parameters.Add("p_data_viaggio_note", date.Note);
+            parameters.Add("p_azienda_id", date.AziendaId);
+            parameters.Add("p_updated_by", currentUser);
+            parameters.Add("p_updated", DateTime.UtcNow);
+
+            await connection.ExecuteAsync(
+                "SELECT sp_ana_date_viaggi_update(@p_data_viaggio_id, @p_data_viaggio_data_inizio::DATE, " +
+                "@p_data_viaggio_data_fine::DATE, @p_data_viaggio_effettuato_sino, @p_data_viaggio_costo_pilota, " +
+                "@p_data_viaggio_costo_passeggero, @p_data_viaggio_costo_passeggero_auto_guida, " +
+                "@p_data_viaggio_costo_bambino_0_2, @p_data_viaggio_costo_bambino_2_6, " +
+                "@p_data_viaggio_costo_bambino_6_12, @p_data_viaggio_note::VARCHAR, @p_azienda_id, " +
+                "@p_updated_by::VARCHAR, @p_updated)",
+                parameters
+            );
         }
         catch (Exception ex)
         {
@@ -644,7 +566,37 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            await InsertDateInternalAsync(date, connection, null);
+
+            // Get current user from context
+            var user = _tenantContext != null ? await _tenantContext.GetCurrentUserAsync() : null;
+            var currentUser = user?.Username ?? "SYSTEM";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("p_viaggio_id_fk", date.ViaggioIdFk);
+            parameters.Add("p_data_viaggio_data_inizio", date.DataInizio);
+            parameters.Add("p_data_viaggio_data_fine", date.DataFine);
+            parameters.Add("p_data_viaggio_effettuato_sino", date.EffettuatoSino ?? "N");
+            parameters.Add("p_data_viaggio_costo_pilota", date.CostoPilota.HasValue ? (int)date.CostoPilota.Value : 0);
+            parameters.Add("p_data_viaggio_costo_passeggero", date.CostoPasseggero.HasValue ? (int)date.CostoPasseggero.Value : 0);
+            parameters.Add("p_data_viaggio_costo_passeggero_auto_guida", date.CostoPasseggeroAutoGuida.HasValue ? (int?)date.CostoPasseggeroAutoGuida.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_0_2", date.CostoBambino02.HasValue ? (int?)date.CostoBambino02.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_2_6", date.CostoBambino26.HasValue ? (int?)date.CostoBambino26.Value : null);
+            parameters.Add("p_data_viaggio_costo_bambino_6_12", date.CostoBambino612.HasValue ? (int?)date.CostoBambino612.Value : null);
+            parameters.Add("p_data_viaggio_note", date.Note);
+            parameters.Add("p_azienda_id", date.AziendaId);
+            parameters.Add("p_created_by", currentUser);
+
+            var newId = await connection.ExecuteScalarAsync<int>(
+                "SELECT sp_ana_date_viaggi_create(@p_viaggio_id_fk, @p_data_viaggio_data_inizio::DATE, " +
+                "@p_data_viaggio_data_fine::DATE, @p_data_viaggio_effettuato_sino, @p_data_viaggio_costo_pilota, " +
+                "@p_data_viaggio_costo_passeggero, @p_data_viaggio_costo_passeggero_auto_guida, " +
+                "@p_data_viaggio_costo_bambino_0_2, @p_data_viaggio_costo_bambino_2_6, " +
+                "@p_data_viaggio_costo_bambino_6_12, @p_data_viaggio_note::VARCHAR, @p_azienda_id, " +
+                "@p_created_by::VARCHAR)",
+                parameters
+            );
+
+            date.Id = newId;
         }
         catch (Exception ex)
         {
@@ -655,42 +607,24 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
     public async Task DeleteDateAsync(int dateId)
     {
-        await using var connection = await _databaseService.GetConnectionAsync();
-
-        // 0. Pre-Delete Validation (Keep existing logic)
-        var checkSql = @"
-            SELECT 
-                (SELECT COUNT(1) FROM mov_clienti_viaggi WHERE data_viaggio_id_fk = @id) as clienti_count,
-                (SELECT COUNT(1) FROM mov_clienti_alloggi WHERE data_viaggio_id_fk = @id) as alloggi_count";
-
-        await using var cmdCheck = new NpgsqlCommand(checkSql, connection);
-        cmdCheck.Parameters.AddWithValue("id", dateId);
-
-        await using var reader = await cmdCheck.ExecuteReaderAsync();
-        if (await reader.ReadAsync())
-        {
-            var clientiCount = reader.GetInt64(0);
-            var alloggiCount = reader.GetInt64(1);
-
-            if (clientiCount > 0 || alloggiCount > 0)
-            {
-                var msg = "Impossibile eliminare la data: esistono dati collegati (";
-                if (clientiCount > 0) msg += $"{clientiCount} clienti ";
-                if (clientiCount > 0 && alloggiCount > 0) msg += "e ";
-                if (alloggiCount > 0) msg += $"{alloggiCount} alloggi";
-                msg += ").";
-
-                throw new InvalidOperationException(msg);
-            }
-        }
-        await reader.CloseAsync();
-
         try
         {
-            var sql = "DELETE FROM ana_date_viaggi WHERE data_viaggio_id = @id";
-            await using var cmd = new NpgsqlCommand(sql, connection);
-            cmd.Parameters.AddWithValue("id", dateId);
-            await cmd.ExecuteNonQueryAsync();
+            await using var connection = await _databaseService.GetConnectionAsync();
+
+            var result = await connection.QueryFirstOrDefaultAsync<(bool deleted, string error_message)>(
+                "SELECT * FROM sp_ana_date_viaggi_delete(@p_data_viaggio_id)",
+                new { p_data_viaggio_id = dateId }
+            );
+
+            if (!result.deleted && !string.IsNullOrEmpty(result.error_message))
+            {
+                throw new InvalidOperationException(result.error_message);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Re-throw validation errors as-is for UI to display nicely
+            throw;
         }
         catch (Exception ex)
         {
@@ -831,18 +765,34 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            
+
             // PostgreSQL logic: call fn_get_viaggi_init_data which returns a single JSON string
             using var command = new NpgsqlCommand("SELECT fn_get_viaggi_init_data(@vid)", connection);
             command.Parameters.AddWithValue("vid", (object?)viaggioId ?? DBNull.Value);
-            
-            var json = await command.ExecuteScalarAsync() as string;
-            
-            if (string.IsNullOrEmpty(json)) return new GestioneViaggi.Models.DTOs.ViaggiInitData();
 
-            return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ViaggiInitData>(json, 
-                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+            var json = await command.ExecuteScalarAsync() as string;
+
+            if (string.IsNullOrEmpty(json))
+            {
+                _logger.LogWarning("fn_get_viaggi_init_data returned empty JSON for viaggioId {ViaggioId}", viaggioId);
+                return new GestioneViaggi.Models.DTOs.ViaggiInitData();
+            }
+
+            // DEBUG: Log JSON snippet for dates section
+            var datesIndex = json.IndexOf("\"dates\"");
+            if (datesIndex > 0)
+            {
+                var datesSnippet = json.Substring(datesIndex, Math.Min(500, json.Length - datesIndex));
+                _logger.LogInformation("JSON dates section: {DatesSnippet}", datesSnippet);
+            }
+
+            var result = System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ViaggiInitData>(json, JsonOptions)
                 ?? new GestioneViaggi.Models.DTOs.ViaggiInitData();
+
+            // DEBUG: Log deserialized result
+            _logger.LogInformation("Deserialized {DateCount} dates for viaggioId {ViaggioId}", result.Dates?.Count ?? 0, viaggioId);
+
+            return result;
         }
         catch (Exception ex)
         {

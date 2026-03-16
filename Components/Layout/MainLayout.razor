@@ -37,8 +37,8 @@
                Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
         <NavMenu OnItemClick="@HandleNavItemClick" />
     </MudDrawer>
-    <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")">
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+    <MudMainContent Class="@(_isDarkMode ? "theme-dark" : "theme-light")" Style="padding-left: 0; margin-left: 56px !important;">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4 px-0">
             @Body
         </MudContainer>
     </MudMainContent>

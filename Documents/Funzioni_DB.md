@@ -173,12 +173,48 @@ Funzioni core per la gestione dei viaggi (`ana_viaggi` e `ana_date_viaggi`).
 | `get_datetrips_fromtrip` | - | `p_viaggio_id integer` | `TABLE(data_viaggio_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_viaggio_partecipanti` | - | `p_data_viaggio_id integer` | `TABLE(gruppo_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_mezzi_count` | Conteggio efficiente dei mezzi (veicoli) partecipanti per una data viaggio. Conta solo i partecipanti con mezzo assegnato (ana_mezzi_id_fk IS NOT NULL). Utilizzata da `fn_get_viaggi_init_data` per popolare il campo `totMezzi` delle date. | `p_data_viaggio_id integer` | `integer` | `Components/Shared/AnaViaggiDialog.razor`, `SqlScripts/351_Create_GetMezziCount.sql` |
-| `fn_get_viaggi_init_data` | **FAT INIT FUNCTION**: Recupera in un'unica chiamata tutti i lookups necessari per il dialog viaggi (Nazioni, TipiViaggio, TipiTrattamento, TipiPernottamento, TipiAvvicinamento, Aziende) + le date del viaggio (se `p_viaggio_id` fornito) con contatori `totMezzi` e `totClienti`. Restituisce JSON con chiavi in snake_case. **Fixed 2026-03-16**: Corretta sintassi ORDER BY (spostata dentro json_agg) e nomi colonne tabelle lookup. | `p_viaggio_id integer DEFAULT NULL` | `json` | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/AnaViaggiDialog.razor`, `SqlScripts/352_Fix_FnGetViaggiInitData_OrderBy.sql` |
+| `fn_get_viaggi_init_data` | **FAT INIT FUNCTION**: Recupera in un'unica chiamata tutti i lookups necessari per il dialog viaggi (Nazioni, TipiViaggio, TipiTrattamento, TipiPernottamento, TipiAvvicinamento, Aziende) + le date del viaggio (se `p_viaggio_id` fornito) con contatori `totMezzi` e `totClienti`. Restituisce JSON con chiavi in camelCase. **Fixed 2026-03-16**: Corretti campi date per includere tutti i costi bambini, note e campi audit necessari per deserializzazione corretta in AnaDataViaggio. | `p_viaggio_id integer DEFAULT NULL` | `json` (include dates con tutti i campi: id, viaggioIdFk, dataInizio, dataFine, effettuatoSino, costoPilota, costoPasseggero, costoPasseggeroAutoGuida, costoBambino02/26/612, note, totMezzi, totClienti, aziendaId, createdBy, created, updatedBy, updated) | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/AnaViaggiDialog.razor` |
 | `get_travel_stats` | Calcola totali partecipanti, equipaggi e veicoli per una data viaggio | `p_data_viaggio_id integer` | `TABLE(total_participants, ...)` | `Services/Printing/TravelPrintService.cs` |
 
 ---
 
-## 5. Partecipanti e Alloggi
+### 5.1. CRUD Viaggi (ana_viaggi)
+Stored procedures e funzioni per le operazioni CRUD su `ana_viaggi`.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `sp_ana_viaggi_create` | Crea un nuovo viaggio con tutti i campi obbligatori e opzionali | 18 parametri: `p_viaggio_descrizione_breve VARCHAR(255), p_viaggio_descrizione_estesa TEXT, p_viaggio_numero_giorni INTEGER, p_viaggio_numero_notti INTEGER, p_viaggio_pasti_al_sacco CHAR(1), p_viaggio_num_km INTEGER, p_viaggio_tipo_avvicinamento_fk INTEGER, p_viaggio_note TEXT, p_viaggio_link VARCHAR(500), p_viaggio_nazione_fk INTEGER, p_viaggio_tipo_viaggio_fk INTEGER, p_viaggio_tipo_trattamento_fk INTEGER, p_viaggio_tipo_pernottamento_fk INTEGER, p_azienda_id INTEGER, p_created_by VARCHAR(50), p_created TIMESTAMPTZ, p_updated_by VARCHAR(50), p_updated TIMESTAMPTZ` | `INTEGER` (viaggio_id del record creato) | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/400_Create_SpAnaViaggiCrud.sql` |
+| `sp_ana_viaggi_update` | Aggiorna un viaggio esistente | 17 parametri (include `p_viaggio_id` nel WHERE) | `VOID` (solleva EXCEPTION se record non trovato) | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/400_Create_SpAnaViaggiCrud.sql` |
+| `sp_ana_viaggi_delete` | Elimina un viaggio e le sue date associate (cascade manuale) dopo validazione dipendenze. Verifica assenza di `mov_clienti_viaggi` e `mov_clienti_alloggi` collegati. Elimina prima `ana_date_viaggi` (cascade manuale). | `p_viaggio_id INTEGER` | `TABLE(deleted BOOLEAN, error_message TEXT)` | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/400_Create_SpAnaViaggiCrud.sql` |
+| `fn_ana_viaggi_get_all` | Recupera tutti i viaggi con LEFT JOIN su lookup tables (nazioni, tipi viaggio, trattamento, pernottamento, avvicinamento, azienda) e filtri opzionali (anno, completato, futuro). Include conteggio date corrispondenti. | `p_azienda_id INTEGER DEFAULT NULL, p_filter_year INTEGER DEFAULT NULL, p_only_completed BOOLEAN DEFAULT NULL, p_future_only BOOLEAN DEFAULT NULL` | `TABLE` con tutti i campi di `ana_viaggi` + descrizioni lookup + `matching_dates_count BIGINT` | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/400_Create_SpAnaViaggiCrud.sql` |
+| `fn_ana_viaggi_get_by_id` | Recupera un singolo viaggio per ID con tutti i LEFT JOIN su lookup tables | `p_viaggio_id INTEGER` | `TABLE` con tutti i campi di `ana_viaggi` + descrizioni lookup | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/400_Create_SpAnaViaggiCrud.sql` |
+
+**Note:**
+- I trigger `trg_ana_viaggi_audit` gestiscono automaticamente i campi audit se non forniti
+- Tutti i costi sono di tipo `INTEGER` (non DECIMAL)
+- Uppercase enforcement per descrizioni e note avviene lato C#
+- Multi-tenancy tramite filtro `azienda_id`
+- **⚠️ IMPORTANTE (Mapping)**: `fn_ana_viaggi_get_all` e `fn_ana_viaggi_get_by_id` restituiscono i nomi delle colonne con il prefisso completo della tabella (es: `viaggio_descrizione_breve`, `viaggio_numero_giorni`). In C# **NON usare Dapper diretto** per il mapping, ma utilizzare `NpgsqlDataReader` + `MapFromReader()` per gestire correttamente i nomi con prefisso. Stesso pattern usato in `GetViaggiWithTransactionsAsync()`.
+
+---
+
+### 5.2. CRUD Date Viaggi (ana_date_viaggi)
+Stored procedures per le operazioni CRUD su `ana_date_viaggi`.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `sp_ana_date_viaggi_create` | Crea una nuova data viaggio | 13 parametri: `p_viaggio_id_fk INTEGER, p_data_viaggio_data_inizio DATE, p_data_viaggio_data_fine DATE, p_data_viaggio_effettuato_sino CHAR(1), p_data_viaggio_costo_pilota INTEGER, p_data_viaggio_costo_passeggero INTEGER, p_data_viaggio_costo_passeggero_auto_guida INTEGER, p_data_viaggio_costo_bambino_0_2 INTEGER, p_data_viaggio_costo_bambino_2_6 INTEGER, p_data_viaggio_costo_bambino_6_12 INTEGER, p_data_viaggio_note VARCHAR(250), p_azienda_id INTEGER, p_created_by VARCHAR(255)` | `INTEGER` (data_viaggio_id del record creato) | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/401_Create_SpAnaDateViaggiCrud.sql` |
+| `sp_ana_date_viaggi_update` | Aggiorna una data viaggio esistente | 14 parametri (include `p_data_viaggio_id`, `p_updated_by`, `p_updated`) | `VOID` (solleva EXCEPTION se record non trovato) | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/401_Create_SpAnaDateViaggiCrud.sql` |
+| `sp_ana_date_viaggi_delete` | Elimina una data viaggio dopo validazione dipendenze. Verifica assenza di `mov_clienti_viaggi` e `mov_clienti_alloggi` collegati. | `p_data_viaggio_id INTEGER` | `TABLE(deleted BOOLEAN, error_message TEXT)` | `Services/CRUD/AnaViaggiService.cs`, `SqlScripts/401_Create_SpAnaDateViaggiCrud.sql` |
+
+**Note:**
+- I trigger `trg_ana_date_viaggi_audit` gestiscono automaticamente i timestamp
+- Check constraints: `chk_data_viaggio_date_order` (fine >= inizio), `chk_data_viaggio_costi_positive` (tutti i costi >= 0)
+- `data_viaggio_effettuato_sino` può essere 'Y', 'N', 'P' o NULL
+
+---
+
+## 5.3. Partecipanti e Alloggi
 Funzioni per la gestione dei partecipanti (`mov_clienti_viaggi`) e delle rooming list (`mov_clienti_alloggi`).
 
 | Nome della Function | Scopo | Input | Output | Files Coinvolti |
