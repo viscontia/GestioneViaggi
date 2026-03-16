@@ -79,8 +79,7 @@ public class MovTransazioniPrintService
 
             if (string.IsNullOrEmpty(jsonResponse)) return result;
 
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var rawData = JsonSerializer.Deserialize<MovTransazioniRawResponse>(jsonResponse, options);
+            var rawData = JsonSerializer.Deserialize<MovTransazioniRawResponse>(jsonResponse, PrintJsonHelper.GetDefaultOptions());
 
             if (rawData != null)
             {

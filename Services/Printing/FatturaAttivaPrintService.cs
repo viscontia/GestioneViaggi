@@ -43,8 +43,7 @@ public class FatturaAttivaPrintService
                 return null;
             }
 
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var rawData = JsonSerializer.Deserialize<FatturaAttivaRawResponse>(jsonResponse, options);
+            var rawData = JsonSerializer.Deserialize<FatturaAttivaRawResponse>(jsonResponse, PrintJsonHelper.GetDefaultOptions());
 
             if (rawData == null || rawData.Testata == null) return null;
 

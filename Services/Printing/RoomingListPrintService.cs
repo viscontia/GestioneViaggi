@@ -38,7 +38,7 @@ public class RoomingListPrintService : IRoomingListPrintService
                 throw new Exception($"Nessun dato trovato per la Rooming List della data viaggio {dataViaggioId}");
             }
 
-            var raw = JsonSerializer.Deserialize<RoomingListRawResponse>(jsonRes, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var raw = JsonSerializer.Deserialize<RoomingListRawResponse>(jsonRes, PrintJsonHelper.GetDefaultOptions());
             
             if (raw == null || raw.Header == null)
             {

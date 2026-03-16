@@ -36,11 +36,8 @@ public class TravelPrintService : ITravelPrintService
                 throw new Exception($"Nessun dato trovato per il viaggio con ID {dataViaggioId}");
             }
 
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
-            };
+            // Use centralized JSON options for consistent snake_case handling
+            var options = PrintJsonHelper.GetDefaultOptions();
 
             // Raw response structure from SQL
             var rawData = System.Text.Json.JsonSerializer.Deserialize<TravelPrintRawResponse>(json, options);
@@ -94,10 +91,19 @@ public class TravelPrintService : ITravelPrintService
     // Helper classes for JSON deserialization
     private class TravelPrintRawResponse
     {
+        [System.Text.Json.Serialization.JsonPropertyName("Header")]
         public TravelHeaderInfo? Header { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("Company")]
         public CompanyPrintInfo? Company { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("Participants")]
         public List<ParticipantPrintInfo>? Participants { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("Stats")]
         public TravelStatsRaw? Stats { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("PilotsByVehicle")]
         public List<PilotVehicleInfo>? PilotsByVehicle { get; set; }
     }
 

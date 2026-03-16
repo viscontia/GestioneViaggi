@@ -65,8 +65,7 @@ public class BilancioViaggioPrintService
 
             if (!string.IsNullOrEmpty(jsonResponse))
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, options);
+                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, PrintJsonHelper.GetDefaultOptions());
 
                 if (rawData != null)
                 {
@@ -123,8 +122,7 @@ public class BilancioViaggioPrintService
 
             if (!string.IsNullOrEmpty(jsonResponse))
             {
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, options);
+                var rawData = JsonSerializer.Deserialize<BilancioRawResponse>(jsonResponse, PrintJsonHelper.GetDefaultOptions());
 
                 if (rawData != null)
                 {

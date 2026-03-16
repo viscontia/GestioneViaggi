@@ -90,47 +90,92 @@ public class TravelHeaderInfo
     }
 }
 
-public class CompanyPrintInfo
+/// <summary>
+/// Company print info - inherits from base class with logo conversion.
+/// </summary>
+public class CompanyPrintInfo : CompanyPrintInfoBase
 {
-    public string RagioneSociale { get; set; } = string.Empty;
-    public string Telefono { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string SitoWeb { get; set; } = string.Empty;
-    public string Piva { get; set; } = string.Empty;
-    public byte[] LogoData { get; set; } = Array.Empty<byte>();
+    // All properties and logo conversion inherited from CompanyPrintInfoBase
 }
 
 public class ParticipantPrintInfo
 {
     // Maps to result of get_participants_sorted
+    [JsonPropertyName("viaggio_id")]
     public int ViaggioId { get; set; }
+
+    [JsonPropertyName("data_id")]
     public int DataId { get; set; }
+
+    [JsonPropertyName("cliente_id")]
     public int ClienteId { get; set; }
+
+    [JsonPropertyName("nominativo")]
     public string Nominativo { get; set; } = string.Empty;
+
+    [JsonPropertyName("tipo_partecipante_id")]
     public int TipoPartecipanteId { get; set; }
+
+    [JsonPropertyName("ruolo")]
     public string Ruolo { get; set; } = string.Empty; // "Pilota" or "Passeggero"
+
+    [JsonPropertyName("note")]
     public string Note { get; set; } = string.Empty;
+
+    [JsonPropertyName("cane_sino")]
     public string CaneSino { get; set; } = "N";
+
+    [JsonPropertyName("intolleranze")]
     public string Intolleranze { get; set; } = string.Empty;
+
+    [JsonPropertyName("mezzo_dettagli")]
     public string MezzoDettagli { get; set; } = string.Empty;
+
+    [JsonPropertyName("cliente_pilota_id")]
     public int? ClientePilotaId { get; set; }
+
+    [JsonPropertyName("grouping_key")]
     public int GroupingKey { get; set; } // Key for grouping crews
+
+    [JsonPropertyName("is_pilot")]
     public bool IsPilot { get; set; }
 
     // Personal Details
+    [JsonPropertyName("telefono")]
     public string Telefono { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
     public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("residenza")]
     public string Residenza { get; set; } = string.Empty;
+
+    [JsonPropertyName("codice_fiscale")]
     public string CodiceFiscale { get; set; } = string.Empty;
+
+    [JsonPropertyName("data_nascita")]
     public DateTime? DataNascita { get; set; }
+
+    [JsonPropertyName("luogo_nascita")]
     public string LuogoNascita { get; set; } = string.Empty;
-    
+
     // Detailed Info (Scheda Dettagliata)
+    [JsonPropertyName("nazionalita")]
     public string Nazionalita { get; set; } = string.Empty;
+
+    [JsonPropertyName("tipo_documento")]
     public string TipoDocumento { get; set; } = string.Empty;
+
+    [JsonPropertyName("numero_documento")]
     public string NumeroDocumento { get; set; } = string.Empty;
+
+    [JsonPropertyName("rilasciato_da")]
     public string EnteRilascio { get; set; } = string.Empty;
+
+    [JsonPropertyName("data_rilascio")]
     public DateTime? DataRilascio { get; set; }
+
+    [JsonPropertyName("data_scadenza")]
     public DateTime? DataScadenza { get; set; }
 
     public string DataRilascioFormatted => DataRilascio.HasValue ? DataRilascio.Value.ToString("dd/MM/yyyy") : "";
@@ -151,20 +196,44 @@ public class ParticipantPrintInfo
 public class PilotVehicleInfo
 {
     // Maps to result of get_pilots_grouped_by_vehicle
+    [JsonPropertyName("viaggio_id")]
     public int ViaggioId { get; set; }
+
+    [JsonPropertyName("data_id")]
     public int DataId { get; set; }
+
+    [JsonPropertyName("cliente_id")]
     public int ClienteId { get; set; }
+
+    [JsonPropertyName("nominativo")]
     public string Nominativo { get; set; } = string.Empty;
+
+    [JsonPropertyName("marca")]
     public string Marca { get; set; } = string.Empty;
+
+    [JsonPropertyName("modello")]
     public string Modello { get; set; } = string.Empty;
+
+    [JsonPropertyName("targa")]
     public string Targa { get; set; } = string.Empty;
 
     // Personal Details
+    [JsonPropertyName("telefono")]
     public string Telefono { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
     public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("residenza")]
     public string Residenza { get; set; } = string.Empty;
+
+    [JsonPropertyName("codice_fiscale")]
     public string CodiceFiscale { get; set; } = string.Empty;
+
+    [JsonPropertyName("data_nascita")]
     public DateTime? DataNascita { get; set; }
+
+    [JsonPropertyName("luogo_nascita")]
     public string LuogoNascita { get; set; } = string.Empty;
 
     public string LuogoDataNascitaFormatted

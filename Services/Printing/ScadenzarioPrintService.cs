@@ -65,8 +65,7 @@ public class ScadenzarioPrintService
 
             if (string.IsNullOrEmpty(jsonResponse)) return result;
 
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var rawData = JsonSerializer.Deserialize<ScadenzarioRawResponse>(jsonResponse, options);
+            var rawData = JsonSerializer.Deserialize<ScadenzarioRawResponse>(jsonResponse, PrintJsonHelper.GetDefaultOptions());
 
             if (rawData != null)
             {
