@@ -17,7 +17,8 @@ Questo documento raccoglie tutte le informazioni critiche del progetto Gestione 
 8. [Configurazione SMTP](#-configurazione-smtp)
 9. [Gestione Versione Applicazione](#-gestione-versione-applicazione)
 10. [Fix Static Web Assets in Release Build](#-fix-static-web-assets-in-release-build)
-11. [Gestione Percorsi PDF e Sandbox macOS](#-gestione-percorsi-pdf-e-sandbox-macos)
+11. [Posizione delle Stampe PDF](#-posizione-delle-stampe-pdf)
+12. [Gestione Percorsi PDF e Sandbox macOS](#-gestione-percorsi-pdf-e-sandbox-macos)
 
 ---
 
@@ -463,6 +464,60 @@ ls -la bin/Release/net9.0-maccatalyst/maccatalyst-arm64/GestioneViaggi.app/Conte
 # MudBlazor.min.css (originale ~610KB)
 # MudBlazor.min.js  (originale ~75KB)
 ```
+
+---
+
+## 📄 Posizione delle Stampe PDF
+
+### Dove Vengono Salvati i PDF
+
+Tutti i PDF generati dall'applicazione (fatture, bilanci, stampe viaggi, ecc.) vengono salvati in una **cartella cache** specifica per la piattaforma:
+
+#### macOS (Release/Production)
+```bash
+~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/
+```
+
+**Apertura rapida dalla cartella:**
+```bash
+open ~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/
+```
+
+**Dall'applicazione:**
+- Menu **Utilità** → **Posizione delle Stampe PDF** (apre direttamente la cartella nel Finder)
+
+#### Windows
+```
+C:\Users\[username]\Downloads\
+```
+Fallback: `C:\Users\[username]\AppData\Local\Packages\[AppId]\LocalCache\`
+
+#### Linux
+```
+/home/[user]/Downloads/
+```
+
+### Persistenza dei File
+
+| Piattaforma | Comportamento alla Chiusura App | Durata |
+|-------------|----------------------------------|--------|
+| **macOS/iOS/Android** | I file **rimangono salvati** | Fino a quando il sistema non ha bisogno di spazio (pulizia automatica cache) |
+| **Windows/Linux** | I file **rimangono permanentemente** (se in Downloads) | Permanente |
+
+> [!WARNING]
+> **Importante**: La cartella cache è **temporanea** per design. I PDF importanti dovrebbero essere:
+> - Aperti e salvati manualmente dall'utente in una posizione permanente
+> - Esportati via email o altri canali
+> - Archiviati in un sistema di backup esterno
+>
+> Il sistema operativo può cancellare i file in cache in qualsiasi momento per liberare spazio, specialmente su dispositivi mobili (iOS/Android).
+
+### Come Accedere ai PDF Salvati
+
+1. **Durante la generazione**: L'app apre automaticamente il PDF appena generato
+2. **Manualmente tramite menu**: Menu Utilità → Posizione delle Stampe PDF
+3. **Da Terminale (macOS)**: `open ~/Library/Containers/com.adrianovisconti.gestioneviaggi/Data/Library/Caches/`
+4. **Finder (macOS)**: Cmd+Shift+G → Incolla il percorso sopra
 
 ---
 

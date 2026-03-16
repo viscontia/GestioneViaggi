@@ -255,6 +255,11 @@
         </MudNavGroup>
     </AuthorizeView>
 
+    <MudNavLink Icon="@Icons.Material.Filled.FolderOpen"
+                OnClick="@OpenPdfFolder">
+        <MudText Typo="Typo.body1">Posizione delle Stampe PDF</MudText>
+    </MudNavLink>
+
     <MudDivider Class="my-2" />
 
     <div class="mud-nav-item" @onclick="HandleLogout" style="cursor: pointer; display: flex; align-items: center; padding: 8px 16px;">
@@ -478,8 +483,8 @@
             {
                 var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
 
-                // STANDARD: Save to Downloads
-                var targetFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
 
                 // Create descriptive filename
                 var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
@@ -588,5 +593,20 @@
             BackdropClick = false
         };
         await DialogService.ShowAsync<StampaRegistroIvaDialog>("Registro IVA Acquisti e Vendite", options);
+    }
+
+    private async Task OpenPdfFolder()
+    {
+        await OnItemClick.InvokeAsync();
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            CloseOnEscapeKey = true
+        };
+
+        await DialogService.ShowAsync<PdfFolderViewerDialog>("Stampe PDF", options);
     }
 }

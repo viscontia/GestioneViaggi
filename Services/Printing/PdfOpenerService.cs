@@ -12,6 +12,11 @@ public interface IPdfOpenerService
     /// altrimenti usa la cache dell'app.
     /// </summary>
     string GetPdfOutputFolder();
+
+    /// <summary>
+    /// Apre la cartella contenente i PDF generati nel file manager del sistema.
+    /// </summary>
+    void OpenPdfFolder();
 }
 
 public class PdfOpenerService : IPdfOpenerService
@@ -62,5 +67,34 @@ public class PdfOpenerService : IPdfOpenerService
             return FileSystem.CacheDirectory;
         }
         #endif
+    }
+
+    public void OpenPdfFolder()
+    {
+        var folderPath = GetPdfOutputFolder();
+
+        try
+        {
+            #if MACCATALYST
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "open",
+                Arguments = $"\"{folderPath}\"",
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+            #elif WINDOWS
+            System.Diagnostics.Process.Start("explorer.exe", folderPath);
+            #elif LINUX
+            System.Diagnostics.Process.Start("xdg-open", folderPath);
+            #else
+            // iOS/Android: non supportato direttamente, potrebbe essere implementato con un file picker
+            throw new PlatformNotSupportedException("Apertura cartella non supportata su questa piattaforma");
+            #endif
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Impossibile aprire la cartella: {folderPath}", ex);
+        }
     }
 }

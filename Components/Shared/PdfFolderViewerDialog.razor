@@ -1,0 +1,233 @@
+@using GestioneViaggi.Services.Printing
+@using System.IO
+@using MudBlazor
+@inject IPdfOpenerService PdfOpenerService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Class="mr-2" />
+            Stampe PDF Salvate
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            <MudText Typo="Typo.body2" Class="mt-2">Caricamento PDF...</MudText>
+        }
+        else if (!_pdfFiles.Any())
+        {
+            <MudAlert Severity="Severity.Info" Class="my-4">
+                <MudText Typo="Typo.body1">Nessun PDF trovato nella cartella delle stampe.</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2">
+                    <strong>Percorso:</strong> @_folderPath
+                </MudText>
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                <strong>Percorso:</strong> @_folderPath
+            </MudText>
+            <MudText Typo="Typo.caption" Class="mb-3" Color="Color.Warning">
+                ⚠️ Questi file sono in cache temporanea. Il sistema può eliminarli automaticamente.
+            </MudText>
+
+            <MudTable Items="_pdfFiles" Hover="true" Dense="true" Striped="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Nome File</MudTh>
+                    <MudTh>Dimensione</MudTh>
+                    <MudTh>Data Creazione</MudTh>
+                    <MudTh Style="text-align: right;">Azioni</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Nome">
+                        <MudText Typo="Typo.body2">@context.Name</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Dimensione">
+                        <MudText Typo="Typo.body2">@FormatFileSize(context.Length)</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Data">
+                        <MudText Typo="Typo.body2">@context.CreationTime.ToString("dd/MM/yyyy HH:mm")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Azioni" Style="text-align: right;">
+                        <MudTooltip Text="Apri PDF">
+                            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew"
+                                         Color="Color.Primary"
+                                         Size="Size.Small"
+                                         OnClick="@(() => OpenPdf(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Mostra nel Finder">
+                            <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
+                                         Color="Color.Info"
+                                         Size="Size.Small"
+                                         OnClick="@(() => ShowInFinder(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                         Color="Color.Error"
+                                         Size="Size.Small"
+                                         OnClick="@(() => DeletePdf(context))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudText Typo="Typo.caption" Class="mt-3">
+                Totale: @_pdfFiles.Count file (@FormatFileSize(_pdfFiles.Sum(f => f.Length)))
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="RefreshList" StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary">
+            Aggiorna
+        </MudButton>
+        <MudButton OnClick="OpenFolderInFinder" StartIcon="@Icons.Material.Filled.Folder" Color="Color.Info">
+            Apri Cartella
+        </MudButton>
+        <MudButton OnClick="Close" Color="Color.Default">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    private List<FileInfo> _pdfFiles = new();
+    private string _folderPath = string.Empty;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPdfFiles();
+    }
+
+    private async Task LoadPdfFiles()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        await Task.Run(() =>
+        {
+            try
+            {
+                _folderPath = PdfOpenerService.GetPdfOutputFolder();
+                var directory = new DirectoryInfo(_folderPath);
+
+                if (directory.Exists)
+                {
+                    _pdfFiles = directory.GetFiles("*.pdf")
+                        .OrderByDescending(f => f.CreationTime)
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore caricamento PDF: {ex.Message}", Severity.Error);
+            }
+        });
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task RefreshList()
+    {
+        await LoadPdfFiles();
+        Snackbar.Add("Lista aggiornata", Severity.Success, config =>
+        {
+            config.VisibleStateDuration = 1500;
+        });
+    }
+
+    private async Task OpenPdf(FileInfo file)
+    {
+        try
+        {
+            await PdfOpenerService.OpenPdfAsync(file.FullName, "Apertura PDF");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore apertura: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void ShowInFinder(FileInfo file)
+    {
+        try
+        {
+#if MACCATALYST
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "open",
+                Arguments = $"-R \"{file.FullName}\"",
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+#elif WINDOWS
+            System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{file.FullName}\"");
+#elif LINUX
+            // Su Linux apriamo semplicemente la cartella
+            System.Diagnostics.Process.Start("xdg-open", Path.GetDirectoryName(file.FullName) ?? "");
+#endif
+            Snackbar.Add("File mostrato nel file manager", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DeletePdf(FileInfo file)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Conferma Eliminazione",
+            $"Sei sicuro di voler eliminare il file?\n\n{file.Name}",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (confirm == true)
+        {
+            try
+            {
+                file.Delete();
+                await RefreshList();
+                Snackbar.Add($"File eliminato: {file.Name}", Severity.Success);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private void OpenFolderInFinder()
+    {
+        try
+        {
+            PdfOpenerService.OpenPdfFolder();
+            Snackbar.Add("Cartella aperta", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    private void Close() => MudDialog?.Close();
+}
