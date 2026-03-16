@@ -38,17 +38,34 @@
                         {
                             @if (IsTripMode)
                             {
+                                var totalPilots = _pilotsWithEmail + _pilotsWithoutEmail;
+                                var totalPassengers = _passengersWithEmail + _passengersWithoutEmail;
+                                var totalWithoutEmail = _pilotsWithoutEmail + _passengersWithoutEmail;
                                 <span>
                                     Destinatari con email: <strong>@_recipientCount</strong>
-                                    (@_pilotsWithEmail @(_pilotsWithEmail == 1 ? "pilota" : "piloti")@(_pilotsWithoutEmail > 0 || _passengersWithoutEmail > 0 ? ";" : "")
-                                    @if (_pilotsWithoutEmail > 0)
+                                    (@if (totalPilots > 0)
                                     {
-                                        <text> @_pilotsWithoutEmail @(_pilotsWithoutEmail == 1 ? "pilota" : "piloti") senza email@(_passengersWithoutEmail > 0 ? "," : "")</text>
+                                        <text>@_pilotsWithEmail @(_pilotsWithEmail == 1 ? "pilota" : "piloti") su @totalPilots</text>
+                                    }@if (totalPilots > 0 && totalPassengers > 0)
+                                    {
+                                        <text> e </text>
+                                    }@if (totalPassengers > 0)
+                                    {
+                                        <text>@_passengersWithEmail @(_passengersWithEmail == 1 ? "passeggero" : "passeggeri") su @totalPassengers</text>
+                                    })@if (totalWithoutEmail > 0)
+                                    {
+                                        <text>. Risultano senza mail </text>
+                                        @if (_pilotsWithoutEmail > 0)
+                                        {
+                                            <text>@_pilotsWithoutEmail @(_pilotsWithoutEmail == 1 ? "pilota" : "piloti")</text>
+                                        }@if (_pilotsWithoutEmail > 0 && _passengersWithoutEmail > 0)
+                                        {
+                                            <text> e </text>
+                                        }@if (_passengersWithoutEmail > 0)
+                                        {
+                                            <text>@_passengersWithoutEmail @(_passengersWithoutEmail == 1 ? "passeggero" : "passeggeri")</text>
+                                        }
                                     }
-                                    @if (_passengersWithoutEmail > 0)
-                                    {
-                                        <text> @_passengersWithoutEmail @(_passengersWithoutEmail == 1 ? "passeggero" : "passeggeri") senza email</text>
-                                    })
                                 </span>
                             }
                             else
@@ -157,6 +174,7 @@
     private int _recipientCount;
     private int _pilotsWithEmail;
     private int _pilotsWithoutEmail;
+    private int _passengersWithEmail;
     private int _passengersWithoutEmail;
 
     protected override async Task OnInitializedAsync()
@@ -183,6 +201,7 @@
                 // Calcola statistiche dettagliate per piloti e passeggeri
                 _pilotsWithEmail = allParticipants.Count(p => p.IsPilot && !string.IsNullOrWhiteSpace(p.Email));
                 _pilotsWithoutEmail = allParticipants.Count(p => p.IsPilot && string.IsNullOrWhiteSpace(p.Email));
+                _passengersWithEmail = allParticipants.Count(p => !p.IsPilot && !string.IsNullOrWhiteSpace(p.Email));
                 _passengersWithoutEmail = allParticipants.Count(p => !p.IsPilot && string.IsNullOrWhiteSpace(p.Email));
             }
             else
@@ -193,6 +212,7 @@
                 _totalParticipants = _recipientCount;
                 _pilotsWithEmail = 0;
                 _pilotsWithoutEmail = 0;
+                _passengersWithEmail = 0;
                 _passengersWithoutEmail = 0;
             }
         }
