@@ -344,6 +344,47 @@ Funzioni CRUD per la gestione dei tipi di causale contabile con metadati IVA e s
 
 ---
 
+## 8.2. Contabilità - Tipi Fornitore/Controparte
+
+Funzioni CRUD per la gestione dei tipi fornitore (classificazione controparti).
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_ana_tipo_fornitore` | Recupera i tipi fornitore filtrati per azienda. Se `p_azienda_id` è NULL (SuperAdmin senza selezione), restituisce tutti i record. Ordinamento alfabetico per descrizione. **Architettura DB-First**: sostituisce SQL inline nel service, garantisce gestione ottimale connessioni e cache query PostgreSQL. | `p_azienda_id INTEGER` (nullable) | `TABLE(tipo_fornitore_id INTEGER, azienda_fk INTEGER, descrizione VARCHAR(50), categoria VARCHAR(20), conto_contabile_default VARCHAR(20), created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)` | `Services/CRUD/TipoFornitoreService.cs`, `SqlScripts/354_Create_FnGetAnaTipoFornitore.sql` |
+| `sp_ana_tipo_fornitore_create` | Crea nuovo tipo fornitore con validazione completa. **Normalizzazione automatica**: forza UPPER CASE su descrizione e categoria. **Validazioni**: azienda obbligatoria, descrizione non vuota, categoria COSTO/RICAVO/MISTO. **Gestione errori**: DUPLICATE_DESCRIZIONE (unique violation), INVALID_AZIENDA (FK violation), INVALID_DATA (check constraint). | `p_azienda_fk INTEGER, p_descrizione VARCHAR(50), p_categoria VARCHAR(20) DEFAULT NULL, p_conto_contabile_default VARCHAR(20) DEFAULT NULL` | `INTEGER` (tipo_fornitore_id del record creato) | `Services/CRUD/TipoFornitoreService.cs`, `SqlScripts/355_Create_AnaTipoFornitore_CRUD.sql` |
+| `sp_ana_tipo_fornitore_update` | Aggiorna tipo fornitore esistente con validazione. **Normalizzazione automatica**: forza UPPER CASE su descrizione e categoria. **Validazioni**: descrizione non vuota, categoria COSTO/RICAVO/MISTO. **Gestione errori**: NOT_FOUND, DUPLICATE_DESCRIZIONE, INVALID_DATA. Aggiorna automaticamente `updated_at` timestamp. | `p_tipo_fornitore_id INTEGER, p_descrizione VARCHAR(50), p_categoria VARCHAR(20) DEFAULT NULL, p_conto_contabile_default VARCHAR(20) DEFAULT NULL` | `VOID` | `Services/CRUD/TipoFornitoreService.cs`, `SqlScripts/355_Create_AnaTipoFornitore_CRUD.sql` |
+| `sp_ana_tipo_fornitore_delete` | Elimina tipo fornitore. Blocca eliminazione se in uso da controparti (FK constraint). **Gestione errori**: RECORD_NOT_FOUND, RECORD_IN_USE (FK violation da ana_controparti). | `p_tipo_fornitore_id INTEGER` | `VOID` | `Services/CRUD/TipoFornitoreService.cs`, `SqlScripts/355_Create_AnaTipoFornitore_CRUD.sql` |
+
+### 📝 Note Implementative - Tipi Fornitore (2026-03-16)
+
+**Architettura DB-First Completa**:
+- ✅ **Zero SQL diretto** in `TipoFornitoreService` - tutte le operazioni CRUD delegate al database
+- ✅ Normalizzazione UPPER CASE gestita lato database (stored procedures)
+- ✅ Validazioni business rules nel database (constraint + procedure logic)
+- ✅ Gestione connessioni ottimizzata - critico per Supabase connection pooling limits
+- ✅ Filtro multi-tenant: ogni tipo fornitore appartiene a un'azienda specifica
+
+**Gestione Connessioni Supabase**:
+- Funzione `STABLE` per permettere caching PostgreSQL
+- Stored procedures riducono round-trips al database
+- Riduce numero di sessioni attive rispetto a query dinamiche inline
+- Compatibile con connection pooling Supabase (limiti di sessioni concorrenti)
+
+**Validazioni e Constraint DB**:
+- Unique constraint su (azienda_fk, descrizione) - previene duplicati per azienda
+- Check constraint su categoria: solo COSTO, RICAVO, MISTO
+- Foreign key su azienda_fk → blocca creazione con azienda inesistente
+- Foreign key da ana_controparti → blocca eliminazione se tipo in uso
+
+**UI Multi-Tenant**:
+- `AziendaSelect` senza `ShowAllOption` per forzare selezione
+- SuperAdmin: caricamento dati bloccato fino a selezione azienda specifica
+- Utenti normali: filtro automatico per azienda corrente dal `TenantContext`
+
+**File SQL**: `SqlScripts/354_Create_FnGetAnaTipoFornitore.sql`, `SqlScripts/355_Create_AnaTipoFornitore_CRUD.sql`
+
+---
+
 ## 9. Contabilità - Stampe e Report
 
 Funzioni per l'estrazione dati e report PDF dei movimenti contabili.

@@ -33,7 +33,7 @@ else
              @if (_isSuperAdmin)
             {
                 <div style="min-width: 250px;" class="mr-4">
-                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                    <AziendaSelect Value="_selectedAziendaId" Label="Seleziona Azienda" Clearable="false" Required="true"
                         ValueChanged="@OnAziendaFilterChanged" />
                 </div>
             }
@@ -118,6 +118,7 @@ else
             _errorMessage = string.Empty;
             int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : (int?)null) : _currentAziendaId;
 
+            // SuperAdmin MUST select a company first
             if (_isSuperAdmin && !filterId.HasValue)
             {
                 _items = new List<AnaTipoFornitore>();

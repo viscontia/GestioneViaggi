@@ -2,7 +2,8 @@ using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+using Dapper;
+using Npgsql; // Required for MapFromReader signature (BaseCrudService compatibility)
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -10,6 +11,31 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
 {
     protected override string TableName => "ana_tipo_fornitore";
     protected override string IdColumnName => "tipo_fornitore_id";
+
+    static TipoFornitoreService()
+    {
+        // Configure Dapper custom mapping for AnaTipoFornitore
+        // Maps tipo_fornitore_id → Id (overrides default MatchNamesWithUnderscores)
+        SqlMapper.SetTypeMap(
+            typeof(AnaTipoFornitore),
+            new CustomPropertyTypeMap(
+                typeof(AnaTipoFornitore),
+                (type, columnName) =>
+                {
+                    return columnName switch
+                    {
+                        "tipo_fornitore_id" => type.GetProperty("Id"),
+                        "azienda_fk" => type.GetProperty("AziendaFk"),
+                        "conto_contabile_default" => type.GetProperty("ContoContabileDefault"),
+                        "created_at" => type.GetProperty("CreatedAt"),
+                        "updated_at" => type.GetProperty("UpdatedAt"),
+                        _ => type.GetProperty(columnName.Replace("_", ""),
+                            System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                    } ?? throw new InvalidOperationException($"Impossibile mappare la colonna '{columnName}' per AnaTipoFornitore");
+                }
+            )
+        );
+    }
 
     public TipoFornitoreService(
         IDatabaseService databaseService,
@@ -24,52 +50,24 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         try
         {
             var currentAziendaId = await GetCurrentAziendaIdAsync();
-            // If filter provided (SuperAdmin), use it. Else use context.
-            // Note: If filter is provided, we respect valid value.
-            // If filter is explicitly null/0 from UI but intended as "Global Only" or "All", logic varies.
-            // Based on Clienti.razor, simple filter is passed.
 
-            // Logic:
-            // 1. Base condition: Global types always visible? YES (azienda_fk IS NULL)
-            // 2. Specific types:
-            //    - If context exists (User): visible only context.
-            //    - If context is null (SuperAdmin) AND filter is passed: visible only filter.
-            //    - If context is null (SuperAdmin) AND filter is null: visible ALL?
+            // Determine which azienda_id to use:
+            // - Normal User: use currentAziendaId (their company)
+            // - SuperAdmin: use aziendaIdFilter if provided, otherwise NULL (all companies)
+            int? effectiveAziendaId = currentAziendaId.HasValue
+                ? currentAziendaId
+                : aziendaIdFilter;
 
-             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM ana_tipo_fornitore WHERE 1=1";
+            await using var connection = await _databaseService.GetConnectionAsync();
 
-            if (currentAziendaId.HasValue)
-            {
-                 // Normal User: Own company ONLY
-                 sql += $" AND azienda_fk = {currentAziendaId.Value}";
-            }
-            else
-            {
-                // SuperAdmin
-                if (aziendaIdFilter.HasValue && aziendaIdFilter.Value > 0)
-                {
-                    // Filter by specific company
-                    sql += $" AND azienda_fk = {aziendaIdFilter.Value}";
-                }
-                else
-                {
-                    // No filter -> Show All
-                    // 1=1 is sufficient
-                }
-            }
-            
-            sql += " ORDER BY descrizione ASC";
+            // Call PostgreSQL function using Dapper
+            var sql = "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId)";
+            var result = await connection.QueryAsync<AnaTipoFornitore>(
+                sql,
+                new { AziendaId = effectiveAziendaId }
+            );
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            await using var reader = await command.ExecuteReaderAsync();
-
-            var list = new List<AnaTipoFornitore>();
-            while (await reader.ReadAsync())
-            {
-                list.Add(MapFromReader(reader));
-            }
-            return list;
+            return result.ToList();
         }
         catch (Exception ex)
         {
@@ -80,12 +78,10 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
 
     public override async Task<AnaTipoFornitore> CreateAsync(AnaTipoFornitore entity)
     {
-        // Set context Azienda if not provided (assuming usually user creates for their company)
-        // If user is superadmin could potentially create NULL (system), but for now default to current context if strictly multi-tenant
         var currentAziendaId = await GetCurrentAziendaIdAsync();
-        
+
         // If entity has no AziendaFk (0), try to use current context.
-        // If current context is null (SuperAdmin without selection?), this is an error now (Strict Multi-Tenant).
+        // If current context is null (SuperAdmin without selection?), this is an error (Strict Multi-Tenant).
         if (entity.AziendaFk == 0)
         {
             if (currentAziendaId.HasValue)
@@ -96,40 +92,32 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
             {
                  throw new InvalidOperationException("Impossibile creare Tipo Fornitore: Nessuna Azienda specificata.");
             }
-        } 
+        }
 
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                INSERT INTO ana_tipo_fornitore (
-                    azienda_fk,
-                    descrizione,
-                    categoria,
-                    conto_contabile_default
-                )
-                VALUES (
-                    @aziendaFk,
-                    @descrizione,
-                    @categoria,
-                    @contoContabileDefault
-                )
-                RETURNING *";
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("aziendaFk", entity.AziendaFk);
-            command.Parameters.AddWithValue("descrizione", entity.Descrizione);
-            command.Parameters.AddWithValue("categoria", (object?)entity.Categoria ?? DBNull.Value);
-            command.Parameters.AddWithValue("contoContabileDefault", (object?)entity.ContoContabileDefault ?? DBNull.Value);
+            // Call stored procedure via Dapper
+            var newId = await connection.ExecuteScalarAsync<int>(
+                "SELECT sp_ana_tipo_fornitore_create(@AziendaFk, @Descrizione, @Categoria, @ContoContabileDefault)",
+                new
+                {
+                    AziendaFk = entity.AziendaFk,
+                    Descrizione = entity.Descrizione,
+                    Categoria = entity.Categoria,
+                    ContoContabileDefault = entity.ContoContabileDefault
+                }
+            );
 
+            // Retrieve created entity
+            entity.Id = newId;
+            var result = await connection.QueryFirstOrDefaultAsync<AnaTipoFornitore>(
+                "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id",
+                new { AziendaId = entity.AziendaFk, Id = newId }
+            );
 
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapFromReader(reader);
-            }
-
-            throw new Exception("Impossibile creare il tipo fornitore");
+            return result ?? throw new Exception("Impossibile recuperare il tipo fornitore appena creato");
         }
         catch (Exception ex)
         {
@@ -143,28 +131,26 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                UPDATE ana_tipo_fornitore
-                SET
-                    descrizione = @descrizione,
-                    categoria = @categoria,
-                    conto_contabile_default = @contoContabileDefault
-                WHERE tipo_fornitore_id = @id
-                RETURNING *";
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("id", entity.Id);
-            command.Parameters.AddWithValue("descrizione", entity.Descrizione);
-            command.Parameters.AddWithValue("categoria", (object?)entity.Categoria ?? DBNull.Value);
-            command.Parameters.AddWithValue("contoContabileDefault", (object?)entity.ContoContabileDefault ?? DBNull.Value);
+            // Call stored procedure via Dapper
+            await connection.ExecuteAsync(
+                "SELECT sp_ana_tipo_fornitore_update(@TipoFornitoreId, @Descrizione, @Categoria, @ContoContabileDefault)",
+                new
+                {
+                    TipoFornitoreId = entity.Id,
+                    Descrizione = entity.Descrizione,
+                    Categoria = entity.Categoria,
+                    ContoContabileDefault = entity.ContoContabileDefault
+                }
+            );
 
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapFromReader(reader);
-            }
+            // Retrieve updated entity
+            var result = await connection.QueryFirstOrDefaultAsync<AnaTipoFornitore>(
+                "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id",
+                new { AziendaId = entity.AziendaFk, Id = entity.Id }
+            );
 
-            throw new Exception($"Tipo Fornitore con ID {entity.Id} non trovato");
+            return result ?? throw new Exception($"Tipo Fornitore con ID {entity.Id} non trovato");
         }
         catch (Exception ex)
         {
@@ -173,6 +159,37 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         }
     }
 
+    public override async Task<bool> DeleteAsync(int id)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+
+            // Call stored procedure via Dapper
+            await connection.ExecuteAsync(
+                "SELECT sp_ana_tipo_fornitore_delete(@TipoFornitoreId)",
+                new { TipoFornitoreId = id }
+            );
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante l'eliminazione del tipo fornitore con ID {Id}", id);
+
+            // Check if it's a "record in use" error
+            if (ex.Message.Contains("RECORD_IN_USE"))
+            {
+                return false; // Signal that deletion failed because record is in use
+            }
+
+            throw;
+        }
+    }
+
+    // NOTE: MapFromReader is required for BaseCrudService compatibility but NOT USED in practice.
+    // All CRUD operations use Dapper with CustomPropertyTypeMap (configured in static constructor).
+    // Dapper automatically maps columns to properties using the custom mapping rules.
     protected override AnaTipoFornitore MapFromReader(NpgsqlDataReader reader)
     {
         return new AnaTipoFornitore
