@@ -13,26 +13,6 @@ namespace GestioneViaggi.Services.Printing;
 /// </summary>
 public class ScadenzarioPrinter
 {
-    private static class BrandColors
-    {
-        public static readonly string Primary = "#2B3A42";    // Dark Slate
-        public static readonly string Secondary = "#8D99AE";  // Cool Grey
-        public static readonly string Accent = "#E74C3C";     // Red (Urgente/Scaduto)
-        public static readonly string Text = "#000000";
-        public static readonly string LightGray = "#F0F0F0";
-        public static readonly string Border = "#CCCCCC";
-        public static readonly string GroupHeader = "#D5E8D4"; // Verde chiaro
-        public static readonly string SubTotal = "#FFF2CC";    // Giallo chiaro
-        public static readonly string Total = "#DAE8FC";       // Blu chiaro
-        public static readonly string Success = "#27AE60";     // Verde (Entrate)
-        public static readonly string Warning = "#F39C12";     // Arancione (Urgente)
-        public static readonly string Danger = "#C0392B";      // Rosso scuro (Scaduto)
-    }
-
-    private const float FontSizeHeader = 16;
-    private const float FontSizeSubHeader = 11;
-    private const float FontSizeBody = 8;
-    private const float FontSizeSmall = 7;
 
     /// <summary>
     /// Determina il colore dell'urgenza
@@ -41,11 +21,11 @@ public class ScadenzarioPrinter
     {
         return urgenza switch
         {
-            "SCADUTO" => BrandColors.Danger,
-            "URGENTE" => BrandColors.Warning,
-            "IN_SCADENZA" => BrandColors.Secondary,
-            "NORMALE" => BrandColors.Success,
-            _ => BrandColors.Text
+            "SCADUTO" => ReportHeaderHelper.BrandColors.Danger,
+            "URGENTE" => ReportHeaderHelper.BrandColors.Warning,
+            "IN_SCADENZA" => ReportHeaderHelper.BrandColors.Secondary,
+            "NORMALE" => ReportHeaderHelper.BrandColors.Success,
+            _ => ReportHeaderHelper.BrandColors.Text
         };
     }
 
@@ -61,7 +41,7 @@ public class ScadenzarioPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(0.8f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBodyCompact).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposeHeader(header, data));
                 page.Content().Element(content => ComposeContent(content, data));
@@ -88,7 +68,7 @@ public class ScadenzarioPrinter
                     else if (!string.IsNullOrEmpty(data.Azienda.RagioneSociale))
                     {
                         col.Item().Text(data.Azienda.RagioneSociale)
-                            .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+                            .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
                     }
 
                     var infoParts = new List<string>();
@@ -98,7 +78,7 @@ public class ScadenzarioPrinter
 
                     if (infoParts.Any())
                     {
-                        col.Item().PaddingTop(2).Text(string.Join(" - ", infoParts)).FontSize(FontSizeSmall);
+                        col.Item().PaddingTop(2).Text(string.Join(" - ", infoParts)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     }
                 });
 
@@ -106,11 +86,11 @@ public class ScadenzarioPrinter
                 row.RelativeItem().AlignRight().Column(col =>
                 {
                     col.Item().Text($"Stampato il: {data.DataStampa:dd/MM/yyyy HH:mm}")
-                        .FontSize(FontSizeSmall);
+                        .FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     col.Item().Text($"Da: {data.UtenteStampa}")
-                        .FontSize(FontSizeSmall);
+                        .FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     col.Item().Text($"Valuta: {data.ValutaTargetCodiceIso}")
-                        .FontSize(FontSizeSmall).Bold();
+                        .FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold();
                 });
             });
 
@@ -118,24 +98,24 @@ public class ScadenzarioPrinter
             column.Item().PaddingVertical(10).AlignCenter().Column(col =>
             {
                 col.Item().Text("SCADENZARIO PAGAMENTI/INCASSI")
-                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
+                    .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
 
                 if (!string.IsNullOrEmpty(data.Filtri.CausaleCiclo))
                 {
                     var cicloLabel = data.Filtri.CausaleCiclo == "ATTIVO" ? "Entrate (Clienti)" : "Uscite (Fornitori)";
                     col.Item().Text(cicloLabel)
-                        .FontSize(10).FontColor(BrandColors.Secondary);
+                        .FontSize(10).FontColor(ReportHeaderHelper.BrandColors.Secondary);
                 }
             });
 
             // Filtri applicati
             if (data.Filtri.HasAnyFilter)
             {
-                column.Item().PaddingTop(5).Background(BrandColors.LightGray).Padding(5).Row(row =>
+                column.Item().PaddingTop(5).Background(ReportHeaderHelper.BrandColors.LightGray).Padding(5).Row(row =>
                 {
                     row.RelativeItem().Text(text =>
                     {
-                        text.Span("Filtri: ").Bold().FontSize(FontSizeSmall);
+                        text.Span("Filtri: ").Bold().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                         var filters = new List<string>();
 
                         if (!string.IsNullOrEmpty(data.Filtri.Controparte))
@@ -149,12 +129,12 @@ public class ScadenzarioPrinter
                         if (data.Filtri.Checkbox.Any())
                             filters.AddRange(data.Filtri.Checkbox);
 
-                        text.Span(string.Join(" | ", filters)).FontSize(FontSizeSmall);
+                        text.Span(string.Join(" | ", filters)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     });
                 });
             }
 
-            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(BrandColors.Border);
+            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(ReportHeaderHelper.BrandColors.Border);
         });
     }
 
@@ -165,7 +145,7 @@ public class ScadenzarioPrinter
             if (!data.Dettagli.Any())
             {
                 column.Item().AlignCenter().Padding(50).Text("Nessuna scadenza trovata con i filtri applicati.")
-                    .FontSize(FontSizeSubHeader).Italic().FontColor(BrandColors.Secondary);
+                    .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Italic().FontColor(ReportHeaderHelper.BrandColors.Secondary);
                 return;
             }
 
@@ -211,74 +191,74 @@ public class ScadenzarioPrinter
             table.Header(header =>
             {
                 // Riga 1: Nome Gruppo
-                header.Cell().ColumnSpan(10).Background(BrandColors.GroupHeader).Padding(4)
-                    .Text(gruppoDisplay ?? "-").FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                header.Cell().ColumnSpan(10).Background(ReportHeaderHelper.BrandColors.GroupHeader).Padding(4)
+                    .Text(gruppoDisplay ?? "-").FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
                 // Riga 2: Intestazioni colonne
-                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold().FontColor(Colors.White);
 
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Scadenza").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Doc N°").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Tipo").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Importo").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Residuo").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignCenter().Text("Gg").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Viaggio").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Scadenza").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Doc N°").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Tipo").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Importo").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Residuo").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignCenter().Text("Gg").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Viaggio").Style(headerStyle);
             });
 
             // Righe dati
             int rowIndex = 0;
             foreach (var item in items)
             {
-                var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                var bgColor = rowIndex % 2 == 0 ? Colors.White : ReportHeaderHelper.BrandColors.LightGray;
                 var urgenzaColor = GetUrgenzaColor(item.Urgenza);
-                var cicloColor = item.CausaleCiclo == "ATTIVO" ? BrandColors.Success : BrandColors.Accent;
+                var cicloColor = item.CausaleCiclo == "ATTIVO" ? ReportHeaderHelper.BrandColors.Success : ReportHeaderHelper.BrandColors.Accent;
 
                 // Data Scadenza (con colore urgenza)
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
                     .Text(item.DataScadenza?.ToString("dd/MM/yy") ?? "-")
-                    .FontSize(FontSizeBody).Bold().FontColor(urgenzaColor);
+                    .FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(urgenzaColor);
 
                 // Controparte
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.ControparteRagioneSociale).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+                    .Text(item.ControparteRagioneSociale).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
 
                 // Causale
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(TruncateText(item.CausaleDescrizione, 8)).FontSize(FontSizeSmall);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+                    .Text(TruncateText(item.CausaleDescrizione, 8)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
 
                 // Numero Documento
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+                    .Text(item.NumeroDocumento ?? "-").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
 
                 // Ciclo (ATTIVO/PASSIVO)
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
                     .Text(item.CausaleCiclo == "ATTIVO" ? "Entrata" : "Uscita")
-                    .FontSize(FontSizeSmall).FontColor(cicloColor).Bold();
+                    .FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(cicloColor).Bold();
 
                 // Importo Originale
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{Math.Abs(item.ImportoOriginale):N2}").FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{Math.Abs(item.ImportoOriginale):N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
 
                 // Residuo (evidenziato)
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{Math.Abs(item.Residuo):N2}").FontSize(FontSizeBody).Bold().FontColor(cicloColor);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{Math.Abs(item.Residuo):N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(cicloColor);
 
                 // Giorni a Scadenza (con segno e colore)
                 var giorniText = item.GiorniAScadenza >= 0 ? $"+{item.GiorniAScadenza}" : item.GiorniAScadenza.ToString();
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignCenter()
-                    .Text(giorniText).FontSize(FontSizeBody).Bold().FontColor(urgenzaColor);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignCenter()
+                    .Text(giorniText).FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(urgenzaColor);
 
                 // Stato
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(GetStatoDisplay(item.Stato)).FontSize(FontSizeSmall);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+                    .Text(GetStatoDisplay(item.Stato)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
 
                 // Viaggio
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-                    .Text(TruncateText(item.ViaggioDescrizione, 20)).FontSize(FontSizeSmall);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+                    .Text(TruncateText(item.ViaggioDescrizione, 20)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
 
                 rowIndex++;
             }
@@ -296,12 +276,12 @@ public class ScadenzarioPrinter
 
     private static void ComposeGroupSubtotals(ColumnDescriptor column, ScadenzarioSubTotale subtotale)
     {
-        column.Item().Background(BrandColors.SubTotal).Padding(4).Row(row =>
+        column.Item().Background(ReportHeaderHelper.BrandColors.SubTotal).Padding(4).Row(row =>
         {
             row.RelativeItem().Column(col =>
             {
-                col.Item().Text($"Riepilogo {subtotale.GruppoDisplay}").FontSize(FontSizeBody).Bold();
-                col.Item().Text($"{subtotale.ConteggioTransazioni} scadenze").FontSize(FontSizeSmall).Italic();
+                col.Item().Text($"Riepilogo {subtotale.GruppoDisplay}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                col.Item().Text($"{subtotale.ConteggioTransazioni} scadenze").FontSize(ReportHeaderHelper.FontSizeSmallCompact).Italic();
             });
 
             row.RelativeItem().AlignRight().Table(t =>
@@ -313,19 +293,19 @@ public class ScadenzarioPrinter
                 });
 
                 // Entrate previste
-                t.Cell().Text("Entrate previste (+):").FontSize(FontSizeSmall);
-                t.Cell().AlignRight().Text($"{subtotale.TotaleAttivo:N2}").FontSize(FontSizeSmall)
-                    .FontColor(BrandColors.Success).Bold();
+                t.Cell().Text("Entrate previste (+):").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                t.Cell().AlignRight().Text($"{subtotale.TotaleAttivo:N2}").FontSize(ReportHeaderHelper.FontSizeSmallCompact)
+                    .FontColor(ReportHeaderHelper.BrandColors.Success).Bold();
 
                 // Uscite previste
-                t.Cell().Text("Uscite previste (-):").FontSize(FontSizeSmall);
-                t.Cell().AlignRight().Text($"{subtotale.TotalePassivo:N2}").FontSize(FontSizeSmall)
-                    .FontColor(BrandColors.Accent).Bold();
+                t.Cell().Text("Uscite previste (-):").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                t.Cell().AlignRight().Text($"{subtotale.TotalePassivo:N2}").FontSize(ReportHeaderHelper.FontSizeSmallCompact)
+                    .FontColor(ReportHeaderHelper.BrandColors.Accent).Bold();
 
                 // Saldo netto
-                t.Cell().PaddingTop(2).Text("Saldo netto:").FontSize(FontSizeBody).Bold();
-                var saldoColor = subtotale.SaldoNetto >= 0 ? BrandColors.Success : BrandColors.Danger;
-                t.Cell().PaddingTop(2).AlignRight().Text($"{subtotale.SaldoNetto:N2}").FontSize(FontSizeBody)
+                t.Cell().PaddingTop(2).Text("Saldo netto:").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                var saldoColor = subtotale.SaldoNetto >= 0 ? ReportHeaderHelper.BrandColors.Success : ReportHeaderHelper.BrandColors.Danger;
+                t.Cell().PaddingTop(2).AlignRight().Text($"{subtotale.SaldoNetto:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact)
                     .FontColor(saldoColor).Bold();
             });
         });
@@ -336,44 +316,44 @@ public class ScadenzarioPrinter
         var totaleGen = data.Subtotali.FirstOrDefault(s => s.IsTotaleGenerale);
         if (totaleGen == null) return;
 
-        column.Item().Background(BrandColors.Total).Border(1).BorderColor(BrandColors.Primary).Padding(5).Column(totCol =>
+        column.Item().Background(ReportHeaderHelper.BrandColors.Total).Border(1).BorderColor(ReportHeaderHelper.BrandColors.Primary).Padding(5).Column(totCol =>
         {
             totCol.Item().Text("CASH FLOW - PREVISIONE FINANZIARIA")
-                .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
             totCol.Item().PaddingTop(5).Row(row =>
             {
                 // Colonna Entrate
                 row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text("Entrate Previste").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Success);
+                    col.Item().Text("Entrate Previste").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Success);
                     col.Item().Text($"{data.TotaleGeneraleAttivo:N2} {data.ValutaTargetCodiceIso}")
-                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Success);
+                        .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Success);
                 });
 
                 // Colonna Uscite
                 row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text("Uscite Previste").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Accent);
+                    col.Item().Text("Uscite Previste").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                     col.Item().Text($"{data.TotaleGeneralePassivo:N2} {data.ValutaTargetCodiceIso}")
-                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Accent);
+                        .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                 });
 
                 // Colonna Saldo Netto
                 row.RelativeItem().Column(col =>
                 {
-                    col.Item().Text("Saldo Netto").FontSize(FontSizeBody).Bold();
-                    var saldoColor = data.SaldoNetto >= 0 ? BrandColors.Success : BrandColors.Danger;
+                    col.Item().Text("Saldo Netto").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                    var saldoColor = data.SaldoNetto >= 0 ? ReportHeaderHelper.BrandColors.Success : ReportHeaderHelper.BrandColors.Danger;
                     col.Item().Text($"{data.SaldoNetto:N2} {data.ValutaTargetCodiceIso}")
-                        .FontSize(FontSizeHeader).Bold().FontColor(saldoColor);
+                        .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(saldoColor);
 
                     var label = data.SaldoNetto >= 0 ? "Disponibilità positiva" : "Scoperto previsto";
-                    col.Item().Text(label).FontSize(FontSizeSmall).Italic().FontColor(saldoColor);
+                    col.Item().Text(label).FontSize(ReportHeaderHelper.FontSizeSmallCompact).Italic().FontColor(saldoColor);
                 });
             });
 
             totCol.Item().PaddingTop(3).Text($"Totale {totaleGen.ConteggioTransazioni} scadenze analizzate")
-                .FontSize(FontSizeSmall).Italic().FontColor(BrandColors.Secondary);
+                .FontSize(ReportHeaderHelper.FontSizeSmallCompact).Italic().FontColor(ReportHeaderHelper.BrandColors.Secondary);
         });
     }
 
@@ -383,14 +363,14 @@ public class ScadenzarioPrinter
         {
             row.RelativeItem().Text(text =>
             {
-                text.Span("Legenda urgenza: ").FontSize(FontSizeSmall).Bold();
-                text.Span("SCADUTO ").FontSize(FontSizeSmall).FontColor(BrandColors.Danger).Bold();
-                text.Span("| ").FontSize(FontSizeSmall);
-                text.Span("URGENTE (≤7gg) ").FontSize(FontSizeSmall).FontColor(BrandColors.Warning).Bold();
-                text.Span("| ").FontSize(FontSizeSmall);
-                text.Span("IN_SCADENZA (≤30gg) ").FontSize(FontSizeSmall).FontColor(BrandColors.Secondary).Bold();
-                text.Span("| ").FontSize(FontSizeSmall);
-                text.Span("NORMALE ").FontSize(FontSizeSmall).FontColor(BrandColors.Success).Bold();
+                text.Span("Legenda urgenza: ").FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold();
+                text.Span("SCADUTO ").FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Danger).Bold();
+                text.Span("| ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span("URGENTE (≤7gg) ").FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Warning).Bold();
+                text.Span("| ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span("IN_SCADENZA (≤30gg) ").FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Secondary).Bold();
+                text.Span("| ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span("NORMALE ").FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Success).Bold();
             });
         });
     }
@@ -401,16 +381,16 @@ public class ScadenzarioPrinter
         {
             row.RelativeItem().Text(text =>
             {
-                text.Span("Documento generato con ").FontSize(FontSizeSmall);
-                text.Span("GestioneViaggi").FontSize(FontSizeSmall).Bold();
+                text.Span("Documento generato con ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span("GestioneViaggi").FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold();
             });
 
             row.ConstantItem(100).AlignRight().Text(t =>
             {
-                t.Span("Pagina ").FontSize(FontSizeSmall);
-                t.CurrentPageNumber().FontSize(FontSizeSmall);
-                t.Span(" di ").FontSize(FontSizeSmall);
-                t.TotalPages().FontSize(FontSizeSmall);
+                t.Span("Pagina ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                t.CurrentPageNumber().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                t.Span(" di ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                t.TotalPages().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
             });
         });
     }

@@ -9,22 +9,6 @@ namespace GestioneViaggi.Services.Printing;
 
 public class ViaggiPrinter
 {
-    // Define brand colors
-    private static class BrandColors
-    {
-        public static readonly string Primary = "#2B3A42"; // Dark Slate
-        public static readonly string Secondary = "#8D99AE"; // Cool Grey
-        public static readonly string Accent = "#E74C3C";  // Red
-        public static readonly string Text = "#000000";
-        public static readonly string LightGray = "#F0F0F0";
-        public static readonly string Border = "#CCCCCC";
-    }
-    
-    // Define layout constants
-    private const float FontSizeHeader = 18;
-    private const float FontSizeSubHeader = 12;
-    private const float FontSizeBody = 9;
-    private const float FontSizeSmall = 8;
 
 
     public static async Task GeneratePdfAsync(TravelPrintDTO data, string outputPath)
@@ -42,7 +26,7 @@ public class ViaggiPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(QuestPDF.Helpers.Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Content().Element(content => ComposeCover(content, data));
                 page.Footer().Element(footer => ComposeFooter(footer));
@@ -54,7 +38,7 @@ public class ViaggiPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(QuestPDF.Helpers.Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposePageHeader(header, data));
                 page.Content().Element(content => ComposeContent(content, data.Participants));
@@ -69,7 +53,7 @@ public class ViaggiPrinter
                     page.Size(PageSizes.A4.Landscape());
                     page.Margin(1, Unit.Centimetre);
                     page.PageColor(QuestPDF.Helpers.Colors.White);
-                    page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                    page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                     page.Header().Element(header => ComposePageHeader(header, data));
                     page.Content().Element(content => ComposeVehiclesPage(content, data.VehicleGroups));
@@ -92,7 +76,7 @@ public class ViaggiPrinter
                 {
                     // Title: Allow wrap, specific color. Ensure no height constraint.
                     column.Item().Text(data.Header.Titolo)
-                        .FontSize(24).Bold().FontColor(BrandColors.Primary)
+                        .FontSize(24).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary)
                         .LineHeight(1.1f);
 
                     if (!string.IsNullOrWhiteSpace(data.Header.Descrizione) && data.Header.Descrizione != data.Header.Titolo)
@@ -122,7 +106,7 @@ public class ViaggiPrinter
             {
                 dateRow.RelativeItem().Column(dc =>
                 {
-                    dc.Item().Text("Date del Viaggio:").FontSize(14).SemiBold().FontColor(BrandColors.Primary);
+                    dc.Item().Text("Date del Viaggio:").FontSize(14).SemiBold().FontColor(ReportHeaderHelper.BrandColors.Primary);
                     dc.Item().PaddingTop(3).Text(data.Header.DateFormatted).FontSize(18).Bold();
                 });
             });
@@ -132,7 +116,7 @@ public class ViaggiPrinter
             {
                 c.Item().PaddingBottom(8).Text("Caratteristiche del Viaggio:").FontSize(16).Bold().Underline();
 
-                c.Item().Border(1).BorderColor(BrandColors.Accent).Row(r =>
+                c.Item().Border(1).BorderColor(ReportHeaderHelper.BrandColors.Accent).Row(r =>
                 {
                     // LEFT: Details Table with Padding - reduced to prevent page break
                     r.RelativeItem(4).Padding(8).Table(table =>
@@ -158,19 +142,19 @@ public class ViaggiPrinter
                     });
 
                     // RIGHT: Big Totals
-                    r.RelativeItem(1).BorderLeft(1).BorderColor(BrandColors.Accent).Column(stats =>
+                    r.RelativeItem(1).BorderLeft(1).BorderColor(ReportHeaderHelper.BrandColors.Accent).Column(stats =>
                     {
                         void BigStat(IContainer cnt, string number, string label)
                         {
                             cnt.Column(statCol =>
                             {
-                                statCol.Item().AlignCenter().Text(number).FontSize(36).Bold().FontColor(BrandColors.Text);
+                                statCol.Item().AlignCenter().Text(number).FontSize(36).Bold().FontColor(ReportHeaderHelper.BrandColors.Text);
                                 statCol.Item().AlignCenter().Text(label.ToUpper()).FontSize(12).SemiBold();
                             });
                         }
 
                         stats.Item().PaddingVertical(15).Element(e => BigStat(e, data.Header.TotalVehicles.ToString(), "MEZZI"));
-                        stats.Item().BorderTop(1).BorderColor(BrandColors.Accent).PaddingVertical(15).Element(e => BigStat(e, data.Header.TotalParticipants.ToString(), "PERSONE"));
+                        stats.Item().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Accent).PaddingVertical(15).Element(e => BigStat(e, data.Header.TotalParticipants.ToString(), "PERSONE"));
                     });
                 });
             });
@@ -252,7 +236,7 @@ public class ViaggiPrinter
                     var passengers = members.Where(m => m != pilot).OrderBy(m => m.Nominativo).ToList();
 
                     // ROW - ONE PER CREW
-                    table.Cell().Element(BodyCellStyle).ShowEntire().AlignCenter().Text(globalIndex.ToString()).FontSize(FontSizeSmall);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().AlignCenter().Text(globalIndex.ToString()).FontSize(ReportHeaderHelper.FontSizeSmall);
 
                     // Pilota/Guida
                     table.Cell().Element(BodyCellStyle).ShowEntire().Text(text =>
@@ -264,8 +248,8 @@ public class ViaggiPrinter
 
                             if (isGuida)
                             {
-                                text.Span(pilot.Nominativo).Bold().FontColor(BrandColors.Accent);
-                                text.Span(isGuidaInSeconda ? " (GS)" : " (G)").FontColor(BrandColors.Accent);
+                                text.Span(pilot.Nominativo).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
+                                text.Span(isGuidaInSeconda ? " (GS)" : " (G)").FontColor(ReportHeaderHelper.BrandColors.Accent);
                             }
                             else
                             {
@@ -274,7 +258,7 @@ public class ViaggiPrinter
 
                             if (pilot.CaneSino == "Y" || pilot.CaneSino == "S")
                             {
-                                text.Span(" [CANE]").FontColor(BrandColors.Accent).Bold();
+                                text.Span(" [CANE]").FontColor(ReportHeaderHelper.BrandColors.Accent).Bold();
                             }
                         }
                         else
@@ -294,7 +278,7 @@ public class ViaggiPrinter
                                 text.Span(p.Nominativo);
                                 if (p.CaneSino == "Y" || p.CaneSino == "S")
                                 {
-                                    text.Span(" [CANE]").FontColor(BrandColors.Accent).Bold();
+                                    text.Span(" [CANE]").FontColor(ReportHeaderHelper.BrandColors.Accent).Bold();
                                 }
                                 if (i < passengers.Count - 1) text.Span(", ");
                             }
@@ -310,21 +294,21 @@ public class ViaggiPrinter
                     {
                          if(pilot != null)
                          {
-                             if(!string.IsNullOrEmpty(pilot.Telefono)) text.Line(pilot.Telefono).FontSize(FontSizeSmall);
-                             if(!string.IsNullOrEmpty(pilot.Email)) text.Span(pilot.Email).FontSize(FontSizeSmall).FontColor(Colors.Blue.Medium);
+                             if(!string.IsNullOrEmpty(pilot.Telefono)) text.Line(pilot.Telefono).FontSize(ReportHeaderHelper.FontSizeSmall);
+                             if(!string.IsNullOrEmpty(pilot.Email)) text.Span(pilot.Email).FontSize(ReportHeaderHelper.FontSizeSmall).FontColor(Colors.Blue.Medium);
                          }
                     });
 
                     // Residenza (Pilota Only)
-                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(pilot?.Residenza ?? "").FontSize(FontSizeSmall);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(pilot?.Residenza ?? "").FontSize(ReportHeaderHelper.FontSizeSmall);
 
                     // Dati Personali (Pilota Only)
                     table.Cell().Element(BodyCellStyle).ShowEntire().Text(text => 
                     {
                         if(pilot != null)
                         {
-                            if(!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Line(pilot.CodiceFiscale).FontSize(FontSizeSmall).Bold();
-                            text.Span(pilot.LuogoDataNascitaFormatted).FontSize(FontSizeSmall);
+                            if(!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Line(pilot.CodiceFiscale).FontSize(ReportHeaderHelper.FontSizeSmall).Bold();
+                            text.Span(pilot.LuogoDataNascitaFormatted).FontSize(ReportHeaderHelper.FontSizeSmall);
                         }
                     });
 
@@ -337,7 +321,7 @@ public class ViaggiPrinter
                     var allIntolerance = members.Where(m => !string.IsNullOrWhiteSpace(m.Intolleranze)).Select(m => $"[!] {m.Nominativo}: {m.Intolleranze}");
                     var combinedNotes = string.Join("\n", allIntolerance.Concat(allNotes));
 
-                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(combinedNotes).FontSize(8).FontColor(BrandColors.Accent);
+                    table.Cell().Element(BodyCellStyle).ShowEntire().Text(combinedNotes).FontSize(8).FontColor(ReportHeaderHelper.BrandColors.Accent);
 
                     globalIndex++;
                 }
@@ -350,17 +334,17 @@ public class ViaggiPrinter
         container.Column(column =>
         {
             column.Item().PaddingBottom(10).Text("Piloti raggruppati per Veicolo")
-                .FontSize(16).Bold().FontColor(BrandColors.Primary);
+                .FontSize(16).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
             foreach (var group in vehicleGroups)
             {
                 // Group Header with Count
                 column.Item().PaddingTop(15).PaddingBottom(5)
-                    .Background(BrandColors.LightGray)
-                    .Border(1).BorderColor(BrandColors.Accent)
+                    .Background(ReportHeaderHelper.BrandColors.LightGray)
+                    .Border(1).BorderColor(ReportHeaderHelper.BrandColors.Accent)
                     .Padding(8)
                     .Text(group.DisplayName)
-                    .FontSize(14).Bold().FontColor(BrandColors.Accent);
+                    .FontSize(14).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
 
                 // Pilots Table for this group
                 column.Item().Table(table =>
@@ -390,25 +374,25 @@ public class ViaggiPrinter
                     foreach (var pilot in group.Pilots)
                     {
                         // Row for each pilot
-                        table.Cell().Element(BodyCellStyle).AlignCenter().Text(index.ToString()).FontSize(FontSizeSmall);
+                        table.Cell().Element(BodyCellStyle).AlignCenter().Text(index.ToString()).FontSize(ReportHeaderHelper.FontSizeSmall);
 
                         table.Cell().Element(BodyCellStyle).Text(pilot.Nominativo).Bold();
 
                         table.Cell().Element(BodyCellStyle).Text(text =>
                         {
-                            if (!string.IsNullOrEmpty(pilot.Telefono)) text.Line(pilot.Telefono).FontSize(FontSizeSmall);
-                            if (!string.IsNullOrEmpty(pilot.Email)) text.Span(pilot.Email).FontSize(FontSizeSmall).FontColor(Colors.Blue.Medium);
+                            if (!string.IsNullOrEmpty(pilot.Telefono)) text.Line(pilot.Telefono).FontSize(ReportHeaderHelper.FontSizeSmall);
+                            if (!string.IsNullOrEmpty(pilot.Email)) text.Span(pilot.Email).FontSize(ReportHeaderHelper.FontSizeSmall).FontColor(Colors.Blue.Medium);
                         });
 
-                        table.Cell().Element(BodyCellStyle).Text(pilot.Residenza).FontSize(FontSizeSmall);
+                        table.Cell().Element(BodyCellStyle).Text(pilot.Residenza).FontSize(ReportHeaderHelper.FontSizeSmall);
 
                         table.Cell().Element(BodyCellStyle).Text(text =>
                         {
-                            if (!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Line(pilot.CodiceFiscale).FontSize(FontSizeSmall).Bold();
-                            text.Span(pilot.LuogoDataNascitaFormatted).FontSize(FontSizeSmall);
+                            if (!string.IsNullOrEmpty(pilot.CodiceFiscale)) text.Line(pilot.CodiceFiscale).FontSize(ReportHeaderHelper.FontSizeSmall).Bold();
+                            text.Span(pilot.LuogoDataNascitaFormatted).FontSize(ReportHeaderHelper.FontSizeSmall);
                         });
 
-                        table.Cell().Element(BodyCellStyle).Text(pilot.Targa).FontSize(FontSizeSmall);
+                        table.Cell().Element(BodyCellStyle).Text(pilot.Targa).FontSize(ReportHeaderHelper.FontSizeSmall);
 
                         index++;
                     }
@@ -421,8 +405,8 @@ public class ViaggiPrinter
     {
         return container
             .Border(1)
-            .BorderColor(BrandColors.Border)
-            .Background(BrandColors.LightGray)
+            .BorderColor(ReportHeaderHelper.BrandColors.Border)
+            .Background(ReportHeaderHelper.BrandColors.LightGray)
             .Padding(5)
             .AlignMiddle()
             .AlignCenter();
@@ -432,7 +416,7 @@ public class ViaggiPrinter
     {
         return container
             .Border(1)
-            .BorderColor(BrandColors.Border)
+            .BorderColor(ReportHeaderHelper.BrandColors.Border)
             .Padding(5)
             .AlignMiddle();
     }
@@ -454,7 +438,7 @@ public class ViaggiPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(QuestPDF.Helpers.Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Content().Element(content => ComposeCover(content, data));
                 page.Footer().Element(footer => ComposeFooter(footer));
@@ -466,7 +450,7 @@ public class ViaggiPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(QuestPDF.Helpers.Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposePageHeader(header, data));
                 page.Content().Element(content => ComposeDetailedContent(content, data.Participants));
@@ -481,7 +465,7 @@ public class ViaggiPrinter
         container.Column(column =>
         {
              column.Item().PaddingBottom(10).Text("Elenco Partecipanti Dettagliato")
-                .FontSize(16).Bold().FontColor(BrandColors.Primary);
+                .FontSize(16).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
             // Group by Crew
             var crews = participants.GroupBy(p => p.GroupingKey)
@@ -510,7 +494,7 @@ public class ViaggiPrinter
                                 pilotCol.Item().PaddingBottom(2).Text(text => 
                                 {
                                     text.Span("Pilota: ").Bold();
-                                    text.Span(pilot.Nominativo).Bold().FontSize(11).FontColor(BrandColors.Primary);
+                                    text.Span(pilot.Nominativo).Bold().FontSize(11).FontColor(ReportHeaderHelper.BrandColors.Primary);
                                     if(pilot.DataNascita.HasValue)
                                     {
                                         var age = DateTime.Today.Year - pilot.DataNascita.Value.Year;
@@ -558,7 +542,7 @@ public class ViaggiPrinter
                                 // Pilot Vehicle & Dog
                                 var veh = pilot.MezzoDettagli;
                                 if(!string.IsNullOrEmpty(veh)) pilotCol.Item().PaddingTop(2).Text($"Mezzo: {veh}").Italic();
-                                if(pilot.CaneSino == "Y" || pilot.CaneSino == "S") pilotCol.Item().Text("Cane: SI").Bold().FontColor(BrandColors.Accent);
+                                if(pilot.CaneSino == "Y" || pilot.CaneSino == "S") pilotCol.Item().Text("Cane: SI").Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                             });
                         }
 
@@ -610,7 +594,7 @@ public class ViaggiPrinter
                                     });
                                 }
                                 
-                                if(pax.CaneSino == "Y" || pax.CaneSino == "S") pc.Item().Text("Cane: SI").Bold().FontColor(BrandColors.Accent);
+                                if(pax.CaneSino == "Y" || pax.CaneSino == "S") pc.Item().Text("Cane: SI").Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                              });
                         }
                     });

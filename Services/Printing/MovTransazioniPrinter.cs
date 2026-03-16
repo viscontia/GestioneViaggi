@@ -12,28 +12,6 @@ namespace GestioneViaggi.Services.Printing;
 /// </summary>
 public class MovTransazioniPrinter
 {
-    // Colori brand (coerenti con gli altri report)
-    private static class BrandColors
-    {
-        public static readonly string Primary = "#2B3A42";    // Dark Slate
-        public static readonly string Secondary = "#8D99AE";  // Cool Grey
-        public static readonly string Accent = "#E74C3C";     // Red (Debito / Passivo / Uscita)
-        public static readonly string Text = "#000000";
-        public static readonly string LightGray = "#F0F0F0";
-        public static readonly string Border = "#CCCCCC";
-        public static readonly string GroupHeader = "#D5E8D4"; // Verde chiaro per rotture
-        public static readonly string SubTotal = "#FFF2CC";    // Giallo chiaro per sub-totali
-        public static readonly string Total = "#DAE8FC";       // Blu chiaro per totali generali
-        public static readonly string Success = "#27AE60";     // Verde (Attivo / Entrata)
-        public static readonly string Warning = "#F39C12";     // Arancione
-        public static readonly string IvaHeader = "#E1F5FE";   // Azzurro chiarissimo per header colonna IVA
-    }
-
-    // Costanti layout
-    private const float FontSizeHeader = 16;
-    private const float FontSizeSubHeader = 11;
-    private const float FontSizeBody = 8;
-    private const float FontSizeSmall = 7;
 
     /// <summary>
     /// Determina il colore del saldo.
@@ -42,21 +20,21 @@ public class MovTransazioniPrinter
     /// </summary>
     private static string GetSaldoColor(decimal saldo, bool isCicloPassivo)
     {
-        if (saldo == 0) return BrandColors.Text;
+        if (saldo == 0) return ReportHeaderHelper.BrandColors.Text;
 
         if (isCicloPassivo)
         {
             // Logica Fornitori: POSITIVO = DEBITO (Rosso)
             const decimal sogliaCredito = -10.0m;
-            if (saldo > 0) return BrandColors.Accent;      // ROSSO: Devo soldi
-            if (saldo >= sogliaCredito) return BrandColors.Success; // VERDE: Pari o credito
-            return BrandColors.Warning; // ARANCIONE: Credito significativo
+            if (saldo > 0) return ReportHeaderHelper.BrandColors.Accent;      // ROSSO: Devo soldi
+            if (saldo >= sogliaCredito) return ReportHeaderHelper.BrandColors.Success; // VERDE: Pari o credito
+            return ReportHeaderHelper.BrandColors.Warning; // ARANCIONE: Credito significativo
         }
         else
         {
             // Logica Clienti/Mista: POSITIVO = CREDITO/ENTRATA (Verde)
-            if (saldo > 0) return BrandColors.Success;     // VERDE: Entrata/Credito
-            return BrandColors.Accent;      // ROSSO: Uscita/Debito
+            if (saldo > 0) return ReportHeaderHelper.BrandColors.Success;     // VERDE: Entrata/Credito
+            return ReportHeaderHelper.BrandColors.Accent;      // ROSSO: Uscita/Debito
         }
     }
 
@@ -72,7 +50,7 @@ public class MovTransazioniPrinter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(0.8f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBodyCompact).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposeHeader(header, data));
                 page.Content().Element(content => ComposeContent(content, data));
@@ -99,11 +77,11 @@ public class MovTransazioniPrinter
             // 2. Filtri applicati (se presenti)
             if (data.Filtri.HasAnyFilter)
             {
-                column.Item().PaddingTop(5).Background(BrandColors.LightGray).Padding(5).Row(row =>
+                column.Item().PaddingTop(5).Background(ReportHeaderHelper.BrandColors.LightGray).Padding(5).Row(row =>
                 {
                     row.RelativeItem().Text(text =>
                     {
-                        text.Span("Filtri: ").Bold().FontSize(FontSizeSmall);
+                        text.Span("Filtri: ").Bold().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                         var filters = new List<string>();
                         
                         // if (!string.IsNullOrEmpty(data.Filtri.Azienda)) filters.Add($"Azienda: {data.Filtri.Azienda}"); // Ridondante
@@ -122,12 +100,12 @@ public class MovTransazioniPrinter
                         if (data.Filtri.Checkbox.Any())
                             filters.AddRange(data.Filtri.Checkbox);
                         
-                        text.Span(string.Join(" | ", filters)).FontSize(FontSizeSmall);
+                        text.Span(string.Join(" | ", filters)).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     });
                 });
             }
 
-            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(BrandColors.Border);
+            column.Item().PaddingTop(5).LineHorizontal(1).LineColor(ReportHeaderHelper.BrandColors.Border);
         });
     }
 
@@ -138,7 +116,7 @@ public class MovTransazioniPrinter
             if (!data.Dettagli.Any())
             {
                 column.Item().AlignCenter().Padding(50).Text("Nessuna transazione trovata con i filtri applicati.")
-                    .FontSize(FontSizeSubHeader).Italic().FontColor(BrandColors.Secondary);
+                    .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Italic().FontColor(ReportHeaderHelper.BrandColors.Secondary);
                 return;
             }
 
@@ -187,28 +165,28 @@ public class MovTransazioniPrinter
             table.Header(header =>
             {
                 // Riga 1: Nome Gruppo (Sfondo Verde)
-                header.Cell().ColumnSpan(12).Background(BrandColors.GroupHeader).Padding(4).Row(row =>
+                header.Cell().ColumnSpan(12).Background(ReportHeaderHelper.BrandColors.GroupHeader).Padding(4).Row(row =>
                 {
                     var title = firstItem.GruppoDisplay ?? firstItem.GruppoChiave ?? "-";
-                    row.RelativeItem().Text(title).FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                    row.RelativeItem().Text(title).FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
                 });
 
                 // Riga 2: Intestazioni Colonne (Sfondo Blu Navy)
-                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+                var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold().FontColor(Colors.White);
 
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Tipo").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Viaggio / Info").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Num. Doc").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Tipo").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Viaggio / Info").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Stato").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Num. Doc").Style(headerStyle);
                 
-                header.Cell().Background(BrandColors.Primary).Padding(3).Text("Aliq.").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text($"Lordo ({data.ValutaTargetCodiceIso})").Style(headerStyle);
-                header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Saldo Prog.").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Aliq.").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text($"Lordo ({data.ValutaTargetCodiceIso})").Style(headerStyle);
+                header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Saldo Prog.").Style(headerStyle);
             });
 
             // Righe transizioni con calcolo saldo progressivo
@@ -219,44 +197,44 @@ public class MovTransazioniPrinter
                 currentSaldo += item.ImportoAlgebricoTarget;
                 item.SaldoProgressivo = currentSaldo;
 
-                var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                var bgColor = rowIndex % 2 == 0 ? Colors.White : ReportHeaderHelper.BrandColors.LightGray;
                 var isDaPagare = item.Stato == "DA_PAGARE" || item.Stato == "PARZIALMENTE_PAGATO";
                 
                 // Logica colore riga basata su Ciclo (NON su TipoMovimento strict perché potrebbero esserci eccezioni)
                 // Se Ciclo == PASSIVO -> Rosso standard
                 // Se Ciclo == ATTIVO -> Verde standard
-                var rowTextColor = item.IsCicloAttivo ? BrandColors.Success : (item.IsCicloPassivo ? BrandColors.Accent : BrandColors.Text);
-                if (isDaPagare) rowTextColor = BrandColors.Warning; // Evidenzia scadenze
+                var rowTextColor = item.IsCicloAttivo ? ReportHeaderHelper.BrandColors.Success : (item.IsCicloPassivo ? ReportHeaderHelper.BrandColors.Accent : ReportHeaderHelper.BrandColors.Text);
+                if (isDaPagare) rowTextColor = ReportHeaderHelper.BrandColors.Warning; // Evidenzia scadenze
                 
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.ControparteRagioneSociale).FontSize(FontSizeBody); // ex Fornitore
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(FontSizeBody).FontColor(rowTextColor);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.Causale ?? "-").FontSize(FontSizeBody);
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.ViaggioFullDisplay).FontSize(FontSizeBody);
-                var stateCell = table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(FontSizeBody).FontColor(isDaPagare ? BrandColors.Warning : BrandColors.Text);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.DataDocumentoFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.ControparteRagioneSociale).FontSize(ReportHeaderHelper.FontSizeBodyCompact); // ex Fornitore
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.TipoMovimentoDisplay).FontSize(ReportHeaderHelper.FontSizeBodyCompact).FontColor(rowTextColor);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.Causale ?? "-").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.ViaggioFullDisplay).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                var stateCell = table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.StatoDisplay).FontSize(ReportHeaderHelper.FontSizeBodyCompact).FontColor(isDaPagare ? ReportHeaderHelper.BrandColors.Warning : ReportHeaderHelper.BrandColors.Text);
                 if (isDaPagare) stateCell.Bold();
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.NumeroDocumento ?? "-").FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.NumeroDocumento ?? "-").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
                 
                 // Sezione Valori
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).Text(item.AliquotaDisplay).FontSize(FontSizeSmall);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text(item.AliquotaDisplay).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                 
                 // Imponibile
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text(item.ImponibileFormatted).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text(item.ImponibileFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
 
                 // IVA
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text(item.IvaFormatted).FontSize(FontSizeBody);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text(item.IvaFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
                 
                 // Lordo / Importo Target
                 // Qui mostriamo il valore convertito nella valuta target del report, per coerenza col totale
                 var sign = item.TipoMovimento == "USCITA" ? "-" : "";
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{sign}{item.ImportoValutaTarget:N2}").FontSize(FontSizeBody).Bold().FontColor(rowTextColor);
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{sign}{item.ImportoValutaTarget:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(rowTextColor);
 
                 // Saldo Progressivo
-                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                    .Text($"{item.SaldoProgressivo:N2}").FontSize(FontSizeBody).Bold();
+                table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                    .Text($"{item.SaldoProgressivo:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                 
                 rowIndex++;
             }
@@ -279,7 +257,7 @@ public class MovTransazioniPrinter
         
         if (!subtotali.Any()) return;
 
-        column.Item().Background(BrandColors.SubTotal).Padding(4).Column(subCol =>
+        column.Item().Background(ReportHeaderHelper.BrandColors.SubTotal).Padding(4).Column(subCol =>
         {
             foreach (var sub in subtotali)
             {
@@ -287,8 +265,8 @@ public class MovTransazioniPrinter
                 {
                     row.RelativeItem().PaddingRight(10).Column(col => 
                     {
-                        col.Item().Text($"Riepilogo {sub.GruppoDisplay} ({sub.ValutaCodiceIso}):").FontSize(FontSizeBody).Bold();
-                        col.Item().Text($"{sub.ConteggioTransazioni} movimenti inclusi").FontSize(FontSizeSmall).Italic();
+                        col.Item().Text($"Riepilogo {sub.GruppoDisplay} ({sub.ValutaCodiceIso}):").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                        col.Item().Text($"{sub.ConteggioTransazioni} movimenti inclusi").FontSize(ReportHeaderHelper.FontSizeSmallCompact).Italic();
                     });
 
                     row.RelativeItem(2).Table(t => 
@@ -301,26 +279,26 @@ public class MovTransazioniPrinter
                         });
 
                         // Riga 1: Imponibile Totale
-                        t.Cell().ColumnSpan(1).AlignRight().Text("Tot. Imponibile:").FontSize(FontSizeSmall);
-                        t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleImponibileFormatted).FontSize(FontSizeSmall);
+                        t.Cell().ColumnSpan(1).AlignRight().Text("Tot. Imponibile:").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleImponibileFormatted).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
 
                         // Riga 2: IVA Totale
-                         t.Cell().ColumnSpan(1).AlignRight().Text("Tot. IVA:").FontSize(FontSizeSmall);
-                        t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleIvaFormatted).FontSize(FontSizeSmall);
+                         t.Cell().ColumnSpan(1).AlignRight().Text("Tot. IVA:").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleIvaFormatted).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
 
                         // Riga 3: Fatturato vs Pagato (Cash Flow)
-                         t.Cell().ColumnSpan(3).PaddingTop(2).LineHorizontal(0.5f).LineColor(BrandColors.Border);
+                         t.Cell().ColumnSpan(3).PaddingTop(2).LineHorizontal(0.5f).LineColor(ReportHeaderHelper.BrandColors.Border);
                          
-                         t.Cell().Text("Fatturato/Entrate (+):").FontSize(FontSizeSmall);
-                         t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleFatturatoTargetFormatted).FontSize(FontSizeSmall).FontColor(BrandColors.Success);
+                         t.Cell().Text("Fatturato/Entrate (+):").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                         t.Cell().ColumnSpan(2).AlignRight().Text(sub.TotaleFatturatoTargetFormatted).FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Success);
 
-                         t.Cell().Text("Pagato/Uscite (-):").FontSize(FontSizeSmall);
-                         t.Cell().ColumnSpan(2).AlignRight().Text($"-{sub.TotalePagatoTargetFormatted}").FontSize(FontSizeSmall).FontColor(BrandColors.Accent);
+                         t.Cell().Text("Pagato/Uscite (-):").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                         t.Cell().ColumnSpan(2).AlignRight().Text($"-{sub.TotalePagatoTargetFormatted}").FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Accent);
 
                         // Saldo Finale
-                        t.Cell().ColumnSpan(3).PaddingTop(2).LineHorizontal(0.5f).LineColor(BrandColors.Border);
-                        t.Cell().BorderTop(0.5f).PaddingTop(2).Text("SALDO FINALE:").FontSize(FontSizeBody).Bold();
-                        t.Cell().ColumnSpan(2).BorderTop(0.5f).PaddingTop(2).AlignRight().Text(sub.TotaleTargetFormatted).FontSize(FontSizeBody).Bold()
+                        t.Cell().ColumnSpan(3).PaddingTop(2).LineHorizontal(0.5f).LineColor(ReportHeaderHelper.BrandColors.Border);
+                        t.Cell().BorderTop(0.5f).PaddingTop(2).Text("SALDO FINALE:").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                        t.Cell().ColumnSpan(2).BorderTop(0.5f).PaddingTop(2).AlignRight().Text(sub.TotaleTargetFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold()
                             .FontColor(GetSaldoColor(sub.TotaleValutaTarget, data.Filtri.CausaleCiclo == "PASSIVO"));
                     });
                 });
@@ -336,10 +314,10 @@ public class MovTransazioniPrinter
 
         bool isPassivo = data.Filtri.CausaleCiclo == "PASSIVO";
 
-        column.Item().Background(BrandColors.Total).Border(1).BorderColor(BrandColors.Primary).Padding(5).Column(totCol =>
+        column.Item().Background(ReportHeaderHelper.BrandColors.Total).Border(1).BorderColor(ReportHeaderHelper.BrandColors.Primary).Padding(5).Column(totCol =>
         {
             totCol.Item().Text("TOTALI GENERALI ALGEBRICI")
-                .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
             
             totCol.Item().PaddingTop(3);
 
@@ -348,16 +326,16 @@ public class MovTransazioniPrinter
                 totCol.Item().Row(row =>
                 {
                     row.RelativeItem().Text($"Saldo Netto {tot.ValutaCodiceIso}:")
-                        .FontSize(FontSizeBody).Bold();
+                        .FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                     
                     row.ConstantItem(150).AlignRight().Text(tot.TotaleOriginaleFormatted)
-                        .FontSize(FontSizeSubHeader).Bold();
+                        .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold();
                     
                     row.ConstantItem(150).AlignRight().Text($"-> {tot.TotaleTargetFormatted}")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(GetSaldoColor(tot.TotaleValutaTarget, isPassivo));
+                        .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(GetSaldoColor(tot.TotaleValutaTarget, isPassivo));
                     
                     row.ConstantItem(80).AlignRight().Text($"({tot.ConteggioTransazioni} mov.)")
-                        .FontSize(FontSizeSmall);
+                        .FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                 });
             }
 
@@ -365,45 +343,45 @@ public class MovTransazioniPrinter
             var totaleComplessivo = totali.Sum(t => t.TotaleValutaTarget);
             var conteggioComplessivo = totali.Sum(t => t.ConteggioTransazioni);
             
-            totCol.Item().PaddingTop(5).BorderTop(1).BorderColor(BrandColors.Primary).PaddingTop(3).Row(row =>
+            totCol.Item().PaddingTop(5).BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Primary).PaddingTop(3).Row(row =>
             {
                 row.RelativeItem().Text($"TOTALE COMPLESSIVO ({data.ValutaTargetCodiceIso}):")
-                    .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                    .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
                 row.ConstantItem(150).AlignRight().Text($"{totaleComplessivo:N2} {data.ValutaTargetCodiceIso}")
-                    .FontSize(FontSizeHeader).Bold().FontColor(GetSaldoColor(totaleComplessivo, isPassivo));
+                    .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(GetSaldoColor(totaleComplessivo, isPassivo));
                 row.ConstantItem(80).AlignRight().Text($"({conteggioComplessivo} mov.)")
-                    .FontSize(FontSizeSmall);
+                    .FontSize(ReportHeaderHelper.FontSizeSmallCompact);
             });
         });
     }
 
     private static void ComposeLegenda(ColumnDescriptor column)
     {
-        column.Item().PaddingTop(10).Border(1).BorderColor(BrandColors.Border).Background(BrandColors.LightGray).Padding(5).Column(legCol =>
+        column.Item().PaddingTop(10).Border(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Background(ReportHeaderHelper.BrandColors.LightGray).Padding(5).Column(legCol =>
         {
             legCol.Item().Text("LEGENDA COLORI E FORMATI")
-                .FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+                .FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
             legCol.Item().PaddingTop(3).Row(row =>
             {
                 row.RelativeItem().Column(c => {
                     c.Item().Row(r => {
-                         r.ConstantItem(15).Height(10).Background(BrandColors.Accent);
+                         r.ConstantItem(15).Height(10).Background(ReportHeaderHelper.BrandColors.Accent);
                          r.ConstantItem(5);
-                         r.RelativeItem().Text("Rosso: Ciclo Passivo / Uscita / Debito").FontSize(FontSizeSmall);
+                         r.RelativeItem().Text("Rosso: Ciclo Passivo / Uscita / Debito").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     });
                      c.Item().PaddingTop(2).Row(r => {
-                         r.ConstantItem(15).Height(10).Background(BrandColors.Success);
+                         r.ConstantItem(15).Height(10).Background(ReportHeaderHelper.BrandColors.Success);
                          r.ConstantItem(5);
-                         r.RelativeItem().Text("Verde: Ciclo Attivo / Entrata / Credito").FontSize(FontSizeSmall);
+                         r.RelativeItem().Text("Verde: Ciclo Attivo / Entrata / Credito").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     });
                 });
                 
                 row.RelativeItem().Column(c => {
                       c.Item().Row(r => {
-                         r.ConstantItem(15).Height(10).Background(BrandColors.Warning);
+                         r.ConstantItem(15).Height(10).Background(ReportHeaderHelper.BrandColors.Warning);
                          r.ConstantItem(5);
-                         r.RelativeItem().Text("Arancione: Scaduto / Da Pagare").FontSize(FontSizeSmall);
+                         r.RelativeItem().Text("Arancione: Scaduto / Da Pagare").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     });
                 });
             });
@@ -417,15 +395,15 @@ public class MovTransazioniPrinter
             row.RelativeItem().Text(text =>
             {
                 text.Span($"Report generato da GestioneViaggi - {data.DataStampa:dd/MM/yyyy HH:mm}")
-                    .FontSize(FontSizeSmall).FontColor(BrandColors.Secondary);
+                    .FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Secondary);
             });
 
             row.RelativeItem().AlignRight().Text(text =>
             {
-                text.Span("Pagina ").FontSize(FontSizeSmall);
-                text.CurrentPageNumber().FontSize(FontSizeSmall);
-                text.Span(" di ").FontSize(FontSizeSmall);
-                text.TotalPages().FontSize(FontSizeSmall);
+                text.Span("Pagina ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.CurrentPageNumber().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span(" di ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.TotalPages().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
             });
         });
     }

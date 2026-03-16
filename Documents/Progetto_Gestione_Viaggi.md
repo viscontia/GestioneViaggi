@@ -19,6 +19,7 @@ Questo documento raccoglie tutte le informazioni critiche del progetto Gestione 
 10. [Fix Static Web Assets in Release Build](#-fix-static-web-assets-in-release-build)
 11. [Posizione delle Stampe PDF](#-posizione-delle-stampe-pdf)
 12. [Gestione Percorsi PDF e Sandbox macOS](#-gestione-percorsi-pdf-e-sandbox-macos)
+13. [Standardizzazione Colori e Font nelle Stampe PDF](#-standardizzazione-colori-e-font-nelle-stampe-pdf)
 
 ---
 
@@ -711,3 +712,159 @@ Possibili miglioramenti:
 - Aggiungere un **file picker** per permettere all'utente di scegliere dove salvare il PDF
 - Implementare una **preferenza utente** per il percorso di salvataggio predefinito
 - Aggiungere un **dialog di conferma** dopo il salvataggio con link per aprire la cartella
+
+---
+
+## 🎨 Standardizzazione Colori e Font nelle Stampe PDF
+
+### Il Problema
+
+Prima della standardizzazione (marzo 2026), ogni printer PDF dell'applicazione definiva indipendentemente:
+- Una **classe `BrandColors` privata** con colori duplicati
+- **Costanti `FontSize*` private** con valori diversi tra printer
+
+Questa situazione causava:
+- **Inconsistenza visiva**: Report con colori e dimensioni font differenti
+- **Duplicazione codice**: 6 definizioni identiche della classe `BrandColors`
+- **Manutenzione difficile**: Per modificare un colore, bisognava intervenire su 6 file diversi
+- **Due gruppi di font**: Standard (18/12/9/8) e Compact (16/11/8/7) senza una logica chiara
+
+### La Soluzione Implementata
+
+È stata effettuata una **centralizzazione completa** di tutti i colori e font in `ReportHeaderHelper`, trasformandolo nel **single source of truth** per lo stile visivo di tutti i report PDF.
+
+#### File Centrale
+**`Services/Printing/ReportHeaderHelper.cs`**
+
+### Dettagli Tecnici
+
+#### Colori Centralizzati
+
+Tutti i colori del brand sono stati consolidati nella classe statica `ReportHeaderHelper.BrandColors`:
+
+```csharp
+public static class BrandColors
+{
+    // Colori Base (preesistenti)
+    public static readonly string Primary = "#2B3A42";      // Dark Slate (testata, titoli)
+    public static readonly string Secondary = "#8D99AE";    // Cool Grey (testo secondario)
+    public static readonly string Accent = "#E74C3C";       // Rosso (evidenziazioni, alert)
+    public static readonly string Text = "#000000";         // Nero (testo principale)
+    public static readonly string LightGray = "#F0F0F0";   // Grigio chiaro (sfondi alternati)
+    public static readonly string Border = "#CCCCCC";       // Grigio (bordi tabelle)
+
+    // Colori Semantici (aggiunti con la standardizzazione)
+    public static readonly string Success = "#27AE60";      // Verde (Entrate, Crediti, Positivo)
+    public static readonly string Warning = "#F39C12";      // Arancione (Urgente, Attenzione)
+    public static readonly string Danger = "#C0392B";       // Rosso scuro (Scaduto, Critico)
+
+    // Colori Layout (aggiunti con la standardizzazione)
+    public static readonly string GroupHeader = "#D5E8D4";  // Verde chiaro (Intestazioni gruppi)
+    public static readonly string SubTotal = "#FFF2CC";     // Giallo chiaro (Subtotali)
+    public static readonly string Total = "#DAE8FC";        // Blu chiaro (Totali generali)
+    public static readonly string IvaHeader = "#E1F5FE";    // Azzurro chiaro (Sezioni IVA)
+}
+```
+
+#### Font Size Centralizzati
+
+Sono stati definiti **due set di font** per gestire diverse densità di layout:
+
+```csharp
+// Font Size Standard (Portrait, con spazio - es. Viaggi, RoomingList)
+public const float FontSizeHeader = 18;
+public const float FontSizeSubHeader = 12;
+public const float FontSizeBody = 9;
+public const float FontSizeSmall = 8;
+
+// Font Size Compact (Landscape, tabelle dense - es. Fatture, Registro IVA, Transazioni)
+public const float FontSizeHeaderCompact = 16;
+public const float FontSizeSubHeaderCompact = 11;
+public const float FontSizeBodyCompact = 8;
+public const float FontSizeSmallCompact = 7;
+
+// Font Size Extra
+public const float FontSizeCaption = 7;  // Note legali e disclaimer
+```
+
+### File Modificati
+
+Tutti i 6 printer PDF sono stati aggiornati per usare le definizioni centralizzate:
+
+| File | Font Set Usato | Modifiche |
+|------|----------------|-----------|
+| `Services/Printing/FatturaAttivaPrinter.cs` | Compact | Rimossa classe `BrandColors` privata + costanti font |
+| `Services/Printing/ViaggiPrinter.cs` | Standard | Rimossa classe `BrandColors` privata + costanti font |
+| `Services/Printing/RoomingListPrinter.cs` | Standard | Rimossa classe `BrandColors` privata + costanti font |
+| `Services/Printing/RegistroIvaPrinter.cs` | Compact | Rimossa classe `BrandColors` privata + costanti font |
+| `Services/Printing/ScadenzarioPrinter.cs` | Compact | Rimossa classe `BrandColors` privata + costanti font |
+| `Services/Printing/MovTransazioniPrinter.cs` | Compact | Rimossa classe `BrandColors` privata + costanti font |
+
+### Pattern di Utilizzo
+
+**Prima (approccio duplicato):**
+```csharp
+// Ogni printer aveva la propria definizione
+private static class BrandColors
+{
+    public static readonly string Primary = "#2B3A42";
+    public static readonly string Accent = "#E74C3C";
+    // ... altri colori duplicati
+}
+
+private const float FontSizeHeader = 16;
+private const float FontSizeBody = 8;
+
+// Uso nel codice
+.FontColor(BrandColors.Primary)
+.FontSize(FontSizeBody)
+```
+
+**Dopo (approccio centralizzato):**
+```csharp
+// Nessuna definizione locale, solo uso diretto
+.FontColor(ReportHeaderHelper.BrandColors.Primary)
+.FontSize(ReportHeaderHelper.FontSizeBodyCompact)
+```
+
+### Verifica Implementazione
+
+Per verificare che non ci siano più duplicazioni:
+
+```bash
+# Verifica assenza di classi BrandColors private
+grep -r "private static class BrandColors" Services/Printing/
+# Output atteso: nessun risultato
+
+# Verifica assenza di costanti FontSize private
+grep -r "private const float FontSize" Services/Printing/
+# Output atteso: nessun risultato
+
+# Compilazione senza errori
+dotnet build -c Release -f net9.0-maccatalyst
+# Output atteso: Compilazione completata, 0 errori
+```
+
+### Benefici Ottenuti
+
+1. **Consistenza visiva totale**: Tutti i report hanno lo stesso look & feel
+2. **Manutenibilità**: Modificare un colore o una dimensione in un solo punto
+3. **Scalabilità**: Nuovi printer possono riutilizzare facilmente i colori/font standard
+4. **Brand identity**: Facile implementare un rebrand globale modificando solo `ReportHeaderHelper`
+5. **Leggibilità codice**: Nessuna duplicazione, codice più pulito e professionale
+6. **DRY principle**: Don't Repeat Yourself - eliminata completamente la duplicazione
+
+### Manutenzione Futura
+
+Per modificare lo stile globale dei report PDF:
+1. Modificare le costanti in `Services/Printing/ReportHeaderHelper.cs`
+2. Ricompilare l'applicazione
+3. Tutti i report rifletteranno automaticamente i nuovi valori
+
+> [!NOTE]
+> La distinzione tra font **Standard** e **Compact** è intenzionale e serve a ottimizzare la leggibilità in base al tipo di documento:
+> - **Standard**: Per report portrait con poche colonne e contenuto descrittivo
+> - **Compact**: Per report landscape con molte colonne e layout densi
+
+### Data Implementazione
+**16 Marzo 2026** - Standardizzazione completata su tutti i 6 printer PDF del progetto

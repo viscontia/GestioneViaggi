@@ -11,19 +11,40 @@ public static class ReportHeaderHelper
     // Define brand colors
     public static class BrandColors
     {
+        // Colori Base
         public static readonly string Primary = "#2B3A42"; // Dark Slate
         public static readonly string Secondary = "#8D99AE"; // Cool Grey
         public static readonly string Accent = "#E74C3C";  // Red
         public static readonly string Text = "#000000";
         public static readonly string LightGray = "#F0F0F0";
         public static readonly string Border = "#CCCCCC";
+
+        // Colori Semantici
+        public static readonly string Success = "#27AE60";      // Verde (Entrate, Crediti, Positivo)
+        public static readonly string Warning = "#F39C12";      // Arancione (Urgente, Attenzione)
+        public static readonly string Danger = "#C0392B";       // Rosso scuro (Scaduto, Critico)
+
+        // Colori Layout
+        public static readonly string GroupHeader = "#D5E8D4";  // Verde chiaro (Intestazioni gruppi)
+        public static readonly string SubTotal = "#FFF2CC";     // Giallo chiaro (Subtotali)
+        public static readonly string Total = "#DAE8FC";        // Blu chiaro (Totali generali)
+        public static readonly string IvaHeader = "#E1F5FE";    // Azzurro chiaro (Sezioni IVA)
     }
 
-    // Define layout constants
+    // Font Size Standard (Portrait, con spazio)
     public const float FontSizeHeader = 18;
     public const float FontSizeSubHeader = 12;
     public const float FontSizeBody = 9;
     public const float FontSizeSmall = 8;
+
+    // Font Size Compact (Landscape, tabelle dense)
+    public const float FontSizeHeaderCompact = 16;
+    public const float FontSizeSubHeaderCompact = 11;
+    public const float FontSizeBodyCompact = 8;
+    public const float FontSizeSmallCompact = 7;
+
+    // Font Size Extra
+    public const float FontSizeCaption = 7;  // Per note legali e disclaimer
     
     public static void ComposeCompanyHeader(IContainer container, CompanyPrintInfo companyData, string reportTitle, DateTime? printDate = null, string? printUser = null, string? extraInfo = null)
     {

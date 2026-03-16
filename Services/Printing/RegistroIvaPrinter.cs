@@ -13,28 +13,6 @@ namespace GestioneViaggi.Services.Printing;
 /// </summary>
 public class RegistroIvaPrinter
 {
-    // Colori brand (coerenti con gli altri report)
-    private static class BrandColors
-    {
-        public static readonly string Primary = "#2B3A42";
-        public static readonly string Secondary = "#8D99AE";
-        public static readonly string Accent = "#E74C3C";
-        public static readonly string Text = "#000000";
-        public static readonly string LightGray = "#F0F0F0";
-        public static readonly string Border = "#CCCCCC";
-        public static readonly string GroupHeader = "#D5E8D4";
-        public static readonly string SubTotal = "#FFF2CC";
-        public static readonly string Total = "#DAE8FC";
-        public static readonly string Success = "#27AE60";
-        public static readonly string Warning = "#F39C12";
-        public static readonly string IvaHeader = "#E1F5FE";
-    }
-
-    // Costanti layout
-    private const float FontSizeHeader = 16;
-    private const float FontSizeSubHeader = 11;
-    private const float FontSizeBody = 8;
-    private const float FontSizeSmall = 7;
 
     // Paginazione: max righe dettaglio per chunk (per gestione riporto)
     private const int MaxRowsFirstChunk = 35;
@@ -52,7 +30,7 @@ public class RegistroIvaPrinter
                 page.Size(PageSizes.A4);
                 page.Margin(1f, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBodyCompact).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposeHeader(header, data));
                 page.Content().Element(content => ComposeContent(content, data));
@@ -76,7 +54,7 @@ public class RegistroIvaPrinter
 
             // Periodo centrato sotto l'header, con font più leggibile
             column.Item().AlignCenter().PaddingBottom(5).Text($"Periodo: {data.PeriodoDisplay}")
-                .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
         });
     }
 
@@ -87,7 +65,7 @@ public class RegistroIvaPrinter
             if (!data.HasData)
             {
                 column.Item().AlignCenter().Padding(50).Text("Nessuna fattura con IVA trovata nel periodo selezionato.")
-                    .FontSize(FontSizeSubHeader).Italic().FontColor(BrandColors.Secondary);
+                    .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Italic().FontColor(ReportHeaderHelper.BrandColors.Secondary);
                 return;
             }
 
@@ -96,7 +74,7 @@ public class RegistroIvaPrinter
             {
                 ComposeRegistroSection(column, "REGISTRO IVA ACQUISTI", data.Acquisti,
                     data.SubTotaliAcquisti, data.TotaleImponibileAcquisti,
-                    data.TotaleIvaAcquisti, data.TotaleLordoAcquisti, BrandColors.Accent);
+                    data.TotaleIvaAcquisti, data.TotaleLordoAcquisti, ReportHeaderHelper.BrandColors.Accent);
             }
 
             // Spaziatura tra sezioni
@@ -110,7 +88,7 @@ public class RegistroIvaPrinter
             {
                 ComposeRegistroSection(column, "REGISTRO IVA VENDITE", data.Vendite,
                     data.SubTotaliVendite, data.TotaleImponibileVendite,
-                    data.TotaleIvaVendite, data.TotaleLordoVendite, BrandColors.Success);
+                    data.TotaleIvaVendite, data.TotaleLordoVendite, ReportHeaderHelper.BrandColors.Success);
             }
 
             // Sezione 3: RIEPILOGO E LIQUIDAZIONE
@@ -131,7 +109,7 @@ public class RegistroIvaPrinter
     {
         // Titolo sezione
         column.Item().Background(accentColor).Padding(5).Text(titolo)
-            .FontSize(FontSizeSubHeader).Bold().FontColor(Colors.White);
+            .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(Colors.White);
 
         // Suddivide le righe in blocchi per gestire il riporto tra pagine
         var chunks = SplitIntoChunks(items, MaxRowsFirstChunk, MaxRowsNextChunk);
@@ -165,7 +143,7 @@ public class RegistroIvaPrinter
             {
                 column.Item().PageBreak();
                 column.Item().Background(accentColor).Padding(5).Text($"{titolo} (segue)")
-                    .FontSize(FontSizeSubHeader).Bold().FontColor(Colors.White);
+                    .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(Colors.White);
             }
 
             // Tabella per questo blocco di righe
@@ -185,7 +163,7 @@ public class RegistroIvaPrinter
                 int localRowIndex = 0;
                 foreach (var item in chunk)
                 {
-                    var bgColor = (globalRowIndex + localRowIndex) % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                    var bgColor = (globalRowIndex + localRowIndex) % 2 == 0 ? Colors.White : ReportHeaderHelper.BrandColors.LightGray;
                     ComposeRegistroDataRow(table, item, bgColor);
                     localRowIndex++;
                 }
@@ -204,9 +182,9 @@ public class RegistroIvaPrinter
         // Sub-totali per aliquota
         if (subTotali.Any())
         {
-            column.Item().PaddingTop(3).Background(BrandColors.SubTotal).Padding(4).Column(subCol =>
+            column.Item().PaddingTop(3).Background(ReportHeaderHelper.BrandColors.SubTotal).Padding(4).Column(subCol =>
             {
-                subCol.Item().Text("Riepilogo per Aliquota:").FontSize(FontSizeBody).Bold();
+                subCol.Item().Text("Riepilogo per Aliquota:").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
 
                 subCol.Item().PaddingTop(2).Table(t =>
                 {
@@ -220,7 +198,7 @@ public class RegistroIvaPrinter
                     });
 
                     // Header subtotali
-                    var hStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold();
+                    var hStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold();
                     t.Cell().Padding(2).Text("Aliquota").Style(hStyle);
                     t.Cell().Padding(2).AlignCenter().Text("Docs").Style(hStyle);
                     t.Cell().Padding(2).AlignRight().Text("Imponibile").Style(hStyle);
@@ -229,23 +207,23 @@ public class RegistroIvaPrinter
 
                     foreach (var sub in subTotali)
                     {
-                        t.Cell().Padding(2).Text(sub.AliquotaDescrizione ?? sub.AliquotaDisplay).FontSize(FontSizeSmall);
-                        t.Cell().Padding(2).AlignCenter().Text($"{sub.Conteggio}").FontSize(FontSizeSmall);
-                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleImponibile:N2}").FontSize(FontSizeSmall);
-                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleIva:N2}").FontSize(FontSizeSmall);
-                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleLordo:N2}").FontSize(FontSizeSmall);
+                        t.Cell().Padding(2).Text(sub.AliquotaDescrizione ?? sub.AliquotaDisplay).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().Padding(2).AlignCenter().Text($"{sub.Conteggio}").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleImponibile:N2}").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleIva:N2}").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                        t.Cell().Padding(2).AlignRight().Text($"{sub.TotaleLordo:N2}").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
                     }
 
                     // Totale sezione
-                    t.Cell().BorderTop(1).BorderColor(BrandColors.Border).Padding(2).Text("TOTALE").FontSize(FontSizeBody).Bold();
-                    t.Cell().BorderTop(1).BorderColor(BrandColors.Border).Padding(2).AlignCenter()
-                        .Text($"{items.Count}").FontSize(FontSizeBody).Bold();
-                    t.Cell().BorderTop(1).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                        .Text($"{totaleImponibile:N2}").FontSize(FontSizeBody).Bold();
-                    t.Cell().BorderTop(1).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                        .Text($"{totaleIva:N2}").FontSize(FontSizeBody).Bold();
-                    t.Cell().BorderTop(1).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-                        .Text($"{totaleLordo:N2}").FontSize(FontSizeBody).Bold();
+                    t.Cell().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).Text("TOTALE").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                    t.Cell().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignCenter()
+                        .Text($"{items.Count}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                    t.Cell().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                        .Text($"{totaleImponibile:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                    t.Cell().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                        .Text($"{totaleIva:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                    t.Cell().BorderTop(1).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+                        .Text($"{totaleLordo:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                 });
             });
         }
@@ -306,17 +284,17 @@ public class RegistroIvaPrinter
     {
         table.Header(header =>
         {
-            var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+            var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold().FontColor(Colors.White);
 
-            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Prot.").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).Text("N. Doc").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).AlignCenter().Text("Aliq.").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
-            header.Cell().Background(BrandColors.Primary).Padding(3).AlignRight().Text("Lordo").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Prot.").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Data Doc").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("N. Doc").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Controparte").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Causale").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignCenter().Text("Aliq.").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Imponibile").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("IVA").Style(headerStyle);
+            header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).AlignRight().Text("Lordo").Style(headerStyle);
         });
     }
 
@@ -325,24 +303,24 @@ public class RegistroIvaPrinter
     /// </summary>
     private static void ComposeRegistroDataRow(TableDescriptor table, RegistroIvaItem item, string bgColor)
     {
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-            .Text(item.NumeroProtocolloDisplay).FontSize(FontSizeSmall);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-            .Text(item.DataDocumentoFormatted).FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-            .Text(item.TransazioneNumeroDocumento ?? "-").FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-            .Text(item.ControparteRagioneSociale).FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2)
-            .Text(item.CausaleDescrizione).FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignCenter()
-            .Text(item.AliquotaDisplay).FontSize(FontSizeSmall);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-            .Text(item.ImponibileFormatted).FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-            .Text(item.IvaFormatted).FontSize(FontSizeBody);
-        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(2).AlignRight()
-            .Text(item.LordoFormatted).FontSize(FontSizeBody).Bold();
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+            .Text(item.NumeroProtocolloDisplay).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+            .Text(item.DataDocumentoFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+            .Text(item.TransazioneNumeroDocumento ?? "-").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+            .Text(item.ControparteRagioneSociale).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2)
+            .Text(item.CausaleDescrizione).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignCenter()
+            .Text(item.AliquotaDisplay).FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.ImponibileFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.IvaFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+        table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(2).AlignRight()
+            .Text(item.LordoFormatted).FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
     }
 
     /// <summary>
@@ -352,23 +330,23 @@ public class RegistroIvaPrinter
     private static void ComposeRiportoRow(TableDescriptor table, string label,
         decimal imponibile, decimal iva, decimal lordo, bool isRiporto)
     {
-        var bgColor = isRiporto ? BrandColors.IvaHeader : BrandColors.SubTotal;
+        var bgColor = isRiporto ? ReportHeaderHelper.BrandColors.IvaHeader : ReportHeaderHelper.BrandColors.SubTotal;
 
-        table.Cell().ColumnSpan(6).Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
-            .Padding(3).Text(label).FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
-        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
-            .Padding(3).AlignRight().Text($"{imponibile:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
-        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
-            .Padding(3).AlignRight().Text($"{iva:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
-        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(BrandColors.Primary)
-            .Padding(3).AlignRight().Text($"{lordo:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Primary);
+        table.Cell().ColumnSpan(6).Background(bgColor).BorderBottom(1).BorderColor(ReportHeaderHelper.BrandColors.Primary)
+            .Padding(3).Text(label).FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(ReportHeaderHelper.BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{imponibile:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(ReportHeaderHelper.BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{iva:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
+        table.Cell().Background(bgColor).BorderBottom(1).BorderColor(ReportHeaderHelper.BrandColors.Primary)
+            .Padding(3).AlignRight().Text($"{lordo:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
     }
 
     private static void ComposeRiepilogoLiquidazione(ColumnDescriptor column, RegistroIvaPrintData data)
     {
         // Titolo
-        column.Item().Background(BrandColors.Primary).Padding(5).Text("RIEPILOGO E LIQUIDAZIONE IVA DEL PERIODO")
-            .FontSize(FontSizeSubHeader).Bold().FontColor(Colors.White);
+        column.Item().Background(ReportHeaderHelper.BrandColors.Primary).Padding(5).Text("RIEPILOGO E LIQUIDAZIONE IVA DEL PERIODO")
+            .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(Colors.White);
 
         // Tabella riepilogativa per aliquota
         if (data.RiepilogoPerAliquota.Any())
@@ -387,45 +365,45 @@ public class RegistroIvaPrinter
                 // Header
                 table.Header(header =>
                 {
-                    var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(FontSizeSmall).Bold().FontColor(Colors.White);
+                    var headerStyle = QuestPDF.Infrastructure.TextStyle.Default.FontSize(ReportHeaderHelper.FontSizeSmallCompact).Bold().FontColor(Colors.White);
 
-                    header.Cell().Background(BrandColors.Primary).Padding(3).Text("Aliquota").Style(headerStyle);
-                    header.Cell().Background(BrandColors.Accent).Padding(3).AlignRight().Text("Impon. Acquisti").Style(headerStyle);
-                    header.Cell().Background(BrandColors.Accent).Padding(3).AlignRight().Text("IVA Acquisti").Style(headerStyle);
-                    header.Cell().Background(BrandColors.Success).Padding(3).AlignRight().Text("Impon. Vendite").Style(headerStyle);
-                    header.Cell().Background(BrandColors.Success).Padding(3).AlignRight().Text("IVA Vendite").Style(headerStyle);
+                    header.Cell().Background(ReportHeaderHelper.BrandColors.Primary).Padding(3).Text("Aliquota").Style(headerStyle);
+                    header.Cell().Background(ReportHeaderHelper.BrandColors.Accent).Padding(3).AlignRight().Text("Impon. Acquisti").Style(headerStyle);
+                    header.Cell().Background(ReportHeaderHelper.BrandColors.Accent).Padding(3).AlignRight().Text("IVA Acquisti").Style(headerStyle);
+                    header.Cell().Background(ReportHeaderHelper.BrandColors.Success).Padding(3).AlignRight().Text("Impon. Vendite").Style(headerStyle);
+                    header.Cell().Background(ReportHeaderHelper.BrandColors.Success).Padding(3).AlignRight().Text("IVA Vendite").Style(headerStyle);
                 });
 
                 int rowIndex = 0;
                 foreach (var riepilogo in data.RiepilogoPerAliquota)
                 {
-                    var bgColor = rowIndex % 2 == 0 ? Colors.White : BrandColors.LightGray;
+                    var bgColor = rowIndex % 2 == 0 ? Colors.White : ReportHeaderHelper.BrandColors.LightGray;
 
-                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(3)
-                        .Text(riepilogo.AliquotaDescrizione ?? riepilogo.AliquotaDisplay).FontSize(FontSizeBody);
-                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(3).AlignRight()
-                        .Text($"{riepilogo.ImponibileAcquisti:N2}").FontSize(FontSizeBody);
-                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(3).AlignRight()
-                        .Text($"{riepilogo.IvaAcquisti:N2}").FontSize(FontSizeBody);
-                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(3).AlignRight()
-                        .Text($"{riepilogo.ImponibileVendite:N2}").FontSize(FontSizeBody);
-                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(BrandColors.Border).Padding(3).AlignRight()
-                        .Text($"{riepilogo.IvaVendite:N2}").FontSize(FontSizeBody);
+                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(3)
+                        .Text(riepilogo.AliquotaDescrizione ?? riepilogo.AliquotaDisplay).FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(3).AlignRight()
+                        .Text($"{riepilogo.ImponibileAcquisti:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(3).AlignRight()
+                        .Text($"{riepilogo.IvaAcquisti:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(3).AlignRight()
+                        .Text($"{riepilogo.ImponibileVendite:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
+                    table.Cell().Background(bgColor).BorderBottom(0.5f).BorderColor(ReportHeaderHelper.BrandColors.Border).Padding(3).AlignRight()
+                        .Text($"{riepilogo.IvaVendite:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact);
 
                     rowIndex++;
                 }
 
                 // Riga totali
-                table.Cell().BorderTop(1.5f).BorderColor(BrandColors.Primary).Background(BrandColors.Total).Padding(3)
-                    .Text("TOTALE").FontSize(FontSizeBody).Bold();
-                table.Cell().BorderTop(1.5f).BorderColor(BrandColors.Primary).Background(BrandColors.Total).Padding(3).AlignRight()
-                    .Text($"{data.TotaleImponibileAcquisti:N2}").FontSize(FontSizeBody).Bold();
-                table.Cell().BorderTop(1.5f).BorderColor(BrandColors.Primary).Background(BrandColors.Total).Padding(3).AlignRight()
-                    .Text($"{data.TotaleIvaAcquisti:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Accent);
-                table.Cell().BorderTop(1.5f).BorderColor(BrandColors.Primary).Background(BrandColors.Total).Padding(3).AlignRight()
-                    .Text($"{data.TotaleImponibileVendite:N2}").FontSize(FontSizeBody).Bold();
-                table.Cell().BorderTop(1.5f).BorderColor(BrandColors.Primary).Background(BrandColors.Total).Padding(3).AlignRight()
-                    .Text($"{data.TotaleIvaVendite:N2}").FontSize(FontSizeBody).Bold().FontColor(BrandColors.Success);
+                table.Cell().BorderTop(1.5f).BorderColor(ReportHeaderHelper.BrandColors.Primary).Background(ReportHeaderHelper.BrandColors.Total).Padding(3)
+                    .Text("TOTALE").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                table.Cell().BorderTop(1.5f).BorderColor(ReportHeaderHelper.BrandColors.Primary).Background(ReportHeaderHelper.BrandColors.Total).Padding(3).AlignRight()
+                    .Text($"{data.TotaleImponibileAcquisti:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                table.Cell().BorderTop(1.5f).BorderColor(ReportHeaderHelper.BrandColors.Primary).Background(ReportHeaderHelper.BrandColors.Total).Padding(3).AlignRight()
+                    .Text($"{data.TotaleIvaAcquisti:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
+                table.Cell().BorderTop(1.5f).BorderColor(ReportHeaderHelper.BrandColors.Primary).Background(ReportHeaderHelper.BrandColors.Total).Padding(3).AlignRight()
+                    .Text($"{data.TotaleImponibileVendite:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
+                table.Cell().BorderTop(1.5f).BorderColor(ReportHeaderHelper.BrandColors.Primary).Background(ReportHeaderHelper.BrandColors.Total).Padding(3).AlignRight()
+                    .Text($"{data.TotaleIvaVendite:N2}").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Success);
             });
         }
 
@@ -436,33 +414,33 @@ public class RegistroIvaPrinter
 
     private static void ComposeLiquidazioneBox(ColumnDescriptor column, LiquidazioneIva liquidazione)
     {
-        var borderColor = liquidazione.IsDebito ? BrandColors.Accent : (liquidazione.IsCredito ? BrandColors.Success : BrandColors.Primary);
+        var borderColor = liquidazione.IsDebito ? ReportHeaderHelper.BrandColors.Accent : (liquidazione.IsCredito ? ReportHeaderHelper.BrandColors.Success : ReportHeaderHelper.BrandColors.Primary);
 
         column.Item().Border(2).BorderColor(borderColor).Padding(10).Column(box =>
         {
             box.Item().AlignCenter().Text("LIQUIDAZIONE IVA DEL PERIODO")
-                .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Primary);
+                .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
             box.Item().PaddingTop(8).Row(row =>
             {
                 // IVA a Debito (Vendite)
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().Text("IVA a Debito (Vendite)").FontSize(FontSizeBody).Bold();
+                    c.Item().Text("IVA a Debito (Vendite)").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                     c.Item().Text($"{liquidazione.IvaDebito:N2} EUR")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Accent);
+                        .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                 });
 
                 // Separatore -
                 row.ConstantItem(20).AlignCenter().AlignMiddle().Text("-")
-                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+                    .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
                 // IVA a Credito (Acquisti)
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().Text("IVA a Credito (Acquisti)").FontSize(FontSizeBody).Bold();
+                    c.Item().Text("IVA a Credito (Acquisti)").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                     c.Item().Text($"{liquidazione.IvaCredito:N2} EUR")
-                        .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Success);
+                        .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Success);
                 });
 
                 // Credito periodo precedente (solo se presente)
@@ -470,27 +448,27 @@ public class RegistroIvaPrinter
                 {
                     // Separatore -
                     row.ConstantItem(20).AlignCenter().AlignMiddle().Text("-")
-                        .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+                        .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("Credito Periodo Prec.").FontSize(FontSizeBody).Bold();
+                        c.Item().Text("Credito Periodo Prec.").FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                         c.Item().Text($"{liquidazione.CreditoPrecedente:N2} EUR")
-                            .FontSize(FontSizeSubHeader).Bold().FontColor(BrandColors.Success);
+                            .FontSize(ReportHeaderHelper.FontSizeSubHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Success);
                     });
                 }
 
                 // Separatore =
                 row.ConstantItem(20).AlignCenter().AlignMiddle().Text("=")
-                    .FontSize(FontSizeHeader).Bold().FontColor(BrandColors.Primary);
+                    .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold().FontColor(ReportHeaderHelper.BrandColors.Primary);
 
                 // Saldo
                 row.RelativeItem().Column(c =>
                 {
-                    c.Item().Text(liquidazione.SaldoLabel).FontSize(FontSizeBody).Bold();
+                    c.Item().Text(liquidazione.SaldoLabel).FontSize(ReportHeaderHelper.FontSizeBodyCompact).Bold();
                     c.Item().Text(liquidazione.SaldoFormatted)
-                        .FontSize(FontSizeHeader).Bold()
-                        .FontColor(liquidazione.IsDebito ? BrandColors.Accent : (liquidazione.IsCredito ? BrandColors.Success : BrandColors.Primary));
+                        .FontSize(ReportHeaderHelper.FontSizeHeaderCompact).Bold()
+                        .FontColor(liquidazione.IsDebito ? ReportHeaderHelper.BrandColors.Accent : (liquidazione.IsCredito ? ReportHeaderHelper.BrandColors.Success : ReportHeaderHelper.BrandColors.Primary));
                 });
             });
         });
@@ -503,15 +481,15 @@ public class RegistroIvaPrinter
             row.RelativeItem().Text(text =>
             {
                 text.Span($"Registro IVA generato da GestioneViaggi - {data.DataStampa:dd/MM/yyyy HH:mm}")
-                    .FontSize(FontSizeSmall).FontColor(BrandColors.Secondary);
+                    .FontSize(ReportHeaderHelper.FontSizeSmallCompact).FontColor(ReportHeaderHelper.BrandColors.Secondary);
             });
 
             row.RelativeItem().AlignRight().Text(text =>
             {
-                text.Span($"{data.PeriodoDa.Year} / Pagina ").FontSize(FontSizeSmall);
-                text.CurrentPageNumber().FontSize(FontSizeSmall);
-                text.Span(" di ").FontSize(FontSizeSmall);
-                text.TotalPages().FontSize(FontSizeSmall);
+                text.Span($"{data.PeriodoDa.Year} / Pagina ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.CurrentPageNumber().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.Span(" di ").FontSize(ReportHeaderHelper.FontSizeSmallCompact);
+                text.TotalPages().FontSize(ReportHeaderHelper.FontSizeSmallCompact);
             });
         });
     }

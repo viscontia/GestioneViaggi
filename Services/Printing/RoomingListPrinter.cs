@@ -8,22 +8,6 @@ namespace GestioneViaggi.Services.Printing;
 
 public class RoomingListPrinter
 {
-    // Define brand colors (matching ViaggiPrinter)
-    private static class BrandColors
-    {
-        public static readonly string Primary = "#2B3A42"; // Dark Slate
-        public static readonly string Secondary = "#8D99AE"; // Cool Grey
-        public static readonly string Accent = "#E74C3C";  // Red (same as ViaggiPrinter)
-        public static readonly string Text = "#000000";
-        public static readonly string LightGray = "#F0F0F0";
-        public static readonly string Border = "#CCCCCC";
-    }
-
-    // Define layout constants
-    private const float FontSizeHeader = 18;
-    private const float FontSizeSubHeader = 12;
-    private const float FontSizeBody = 9;
-    private const float FontSizeSmall = 8;
 
     public static async Task GeneratePdfAsync(RoomingListPrintDTO data, string outputPath)
     {
@@ -38,7 +22,7 @@ public class RoomingListPrinter
                 page.Size(PageSizes.A4); // Portrait
                 page.Margin(1, Unit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(FontSizeBody).FontFamily("Lato").FontColor(BrandColors.Text));
+                page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposeHeader(header, data));
                 page.Content().Element(content => ComposeContent(content, data));
@@ -63,7 +47,7 @@ public class RoomingListPrinter
         container.Column(column =>
         {
             // VIAGGIO INFO (only on first page)
-            column.Item().ShowOnce().PaddingTop(15).Border(2).BorderColor(BrandColors.Text).Padding(8).Column(viaggioCol =>
+            column.Item().ShowOnce().PaddingTop(15).Border(2).BorderColor(ReportHeaderHelper.BrandColors.Text).Padding(8).Column(viaggioCol =>
             {
                 viaggioCol.Item().Text(text =>
                 {
@@ -83,7 +67,7 @@ public class RoomingListPrinter
             {
                 carCol.Item().PaddingBottom(5).Text("Caratteristiche del Viaggio:").FontSize(12).Bold();
 
-                carCol.Item().Border(2).BorderColor(BrandColors.Accent).Row(carRow =>
+                carCol.Item().Border(2).BorderColor(ReportHeaderHelper.BrandColors.Accent).Row(carRow =>
                 {
                     // LEFT: Details Table
                     carRow.RelativeItem().Padding(8).Table(table =>
@@ -109,7 +93,7 @@ public class RoomingListPrinter
                     });
 
                     // RIGHT: Big Stats
-                    carRow.ConstantItem(100).BorderLeft(2).BorderColor(BrandColors.Accent).Column(statsCol =>
+                    carRow.ConstantItem(100).BorderLeft(2).BorderColor(ReportHeaderHelper.BrandColors.Accent).Column(statsCol =>
                     {
                         void BigStat(IContainer cnt, string number, string label)
                         {
@@ -121,7 +105,7 @@ public class RoomingListPrinter
                         }
 
                         statsCol.Item().PaddingVertical(10).Element(e => BigStat(e, data.TotalParticipants.ToString(), "PERSONE"));
-                        statsCol.Item().BorderTop(2).BorderColor(BrandColors.Accent).PaddingVertical(10).Element(e => BigStat(e, data.TotalRooms.ToString(), "CAMERE"));
+                        statsCol.Item().BorderTop(2).BorderColor(ReportHeaderHelper.BrandColors.Accent).PaddingVertical(10).Element(e => BigStat(e, data.TotalRooms.ToString(), "CAMERE"));
                     });
                 });
             });
@@ -132,7 +116,7 @@ public class RoomingListPrinter
                 foreach (var roomGroup in data.RoomGroups)
                 {
                     // ROOM TYPE HEADER
-                    contentCol.Item().PaddingTop(10).Background(BrandColors.Accent).Padding(8).Row(headerRow =>
+                    contentCol.Item().PaddingTop(10).Background(ReportHeaderHelper.BrandColors.Accent).Padding(8).Row(headerRow =>
                     {
                         headerRow.RelativeItem().Text(roomGroup.DisplayHeader).FontSize(11).Bold().FontColor(Colors.White);
                         headerRow.ConstantItem(80).AlignRight().Text($"Camere: {roomGroup.RoomCount}").FontSize(10).Bold().FontColor(Colors.White);
@@ -151,14 +135,14 @@ public class RoomingListPrinter
                             // If not the very first item, and we are switching rooms, add a strong separator
                             if (lastRoomId != -1)
                             {
-                                contentCol.Item().PaddingTop(10).LineHorizontal(1).LineColor(BrandColors.Accent);
+                                contentCol.Item().PaddingTop(10).LineHorizontal(1).LineColor(ReportHeaderHelper.BrandColors.Accent);
                             }
                             lastRoomId = participant.RoomId;
                         }
                         else if (i > 0)
                         {
                             // Same room (or both no room), simple separator
-                            contentCol.Item().PaddingTop(5).Text(new string('-', 40)).FontSize(8).FontColor(BrandColors.Border);
+                            contentCol.Item().PaddingTop(5).Text(new string('-', 40)).FontSize(8).FontColor(ReportHeaderHelper.BrandColors.Border);
                         }
 
                         // PARTICIPANT BOX
@@ -169,7 +153,7 @@ public class RoomingListPrinter
                             {
                                 partCol.Item().PaddingBottom(3).Row(badgeRow =>
                                 {
-                                    badgeRow.ConstantItem(60).Background(BrandColors.Accent)
+                                    badgeRow.ConstantItem(60).Background(ReportHeaderHelper.BrandColors.Accent)
                                         .Padding(2).AlignCenter()
                                         .Text("PILOTA").FontSize(7).Bold().FontColor(Colors.White);
                                 });
@@ -231,14 +215,14 @@ public class RoomingListPrinter
                               else
                               {
                                    // MESSAGGIO AGGIUNTO SU RICHIESTA UTENTE
-                                   partCol.Item().Text("Nessun documento registrato").FontSize(9).Italic().FontColor(BrandColors.Secondary);
+                                   partCol.Item().Text("Nessun documento registrato").FontSize(9).Italic().FontColor(ReportHeaderHelper.BrandColors.Secondary);
                               }
 
                             // Linea 3: Intolleranze (se presenti)
                             if (!string.IsNullOrEmpty(participant.Intolleranze))
                             {
                                 partCol.Item().Text($"** INT. ALIMENTARE: {participant.Intolleranze.ToUpper()} **")
-                                    .FontSize(9).Bold().FontColor(BrandColors.Accent);
+                                    .FontSize(9).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                             }
                         });
                     }
