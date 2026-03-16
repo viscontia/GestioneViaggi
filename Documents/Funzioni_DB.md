@@ -804,6 +804,167 @@ Le seguenti funzioni usavano `get_company_print_info` e passavano direttamente `
 
 ---
 
+## 10. Anagrafiche Clienti
+
+Funzioni e stored procedures per la gestione completa dell'anagrafica clienti (CRUD, ricerca, validazioni). Implementazione **DB-First** completa: zero SQL inline nel codice C#, tutta la logica SQL risiede nel database.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_cliente_by_id` | Recupera singolo cliente per ID con dati completi inclusi comuni di nascita e residenza (nested JSON con nome, sigla provincia, flag estero) | `p_cliente_id INT, p_azienda_fk INT` | `JSON` (oggetto cliente completo con ComuneNascita e ComuneResidenza nested) | `Repositories/ClienteRepository.cs` (GetByIdAsync) |
+| `fn_get_all_clienti` | Recupera tutti i clienti per azienda con conteggi viaggi (fatti/futuri) e dati comuni. Supporta filtro opzionale per anno di creazione. Restituisce array JSON con oggetti cliente inclusi comuni nested | `p_azienda_fk INT (nullable), p_filter_year INT (nullable)` | `JSON` (array di clienti con ViaggiFatti, ViaggiDaFare, ComuneNascita, ComuneResidenza) | `Repositories/ClienteRepository.cs` (GetAllAsync), `Components/Pages/Clienti.razor` |
+| `sp_ana_clienti_create` | Crea nuovo cliente con validazione e gestione errori. Gestisce eccezioni unique_violation (email/CF duplicati), foreign_key_violation (comune/azienda inesistente). Restituisce JSON con cliente creato inclusi campi audit (created_by, created) | `31 parametri cliente (p_cliente_titolo, p_cliente_cognome, p_cliente_nome, ..., p_azienda_fk)` | `JSON` (cliente creato con tutti i campi) | `Repositories/ClienteRepository.cs` (InsertAsync) |
+| `sp_ana_clienti_update` | Aggiorna cliente esistente con validazione e gestione errori. Controlla esistenza cliente prima di aggiornare. Gestisce eccezioni come create. Restituisce JSON con cliente aggiornato inclusi campi audit (updated_by, updated) | `32 parametri (p_cliente_id, p_cliente_titolo, ..., p_azienda_fk)` | `JSON` (cliente aggiornato) | `Repositories/ClienteRepository.cs` (UpdateAsync) |
+| `sp_ana_clienti_delete` | Elimina cliente con controlli di integrità referenziale. Impedisce eliminazione se cliente ha prenotazioni viaggi attive (mov_clienti_viaggi) o assegnazioni alloggio (mov_clienti_alloggi). Messaggi di errore in italiano | `p_cliente_id INT, p_azienda_fk INT` | `VOID` (solleva EXCEPTION se vincolato) | `Repositories/ClienteRepository.cs` (DeleteAsync) |
+| `fn_exists_cliente_email` | Verifica unicità email per azienda escludendo cliente corrente (utile in UPDATE). Supporta controllo per nuovo cliente (p_cliente_id = 0) o cliente esistente | `p_email VARCHAR(150), p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` (TRUE se email già in uso da altro cliente) | `Repositories/ClienteRepository.cs` (ExistsByEmailAsync), `Services/CRUD/ClienteService.cs` (validazione) |
+| `fn_exists_cliente_codice_fiscale` | Verifica unicità codice fiscale per azienda escludendo cliente corrente. Pattern identico a fn_exists_cliente_email per CF | `p_codice_fiscale VARCHAR(16), p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` (TRUE se CF già in uso) | `Repositories/ClienteRepository.cs` (ExistsByCodiceFiscaleAsync), `Services/CRUD/ClienteService.cs` |
+| `fn_exists_cliente_anagrafica` | Verifica duplicati anagrafica completa: cognome + nome + data nascita + codice fiscale. Impedisce inserimento di clienti con stessa identità. Esclude cliente corrente se in UPDATE | `p_cognome VARCHAR(50), p_nome VARCHAR(50), p_data_nascita DATE, p_codice_fiscale VARCHAR(16), p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` (TRUE se anagrafica già esistente) | `Repositories/ClienteRepository.cs` (ExistsAnagraficaAsync), `Services/CRUD/ClienteService.cs` |
+| `fn_search_clienti` | Ricerca full-text clienti per cognome, nome, email, codice fiscale, telefono. Usa pattern matching LIKE case-insensitive con UPPER. Restituisce JSON con comuni nested come fn_get_all_clienti | `p_azienda_fk INT, p_search_text VARCHAR(100)` | `JSON` (array clienti matching con ComuneNascita/ComuneResidenza nested) | `Repositories/ClienteRepository.cs` (SearchAsync) |
+| `fn_count_clienti_by_azienda` | Conta totale clienti per azienda. Usato per statistiche e report | `p_azienda_fk INT` | `INT` (numero totale clienti) | `Repositories/ClienteRepository.cs` (CountByAziendaAsync) |
+
+### 📝 Note Implementative - Anagrafiche Clienti (2026-03-16)
+
+#### 🏗️ Architettura DB-First
+
+**Principio**: ZERO SQL inline nel codice C#. Tutta la logica SQL risiede nelle stored procedures PostgreSQL.
+
+**Prima del refactoring** (inline SQL):
+```csharp
+var sql = @"SELECT cliente_id, cliente_cognome, ... FROM ana_clienti WHERE ...";
+await using var command = new NpgsqlCommand(sql, connection);
+var reader = await command.ExecuteReaderAsync();
+// mapping manuale da reader a oggetto
+```
+
+**Dopo il refactoring** (DB-First):
+```csharp
+var sql = "SELECT fn_get_all_clienti(@aziendaFk::INT, @filterYear::INT)";
+var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+var clienti = JsonSerializer.Deserialize<List<Cliente>>(jsonResult);
+```
+
+**Vantaggi**:
+- ✅ Logica SQL centralizzata e testabile nel DB
+- ✅ Riduzione drastica della complessità del repository C#
+- ✅ Consistenza con altre gestioni (mov_clienti_viaggi, ana_tipo_fornitore)
+- ✅ Validazioni e controlli di integrità a livello DB
+- ✅ Manutenzione semplificata (modifiche SQL senza rebuild C#)
+
+#### 🗺️ Gestione Comuni (Nested JSON)
+
+Le funzioni `fn_get_all_clienti` e `fn_search_clienti` restituiscono i comuni di nascita e residenza come **oggetti nested JSON**:
+
+```json
+{
+  "ClienteId": 123,
+  "Cognome": "ROSSI",
+  "Nome": "MARIO",
+  "ComuneNascita": {
+    "Nome": "MILANO",
+    "ProvinciaSigla": "MI",
+    "ProvinciaDescrizione": "MILANO",
+    "ComuneEstero": false
+  },
+  "ComuneResidenza": {
+    "Nome": "ROMA",
+    "ProvinciaSigla": "RM",
+    "ProvinciaDescrizione": "ROMA",
+    "ComuneEstero": false
+  }
+}
+```
+
+Per comuni esteri:
+```json
+{
+  "ComuneNascita": {
+    "Nome": "CASABLANCA",
+    "ProvinciaSigla": "MM",
+    "ProvinciaDescrizione": "ESTERO - MAROCCO",
+    "ComuneEstero": true
+  }
+}
+```
+
+**JOIN necessari** nelle stored procedures:
+```sql
+LEFT JOIN ana_geo_comuni com_nas ON c.cliente_comune_nascita_fk = com_nas.comune_id
+LEFT JOIN ana_geo_province prov_nas ON com_nas.comune_provincia_fk = prov_nas.provincia_id
+LEFT JOIN ana_geo_comuni com_res ON c.cliente_comune_residenza_fk = com_res.comune_id
+LEFT JOIN ana_geo_province prov_res ON com_res.comune_provincia_fk = prov_res.provincia_id
+```
+
+#### 🎯 Visualizzazione UI (Datagrid)
+
+La datagrid clienti mostra:
+- **NATO A**: `ComuneNascita.Nome (IT)` per italiani, `ComuneNascita.Nome (ProvinciaSigla)` per esteri
+- **RESIDENZA**: `ComuneResidenza.Nome (IT)` per italiani, `ComuneResidenza.Nome (ProvinciaSigla)` per esteri
+- **PROV.**: `ComuneResidenza.ProvinciaSigla` SOLO per comuni italiani (colonna vuota per esteri)
+
+**Larghezza colonne**: `min-width: 150px` per NATO A e RESIDENZA per evitare troncamento nomi lunghi (es. ALESSANDRIA, MONFERRATO).
+
+#### 🔒 Validazioni e Controlli Integrità
+
+**Validazioni sintattiche** (lato Service C#):
+- Lunghezza campi (nome max 50, email max 150, etc.)
+- Formato email, telefono, IBAN, codice fiscale
+- Date coerenti (nascita < oggi, rilascio doc < scadenza doc)
+
+**Validazioni business** (lato DB + Service):
+- Unicità email per azienda (`fn_exists_cliente_email`)
+- Unicità codice fiscale per azienda (`fn_exists_cliente_codice_fiscale`)
+- Duplicati anagrafica completa (`fn_exists_cliente_anagrafica`)
+
+**Controlli integrità referenziale** (stored procedure delete):
+- Impedisce eliminazione cliente con viaggi attivi
+- Impedisce eliminazione cliente con alloggi assegnati
+- Messaggi di errore italiani: `"Impossibile eliminare il cliente con id % - ha prenotazioni viaggi attive"`
+
+#### 📊 Performance e Ottimizzazioni
+
+**Conteggi viaggi** ottimizzati con `LEFT JOIN LATERAL`:
+```sql
+LEFT JOIN LATERAL (
+    SELECT COUNT(*) as count
+    FROM mov_clienti_viaggi mcv
+    JOIN ana_date_viaggi adv ON mcv.data_viaggio_id_fk = adv.data_viaggio_id
+    WHERE mcv.cliente_id_fk = c.cliente_id
+      AND adv.data_viaggio_data_inizio < CURRENT_DATE
+) viaggi_fatti ON true
+```
+
+**Indici presenti** (da verificare):
+- `ana_clienti.cliente_email` (unicità per ricerca email)
+- `ana_clienti.cliente_codicefiscale` (unicità per ricerca CF)
+- `ana_clienti.azienda_fk` (multi-tenancy)
+- `mov_clienti_viaggi.cliente_id_fk` (JOIN viaggi)
+
+#### 🔄 Pattern SuperAdmin
+
+**Comportamento allineato** con altre gestioni (es. AnaTipoFornitore):
+- Se SuperAdmin e **nessuna azienda selezionata**: mostra barra loading blu, nessun record
+- Se SuperAdmin e **azienda selezionata**: carica clienti solo di quell'azienda
+- Se utente normale: carica automaticamente clienti della propria azienda
+
+**Codice**:
+```csharp
+// SuperAdmin MUST select a company first
+if (_isSuperAdmin && !filterId.HasValue)
+{
+    _items = new List<Cliente>();
+    _filteredItems = new List<Cliente>();
+    // Keep _loading = true to show loading indicator
+    return;
+}
+```
+
+#### 📝 Script SQL
+
+- **Script principale**: `SqlScripts/356_Create_AnaClienti_CRUD_Procedures.sql`
+- **Deployment**: `docker exec -i postgres_db psql -U postgres -d gestione_viaggi < SqlScripts/356_Create_AnaClienti_CRUD_Procedures.sql`
+- **Grants**: Tutte le funzioni hanno `GRANT EXECUTE TO PUBLIC`
+
+---
+
 ## Allineamento Database (2026-03-15)
 
 ### Funzioni Allineate

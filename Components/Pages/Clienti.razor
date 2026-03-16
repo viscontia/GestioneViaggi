@@ -44,14 +44,14 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Cliente" Items="@_filteredItems" Title="Gestione Anagrafica Clienti" SearchFunction="@Search"
+    <EnterpriseDataGrid T="Cliente" Items="@_filteredItems" Title="Gestione Anagrafica Clienti" Loading="@_loading" SearchFunction="@Search"
     @bind-SelectedItem="_selectedItem">
 
     <ToolBarActions>
         @if (_isSuperAdmin)
             {
                 <div style="min-width: 250px;" class="mr-4">
-                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="true"
+                    <AziendaSelect Value="_selectedAziendaId" Label="Seleziona Azienda" Clearable="false" Required="true"
                         ValueChanged="@OnAziendaFilterChanged" />
                 </div>
             }
@@ -122,11 +122,16 @@ else
             </TemplateColumn>
 
             <PropertyColumn Property="x => x.Sesso" Title="Sesso" HeaderStyle="text-align:center"
-                CellStyle="text-align:center" />
+                CellStyle="text-align:center" Class="col-xs" />
 
-            <TemplateColumn Title="Nato a" SortBy="@(x => x.ComuneNascita?.Nome)">
+            <TemplateColumn Title="Nato a" SortBy="@(x => x.ComuneNascita?.Nome)"
+                HeaderStyle="min-width: 150px" CellStyle="min-width: 150px">
                 <CellTemplate>
-                    @context.Item.ComuneNascita?.Nome (@context.Item.ComuneNascita?.ProvinciaDescrizione)
+                    @if (context.Item.ComuneNascita != null)
+                    {
+                        var sigla = context.Item.ComuneNascita.ComuneEstero ? context.Item.ComuneNascita.ProvinciaSigla : "IT";
+                        <text>@context.Item.ComuneNascita.Nome (@sigla)</text>
+                    }
                 </CellTemplate>
             </TemplateColumn>
 
@@ -143,39 +148,34 @@ else
                 </CellTemplate>
             </TemplateColumn>
 
-            <TemplateColumn Title="Residenza" SortBy="@(x => x.ComuneResidenza?.Nome)">
+            <TemplateColumn Title="Residenza" SortBy="@(x => x.ComuneResidenza?.Nome)"
+                HeaderStyle="min-width: 150px" CellStyle="min-width: 150px">
                 <CellTemplate>
-                    <div style="font-size: 0.85em;">
-                        <div>@context.Item.IndirizzoResidenza</div>
-                        <div>@context.Item.ComuneResidenza?.Nome (@context.Item.ComuneResidenza?.ProvinciaDescrizione)
-                        </div>
-                    </div>
+                    @if (context.Item.ComuneResidenza != null)
+                    {
+                        var sigla = context.Item.ComuneResidenza.ComuneEstero ? context.Item.ComuneResidenza.ProvinciaSigla : "IT";
+                        <text>@context.Item.ComuneResidenza.Nome (@sigla)</text>
+                    }
                 </CellTemplate>
             </TemplateColumn>
 
-            <TemplateColumn Title="Telefono">
+            <TemplateColumn Title="Prov." SortBy="@(x => x.ComuneResidenza?.ProvinciaSigla)"
+                HeaderStyle="text-align:center; width: 60px" CellStyle="text-align:center">
+                <CellTemplate>
+                    @if (context.Item.ComuneResidenza != null && !context.Item.ComuneResidenza.ComuneEstero)
+                    {
+                        <text>@context.Item.ComuneResidenza.ProvinciaSigla</text>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Telefono" CellStyle="white-space: nowrap">
                 <CellTemplate>
                     @($"{context.Item.PrefTelInt} {context.Item.Telefono}")
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="x => x.Email" Title="Email" />
             <PropertyColumn Property="x => x.CodiceFiscale" Title="Codice Fiscale" />
-
-            <PropertyColumn Property="x => x.TipoDocIdentita" Title="Documento" />
-            <PropertyColumn Property="x => x.DocumentoNumero" Title="Numero Doc." />
-
-            <TemplateColumn Title="Scadenza Doc." SortBy="@(x => x.DocumentoRilasciatoScadenza)">
-                <CellTemplate>
-                    @if (context.Item.DocumentoRilasciatoScadenza.HasValue)
-                    {
-                        var days = (context.Item.DocumentoRilasciatoScadenza.Value - DateTime.Today).TotalDays;
-                        <MudText Color="@(days < 30 ? Color.Error : Color.Default)">
-                            @context.Item.DocumentoRilasciatoScadenza.Value.ToString("dd/MM/yyyy")
-                        </MudText>
-                    }
-                </CellTemplate>
-            </TemplateColumn>
-
             <PropertyColumn Property="x => x.Intolleranza" Title="Int. Alimentare" />
 
             <TemplateColumn T="Cliente" Tag="@("Actions")" Sortable="false" StickyLeft="true"
@@ -221,6 +221,7 @@ else
     private int _selectedPresetFilter = 0; // 0=All, 1=Made, 2=Future, 3=Future+Intolerance
     private Cliente? _selectedItem;
     private string _errorMessage = string.Empty;
+    private bool _loading = true;
     private int? _currentAziendaId;
     private int _selectedAziendaId; // Filtro per SuperAdmin
     private bool _isSuperAdmin;
@@ -272,19 +273,31 @@ else
 
     private async Task LoadDataAsync()
     {
+        _errorMessage = string.Empty;
+        int? filterId = _isSuperAdmin ? (_selectedAziendaId > 0 ? _selectedAziendaId : (int?)null) : _currentAziendaId;
+
+        // SuperAdmin MUST select a company first
+        if (_isSuperAdmin && !filterId.HasValue)
+        {
+            _items = new List<Cliente>();
+            _filteredItems = new List<Cliente>();
+            // Keep _loading = true to show loading indicator
+            return;
+        }
+
+        _loading = true;
         try
         {
-            _errorMessage = string.Empty;
-            // Se filtro selezionato (SuperAdmin), usa quello. Altrimenti usa contesto corrente.
-            // Per SuperAdmin senza filtro, passa null (GetAll).
-            int? filterId = _selectedAziendaId > 0 ? _selectedAziendaId : _currentAziendaId;
-
             _items = await ClienteService.GetAllAsync(filterId, QueryYear);
             ApplyFilters();
         }
         catch (Exception ex)
         {
             _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 
