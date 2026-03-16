@@ -78,16 +78,23 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
                 builder.ConnectionStringBuilder.Pooling = true;
                 builder.ConnectionStringBuilder.MinPoolSize = 1;
                 builder.ConnectionStringBuilder.MaxPoolSize = 20;
+                builder.ConnectionStringBuilder.ConnectionIdleLifetime = 300; // 5 minutes idle cleanup
+                builder.ConnectionStringBuilder.ConnectionPruningInterval = 10; // Check every 10 seconds
             }
             else
             {
-                // Per PgBouncer: pooling minimo lato Npgsql, multiplexing gestisce la concorrenza
+                // Per PgBouncer: pool con margine di sicurezza, multiplexing gestisce la concorrenza
+                // MaxPoolSize=10 previene "pool exhausted" errors durante picchi di traffico
                 builder.ConnectionStringBuilder.Pooling = true;
                 builder.ConnectionStringBuilder.MinPoolSize = 0;
-                builder.ConnectionStringBuilder.MaxPoolSize = 5;
+                builder.ConnectionStringBuilder.MaxPoolSize = 10;
+                builder.ConnectionStringBuilder.ConnectionIdleLifetime = 180; // 3 minutes idle for Supabase
+                builder.ConnectionStringBuilder.ConnectionPruningInterval = 10;
             }
 
+            // Connection timeout e lifetime per sicurezza e rotazione
             builder.ConnectionStringBuilder.Timeout = 30;
+            builder.ConnectionStringBuilder.ConnectionLifetime = 600; // 10 minutes max connection lifetime
 
             _dataSource = builder.Build();
 
@@ -95,7 +102,16 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
             await testConnection.CloseAsync();
 
             _initialized = true;
-            _logger.LogInformation("Database connection pool initialized successfully");
+
+            // Log pool configuration for monitoring
+            var poolConfig = _environment == DbEnvironment.Test
+                ? "Test: MaxPool=20, IdleLifetime=300s"
+                : "Prod: MaxPool=10, IdleLifetime=180s, ConnectionLifetime=600s";
+            _logger.LogInformation(
+                "Database connection pool initialized successfully. Environment: {Environment}, Config: {PoolConfig}",
+                _environment,
+                poolConfig
+            );
         }
         catch (Exception ex)
         {
@@ -142,4 +158,46 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
             _logger.LogError(ex, "Error disposing database connection pool");
         }
     }
+
+    /// <summary>
+    /// Gets current pool statistics for monitoring and optimization.
+    /// Call this periodically to verify MaxPoolSize is adequate.
+    /// </summary>
+    public PoolStatistics GetPoolStatistics()
+    {
+        var stats = new PoolStatistics
+        {
+            Environment = _environment,
+            IsInitialized = _initialized,
+            Host = _host,
+            MaxPoolSize = _environment == DbEnvironment.Test ? 20 : 10,
+            MinPoolSize = _environment == DbEnvironment.Test ? 1 : 0,
+            IdleLifetimeSeconds = _environment == DbEnvironment.Test ? 300 : 180,
+            ConnectionLifetimeSeconds = 600
+        };
+
+        _logger.LogDebug(
+            "Pool Statistics - Env: {Environment}, MaxPool: {MaxPool}, Host: {Host}",
+            stats.Environment,
+            stats.MaxPoolSize,
+            stats.Host
+        );
+
+        return stats;
+    }
+}
+
+/// <summary>
+/// Represents current connection pool statistics.
+/// Useful for monitoring and determining if MaxPoolSize needs adjustment.
+/// </summary>
+public record PoolStatistics
+{
+    public DbEnvironment Environment { get; init; }
+    public bool IsInitialized { get; init; }
+    public string Host { get; init; } = string.Empty;
+    public int MaxPoolSize { get; init; }
+    public int MinPoolSize { get; init; }
+    public int IdleLifetimeSeconds { get; init; }
+    public int ConnectionLifetimeSeconds { get; init; }
 }
