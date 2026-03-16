@@ -127,29 +127,19 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
+        /// <summary>
+        /// DB Function: fn_get_mov_clienti_viaggi_by_date(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Tutti i partecipanti iscritti (dati raw senza arricchimenti)
+        /// </summary>
         public async Task<IEnumerable<MovClientiViaggi>> GetByDateIdAsync(int dataViaggioId)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                // Manual mapping via aliases to safe PascalCase
-                string sql = @"
-                    SELECT
-                        viaggio_id_fk as ViaggioIdFk,
-                        data_viaggio_id_fk as DataViaggioIdFk,
-                        cliente_id_fk as ClienteIdFk,
-                        tipo_partecipante_id_fk as TipoPartecipanteIdFk,
-                        ana_mezzi_id_fk as AnaMezziIdFk,
-                        mezzo_modello_id_fk as MezzoModelloIdFk,
-                        cliente_pilota_id_fk as ClientePilotaIdFk,
-                        mov_cliente_viaggio_scontoval_totale as MovClienteViaggioScontovalTotale,
-                        mov_cliente_viaggio_targa_mezzo as MovClienteViaggioTargaMezzo,
-                        mov_cliente_viaggio_cane_sino as MovClienteViaggioCaneSino,
-                        mov_cliente_viaggio_note as MovClienteViaggioNote
-                    FROM mov_clienti_viaggi
-                    WHERE data_viaggio_id_fk = @dataId";
-
-                return await conn.QueryAsync<MovClientiViaggi>(sql, new { dataId = dataViaggioId });
+                return await conn.QueryAsync<MovClientiViaggi>(
+                    "SELECT * FROM fn_get_mov_clienti_viaggi_by_date(@dataId)",
+                    new { dataId = dataViaggioId });
             }
             catch (PostgresException ex)
             {
@@ -160,43 +150,19 @@ namespace GestioneViaggi.Services.CRUD
                 throw new InvalidOperationException("Si è verificato un errore imprevisto durante il caricamento dei partecipanti. Riprova.", ex);
             }
         }
+        /// <summary>
+        /// DB Function: fn_get_participants_view(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Vista arricchita partecipanti con dati anagrafici, ruolo e mezzo, ordinati per equipaggio
+        /// </summary>
         public async Task<IEnumerable<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>> GetParticipantsViewAsync(int dataViaggioId)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = @"
-                    SELECT
-                        v.viaggio_id_fk as ViaggioId,
-                        v.data_viaggio_id_fk as DataId,
-                        v.cliente_id_fk as ClienteId,
-                        c.cliente_cognome || ' ' || c.cliente_nome as Nominativo,
-                        v.tipo_partecipante_id_fk as TipoPartecipanteId,
-                        tp.tipo_partecipante_descrizione as Ruolo,
-                        v.mov_cliente_viaggio_note as Note,
-                        v.mov_cliente_viaggio_cane_sino as CaneSino,
-                        c.cliente_intolleranza as Intolleranze,
-                        get_mezzo_by_pilot(v.viaggio_id_fk, v.data_viaggio_id_fk, v.cliente_id_fk) as MezzoDettagli,
-                        v.cliente_pilota_id_fk as ClientePilotaId,
-                        CASE
-                            WHEN v.cliente_pilota_id_fk IS NOT NULL AND v.cliente_pilota_id_fk > 0 THEN v.cliente_pilota_id_fk
-                            WHEN tp.tipo_partecipante_pilota = true THEN v.cliente_id_fk
-                            ELSE 0
-                        END as GroupingKey
-                    FROM mov_clienti_viaggi v
-                    JOIN ana_clienti c ON v.cliente_id_fk = c.cliente_id
-                    JOIN ana_tipo_partecipante tp ON v.tipo_partecipante_id_fk = tp.tipo_partecipante_id
-                    WHERE v.data_viaggio_id_fk = @dataId
-                    ORDER BY
-                        CASE
-                            WHEN v.cliente_pilota_id_fk IS NOT NULL AND v.cliente_pilota_id_fk > 0 THEN v.cliente_pilota_id_fk
-                            WHEN tp.tipo_partecipante_pilota = true THEN v.cliente_id_fk
-                            ELSE 0
-                        END,
-                        c.cliente_cognome,
-                        c.cliente_nome";
-
-                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(sql, new { dataId = dataViaggioId });
+                return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(
+                    "SELECT * FROM fn_get_participants_view(@dataId)",
+                    new { dataId = dataViaggioId });
             }
             catch (PostgresException ex)
             {
@@ -227,19 +193,19 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
+        /// <summary>
+        /// DB Function: fn_get_trip_header_string(p_viaggio_id INTEGER, p_data_viaggio_id INTEGER)
+        /// Input: ID viaggio e ID data viaggio
+        /// Output: Intestazione formattata "Descrizione (Dal GG/MM/AAAA al GG/MM/AAAA)"
+        /// </summary>
         public async Task<string> GetTripHeaderStringAsync(int viaggioId, int dataViaggioId)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = @"
-                    SELECT
-                        v.viaggio_descrizione_breve || ' (Dal ' || TO_CHAR(d.data_viaggio_data_inizio, 'DD/MM/YYYY') || ' al ' || TO_CHAR(d.data_viaggio_data_fine, 'DD/MM/YYYY') || ')'
-                    FROM ana_viaggi v
-                    JOIN ana_date_viaggi d ON d.viaggio_id_fk = v.viaggio_id
-                    WHERE v.viaggio_id = @vid AND d.data_viaggio_id = @did";
-
-                return await conn.QueryFirstOrDefaultAsync<string>(sql, new { vid = viaggioId, did = dataViaggioId }) ?? "Intestazione non disponibile";
+                return await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT fn_get_trip_header_string(@vid, @did)",
+                    new { vid = viaggioId, did = dataViaggioId }) ?? "Intestazione non disponibile";
             }
             catch (PostgresException ex)
             {

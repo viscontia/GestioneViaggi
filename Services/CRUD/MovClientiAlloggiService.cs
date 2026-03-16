@@ -146,28 +146,19 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
+        /// <summary>
+        /// DB Function: fn_get_mov_clienti_alloggi_by_date(p_data_viaggio_id INTEGER)
+        /// Input: ID della data viaggio
+        /// Output: Tutti gli alloggi (camere) assegnati con i 6 slot clienti (dati raw)
+        /// </summary>
         public async Task<IEnumerable<MovClientiAlloggi>> GetByDateIdAsync(int dataViaggioId)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = @"
-                    SELECT
-                        mov_clienti_alloggio_pk as MovClientiAlloggioPk,
-                        viaggio_id_fk as ViaggioIdFk,
-                        data_viaggio_id_fk as DataViaggioIdFk,
-                        tipo_alloggio_id_fk as TipoAlloggioIdFk,
-                        cliente_id1_fk as ClienteId1Fk,
-                        cliente_id2_fk as ClienteId2Fk,
-                        cliente_id3_fk as ClienteId3Fk,
-                        cliente_id4_fk as ClienteId4Fk,
-                        cliente_id5_fk as ClienteId5Fk,
-                        cliente_id6_fk as ClienteId6Fk
-                    FROM mov_clienti_alloggi
-                    WHERE data_viaggio_id_fk = @dataId";
-                var parameters = new DynamicParameters();
-                parameters.Add("dataId", dataViaggioId);
-                return await conn.QueryAsync<MovClientiAlloggi>(sql, parameters);
+                return await conn.QueryAsync<MovClientiAlloggi>(
+                    "SELECT * FROM fn_get_mov_clienti_alloggi_by_date(@dataId)",
+                    new { dataId = dataViaggioId });
             }
             catch (PostgresException ex)
             {
