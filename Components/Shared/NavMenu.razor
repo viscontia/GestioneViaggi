@@ -317,12 +317,21 @@
     {
         await OnItemClick.InvokeAsync();
 
-        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio da Stampare", new DialogOptions
+        var user = await AuthService.GetCurrentUserAsync();
+        var parameters = new DialogParameters
+        {
+            ["AziendaId"] = user?.AziendaId ?? 0,
+            ["IsSuperAdmin"] = user?.IsSuperAdmin ?? false,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.TravelDataSheet
+        };
+        var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        });
+            FullWidth = true,
+            CloseButton = true
+        };
 
+        var dialog = await DialogService.ShowAsync<TravelDataSelectorDialog>("Stampa Scheda Data Viaggio", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
@@ -377,12 +386,21 @@
     {
         await OnItemClick.InvokeAsync();
 
-        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio (Stampa Dettagliata)", new DialogOptions
+        var user = await AuthService.GetCurrentUserAsync();
+        var parameters = new DialogParameters
+        {
+            ["AziendaId"] = user?.AziendaId ?? 0,
+            ["IsSuperAdmin"] = user?.IsSuperAdmin ?? false,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.TravelDataSheetDetailed
+        };
+        var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        });
+            FullWidth = true,
+            CloseButton = true
+        };
 
+        var dialog = await DialogService.ShowAsync<TravelDataSelectorDialog>("Stampa Dettaglio Data Viaggio", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
@@ -437,12 +455,21 @@
     {
         await OnItemClick.InvokeAsync();
 
-        var dialog = await DialogService.ShowAsync<SelectDataViaggioDialog>("Seleziona Data Viaggio per Rooming List", new DialogOptions
+        var user = await AuthService.GetCurrentUserAsync();
+        var parameters = new DialogParameters
+        {
+            ["AziendaId"] = user?.AziendaId ?? 0,
+            ["IsSuperAdmin"] = user?.IsSuperAdmin ?? false,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.RoomingList
+        };
+        var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Medium,
-            FullWidth = true
-        });
+            FullWidth = true,
+            CloseButton = true
+        };
 
+        var dialog = await DialogService.ShowAsync<TravelDataSelectorDialog>("Stampa Rooming List", parameters, options);
         var result = await dialog.Result;
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
