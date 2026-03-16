@@ -699,7 +699,7 @@ else
                         Stampa Scheda Data Viaggio
                     </MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.ListAlt"
-                               OnClick="@(() => Snackbar.Add("Funzionalità in sviluppo", Severity.Info))">
+                               OnClick="OnStampaDettaglioViaggioClick">
                         Stampa Dettaglio Data Viaggio
                     </MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Tertiary" StartIcon="@Icons.Material.Filled.Hotel"
@@ -1267,6 +1267,68 @@ else
                     await Launcher.Default.OpenAsync(new OpenFileRequest
                     {
                         Title = "Scheda Viaggio",
+                        File = new ReadOnlyFile(filePath)
+                    });
+#endif
+                }
+            }
+            catch(Exception ex)
+            {
+                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OnStampaDettaglioViaggioClick()
+    {
+        // SuperAdmin: deve selezionare prima l'azienda nel dialog
+        var parameters = new DialogParameters
+        {
+            ["AziendaId"] = 0, // 0 = nessuna azienda preselezionata, SuperAdmin dovrà scegliere
+            ["IsSuperAdmin"] = true,
+            ["PrintType"] = GestioneViaggi.Models.PrintType.TravelDataSheetDetailed
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.TravelDataSelectorDialog>("Stampa Dettaglio Data Viaggio", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled && result.Data is int dataViaggioId)
+        {
+            try
+            {
+                var data = await PrintService.GetPrintDataAsync(dataViaggioId);
+
+                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
+                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
+
+                // Create descriptive filename
+                var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
+                var filePath = Path.Combine(targetFolder, fileName);
+
+                // STANDARD: Overwrite check
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                await GestioneViaggi.Services.Printing.ViaggiPrinter.GenerateDetailedPdfAsync(data, filePath);
+
+                // STANDARD: Confirmation and Open
+                bool? confirm = await DialogService.ShowMessageBox(
+                    "Stampa Completata",
+                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+                    yesText: "Sì, Apri", cancelText: "No");
+
+                if (confirm == true)
+                {
+                    // STANDARD: Cross-Platform Open
+#if MACCATALYST
+                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
+#else
+                    await Launcher.Default.OpenAsync(new OpenFileRequest
+                    {
+                        Title = "Scheda Dettaglio",
                         File = new ReadOnlyFile(filePath)
                     });
 #endif
