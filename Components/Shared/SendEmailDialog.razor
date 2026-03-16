@@ -38,11 +38,18 @@
                         {
                             @if (IsTripMode)
                             {
-                                <span>Destinatari con email: <strong>@_recipientCount</strong> su @_totalParticipants partecipanti totali</span>
-                                @if (_participantsWithoutEmail > 0)
-                                {
-                                    <span> (@_participantsWithoutEmail senza email, non riceveranno il messaggio)</span>
-                                }
+                                <span>
+                                    Destinatari con email: <strong>@_recipientCount</strong>
+                                    (@_pilotsWithEmail @(_pilotsWithEmail == 1 ? "pilota" : "piloti")@(_pilotsWithoutEmail > 0 || _passengersWithoutEmail > 0 ? ";" : "")
+                                    @if (_pilotsWithoutEmail > 0)
+                                    {
+                                        <text> @_pilotsWithoutEmail @(_pilotsWithoutEmail == 1 ? "pilota" : "piloti") senza email@(_passengersWithoutEmail > 0 ? "," : "")</text>
+                                    }
+                                    @if (_passengersWithoutEmail > 0)
+                                    {
+                                        <text> @_passengersWithoutEmail @(_passengersWithoutEmail == 1 ? "passeggero" : "passeggeri") senza email</text>
+                                    })
+                                </span>
                             }
                             else
                             {
@@ -51,7 +58,20 @@
                         }
                         else
                         {
-                            <span>@(IsTripMode ? "Nessun partecipante ha un indirizzo email configurato." : "Nessun destinatario specificato.")</span>
+                            @if (IsTripMode)
+                            {
+                                <span>
+                                    Nessun destinatario con email configurata.
+                                    @if (_pilotsWithoutEmail > 0)
+                                    {
+                                        <text> (@_pilotsWithoutEmail @(_pilotsWithoutEmail == 1 ? "pilota" : "piloti") senza email)</text>
+                                    }
+                                </span>
+                            }
+                            else
+                            {
+                                <span>Nessun destinatario specificato.</span>
+                            }
                         }
                     </MudText>
                 </MudAlert>
@@ -135,7 +155,9 @@
     private List<string> _recipientEmails = new();
     private int _totalParticipants;
     private int _recipientCount;
-    private int _participantsWithoutEmail;
+    private int _pilotsWithEmail;
+    private int _pilotsWithoutEmail;
+    private int _passengersWithoutEmail;
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,7 +179,11 @@
                     .ToList();
 
                 _recipientCount = _recipientEmails.Count;
-                _participantsWithoutEmail = _totalParticipants - allParticipants.Count(p => !string.IsNullOrWhiteSpace(p.Email));
+
+                // Calcola statistiche dettagliate per piloti e passeggeri
+                _pilotsWithEmail = allParticipants.Count(p => p.IsPilot && !string.IsNullOrWhiteSpace(p.Email));
+                _pilotsWithoutEmail = allParticipants.Count(p => p.IsPilot && string.IsNullOrWhiteSpace(p.Email));
+                _passengersWithoutEmail = allParticipants.Count(p => !p.IsPilot && string.IsNullOrWhiteSpace(p.Email));
             }
             else
             {
@@ -165,7 +191,9 @@
                 _recipientEmails = RecipientEmails ?? new List<string>();
                 _recipientCount = _recipientEmails.Count;
                 _totalParticipants = _recipientCount;
-                _participantsWithoutEmail = 0;
+                _pilotsWithEmail = 0;
+                _pilotsWithoutEmail = 0;
+                _passengersWithoutEmail = 0;
             }
         }
         catch (Exception ex)

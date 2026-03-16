@@ -263,7 +263,7 @@ namespace GestioneViaggi.Services.CRUD
                 await using var conn = await _connectionManager.GetConnectionAsync();
                 // CRITICAL: Usa alias espliciti per garantire il corretto mapping Dapper snake_case → PascalCase
                 return await conn.QueryAsync<GestioneViaggi.Models.DTOs.ParticipantsViewDTO>(@"
-                    SELECT 
+                    SELECT
                         viaggio_id as ViaggioId,
                         data_id as DataId,
                         cliente_id as ClienteId,
@@ -276,6 +276,7 @@ namespace GestioneViaggi.Services.CRUD
                         mezzo_dettagli as MezzoDettagli,
                         cliente_pilota_id as ClientePilotaId,
                         grouping_key as GroupingKey,
+                        is_pilot as IsPilot,
                         email as Email
                     FROM get_participants_sorted(@dataId)",
                     new { dataId = dataViaggioId });

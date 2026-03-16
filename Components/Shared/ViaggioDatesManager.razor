@@ -1,7 +1,11 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Printing
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
+
+@inject IRoomingListPrintService RoomingListPrintService
+@inject IPdfOpenerService PdfOpenerService
 
 <MudDataGrid T="AnaDataViaggio" Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true">
     <ToolBarContent>
@@ -11,12 +15,12 @@
             OnClick="AddDate">Aggiungi Data</MudButton>
     </ToolBarContent>
     <Columns>
-        <!-- Azioni: Fixed 210px to fit 5 icons comfortably -->
+        <!-- Azioni: Compact icon group, centered in column -->
         <TemplateColumn Title="AZIONI" Sortable="false" Filterable="false"
-            CellStyle="width:210px; min-width:210px; max-width:210px; text-align:center; padding:0;"
-            HeaderStyle="width:210px; min-width:210px; max-width:210px; text-align:center;" StickyLeft="true">
+            CellStyle="text-align:center; padding:4px;"
+            HeaderStyle="text-align:center;" StickyLeft="true">
             <CellTemplate>
-                <div class="d-flex justify-center align-center">
+                <div style="display: inline-flex; align-items: center; gap: 4px;">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
                         OnClick="@(() => EditDate(context.Item))" title="Modifica" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -27,6 +31,8 @@
                         OnClick="@(() => OpenEmailDialog(context.Item))" title="Invia Email Partecipanti" />
                     <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Default"
                         OnClick="@(() => OpenPrintDialog(context.Item))" title="Stampa Scheda Data Viaggio" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" Color="Color.Primary"
+                        OnClick="@(() => PrintRoomingList(context.Item))" title="Stampa Rooming List" />
                 </div>
             </CellTemplate>
         </TemplateColumn>
@@ -331,6 +337,35 @@
                 }
             }
             await DatesChanged.InvokeAsync();
+        }
+    }
+
+    private async Task PrintRoomingList(AnaDataViaggio date)
+    {
+        try
+        {
+            var data = await RoomingListPrintService.GetRoomingListDataAsync(date.Id);
+
+            // Save to Downloads
+            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
+
+            // Create descriptive filename
+            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
+            var filePath = Path.Combine(targetFolder, fileName);
+
+            // Overwrite check
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+
+            await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
+
+            await PdfOpenerService.OpenPdfAsync(filePath, "Stampa Rooming List Completata");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore stampa Rooming List: {ex.Message}", Severity.Error);
         }
     }
 }

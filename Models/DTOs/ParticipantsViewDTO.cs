@@ -15,7 +15,8 @@ public class ParticipantsViewDTO
     // Vehicle Details (Computed by DB Function)
     public string? MezzoDettagli { get; set; }
 
-    public int ClientePilotaId { get; set; }
+    public int? ClientePilotaId { get; set; }
     public int GroupingKey { get; set; }
+    public bool IsPilot { get; set; }
     public string? Email { get; set; }
 }
