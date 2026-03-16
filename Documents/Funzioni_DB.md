@@ -772,7 +772,7 @@ In data 2026-03-15 è stato effettuato un allineamento completo delle funzioni t
 | Funzione | Azione | Note |
 |----------|--------|------|
 | `fn_get_controparte_init_data` | Creata su entrambi | Script `263_Create_FnGetControparteInitData.sql` corretto (nomi colonne tabelle geografiche) |
-| `fn_get_cliente_init_data` | Aggiornata su entrambi | Script `262_Create_FnGetClienteInitData.sql` corretto (`ana_geo_regioni` → `ana_geo_regioni_ita`, `provincia_regione_fk` → `regione_id_fk`) |
+| `fn_get_cliente_init_data` | Aggiornata su entrambi | Script `262_Create_FnGetClienteInitData.sql` corretto (`ana_geo_regioni` → `ana_geo_regioni_ita`, `provincia_regione_fk` → `regione_id_fk`, `JOIN` → `LEFT JOIN`) |
 | `fn_get_azienda_badge_counts` | Creata su Docker | Era presente solo su Supabase |
 | `fn_wizard_*` (21 funzioni) | Migrate su Supabase | Funzioni wizard iscrizione online |
 
@@ -786,6 +786,7 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 | `c.cap` | `c.comune_cap` |
 | `ana_geo_regioni` | `ana_geo_regioni_ita` |
 | `p.provincia_regione_fk` | `p.regione_id_fk` |
+| `c.comune_estero` (CHAR) | `(c.comune_estero = 'Y')` (conversione a boolean per JSON) |
 
 ### Stato Finale
 

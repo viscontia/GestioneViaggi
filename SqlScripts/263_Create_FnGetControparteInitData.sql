@@ -23,7 +23,7 @@ BEGIN
             c.comune_cap as "Cap",
             p.provincia_sigla as "ProvinciaSigla",
             r.regione_descrizione as "RegioneDescrizione",
-            c.comune_estero as "ComuneEstero"
+            (c.comune_estero = 'Y') as "ComuneEstero"
         FROM ana_geo_comuni c
         LEFT JOIN ana_geo_province p ON c.comune_provincia_fk = p.provincia_id
         LEFT JOIN ana_geo_regioni_ita r ON p.regione_id_fk = r.regione_id
@@ -59,7 +59,7 @@ BEGIN
             'Cap', c.comune_cap,
             'ProvinciaSigla', p.provincia_sigla,
             'RegioneDescrizione', r.regione_descrizione,
-            'ComuneEstero', c.comune_estero
+            'ComuneEstero', (c.comune_estero = 'Y')
         ) INTO v_comune_dettaglio
         FROM ana_controparti cont
         JOIN ana_geo_comuni c ON cont.comune_fk = c.comune_id
