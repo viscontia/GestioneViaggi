@@ -22,6 +22,7 @@
 @inject Services.Printing.ITravelPrintService PrintService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.IPdfOpenerService PdfOpenerService
+@inject Services.Shared.IBrowserLauncherService BrowserLauncher
 
 @if (!_isLoaded)
 {
@@ -687,6 +688,12 @@ else
                                OnClick="OpenQuickAddDialog">
                         Iscrizione Veloce
                     </MudButton>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Info"
+                               StartIcon="@Icons.Material.Filled.Language"
+                               OnClick="OnIscrizioneWebSuperAdminClick">
+                        Iscrizione WEB
+                    </MudButton>
                 </MudStack>
             </MudPaper>
 
@@ -1173,6 +1180,28 @@ else
             await LoadStatsAsync();
             await LoadActivitiesAsync();
         }
+    }
+
+    private async Task OnIscrizioneWebSuperAdminClick()
+    {
+        var parameters = new DialogParameters();
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            BackdropClick = false
+        };
+
+        var dialog = await DialogService.ShowAsync<GestioneViaggi.Components.Shared.WebRegistrationDialog>(
+            "Iscrizione WEB",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        // Dialog handles browser opening internally
+        // No need to check result here
     }
 
 
