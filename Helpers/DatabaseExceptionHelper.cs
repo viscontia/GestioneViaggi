@@ -27,15 +27,37 @@ public static class DatabaseExceptionHelper
         switch (ex.SqlState)
         {
             case "23503": // foreign_key_violation
-                string relatedTable = ExtractTableNameFromDetail(ex.Detail);
-                // Determina se usare 'il', 'lo', 'la', 'l'' in base all'etichetta
-                string prefix = GetItalianPrefixFor(label);
-                message = $"Non è possibile eliminare {prefix}{label} perché è utilizzato in altre parti del sistema";
-                if (!string.IsNullOrEmpty(relatedTable))
+                // Distingui tra DELETE (elemento usato altrove) e INSERT/UPDATE (riferimento non valido)
+                bool isDeleteOperation = ex.Detail?.Contains("is still referenced from table") == true;
+
+                if (isDeleteOperation)
                 {
-                    message += $" (es. {TranslateTableName(relatedTable)})";
+                    // DELETE: l'elemento è referenziato da altre tabelle
+                    string relatedTable = ExtractTableNameFromDetail(ex.Detail);
+                    string prefix = GetItalianPrefixFor(label);
+                    message = $"Non è possibile eliminare {prefix}{label} perché è utilizzato in altre parti del sistema";
+                    if (!string.IsNullOrEmpty(relatedTable))
+                    {
+                        message += $" (es. {TranslateTableName(relatedTable)})";
+                    }
+                    message += ".";
                 }
-                message += ".";
+                else
+                {
+                    // INSERT/UPDATE: riferimento a chiave esterna non valido
+                    string constraintName = ExtractConstraintNameFromMessage(ex.MessageText);
+                    string fieldName = ExtractFieldNameFromConstraint(constraintName);
+                    string prefix = GetItalianPrefixFor(label);
+
+                    if (!string.IsNullOrEmpty(fieldName))
+                    {
+                        message = $"Il valore selezionato per '{fieldName}' non è valido o non esiste più nel sistema.";
+                    }
+                    else
+                    {
+                        message = $"Uno dei valori selezionati per {prefix}{label} non è valido o non esiste più nel sistema.";
+                    }
+                }
                 break;
 
             case "23505": // unique_violation
@@ -67,6 +89,51 @@ public static class DatabaseExceptionHelper
         if (match.Success)
         {
             return match.Groups[1].Value;
+        }
+
+        return string.Empty;
+    }
+
+    private static string ExtractConstraintNameFromMessage(string? message)
+    {
+        if (string.IsNullOrEmpty(message)) return string.Empty;
+
+        // Esempio: insert or update on table "ana_aziende" violates foreign key constraint "ana_aziende_regime_fiscale_fk_fkey"
+        var match = Regex.Match(message, "constraint \"([^\"]+)\"", RegexOptions.IgnoreCase);
+        if (match.Success)
+        {
+            return match.Groups[1].Value;
+        }
+
+        return string.Empty;
+    }
+
+    private static string ExtractFieldNameFromConstraint(string constraintName)
+    {
+        if (string.IsNullOrEmpty(constraintName)) return string.Empty;
+
+        // Mapping dei constraint comuni ai nomi user-friendly
+        var fieldMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "regime_fiscale_fk", "Regime Fiscale" },
+            { "rea_provincia_fk", "Provincia REA" },
+            { "azienda_fk", "Azienda" },
+            { "causale_fk", "Causale" },
+            { "valuta_fk", "Valuta" },
+            { "aliquota_iva_fk", "Aliquota IVA" },
+            { "paese_fk", "Paese" },
+            { "provincia_fk", "Provincia" },
+            { "comune_fk", "Comune" },
+            { "reparto_fk", "Reparto" }
+        };
+
+        // Prova a trovare un match nel nome del constraint
+        foreach (var mapping in fieldMappings)
+        {
+            if (constraintName.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                return mapping.Value;
+            }
         }
 
         return string.Empty;
