@@ -801,6 +801,17 @@
                     OnClick="OpenQuickAddDialog">
                     Iscrizione Veloce
                 </MudButton>
+                <MudTooltip Text="@(_isIscrizioneWebDisabled ? "Nessun sito web di iscrizione configurato" : "")">
+                    <ChildContent>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Info"
+                                   StartIcon="@Icons.Material.Filled.Language"
+                                   OnClick="OnIscrizioneWebClick"
+                                   Disabled="@_isIscrizioneWebDisabled">
+                            Iscrizione WEB
+                        </MudButton>
+                    </ChildContent>
+                </MudTooltip>
             </MudStack>
         </MudPaper>
 
@@ -883,6 +894,8 @@
 
     private List<GestioneViaggi.Models.DTOs.ActivityLogItem>? _activities;
 
+    private bool _isIscrizioneWebDisabled = true;
+
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
@@ -917,6 +930,22 @@
 
         await LoadStatsAsync();
         await LoadActivitiesAsync();
+
+        // Calculate Iscrizione WEB button state
+        if (_currentUser?.AziendaId != null)
+        {
+            try
+            {
+                var azienda = await AziendaService.GetByIdAsync(_currentUser.AziendaId.Value);
+                _isIscrizioneWebDisabled = string.IsNullOrWhiteSpace(azienda?.SitoWebIscrizione);
+            }
+            catch
+            {
+                // If error loading azienda, keep button disabled
+                _isIscrizioneWebDisabled = true;
+            }
+        }
+
         _isLoading = false; // FASE 2: Trigger fade-in animation
     }
 
@@ -1109,6 +1138,8 @@
 
     [Inject] public IDialogService DialogService { get; set; } = default!;
     [Inject] public AnaViaggiService ViaggiService { get; set; } = default!;
+    [Inject] public Services.Shared.IBrowserLauncherService BrowserLauncher { get; set; } = default!;
+    [Inject] public AziendaService AziendaService { get; set; } = default!;
 
     private async Task OnNuovaPartenzaClick()
     {
@@ -1213,6 +1244,38 @@
         {
             await LoadStatsAsync();
             await LoadActivitiesAsync();
+        }
+    }
+
+    private async Task OnIscrizioneWebClick()
+    {
+        // Safety check: user must have azienda
+        if (_currentUser?.AziendaId == null)
+        {
+            Snackbar.Add("Utente non associato ad un'azienda", Severity.Warning);
+            return;
+        }
+
+        // Load azienda to get URL
+        var azienda = await AziendaService.GetByIdAsync(_currentUser.AziendaId.Value);
+        if (azienda == null)
+        {
+            Snackbar.Add("Azienda non trovata", Severity.Error);
+            return;
+        }
+
+        // Verify URL is configured
+        if (string.IsNullOrWhiteSpace(azienda.SitoWebIscrizione))
+        {
+            Snackbar.Add("Nessun sito web di iscrizione configurato per questa azienda", Severity.Warning);
+            return;
+        }
+
+        // Open browser
+        var success = await BrowserLauncher.OpenUrlAsync(azienda.SitoWebIscrizione);
+        if (success)
+        {
+            Snackbar.Add("Browser aperto. Torna all'applicazione dopo l'iscrizione.", Severity.Success);
         }
     }
 
