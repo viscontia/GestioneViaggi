@@ -211,6 +211,7 @@ public static class MauiProgram
 
         // File Opener & Export Services
         builder.Services.AddScoped<Services.Shared.IFileOpenerService, Services.Shared.FileOpenerService>();
+        builder.Services.AddScoped<Services.Shared.IBrowserLauncherService, Services.Shared.BrowserLauncherService>();
         builder.Services.AddScoped<Services.Export.IExcelExportService, Services.Export.ExcelExportService>();
         builder.Services.AddScoped<Services.Export.IClienteExportService, Services.Export.ClienteExportService>();
         builder.Services.AddScoped<Services.Export.IFatturaElettronicaXmlService, Services.Export.FatturaElettronicaXmlService>();
