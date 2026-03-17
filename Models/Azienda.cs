@@ -56,6 +56,10 @@ public class Azienda : BaseEntity, IAuditable, IValidatableObject
     [Url(ErrorMessage = "Il sito web deve essere un URL valido")]
     public string? SitoWeb { get; set; }
 
+    [StringLength(255, ErrorMessage = "L'indirizzo del sito web iscrizione non può superare i 255 caratteri")]
+    [Url(ErrorMessage = "L'indirizzo del sito web iscrizione deve essere un URL valido")]
+    public string? SitoWebIscrizione { get; set; }
+
     [Required(ErrorMessage = "Il telefono principale è obbligatorio")]
     [StringLength(30, ErrorMessage = "Il telefono non può superare i 30 caratteri")]
     public string TelefonoPrincipale { get; set; } = string.Empty;

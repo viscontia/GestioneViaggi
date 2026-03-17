@@ -44,6 +44,11 @@ public static class AziendaValidator
         return WebsiteValidator.CheckWebsite(sitoWeb);
     }
 
+    public static ValidationResult ValidateSitoWebIscrizione(string? sitoWebIscrizione)
+    {
+        return WebsiteValidator.CheckWebsite(sitoWebIscrizione);
+    }
+
     public static ValidationResult ValidateTelefonoPrincipale(string? telefono)
     {
         return PhoneValidator.CheckTelefonoItaly(telefono);

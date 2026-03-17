@@ -82,8 +82,16 @@
 
             <!-- Sito Web - Opzionale -->
             <MudTextField @bind-Value="Entity.SitoWeb" For="@(() => Entity.SitoWeb)" Label="Sito Web (opzionale)"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWeb))"
                 Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
-                HelperText="URL completo (es: https://www.esempio.it)" />
+                HelperText="URL completo (es: https://www.esempio.it)" Immediate="true" />
+
+            <!-- Sito Web Iscrizione - Opzionale -->
+            <MudTextField @bind-Value="Entity.SitoWebIscrizione" For="@(() => Entity.SitoWebIscrizione)"
+                Label="Sito Web Iscrizione (opzionale)"
+                Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWebIscrizione))"
+                Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
+                HelperText="URL del programma di iscrizione clienti dal web" Immediate="true" />
 
             <MudDivider Class="my-4" />
 
@@ -218,8 +226,16 @@
 
                         <!-- Sito Web -->
                         <MudTextField @bind-Value="Entity.SitoWeb" For="@(() => Entity.SitoWeb)" Label="Sito Web (opzionale)"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWeb))"
                             Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
-                            HelperText="URL completo (es: https://www.esempio.it)" />
+                            HelperText="URL completo (es: https://www.esempio.it)" Immediate="true" />
+
+                        <!-- Sito Web Iscrizione -->
+                        <MudTextField @bind-Value="Entity.SitoWebIscrizione" For="@(() => Entity.SitoWebIscrizione)"
+                            Label="Sito Web Iscrizione (opzionale)"
+                            Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWebIscrizione))"
+                            Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
+                            HelperText="URL del programma di iscrizione clienti dal web" Immediate="true" />
 
                         <MudDivider Class="my-4" />
 
@@ -571,6 +587,30 @@
         if (value.HasValue)
         {
             var result = NumericValidator.CheckCapitaleSociale(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateSitoWeb(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var result = WebsiteValidator.CheckWebsite(value);
+            if (!result.IsValid)
+            {
+                yield return result.ErrorMessage;
+            }
+        }
+    }
+
+    private IEnumerable<string> ValidateSitoWebIscrizione(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            var result = WebsiteValidator.CheckWebsite(value);
             if (!result.IsValid)
             {
                 yield return result.ErrorMessage;

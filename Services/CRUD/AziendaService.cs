@@ -61,6 +61,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     a.codice_destinatario_sdi,
                     a.pec,
                     a.sito_web,
+                    a.sito_web_iscrizione,
                     a.telefono_principale,
                     a.attivo,
                     a.regime_fiscale_fk,
@@ -162,6 +163,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     codice_destinatario_sdi,
                     pec,
                     sito_web,
+                    sito_web_iscrizione,
                     telefono_principale,
                     attivo,
                     regime_fiscale_fk
@@ -182,6 +184,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     @codiceDestinatarioSdi,
                     @pec,
                     @sitoWeb,
+                    @sitoWebIscrizione,
                     @telefonoPrincipale,
                     @attivo,
                     @regimeFiscaleFk
@@ -203,6 +206,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     codice_destinatario_sdi,
                     pec,
                     sito_web,
+                    sito_web_iscrizione,
                     telefono_principale,
                     attivo,
                     regime_fiscale_fk,
@@ -261,6 +265,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     codice_destinatario_sdi = @codiceDestinatarioSdi,
                     pec = @pec,
                     sito_web = @sitoWeb,
+                    sito_web_iscrizione = @sitoWebIscrizione,
                     telefono_principale = @telefonoPrincipale,
                     attivo = @attivo,
                     regime_fiscale_fk = @regimeFiscaleFk
@@ -282,6 +287,7 @@ public class AziendaService : BaseCrudService<Azienda>
                     codice_destinatario_sdi,
                     pec,
                     sito_web,
+                    sito_web_iscrizione,
                     telefono_principale,
                     attivo,
                     regime_fiscale_fk,
@@ -289,8 +295,8 @@ public class AziendaService : BaseCrudService<Azienda>
                     data_ultima_modifica";
 
             await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("id", entity.Id);
             AddCommandParameters(command, entity);
+            command.Parameters.AddWithValue("id", entity.Id);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -349,6 +355,7 @@ public class AziendaService : BaseCrudService<Azienda>
             CodiceDestinatarioSdi = reader.GetString(reader.GetOrdinal("codice_destinatario_sdi")),
             Pec = ReadNullableString(reader, "pec"),
             SitoWeb = ReadNullableString(reader, "sito_web"),
+            SitoWebIscrizione = ReadNullableString(reader, "sito_web_iscrizione"),
             TelefonoPrincipale = reader.GetString(reader.GetOrdinal("telefono_principale")),
             Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
             RegimeFiscaleFk = ReadInt(reader, "regime_fiscale_fk"),
@@ -383,6 +390,7 @@ public class AziendaService : BaseCrudService<Azienda>
         command.Parameters.AddWithValue("codiceDestinatarioSdi", entity.CodiceDestinatarioSdi);
         command.Parameters.AddWithValue("pec", (object?)entity.Pec ?? DBNull.Value);
         command.Parameters.AddWithValue("sitoWeb", (object?)entity.SitoWeb ?? DBNull.Value);
+        command.Parameters.AddWithValue("sitoWebIscrizione", (object?)entity.SitoWebIscrizione ?? DBNull.Value);
         command.Parameters.AddWithValue("telefonoPrincipale", entity.TelefonoPrincipale);
         command.Parameters.AddWithValue("attivo", entity.Attivo);
         command.Parameters.AddWithValue("regimeFiscaleFk", entity.RegimeFiscaleFk);
