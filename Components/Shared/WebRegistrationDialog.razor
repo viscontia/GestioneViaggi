@@ -1,0 +1,128 @@
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Shared
+@using MudBlazor
+@inject AziendaService AziendaService
+@inject IBrowserLauncherService BrowserLauncher
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Language" Class="mr-2" />
+            Iscrizione WEB
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- 1. Selezione Azienda -->
+            <AziendaSelect Value="_selectedAziendaId"
+                          ValueChanged="OnAziendaChanged"
+                          Required="true"
+                          Label="Seleziona Azienda" />
+
+            <!-- 2. Loading indicator -->
+            @if (_isLoading)
+            {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+            }
+
+            <!-- 3. URL Preview (visibile solo se URL valorizzato) -->
+            @if (!string.IsNullOrWhiteSpace(_currentUrl))
+            {
+                <MudTextField Value="@_currentUrl"
+                             Label="Sito Web Iscrizione"
+                             Variant="Variant.Outlined"
+                             ReadOnly="true"
+                             Adornment="Adornment.Start"
+                             AdornmentIcon="@Icons.Material.Filled.Link" />
+            }
+
+            <!-- 4. Alert Warning (visibile solo se azienda selezionata ma URL vuoto) -->
+            @if (_selectedAziendaId > 0 && !_isLoading && string.IsNullOrWhiteSpace(_currentUrl))
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    L'azienda selezionata non ha configurato un sito web di iscrizione.
+                </MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default">Annulla</MudButton>
+        <MudButton OnClick="OpenWebsite"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="@string.IsNullOrWhiteSpace(_currentUrl)"
+                   StartIcon="@Icons.Material.Filled.OpenInNew">
+            Apri Sito
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private int _selectedAziendaId = 0;
+    private string? _currentUrl = null;
+    private bool _isLoading = false;
+    private CancellationTokenSource? _cts;
+
+    private async Task OnAziendaChanged(int aziendaId)
+    {
+        // Cancel previous request if user changes selection quickly
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        _selectedAziendaId = aziendaId;
+        _isLoading = true;
+        _currentUrl = null;
+
+        try
+        {
+            var azienda = await AziendaService.GetByIdAsync(aziendaId);
+            if (azienda != null)
+            {
+                _currentUrl = azienda.SitoWebIscrizione;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Request was cancelled, ignore
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento azienda: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenWebsite()
+    {
+        if (string.IsNullOrWhiteSpace(_currentUrl))
+            return;
+
+        var success = await BrowserLauncher.OpenUrlAsync(_currentUrl);
+        if (success)
+        {
+            Snackbar.Add("Browser aperto. Torna all'applicazione dopo l'iscrizione.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
