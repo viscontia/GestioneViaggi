@@ -1,0 +1,123 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Models.DTOs
+
+<div>
+    @* Header con navigazione *@
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                           Size="Size.Medium"
+                           OnClick="PreviousMonth"
+                           aria-label="Mese precedente" />
+            <MudText Typo="Typo.h6" Style="min-width: 180px; text-align: center; text-transform: capitalize;">
+                @_currentDate.ToString("MMMM yyyy", _culture)
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                           Size="Size.Medium"
+                           OnClick="NextMonth"
+                           aria-label="Mese successivo" />
+        </MudStack>
+        <MudButton Variant="Variant.Outlined"
+                   Size="Size.Small"
+                   OnClick="GoToToday"
+                   StartIcon="@Icons.Material.Filled.Today">
+            Oggi
+        </MudButton>
+    </MudStack>
+
+    @if (_isLoading)
+    {
+        <div style="display: flex; justify-content: center; align-items: center; min-height: 300px;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="false" Bordered="true" Style="table-layout: fixed;">
+            <thead>
+                <tr>
+                    @foreach (var dayName in _dayNames)
+                    {
+                        <th style="text-align: center; font-weight: 600; padding: 8px; background-color: var(--mud-palette-surface); width: 14.28%;">
+                            @dayName
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var week in _weeks)
+                {
+                    <tr>
+                        @foreach (var day in week)
+                        {
+                            var dayTravels = GetTravelsForDay(day);
+                            var isToday = day.Date == DateTime.Today;
+                            var isCurrentMonth = day.Month == _currentDate.Month;
+                            var cellBgColor = isToday ? "var(--mud-palette-primary-lighten)"
+                                            : (isCurrentMonth ? "transparent" : "var(--mud-palette-background-grey)");
+                            var textOpacity = isCurrentMonth ? "1" : "0.5";
+
+                            <td style="vertical-align: top; height: 90px; padding: 4px; background-color: @cellBgColor; position: relative;">
+                                @* Numero del giorno *@
+                                @if (isToday)
+                                {
+                                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background-color: var(--mud-palette-primary); color: white; font-size: 0.875rem; font-weight: 500; margin-bottom: 4px;">
+                                        @day.Day
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style="font-size: 0.875rem; font-weight: 500; margin-bottom: 4px; opacity: @textOpacity;">
+                                        @day.Day
+                                    </div>
+                                }
+
+                                @* Viaggi del giorno *@
+                                <div style="display: flex; flex-direction: column; gap: 2px; overflow: hidden;">
+                                    @foreach (var travel in dayTravels.Take(MaxVisibleTravels))
+                                    {
+                                        <MudTooltip Arrow="true" Placement="Placement.Top">
+                                            <TooltipContent>
+                                                <TravelTooltipContent Travel="@travel" />
+                                            </TooltipContent>
+                                            <ChildContent>
+                                                <div style="@GetTravelChipStyle(travel.Status)"
+                                                     @onclick="() => HandleTravelClick(travel)"
+                                                     @onclick:stopPropagation="true">
+                                                    @TruncateText(travel.DescrizioneViaggio, 10)
+                                                </div>
+                                            </ChildContent>
+                                        </MudTooltip>
+                                    }
+
+                                    @if (dayTravels.Count > MaxVisibleTravels)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-size: 0.65rem; text-align: center;">
+                                            +@(dayTravels.Count - MaxVisibleTravels) altri
+                                        </MudText>
+                                    }
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        @* Legenda *@
+        <MudStack Row="true" Spacing="3" Class="mt-3" Justify="Justify.Center">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-success);"></div>
+                <MudText Typo="Typo.caption">Effettuato</MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-warning);"></div>
+                <MudText Typo="Typo.caption">Futuro</MudText>
+            </MudStack>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-error);"></div>
+                <MudText Typo="Typo.caption">Non Effettuato</MudText>
+            </MudStack>
+        </MudStack>
+    }
+</div>

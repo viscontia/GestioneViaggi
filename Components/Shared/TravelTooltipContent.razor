@@ -1,0 +1,49 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Models.DTOs
+
+<div class="travel-tooltip-content">
+    <MudText Typo="Typo.subtitle2" Class="mb-1">@Travel.DescrizioneViaggio</MudText>
+    <MudDivider Class="my-1" />
+
+    <MudStack Spacing="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.DateRange" Size="Size.Small" />
+            <MudText Typo="Typo.body2">
+                @Travel.DataInizio.ToString("dd/MM") - @Travel.DataFine.ToString("dd/MM/yyyy")
+            </MudText>
+        </MudStack>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" />
+            <MudText Typo="Typo.body2">@Travel.TotClienti partecipanti</MudText>
+        </MudStack>
+
+        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor()" Variant="Variant.Filled" Class="mt-1">
+            @Travel.Status.GetLabel()
+        </MudChip>
+
+        @if (!string.IsNullOrEmpty(Travel.AziendaNome))
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-1">
+                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" Color="Color.Secondary" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@Travel.AziendaNome</MudText>
+            </MudStack>
+        }
+    </MudStack>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CalendarTravelDTO Travel { get; set; } = null!;
+
+    private Color GetStatusColor()
+    {
+        return Travel.Status switch
+        {
+            TravelStatus.Completed => Color.Success,
+            TravelStatus.Future => Color.Warning,
+            TravelStatus.NotCompleted => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

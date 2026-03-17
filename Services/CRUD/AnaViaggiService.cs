@@ -800,5 +800,54 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
+
+    /// <summary>
+    /// Recupera i dati dei viaggi per il calendario mensile
+    /// </summary>
+    /// <param name="year">Anno del calendario</param>
+    /// <param name="month">Mese del calendario (1-12)</param>
+    /// <param name="aziendaId">ID azienda (obbligatorio per caricare i dati)</param>
+    /// <returns>Lista di CalendarTravelDTO per il mese specificato</returns>
+    public async Task<List<CalendarTravelDTO>> GetCalendarDataAsync(int year, int month, int aziendaId)
+    {
+        var result = new List<CalendarTravelDTO>();
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT * FROM fn_get_calendar_data(@year, @month, @aziendaId)";
+
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("year", year);
+            command.Parameters.AddWithValue("month", month);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var dataInizio = reader.GetDateTime(reader.GetOrdinal("data_inizio"));
+                var effettuatoSino = reader.GetChar(reader.GetOrdinal("effettuato_sino"));
+
+                result.Add(new CalendarTravelDTO
+                {
+                    DataViaggioId = ReadInt(reader, "data_viaggio_id"),
+                    ViaggioId = ReadInt(reader, "viaggio_id"),
+                    DescrizioneViaggio = reader.GetString(reader.GetOrdinal("descrizione_viaggio")),
+                    DataInizio = dataInizio,
+                    DataFine = reader.GetDateTime(reader.GetOrdinal("data_fine")),
+                    TotClienti = ReadInt(reader, "tot_clienti"),
+                    Status = CalendarTravelDTO.ComputeStatus(effettuatoSino, dataInizio),
+                    AziendaId = ReadInt(reader, "azienda_id"),
+                    AziendaNome = reader.GetString(reader.GetOrdinal("azienda_nome"))
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero dati calendario per {Year}/{Month} azienda {AziendaId}", year, month, aziendaId);
+            // Non-blocking: restituisce lista vuota in caso di errore
+        }
+
+        return result;
+    }
 }
 

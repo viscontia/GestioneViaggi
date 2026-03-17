@@ -23,6 +23,7 @@
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.IPdfOpenerService PdfOpenerService
 @inject Services.Shared.IBrowserLauncherService BrowserLauncher
+@inject Services.CRUD.AnaViaggiService ViaggiService
 
 @if (!_isLoaded)
 {
@@ -716,6 +717,33 @@ else
                 </MudStack>
             </MudPaper>
 
+            <!-- Calendario Viaggi -->
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Class="mr-2" Style="vertical-align: middle;" />
+                        Calendario Viaggi
+                    </MudText>
+                    <AziendaSelect Value="@_calendarAziendaId"
+                                   ValueChanged="OnCalendarAziendaChanged"
+                                   Label="Seleziona Azienda"
+                                   Required="false"
+                                   Class="calendar-azienda-select" />
+                </MudStack>
+
+                @if (_calendarAziendaId > 0)
+                {
+                    <TravelCalendar AziendaId="_calendarAziendaId"
+                                    OnTravelClick="OnCalendarTravelClick" />
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Text">
+                        Seleziona un'azienda per visualizzare il calendario dei viaggi.
+                    </MudAlert>
+                }
+            </MudPaper>
+
             <!-- Recent Activity (SuperAdmin sees ALL) -->
             <MudPaper Elevation="2" Class="pa-4">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
@@ -856,6 +884,9 @@ else
     private List<int> _pastYears = new();
     private List<int> _futureYears = new();
 
+    // Calendario viaggi
+    private int _calendarAziendaId;
+
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
@@ -983,6 +1014,51 @@ else
         }
         string title = _selectedYear < _currentYear ? $"Partenze non fatte {_selectedYear}" : $"Partenze da fare {_selectedYear}";
         NavigateToSection(route, title, "event");
+    }
+
+    // Calendario viaggi - handlers
+    private void OnCalendarAziendaChanged(int aziendaId)
+    {
+        _calendarAziendaId = aziendaId;
+        StateHasChanged();
+    }
+
+    private async Task OnCalendarTravelClick(GestioneViaggi.Models.DTOs.CalendarTravelDTO travel)
+    {
+        try
+        {
+            // Carica il viaggio dal database
+            var viaggio = await ViaggiService.GetByIdAsync(travel.ViaggioId);
+            if (viaggio == null)
+            {
+                Snackbar.Add("Viaggio non trovato", Severity.Error);
+                return;
+            }
+
+            // Apri il dialog con la tab delle date
+            var parameters = new DialogParameters<GestioneViaggi.Components.Shared.AnaViaggiDialog>
+            {
+                { x => x.Entity, viaggio },
+                { x => x.IsEditMode, true },
+                { x => x.AziendaFk, travel.AziendaId },
+                { x => x.StartOnDatesTab, true }
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick = false
+            };
+
+            await DialogService.ShowAsync<GestioneViaggi.Components.Shared.AnaViaggiDialog>(
+                travel.DescrizioneViaggio, parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore apertura viaggio: {ex.Message}", Severity.Error);
+        }
     }
 
     private DateTime GetEffectiveEndDate()
