@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using GestioneViaggi.Services.Printing;
 using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi.Services.Export;
@@ -25,10 +26,12 @@ public interface IExcelExportService
 public class ExcelExportService : IExcelExportService
 {
     private readonly ILogger<ExcelExportService> _logger;
+    private readonly IPdfOpenerService _pdfOpenerService;
 
-    public ExcelExportService(ILogger<ExcelExportService> logger)
+    public ExcelExportService(ILogger<ExcelExportService> logger, IPdfOpenerService pdfOpenerService)
     {
         _logger = logger;
+        _pdfOpenerService = pdfOpenerService;
     }
 
     public async Task<string> ExportToExcelAsync<T>(
@@ -37,15 +40,10 @@ public class ExcelExportService : IExcelExportService
         string fileName,
         string sheetName = "Dati")
     {
+        var targetFolder = _pdfOpenerService.GetPdfOutputFolder();
+
         return await Task.Run(() =>
         {
-            var targetFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "Downloads");
-
-            if (!Directory.Exists(targetFolder))
-                Directory.CreateDirectory(targetFolder);
-
             var outputPath = Path.Combine(targetFolder, fileName);
 
             if (File.Exists(outputPath))
