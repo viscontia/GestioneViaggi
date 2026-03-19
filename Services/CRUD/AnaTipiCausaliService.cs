@@ -1,4 +1,3 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
@@ -10,6 +9,7 @@ namespace GestioneViaggi.Services.CRUD;
 /// <summary>
 /// Service DB-First per gestione ana_tipi_causali.
 /// Delega tutta la logica a stored procedures PostgreSQL.
+/// AOT compatibile - no Dapper/Reflection.Emit
 /// </summary>
 public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
 {
@@ -31,10 +31,15 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<AnaTipoCausale>(
-                "SELECT * FROM fn_ana_tipi_causali_get_all(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_ana_tipi_causali_get_all(@AziendaId)", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var results = new List<AnaTipoCausale>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -52,10 +57,15 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<AnaTipoCausale>(
-                "SELECT * FROM fn_ana_tipi_causali_get_active(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_ana_tipi_causali_get_active(@AziendaId)", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var results = new List<AnaTipoCausale>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -73,10 +83,16 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<AnaTipoCausale>(
-                "SELECT * FROM fn_ana_tipi_causali_get_active_by_ciclo(@AziendaId, @Ciclo)",
-                new { AziendaId = aziendaId, Ciclo = ciclo }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_ana_tipi_causali_get_active_by_ciclo(@AziendaId, @Ciclo)", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("Ciclo", ciclo);
+
+            var results = new List<AnaTipoCausale>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -94,47 +110,47 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            entity.CausaleId = await conn.ExecuteScalarAsync<int>(
-                @"SELECT sp_ana_tipi_causali_create(
-                    @AziendaFk,
-                    @CausaleCodice,
-                    @CausaleDescrizione,
-                    @CausaleSegno,
-                    @CausaleIsDocumento,
-                    @CausaleCiclo,
-                    @CausaleRichiedeScadenza,
-                    @CausaleGiorniScadenzaDefault,
-                    @CausaleGeneraScadenzaAuto,
-                    @CausaleGeneraIva,
-                    @CausaleRichiedeIva,
-                    @CausaleAliquotaIvaDefaultFk,
-                    @IsActive,
-                    @CreatedBy,
-                    @UpdatedBy,
-                    @CausaleConcorreFatturato,
-                    @TipoDocumentoSdi::VARCHAR
-                )",
-                new
-                {
-                    entity.AziendaFk,
-                    entity.CausaleCodice,
-                    entity.CausaleDescrizione,
-                    entity.CausaleSegno,
-                    entity.CausaleIsDocumento,
-                    entity.CausaleCiclo,
-                    entity.CausaleRichiedeScadenza,
-                    entity.CausaleGiorniScadenzaDefault,
-                    entity.CausaleGeneraScadenzaAuto,
-                    entity.CausaleGeneraIva,
-                    entity.CausaleRichiedeIva,
-                    entity.CausaleAliquotaIvaDefaultFk,
-                    entity.IsActive,
-                    entity.CreatedBy,
-                    entity.UpdatedBy,
-                    entity.CausaleConcorreFatturato,
-                    entity.TipoDocumentoSdi
-                }
-            );
+            string sql = @"SELECT sp_ana_tipi_causali_create(
+                @AziendaFk,
+                @CausaleCodice,
+                @CausaleDescrizione,
+                @CausaleSegno,
+                @CausaleIsDocumento,
+                @CausaleCiclo,
+                @CausaleRichiedeScadenza,
+                @CausaleGiorniScadenzaDefault,
+                @CausaleGeneraScadenzaAuto,
+                @CausaleGeneraIva,
+                @CausaleRichiedeIva,
+                @CausaleAliquotaIvaDefaultFk,
+                @IsActive,
+                @CreatedBy,
+                @UpdatedBy,
+                @CausaleConcorreFatturato,
+                @TipoDocumentoSdi::VARCHAR
+            )";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaFk", entity.AziendaFk);
+            cmd.Parameters.AddWithValue("CausaleCodice", entity.CausaleCodice);
+            cmd.Parameters.AddWithValue("CausaleDescrizione", entity.CausaleDescrizione);
+            cmd.Parameters.AddWithValue("CausaleSegno", entity.CausaleSegno);
+            cmd.Parameters.AddWithValue("CausaleIsDocumento", entity.CausaleIsDocumento);
+            cmd.Parameters.AddWithValue("CausaleCiclo", entity.CausaleCiclo);
+            cmd.Parameters.AddWithValue("CausaleRichiedeScadenza", entity.CausaleRichiedeScadenza);
+            cmd.Parameters.AddWithValue("CausaleGiorniScadenzaDefault", (object?)entity.CausaleGiorniScadenzaDefault ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleGeneraScadenzaAuto", entity.CausaleGeneraScadenzaAuto);
+            cmd.Parameters.AddWithValue("CausaleGeneraIva", entity.CausaleGeneraIva);
+            cmd.Parameters.AddWithValue("CausaleRichiedeIva", entity.CausaleRichiedeIva);
+            cmd.Parameters.AddWithValue("CausaleAliquotaIvaDefaultFk", (object?)entity.CausaleAliquotaIvaDefaultFk ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsActive", entity.IsActive);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)entity.CreatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleConcorreFatturato", entity.CausaleConcorreFatturato);
+            cmd.Parameters.AddWithValue("TipoDocumentoSdi", (object?)entity.TipoDocumentoSdi ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            entity.CausaleId = Convert.ToInt32(result);
 
             _logger.LogInformation("Causale {Codice} creata con ID {Id}", entity.CausaleCodice, entity.CausaleId);
             return entity;
@@ -160,45 +176,44 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            await conn.ExecuteAsync(
-                @"SELECT sp_ana_tipi_causali_update(
-                    @CausaleId,
-                    @CausaleCodice,
-                    @CausaleDescrizione,
-                    @CausaleSegno,
-                    @CausaleIsDocumento,
-                    @CausaleCiclo,
-                    @CausaleRichiedeScadenza,
-                    @CausaleGiorniScadenzaDefault,
-                    @CausaleGeneraScadenzaAuto,
-                    @CausaleGeneraIva,
-                    @CausaleRichiedeIva,
-                    @CausaleAliquotaIvaDefaultFk,
-                    @IsActive,
-                    @UpdatedBy,
-                    @CausaleConcorreFatturato,
-                    @TipoDocumentoSdi::VARCHAR
-                )",
-                new
-                {
-                    entity.CausaleId,
-                    entity.CausaleCodice,
-                    entity.CausaleDescrizione,
-                    entity.CausaleSegno,
-                    entity.CausaleIsDocumento,
-                    entity.CausaleCiclo,
-                    entity.CausaleRichiedeScadenza,
-                    entity.CausaleGiorniScadenzaDefault,
-                    entity.CausaleGeneraScadenzaAuto,
-                    entity.CausaleGeneraIva,
-                    entity.CausaleRichiedeIva,
-                    entity.CausaleAliquotaIvaDefaultFk,
-                    entity.IsActive,
-                    entity.UpdatedBy,
-                    entity.CausaleConcorreFatturato,
-                    entity.TipoDocumentoSdi
-                }
-            );
+            string sql = @"SELECT sp_ana_tipi_causali_update(
+                @CausaleId,
+                @CausaleCodice,
+                @CausaleDescrizione,
+                @CausaleSegno,
+                @CausaleIsDocumento,
+                @CausaleCiclo,
+                @CausaleRichiedeScadenza,
+                @CausaleGiorniScadenzaDefault,
+                @CausaleGeneraScadenzaAuto,
+                @CausaleGeneraIva,
+                @CausaleRichiedeIva,
+                @CausaleAliquotaIvaDefaultFk,
+                @IsActive,
+                @UpdatedBy,
+                @CausaleConcorreFatturato,
+                @TipoDocumentoSdi::VARCHAR
+            )";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("CausaleId", entity.CausaleId);
+            cmd.Parameters.AddWithValue("CausaleCodice", entity.CausaleCodice);
+            cmd.Parameters.AddWithValue("CausaleDescrizione", entity.CausaleDescrizione);
+            cmd.Parameters.AddWithValue("CausaleSegno", entity.CausaleSegno);
+            cmd.Parameters.AddWithValue("CausaleIsDocumento", entity.CausaleIsDocumento);
+            cmd.Parameters.AddWithValue("CausaleCiclo", entity.CausaleCiclo);
+            cmd.Parameters.AddWithValue("CausaleRichiedeScadenza", entity.CausaleRichiedeScadenza);
+            cmd.Parameters.AddWithValue("CausaleGiorniScadenzaDefault", (object?)entity.CausaleGiorniScadenzaDefault ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleGeneraScadenzaAuto", entity.CausaleGeneraScadenzaAuto);
+            cmd.Parameters.AddWithValue("CausaleGeneraIva", entity.CausaleGeneraIva);
+            cmd.Parameters.AddWithValue("CausaleRichiedeIva", entity.CausaleRichiedeIva);
+            cmd.Parameters.AddWithValue("CausaleAliquotaIvaDefaultFk", (object?)entity.CausaleAliquotaIvaDefaultFk ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsActive", entity.IsActive);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleConcorreFatturato", entity.CausaleConcorreFatturato);
+            cmd.Parameters.AddWithValue("TipoDocumentoSdi", (object?)entity.TipoDocumentoSdi ?? DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation("Causale {Id} aggiornata", entity.CausaleId);
             return entity;
@@ -221,11 +236,10 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_tipi_causali_delete(@CausaleId)", conn);
+            cmd.Parameters.AddWithValue("CausaleId", id);
 
-            await conn.ExecuteAsync(
-                "SELECT sp_ana_tipi_causali_delete(@CausaleId)",
-                new { CausaleId = id }
-            );
+            await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation("Causale {Id} eliminata", id);
             return true;
@@ -245,8 +259,6 @@ public class AnaTipiCausaliService : BaseCrudService<AnaTipoCausale>
 
     protected override AnaTipoCausale MapFromReader(NpgsqlDataReader reader)
     {
-        // Questo metodo non è più utilizzato (usiamo Dapper per il mapping),
-        // ma lo manteniamo per compatibilità con BaseCrudService
         return new AnaTipoCausale
         {
             CausaleId = ReadInt(reader, "causale_id"),

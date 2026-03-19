@@ -1,13 +1,14 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace GestioneViaggi.Services.CRUD;
 
 /// <summary>
 /// Service per gestione CRUD ana_regimi_fiscali.
 /// Tabella system-level (NON multi-tenant).
+/// AOT compatibile - no Dapper/Reflection.Emit
 /// </summary>
 public class AnaRegimiFiscaliService
 {
@@ -21,31 +22,6 @@ public class AnaRegimiFiscaliService
     }
 
     // ==========================================
-    // SQL SELECT comune
-    // ==========================================
-
-    private const string SelectColumns = @"
-        regime_id AS RegimeId,
-        regime_codice AS RegimeCodice,
-        regime_descrizione AS RegimeDescrizione,
-        show_helper_calcolo AS ShowHelperCalcolo,
-        default_aliquota_iva_codice AS DefaultAliquotaIvaCodice,
-        is_iva_detraibile AS IsIvaDetraibile,
-        cassa_prev_percentuale AS CassaPrevPercentuale,
-        cassa_prev_descrizione AS CassaPrevDescrizione,
-        cassa_prev_aliquota_codice AS CassaPrevAliquotaCodice,
-        bollo_soglia AS BolloSoglia,
-        bollo_importo AS BolloImporto,
-        bollo_aliquota_codice AS BolloAliquotaCodice,
-        regime_codice_sdi AS RegimeCodiceSdi,
-        tipo_cassa_sdi AS TipoCassaSdi,
-        attivo AS Attivo,
-        created_at AS Created,
-        created_by AS CreatedBy,
-        updated_at AS Updated,
-        updated_by AS UpdatedBy";
-
-    // ==========================================
     // READ
     // ==========================================
 
@@ -55,9 +31,16 @@ public class AnaRegimiFiscaliService
         {
             await using var conn = await _dbService.GetConnectionAsync();
 
-            var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali ORDER BY regime_codice";
+            const string sql = "SELECT * FROM ana_regimi_fiscali ORDER BY regime_codice";
 
-            return await conn.QueryAsync<AnaRegimeFiscale>(sql);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            var results = new List<AnaRegimeFiscale>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
         }
         catch (Exception ex)
         {
@@ -72,9 +55,16 @@ public class AnaRegimiFiscaliService
         {
             await using var conn = await _dbService.GetConnectionAsync();
 
-            var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE attivo = TRUE ORDER BY regime_codice";
+            const string sql = "SELECT * FROM ana_regimi_fiscali WHERE attivo = TRUE ORDER BY regime_codice";
 
-            return await conn.QueryAsync<AnaRegimeFiscale>(sql);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            var results = new List<AnaRegimeFiscale>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
         }
         catch (Exception ex)
         {
@@ -89,11 +79,17 @@ public class AnaRegimiFiscaliService
         {
             await using var conn = await _dbService.GetConnectionAsync();
 
-            var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_id = @Id";
+            const string sql = "SELECT * FROM ana_regimi_fiscali WHERE regime_id = @Id";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("Id", id);
-            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("Id", id);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
+            return null;
         }
         catch (Exception ex)
         {
@@ -108,11 +104,17 @@ public class AnaRegimiFiscaliService
         {
             await using var conn = await _dbService.GetConnectionAsync();
 
-            var sql = $"SELECT {SelectColumns} FROM ana_regimi_fiscali WHERE regime_codice = @Codice";
+            const string sql = "SELECT * FROM ana_regimi_fiscali WHERE regime_codice = @Codice";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("Codice", codice.ToUpper());
-            return await conn.QuerySingleOrDefaultAsync<AnaRegimeFiscale>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("Codice", codice.ToUpper());
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
+            return null;
         }
         catch (Exception ex)
         {
@@ -151,7 +153,25 @@ public class AnaRegimiFiscaliService
                 )
                 RETURNING regime_id";
 
-            return await conn.ExecuteScalarAsync<int>(sql, item);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("RegimeCodice", item.RegimeCodice);
+            cmd.Parameters.AddWithValue("RegimeDescrizione", item.RegimeDescrizione);
+            cmd.Parameters.AddWithValue("ShowHelperCalcolo", item.ShowHelperCalcolo);
+            cmd.Parameters.AddWithValue("DefaultAliquotaIvaCodice", (object?)item.DefaultAliquotaIvaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsIvaDetraibile", item.IsIvaDetraibile);
+            cmd.Parameters.AddWithValue("CassaPrevPercentuale", (object?)item.CassaPrevPercentuale ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CassaPrevDescrizione", (object?)item.CassaPrevDescrizione ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CassaPrevAliquotaCodice", (object?)item.CassaPrevAliquotaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloSoglia", (object?)item.BolloSoglia ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloImporto", (object?)item.BolloImporto ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloAliquotaCodice", (object?)item.BolloAliquotaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("RegimeCodiceSdi", (object?)item.RegimeCodiceSdi ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("TipoCassaSdi", (object?)item.TipoCassaSdi ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Attivo", item.Attivo);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)item.CreatedBy ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
         }
         catch (Exception ex)
         {
@@ -191,7 +211,25 @@ public class AnaRegimiFiscaliService
                     updated_by = @UpdatedBy
                 WHERE regime_id = @RegimeId";
 
-            await conn.ExecuteAsync(sql, item);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("RegimeCodice", item.RegimeCodice);
+            cmd.Parameters.AddWithValue("RegimeDescrizione", item.RegimeDescrizione);
+            cmd.Parameters.AddWithValue("ShowHelperCalcolo", item.ShowHelperCalcolo);
+            cmd.Parameters.AddWithValue("DefaultAliquotaIvaCodice", (object?)item.DefaultAliquotaIvaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsIvaDetraibile", item.IsIvaDetraibile);
+            cmd.Parameters.AddWithValue("CassaPrevPercentuale", (object?)item.CassaPrevPercentuale ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CassaPrevDescrizione", (object?)item.CassaPrevDescrizione ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CassaPrevAliquotaCodice", (object?)item.CassaPrevAliquotaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloSoglia", (object?)item.BolloSoglia ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloImporto", (object?)item.BolloImporto ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("BolloAliquotaCodice", (object?)item.BolloAliquotaCodice ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("RegimeCodiceSdi", (object?)item.RegimeCodiceSdi ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("TipoCassaSdi", (object?)item.TipoCassaSdi ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Attivo", item.Attivo);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)item.UpdatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("RegimeId", item.RegimeId);
+
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {
@@ -212,9 +250,9 @@ public class AnaRegimiFiscaliService
 
             const string sql = "DELETE FROM ana_regimi_fiscali WHERE regime_id = @Id";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("Id", id);
-            await conn.ExecuteAsync(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("Id", id);
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {
@@ -222,4 +260,52 @@ public class AnaRegimiFiscaliService
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, "il regime fiscale");
         }
     }
+
+    #region Mapping Helpers (AOT compatibili)
+
+    private static AnaRegimeFiscale MapFromReader(NpgsqlDataReader reader)
+    {
+        return new AnaRegimeFiscale
+        {
+            RegimeId = reader.GetInt32(reader.GetOrdinal("regime_id")),
+            RegimeCodice = reader.GetString(reader.GetOrdinal("regime_codice")),
+            RegimeDescrizione = reader.GetString(reader.GetOrdinal("regime_descrizione")),
+            ShowHelperCalcolo = reader.GetBoolean(reader.GetOrdinal("show_helper_calcolo")),
+            DefaultAliquotaIvaCodice = GetNullableString(reader, "default_aliquota_iva_codice"),
+            IsIvaDetraibile = reader.GetBoolean(reader.GetOrdinal("is_iva_detraibile")),
+            CassaPrevPercentuale = GetNullableDecimal(reader, "cassa_prev_percentuale"),
+            CassaPrevDescrizione = GetNullableString(reader, "cassa_prev_descrizione"),
+            CassaPrevAliquotaCodice = GetNullableString(reader, "cassa_prev_aliquota_codice"),
+            BolloSoglia = GetNullableDecimal(reader, "bollo_soglia"),
+            BolloImporto = GetNullableDecimal(reader, "bollo_importo"),
+            BolloAliquotaCodice = GetNullableString(reader, "bollo_aliquota_codice"),
+            RegimeCodiceSdi = GetNullableString(reader, "regime_codice_sdi"),
+            TipoCassaSdi = GetNullableString(reader, "tipo_cassa_sdi"),
+            Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
+            Created = GetNullableDateTime(reader, "created_at"),
+            CreatedBy = GetNullableString(reader, "created_by"),
+            Updated = GetNullableDateTime(reader, "updated_at"),
+            UpdatedBy = GetNullableString(reader, "updated_by")
+        };
+    }
+
+    private static string? GetNullableString(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+    }
+
+    private static decimal? GetNullableDecimal(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDecimal(ordinal);
+    }
+
+    private static DateTime? GetNullableDateTime(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+    }
+
+    #endregion
 }

@@ -1,12 +1,13 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace GestioneViaggi.Services.CRUD;
 
 /// <summary>
 /// Service per gestione CRUD ana_aliquote_iva
+/// AOT compatibile - no Dapper/Reflection.Emit
 /// </summary>
 public class AnaAliquoteIvaService
 {
@@ -33,26 +34,19 @@ public class AnaAliquoteIvaService
             await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
-                SELECT
-                    iva_id AS IvaId,
-                    azienda_fk AS AziendaFk,
-                    iva_codice AS IvaCodice,
-                    iva_descrizione AS IvaDescrizione,
-                    iva_percentuale AS IvaPercentuale,
-                    iva_natura AS IvaNatura,
-                    is_default AS IsDefault,
-                    is_active AS IsActive,
-                    ordinamento AS Ordinamento,
-                    created_at AS Created,
-                    created_by AS CreatedBy,
-                    updated_at AS Updated,
-                    updated_by AS UpdatedBy
+                SELECT *
                 FROM ana_aliquote_iva
                 WHERE iva_id = @Id";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("Id", id);
-            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("Id", id);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
+            return null;
         }
         catch (Exception ex)
         {
@@ -71,27 +65,21 @@ public class AnaAliquoteIvaService
             await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
-                SELECT
-                    iva_id AS IvaId,
-                    azienda_fk AS AziendaFk,
-                    iva_codice AS IvaCodice,
-                    iva_descrizione AS IvaDescrizione,
-                    iva_percentuale AS IvaPercentuale,
-                    iva_natura AS IvaNatura,
-                    is_default AS IsDefault,
-                    is_active AS IsActive,
-                    ordinamento AS Ordinamento,
-                    created_at AS Created,
-                    created_by AS CreatedBy,
-                    updated_at AS Updated,
-                    updated_by AS UpdatedBy
+                SELECT *
                 FROM ana_aliquote_iva
                 WHERE azienda_fk = @AziendaId
                 ORDER BY ordinamento, iva_descrizione";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("AziendaId", aziendaId);
-            return await conn.QueryAsync<AnaAliquotaIva>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var results = new List<AnaAliquotaIva>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
         }
         catch (Exception ex)
         {
@@ -110,24 +98,22 @@ public class AnaAliquoteIvaService
             await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
-                SELECT
-                    iva_id AS IvaId,
-                    azienda_fk AS AziendaFk,
-                    iva_codice AS IvaCodice,
-                    iva_descrizione AS IvaDescrizione,
-                    iva_percentuale AS IvaPercentuale,
-                    iva_natura AS IvaNatura,
-                    is_default AS IsDefault,
-                    is_active AS IsActive,
-                    ordinamento AS Ordinamento
+                SELECT *
                 FROM ana_aliquote_iva
                 WHERE azienda_fk = @AziendaId
                   AND is_active = TRUE
                 ORDER BY ordinamento, iva_descrizione";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("AziendaId", aziendaId);
-            return await conn.QueryAsync<AnaAliquotaIva>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var results = new List<AnaAliquotaIva>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
         }
         catch (Exception ex)
         {
@@ -146,24 +132,21 @@ public class AnaAliquoteIvaService
             await using var conn = await _dbService.GetConnectionAsync();
 
             const string sql = @"
-                SELECT
-                    iva_id AS IvaId,
-                    azienda_fk AS AziendaFk,
-                    iva_codice AS IvaCodice,
-                    iva_descrizione AS IvaDescrizione,
-                    iva_percentuale AS IvaPercentuale,
-                    iva_natura AS IvaNatura,
-                    is_default AS IsDefault,
-                    is_active AS IsActive,
-                    ordinamento AS Ordinamento
+                SELECT *
                 FROM ana_aliquote_iva
                 WHERE azienda_fk = @AziendaId
                   AND is_default = TRUE
                 LIMIT 1";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("AziendaId", aziendaId);
-            return await conn.QuerySingleOrDefaultAsync<AnaAliquotaIva>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
+            return null;
         }
         catch (Exception ex)
         {
@@ -198,7 +181,19 @@ public class AnaAliquoteIvaService
                 )
                 RETURNING iva_id";
 
-            return await conn.ExecuteScalarAsync<int>(sql, item);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaFk", item.AziendaFk);
+            cmd.Parameters.AddWithValue("IvaCodice", item.IvaCodice);
+            cmd.Parameters.AddWithValue("IvaDescrizione", item.IvaDescrizione);
+            cmd.Parameters.AddWithValue("IvaPercentuale", item.IvaPercentuale);
+            cmd.Parameters.AddWithValue("IvaNatura", (object?)item.IvaNatura ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsDefault", item.IsDefault);
+            cmd.Parameters.AddWithValue("IsActive", item.IsActive);
+            cmd.Parameters.AddWithValue("Ordinamento", item.Ordinamento);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)item.CreatedBy ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
         }
         catch (Exception ex)
         {
@@ -235,7 +230,18 @@ public class AnaAliquoteIvaService
                     updated_by = @UpdatedBy
                 WHERE iva_id = @IvaId";
 
-            await conn.ExecuteAsync(sql, item);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("IvaCodice", item.IvaCodice);
+            cmd.Parameters.AddWithValue("IvaDescrizione", item.IvaDescrizione);
+            cmd.Parameters.AddWithValue("IvaPercentuale", item.IvaPercentuale);
+            cmd.Parameters.AddWithValue("IvaNatura", (object?)item.IvaNatura ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsDefault", item.IsDefault);
+            cmd.Parameters.AddWithValue("IsActive", item.IsActive);
+            cmd.Parameters.AddWithValue("Ordinamento", item.Ordinamento);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)item.UpdatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IvaId", item.IvaId);
+
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {
@@ -253,9 +259,8 @@ public class AnaAliquoteIvaService
         try
         {
             await using var conn = await _dbService.GetConnectionAsync();
-            await conn.OpenAsync();
 
-            using var transaction = await conn.BeginTransactionAsync();
+            using var transaction = conn.BeginTransaction();
 
             try
             {
@@ -265,9 +270,9 @@ public class AnaAliquoteIvaService
                     SET is_default = FALSE
                     WHERE azienda_fk = @AziendaId";
 
-                var removeParams = new DynamicParameters();
-                removeParams.Add("AziendaId", aziendaId);
-                await conn.ExecuteAsync(sqlRemove, removeParams, transaction);
+                await using var cmdRemove = new NpgsqlCommand(sqlRemove, conn, transaction);
+                cmdRemove.Parameters.AddWithValue("AziendaId", aziendaId);
+                await cmdRemove.ExecuteNonQueryAsync();
 
                 // Imposta flag default sulla aliquota selezionata
                 const string sqlSet = @"
@@ -275,16 +280,16 @@ public class AnaAliquoteIvaService
                     SET is_default = TRUE
                     WHERE iva_id = @IvaId AND azienda_fk = @AziendaId";
 
-                var setParams = new DynamicParameters();
-                setParams.Add("IvaId", ivaId);
-                setParams.Add("AziendaId", aziendaId);
-                await conn.ExecuteAsync(sqlSet, setParams, transaction);
+                await using var cmdSet = new NpgsqlCommand(sqlSet, conn, transaction);
+                cmdSet.Parameters.AddWithValue("IvaId", ivaId);
+                cmdSet.Parameters.AddWithValue("AziendaId", aziendaId);
+                await cmdSet.ExecuteNonQueryAsync();
 
-                await transaction.CommitAsync();
+                transaction.Commit();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                transaction.Rollback();
                 throw;
             }
         }
@@ -300,7 +305,7 @@ public class AnaAliquoteIvaService
     // ==========================================
 
     /// <summary>
-    /// Elimina aliquota IVA (soft delete)
+    /// Elimina aliquota IVA
     /// </summary>
     public async Task DeleteAsync(int id)
     {
@@ -313,9 +318,9 @@ public class AnaAliquoteIvaService
                 DELETE FROM ana_aliquote_iva
                 WHERE iva_id = @Id";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("Id", id);
-            await conn.ExecuteAsync(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("Id", id);
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {
@@ -323,4 +328,40 @@ public class AnaAliquoteIvaService
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, "l'aliquota IVA");
         }
     }
+
+    #region Mapping Helpers (AOT compatibili)
+
+    private static AnaAliquotaIva MapFromReader(NpgsqlDataReader reader)
+    {
+        return new AnaAliquotaIva
+        {
+            IvaId = reader.GetInt32(reader.GetOrdinal("iva_id")),
+            AziendaFk = reader.GetInt32(reader.GetOrdinal("azienda_fk")),
+            IvaCodice = reader.GetString(reader.GetOrdinal("iva_codice")),
+            IvaDescrizione = reader.GetString(reader.GetOrdinal("iva_descrizione")),
+            IvaPercentuale = reader.GetDecimal(reader.GetOrdinal("iva_percentuale")),
+            IvaNatura = GetNullableString(reader, "iva_natura"),
+            IsDefault = reader.GetBoolean(reader.GetOrdinal("is_default")),
+            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+            Ordinamento = reader.GetInt16(reader.GetOrdinal("ordinamento")),
+            Created = GetNullableDateTime(reader, "created_at"),
+            CreatedBy = GetNullableString(reader, "created_by"),
+            Updated = GetNullableDateTime(reader, "updated_at"),
+            UpdatedBy = GetNullableString(reader, "updated_by")
+        };
+    }
+
+    private static string? GetNullableString(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+    }
+
+    private static DateTime? GetNullableDateTime(NpgsqlDataReader reader, string columnName)
+    {
+        var ordinal = reader.GetOrdinal(columnName);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
+    }
+
+    #endregion
 }

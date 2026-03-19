@@ -1,4 +1,3 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
@@ -28,13 +27,17 @@ public class AnaValuteService : BaseCrudService<AnaValute>
             await using var conn = await _databaseService.GetConnectionAsync();
             // Ordiniamo EUR per primo, poi alfabetico
             string sql = @"
-                SELECT * FROM ana_valute 
-                WHERE valuta_attiva = TRUE 
+                SELECT * FROM ana_valute
+                WHERE valuta_attiva = TRUE
                 ORDER BY CASE WHEN valuta_codice_iso = 'EUR' THEN 0 ELSE 1 END, valuta_codice_iso";
-            
-            var results = await conn.QueryAsync<AnaValute>(sql);
-            // Siccome Dapper non mappa automaticamente Id a ValutaId via attributi in QueryAsync senza configurazione extra,
-            // e noi abbiamo ValutaId nel modello, assicuriamoci che Id sia popolato se necessario (anche se abbiamo l'override).
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            var results = new List<AnaValute>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -74,8 +77,21 @@ public class AnaValuteService : BaseCrudService<AnaValute>
                     @Updated,
                     @UpdatedBy
                 ) RETURNING valuta_id";
-            
-            entity.ValutaId = await conn.ExecuteScalarAsync<int>(sql, entity);
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("ValutaCodiceIso", entity.ValutaCodiceIso);
+            cmd.Parameters.AddWithValue("ValutaDescrizione", entity.ValutaDescrizione);
+            cmd.Parameters.AddWithValue("ValutaSimbolo", (object?)entity.ValutaSimbolo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ValutaIsBase", entity.ValutaIsBase);
+            cmd.Parameters.AddWithValue("ValutaAttiva", entity.ValutaAttiva);
+            cmd.Parameters.AddWithValue("ValutaDecimali", entity.ValutaDecimali);
+            cmd.Parameters.AddWithValue("Created", (object?)entity.Created ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)entity.CreatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Updated", (object?)entity.Updated ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            entity.ValutaId = Convert.ToInt32(result);
             return entity;
         }
         catch (Exception ex)
@@ -92,7 +108,7 @@ public class AnaValuteService : BaseCrudService<AnaValute>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             string sql = @"
-                UPDATE ana_valute SET 
+                UPDATE ana_valute SET
                     valuta_codice_iso = @ValutaCodiceIso,
                     valuta_descrizione = @ValutaDescrizione,
                     valuta_simbolo = @ValutaSimbolo,
@@ -102,8 +118,19 @@ public class AnaValuteService : BaseCrudService<AnaValute>
                     updated_at = @Updated,
                     updated_by = @UpdatedBy
                 WHERE valuta_id = @ValutaId";
-            
-            await conn.ExecuteAsync(sql, entity);
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("ValutaCodiceIso", entity.ValutaCodiceIso);
+            cmd.Parameters.AddWithValue("ValutaDescrizione", entity.ValutaDescrizione);
+            cmd.Parameters.AddWithValue("ValutaSimbolo", (object?)entity.ValutaSimbolo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ValutaIsBase", entity.ValutaIsBase);
+            cmd.Parameters.AddWithValue("ValutaAttiva", entity.ValutaAttiva);
+            cmd.Parameters.AddWithValue("ValutaDecimali", entity.ValutaDecimali);
+            cmd.Parameters.AddWithValue("Updated", (object?)entity.Updated ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ValutaId", entity.ValutaId);
+
+            await cmd.ExecuteNonQueryAsync();
             return entity;
         }
         catch (Exception ex)
