@@ -35,7 +35,9 @@ public class AnaDateViaggiService
                 WHERE viaggio_id_fk = @ViaggioId
                 ORDER BY data_viaggio_data_inizio DESC";
 
-            return await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
+            var parameters = new DynamicParameters();
+            parameters.Add("ViaggioId", viaggioId);
+            return await conn.QueryAsync<DataViaggioDTO>(sql, parameters);
         }
         catch (Exception ex)
         {
@@ -53,7 +55,7 @@ public class AnaDateViaggiService
         {
             await using var conn = await _dbService.GetConnectionAsync();
             string sql = @"
-                SELECT 
+                SELECT
                     data_viaggio_id as DataViaggioId,
                     viaggio_id_fk as ViaggioIdFk,
                     data_viaggio_data_inizio as DataInizio,
@@ -62,7 +64,9 @@ public class AnaDateViaggiService
                     has_transactions as HasTransactions
                 FROM fn_get_date_viaggi_with_transactions(@ViaggioId)";
 
-            return await conn.QueryAsync<DataViaggioDTO>(sql, new { ViaggioId = viaggioId });
+            var parameters2 = new DynamicParameters();
+            parameters2.Add("ViaggioId", viaggioId);
+            return await conn.QueryAsync<DataViaggioDTO>(sql, parameters2);
         }
         catch (Exception ex)
         {

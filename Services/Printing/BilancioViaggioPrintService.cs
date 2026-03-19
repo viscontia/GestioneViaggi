@@ -157,7 +157,9 @@ public class BilancioViaggioPrintService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            result = (await connection.QueryAsync<AnnoBilancioDTO>("SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)", new { aziendaId })).ToList();
+            var parameters = new DynamicParameters();
+            parameters.Add("aziendaId", aziendaId);
+            result = (await connection.QueryAsync<AnnoBilancioDTO>("SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)", parameters)).ToList();
         }
         catch (Exception ex)
         {

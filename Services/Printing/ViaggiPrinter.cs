@@ -740,15 +740,17 @@ public static class PdfUtils
 
         try
         {
-            // STEP 6: Dapper Query with Parameters (Anonymous Object) - KNOWN TO FAIL
-            results.AppendLine("STEP 6: Test Dapper query con parametri (oggetto anonimo)...");
+            // STEP 6: Dapper Query with Parameters (DynamicParameters - AOT safe)
+            results.AppendLine("STEP 6: Test Dapper query con parametri (DynamicParameters)...");
             await using var conn = await connectionManager.GetConnectionAsync();
-            var paramResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", new { value = 42 });
+            var parameters = new Dapper.DynamicParameters();
+            parameters.Add("value", 42);
+            var paramResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", parameters);
             results.AppendLine($"✓ STEP 6: OK - Dapper query parametrica: {paramResult}");
         }
         catch (Exception ex)
         {
-            results.AppendLine($"✗ STEP 6: FAILED (EXPECTED) - {ex.GetType().Name}: {ex.Message}");
+            results.AppendLine($"✗ STEP 6: FAILED - {ex.GetType().Name}: {ex.Message}");
             if (ex.InnerException != null)
                 results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
             // Non return - continua con i test

@@ -35,7 +35,9 @@ public class FatturaAttivaPrintService
             await using var connection = await _dbService.GetConnectionAsync();
 
             var sql = "SELECT fn_get_fattura_attiva_print_data(@TransazioneId)";
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new { TransazioneId = transazioneId });
+            var parameters = new DynamicParameters();
+            parameters.Add("TransazioneId", transazioneId);
+            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, parameters);
 
             if (string.IsNullOrEmpty(jsonResponse))
             {
@@ -145,7 +147,9 @@ public class FatturaAttivaPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
             var sql = "SELECT anno FROM fn_get_anni_fatture_attive(@AziendaId)";
-            var anni = await connection.QueryAsync<int>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            var anni = await connection.QueryAsync<int>(sql, parameters);
             return anni.ToList();
         }
         catch (Exception ex)

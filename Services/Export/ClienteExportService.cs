@@ -27,7 +27,9 @@ public class ClienteExportService : IClienteExportService
         await using var connection = await _dbService.GetConnectionAsync();
 
         var sql = "SELECT * FROM fn_get_clienti_export(@AziendaId)";
-        var result = await connection.QueryAsync<ClienteExportDTO>(sql, new { AziendaId = aziendaId });
+        var parameters = new DynamicParameters();
+        parameters.Add("AziendaId", aziendaId);
+        var result = await connection.QueryAsync<ClienteExportDTO>(sql, parameters);
 
         _logger.LogInformation("Export clienti: {Count} record estratti per azienda {AziendaId}", result.Count(), aziendaId);
         return result.ToList();

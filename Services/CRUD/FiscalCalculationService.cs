@@ -42,7 +42,9 @@ public class FiscalCalculationService
                 FROM ana_aziende
                 WHERE azienda_id = @AziendaId";
 
-            var regimeFk = await conn.QuerySingleOrDefaultAsync<int?>(sql, new { AziendaId = aziendaId });
+            var parameters = new DynamicParameters();
+            parameters.Add("AziendaId", aziendaId);
+            var regimeFk = await conn.QuerySingleOrDefaultAsync<int?>(sql, parameters);
 
             if (!regimeFk.HasValue)
             {

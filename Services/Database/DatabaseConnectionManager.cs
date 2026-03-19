@@ -75,26 +75,18 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
             // - Prod (Supabase/PgBouncer): pool minimo con multiplexing (dalla connection string)
             if (_environment == DbEnvironment.Test)
             {
+                // Test (Docker locale): configurazione pool client-side
                 builder.ConnectionStringBuilder.Pooling = true;
                 builder.ConnectionStringBuilder.MinPoolSize = 1;
                 builder.ConnectionStringBuilder.MaxPoolSize = 20;
                 builder.ConnectionStringBuilder.ConnectionIdleLifetime = 300; // 5 minutes idle cleanup
                 builder.ConnectionStringBuilder.ConnectionPruningInterval = 10; // Check every 10 seconds
+                builder.ConnectionStringBuilder.Timeout = 30;
+                builder.ConnectionStringBuilder.ConnectionLifetime = 600; // 10 minutes max connection lifetime
             }
-            else
-            {
-                // Per PgBouncer: pool con margine di sicurezza, multiplexing gestisce la concorrenza
-                // MaxPoolSize=10 previene "pool exhausted" errors durante picchi di traffico
-                builder.ConnectionStringBuilder.Pooling = true;
-                builder.ConnectionStringBuilder.MinPoolSize = 0;
-                builder.ConnectionStringBuilder.MaxPoolSize = 10;
-                builder.ConnectionStringBuilder.ConnectionIdleLifetime = 180; // 3 minutes idle for Supabase
-                builder.ConnectionStringBuilder.ConnectionPruningInterval = 10;
-            }
-
-            // Connection timeout e lifetime per sicurezza e rotazione
-            builder.ConnectionStringBuilder.Timeout = 30;
-            builder.ConnectionStringBuilder.ConnectionLifetime = 600; // 10 minutes max connection lifetime
+            // Per Prod (Supabase/PgBouncer): NON modificare NULLA
+            // La connection string contiene già tutte le impostazioni corrette:
+            // Pooling=false, Multiplexing=true, Timeout=30, etc.
 
             _dataSource = builder.Build();
 
@@ -105,8 +97,8 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
 
             // Log pool configuration for monitoring
             var poolConfig = _environment == DbEnvironment.Test
-                ? "Test: MaxPool=20, IdleLifetime=300s"
-                : "Prod: MaxPool=10, IdleLifetime=180s, ConnectionLifetime=600s";
+                ? "Test: MinPool=1, MaxPool=20, IdleLifetime=300s"
+                : "Prod: Pooling=false (PgBouncer), Multiplexing=true";
             _logger.LogInformation(
                 "Database connection pool initialized successfully. Environment: {Environment}, Config: {PoolConfig}",
                 _environment,
@@ -170,10 +162,10 @@ public class DatabaseConnectionManager : IDatabaseConnectionManager
             Environment = _environment,
             IsInitialized = _initialized,
             Host = _host,
-            MaxPoolSize = _environment == DbEnvironment.Test ? 20 : 10,
+            MaxPoolSize = _environment == DbEnvironment.Test ? 20 : 0, // Prod: no client-side pooling
             MinPoolSize = _environment == DbEnvironment.Test ? 1 : 0,
-            IdleLifetimeSeconds = _environment == DbEnvironment.Test ? 300 : 180,
-            ConnectionLifetimeSeconds = 600
+            IdleLifetimeSeconds = _environment == DbEnvironment.Test ? 300 : 0,
+            ConnectionLifetimeSeconds = _environment == DbEnvironment.Test ? 600 : 0
         };
 
         _logger.LogDebug(

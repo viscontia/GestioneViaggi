@@ -354,16 +354,16 @@ public class MovTransazioniService
                 foreach (var riga in item.Righe)
                 {
                     riga.TransazioneFk = transazioneId;
-                    await conn.ExecuteAsync(sqlRighe, new {
-                        TransazioneId = transazioneId,
-                        riga.RigaNumero,
-                        riga.RigaDescrizione,
-                        riga.RigaTipo,
-                        riga.RigaImponibile,
-                        riga.RigaAliquotaIvaFk,
-                        riga.RigaIvaValore,
-                        riga.RigaLordo
-                    }, transaction);
+                    var rigaParams = new DynamicParameters();
+                    rigaParams.Add("TransazioneId", transazioneId);
+                    rigaParams.Add("RigaNumero", riga.RigaNumero);
+                    rigaParams.Add("RigaDescrizione", riga.RigaDescrizione);
+                    rigaParams.Add("RigaTipo", riga.RigaTipo);
+                    rigaParams.Add("RigaImponibile", riga.RigaImponibile);
+                    rigaParams.Add("RigaAliquotaIvaFk", riga.RigaAliquotaIvaFk);
+                    rigaParams.Add("RigaIvaValore", riga.RigaIvaValore);
+                    rigaParams.Add("RigaLordo", riga.RigaLordo);
+                    await conn.ExecuteAsync(sqlRighe, rigaParams, transaction);
                 }
             }
 
@@ -506,16 +506,16 @@ public class MovTransazioniService
 
                 foreach (var riga in item.Righe)
                 {
-                    await conn.ExecuteAsync(sqlRighe, new {
-                        TransazioneId = item.TransazioneId,
-                        riga.RigaNumero,
-                        riga.RigaDescrizione,
-                        riga.RigaTipo,
-                        riga.RigaImponibile,
-                        riga.RigaAliquotaIvaFk,
-                        riga.RigaIvaValore,
-                        riga.RigaLordo
-                    }, transaction);
+                    var rigaParams = new DynamicParameters();
+                    rigaParams.Add("TransazioneId", item.TransazioneId);
+                    rigaParams.Add("RigaNumero", riga.RigaNumero);
+                    rigaParams.Add("RigaDescrizione", riga.RigaDescrizione);
+                    rigaParams.Add("RigaTipo", riga.RigaTipo);
+                    rigaParams.Add("RigaImponibile", riga.RigaImponibile);
+                    rigaParams.Add("RigaAliquotaIvaFk", riga.RigaAliquotaIvaFk);
+                    rigaParams.Add("RigaIvaValore", riga.RigaIvaValore);
+                    rigaParams.Add("RigaLordo", riga.RigaLordo);
+                    await conn.ExecuteAsync(sqlRighe, rigaParams, transaction);
                 }
             }
 

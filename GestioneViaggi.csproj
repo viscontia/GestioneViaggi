@@ -26,8 +26,8 @@
         <ApplicationId>com.adrianovisconti.gestioneviaggi</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
-        <ApplicationVersion>2</ApplicationVersion>
+        <ApplicationDisplayVersion>1.25</ApplicationDisplayVersion>
+        <ApplicationVersion>25</ApplicationVersion>
 
         <WindowsPackageType>None</WindowsPackageType>
 
@@ -48,6 +48,13 @@
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst' AND '$(Configuration)' == 'Release'">
         <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.plist</CodesignEntitlements>
     </PropertyGroup>
+
+    <!-- Preserva assembly dal trimming IL Linker per compatibilità Dapper/Npgsql -->
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <TrimmerRootAssembly Include="Dapper" />
+        <TrimmerRootAssembly Include="Npgsql" />
+        <TrimmerRootAssembly Include="GestioneViaggi" />
+    </ItemGroup>
 
     <ItemGroup>
         <Content Remove="appsettings.json" />

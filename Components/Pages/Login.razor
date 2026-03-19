@@ -323,15 +323,6 @@
 
         try
         {
-            var isDbConnectable = await AuthService.IsDbConnectableAsync();
-            if (!isDbConnectable)
-            {
-                _authErrorMessage = "Data Base non raggiungibile: rivolgersi all'assistenza tecnica.";
-                _isLoading = false;
-                StateHasChanged();
-                return;
-            }
-
             var response = await AuthService.LoginAsync(_loginRequest);
 
             if (response.Success && response.User != null)
