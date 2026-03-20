@@ -38,5 +38,9 @@
     </array>
     <key>XSAppIconAssets</key>
     <string>Assets.xcassets/appicon.appiconset</string>
+    <key>NSCameraUsageDescription</key>
+    <string>L'applicazione richiede l'accesso alla fotocamera per scattare la foto del cliente.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>L'applicazione richiede l'accesso alla galleria per permettere la selezione della foto del cliente.</string>
 </dict>
 </plist>

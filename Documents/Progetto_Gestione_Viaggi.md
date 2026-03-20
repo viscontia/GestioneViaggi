@@ -123,7 +123,7 @@ Utilizzato per l'ambiente di produzione in Cloud (Transaction Pooler).
 ```json
 {
   "ConnectionStrings": {
-    "PostgreSQL": "Host=aws-1-eu-central-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wqbqvhshojbfuwcuiams;Password=U9Y7KSjQVfZ3N1Ca;Pooling=false;Multiplexing=true;Timeout=30;CommandTimeout=30;SSL Mode=Require;Trust Server Certificate=true;"
+    "PostgreSQL": "Server=aws-1-eu-central-1.pooler.supabase.com;Port=6543;Database=postgres;User Id=postgres.wqbqvhshojbfuwcuiams;Password=U9Y7KSjQVfZ3N1Ca;Pooling=true;MinPoolSize=0;MaxPoolSize=30;Keepalive=30;No Reset On Close=true;Timeout=30;CommandTimeout=30;SSL Mode=Require;Trust Server Certificate=true;"
   }
 }
 ```
@@ -195,15 +195,19 @@ Credenziali per il database in Cloud (Transaction Pooler).
 | **Database** | `postgres` |
 | **Username** | `postgres.wqbqvhshojbfuwcuiams` |
 | **Password** | `U9Y7KSjQVfZ3N1Ca` |
+| **Keepalive** | `30` |
+| **No Reset On Close** | `true` |
 | **Pool Mode** | `transaction` |
 | **Transaction Pooler (URI)** | `postgresql://postgres.wqbqvhshojbfuwcuiams:U9Y7KSjQVfZ3N1Ca@aws-1-eu-central-1.pooler.supabase.com:6543/postgres` |
 | **IPv4 Compatible** | Sì |
-| **Npgsql Required** | `Pooling=false;Multiplexing=true;` |
+| **Npgsql Required** | `Pooling=true;Keepalive=30;No Reset On Close=true;` |
 
 > [!NOTE]
-> **Parametri Npgsql per Transaction Pooler:**
-> - `Pooling=false`: Disabilita il pooling lato client (il pooling è gestito da Supabase)
-> - `Multiplexing=true`: Abilita la modalità multiplexing di Npgsql, necessaria per PgBouncer in transaction mode (evita prepared statements non supportati)
+> **Parametri Npgsql per Transaction Pooler (Risoluzione Stream Exception & Deadlock):**
+> - `Pooling=true`: Abilita il pooling lato client con `MaxPoolSize=30` (sufficiente per chiamate parallele iniziali).
+> - `Keepalive=30`: Mantiene vivo il canale con PgBouncer evitando disconnessioni dello stream.
+> - `No Reset On Close=true`: **Vitale** per PgBouncer/Supavisor; evita deadlock impedendo l'invio di comandi di reset sessione non supportati.
+> - `Multiplexing=false`: Garantisce stabilità dello stream su reti variabili.
 
 ---
 
