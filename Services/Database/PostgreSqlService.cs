@@ -24,71 +24,80 @@ public class PostgreSqlService : IDatabaseService
     public async Task<NpgsqlConnection> GetConnectionAsync()
     {
         var connection = await _connectionManager.GetConnectionAsync();
+        var email = await GetAuditEmailAsync();
 
+        if (!string.IsNullOrEmpty(email))
+        {
+            await SetAuditUserAsync(connection, email);
+        }
+
+        return connection;
+    }
+
+    private async Task<string?> GetAuditEmailAsync()
+    {
         try
         {
-            // Set the current app user for audit triggers
-            string? emailToSet = null;
             var session = await _sessionManager.GetSessionAsync();
 
             if (session?.IsValid == true && !string.IsNullOrEmpty(session.User.Email))
             {
-                emailToSet = session.User.Email;
-            }
-            else
-            {
-                // Fallback: try to get the last login email if session is missing/expired
-                // This covers cases where the user might be re-authenticating or in a weird state
-                emailToSet = await _sessionManager.GetLastLoginEmailAsync();
-
-                if (string.IsNullOrEmpty(emailToSet))
-                {
-                    _logger.LogWarning("No valid session or last login email found. Audit user will default to DB user.");
-                }
+                return session.User.Email;
             }
 
-            if (!string.IsNullOrEmpty(emailToSet))
-            {
-                using var cmd = new NpgsqlCommand("SELECT set_config('my.app_user', @email, true)", connection);
-                cmd.Parameters.AddWithValue("email", emailToSet);
-                await cmd.ExecuteNonQueryAsync();
-
-                _logger.LogDebug("Audit user set to: {Email}", emailToSet);
-            }
+            return await _sessionManager.GetLastLoginEmailAsync();
         }
         catch (Exception ex)
         {
-            // Se il comando set_config fallisce, la connessione è in stato "broken" e non può essere riutilizzata.
-            // Chiudiamo questa connessione e ne otteniamo una nuova dal pool.
-            _logger.LogWarning(ex, "Failed to set audit user session variable. Getting a fresh connection.");
-
-            try
-            {
-                await connection.DisposeAsync();
-            }
-            catch
-            {
-                // Ignora errori durante la chiusura della connessione rotta
-            }
-
-            // Ottieni una nuova connessione senza tentare di impostare l'audit user
-            // per evitare loop infiniti se il problema persiste
-            return await _connectionManager.GetConnectionAsync();
+            _logger.LogWarning(ex, "Failed to retrieve audit email from session");
+            return null;
         }
+    }
 
-        return connection;
+    private async Task SetAuditUserAsync(NpgsqlConnection connection, string email)
+    {
+        try
+        {
+            using var cmd = new NpgsqlCommand("SELECT set_config('my.app_user', @email, true)", connection);
+            cmd.Parameters.AddWithValue("email", email);
+            await cmd.ExecuteNonQueryAsync();
+            _logger.LogDebug("Audit user set to: {Email}", email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to set audit user session variable.");
+            throw; // Caller should handle or retry
+        }
     }
 
     public async Task<T?> ExecuteFunctionAsync<T>(string functionName, params (string Name, object? Value)[] parameters)
     {
         try
         {
-            await using var connection = await GetConnectionAsync();
+            // Get a clean connection from the manager to handle batching ourselves
+            await using var connection = await _connectionManager.GetConnectionAsync();
+            var email = await GetAuditEmailAsync();
 
             var paramNames = string.Join(", ", parameters.Select((_, i) => $"@p{i}"));
-            var sql = $"SELECT {functionName}({paramNames})";
+            string sql;
+
+            if (!string.IsNullOrEmpty(email))
+            {
+                // OPTIMIZATION: Batch set_config and the function call in a single round-trip.
+                // This is crucial for high-latency connections (e.g. from South Africa).
+                sql = $"SELECT {functionName}({paramNames}) FROM (SELECT set_config('my.app_user', @app_user, true)) s";
+            }
+            else
+            {
+                sql = $"SELECT {functionName}({paramNames})";
+            }
 
             await using var command = new NpgsqlCommand(sql, connection);
+
+            if (!string.IsNullOrEmpty(email))
+            {
+                command.Parameters.AddWithValue("app_user", email);
+            }
 
             for (int i = 0; i < parameters.Length; i++)
             {
