@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
@@ -52,12 +52,12 @@ public class RegistroIvaPrintService
 
             var sql = "SELECT fn_get_registro_iva_print_data(@AziendaId, @PeriodoDa::date, @PeriodoA::date)";
 
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
-            {
-                AziendaId = aziendaId,
-                PeriodoDa = periodoDa,
-                PeriodoA = periodoA
-            });
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("PeriodoDa", periodoDa);
+            cmd.Parameters.AddWithValue("PeriodoA", periodoA);
+
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(jsonResponse)) return result;
 

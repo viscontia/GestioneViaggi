@@ -724,11 +724,12 @@ public static class PdfUtils
 
         try
         {
-            // STEP 5: Dapper Query (Simple)
-            results.AppendLine("STEP 5: Test Dapper query semplice...");
+            // STEP 5: Npgsql Query (Simple)
+            results.AppendLine("STEP 5: Test Npgsql query semplice...");
             await using var conn = await connectionManager.GetConnectionAsync();
-            var simpleResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT 1");
-            results.AppendLine($"✓ STEP 5: OK - Dapper query semplice: {simpleResult}");
+            await using var cmd = new Npgsql.NpgsqlCommand("SELECT 1", (Npgsql.NpgsqlConnection)conn);
+            var simpleResult = await cmd.ExecuteScalarAsync();
+            results.AppendLine($"✓ STEP 5: OK - Npgsql query semplice: {simpleResult}");
         }
         catch (Exception ex)
         {
@@ -740,13 +741,13 @@ public static class PdfUtils
 
         try
         {
-            // STEP 6: Dapper Query with Parameters (DynamicParameters - AOT safe)
-            results.AppendLine("STEP 6: Test Dapper query con parametri (DynamicParameters)...");
+            // STEP 6: Npgsql Query with Parameters
+            results.AppendLine("STEP 6: Test Npgsql query con parametri...");
             await using var conn = await connectionManager.GetConnectionAsync();
-            var parameters = new Dapper.DynamicParameters();
-            parameters.Add("value", 42);
-            var paramResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", parameters);
-            results.AppendLine($"✓ STEP 6: OK - Dapper query parametrica: {paramResult}");
+            await using var cmd = new Npgsql.NpgsqlCommand("SELECT @value", (Npgsql.NpgsqlConnection)conn);
+            cmd.Parameters.AddWithValue("value", 42);
+            var paramResult = await cmd.ExecuteScalarAsync();
+            results.AppendLine($"✓ STEP 6: OK - Npgsql query parametrica: {paramResult}");
         }
         catch (Exception ex)
         {
@@ -754,24 +755,6 @@ public static class PdfUtils
             if (ex.InnerException != null)
                 results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
             // Non return - continua con i test
-        }
-
-        try
-        {
-            // STEP 6B: Dapper Query with DynamicParameters (WORKAROUND)
-            results.AppendLine("STEP 6B: Test Dapper con DynamicParameters (soluzione)...");
-            await using var conn = await connectionManager.GetConnectionAsync();
-            var dynParams = new Dapper.DynamicParameters();
-            dynParams.Add("value", 42);
-            var dynamicResult = await Dapper.SqlMapper.ExecuteScalarAsync<int>(conn, "SELECT @value", dynParams);
-            results.AppendLine($"✓ STEP 6B: OK - DynamicParameters funziona: {dynamicResult}");
-        }
-        catch (Exception ex)
-        {
-            results.AppendLine($"✗ STEP 6B: FAILED - {ex.GetType().Name}: {ex.Message}");
-            if (ex.InnerException != null)
-                results.AppendLine($"  Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
-            return results.ToString();
         }
 
         try

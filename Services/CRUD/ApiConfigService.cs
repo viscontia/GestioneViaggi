@@ -1,4 +1,3 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
@@ -37,9 +36,14 @@ public class ApiConfigService
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<ApiConfig>(
-                "SELECT * FROM fn_ana_api_config_get_all()"
-            );
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_ana_api_config_get_all()", conn);
+            var results = new List<ApiConfig>();
+            
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -57,10 +61,15 @@ public class ApiConfigService
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var results = await conn.QueryAsync<ApiConfig>(
-                "SELECT * FROM fn_ana_api_config_get_by_service(@ServiceCode)",
-                new { ServiceCode = serviceCode }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_ana_api_config_get_by_service(@ServiceCode)", conn);
+            cmd.Parameters.AddWithValue("ServiceCode", serviceCode);
+            
+            var results = new List<ApiConfig>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
             return results;
         }
         catch (Exception ex)
@@ -97,11 +106,12 @@ public class ApiConfigService
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            var value = await conn.ExecuteScalarAsync<string>(
-                "SELECT fn_get_api_config_value(@ServiceCode, @ConfigKey)",
-                new { ServiceCode = serviceCode, ConfigKey = configKey }
-            );
-            return value;
+            await using var cmd = new NpgsqlCommand("SELECT fn_get_api_config_value(@ServiceCode, @ConfigKey)", conn);
+            cmd.Parameters.AddWithValue("ServiceCode", serviceCode);
+            cmd.Parameters.AddWithValue("ConfigKey", configKey);
+            
+            var result = await cmd.ExecuteScalarAsync();
+            return result == null || result == DBNull.Value ? null : result.ToString();
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")
         {
@@ -129,8 +139,7 @@ public class ApiConfigService
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            entity.ConfigId = await conn.ExecuteScalarAsync<int>(
-                @"SELECT sp_ana_api_config_create(
+            string sql = @"SELECT sp_ana_api_config_create(
                     @ServiceCode,
                     @ServiceName,
                     @ConfigKey,
@@ -141,21 +150,22 @@ public class ApiConfigService
                     @IsActive,
                     @DisplayOrder,
                     @CreatedBy
-                )",
-                new
-                {
-                    entity.ServiceCode,
-                    entity.ServiceName,
-                    entity.ConfigKey,
-                    entity.ConfigValue,
-                    entity.ConfigType,
-                    entity.ConfigDescription,
-                    entity.IsSecret,
-                    entity.IsActive,
-                    entity.DisplayOrder,
-                    entity.CreatedBy
-                }
-            );
+                )";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("ServiceCode", entity.ServiceCode);
+            cmd.Parameters.AddWithValue("ServiceName", entity.ServiceName);
+            cmd.Parameters.AddWithValue("ConfigKey", entity.ConfigKey);
+            cmd.Parameters.AddWithValue("ConfigValue", (object?)entity.ConfigValue ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ConfigType", entity.ConfigType);
+            cmd.Parameters.AddWithValue("ConfigDescription", (object?)entity.ConfigDescription ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsSecret", entity.IsSecret);
+            cmd.Parameters.AddWithValue("IsActive", entity.IsActive);
+            cmd.Parameters.AddWithValue("DisplayOrder", entity.DisplayOrder);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)entity.CreatedBy ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            entity.ConfigId = Convert.ToInt32(result);
 
             _logger.LogInformation("Configurazione API {ServiceCode}/{ConfigKey} creata con ID {Id}",
                 entity.ServiceCode, entity.ConfigKey, entity.ConfigId);
@@ -187,8 +197,7 @@ public class ApiConfigService
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            await conn.ExecuteAsync(
-                @"SELECT sp_ana_api_config_update(
+            string sql = @"SELECT sp_ana_api_config_update(
                     @ConfigId,
                     @ServiceCode,
                     @ServiceName,
@@ -200,22 +209,22 @@ public class ApiConfigService
                     @IsActive,
                     @DisplayOrder,
                     @UpdatedBy
-                )",
-                new
-                {
-                    entity.ConfigId,
-                    entity.ServiceCode,
-                    entity.ServiceName,
-                    entity.ConfigKey,
-                    entity.ConfigValue,
-                    entity.ConfigType,
-                    entity.ConfigDescription,
-                    entity.IsSecret,
-                    entity.IsActive,
-                    entity.DisplayOrder,
-                    entity.UpdatedBy
-                }
-            );
+                )";
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("ConfigId", entity.ConfigId);
+            cmd.Parameters.AddWithValue("ServiceCode", entity.ServiceCode);
+            cmd.Parameters.AddWithValue("ServiceName", entity.ServiceName);
+            cmd.Parameters.AddWithValue("ConfigKey", entity.ConfigKey);
+            cmd.Parameters.AddWithValue("ConfigValue", (object?)entity.ConfigValue ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ConfigType", entity.ConfigType);
+            cmd.Parameters.AddWithValue("ConfigDescription", (object?)entity.ConfigDescription ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("IsSecret", entity.IsSecret);
+            cmd.Parameters.AddWithValue("IsActive", entity.IsActive);
+            cmd.Parameters.AddWithValue("DisplayOrder", entity.DisplayOrder);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation("Configurazione API {Id} aggiornata", entity.ConfigId);
             return entity;
@@ -242,10 +251,9 @@ public class ApiConfigService
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            await conn.ExecuteAsync(
-                "SELECT sp_ana_api_config_delete(@ConfigId)",
-                new { ConfigId = configId }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_api_config_delete(@ConfigId)", conn);
+            cmd.Parameters.AddWithValue("ConfigId", configId);
+            await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation("Configurazione API {Id} eliminata", configId);
             return true;
@@ -272,10 +280,9 @@ public class ApiConfigService
         {
             await using var conn = await _databaseService.GetConnectionAsync();
 
-            await conn.ExecuteAsync(
-                "SELECT sp_ana_api_config_delete_service(@ServiceCode)",
-                new { ServiceCode = serviceCode }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_api_config_delete_service(@ServiceCode)", conn);
+            cmd.Parameters.AddWithValue("ServiceCode", serviceCode);
+            await cmd.ExecuteNonQueryAsync();
 
             _logger.LogInformation("Tutte le configurazioni del servizio {ServiceCode} eliminate", serviceCode);
             return true;
@@ -304,5 +311,26 @@ public class ApiConfigService
         {
             return "SYSTEM";
         }
+    }
+
+    private static ApiConfig MapFromReader(NpgsqlDataReader reader)
+    {
+        return new ApiConfig
+        {
+            ConfigId = reader.GetInt32(reader.GetOrdinal("config_id")),
+            ServiceCode = reader.GetString(reader.GetOrdinal("service_code")),
+            ServiceName = reader.GetString(reader.GetOrdinal("service_name")),
+            ConfigKey = reader.GetString(reader.GetOrdinal("config_key")),
+            ConfigValue = reader.IsDBNull(reader.GetOrdinal("config_value")) ? null : reader.GetString(reader.GetOrdinal("config_value")),
+            ConfigType = reader.GetString(reader.GetOrdinal("config_type")),
+            ConfigDescription = reader.IsDBNull(reader.GetOrdinal("config_description")) ? null : reader.GetString(reader.GetOrdinal("config_description")),
+            IsSecret = reader.GetBoolean(reader.GetOrdinal("is_secret")),
+            IsActive = reader.GetBoolean(reader.GetOrdinal("is_active")),
+            DisplayOrder = reader.GetInt16(reader.GetOrdinal("display_order")),
+            CreatedAt = reader.IsDBNull(reader.GetOrdinal("created_at")) ? null : reader.GetDateTime(reader.GetOrdinal("created_at")),
+            CreatedBy = reader.IsDBNull(reader.GetOrdinal("created_by")) ? null : reader.GetString(reader.GetOrdinal("created_by")),
+            UpdatedAt = reader.IsDBNull(reader.GetOrdinal("updated_at")) ? null : reader.GetDateTime(reader.GetOrdinal("updated_at")),
+            UpdatedBy = reader.IsDBNull(reader.GetOrdinal("updated_by")) ? null : reader.GetString(reader.GetOrdinal("updated_by"))
+        };
     }
 }

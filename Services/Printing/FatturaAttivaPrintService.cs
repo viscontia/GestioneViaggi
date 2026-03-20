@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -35,9 +35,9 @@ public class FatturaAttivaPrintService
             await using var connection = await _dbService.GetConnectionAsync();
 
             var sql = "SELECT fn_get_fattura_attiva_print_data(@TransazioneId)";
-            var parameters = new DynamicParameters();
-            parameters.Add("TransazioneId", transazioneId);
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("TransazioneId", transazioneId);
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(jsonResponse))
             {
@@ -147,10 +147,17 @@ public class FatturaAttivaPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
             var sql = "SELECT anno FROM fn_get_anni_fatture_attive(@AziendaId)";
-            var parameters = new DynamicParameters();
-            parameters.Add("AziendaId", aziendaId);
-            var anni = await connection.QueryAsync<int>(sql, parameters);
-            return anni.ToList();
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            
+            var anni = new List<int>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0))
+                    anni.Add(reader.GetInt32(0));
+            }
+            return anni;
         }
         catch (Exception ex)
         {
@@ -173,18 +180,38 @@ public class FatturaAttivaPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
             var sql = "SELECT * FROM fn_get_fatture_attive_elenco(@AziendaId, @ControparteId, @DataDocDa, @DataDocA, @ImportoDa, @ImportoA, @Stato, @NumeroDocumento)";
-            var items = await connection.QueryAsync<FatturaAttivaListItem>(sql, new
+            
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ControparteId", controparteId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDocDa", dataDocDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDocA", dataDocA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ImportoDa", importoDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ImportoA", importoA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("Stato", stato ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("NumeroDocumento", numeroDocumento ?? (object)DBNull.Value);
+
+            var items = new List<FatturaAttivaListItem>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                AziendaId = aziendaId,
-                ControparteId = controparteId,
-                DataDocDa = dataDocDa,
-                DataDocA = dataDocA,
-                ImportoDa = importoDa,
-                ImportoA = importoA,
-                Stato = stato,
-                NumeroDocumento = numeroDocumento
-            });
-            return items.ToList();
+                items.Add(new FatturaAttivaListItem
+                {
+                    TransazioneId = reader.GetInt32(reader.GetOrdinal("transazione_id")),
+                    TransazioneData = reader.IsDBNull(reader.GetOrdinal("transazione_data")) ? null : reader.GetDateTime(reader.GetOrdinal("transazione_data")),
+                    DataDocumento = reader.IsDBNull(reader.GetOrdinal("data_documento")) ? null : reader.GetDateTime(reader.GetOrdinal("data_documento")),
+                    NumeroDocumento = reader.IsDBNull(reader.GetOrdinal("numero_documento")) ? null : reader.GetString(reader.GetOrdinal("numero_documento")),
+                    NumeroProtocolloIva = reader.IsDBNull(reader.GetOrdinal("numero_protocollo_iva")) ? null : reader.GetInt32(reader.GetOrdinal("numero_protocollo_iva")),
+                    ControparteRagioneSociale = reader.IsDBNull(reader.GetOrdinal("controparte_ragione_sociale")) ? string.Empty : reader.GetString(reader.GetOrdinal("controparte_ragione_sociale")),
+                    ImponibileEur = reader.GetDecimal(reader.GetOrdinal("imponibile_eur")),
+                    IvaEur = reader.GetDecimal(reader.GetOrdinal("iva_eur")),
+                    LordoEur = reader.GetDecimal(reader.GetOrdinal("lordo_eur")),
+                    Stato = reader.GetString(reader.GetOrdinal("stato")),
+                    DataScadenza = reader.IsDBNull(reader.GetOrdinal("data_scadenza")) ? null : reader.GetDateTime(reader.GetOrdinal("data_scadenza")),
+                    CausaleDescrizione = reader.IsDBNull(reader.GetOrdinal("causale_descrizione")) ? null : reader.GetString(reader.GetOrdinal("causale_descrizione"))
+                });
+            }
+            return items;
         }
         catch (Exception ex)
         {

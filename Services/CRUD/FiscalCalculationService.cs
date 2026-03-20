@@ -1,5 +1,5 @@
-using Dapper;
 using GestioneViaggi.Models;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 
@@ -42,9 +42,11 @@ public class FiscalCalculationService
                 FROM ana_aziende
                 WHERE azienda_id = @AziendaId";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("AziendaId", aziendaId);
-            var regimeFk = await conn.QuerySingleOrDefaultAsync<int?>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            
+            var result = await cmd.ExecuteScalarAsync();
+            int? regimeFk = result == null || result == DBNull.Value ? null : Convert.ToInt32(result);
 
             if (!regimeFk.HasValue)
             {

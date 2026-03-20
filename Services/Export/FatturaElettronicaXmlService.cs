@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Printing;
 using GestioneViaggi.Services.Shared;
@@ -463,9 +463,9 @@ public class FatturaElettronicaXmlService : IFatturaElettronicaXmlService
         await using var connection = await _dbService.GetConnectionAsync();
 
         // aziendaId proviene direttamente dai dati della fattura: nessun lookup necessario
-        var progressivo = await connection.QueryFirstAsync<string>(
-            "SELECT fn_fatturapa_get_next_progressivo(@AziendaId)",
-            new { AziendaId = aziendaId });
+        await using var cmd = new NpgsqlCommand("SELECT fn_fatturapa_get_next_progressivo(@AziendaId)", (NpgsqlConnection)connection);
+        cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+        var progressivo = await cmd.ExecuteScalarAsync() as string ?? string.Empty;
 
         return progressivo;
     }

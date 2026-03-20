@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
@@ -47,10 +47,9 @@ public class EmailSenderFactory
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var result = await connection.ExecuteScalarAsync<string>(
-                "SELECT fn_get_smtp_config_for_email(@AziendaId)",
-                new { AziendaId = aziendaId }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT fn_get_smtp_config_for_email(@AziendaId)", (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            var result = await cmd.ExecuteScalarAsync() as string;
             return !string.IsNullOrEmpty(result);
         }
         catch (Exception ex)

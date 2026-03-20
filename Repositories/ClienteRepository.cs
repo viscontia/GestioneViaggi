@@ -4,8 +4,6 @@ using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using Dapper;
-using System.Text.Json;
 
 namespace GestioneViaggi.Repositories;
 
@@ -27,27 +25,94 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_get_cliente_by_id
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_cliente_by_id(@clienteId::INT, @aziendaFk::INT)";
+            var sql = @"
+                SELECT
+                    cliente_id,
+                    cliente_titolo,
+                    cliente_cognome,
+                    cliente_nome,
+                    cliente_sesso,
+                    cliente_comune_residenza_fk,
+                    cliente_indirizzo_residenza,
+                    cliente_comune_nascita_fk,
+                    cliente_data_nascita,
+                    cliente_preftelint,
+                    cliente_telefono,
+                    cliente_email,
+                    cliente_codicefiscale,
+                    cliente_iban,
+                    cliente_foto,
+                    cliente_carta_identita,
+                    cliente_tipodoc_identita,
+                    cliente_documento_numero,
+                    cliente_documento_rilasciato_da,
+                    cliente_documento_rilasciato_data,
+                    cliente_documento_rilasciato_scadenza,
+                    cliente_note,
+                    cliente_foto_mimetype,
+                    cliente_foto_filename,
+                    cliente_foto_charset,
+                    cliente_foto_upd_date,
+                    cliente_documento_mimetype,
+                    cliente_documento_filename,
+                    cliente_documento_chartset,
+                    cliente_documento_upd_date,
+                    cliente_intolleranza,
+                    azienda_fk,
+                    created_by,
+                    created,
+                    updated_by,
+                    updated,
+                    a.ragione_sociale as azienda_ragione_sociale,
+                    com_nas.comune_descrizione as com_nas_nome,
+                    prov_nas.provincia_sigla as com_nas_provincia,
+                    com_res.comune_descrizione as com_res_nome,
+                    prov_res.provincia_sigla as com_res_provincia
+                FROM ana_clienti c
+                LEFT JOIN ana_aziende a ON c.azienda_fk = a.azienda_id
+                LEFT JOIN ana_geo_comuni com_nas ON c.cliente_comune_nascita_fk = com_nas.comune_id
+                LEFT JOIN ana_geo_province prov_nas ON com_nas.comune_provincia_fk = prov_nas.provincia_id
+                LEFT JOIN ana_geo_comuni com_res ON c.cliente_comune_residenza_fk = com_res.comune_id
+                LEFT JOIN ana_geo_province prov_res ON com_res.comune_provincia_fk = prov_res.provincia_id
+                WHERE c.cliente_id = @clienteId
+                  AND c.azienda_fk = @aziendaFk";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("clienteId", clienteId);
-            parameters.Add("aziendaFk", aziendaFk);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("clienteId", clienteId);
+            command.Parameters.AddWithValue("aziendaFk", aziendaFk);
 
-            var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+            await using var reader = await command.ExecuteReaderAsync();
 
-            if (string.IsNullOrEmpty(jsonResult) || jsonResult == "null")
+            if (await reader.ReadAsync())
             {
-                return null;
+                var cliente = MapFromReader(reader);
+                cliente.AziendaRagioneSociale = ReadNullableString(reader, "azienda_ragione_sociale");
+
+                if (!reader.IsDBNull(reader.GetOrdinal("com_nas_nome")))
+                {
+                    cliente.ComuneNascita = new Comune
+                    {
+                        Id = cliente.ComuneNascitaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_nas_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_nas_provincia"))
+                    };
+                }
+
+                if (!reader.IsDBNull(reader.GetOrdinal("com_res_nome")))
+                {
+                    cliente.ComuneResidenza = new Comune
+                    {
+                        Id = cliente.ComuneResidenzaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_res_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_res_provincia"))
+                    };
+                }
+
+                return cliente;
             }
 
-            var cliente = JsonSerializer.Deserialize<Cliente>(jsonResult, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            return cliente;
+            return null;
         }
         catch (Exception ex)
         {
@@ -109,25 +174,99 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_get_all_clienti
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_all_clienti(@aziendaFk::INT, @filterYear::INT)";
+            var sql = @"
+                SELECT
+                    cliente_id,
+                    cliente_titolo,
+                    cliente_cognome,
+                    cliente_nome,
+                    cliente_sesso,
+                    cliente_comune_residenza_fk,
+                    cliente_indirizzo_residenza,
+                    cliente_comune_nascita_fk,
+                    cliente_data_nascita,
+                    cliente_preftelint,
+                    cliente_telefono,
+                    cliente_email,
+                    cliente_codicefiscale,
+                    cliente_iban,
+                    cliente_foto,
+                    cliente_carta_identita,
+                    cliente_tipodoc_identita,
+                    cliente_documento_numero,
+                    cliente_documento_rilasciato_da,
+                    cliente_documento_rilasciato_data,
+                    cliente_documento_rilasciato_scadenza,
+                    cliente_note,
+                    cliente_foto_mimetype,
+                    cliente_foto_filename,
+                    cliente_foto_charset,
+                    cliente_foto_upd_date,
+                    cliente_documento_mimetype,
+                    cliente_documento_filename,
+                    cliente_documento_chartset,
+                    cliente_documento_upd_date,
+                    cliente_intolleranza,
+                    azienda_fk,
+                    created_by,
+                    created,
+                    updated_by,
+                    updated,
+                    a.ragione_sociale as azienda_ragione_sociale,
+                    com_nas.comune_descrizione as com_nas_nome,
+                    prov_nas.provincia_sigla as com_nas_provincia,
+                    com_res.comune_descrizione as com_res_nome,
+                    prov_res.provincia_sigla as com_res_provincia,
+                    get_count_travel_made(c.cliente_id, c.azienda_fk) as viaggi_fatti,
+                    get_count_travel_future(c.cliente_id, c.azienda_fk) as viaggi_da_fare
+                FROM ana_clienti c
+                LEFT JOIN ana_aziende a ON c.azienda_fk = a.azienda_id
+                LEFT JOIN ana_geo_comuni com_nas ON c.cliente_comune_nascita_fk = com_nas.comune_id
+                LEFT JOIN ana_geo_province prov_nas ON com_nas.comune_provincia_fk = prov_nas.provincia_id
+                LEFT JOIN ana_geo_comuni com_res ON c.cliente_comune_residenza_fk = com_res.comune_id
+                LEFT JOIN ana_geo_province prov_res ON com_res.comune_provincia_fk = prov_res.provincia_id
+                WHERE (@aziendaFk::integer IS NULL OR c.azienda_fk = @aziendaFk)
+                  AND (@filterYear::integer IS NULL OR EXTRACT(YEAR FROM c.created) = @filterYear)
+                ORDER BY a.ragione_sociale, c.cliente_cognome, c.cliente_nome";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("aziendaFk", aziendaFk);
-            parameters.Add("filterYear", filterYear);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("aziendaFk", (object?)aziendaFk ?? DBNull.Value);
+            command.Parameters.AddWithValue("filterYear", (object?)filterYear ?? DBNull.Value);
 
-            var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+            await using var reader = await command.ExecuteReaderAsync();
 
-            if (string.IsNullOrEmpty(jsonResult) || jsonResult == "null" || jsonResult == "[]")
+            var clienti = new List<Cliente>();
+            while (await reader.ReadAsync())
             {
-                return new List<Cliente>();
+                var cliente = MapFromReader(reader);
+                cliente.AziendaRagioneSociale = ReadNullableString(reader, "azienda_ragione_sociale");
+                cliente.ViaggiFatti = reader.IsDBNull(reader.GetOrdinal("viaggi_fatti")) ? 0 : reader.GetInt32(reader.GetOrdinal("viaggi_fatti"));
+                cliente.ViaggiDaFare = reader.IsDBNull(reader.GetOrdinal("viaggi_da_fare")) ? 0 : reader.GetInt32(reader.GetOrdinal("viaggi_da_fare"));
+
+                // Map nested objects manually since MapFromReader handles base entity
+                if (!reader.IsDBNull(reader.GetOrdinal("com_nas_nome")))
+                {
+                    cliente.ComuneNascita = new Comune
+                    {
+                        Id = cliente.ComuneNascitaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_nas_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_nas_provincia"))
+                    };
+                }
+
+                if (!reader.IsDBNull(reader.GetOrdinal("com_res_nome")))
+                {
+                    cliente.ComuneResidenza = new Comune
+                    {
+                        Id = cliente.ComuneResidenzaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_res_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_res_provincia"))
+                    };
+                }
+
+                clienti.Add(cliente);
             }
-
-            var clienti = JsonSerializer.Deserialize<List<Cliente>>(jsonResult, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<Cliente>();
 
             _logger.LogInformation("Recuperati {Count} clienti per azienda {AziendaFk}", clienti.Count, aziendaFk);
             return clienti;
@@ -143,61 +282,101 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL stored procedure sp_ana_clienti_create
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            var sql = @"SELECT sp_ana_clienti_create(
-                @p_cliente_titolo::VARCHAR,
-                @p_cliente_cognome::VARCHAR,
-                @p_cliente_nome::VARCHAR,
-                @p_cliente_sesso::VARCHAR,
-                @p_cliente_comune_residenza_fk::INT,
-                @p_cliente_indirizzo_residenza::VARCHAR,
-                @p_cliente_comune_nascita_fk::INT,
-                @p_cliente_data_nascita::DATE,
-                @p_cliente_preftelint::VARCHAR,
-                @p_cliente_telefono::VARCHAR,
-                @p_cliente_email::VARCHAR,
-                @p_cliente_codicefiscale::VARCHAR,
-                @p_cliente_iban::VARCHAR,
-                @p_cliente_foto::BYTEA,
-                @p_cliente_carta_identita::BYTEA,
-                @p_cliente_tipodoc_identita::VARCHAR,
-                @p_cliente_documento_numero::VARCHAR,
-                @p_cliente_documento_rilasciato_da::VARCHAR,
-                @p_cliente_documento_rilasciato_data::DATE,
-                @p_cliente_documento_rilasciato_scadenza::DATE,
-                @p_cliente_note::TEXT,
-                @p_cliente_foto_mimetype::VARCHAR,
-                @p_cliente_foto_filename::VARCHAR,
-                @p_cliente_foto_charset::VARCHAR,
-                @p_cliente_foto_upd_date::TIMESTAMP,
-                @p_cliente_documento_mimetype::VARCHAR,
-                @p_cliente_documento_filename::VARCHAR,
-                @p_cliente_documento_chartset::VARCHAR,
-                @p_cliente_documento_upd_date::TIMESTAMP,
-                @p_cliente_intolleranza::VARCHAR,
-                @p_azienda_fk::INT
-            )";
 
-            var parameters = BuildClienteParameters(cliente);
+            var sql = @"
+                INSERT INTO ana_clienti (
+                    cliente_titolo,
+                    cliente_cognome,
+                    cliente_nome,
+                    cliente_sesso,
+                    cliente_comune_residenza_fk,
+                    cliente_indirizzo_residenza,
+                    cliente_comune_nascita_fk,
+                    cliente_data_nascita,
+                    cliente_preftelint,
+                    cliente_telefono,
+                    cliente_email,
+                    cliente_codicefiscale,
+                    cliente_iban,
+                    cliente_foto,
+                    cliente_carta_identita,
+                    cliente_tipodoc_identita,
+                    cliente_documento_numero,
+                    cliente_documento_rilasciato_da,
+                    cliente_documento_rilasciato_data,
+                    cliente_documento_rilasciato_scadenza,
+                    cliente_note,
+                    cliente_foto_mimetype,
+                    cliente_foto_filename,
+                    cliente_foto_charset,
+                    cliente_foto_upd_date,
+                    cliente_documento_mimetype,
+                    cliente_documento_filename,
+                    cliente_documento_chartset,
+                    cliente_documento_upd_date,
+                    cliente_intolleranza,
+                    azienda_fk
+                )
+                VALUES (
+                    @titolo,
+                    @cognome,
+                    @nome,
+                    @sesso,
+                    @comuneResidenzaFk,
+                    @indirizzoResidenza,
+                    @comuneNascitaFk,
+                    @dataNascita,
+                    @prefTelInt,
+                    @telefono,
+                    @email,
+                    @codiceFiscale,
+                    @iban,
+                    @foto,
+                    @cartaIdentita,
+                    @tipoDocIdentita,
+                    @documentoNumero,
+                    @documentoRilasciatoDa,
+                    @documentoRilasciatoData,
+                    @documentoRilasciatoScadenza,
+                    @note,
+                    @fotoMimeType,
+                    @fotoFilename,
+                    @fotoCharset,
+                    @fotoUpdDate,
+                    @documentoMimeType,
+                    @documentoFilename,
+                    @documentoCharset,
+                    @documentoUpdDate,
+                    @intolleranza,
+                    @aziendaFk
+                )
+                RETURNING
+                    cliente_id,
+                    created_by,
+                    created,
+                    updated_by,
+                    updated";
 
-            var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+            await using var command = new NpgsqlCommand(sql, connection);
+            AddInsertUpdateParameters(command, cliente);
 
-            if (string.IsNullOrEmpty(jsonResult) || jsonResult == "null")
+            await using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                throw new InvalidOperationException("Failed to create cliente - no result returned");
+                cliente.ClienteId = reader.GetInt32(0);
+                cliente.CreatedBy = reader.IsDBNull(1) ? null : reader.GetString(1);
+                cliente.Created = reader.IsDBNull(2) ? null : reader.GetDateTime(2);
+                cliente.UpdatedBy = reader.IsDBNull(3) ? null : reader.GetString(3);
+                cliente.Updated = reader.IsDBNull(4) ? null : reader.GetDateTime(4);
             }
 
-            var createdCliente = JsonSerializer.Deserialize<Cliente>(jsonResult, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            _logger.LogInformation("Cliente {ClienteId} creato con successo per azienda {AziendaFk}", cliente.ClienteId, cliente.AziendaFk);
 
-            _logger.LogInformation("Cliente {ClienteId} creato con successo per azienda {AziendaFk}",
-                createdCliente?.ClienteId, cliente.AziendaFk);
-
-            return createdCliente ?? throw new InvalidOperationException("Failed to deserialize created cliente");
+            // Ritorniamo l'oggetto completo (con join) per aggiornare correttamente la griglia
+            return await GetByIdAsync(cliente.ClienteId, cliente.AziendaFk) ?? cliente;
         }
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
@@ -215,62 +394,64 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL stored procedure sp_ana_clienti_update
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            var sql = @"SELECT sp_ana_clienti_update(
-                @p_cliente_id::INT,
-                @p_cliente_titolo::VARCHAR,
-                @p_cliente_cognome::VARCHAR,
-                @p_cliente_nome::VARCHAR,
-                @p_cliente_sesso::VARCHAR,
-                @p_cliente_comune_residenza_fk::INT,
-                @p_cliente_indirizzo_residenza::VARCHAR,
-                @p_cliente_comune_nascita_fk::INT,
-                @p_cliente_data_nascita::DATE,
-                @p_cliente_preftelint::VARCHAR,
-                @p_cliente_telefono::VARCHAR,
-                @p_cliente_email::VARCHAR,
-                @p_cliente_codicefiscale::VARCHAR,
-                @p_cliente_iban::VARCHAR,
-                @p_cliente_foto::BYTEA,
-                @p_cliente_carta_identita::BYTEA,
-                @p_cliente_tipodoc_identita::VARCHAR,
-                @p_cliente_documento_numero::VARCHAR,
-                @p_cliente_documento_rilasciato_da::VARCHAR,
-                @p_cliente_documento_rilasciato_data::DATE,
-                @p_cliente_documento_rilasciato_scadenza::DATE,
-                @p_cliente_note::TEXT,
-                @p_cliente_foto_mimetype::VARCHAR,
-                @p_cliente_foto_filename::VARCHAR,
-                @p_cliente_foto_charset::VARCHAR,
-                @p_cliente_foto_upd_date::TIMESTAMP,
-                @p_cliente_documento_mimetype::VARCHAR,
-                @p_cliente_documento_filename::VARCHAR,
-                @p_cliente_documento_chartset::VARCHAR,
-                @p_cliente_documento_upd_date::TIMESTAMP,
-                @p_cliente_intolleranza::VARCHAR,
-                @p_azienda_fk::INT
-            )";
 
-            var parameters = BuildClienteParameters(cliente);
-            parameters.Add("p_cliente_id", cliente.ClienteId);
+            var sql = @"
+                UPDATE ana_clienti
+                SET
+                    cliente_titolo = @titolo,
+                    cliente_cognome = @cognome,
+                    cliente_nome = @nome,
+                    cliente_sesso = @sesso,
+                    cliente_comune_residenza_fk = @comuneResidenzaFk,
+                    cliente_indirizzo_residenza = @indirizzoResidenza,
+                    cliente_comune_nascita_fk = @comuneNascitaFk,
+                    cliente_data_nascita = @dataNascita,
+                    cliente_preftelint = @prefTelInt,
+                    cliente_telefono = @telefono,
+                    cliente_email = @email,
+                    cliente_codicefiscale = @codiceFiscale,
+                    cliente_iban = @iban,
+                    cliente_foto = @foto,
+                    cliente_carta_identita = @cartaIdentita,
+                    cliente_tipodoc_identita = @tipoDocIdentita,
+                    cliente_documento_numero = @documentoNumero,
+                    cliente_documento_rilasciato_da = @documentoRilasciatoDa,
+                    cliente_documento_rilasciato_data = @documentoRilasciatoData,
+                    cliente_documento_rilasciato_scadenza = @documentoRilasciatoScadenza,
+                    cliente_note = @note,
+                    cliente_foto_mimetype = @fotoMimeType,
+                    cliente_foto_filename = @fotoFilename,
+                    cliente_foto_charset = @fotoCharset,
+                    cliente_foto_upd_date = @fotoUpdDate,
+                    cliente_documento_mimetype = @documentoMimeType,
+                    cliente_documento_filename = @documentoFilename,
+                    cliente_documento_chartset = @documentoCharset,
+                    cliente_documento_upd_date = @documentoUpdDate,
+                    cliente_intolleranza = @intolleranza
+                WHERE cliente_id = @clienteId
+                  AND azienda_fk = @aziendaFk
+                RETURNING
+                    updated_by,
+                    updated";
 
-            var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("clienteId", cliente.ClienteId);
+            AddInsertUpdateParameters(command, cliente);
 
-            if (string.IsNullOrEmpty(jsonResult) || jsonResult == "null")
+            await using var reader = await command.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
             {
-                throw new InvalidOperationException($"Failed to update cliente {cliente.ClienteId} - no result returned");
+                cliente.UpdatedBy = reader.IsDBNull(0) ? null : reader.GetString(0);
+                cliente.Updated = reader.IsDBNull(1) ? null : reader.GetDateTime(1);
             }
-
-            var updatedCliente = JsonSerializer.Deserialize<Cliente>(jsonResult, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
 
             _logger.LogInformation("Cliente {ClienteId} aggiornato con successo", cliente.ClienteId);
 
-            return updatedCliente ?? throw new InvalidOperationException("Failed to deserialize updated cliente");
+            // Ritorniamo l'oggetto completo (con join) per aggiornare correttamente la griglia
+            return await GetByIdAsync(cliente.ClienteId, cliente.AziendaFk) ?? cliente;
         }
         catch (PostgresException ex) when (ex.SqlState == "23505")
         {
@@ -288,18 +469,25 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL stored procedure sp_ana_clienti_delete
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT sp_ana_clienti_delete(@p_cliente_id::INT, @p_azienda_fk::INT)";
+            var sql = @"
+                DELETE FROM ana_clienti
+                WHERE cliente_id = @clienteId
+                  AND azienda_fk = @aziendaFk";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("p_cliente_id", clienteId);
-            parameters.Add("p_azienda_fk", aziendaFk);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("clienteId", clienteId);
+            command.Parameters.AddWithValue("aziendaFk", aziendaFk);
 
-            await connection.ExecuteAsync(sql, parameters);
+            var rowsAffected = await command.ExecuteNonQueryAsync();
 
-            _logger.LogInformation("Cliente {ClienteId} eliminato con successo", clienteId);
-            return true;
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation("Cliente {ClienteId} eliminato con successo", clienteId);
+                return true;
+            }
+
+            return false;
         }
         catch (PostgresException ex)
         {
@@ -535,17 +723,29 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_exists_cliente_email
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_exists_cliente_email(@p_email::VARCHAR, @p_exclude_cliente_id::INT, @p_azienda_fk::INT)";
+            var sql = @"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM ana_clienti
+                    WHERE LOWER(cliente_email) = LOWER(@email)
+                      AND azienda_fk = @aziendaFk
+                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
+                )";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("p_email", email);
-            parameters.Add("p_exclude_cliente_id", excludeClienteId ?? 0);
-            parameters.Add("p_azienda_fk", aziendaFk);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("email", email);
+            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)aziendaFk ?? DBNull.Value
+            });
+            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)excludeClienteId ?? DBNull.Value
+            });
 
-            var result = await connection.ExecuteScalarAsync<bool>(sql, parameters);
-            return result;
+            var result = await command.ExecuteScalarAsync();
+            return result != null && (bool)result;
         }
         catch (Exception ex)
         {
@@ -558,17 +758,29 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_exists_cliente_codice_fiscale
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_exists_cliente_codice_fiscale(@p_codice_fiscale::VARCHAR, @p_exclude_cliente_id::INT, @p_azienda_fk::INT)";
+            var sql = @"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM ana_clienti
+                    WHERE UPPER(cliente_codicefiscale) = UPPER(@codiceFiscale)
+                      AND azienda_fk = @aziendaFk
+                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
+                )";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("p_codice_fiscale", codiceFiscale);
-            parameters.Add("p_exclude_cliente_id", excludeClienteId ?? 0);
-            parameters.Add("p_azienda_fk", aziendaFk);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("codiceFiscale", codiceFiscale);
+            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)aziendaFk ?? DBNull.Value
+            });
+            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)excludeClienteId ?? DBNull.Value
+            });
 
-            var result = await connection.ExecuteScalarAsync<bool>(sql, parameters);
-            return result;
+            var result = await command.ExecuteScalarAsync();
+            return result != null && (bool)result;
         }
         catch (Exception ex)
         {
@@ -581,20 +793,35 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_exists_cliente_anagrafica
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_exists_cliente_anagrafica(@p_cognome::VARCHAR, @p_nome::VARCHAR, @p_data_nascita::DATE, @p_codice_fiscale::VARCHAR, @p_exclude_cliente_id::INT, @p_azienda_fk::INT)";
+            var sql = @"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM ana_clienti
+                    WHERE UPPER(cliente_cognome) = UPPER(@cognome)
+                      AND UPPER(cliente_nome) = UPPER(@nome)
+                      AND cliente_data_nascita = @dataNascita
+                      AND UPPER(cliente_codicefiscale) = UPPER(@codiceFiscale)
+                      AND azienda_fk = @aziendaFk
+                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
+                )";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("p_cognome", cognome);
-            parameters.Add("p_nome", nome);
-            parameters.Add("p_data_nascita", dataNascita);
-            parameters.Add("p_codice_fiscale", codiceFiscale);
-            parameters.Add("p_exclude_cliente_id", excludeClienteId ?? 0);
-            parameters.Add("p_azienda_fk", aziendaFk);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("cognome", cognome);
+            command.Parameters.AddWithValue("nome", nome);
+            command.Parameters.AddWithValue("dataNascita", dataNascita);
+            command.Parameters.AddWithValue("codiceFiscale", codiceFiscale);
+            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)aziendaFk ?? DBNull.Value
+            });
+            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
+            {
+                Value = (object?)excludeClienteId ?? DBNull.Value
+            });
 
-            var result = await connection.ExecuteScalarAsync<bool>(sql, parameters);
-            return result;
+            var result = await command.ExecuteScalarAsync();
+            return result != null && (bool)result;
         }
         catch (Exception ex)
         {
@@ -676,25 +903,101 @@ public class ClienteRepository(
     {
         try
         {
-            // DB-First: Use PostgreSQL function fn_search_clienti
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_search_clienti(@p_azienda_fk::INT, @p_search_text::VARCHAR)";
+            var sql = @"
+                SELECT
+                    cliente_id,
+                    cliente_titolo,
+                    cliente_cognome,
+                    cliente_nome,
+                    cliente_sesso,
+                    cliente_comune_residenza_fk,
+                    cliente_indirizzo_residenza,
+                    cliente_comune_nascita_fk,
+                    cliente_data_nascita,
+                    cliente_preftelint,
+                    cliente_telefono,
+                    cliente_email,
+                    cliente_codicefiscale,
+                    cliente_iban,
+                    cliente_foto,
+                    cliente_carta_identita,
+                    cliente_tipodoc_identita,
+                    cliente_documento_numero,
+                    cliente_documento_rilasciato_da,
+                    cliente_documento_rilasciato_data,
+                    cliente_documento_rilasciato_scadenza,
+                    cliente_note,
+                    cliente_foto_mimetype,
+                    cliente_foto_filename,
+                    cliente_foto_charset,
+                    cliente_foto_upd_date,
+                    cliente_documento_mimetype,
+                    cliente_documento_filename,
+                    cliente_documento_chartset,
+                    cliente_documento_upd_date,
+                    cliente_intolleranza,
+                    azienda_fk,
+                    created_by,
+                    created,
+                    updated_by,
+                    updated,
+                    a.ragione_sociale as azienda_ragione_sociale,
+                    com_nas.comune_descrizione as com_nas_nome,
+                    prov_nas.provincia_sigla as com_nas_provincia,
+                    com_res.comune_descrizione as com_res_nome,
+                    prov_res.provincia_sigla as com_res_provincia
+                FROM ana_clienti c
+                LEFT JOIN ana_aziende a ON c.azienda_fk = a.azienda_id
+                LEFT JOIN ana_geo_comuni com_nas ON c.cliente_comune_nascita_fk = com_nas.comune_id
+                LEFT JOIN ana_geo_province prov_nas ON com_nas.comune_provincia_fk = prov_nas.provincia_id
+                LEFT JOIN ana_geo_comuni com_res ON c.cliente_comune_residenza_fk = com_res.comune_id
+                LEFT JOIN ana_geo_province prov_res ON com_res.comune_provincia_fk = prov_res.provincia_id
+                WHERE c.azienda_fk = @aziendaFk
+                  AND (
+                      LOWER(c.cliente_cognome) LIKE LOWER(@searchPattern) OR
+                      LOWER(c.cliente_nome) LIKE LOWER(@searchPattern) OR
+                      LOWER(c.cliente_email) LIKE LOWER(@searchPattern) OR
+                      LOWER(c.cliente_codicefiscale) LIKE LOWER(@searchPattern)
+                  )
+                ORDER BY c.cliente_cognome, c.cliente_nome
+                LIMIT 100";
 
-            var parameters = new DynamicParameters();
-            parameters.Add("p_azienda_fk", aziendaFk);
-            parameters.Add("p_search_text", searchTerm);
+            await using var command = new NpgsqlCommand(sql, connection);
+            command.Parameters.AddWithValue("aziendaFk", aziendaFk);
+            command.Parameters.AddWithValue("searchPattern", $"%{searchTerm}%");
 
-            var jsonResult = await connection.ExecuteScalarAsync<string>(sql, parameters);
+            await using var reader = await command.ExecuteReaderAsync();
 
-            if (string.IsNullOrEmpty(jsonResult) || jsonResult == "null" || jsonResult == "[]")
+            var clienti = new List<Cliente>();
+            while (await reader.ReadAsync())
             {
-                return new List<Cliente>();
+                var cliente = MapFromReader(reader);
+                cliente.AziendaRagioneSociale = ReadNullableString(reader, "azienda_ragione_sociale");
+
+                // Map nested objects manually
+                if (!reader.IsDBNull(reader.GetOrdinal("com_nas_nome")))
+                {
+                    cliente.ComuneNascita = new Comune
+                    {
+                        Id = cliente.ComuneNascitaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_nas_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_nas_provincia"))
+                    };
+                }
+
+                if (!reader.IsDBNull(reader.GetOrdinal("com_res_nome")))
+                {
+                    cliente.ComuneResidenza = new Comune
+                    {
+                        Id = cliente.ComuneResidenzaFk,
+                        Nome = reader.GetString(reader.GetOrdinal("com_res_nome")),
+                        ProvinciaDescrizione = reader.GetString(reader.GetOrdinal("com_res_provincia"))
+                    };
+                }
+
+                clienti.Add(cliente);
             }
-
-            var clienti = JsonSerializer.Deserialize<List<Cliente>>(jsonResult, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }) ?? new List<Cliente>();
 
             return clienti;
         }
@@ -949,45 +1252,7 @@ public class ClienteRepository(
         command.Parameters.AddWithValue("aziendaFk", cliente.AziendaFk);
     }
 
-    /// <summary>
-    /// DB-First: Build DynamicParameters for stored procedure calls
-    /// </summary>
-    private static DynamicParameters BuildClienteParameters(Cliente cliente)
-    {
-        var parameters = new DynamicParameters();
-        parameters.Add("p_cliente_titolo", cliente.Titolo);
-        parameters.Add("p_cliente_cognome", cliente.Cognome);
-        parameters.Add("p_cliente_nome", cliente.Nome);
-        parameters.Add("p_cliente_sesso", cliente.Sesso);
-        parameters.Add("p_cliente_comune_residenza_fk", cliente.ComuneResidenzaFk);
-        parameters.Add("p_cliente_indirizzo_residenza", cliente.IndirizzoResidenza);
-        parameters.Add("p_cliente_comune_nascita_fk", cliente.ComuneNascitaFk);
-        parameters.Add("p_cliente_data_nascita", cliente.DataNascita);
-        parameters.Add("p_cliente_preftelint", cliente.PrefTelInt);
-        parameters.Add("p_cliente_telefono", cliente.Telefono);
-        parameters.Add("p_cliente_email", cliente.Email);
-        parameters.Add("p_cliente_codicefiscale", cliente.CodiceFiscale);
-        parameters.Add("p_cliente_iban", cliente.Iban);
-        parameters.Add("p_cliente_foto", cliente.Foto);
-        parameters.Add("p_cliente_carta_identita", cliente.CartaIdentita);
-        parameters.Add("p_cliente_tipodoc_identita", cliente.TipoDocIdentita);
-        parameters.Add("p_cliente_documento_numero", cliente.DocumentoNumero);
-        parameters.Add("p_cliente_documento_rilasciato_da", cliente.DocumentoRilasciatoDa);
-        parameters.Add("p_cliente_documento_rilasciato_data", cliente.DocumentoRilasciatoData);
-        parameters.Add("p_cliente_documento_rilasciato_scadenza", cliente.DocumentoRilasciatoScadenza);
-        parameters.Add("p_cliente_note", cliente.Note);
-        parameters.Add("p_cliente_foto_mimetype", cliente.FotoMimeType);
-        parameters.Add("p_cliente_foto_filename", cliente.FotoFilename);
-        parameters.Add("p_cliente_foto_charset", cliente.FotoCharset);
-        parameters.Add("p_cliente_foto_upd_date", cliente.FotoUpdDate);
-        parameters.Add("p_cliente_documento_mimetype", cliente.DocumentoMimeType);
-        parameters.Add("p_cliente_documento_filename", cliente.DocumentoFilename);
-        parameters.Add("p_cliente_documento_chartset", cliente.DocumentoCharset);
-        parameters.Add("p_cliente_documento_upd_date", cliente.DocumentoUpdDate);
-        parameters.Add("p_cliente_intolleranza", cliente.Intolleranza);
-        parameters.Add("p_azienda_fk", cliente.AziendaFk);
-        return parameters;
-    }
+
 
     #endregion
 }

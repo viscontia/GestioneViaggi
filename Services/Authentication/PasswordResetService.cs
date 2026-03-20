@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Email;
@@ -32,10 +32,9 @@ public class PasswordResetService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var resultJson = await connection.ExecuteScalarAsync<string>(
-                "SELECT fn_app_request_password_reset(@Email::citext)",
-                new { Email = email }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT fn_app_request_password_reset(@Email::citext)", (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("Email", email);
+            var resultJson = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(resultJson))
             {
@@ -104,10 +103,9 @@ public class PasswordResetService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var result = await connection.ExecuteScalarAsync<string>(
-                "SELECT validate_reset_token(@Token)",
-                new { Token = resetCode }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT validate_reset_token(@Token)", (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("Token", resetCode);
+            var result = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(result) || result == "INVALID_OR_EXPIRED")
             {
@@ -148,11 +146,10 @@ public class PasswordResetService
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Usa la versione che accetta password in chiaro (il DB fa l'hashing con bcrypt)
-            var result = await connection.ExecuteScalarAsync<string>(
-                "SELECT reset_password_with_token(@Token, @NewPassword::text)",
-                new { Token = resetCode, NewPassword = newPassword }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT reset_password_with_token(@Token, @NewPassword::text)", (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("Token", resetCode);
+            cmd.Parameters.AddWithValue("NewPassword", newPassword);
+            var result = await cmd.ExecuteScalarAsync() as string;
 
             if (result == "SUCCESS")
             {

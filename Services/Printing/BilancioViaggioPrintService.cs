@@ -3,7 +3,6 @@ using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using NpgsqlTypes;
-using Dapper;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using QuestPDF.Fluent;
@@ -52,16 +51,16 @@ public class BilancioViaggioPrintService
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
 
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
-            {
-                AziendaId = aziendaId,
-                ViaggioId = viaggioId,
-                DataViaggioId = dataViaggioId,
-                DataDa = dataDa,
-                DataA = dataA,
-                Anno = (int?)null,
-                ValutaTargetId = valutaTargetId
-            });
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("DataViaggioId", dataViaggioId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDa", dataDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataA", dataA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("Anno", DBNull.Value);
+            cmd.Parameters.AddWithValue("ValutaTargetId", valutaTargetId ?? (object)DBNull.Value);
+
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (!string.IsNullOrEmpty(jsonResponse))
             {
@@ -109,16 +108,16 @@ public class BilancioViaggioPrintService
             await using var connection = await _databaseService.GetConnectionAsync();
             var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
 
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
-            {
-                AziendaId = aziendaId,
-                ViaggioId = (int?)null,
-                DataViaggioId = (int?)null,
-                DataDa = (DateTime?)null,
-                DataA = (DateTime?)null,
-                Anno = anno,
-                ValutaTargetId = valutaTargetId
-            });
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ViaggioId", DBNull.Value);
+            cmd.Parameters.AddWithValue("DataViaggioId", DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDa", DBNull.Value);
+            cmd.Parameters.AddWithValue("DataA", DBNull.Value);
+            cmd.Parameters.AddWithValue("Anno", anno);
+            cmd.Parameters.AddWithValue("ValutaTargetId", valutaTargetId ?? (object)DBNull.Value);
+
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (!string.IsNullOrEmpty(jsonResponse))
             {
@@ -157,9 +156,19 @@ public class BilancioViaggioPrintService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var parameters = new DynamicParameters();
-            parameters.Add("aziendaId", aziendaId);
-            result = (await connection.QueryAsync<AnnoBilancioDTO>("SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)", parameters)).ToList();
+            var sql = "SELECT * FROM fn_get_anni_bilancio_viaggi(@aziendaId)";
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("aziendaId", aziendaId);
+            
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add(new AnnoBilancioDTO
+                {
+                    Anno = reader.IsDBNull(reader.GetOrdinal("anno")) ? 0 : reader.GetInt32(reader.GetOrdinal("anno")),
+                    NumeroViaggi = reader.IsDBNull(reader.GetOrdinal("numero_viaggi")) ? 0 : reader.GetInt32(reader.GetOrdinal("numero_viaggi"))
+                });
+            }
         }
         catch (Exception ex)
         {

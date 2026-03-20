@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -29,9 +29,9 @@ public class RoomingListPrintService : IRoomingListPrintService
 
             // Fat Init: Single call to get everything for Rooming List
             var sql = "SELECT fn_get_rooming_list_print_data(@DataViaggioId)";
-            var parameters = new DynamicParameters();
-            parameters.Add("DataViaggioId", dataViaggioId);
-            var jsonRes = await conn.ExecuteScalarAsync<string>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)conn);
+            cmd.Parameters.AddWithValue("DataViaggioId", dataViaggioId);
+            var jsonRes = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(jsonRes))
             {

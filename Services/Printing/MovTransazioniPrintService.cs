@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
@@ -51,31 +51,31 @@ public class MovTransazioniPrintService
 
             var sql = "SELECT fn_get_mov_transazioni_print_data(@AziendaId, @ControparteId, @CausaleTipoId, @Stati, @ViaggioId, @DataViaggioId, @ValutaId, @DataTransazioneDa, @DataTransazioneA, @DataDocumentoDa, @DataDocumentoA, @ImportoDa, @ImportoA, @NumeroDocumento, @SoloConDocumento, @SoloScadute, @SoloConViaggio, @SoloSenzaViaggio, @SoloConFattura, @Ordinamento, @ValutaTargetId, @CausaleCiclo)";
 
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
-            {
-                AziendaId = filtri.AziendaId,
-                ControparteId = filtri.ControparteId,
-                CausaleTipoId = filtri.CausaleTipoId,
-                Stati = filtri.Stati,
-                ViaggioId = filtri.ViaggioId,
-                DataViaggioId = filtri.DataViaggioId,
-                ValutaId = filtri.ValutaId,
-                DataTransazioneDa = filtri.DataTransazioneDa,
-                DataTransazioneA = filtri.DataTransazioneA,
-                DataDocumentoDa = filtri.DataDocumentoDa,
-                DataDocumentoA = filtri.DataDocumentoA,
-                ImportoDa = filtri.ImportoDa,
-                ImportoA = filtri.ImportoA,
-                NumeroDocumento = filtri.NumeroDocumento,
-                SoloConDocumento = filtri.SoloConDocumento,
-                SoloScadute = filtri.SoloScadute,
-                SoloConViaggio = filtri.SoloConViaggio,
-                SoloSenzaViaggio = filtri.SoloSenzaViaggio,
-                SoloConFattura = filtri.SoloConFattura,
-                Ordinamento = ordinamento,
-                ValutaTargetId = valutaTargetId,
-                CausaleCiclo = filtri.CausaleCiclo
-            });
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", filtri.AziendaId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ControparteId", filtri.ControparteId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleTipoId", filtri.CausaleTipoId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("Stati", filtri.Stati ?? Array.Empty<string>());
+            cmd.Parameters.AddWithValue("ViaggioId", filtri.ViaggioId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataViaggioId", filtri.DataViaggioId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ValutaId", filtri.ValutaId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataTransazioneDa", filtri.DataTransazioneDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataTransazioneA", filtri.DataTransazioneA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDocumentoDa", filtri.DataDocumentoDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataDocumentoA", filtri.DataDocumentoA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ImportoDa", filtri.ImportoDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ImportoA", filtri.ImportoA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("NumeroDocumento", filtri.NumeroDocumento ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("SoloConDocumento", filtri.SoloConDocumento);
+            cmd.Parameters.AddWithValue("SoloScadute", filtri.SoloScadute);
+            cmd.Parameters.AddWithValue("SoloConViaggio", filtri.SoloConViaggio);
+            cmd.Parameters.AddWithValue("SoloSenzaViaggio", filtri.SoloSenzaViaggio);
+            cmd.Parameters.AddWithValue("SoloConFattura", filtri.SoloConFattura);
+            cmd.Parameters.AddWithValue("Ordinamento", ordinamento);
+            cmd.Parameters.AddWithValue("ValutaTargetId", valutaTargetId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleCiclo", filtri.CausaleCiclo ?? (object)DBNull.Value);
+
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(jsonResponse)) return result;
 

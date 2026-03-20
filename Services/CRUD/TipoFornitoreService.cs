@@ -2,8 +2,7 @@ using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
-using Dapper;
-using Npgsql; // Required for MapFromReader signature (BaseCrudService compatibility)
+using Npgsql;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -11,31 +10,6 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
 {
     protected override string TableName => "ana_tipo_fornitore";
     protected override string IdColumnName => "tipo_fornitore_id";
-
-    static TipoFornitoreService()
-    {
-        // Configure Dapper custom mapping for AnaTipoFornitore
-        // Maps tipo_fornitore_id → Id (overrides default MatchNamesWithUnderscores)
-        SqlMapper.SetTypeMap(
-            typeof(AnaTipoFornitore),
-            new CustomPropertyTypeMap(
-                typeof(AnaTipoFornitore),
-                (type, columnName) =>
-                {
-                    return columnName switch
-                    {
-                        "tipo_fornitore_id" => type.GetProperty("Id"),
-                        "azienda_fk" => type.GetProperty("AziendaFk"),
-                        "conto_contabile_default" => type.GetProperty("ContoContabileDefault"),
-                        "created_at" => type.GetProperty("CreatedAt"),
-                        "updated_at" => type.GetProperty("UpdatedAt"),
-                        _ => type.GetProperty(columnName.Replace("_", ""),
-                            System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-                    } ?? throw new InvalidOperationException($"Impossibile mappare la colonna '{columnName}' per AnaTipoFornitore");
-                }
-            )
-        );
-    }
 
     public TipoFornitoreService(
         IDatabaseService databaseService,
@@ -60,14 +34,17 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
 
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Call PostgreSQL function using Dapper
             var sql = "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId)";
-            var result = await connection.QueryAsync<AnaTipoFornitore>(
-                sql,
-                new { AziendaId = effectiveAziendaId }
-            );
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("AziendaId", (object?)effectiveAziendaId ?? DBNull.Value);
 
-            return result.ToList();
+            var results = new List<AnaTipoFornitore>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
         }
         catch (Exception ex)
         {
@@ -98,26 +75,28 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Call stored procedure via Dapper
-            var newId = await connection.ExecuteScalarAsync<int>(
-                "SELECT sp_ana_tipo_fornitore_create(@AziendaFk, @Descrizione, @Categoria, @ContoContabileDefault)",
-                new
-                {
-                    AziendaFk = entity.AziendaFk,
-                    Descrizione = entity.Descrizione,
-                    Categoria = entity.Categoria,
-                    ContoContabileDefault = entity.ContoContabileDefault
-                }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_tipo_fornitore_create(@AziendaFk, @Descrizione, @Categoria, @ContoContabileDefault)", connection);
+            cmd.Parameters.AddWithValue("AziendaFk", entity.AziendaFk);
+            cmd.Parameters.AddWithValue("Descrizione", entity.Descrizione);
+            cmd.Parameters.AddWithValue("Categoria", (object?)entity.Categoria ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ContoContabileDefault", (object?)entity.ContoContabileDefault ?? DBNull.Value);
+
+            var newIdResult = await cmd.ExecuteScalarAsync();
+            int newId = Convert.ToInt32(newIdResult);
 
             // Retrieve created entity
             entity.Id = newId;
-            var result = await connection.QueryFirstOrDefaultAsync<AnaTipoFornitore>(
-                "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id",
-                new { AziendaId = entity.AziendaFk, Id = newId }
-            );
+            await using var queryCmd = new NpgsqlCommand("SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id", connection);
+            queryCmd.Parameters.AddWithValue("AziendaId", entity.AziendaFk);
+            queryCmd.Parameters.AddWithValue("Id", newId);
+            
+            await using var reader = await queryCmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
 
-            return result ?? throw new Exception("Impossibile recuperare il tipo fornitore appena creato");
+            throw new Exception("Impossibile recuperare il tipo fornitore appena creato");
         }
         catch (Exception ex)
         {
@@ -132,25 +111,25 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Call stored procedure via Dapper
-            await connection.ExecuteAsync(
-                "SELECT sp_ana_tipo_fornitore_update(@TipoFornitoreId, @Descrizione, @Categoria, @ContoContabileDefault)",
-                new
-                {
-                    TipoFornitoreId = entity.Id,
-                    Descrizione = entity.Descrizione,
-                    Categoria = entity.Categoria,
-                    ContoContabileDefault = entity.ContoContabileDefault
-                }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_tipo_fornitore_update(@TipoFornitoreId, @Descrizione, @Categoria, @ContoContabileDefault)", connection);
+            cmd.Parameters.AddWithValue("TipoFornitoreId", entity.Id);
+            cmd.Parameters.AddWithValue("Descrizione", entity.Descrizione);
+            cmd.Parameters.AddWithValue("Categoria", (object?)entity.Categoria ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("ContoContabileDefault", (object?)entity.ContoContabileDefault ?? DBNull.Value);
+            await cmd.ExecuteNonQueryAsync();
 
             // Retrieve updated entity
-            var result = await connection.QueryFirstOrDefaultAsync<AnaTipoFornitore>(
-                "SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id",
-                new { AziendaId = entity.AziendaFk, Id = entity.Id }
-            );
+            await using var queryCmd = new NpgsqlCommand("SELECT * FROM fn_get_ana_tipo_fornitore(@AziendaId) WHERE tipo_fornitore_id = @Id", connection);
+            queryCmd.Parameters.AddWithValue("AziendaId", entity.AziendaFk);
+            queryCmd.Parameters.AddWithValue("Id", entity.Id);
+            
+            await using var reader = await queryCmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapFromReader(reader);
+            }
 
-            return result ?? throw new Exception($"Tipo Fornitore con ID {entity.Id} non trovato");
+            throw new Exception($"Tipo Fornitore con ID {entity.Id} non trovato");
         }
         catch (Exception ex)
         {
@@ -165,11 +144,9 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Call stored procedure via Dapper
-            await connection.ExecuteAsync(
-                "SELECT sp_ana_tipo_fornitore_delete(@TipoFornitoreId)",
-                new { TipoFornitoreId = id }
-            );
+            await using var cmd = new NpgsqlCommand("SELECT sp_ana_tipo_fornitore_delete(@TipoFornitoreId)", connection);
+            cmd.Parameters.AddWithValue("TipoFornitoreId", id);
+            await cmd.ExecuteNonQueryAsync();
 
             return true;
         }
@@ -187,9 +164,7 @@ public class TipoFornitoreService : BaseCrudService<AnaTipoFornitore>
         }
     }
 
-    // NOTE: MapFromReader is required for BaseCrudService compatibility but NOT USED in practice.
-    // All CRUD operations use Dapper with CustomPropertyTypeMap (configured in static constructor).
-    // Dapper automatically maps columns to properties using the custom mapping rules.
+    // Mappa i risultati letti da NpgsqlDataReader a entità AnaTipoFornitore
     protected override AnaTipoFornitore MapFromReader(NpgsqlDataReader reader)
     {
         return new AnaTipoFornitore

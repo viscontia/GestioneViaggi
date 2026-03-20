@@ -1,5 +1,4 @@
 
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Npgsql;
@@ -39,17 +38,18 @@ namespace GestioneViaggi.Services.CRUD
                         @p_cliente_id6
                     )";
 
-                var parameters = new DynamicParameters();
-                parameters.Add("p_viaggio_id", entity.ViaggioIdFk);
-                parameters.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
-                parameters.Add("p_tipo_alloggio_id", entity.TipoAlloggioIdFk);
-                parameters.Add("p_cliente_id1", entity.ClienteId1Fk);
-                parameters.Add("p_cliente_id2", entity.ClienteId2Fk);
-                parameters.Add("p_cliente_id3", entity.ClienteId3Fk);
-                parameters.Add("p_cliente_id4", entity.ClienteId4Fk);
-                parameters.Add("p_cliente_id5", entity.ClienteId5Fk);
-                parameters.Add("p_cliente_id6", entity.ClienteId6Fk);
-                return await conn.QuerySingleAsync<int>(sql, parameters);
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_tipo_alloggio_id", entity.TipoAlloggioIdFk);
+                cmd.Parameters.AddWithValue("p_cliente_id1", (object?)entity.ClienteId1Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id2", (object?)entity.ClienteId2Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id3", (object?)entity.ClienteId3Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id4", (object?)entity.ClienteId4Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id5", (object?)entity.ClienteId5Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id6", (object?)entity.ClienteId6Fk ?? DBNull.Value);
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
@@ -90,18 +90,18 @@ namespace GestioneViaggi.Services.CRUD
                         @p_cliente_id6
                     )";
 
-                var parameters = new DynamicParameters();
-                parameters.Add("p_pk", entity.MovClientiAlloggioPk);
-                parameters.Add("p_viaggio_id", entity.ViaggioIdFk);
-                parameters.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
-                parameters.Add("p_tipo_alloggio_id", entity.TipoAlloggioIdFk);
-                parameters.Add("p_cliente_id1", entity.ClienteId1Fk);
-                parameters.Add("p_cliente_id2", entity.ClienteId2Fk);
-                parameters.Add("p_cliente_id3", entity.ClienteId3Fk);
-                parameters.Add("p_cliente_id4", entity.ClienteId4Fk);
-                parameters.Add("p_cliente_id5", entity.ClienteId5Fk);
-                parameters.Add("p_cliente_id6", entity.ClienteId6Fk);
-                await conn.ExecuteAsync(sql, parameters);
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_pk", entity.MovClientiAlloggioPk);
+                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_tipo_alloggio_id", entity.TipoAlloggioIdFk);
+                cmd.Parameters.AddWithValue("p_cliente_id1", (object?)entity.ClienteId1Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id2", (object?)entity.ClienteId2Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id3", (object?)entity.ClienteId3Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id4", (object?)entity.ClienteId4Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id5", (object?)entity.ClienteId5Fk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_id6", (object?)entity.ClienteId6Fk ?? DBNull.Value);
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
@@ -130,9 +130,9 @@ namespace GestioneViaggi.Services.CRUD
                 // PostgreSQL FUNCTION (not PROCEDURE), use SELECT instead of CALL
                 string sql = "SELECT sp_mov_clienti_alloggi_delete(@p_pk)";
 
-                var parameters = new DynamicParameters();
-                parameters.Add("p_pk", pk);
-                await conn.ExecuteAsync(sql, parameters);
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_pk", pk);
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (PostgresException ex)
             {
@@ -350,11 +350,11 @@ namespace GestioneViaggi.Services.CRUD
             await using var conn = await _connectionManager.GetConnectionAsync();
             var sql = "SELECT sp_resolve_room_violation_move(@oldRoomId, @newTipo, @survivors)";
             
-            var parameters = new DynamicParameters();
-            parameters.Add("oldRoomId", oldRoomId);
-            parameters.Add("newTipo", newTipoAlloggioId);
-            parameters.Add("survivors", survivorIds);
-            await conn.ExecuteAsync(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("oldRoomId", oldRoomId);
+            cmd.Parameters.AddWithValue("newTipo", newTipoAlloggioId);
+            cmd.Parameters.AddWithValue("survivors", survivorIds);
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {
@@ -370,10 +370,10 @@ namespace GestioneViaggi.Services.CRUD
             await using var conn = await _connectionManager.GetConnectionAsync();
             var sql = "SELECT sp_resolve_room_violation_park(@roomId, @survivors)";
             
-            var parameters = new DynamicParameters();
-            parameters.Add("roomId", roomId);
-            parameters.Add("survivors", survivorIds);
-            await conn.ExecuteAsync(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("roomId", roomId);
+            cmd.Parameters.AddWithValue("survivors", survivorIds);
+            await cmd.ExecuteNonQueryAsync();
         }
         catch (Exception ex)
         {

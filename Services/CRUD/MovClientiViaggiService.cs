@@ -1,5 +1,4 @@
 
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Npgsql;
@@ -21,20 +20,21 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                var p = new DynamicParameters();
-                p.Add("p_viaggio_id", entity.ViaggioIdFk);
-                p.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
-                p.Add("p_cliente_id", entity.ClienteIdFk);
-                p.Add("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
-                p.Add("p_ana_mezzi_id", entity.AnaMezziIdFk);
-                p.Add("p_mezzo_modello_id", entity.MezzoModelloIdFk);
-                p.Add("p_sconto_val_totale", entity.MovClienteViaggioScontovalTotale);
-                p.Add("p_targa_mezzo", entity.MovClienteViaggioTargaMezzo);
-                p.Add("p_cane_sino", entity.MovClienteViaggioCaneSino);
-                p.Add("p_note", entity.MovClienteViaggioNote);
-                p.Add("p_cliente_pilota_id", entity.ClientePilotaIdFk);
+                string sql = "SELECT sp_mov_clienti_viaggi_create(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)";
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_cliente_id", entity.ClienteIdFk);
+                cmd.Parameters.AddWithValue("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
+                cmd.Parameters.AddWithValue("p_ana_mezzi_id", (object?)entity.AnaMezziIdFk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_mezzo_modello_id", (object?)entity.MezzoModelloIdFk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_sconto_val_totale", (object?)entity.MovClienteViaggioScontovalTotale ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_targa_mezzo", (object?)entity.MovClienteViaggioTargaMezzo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cane_sino", (object?)entity.MovClienteViaggioCaneSino ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_note", (object?)entity.MovClienteViaggioNote ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_pilota_id", (object?)entity.ClientePilotaIdFk ?? DBNull.Value);
 
-                await conn.ExecuteAsync("SELECT sp_mov_clienti_viaggi_create(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)", p);
+                await cmd.ExecuteNonQueryAsync();
                 return 1;
             }
             catch (PostgresException ex) when (ex.SqlState == "23505")
@@ -63,20 +63,21 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                var p = new DynamicParameters();
-                p.Add("p_viaggio_id", entity.ViaggioIdFk);
-                p.Add("p_data_viaggio_id", entity.DataViaggioIdFk);
-                p.Add("p_cliente_id", entity.ClienteIdFk);
-                p.Add("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
-                p.Add("p_ana_mezzi_id", entity.AnaMezziIdFk);
-                p.Add("p_mezzo_modello_id", entity.MezzoModelloIdFk);
-                p.Add("p_sconto_val_totale", entity.MovClienteViaggioScontovalTotale);
-                p.Add("p_targa_mezzo", entity.MovClienteViaggioTargaMezzo);
-                p.Add("p_cane_sino", entity.MovClienteViaggioCaneSino);
-                p.Add("p_note", entity.MovClienteViaggioNote);
-                p.Add("p_cliente_pilota_id", entity.ClientePilotaIdFk);
+                string sql = "SELECT sp_mov_clienti_viaggi_update(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)";
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
+                cmd.Parameters.AddWithValue("p_cliente_id", entity.ClienteIdFk);
+                cmd.Parameters.AddWithValue("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
+                cmd.Parameters.AddWithValue("p_ana_mezzi_id", (object?)entity.AnaMezziIdFk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_mezzo_modello_id", (object?)entity.MezzoModelloIdFk ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_sconto_val_totale", (object?)entity.MovClienteViaggioScontovalTotale ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_targa_mezzo", (object?)entity.MovClienteViaggioTargaMezzo ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cane_sino", (object?)entity.MovClienteViaggioCaneSino ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_note", (object?)entity.MovClienteViaggioNote ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("p_cliente_pilota_id", (object?)entity.ClientePilotaIdFk ?? DBNull.Value);
 
-                await conn.ExecuteAsync("SELECT sp_mov_clienti_viaggi_update(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)", p);
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
@@ -104,12 +105,13 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                var p = new DynamicParameters();
-                p.Add("p_viaggio_id", viaggioId);
-                p.Add("p_data_viaggio_id", dataId);
-                p.Add("p_cliente_id", clienteId);
+                string sql = "SELECT sp_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id)";
+                await using var cmd = new NpgsqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("p_viaggio_id", viaggioId);
+                cmd.Parameters.AddWithValue("p_data_viaggio_id", dataId);
+                cmd.Parameters.AddWithValue("p_cliente_id", clienteId);
 
-                await conn.ExecuteAsync("SELECT sp_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id)", p);
+                await cmd.ExecuteNonQueryAsync();
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
@@ -277,11 +279,10 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                var parameters = new DynamicParameters();
-                parameters.Add("dataId", dataViaggioId);
-                return await conn.QueryFirstOrDefaultAsync<string>(
-                    "SELECT get_viaggio_partecipanti_summary(@dataId)",
-                    parameters) ?? "Nessun partecipante";
+                await using var cmd = new NpgsqlCommand("SELECT get_viaggio_partecipanti_summary(@dataId)", conn);
+                cmd.Parameters.AddWithValue("dataId", dataViaggioId);
+                var result = await cmd.ExecuteScalarAsync();
+                return result as string ?? "Nessun partecipante";
             }
             catch (PostgresException ex)
             {
@@ -303,12 +304,11 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                var parameters = new DynamicParameters();
-                parameters.Add("vid", viaggioId);
-                parameters.Add("did", dataViaggioId);
-                return await conn.QueryFirstOrDefaultAsync<string>(
-                    "SELECT fn_get_trip_header_string(@vid, @did)",
-                    parameters) ?? "Intestazione non disponibile";
+                await using var cmd = new NpgsqlCommand("SELECT fn_get_trip_header_string(@vid, @did)", conn);
+                cmd.Parameters.AddWithValue("vid", viaggioId);
+                cmd.Parameters.AddWithValue("did", dataViaggioId);
+                var result = await cmd.ExecuteScalarAsync();
+                return result as string ?? "Intestazione non disponibile";
             }
             catch (PostgresException ex)
             {
@@ -415,11 +415,18 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                // Usa DynamicParameters invece di oggetti anonimi per compatibilità AOT/IL Linker
-                var parameters = new DynamicParameters();
-                parameters.Add("vid", viaggioId);
-                parameters.Add("did", dataViaggioId);
-                var json = await conn.QuerySingleAsync<string>("SELECT fn_get_viaggio_partecipanti_init_data(@vid, @did)", parameters);
+                await using var cmd = new NpgsqlCommand("SELECT fn_get_viaggio_partecipanti_init_data(@vid, @did)", conn);
+                cmd.Parameters.AddWithValue("vid", viaggioId);
+                cmd.Parameters.AddWithValue("did", dataViaggioId);
+                
+                var result = await cmd.ExecuteScalarAsync();
+                var json = result as string;
+                
+                if (string.IsNullOrEmpty(json)) 
+                {
+                    return new GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData();
+                }
+
                 return System.Text.Json.JsonSerializer.Deserialize<GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData>(json,
                     new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                     ?? new GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData();

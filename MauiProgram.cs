@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -28,8 +28,7 @@ public static class MauiProgram
 {
     public static MauiApp CreateMauiApp()
     {
-        // Configura Dapper per mappare snake_case del DB su PascalCase del C#
-        Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
+        // Dapper rimosso per transizione ad AOT nativo con Npgsql
 
         // Configura licenza QuestPDF (Community)
         QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;

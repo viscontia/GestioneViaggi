@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
@@ -49,19 +49,19 @@ public class ScadenzarioPrintService
 
             var sql = "SELECT fn_get_scadenzario_print_data(@AziendaId, @ControparteId, @CausaleCiclo, @Urgenza, @DataScadenzaDa, @DataScadenzaA, @ViaggioId, @SoloConViaggio, @SoloSenzaViaggio, @Raggruppamento)";
 
-            var jsonResponse = await connection.QueryFirstOrDefaultAsync<string>(sql, new
-            {
-                AziendaId = filtri.AziendaId,
-                ControparteId = filtri.ControparteId,
-                CausaleCiclo = filtri.CausaleCiclo,
-                Urgenza = filtri.Urgenza,
-                DataScadenzaDa = filtri.DataScadenzaDa,
-                DataScadenzaA = filtri.DataScadenzaA,
-                ViaggioId = filtri.ViaggioId,
-                SoloConViaggio = filtri.SoloConViaggio,
-                SoloSenzaViaggio = filtri.SoloSenzaViaggio,
-                Raggruppamento = raggruppamento
-            });
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", filtri.AziendaId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ControparteId", filtri.ControparteId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("CausaleCiclo", filtri.CausaleCiclo ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("Urgenza", filtri.Urgenza ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataScadenzaDa", filtri.DataScadenzaDa ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("DataScadenzaA", filtri.DataScadenzaA ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("ViaggioId", filtri.ViaggioId ?? (object)DBNull.Value);
+            cmd.Parameters.AddWithValue("SoloConViaggio", filtri.SoloConViaggio);
+            cmd.Parameters.AddWithValue("SoloSenzaViaggio", filtri.SoloSenzaViaggio);
+            cmd.Parameters.AddWithValue("Raggruppamento", raggruppamento);
+
+            var jsonResponse = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(jsonResponse)) return result;
 

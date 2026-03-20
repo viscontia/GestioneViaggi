@@ -1,4 +1,3 @@
-using Dapper;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Database;
@@ -23,26 +22,35 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
         {
             const string sql = @"
                 SELECT 
-                    t.tasso_id as TassoId,
-                    t.tasso_valuta_da_fk as TassoValutaDaId,
-                    t.tasso_valuta_a_fk as TassoValutaAId,
-                    t.tasso_data_validita as TassoDataValidita,
-                    t.tasso_valore as TassoValore,
-                    t.tasso_fonte as TassoFonte,
-                    t.tasso_note as TassoNote,
-                    t.created_at as Created,
-                    t.created_by as CreatedBy,
-                    t.updated_at as Updated,
-                    t.updated_by as UpdatedBy,
-                    v1.valuta_codice_iso as ValutaDaCodice,
-                    v2.valuta_codice_iso as ValutaACodice
+                    t.tasso_id,
+                    t.tasso_valuta_da_fk,
+                    t.tasso_valuta_a_fk,
+                    t.tasso_data_validita,
+                    t.tasso_valore,
+                    t.tasso_fonte,
+                    t.tasso_note,
+                    t.created_at,
+                    t.created_by,
+                    t.updated_at,
+                    t.updated_by,
+                    v1.valuta_codice_iso as valuta_da_codice,
+                    v2.valuta_codice_iso as valuta_a_codice
                 FROM ana_tassi_cambio t
                 JOIN ana_valute v1 ON t.tasso_valuta_da_fk = v1.valuta_id
                 JOIN ana_valute v2 ON t.tasso_valuta_a_fk = v2.valuta_id
                 ORDER BY t.tasso_data_validita DESC, v1.valuta_codice_iso ASC";
 
             await using var conn = await _databaseService.GetConnectionAsync();
-            return await conn.QueryAsync<AnaTassiCambio>(sql);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            
+            var results = new List<AnaTassiCambio>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            
+            return results;
         }
         catch (Exception ex)
         {
@@ -86,7 +94,20 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     updated_by = @UpdatedBy
                 RETURNING tasso_id";
 
-            entity.TassoId = await conn.ExecuteScalarAsync<int>(sql, entity);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("TassoValutaDaId", entity.TassoValutaDaId);
+            cmd.Parameters.AddWithValue("TassoValutaAId", entity.TassoValutaAId);
+            cmd.Parameters.AddWithValue("TassoDataValidita", entity.TassoDataValidita);
+            cmd.Parameters.AddWithValue("TassoValore", entity.TassoValore);
+            cmd.Parameters.AddWithValue("TassoFonte", (object?)entity.TassoFonte ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("TassoNote", (object?)entity.TassoNote ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Created", (object?)entity.Created ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("CreatedBy", (object?)entity.CreatedBy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Updated", (object?)entity.Updated ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+
+            var result = await cmd.ExecuteScalarAsync();
+            entity.TassoId = Convert.ToInt32(result);
             return entity;
         }
         catch (Exception ex)
@@ -114,7 +135,18 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
                     updated_by = @UpdatedBy
                 WHERE tasso_id = @TassoId";
 
-            await conn.ExecuteAsync(sql, entity);
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("TassoId", entity.TassoId);
+            cmd.Parameters.AddWithValue("TassoValutaDaId", entity.TassoValutaDaId);
+            cmd.Parameters.AddWithValue("TassoValutaAId", entity.TassoValutaAId);
+            cmd.Parameters.AddWithValue("TassoDataValidita", entity.TassoDataValidita);
+            cmd.Parameters.AddWithValue("TassoValore", entity.TassoValore);
+            cmd.Parameters.AddWithValue("TassoFonte", (object?)entity.TassoFonte ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("TassoNote", (object?)entity.TassoNote ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Updated", (object?)entity.Updated ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("UpdatedBy", (object?)entity.UpdatedBy ?? DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync();
             return entity;
         }
         catch (Exception ex)
@@ -126,7 +158,7 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
 
     protected override AnaTassiCambio MapFromReader(NpgsqlDataReader reader)
     {
-        return new AnaTassiCambio
+        var entity = new AnaTassiCambio
         {
             TassoId = ReadInt(reader, "tasso_id"),
             TassoValutaDaId = ReadInt(reader, "tasso_valuta_da_fk"),
@@ -142,5 +174,17 @@ public class AnaTassiCambioService : BaseCrudService<AnaTassiCambio>
             // Map BaseEntity.Id to keep it consistent
             Id = ReadInt(reader, "tasso_id")
         };
+
+        if (HasColumn(reader, "valuta_da_codice"))
+        {
+            entity.ValutaDaCodice = ReadNullableString(reader, "valuta_da_codice");
+        }
+        
+        if (HasColumn(reader, "valuta_a_codice"))
+        {
+            entity.ValutaACodice = ReadNullableString(reader, "valuta_a_codice");
+        }
+
+        return entity;
     }
 }

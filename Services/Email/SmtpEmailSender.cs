@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using MailKit.Net.Smtp;
 using MailKit.Security;
@@ -30,10 +30,10 @@ public class SmtpEmailSender : IEmailSender
         {
             // Recupera config SMTP dall'azienda
             await using var connection = await _databaseService.GetConnectionAsync();
-            var configJson = await connection.ExecuteScalarAsync<string>(
-                "SELECT fn_get_smtp_config_for_email(@AziendaId)",
-                new { AziendaId = _aziendaId }
-            );
+            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId)";
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", _aziendaId);
+            var configJson = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(configJson))
             {
@@ -97,10 +97,10 @@ public class SmtpEmailSender : IEmailSender
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var configJson = await connection.ExecuteScalarAsync<string>(
-                "SELECT fn_get_smtp_config_for_email(@AziendaId)",
-                new { AziendaId = _aziendaId }
-            );
+            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId)";
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
+            cmd.Parameters.AddWithValue("AziendaId", _aziendaId);
+            var configJson = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(configJson))
             {

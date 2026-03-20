@@ -1,4 +1,4 @@
-using Dapper;
+using Npgsql;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
 
@@ -27,9 +27,9 @@ public class TravelPrintService : ITravelPrintService
             await using var conn = await _connectionManager.GetConnectionAsync();
 
             var sql = "SELECT fn_get_travel_print_data(@DataViaggioId)";
-            var parameters = new DynamicParameters();
-            parameters.Add("DataViaggioId", dataViaggioId);
-            var json = await conn.ExecuteScalarAsync<string>(sql, parameters);
+            await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)conn);
+            cmd.Parameters.AddWithValue("DataViaggioId", dataViaggioId);
+            var json = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(json))
             {

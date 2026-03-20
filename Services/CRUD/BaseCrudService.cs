@@ -264,6 +264,19 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
     }
 
     /// <summary>
+    /// Helper per verificare se una colonna esiste nel reader (compatibilità AOT - no exception)
+    /// </summary>
+    protected bool HasColumn(NpgsqlDataReader reader, string columnName)
+    {
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Metodo helper per creare un'entità con retry automatico in caso di errore sequence
     /// </summary>
     protected async Task<T> CreateAsyncInternal(T entity, Func<T, Task<T>> createAction, bool allowRetry = true)

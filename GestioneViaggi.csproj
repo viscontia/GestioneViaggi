@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <!-- Framework impostati su .NET 9 -->
@@ -44,14 +44,13 @@
         <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.Debug.plist</CodesignEntitlements>
     </PropertyGroup>
 
-    <!-- Entitlements per MacCatalyst Release (con sandbox per App Store) -->
     <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst' AND '$(Configuration)' == 'Release'">
         <CodesignEntitlements>Platforms/MacCatalyst/Entitlements.plist</CodesignEntitlements>
+        <NoWarn>$(NoWarn);IL2037</NoWarn>
     </PropertyGroup>
 
-    <!-- Preserva assembly dal trimming IL Linker per compatibilità Dapper/Npgsql -->
+    <!-- Preserva assembly dal trimming IL Linker per compatibilità Npgsql -->
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <TrimmerRootAssembly Include="Dapper" />
         <TrimmerRootAssembly Include="Npgsql" />
         <TrimmerRootAssembly Include="GestioneViaggi" />
     </ItemGroup>
@@ -86,7 +85,6 @@
     <ItemGroup>
         <!-- Pacchetti Nuget -->
         <PackageReference Include="ClosedXML" Version="0.105.0" />
-        <PackageReference Include="Dapper" Version="2.1.66" />
         <PackageReference Include="ExcelDataReader" Version="3.8.0" />
         <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
         <PackageReference Include="HarfBuzzSharp" Version="7.3.0.2" />
@@ -103,7 +101,7 @@
         <PackageReference Include="MudBlazor" Version="8.15.0" />
 
         <!-- Database PostgreSQL -->
-        <PackageReference Include="Npgsql" Version="8.0.5" />
+        <PackageReference Include="Npgsql" Version="8.0.6" />
 
         <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.0" />
         <PackageReference Include="QuestPDF" Version="2023.12.6" />
@@ -146,15 +144,9 @@
             <BlazoredTextEditorFiles Include="$(NuGetPackagesPath)/blazored.texteditor/1.1.0/staticwebassets/**/*.*" />
         </ItemGroup>
         <Message Importance="high" Text="Copying uncompressed wwwroot files to: $(WwwrootDestination)" />
-        <Copy SourceFiles="@(WwwrootFiles)"
-              DestinationFiles="@(WwwrootFiles->'$(WwwrootDestination)%(RecursiveDir)%(Filename)%(Extension)')"
-              SkipUnchangedFiles="false" />
-        <Copy SourceFiles="@(MudBlazorFiles)"
-              DestinationFolder="$(WwwrootDestination)_content/MudBlazor/"
-              SkipUnchangedFiles="false" />
-        <Copy SourceFiles="@(BlazoredTextEditorFiles)"
-              DestinationFiles="@(BlazoredTextEditorFiles->'$(WwwrootDestination)_content/Blazored.TextEditor/%(RecursiveDir)%(Filename)%(Extension)')"
-              SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(WwwrootFiles)" DestinationFiles="@(WwwrootFiles->'$(WwwrootDestination)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(MudBlazorFiles)" DestinationFolder="$(WwwrootDestination)_content/MudBlazor/" SkipUnchangedFiles="false" />
+        <Copy SourceFiles="@(BlazoredTextEditorFiles)" DestinationFiles="@(BlazoredTextEditorFiles->'$(WwwrootDestination)_content/Blazored.TextEditor/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="false" />
     </Target>
 
 </Project>
