@@ -49,7 +49,7 @@ public class PostgreSqlService : IDatabaseService
 
             if (!string.IsNullOrEmpty(emailToSet))
             {
-                using var cmd = new NpgsqlCommand("SELECT set_config('my.app_user', @email, false)", connection);
+                using var cmd = new NpgsqlCommand("SELECT set_config('my.app_user', @email, true)", connection);
                 cmd.Parameters.AddWithValue("email", emailToSet);
                 await cmd.ExecuteNonQueryAsync();
 
