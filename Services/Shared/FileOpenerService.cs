@@ -37,6 +37,12 @@ public class FileOpenerService : IFileOpenerService
                     UseShellExecute = true
                 };
                 System.Diagnostics.Process.Start(psi);
+#elif WINDOWS
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
 #else
                 await Launcher.Default.OpenAsync(new Microsoft.Maui.Storage.OpenFileRequest
                 {

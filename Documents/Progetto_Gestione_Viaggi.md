@@ -170,6 +170,61 @@ dotnet clean -c Release -f net9.0-maccatalyst && dotnet build -c Release -f net9
 
 ---
 
+### Wizard Iscrizione Viaggi (Flask/Python)
+
+Il wizard Flask usa un approccio analogo basato su file `.env`. Esistono tre scenari di avvio:
+
+| Scenario | DB | Script / Accesso |
+|---|---|---|
+| **Sviluppo sul Mac** | PostgreSQL locale (`localhost:5432`) | `avvia-locale.sh` |
+| **Test/Uso con Supabase dal Mac** | Supabase cloud (porta 6543) | `avvia-supabase.sh` |
+| **Server Hetzner — Azienda 2** | Supabase cloud (porta 6543) | `systemctl` (servizio permanente, vedi sotto) |
+
+**URL produzione Azienda 2:** `https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/`
+**URL Oracle legacy (in dismissione):** `https://iscrizioni.sardegnafuoritraccia.it/`
+
+> [!WARNING]
+> `start_prod.sh` è riservato al server Hetzner. Sul Mac usare sempre `avvia-supabase.sh` o `avvia-locale.sh`.
+
+> [!NOTE]
+> La guida operativa completa del server Hetzner è in `Configurazione_Server_Hetzner.md` nella cartella `Documenti PostgreSQL/` del repo Flask.
+
+#### File di configurazione Flask
+
+- **`.env.local`** — punta a `localhost:5432`, database `gestione_viaggi`
+- **`.env.supabase`** — punta a Supabase Transaction Pooler porta `6543`, SSL obbligatorio
+- **`.env`** — file attivo, sovrascitto dagli script di avvio
+
+#### Avvio dal Mac (da qualsiasi cartella)
+
+```bash
+# Con DB Supabase cloud
+"/Users/adrianovisconti/Documents/Sviluppo Software/GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/avvia-supabase.sh"
+
+# Con DB locale
+"/Users/adrianovisconti/Documents/Sviluppo Software/GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/avvia-locale.sh"
+```
+
+Ogni script: imposta `.env` → termina eventuali processi sulla porta 5001 → avvia `python3 app.py`. L'app è disponibile su `http://localhost:5001`.
+
+#### Switch manuale `.env` (senza riavvio)
+
+```bash
+# Passa a Supabase
+cd "/Users/adrianovisconti/Documents/Sviluppo Software/GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/" && cp .env.supabase .env
+
+# Torna a locale
+cd "/Users/adrianovisconti/Documents/Sviluppo Software/GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/" && cp .env.local .env
+```
+
+> Il cambio `.env` ha effetto solo al prossimo avvio dell'app.
+
+#### Nota macOS — SSL Supabase
+
+Se la connessione fallisce con `SSL error: certificate verify failed`, scaricare il certificato da Supabase Dashboard → Settings → Database → Download Certificate e salvarlo come `certs/prod-ca-2021.crt` nella root del progetto. Il `DbManager` lo carica automaticamente.
+
+---
+
 ## 🔑 Connessioni e Credenziali
 
 ### Database Locale

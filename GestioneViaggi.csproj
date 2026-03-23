@@ -2,7 +2,8 @@
 
     <PropertyGroup>
         <!-- Framework impostati su .NET 9 -->
-        <TargetFrameworks>net9.0-maccatalyst</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">net9.0-windows10.0.19041.0</TargetFrameworks>
+        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('osx'))">net9.0-maccatalyst</TargetFrameworks>
 
         <!-- QUESTA È LA RIGA MAGICA CHE RISOLVE L'ERRORE DI XCODE -->
         <_SuppressSdkVersionCheck>true</_SuppressSdkVersionCheck>
@@ -30,12 +31,13 @@
         <ApplicationVersion>25</ApplicationVersion>
 
         <WindowsPackageType>None</WindowsPackageType>
+        <WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</WindowsAppSDKSelfContained>
 
         <!-- Versioni Minime OS -->
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">14.2</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
     </PropertyGroup>
 
@@ -88,11 +90,13 @@
         <PackageReference Include="ExcelDataReader" Version="3.8.0" />
         <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
         <PackageReference Include="HarfBuzzSharp" Version="7.3.0.2" />
-        <PackageReference Include="HarfBuzzSharp.NativeAssets.MacCatalyst" Version="7.3.0.2" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.MacCatalyst" Version="7.3.0.2" Condition="$(TargetFramework.Contains('-maccatalyst'))" />
+        <PackageReference Include="HarfBuzzSharp.NativeAssets.Win32" Version="7.3.0.2" Condition="$(TargetFramework.Contains('-windows'))" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
         <PackageReference Include="SkiaSharp" Version="2.88.8" />
         <PackageReference Include="SkiaSharp.HarfBuzz" Version="2.88.8" />
-        <PackageReference Include="SkiaSharp.NativeAssets.MacCatalyst" Version="2.88.8" />
+        <PackageReference Include="SkiaSharp.NativeAssets.MacCatalyst" Version="2.88.8" Condition="$(TargetFramework.Contains('-maccatalyst'))" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="2.88.8" Condition="$(TargetFramework.Contains('-windows'))" />
         <PackageReference Include="libphonenumber-csharp" Version="9.0.21" />
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />

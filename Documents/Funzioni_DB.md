@@ -175,7 +175,6 @@ Funzioni core per la gestione dei viaggi (`ana_viaggi` e `ana_date_viaggi`).
 | `get_mezzi_count` | Conteggio efficiente dei mezzi (veicoli) partecipanti per una data viaggio. Conta solo i partecipanti con mezzo assegnato (ana_mezzi_id_fk IS NOT NULL). Utilizzata da `fn_get_viaggi_init_data` per popolare il campo `totMezzi` delle date. | `p_data_viaggio_id integer` | `integer` | `Components/Shared/AnaViaggiDialog.razor`, `SqlScripts/351_Create_GetMezziCount.sql` |
 | `fn_get_viaggi_init_data` | **FAT INIT FUNCTION**: Recupera in un'unica chiamata tutti i lookups necessari per il dialog viaggi (Nazioni, TipiViaggio, TipiTrattamento, TipiPernottamento, TipiAvvicinamento, Aziende) + le date del viaggio (se `p_viaggio_id` fornito) con contatori `totMezzi` e `totClienti`. Restituisce JSON con chiavi in camelCase. **Fixed 2026-03-16**: Corretti campi date per includere tutti i costi bambini, note e campi audit necessari per deserializzazione corretta in AnaDataViaggio. | `p_viaggio_id integer DEFAULT NULL` | `json` (include dates con tutti i campi: id, viaggioIdFk, dataInizio, dataFine, effettuatoSino, costoPilota, costoPasseggero, costoPasseggeroAutoGuida, costoBambino02/26/612, note, totMezzi, totClienti, aziendaId, createdBy, created, updatedBy, updated) | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/AnaViaggiDialog.razor` |
 | `get_travel_stats` | Calcola totali partecipanti, equipaggi e veicoli per una data viaggio | `p_data_viaggio_id integer` | `TABLE(total_participants, ...)` | `Services/Printing/TravelPrintService.cs` |
-| `fn_get_calendar_data` | Recupera viaggi per calendario mensile. Restituisce tutte le date viaggio che intersecano il mese specificato (inizio <= fine_mese AND fine >= inizio_mese), con conteggio partecipanti e stato calcolato. | `p_year integer, p_month integer, p_azienda_id integer` | `TABLE(data_viaggio_id, viaggio_id, descrizione_viaggio, data_inizio, data_fine, tot_clienti, effettuato_sino, azienda_id, azienda_nome)` | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/TravelCalendar.razor` |
 
 ---
 
@@ -663,22 +662,63 @@ Funzioni PostgreSQL dedicate al wizard di iscrizione viaggi online (applicazione
 
 ### 12.2 Step 2 - Dati Pilota/Cliente
 
-Le operazioni CRUD sul cliente (INSERT, UPDATE) e le verifiche di unicita (CF, email per anagrafica) usano **SQL diretto** nei DAO Python, non funzioni `fn_wizard_*`. Questo perche la logica e semplice e lineare (singolo INSERT/UPDATE con RETURNING).
+#### 12.2.1 Funzioni geografiche (Comuni, Province, Regioni, Nazioni)
 
-**Tabelle coinvolte**: `ana_clienti`, `ana_geo_comuni`
-**DAO**: `Classi_Tabelle_DB/cliente.py`
+Aggiunte il 2026-03-21. Script di migrazione: `Documenti PostgreSQL/Migration_Scripts/Add_Geo_Functions.sql`.
 
-Operazioni:
-- `insert_cliente()` → INSERT INTO ana_clienti ... RETURNING cliente_id
-- `update_cliente()` → UPDATE ana_clienti SET ... WHERE cliente_id = ?
-- `get_client_data()` → SELECT da ana_clienti JOIN ana_geo_comuni (per validazione CF)
-- `find_existing_email_by_anagrafica()` → SELECT cliente_email WHERE cognome+nome+cf
-- `find_existing_email_by_cf()` → SELECT cliente_email WHERE codicefiscale
-- `check_codice_fiscale_esistenza()` → SELECT 1 WHERE codicefiscale (con esclusione ID)
+##### Comuni (5 funzioni)
 
-**Gestione errori**: `UniqueViolation` su codice fiscale genera `UniqueConstraintViolationError` con email del cliente esistente.
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_comuni` | Tutti i comuni ordinati per descrizione. | — | `TABLE(comune_id INT, comune_descrizione VARCHAR, comune_istat VARCHAR, comune_provincia_fk INT, comune_preftel VARCHAR, comune_cap VARCHAR, comune_codfisc VARCHAR, comune_num_abitanti INT, comune_link VARCHAR, comune_ripgeo_fk INT, comune_capoluogo_fk INT, comune_estero BOOLEAN)` | `Classi_Tabelle_DB/comuni.py` |
+| `fn_wizard_get_comune_by_id` | Singolo comune per ID. | `p_comune_id INTEGER` | Same 12 columns as `fn_wizard_get_all_comuni` | `Classi_Tabelle_DB/comuni.py` |
+| `fn_wizard_get_comune_by_istat` | Codice catastale dato codice ISTAT. | `p_istat VARCHAR` | `TABLE(comune_codfisc VARCHAR)` | `Classi_Tabelle_DB/comuni.py` |
+| `fn_wizard_get_comuni_by_cliente` | FK comuni di nascita e residenza da `ana_clienti`. | `p_cliente_id INTEGER` | `TABLE(cliente_comune_nascita_fk INT, cliente_comune_residenza_fk INT)` | `Classi_Tabelle_DB/comuni.py` |
+| `fn_wizard_search_comuni` | Ricerca con ILIKE (case-insensitive, accent-safe). `p_term` passato as-is. La più critica: chiamata da `/api/geo/comuni/search` ad ogni digitazione. | `p_term TEXT, p_limit INTEGER` | `TABLE(comune_id INT, comune_descrizione VARCHAR)` | `Classi_Tabelle_DB/comuni.py`, `app.py` |
 
-**Dati geografici**: Riutilizzano le funzioni MAUI esistenti `fn_app_get_comuni_lookup` e `fn_app_get_comune_by_id` (sezione 3).
+##### Province (2 funzioni)
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_province` | Tutte le province ordinate per descrizione. | — | `TABLE(provincia_id INT, provincia_descrizione VARCHAR, provincia_sigla VARCHAR, provincia_superficie NUMERIC, provincia_residenti INT, provincia_num_comuni INT, regione_id_fk INT)` | `Classi_Tabelle_DB/province.py` |
+| `fn_wizard_get_provincia_by_comune` | Provincia via JOIN con `ana_geo_comuni`. | `p_comune_id INTEGER` | Same 7 columns as `fn_wizard_get_all_province` | `Classi_Tabelle_DB/province.py` |
+
+##### Regioni (2 funzioni)
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_regioni` | Tutte le regioni ordinate per descrizione. | — | `TABLE(regione_id INT, regione_descrizione VARCHAR, regione_nr_residenti INT, regione_perc_residenti NUMERIC, regione_densita_kmq NUMERIC, regione_nr_province INT, regione_nr_comuni INT, country_id_fk INT)` | `Classi_Tabelle_DB/regioni.py` |
+| `fn_wizard_get_regione_by_provincia` | Regione via JOIN con `ana_geo_province`. | `p_provincia_id INTEGER` | Same 8 columns as `fn_wizard_get_all_regioni` | `Classi_Tabelle_DB/regioni.py` |
+
+##### Nazioni (2 funzioni)
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_all_nazioni` | Tutte le nazioni ordinate per descrizione. | — | `TABLE(country_id INT, name VARCHAR, nationality VARCHAR, country_code VARCHAR, iso_alpha2 VARCHAR, capital VARCHAR, population INT, area_km2 NUMERIC, region_id INT, sub_region_id INT, intermediate_region_id INT, organization_region_id INT)` | `Classi_Tabelle_DB/nazioni.py` |
+| `fn_wizard_get_nazione_by_regione` | Nazione via JOIN con `ana_geo_regioni_ita`. | `p_regione_id INTEGER` | Same 12 columns as `fn_wizard_get_all_nazioni` | `Classi_Tabelle_DB/nazioni.py` |
+
+#### 12.2.2 Funzioni lettura cliente (5 funzioni) ✅ Creato (2026-03-21)
+
+Aggiunte il 2026-03-21. Script di migrazione: `Documenti PostgreSQL/Migration_Scripts/Add_Cliente_Read_Functions.sql`.
+Usate da: Step 2, Step 3, Step 5 del wizard.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_client_data` | Recupera i dati anagrafici di un cliente per la validazione del codice fiscale. LEFT JOIN tra `ana_clienti` e `ana_geo_comuni` per ottenere il codice catastale del comune di nascita. | `p_cliente_id INTEGER` | `TABLE(cliente_cognome, cliente_nome, cliente_data_nascita, cliente_sesso, comune_codfisc, cliente_intolleranza)` | `Classi_Tabelle_DB/cliente.py` (`get_client_data()`) |
+| `fn_wizard_find_email_by_anagrafica` | Cerca l'email di un cliente tramite cognome, nome e codice fiscale (confronto UPPER() case-insensitive). Usato per rilevare clienti duplicati prima dell'inserimento. | `p_cognome VARCHAR, p_nome VARCHAR, p_cf VARCHAR, p_azienda_id INTEGER` | `TABLE(cliente_email VARCHAR)` | `Classi_Tabelle_DB/cliente.py` (`find_existing_email_by_anagrafica()`) |
+| `fn_wizard_check_cf_esistenza` | Verifica con EXISTS se un codice fiscale e gia presente per l'azienda. `p_cliente_id NULL` = scenario INSERT (controlla tutti i record); `p_cliente_id non-NULL` = scenario UPDATE (esclude il cliente corrente). | `p_cf VARCHAR, p_azienda_id INTEGER, p_cliente_id INTEGER DEFAULT NULL` | `TABLE(cf_exists BOOLEAN)` | `Classi_Tabelle_DB/cliente.py` (`check_codice_fiscale_esistenza()`) |
+| `fn_wizard_find_email_by_cf` | Cerca l'email di un cliente tramite codice fiscale (confronto UPPER() case-insensitive). LIMIT 1. Usato per recuperare l'email del titolare del CF in caso di conflitto. | `p_cf VARCHAR, p_azienda_id INTEGER` | `TABLE(cliente_email VARCHAR)` | `Classi_Tabelle_DB/cliente.py` (`find_existing_email_by_cf()`) |
+| `fn_wizard_get_partecipanti_details` | Recupera dati anagrafici completi per un array di ID cliente. Usa `WHERE cliente_id = ANY(p_ids)`. Chiamato con cast esplicito `::integer[]`. Usato nel riepilogo Step 5 e nell'email di conferma. | `p_ids INTEGER[]` | `TABLE(cliente_id, cliente_cognome, cliente_nome, cliente_email, cliente_data_nascita, cliente_intolleranza)` | `Classi_Tabelle_DB/cliente.py` (`get_partecipanti_details()`) |
+
+#### 12.2.3 Operazioni cliente scrittura (2 funzioni) ✅ Creato (2026-03-21)
+
+Aggiunte il 2026-03-21. Script di migrazione: `Documenti PostgreSQL/Migration_Scripts/Add_Cliente_Write_Functions.sql`.
+Usate da: `insert_cliente()` e `update_cliente()` in `Classi_Tabelle_DB/cliente.py`.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_insert_cliente` | Inserisce un nuovo cliente in `ana_clienti` e restituisce il `cliente_id` generato. Imposta i campi audit `created_by` e `created`. | `p_azienda_id INTEGER, p_titolo VARCHAR, p_cognome VARCHAR, p_nome VARCHAR, p_sesso VARCHAR, p_comune_residenza_fk INTEGER, p_indirizzo_residenza VARCHAR, p_comune_nascita_fk INTEGER, p_data_nascita DATE, p_preftelint VARCHAR, p_telefono VARCHAR, p_email VARCHAR, p_codicefiscale VARCHAR, p_intolleranza TEXT, p_tipodoc_identita VARCHAR, p_documento_numero VARCHAR, p_documento_rilasciato_da VARCHAR, p_documento_rilasciato_data DATE, p_documento_rilasciato_scadenza DATE, p_created_by VARCHAR DEFAULT 'WIZARD'` | `INTEGER` (nuovo cliente_id) | `Classi_Tabelle_DB/cliente.py` (`insert_cliente()`) |
+| `fn_wizard_update_cliente` | Aggiorna i dati anagrafici di un cliente esistente in `ana_clienti`. Restituisce TRUE se almeno una riga è stata aggiornata (FOUND). | `p_cliente_id INTEGER, p_titolo VARCHAR, p_cognome VARCHAR, p_nome VARCHAR, p_sesso VARCHAR, p_comune_residenza_fk INTEGER, p_indirizzo_residenza VARCHAR, p_comune_nascita_fk INTEGER, p_data_nascita DATE, p_preftelint VARCHAR, p_telefono VARCHAR, p_email VARCHAR, p_codicefiscale VARCHAR, p_intolleranza TEXT, p_tipodoc_identita VARCHAR, p_documento_numero VARCHAR, p_documento_rilasciato_da VARCHAR, p_documento_rilasciato_data DATE, p_documento_rilasciato_scadenza DATE` | `BOOLEAN` (FOUND) | `Classi_Tabelle_DB/cliente.py` (`update_cliente()`) |
 
 ### 12.3 Step 3 - Passeggeri
 
@@ -708,13 +748,36 @@ Operazioni:
 | `fn_wizard_get_tipi_alloggio_by_ids` | Lookup tipi alloggio per array di ID. Usato nel riepilogo finale. | `p_ids INT[]` | `TABLE(tipo_alloggio_id, tipo_alloggio_descrizione)` | `tipo_alloggio.py`, `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` |
 | `fn_wizard_get_albergo_sino` | Restituisce il flag albergo (Y/N) per un tipo di pernottamento. Determina se mostrare la sezione alloggi nel wizard. | `p_pernottamento_id INT` | `CHAR(1)` ('Y' o 'N') | `Classi_Tabelle_DB/tipo_pernottamento.py` |
 
-### 12.6 Finalizzazione e Email
+### 12.6 Prenotazione Scrittura (Task 4) ✅ Creato (2026-03-21)
+
+Aggiunte il 2026-03-21. Script di migrazione: `Documenti PostgreSQL/Migration_Scripts/Add_Prenotazione_Write_Functions.sql`.
+Usate da: `insert_prenotazione()` in `mov_clienti_viaggi_dao.py` e `insert_alloggi_assegnati()` in `mov_clienti_alloggi_dao.py`.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_insert_prenotazione` | Inserisce una singola riga di partecipazione al viaggio in `mov_clienti_viaggi`. I campi audit (`created_by`, `updated_by`, `created`, `updated`) sono gestiti dal trigger di tabella tramite `current_setting('my.app_user', true)`. Chiamata sia per il pilota (tipo_partecipante=4) che per ciascun passeggero (tipo_partecipante=6). | `p_viaggio_id INTEGER, p_data_viaggio_id INTEGER, p_cliente_id INTEGER, p_tipo_partecipante INTEGER, p_pilota_id INTEGER, p_mezzo_id INTEGER, p_modello_id INTEGER, p_targa VARCHAR, p_has_cane VARCHAR, p_notes TEXT` | `VOID` | `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` (`insert_prenotazione()`) |
+| `fn_wizard_insert_alloggio_assegnato` | Inserisce una riga di assegnazione camera in `mov_clienti_alloggi`. La PK viene generata tramite `nextval('mov_clienti_alloggi_seq')`. Supporta fino a 6 occupanti per camera (slot `p_cli1`..`p_cli6`; NULL per slot vuoti). | `p_viaggio_id INTEGER, p_data_viaggio_id INTEGER, p_tipo_alloggio_id INTEGER, p_cli1 INTEGER, p_cli2 INTEGER, p_cli3 INTEGER, p_cli4 INTEGER, p_cli5 INTEGER, p_cli6 INTEGER, p_created_by VARCHAR` | `VOID` | `Classi_Tabelle_DB/mov_clienti_alloggi_dao.py` (`insert_alloggi_assegnati()`) |
+
+### 12.7 Prenotazione Lettura (Task 5) ✅ Creato (2026-03-21)
+
+Aggiunte il 2026-03-21. Script di migrazione: `Documenti PostgreSQL/Migration_Scripts/Add_Summary_Read_Functions.sql`.
+Usate da: `get_summary_data_for_trip_date()` in `mov_clienti_viaggi_dao.py`.
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_wizard_get_registrazioni_viaggio` | Restituisce tutte le righe di `mov_clienti_viaggi` per un viaggio e una data specifici. Sostituisce le due query inline separate per piloti (tipo_partecipante=4) e passeggeri (tipo_partecipante=6); il filtraggio avviene in Python dopo il fetch. | `p_viaggio_id INTEGER, p_data_viaggio_id INTEGER` | `TABLE(viaggio_id_fk, data_viaggio_id_fk, cliente_id_fk, tipo_partecipante_id_fk, cliente_pilota_id_fk, ana_mezzi_id_fk, mezzo_modello_id_fk, mov_cliente_viaggio_targa_mezzo, mov_cliente_viaggio_cane_sino, mov_cliente_viaggio_note)` | `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` (`get_summary_data_for_trip_date()`) |
+| `fn_wizard_get_alloggi_viaggio` | Restituisce tutte le righe di `mov_clienti_alloggi` per un viaggio e una data specifici, con i 6 slot occupanti. Sostituisce la query inline su `mov_clienti_alloggi`. | `p_viaggio_id INTEGER, p_data_viaggio_id INTEGER` | `TABLE(mov_clienti_alloggio_pk, viaggio_id_fk, data_viaggio_id_fk, tipo_alloggio_id_fk, cliente_id1_fk, cliente_id2_fk, cliente_id3_fk, cliente_id4_fk, cliente_id5_fk, cliente_id6_fk)` | `Classi_Tabelle_DB/mov_clienti_viaggi_dao.py` (`get_summary_data_for_trip_date()`) |
+
+`fn_wizard_get_partecipanti_details` (sezione 12.2.2) è **riutilizzata** anche qui per recuperare i dettagli anagrafici di tutti i partecipanti: sostituisce la query inline su `ana_clienti`.
+
+### 12.8 Finalizzazione e Email
 
 | Nome della Function | Scopo | Input | Output | Files Coinvolti |
 | :--- | :--- | :--- | :--- | :--- |
 | `fn_wizard_get_smtp_config` | Recupera la configurazione SMTP per un'azienda dalla tabella `ana_aziende_smtp`. Restituisce host, porta, username, password (da `password_enc->>'value'`), metodo sicurezza, email e nome mittente. Usato da `create_app()` per configurare Flask-Mail. | `p_azienda_id INT` | `TABLE(host, port, username, password, security_method, from_email, from_name)` | `app.py` (funzione `create_app()`) |
+| `fn_wizard_get_azienda_email_principale` | Restituisce l'indirizzo email principale (`is_principale=true`) dell'azienda specificata dalla tabella `ana_aziende_email`. Usato in `/api/prenotazione/finalizza` per inviare la mail di riepilogo progressivo alla segreteria. | `p_azienda_id INTEGER` | `CHARACTER VARYING` (email principale) | `app.py` (route `/api/prenotazione/finalizza`), `Classi_Tabelle_DB/azienda_dao.py` (`AziendaDAO.get_email_principale`) |
 
-La finalizzazione della prenotazione (INSERT in `mov_clienti_viaggi` e `mov_clienti_alloggi`) usa **SQL diretto** con transazione esplicita, non stored procedure. I campi audit (`created_by`, `updated_by`) sono gestiti tramite trigger di tabella che leggono `current_setting('my.app_user', true)`.
+La finalizzazione della prenotazione è ora completamente DB-First: Task 4 e Task 5 completati il 2026-03-21. I campi audit (`created_by`, `updated_by`) sono gestiti tramite trigger di tabella che leggono `current_setting('my.app_user', true)`.
 
 Le stored procedure MAUI `sp_mov_clienti_viaggi_create` e `sp_mov_clienti_alloggi_create` (sezione 5) **non sono usate** dal wizard perche hanno una signature diversa e logica aggiuntiva specifica per l'app MAUI.
 
@@ -735,8 +798,9 @@ Le stored procedure MAUI `sp_mov_clienti_viaggi_create` e `sp_mov_clienti_allogg
 - `mov_clienti_viaggi` → Iscrizioni al viaggio
 - `mov_clienti_alloggi` → Assegnazione camere
 - `ana_aziende_smtp` → Configurazione email
+- `ana_aziende_email` → Email principale azienda (destinatario mail segreteria)
 
-**Totale funzioni fn_wizard_***: 18 (7 Step 1 + 1 Step 3 + 6 Step 4 + 3 Step 5 + 1 Email)
+**Totale funzioni fn_wizard_***: 41 (7 Step 1 + 11 Step 2 Geo + 5 Step 2 Cliente lettura + 2 Step 2 Cliente scrittura + 1 Step 3 + 6 Step 4 + 3 Step 5 + 2 Prenotazione scrittura + 2 Prenotazione lettura + 2 Email)
 
 ### `fn_get_viaggi_init_data`
 Recupera tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio in un'unica chiamata JSON. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
