@@ -10,11 +10,10 @@
 
 1. [Prima di iniziare — Verifica i requisiti del tuo PC](#1-prima-di-iniziare--verifica-i-requisiti-del-tuo-pc)
 2. [Passo 1 — Controlla la tua email](#2-passo-1--controlla-la-tua-email)
-3. [Passo 2 — Scarica i file da WeTransfer](#3-passo-2--scarica-i-file-da-wetransfer)
-4. [Passo 3 — Apri la cartella scaricata](#4-passo-3--apri-la-cartella-scaricata)
-5. [Passo 4 — Avvia l'installazione](#5-passo-4--avvia-linstallazione)
-6. [Passo 5 — Segui il wizard di installazione](#6-passo-5--segui-il-wizard-di-installazione)
-7. [Passo 6 — Primo avvio e accesso](#7-passo-6--primo-avvio-e-accesso)
+3. [Passo 2 — Scarica il file da WeTransfer](#3-passo-2--scarica-il-file-da-wetransfer)
+4. [Passo 3 — Avvia l'installazione](#4-passo-3--avvia-linstallazione)
+5. [Passo 4 — Segui il wizard di installazione](#5-passo-4--segui-il-wizard-di-installazione)
+6. [Passo 5 — Primo avvio e accesso](#6-passo-5--primo-avvio-e-accesso)
 8. [Portale Web Iscrizioni](#8-portale-web-iscrizioni)
 9. [Risoluzione Problemi](#9-risoluzione-problemi)
 
@@ -94,11 +93,11 @@ Il programma richiede una connessione internet attiva per funzionare (si connett
 
 ## 2. Passo 1 — Controlla la tua email
 
-Hai ricevuto un'email con un link di **WeTransfer** per scaricare i file del programma.
+Hai ricevuto un'email con un link di **WeTransfer** per scaricare il programma di installazione.
 
 1. Apri la tua casella email
 2. Cerca un'email con oggetto simile a **"Gestione Viaggi"** o proveniente dall'amministratore di sistema
-3. Nell'email trovi un pulsante o link blu per scaricare i file
+3. Nell'email trovi un pulsante o link blu per scaricare il file
 
 > ⚠️ **Il link WeTransfer scade dopo 7 giorni** dalla ricezione. Se è scaduto, contatta l'amministratore per ricevere un nuovo link.
 
@@ -106,44 +105,27 @@ Hai ricevuto un'email con un link di **WeTransfer** per scaricare i file del pro
 
 ---
 
-## 3. Passo 2 — Scarica i file da WeTransfer
+## 3. Passo 2 — Scarica il file da WeTransfer
 
 1. Clicca sul link nell'email — si apre il sito WeTransfer nel tuo browser
 2. Clicca sul pulsante verde **"Download"** (o **"Scarica"**)
 3. Se ti viene chiesto dove salvare il file, scegli la cartella **Download** (è la scelta predefinita, va benissimo)
-4. Attendi che il download completi — la cartella contiene circa **1.038 file** quindi potrebbe volerci qualche minuto in base alla velocità della tua connessione
+4. Attendi che il download completi
 
    Nella barra in basso del browser vedrai l'avanzamento del download.
 
-5. Al termine del download trovi un file compresso (**.zip**) nella cartella Download
+5. Al termine trovi **un solo file** nella cartella Download, chiamato **`GestioneViaggi_Setup_1.25.exe`**
+
+> ✅ **Ricevi un unico file `.exe`** — non una cartella, non uno ZIP. È sufficiente questo file per installare tutto il programma.
 
 > 💡 Per aprire la cartella Download, clicca sulla cartella gialla nella barra delle applicazioni, poi su **"Download"** nel pannello di sinistra.
 
 ---
 
-## 4. Passo 3 — Apri la cartella scaricata
-
-Il file scaricato è una cartella compressa (**.zip**). Devi estrarla prima di procedere.
+## 4. Passo 3 — Avvia l'installazione
 
 1. Vai nella cartella **Download**
-2. Trova il file scaricato — si chiama qualcosa come **"Gestione Viaggi.zip"**
-3. Fai **doppio clic** sul file per aprirlo
-4. Dentro trovi la cartella **"Gestione Viaggi"**
-5. Fai clic destro sulla cartella → seleziona **"Estrai tutto..."**
-
-   ![Estrai tutto](img_placeholder)
-
-6. Nella finestra che si apre, lascia il percorso predefinito (la cartella Download) e clicca **"Estrai"**
-7. Attendi che l'estrazione finisca — con 1.038 file può richiedere qualche minuto
-
-Al termine troverai una cartella **"Gestione Viaggi"** nella tua cartella Download.
-
----
-
-## 5. Passo 4 — Avvia l'installazione
-
-1. Apri la cartella **"Gestione Viaggi"** appena estratta
-2. Cerca il file chiamato **`GestioneViaggi_Setup_1.25.exe`** (ha un'icona con uno schermo o un ingranaggio)
+2. Trova il file **`GestioneViaggi_Setup_1.25.exe`** (ha un'icona con uno schermo o un ingranaggio)
 3. Fai **doppio clic** su questo file per avviare l'installazione
 
 ### ⚠️ Avviso di Windows SmartScreen — cosa fare
@@ -170,7 +152,7 @@ Al termine troverai una cartella **"Gestione Viaggi"** nella tua cartella Downlo
 
 ---
 
-## 6. Passo 5 — Segui il wizard di installazione
+## 5. Passo 4 — Segui il wizard di installazione
 
 Una volta avviato il programma di installazione, appare una serie di schermate guidate (il "wizard"). Seguile nell'ordine:
 
@@ -202,7 +184,7 @@ Clicca **"Fine"**. Il programma si avvia automaticamente.
 
 ---
 
-## 7. Passo 6 — Primo avvio e accesso
+## 6. Passo 5 — Primo avvio e accesso
 
 Al primo avvio appare la schermata di login.
 
