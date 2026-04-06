@@ -99,7 +99,7 @@ Hai ricevuto un'email con un link di **WeTransfer** per scaricare il programma d
 2. Cerca un'email con oggetto simile a **"Gestione Viaggi"** o proveniente dall'amministratore di sistema
 3. Nell'email trovi un pulsante o link blu per scaricare il file
 
-> ⚠️ **Il link WeTransfer scade dopo 7 giorni** dalla ricezione. Se è scaduto, contatta l'amministratore per ricevere un nuovo link.
+> ⚠️ **Il link WeTransfer scade dopo 3 giorni** dalla ricezione. Se è scaduto, contatta l'amministratore per ricevere un nuovo link.
 
 > ⚠️ **Controlla anche la cartella Spam** (posta indesiderata) se non trovi l'email nella posta in arrivo.
 
@@ -194,7 +194,7 @@ Al primo avvio appare la schermata di login.
 
 > 💡 Le stesse credenziali funzionano anche sulla versione Mac se la utilizzi.
 
-> 💡 I **documenti PDF** generati dal programma (preventivi, fatture, ecc.) vengono salvati automaticamente nella cartella `C:\Users\TuoNome\Downloads\` — la stessa cartella dove scarichi i file da internet.
+> 💡 I **documenti PDF** generati dal programma (preventivi, fatture, ecc.) vengono salvati automaticamente nella cartella `C:\Users\TuoNome\Downloads\` — la stessa cartella dove scarichi i file da internet. Per aprirli è necessario **Adobe Reader** oppure **joPDF**.
 
 **Installazione completata! 🎉** Il programma è ora pronto all'uso.
 
@@ -245,7 +245,7 @@ Contatta il tuo webmaster **con urgenza** e forniscigli queste informazioni:
 ### ❓ Non trovo l'email di WeTransfer
 
 - Controlla la cartella **Spam** o **Posta indesiderata** della tua email
-- Il link scade dopo 7 giorni — se è passato più tempo, contatta l'amministratore
+- Il link scade dopo 3 giorni — se è passato più tempo, contatta l'amministratore
 
 ---
 
@@ -300,12 +300,16 @@ Il programma richiede internet per funzionare. Se compare un errore di connessio
 
 ### ❓ I PDF generati non si aprono
 
-Il programma crea i PDF nella cartella Download, ma per aprirli serve un lettore PDF.
+Il programma crea i PDF nella cartella Download, ma per aprirli serve un lettore PDF dedicato.
+
+**Lettori consigliati:**
+- **Adobe Reader** — scaricabile gratuitamente da [adobe.com/acrobat/pdf-reader](https://www.adobe.com/acrobat/pdf-reader.html)
+- **joPDF** — scaricabile gratuitamente da [jo.my/jopdf](https://jo.my/jopdf)
 
 **Soluzione:**
-1. Vai nella cartella Download e cerca il file PDF
-2. Fai clic destro → **"Apri con"** → **"Microsoft Edge"** (già installato su Windows 10/11) oppure Adobe Reader se lo hai
-3. Per impostare un lettore PDF predefinito: Start → Impostazioni → App → App predefinite → cerca "PDF" e scegli il lettore preferito
+1. Installa uno dei lettori consigliati qui sopra
+2. Vai nella cartella Download e fai doppio clic sul file PDF — si aprirà automaticamente con il lettore installato
+3. Se si apre con il programma sbagliato: clic destro sul file → **"Apri con"** → scegli Adobe Reader o joPDF
 
 ---
 
