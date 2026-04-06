@@ -219,7 +219,25 @@ C:\Build\GestioneViaggi\    ← copia locale del sorgente per la build
 
 ### 4.6 Distribuzione ai Clienti
 
-Inviare `C:\GestioneViaggi\Setup\GestioneViaggi_Setup_1.25.exe` via email / link / chiavetta USB.
+Il file da inviare al cliente si trova **nella VM Windows** (Parallels) in:
+
+```
+C:\GestioneViaggi\Setup\GestioneViaggi_Setup_1.25.exe
+```
+
+> ⚠️ Il file esiste **solo su Windows** — non è presente nel filesystem Mac finché non lo trasferisci.
+
+**Per trasferirlo sul Mac (e poi inviarlo al cliente):**
+
+**Opzione A — Drag & Drop** (più semplice):
+Trascina il file dalla finestra Parallels al desktop o in una cartella Finder.
+
+**Opzione B — Copia da PowerShell**:
+```powershell
+Copy-Item "C:\GestioneViaggi\Setup\GestioneViaggi_Setup_1.25.exe" "\\Mac\Home\Desktop\"
+```
+
+Una volta sul Mac, invia il file al cliente via email / link / chiavetta USB.
 Il file è completamente autonomo — il cliente fa doppio clic e segue il wizard.
 
 ---
