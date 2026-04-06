@@ -15,7 +15,8 @@
 5. [Passo 4 — Avvia l'installazione](#5-passo-4--avvia-linstallazione)
 6. [Passo 5 — Segui il wizard di installazione](#6-passo-5--segui-il-wizard-di-installazione)
 7. [Passo 6 — Primo avvio e accesso](#7-passo-6--primo-avvio-e-accesso)
-8. [Risoluzione Problemi](#8-risoluzione-problemi)
+8. [Portale Web Iscrizioni](#8-portale-web-iscrizioni)
+9. [Risoluzione Problemi](#9-risoluzione-problemi)
 
 ---
 
@@ -217,7 +218,47 @@ Al primo avvio appare la schermata di login.
 
 ---
 
-## 8. Risoluzione Problemi
+## 8. Portale Web Iscrizioni
+
+Oltre al programma installato sul PC, esiste anche un **portale web** dove i tuoi clienti possono compilare il modulo di iscrizione direttamente da browser — senza installare nulla.
+
+### Indirizzo del portale (Azienda Sardegna Fuori Traccia)
+
+👉 **https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/**
+
+Questo indirizzo funziona su qualsiasi browser (Chrome, Edge, Firefox, Safari) e da qualsiasi dispositivo: PC, tablet, smartphone.
+
+---
+
+### ⚠️ Se il tuo sito web ha un bottone che rimanda alle iscrizioni
+
+Molti siti aziendali hanno un pulsante del tipo **"Iscriviti"**, **"Prenota"** o **"Compila il modulo"** che porta direttamente alla pagina di iscrizione.
+
+Se quel pulsante rimandava a un vecchio indirizzo, **deve essere aggiornato** con il nuovo link indicato sopra.
+
+**Cosa fare:**
+
+**Se gestisci il sito web in autonomia** (hai accesso al pannello di amministrazione del sito):
+1. Accedi al pannello del tuo sito (WordPress, Wix, Squarespace, ecc.)
+2. Trova il pulsante o il link che porta alle iscrizioni
+3. Sostituisci il vecchio indirizzo con il nuovo:
+   ```
+   https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/
+   ```
+4. Salva le modifiche e verifica che il link funzioni correttamente
+
+**Se il sito è gestito da un webmaster o agenzia web:**
+Contatta il tuo webmaster **con urgenza** e forniscigli queste informazioni:
+
+> *"Devo aggiornare il link al modulo di iscrizione sul sito. Il nuovo indirizzo è:*
+> *https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/*
+> *Puoi aggiornarlo il prima possibile?"*
+
+> ⚠️ Finché il link non viene aggiornato, i clienti che cliccano sul vecchio pulsante potrebbero arrivare su una pagina errata o inesistente — le nuove iscrizioni andrebbero perse.
+
+---
+
+## 9. Risoluzione Problemi
 
 ### ❓ Non trovo l'email di WeTransfer
 
