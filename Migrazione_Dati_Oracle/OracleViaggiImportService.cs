@@ -41,10 +41,8 @@ public class OracleViaggiImportService
         await using var transaction = await connection.BeginTransactionAsync();
         try
         {
-            await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"TRUNCATE TABLE {tableName} CASCADE", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"INSERT INTO {tableName} SELECT * FROM {backupTableName}", connection, transaction).ExecuteNonQueryAsync();
-            await new NpgsqlCommand($"ALTER TABLE {tableName} ENABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"SELECT setval('public.ana_viaggi_seq', (SELECT MAX(viaggio_id) FROM public.ana_viaggi))", connection, transaction).ExecuteScalarAsync();
 
             await transaction.CommitAsync();
@@ -90,9 +88,6 @@ public class OracleViaggiImportService
                 // LOAD LOOKUP MAP for Avvicinamento
                 var avvicinamentoMap = await LoadAvvicinamentoMapAsync(connection, transaction);
 
-                // DISABLE TRIGGERS to allow inserting historical created/created_by
-                await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
-
                 int processedCount = 0;
                 foreach (DataRow row in infoTable.Rows)
                 {
@@ -127,9 +122,6 @@ public class OracleViaggiImportService
                     }
                 }
                 result.RecordsWritten = processedCount;
-
-                // ENABLE TRIGGERS back
-                await new NpgsqlCommand($"ALTER TABLE {tableName} ENABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
 
                 using var cmdSeq = new NpgsqlCommand("SELECT setval('public.ana_viaggi_seq', (SELECT MAX(viaggio_id) FROM public.ana_viaggi))", connection, transaction);
                 await cmdSeq.ExecuteScalarAsync();

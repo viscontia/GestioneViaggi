@@ -53,10 +53,8 @@ public class OracleClientiImportService
         await using var transaction = await connection.BeginTransactionAsync();
         try
         {
-            await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"TRUNCATE TABLE {tableName} CASCADE", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"INSERT INTO {tableName} SELECT * FROM {backupTableName}", connection, transaction).ExecuteNonQueryAsync();
-            await new NpgsqlCommand($"ALTER TABLE {tableName} ENABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"SELECT setval('public.ana_clienti_seq', (SELECT MAX(cliente_id) FROM public.ana_clienti))", connection, transaction).ExecuteScalarAsync();
 
             await transaction.CommitAsync();

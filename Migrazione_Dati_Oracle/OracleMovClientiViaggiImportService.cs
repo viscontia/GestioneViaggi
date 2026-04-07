@@ -45,10 +45,8 @@ public class OracleMovClientiViaggiImportService
         await using var transaction = await connection.BeginTransactionAsync();
         try
         {
-            await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"TRUNCATE TABLE {tableName} CASCADE", connection, transaction).ExecuteNonQueryAsync();
             await new NpgsqlCommand($"INSERT INTO {tableName} SELECT * FROM {backupTableName}", connection, transaction).ExecuteNonQueryAsync();
-            await new NpgsqlCommand($"ALTER TABLE {tableName} ENABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
 
             // No Sequence setval needed for this table (Composite PK)
 
@@ -92,9 +90,6 @@ public class OracleMovClientiViaggiImportService
                 var infoTable = dataSet.Tables[0];
                 result.RecordsRead = infoTable.Rows.Count;
 
-                // DISABLE TRIGGERS to allow inserting historical created/created_by
-                await new NpgsqlCommand($"ALTER TABLE {tableName} DISABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
-
                 int processedCount = 0;
                 foreach (DataRow row in infoTable.Rows)
                 {
@@ -130,9 +125,6 @@ public class OracleMovClientiViaggiImportService
                     }
                 }
                 result.RecordsWritten = processedCount;
-
-                // ENABLE TRIGGERS back
-                await new NpgsqlCommand($"ALTER TABLE {tableName} ENABLE TRIGGER ALL", connection, transaction).ExecuteNonQueryAsync();
 
                 result.DbCountAfter = Convert.ToInt32(await new NpgsqlCommand($"SELECT COUNT(*) FROM {tableName}", connection, transaction).ExecuteScalarAsync());
 
