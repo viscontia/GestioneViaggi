@@ -402,44 +402,45 @@
              }
         }
 
-        if (_form.IsValid)
+        if (!_form.IsValid)
         {
+            Snackbar.Add("Compilare tutti i campi obbligatori prima di salvare.", Severity.Warning);
+            return;
+        }
 
+        _isSaving = true;
+        try
+        {
+            // Final Normalization (redundant with Converter but safe)
+            Entity.DescrizioneBreve = Entity.DescrizioneBreve?.ToUpperInvariant() ?? string.Empty;
+            Entity.DescrizioneEstesa = Entity.DescrizioneEstesa?.ToUpperInvariant() ?? string.Empty;
+            Entity.Note = Entity.Note?.ToUpperInvariant();
 
-            _isSaving = true;
-            try
+            AnaViaggi result;
+            if (IsEditMode)
             {
-                // Final Normalization (redundant with Converter but safe)
-                Entity.DescrizioneBreve = Entity.DescrizioneBreve?.ToUpperInvariant() ?? string.Empty;
-                Entity.DescrizioneEstesa = Entity.DescrizioneEstesa?.ToUpperInvariant() ?? string.Empty;
-                Entity.Note = Entity.Note?.ToUpperInvariant();
-
-                AnaViaggi result;
-                if (IsEditMode)
-                {
-                    result = await ViaggiService.UpdateAsync(Entity);
-                    // Dates are already saved in Live Mode
-                    Snackbar.Add("Viaggio aggiornato con successo", Severity.Success);
-                }
-                else
-                {
-                    // Atomic Create
-                    int newId = await ViaggiService.CreateTripWithDatesAsync(Entity, _dates);
-                    Entity.Id = newId;
-                    result = Entity;
-                    Snackbar.Add("Viaggio creato con successo", Severity.Success);
-                }
-
-                MudDialog.Close(DialogResult.Ok(result));
+                result = await ViaggiService.UpdateAsync(Entity);
+                // Dates are already saved in Live Mode
+                Snackbar.Add("Viaggio aggiornato con successo", Severity.Success);
             }
-            catch (Exception ex)
+            else
             {
-                Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+                // Atomic Create
+                int newId = await ViaggiService.CreateTripWithDatesAsync(Entity, _dates);
+                Entity.Id = newId;
+                result = Entity;
+                Snackbar.Add("Viaggio creato con successo", Severity.Success);
             }
-            finally
-            {
-                _isSaving = false;
-            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
         }
     }
 

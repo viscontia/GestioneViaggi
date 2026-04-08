@@ -127,6 +127,10 @@
         <Compile Remove="Unit_Tests\**" />
         <Content Remove="Unit_Tests\**" />
         <None Remove="Unit_Tests\**" />
+
+        <!-- Escludi script di test standalone dalla root (evitano conflitti DI/entry-point) -->
+        <Compile Remove="Test*.cs" />
+        <Compile Remove="test_*.cs" />
         <MauiAsset Remove="Unit_Tests\**" />
     </ItemGroup>
 

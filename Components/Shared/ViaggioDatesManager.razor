@@ -25,14 +25,17 @@
                         OnClick="@(() => EditDate(context.Item))" title="Modifica" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                         OnClick="@(() => DeleteDate(context.Item))" title="Elimina" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
-                        OnClick="@(() => OpenParticipantsDialog(context.Item))" title="Partecipanti" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Success"
-                        OnClick="@(() => OpenEmailDialog(context.Item))" title="Invia Email Partecipanti" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Default"
-                        OnClick="@(() => OpenPrintDialog(context.Item))" title="Stampa Scheda Data Viaggio" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" Color="Color.Primary"
-                        OnClick="@(() => PrintRoomingList(context.Item))" title="Stampa Rooming List" />
+                    @if (IsLiveMode)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Info"
+                            OnClick="@(() => OpenParticipantsDialog(context.Item))" title="Partecipanti" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Email" Size="Size.Small" Color="Color.Success"
+                            OnClick="@(() => OpenEmailDialog(context.Item))" title="Invia Email Partecipanti" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Color="Color.Default"
+                            OnClick="@(() => OpenPrintDialog(context.Item))" title="Stampa Scheda Data Viaggio" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" Color="Color.Primary"
+                            OnClick="@(() => PrintRoomingList(context.Item))" title="Stampa Rooming List" />
+                    }
                 </div>
             </CellTemplate>
         </TemplateColumn>
@@ -128,9 +131,9 @@
 
     private async Task OpenParticipantsDialog(AnaDataViaggio date)
     {
-        if (Trip == null)
+        if (Trip == null || TripId == 0 || date.Id == 0)
         {
-            Snackbar.Add("Dati del viaggio non disponibili per visualizzare i partecipanti.", Severity.Warning);
+            Snackbar.Add("Salva prima il viaggio e le date prima di gestire i partecipanti.", Severity.Warning);
             return;
         }
 

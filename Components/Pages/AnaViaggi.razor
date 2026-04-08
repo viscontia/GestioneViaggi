@@ -659,12 +659,39 @@
         {
             try
             {
+                var newTrip = result.Data as GestioneViaggi.Models.AnaViaggi;
                 await LoadDataAsync();
+                // Espandi e seleziona automaticamente il nuovo viaggio nell'albero
+                if (newTrip != null)
+                {
+                    ExpandAndSelectTrip(newTrip.Id);
+                    StateHasChanged();
+                }
                 Snackbar.Add("Dati aggiornati", Severity.Success);
             }
             catch (Exception ex)
             {
                 Snackbar.Add($"Errore ricaricamento dati: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private void ExpandAndSelectTrip(int tripId)
+    {
+        foreach (var level1 in _treeItems)
+        {
+            foreach (var level2 in level1.Children)
+            {
+                foreach (var tripNode in level2.Children)
+                {
+                    if (tripNode.RelatedId == tripId)
+                    {
+                        level1.IsExpanded = true;
+                        level2.IsExpanded = true;
+                        _selectedTreeItem = tripNode;
+                        return;
+                    }
+                }
             }
         }
     }
@@ -802,7 +829,8 @@
     {
         var parameters = new DialogParameters
         {
-            ["InitialViaggioId"] = item.Id
+            ["InitialViaggioId"] = item.Id,
+            ["InitialAziendaId"] = item.AziendaId
         };
         var options = new DialogOptions
         {

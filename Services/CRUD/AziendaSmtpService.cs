@@ -2,9 +2,10 @@ using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using GestioneViaggi.Validation.Syntax;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using System.Net.Sockets;
 using System.Text.Json;
 
 namespace GestioneViaggi.Services.CRUD;
@@ -16,6 +17,8 @@ public class SmtpTestResult
     public string? ErrorMessage { get; set; }
     public DateTime TestDate { get; set; }
     public TimeSpan Duration { get; set; }
+    /// <summary>Fase in cui si è verificato l'errore: "Connect" o "Authenticate". Null se successo.</summary>
+    public string? FailedPhase { get; set; }
 }
 
 public class AziendaSmtpService
@@ -299,22 +302,24 @@ public class AziendaSmtpService
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Crea un JSON per la password cifrata (semplificato per ora)
-            var passwordJson = JsonSerializer.Serialize(new { value = entity.Password });
+            // Se la password è mascherata (***), non sovrascrivere quella nel DB
+            var passwordMasked = entity.Password == "***";
+            var passwordJson = passwordMasked ? null : JsonSerializer.Serialize(new { value = entity.Password });
 
-            // Crea JSON per password inbound se presente
-            var inboundPasswordJson = !string.IsNullOrWhiteSpace(entity.InboundPassword)
-                ? JsonSerializer.Serialize(new { value = entity.InboundPassword })
-                : null;
+            // Se la password inbound è mascherata (***), non sovrascrivere quella nel DB
+            var inboundPasswordMasked = entity.InboundPassword == "***";
+            var inboundPasswordJson = inboundPasswordMasked || string.IsNullOrWhiteSpace(entity.InboundPassword)
+                ? null
+                : JsonSerializer.Serialize(new { value = entity.InboundPassword });
 
-            var sql = @"
+            var sql = $@"
                 UPDATE ana_aziende_smtp
                 SET config_name = @configName,
                     config_type = @configType,
                     host = @host,
                     port = @port,
                     username = @username,
-                    password_enc = @passwordEnc::jsonb,
+                    password_enc = {(passwordMasked ? "password_enc" : "@passwordEnc::jsonb")},
                     use_tls = @useTls,
                     use_starttls = @useStartTls,
                     from_name = @fromName,
@@ -337,7 +342,7 @@ public class AziendaSmtpService
                     inbound_port = @inboundPort,
                     inbound_protocol = @inboundProtocol,
                     inbound_username = @inboundUsername,
-                    inbound_password_enc = @inboundPasswordEnc::jsonb,
+                    inbound_password_enc = {(inboundPasswordMasked ? "inbound_password_enc" : "@inboundPasswordEnc::jsonb")},
                     inbound_use_ssl = @inboundUseSsl,
                     inbound_folder = @inboundFolder,
                     bounce_handling = @bounceHandling,
@@ -368,7 +373,8 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("host", entity.Host);
             command.Parameters.AddWithValue("port", entity.Port);
             command.Parameters.AddWithValue("username", entity.Username);
-            command.Parameters.AddWithValue("passwordEnc", passwordJson);
+            if (!passwordMasked)
+                command.Parameters.AddWithValue("passwordEnc", passwordJson!);
             command.Parameters.AddWithValue("useTls", entity.UseTls);
             command.Parameters.AddWithValue("useStartTls", entity.UseStartTls);
             command.Parameters.AddWithValue("fromName", entity.FromName);
@@ -391,7 +397,8 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("inboundPort", (object?)entity.InboundPort ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundProtocol", (object?)entity.InboundProtocol ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUsername", (object?)entity.InboundUsername ?? DBNull.Value);
-            command.Parameters.AddWithValue("inboundPasswordEnc", (object?)inboundPasswordJson ?? DBNull.Value);
+            if (!inboundPasswordMasked)
+                command.Parameters.AddWithValue("inboundPasswordEnc", (object?)inboundPasswordJson ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUseSsl", (object?)entity.InboundUseSsl ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundFolder", (object?)entity.InboundFolder ?? DBNull.Value);
             command.Parameters.AddWithValue("bounceHandling", entity.BounceHandling);
@@ -532,117 +539,158 @@ public class AziendaSmtpService
     }
 
     /// <summary>
-    /// Testa la connessione SMTP al server specificato
+    /// Testa la connessione SMTP: Connect + Authenticate con MailKit, senza inviare email.
     /// </summary>
     public async Task<SmtpTestResult> TestConnectionAsync(AziendaSmtp config)
     {
         var startTime = DateTime.Now;
-        var result = new SmtpTestResult
+        var result = new SmtpTestResult { TestDate = startTime };
+        var timeout = config.ConnectionTimeout ?? 30;
+
+        // Se la password è mascherata (modalità edit) e l'entità ha un ID valido,
+        // recuperare la password reale dal DB prima di procedere con il test.
+        var effectivePassword = config.Password;
+        if (effectivePassword == "***" && config.Id != Guid.Empty)
         {
-            TestDate = startTime
+            effectivePassword = await GetRealPasswordAsync(config.Id);
+            if (effectivePassword == null)
+            {
+                result.IsSuccess = false;
+                result.Message = "Impossibile recuperare la password dal database";
+                result.ErrorMessage = "Password non recuperabile. Salvare la configurazione con la password aggiornata e riprovare.";
+                result.Duration = DateTime.Now - startTime;
+                return result;
+            }
+        }
+
+        _logger.LogInformation("Inizio test SMTP verso {Host}:{Port} (security={Security})",
+            config.Host, config.Port, config.SecurityMethod);
+
+        var secureSocketOptions = config.SecurityMethod?.ToLower() switch
+        {
+            "ssl" or "tls" => SecureSocketOptions.SslOnConnect,
+            "starttls"     => SecureSocketOptions.StartTls,
+            "none"         => SecureSocketOptions.None,
+            _              => SecureSocketOptions.Auto
         };
 
+        using var client = new SmtpClient();
+        client.Timeout = timeout * 1000;
+        client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+        // Fase 1: Connect
+        result.FailedPhase = "Connect";
         try
         {
-            _logger.LogInformation("Inizio test connessione SMTP verso {Host}:{Port}", config.Host, config.Port);
-
-            // Timeout per il test (10 secondi)
-            var timeout = config.ConnectionTimeout ?? 10;
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
-
-            // Rimuovi parentesi quadre se presenti (IP literal)
-            var host = config.Host.Trim('[', ']');
-
-            // Tenta di aprire un socket TCP verso il server SMTP
-            using var tcpClient = new TcpClient();
-
-            try
-            {
-                await tcpClient.ConnectAsync(host, config.Port, cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                result.IsSuccess = false;
-                result.ErrorMessage = $"Timeout della connessione dopo {timeout} secondi";
-                result.Message = "Connessione fallita";
-                result.Duration = DateTime.Now - startTime;
-                _logger.LogWarning("Timeout connessione SMTP a {Host}:{Port}", config.Host, config.Port);
-                return result;
-            }
-
-            if (!tcpClient.Connected)
-            {
-                result.IsSuccess = false;
-                result.ErrorMessage = "Impossibile stabilire la connessione TCP";
-                result.Message = "Connessione fallita";
-                result.Duration = DateTime.Now - startTime;
-                return result;
-            }
-
-            // Leggi il banner SMTP (prima riga di risposta dal server)
-            using var stream = tcpClient.GetStream();
-            using var reader = new StreamReader(stream);
-
-            var banner = await reader.ReadLineAsync(cts.Token);
-
-            if (string.IsNullOrEmpty(banner))
-            {
-                result.IsSuccess = false;
-                result.ErrorMessage = "Il server non ha inviato un banner SMTP valido";
-                result.Message = "Risposta non valida dal server";
-                result.Duration = DateTime.Now - startTime;
-                return result;
-            }
-
-            // Verifica che il banner inizi con 220 (codice di servizio pronto)
-            if (!banner.StartsWith("220"))
-            {
-                result.IsSuccess = false;
-                result.ErrorMessage = $"Banner SMTP non valido: {banner}";
-                result.Message = "Il server non sembra essere un server SMTP";
-                result.Duration = DateTime.Now - startTime;
-                return result;
-            }
-
-            // Connessione riuscita!
-            result.IsSuccess = true;
-            result.Message = $"Connessione stabilita correttamente. Banner: {banner.Substring(0, Math.Min(50, banner.Length))}...";
-            result.ErrorMessage = null;
-            result.Duration = DateTime.Now - startTime;
-
-            _logger.LogInformation("Test connessione SMTP riuscito verso {Host}:{Port} in {Duration}ms",
-                config.Host, config.Port, result.Duration.TotalMilliseconds);
-
-            // Invia QUIT per chiudere correttamente la connessione
-            try
-            {
-                using var writer = new StreamWriter(stream) { AutoFlush = true };
-                await writer.WriteLineAsync("QUIT");
-            }
-            catch
-            {
-                // Ignora errori durante la chiusura
-            }
-
-            return result;
+            await client.ConnectAsync(config.Host, config.Port, secureSocketOptions, cts.Token);
         }
-        catch (SocketException ex)
+        catch (OperationCanceledException)
         {
             result.IsSuccess = false;
-            result.ErrorMessage = $"Errore di rete: {ex.Message}";
-            result.Message = "Impossibile raggiungere il server";
+            result.ErrorMessage = $"Timeout durante la connessione al server ({timeout}s)";
+            result.Message = "Connessione fallita: timeout";
             result.Duration = DateTime.Now - startTime;
-            _logger.LogError(ex, "Errore SocketException durante test SMTP a {Host}:{Port}", config.Host, config.Port);
             return result;
         }
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.ErrorMessage = $"Errore imprevisto: {ex.Message}";
-            result.Message = "Test fallito";
+            result.ErrorMessage = ex.Message;
+            result.Message = $"Connessione al server fallita ({config.Host}:{config.Port})";
             result.Duration = DateTime.Now - startTime;
-            _logger.LogError(ex, "Errore durante test connessione SMTP a {Host}:{Port}", config.Host, config.Port);
+            _logger.LogError(ex, "Errore Connect SMTP a {Host}:{Port}", config.Host, config.Port);
             return result;
+        }
+
+        // Fase 2: Authenticate
+        result.FailedPhase = "Authenticate";
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
+            await client.AuthenticateAsync(config.Username, effectivePassword, cts.Token);
+        }
+        catch (AuthenticationException ex)
+        {
+            result.IsSuccess = false;
+            result.ErrorMessage = $"Credenziali non valide: {ex.Message}";
+            result.Message = "Autenticazione fallita: username o password errati";
+            result.Duration = DateTime.Now - startTime;
+            _logger.LogWarning("Autenticazione SMTP fallita per {Username} su {Host}", config.Username, config.Host);
+            try { await client.DisconnectAsync(true); } catch { }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.IsSuccess = false;
+            result.ErrorMessage = ex.Message;
+            result.Message = "Autenticazione fallita";
+            result.Duration = DateTime.Now - startTime;
+            _logger.LogError(ex, "Errore autenticazione SMTP per {Username} su {Host}", config.Username, config.Host);
+            try { await client.DisconnectAsync(true); } catch { }
+            return result;
+        }
+
+        // Tutto OK: disconnetti senza inviare email
+        try { await client.DisconnectAsync(true); } catch { }
+
+        result.IsSuccess = true;
+        result.FailedPhase = null;
+        result.Message = $"Connessione e autenticazione riuscite ({config.Host}:{config.Port}, utente: {config.Username})";
+        result.Duration = DateTime.Now - startTime;
+
+        _logger.LogInformation("Test SMTP completato con successo verso {Host}:{Port} in {Duration}ms",
+            config.Host, config.Port, result.Duration.TotalMilliseconds);
+        return result;
+    }
+
+    /// <summary>
+    /// Salva il risultato dell'ultimo test SMTP nel database.
+    /// </summary>
+    public async Task SaveTestResultAsync(Guid smtpId, SmtpTestResult testResult)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = @"
+                UPDATE ana_aziende_smtp
+                SET last_test_date   = @lastTestDate,
+                    last_test_result = @lastTestResult,
+                    last_error_message = @lastErrorMessage
+                WHERE smtp_id = @smtpId";
+
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("smtpId", smtpId);
+            cmd.Parameters.AddWithValue("lastTestDate", testResult.TestDate);
+            cmd.Parameters.AddWithValue("lastTestResult", testResult.IsSuccess ? "success" : "failed");
+            cmd.Parameters.AddWithValue("lastErrorMessage", (object?)testResult.ErrorMessage ?? DBNull.Value);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore salvataggio risultato test SMTP per smtp_id {SmtpId}", smtpId);
+        }
+    }
+
+    /// <summary>
+    /// Recupera la password reale (in chiaro) dal DB per una configurazione SMTP esistente.
+    /// La password è salvata come JSONB nel campo password_enc: {"value": "plaintext"}.
+    /// </summary>
+    private async Task<string?> GetRealPasswordAsync(Guid smtpId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            var sql = "SELECT password_enc->>'value' FROM ana_aziende_smtp WHERE smtp_id = @smtpId";
+            await using var cmd = new NpgsqlCommand(sql, connection);
+            cmd.Parameters.AddWithValue("smtpId", smtpId);
+            var result = await cmd.ExecuteScalarAsync();
+            return result as string;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore recupero password per smtp_id {SmtpId}", smtpId);
+            return null;
         }
     }
 }

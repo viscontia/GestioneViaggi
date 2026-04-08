@@ -614,14 +614,21 @@
             Entity.LastTestResult = result.IsSuccess ? "success" : "failed";
             Entity.LastErrorMessage = result.ErrorMessage;
 
+            // Persiste il risultato del test nel DB (solo se la config è già salvata)
+            if (Entity.Id != Guid.Empty)
+            {
+                await SmtpService.SaveTestResultAsync(Entity.Id, result);
+            }
+
             Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
             if (result.IsSuccess)
             {
-                Snackbar.Add($"✓ Connessione riuscita! {result.Message}", Severity.Success);
+                Snackbar.Add($"✓ Connessione e autenticazione riuscite! {result.Message}", Severity.Success);
             }
             else
             {
-                Snackbar.Add($"✗ Test fallito: {result.ErrorMessage}", Severity.Error);
+                var phase = result.FailedPhase != null ? $" [Fase: {result.FailedPhase}]" : string.Empty;
+                Snackbar.Add($"✗ Test fallito{phase}: {result.ErrorMessage}", Severity.Error);
             }
         }
         catch (Exception ex)

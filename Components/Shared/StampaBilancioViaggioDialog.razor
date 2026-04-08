@@ -20,41 +20,60 @@
     <DialogContent>
         <MudForm @ref="_form">
             <MudGrid Spacing="2">
-                
-                @* RIGA 1: Azienda (se superadmin) *@
-                @if (_isSuperAdmin)
+
+                @* RIGA 1: Azienda (se superadmin, solo in modalità menu) *@
+                @if (_isSuperAdmin && !_modalitaViaggioPrefissato)
                 {
                     <MudItem xs="12">
-                        <AziendaSelect Value="@_filtroAziendaIdInt" 
+                        <AziendaSelect Value="@_filtroAziendaIdInt"
                                        ValueChanged="OnAziendaSelezionataChanged"
-                                       Label="Azienda" 
+                                       Label="Azienda"
                                        Clearable="true" />
                     </MudItem>
                 }
 
-                @* RIGA 2: Selezione Viaggio (Singolo) *@
+                @* BANNER info: filtro attivo sui viaggi con movimenti (solo modalità menu) *@
+                @if (!_modalitaViaggioPrefissato)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Filled.Info">
+                            Sono visibili solo i Viaggi che hanno dei movimenti contabili.
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @* BANNER warning: nessun viaggio con movimenti *@
+                @if (_nessunViaggioDisponibile)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Warning" Dense="true" Icon="@Icons.Material.Filled.WarningAmber">
+                            @_messaggioBanner
+                        </MudAlert>
+                    </MudItem>
+                }
+
+                @* RIGA 2: Selezione Viaggio *@
                 <MudItem xs="12">
-                     <ViaggioSelect @bind-SelectedViaggioId="_selectedViaggioId"
-                                    AziendaId="@_aziendaIdEffettivo"
-                                    Label="Seleziona Viaggio *"
-                                    CustomItems="@_viaggiFiltrati"
-                                    Required="true"
-                                    Clearable="true" />
-                     <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
-                         Sono visualizzati solo i viaggi che hanno dei movimenti contabili.
-                     </MudText>
+                    <ViaggioSelect @bind-SelectedViaggioId="_selectedViaggioId"
+                                   AziendaId="@_aziendaIdEffettivo"
+                                   Label="Seleziona Viaggio *"
+                                   FilterOnlyWithTransactions="@(!_modalitaViaggioPrefissato)"
+                                   Disabled="@(_nessunViaggioDisponibile || _modalitaViaggioPrefissato)"
+                                   Required="true"
+                                   Clearable="false" />
                 </MudItem>
 
-                @* RIGA 3: Selezione Data Viaggio (Opzionale, attivata solo se Viaggio selezionato) *@
+                @* RIGA 3: Selezione Data Viaggio *@
                 <MudItem xs="12">
                     <DataViaggioBilancioSelect @bind-SelectedDataViaggioId="_selectedDataViaggioId"
-                                       ViaggioId="@_selectedViaggioId"
-                                       Label="Data Viaggio *"
-                                       Required="true"
-                                       Clearable="true" />
-                     <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
-                         Sono visualizzate solo le date in cui ci sono movimenti contabili.
-                     </MudText>
+                                               ViaggioId="@_selectedViaggioId"
+                                               Label="Data Viaggio *"
+                                               Disabled="@_nessunViaggioDisponibile"
+                                               Required="true"
+                                               Clearable="true" />
+                    <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-1 d-block">
+                        Sono visualizzate solo le date in cui ci sono movimenti contabili.
+                    </MudText>
                 </MudItem>
 
                 @* RIGA 4: Selezione Valuta Report (Opzionale) *@
@@ -65,14 +84,14 @@
                                   Clearable="true" />
                 </MudItem>
 
-                @* RIGA 4: Periodo (Opzionale) *@
+                @* RIGA 5: Periodo (Opzionale) *@
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa" 
+                    <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
                                    Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Data Documento A (Opzionale)" @bind-Date="_dataA" 
+                    <MudDatePicker Label="Data Documento A (Opzionale)" @bind-Date="_dataA"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
                                    Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
                 </MudItem>
@@ -82,10 +101,14 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
-            Reset
-        </MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print" OnClick="EseguiStampa">
+        @if (!_modalitaViaggioPrefissato)
+        {
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FilterListOff" OnClick="ResetFiltri">
+                Reset
+            </MudButton>
+        }
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Print"
+                   OnClick="EseguiStampa" Disabled="@_nessunViaggioDisponibile">
             Stampa
         </MudButton>
     </DialogActions>
@@ -95,6 +118,10 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private MudForm _form = default!;
+
+    // Parametri di apertura
+    [Parameter] public int? InitialViaggioId { get; set; }
+    [Parameter] public int? InitialAziendaId { get; set; }
 
     // Sessione e tenant
     private bool _isSuperAdmin;
@@ -112,9 +139,12 @@
     private DateTime? _dataDa;
     private DateTime? _dataA;
 
-    private List<AnaViaggi> _viaggiFiltrati = new();
+    // Stato UI
+    private bool _nessunViaggioDisponibile;
+    private string _messaggioBanner = string.Empty;
 
-    [Parameter] public int? InitialViaggioId { get; set; }
+    // True = aperto da DataGrid con viaggio specifico; False = aperto da menu
+    private bool _modalitaViaggioPrefissato => InitialViaggioId.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,20 +152,71 @@
 
         var sessionData = await SessionManager.GetSessionAsync();
         if (sessionData?.User?.ValutaDefaultId > 0)
-        {
             _selectedValutaId = sessionData.User.ValutaDefaultId.Value;
-        }
 
-        if (!_isSuperAdmin)
+        if (_isSuperAdmin && InitialAziendaId.HasValue && InitialAziendaId.Value > 0)
+        {
+            // Superadmin da DataGrid: pre-imposta l'azienda del viaggio selezionato
+            _filtroAziendaIdInt = InitialAziendaId.Value;
+        }
+        else if (!_isSuperAdmin)
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
         }
 
-        await CaricaViaggiFiltratiAsync();
-
-        if (InitialViaggioId.HasValue)
+        if (_modalitaViaggioPrefissato)
         {
-            _selectedViaggioId = InitialViaggioId.Value;
+            // Da DataGrid: pre-seleziona il viaggio e verifica se ha movimenti
+            _selectedViaggioId = InitialViaggioId!.Value;
+            await VerificaViaggioPrefissatoAsync(InitialViaggioId.Value);
+        }
+        else
+        {
+            // Da menu: verifica se esistono viaggi con movimenti per l'azienda
+            if (!_isSuperAdmin)
+                await VerificaViaggiDisponibiliAsync();
+        }
+    }
+
+    /// <summary>
+    /// Scenario da DataGrid: verifica se il viaggio specifico ha movimenti contabili.
+    /// </summary>
+    private async Task VerificaViaggioPrefissatoAsync(int viaggioId)
+    {
+        try
+        {
+            var aziendaId = _aziendaIdEffettivo > 0 ? (int?)_aziendaIdEffettivo : null;
+            var viaggiConMovimenti = await ViaggiService.GetViaggiWithTransactionsAsync(aziendaId);
+            if (!viaggiConMovimenti.Any(v => v.Id == viaggioId))
+            {
+                _nessunViaggioDisponibile = true;
+                _messaggioBanner = "Il viaggio selezionato non ha movimenti contabili. Non è possibile generare il bilancio.";
+            }
+        }
+        catch
+        {
+            _nessunViaggioDisponibile = false;
+        }
+    }
+
+    /// <summary>
+    /// Scenario da menu: verifica se esistono viaggi con movimenti per l'azienda.
+    /// </summary>
+    private async Task VerificaViaggiDisponibiliAsync()
+    {
+        try
+        {
+            var aziendaId = _aziendaIdEffettivo > 0 ? (int?)_aziendaIdEffettivo : null;
+            var viaggi = await ViaggiService.GetViaggiWithTransactionsAsync(aziendaId);
+            if (!viaggi.Any())
+            {
+                _nessunViaggioDisponibile = true;
+                _messaggioBanner = "Non è possibile generare il Bilancio Viaggio: non esistono movimenti contabili per i viaggi di questa azienda.";
+            }
+        }
+        catch
+        {
+            _nessunViaggioDisponibile = false;
         }
     }
 
@@ -143,21 +224,14 @@
     {
         if (firstRender)
         {
-            try
-            {
-                // Usage of global helper for Tab navigation and AutoFocus
-                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
-            }
+            try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); }
             catch { }
         }
     }
 
     public void Dispose()
     {
-        try
-        {
-            ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup");
-        }
+        try { ((IJSInProcessRuntime)JS).InvokeVoid("dialogFormHelper.cleanup"); }
         catch { }
     }
 
@@ -171,6 +245,8 @@
         _selectedValutaId = 0;
         _dataDa = null;
         _dataA = null;
+        _nessunViaggioDisponibile = false;
+        _messaggioBanner = string.Empty;
         StateHasChanged();
     }
 
@@ -179,27 +255,11 @@
         _filtroAziendaIdInt = newValue;
         _selectedViaggioId = null;
         _selectedDataViaggioId = null;
-        await CaricaViaggiFiltratiAsync();
+        _nessunViaggioDisponibile = false;
+        _messaggioBanner = string.Empty;
+        if (newValue > 0)
+            await VerificaViaggiDisponibiliAsync();
         StateHasChanged();
-    }
-
-    private async Task CaricaViaggiFiltratiAsync()
-    {
-        try
-        {
-            if (_aziendaIdEffettivo > 0 || _isSuperAdmin)
-            {
-               _viaggiFiltrati = await ViaggiService.GetViaggiWithTransactionsAsync(_isSuperAdmin && _filtroAziendaIdInt == 0 ? null : _aziendaIdEffettivo);
-               if (!_viaggiFiltrati.Any())
-               {
-                   Snackbar.Add("Nessun viaggio trovato con movimenti contabili.", Severity.Warning);
-               }
-            }
-        }
-        catch (Exception)
-        {
-            Snackbar.Add("Errore nel caricamento dei viaggi filtrati", Severity.Error);
-        }
     }
 
     private bool ValidaFiltri()
@@ -240,7 +300,6 @@
 
             Snackbar.Add("Generazione report in corso...", Severity.Info);
 
-            // 1. Get Print Data
             var printData = await PrintService.GetBilancioPrintDataAsync(
                 _aziendaIdEffettivo,
                 _selectedViaggioId!.Value,
@@ -251,25 +310,20 @@
                 _selectedValutaId > 0 ? _selectedValutaId : sessionData.User.ValutaDefaultId
             );
 
-            // Analyze results
             if (!printData.Dettagli.Any())
             {
                 Snackbar.Add("Nessun documento contabile trovato per i criteri selezionati. Stampa annullata.", Severity.Warning);
                 return;
             }
 
-            // 2. Generate PDF
             var pdfBytes = await PrintService.GeneratePdfAsync(printData);
 
-            // Save and Open
             var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var fileName = $"Bilancio_Viaggi_{DateTime.Now:yyyyMMddHHmmss}.pdf";
             var outputPath = Path.Combine(targetFolder, fileName);
-            
+
             if (System.IO.File.Exists(outputPath)) System.IO.File.Delete(outputPath);
-
             await System.IO.File.WriteAllBytesAsync(outputPath, pdfBytes);
-
             await PdfOpenerService.OpenPdfAsync(outputPath, "Stampa Completata");
 
             MudDialog.Close(DialogResult.Ok(true));

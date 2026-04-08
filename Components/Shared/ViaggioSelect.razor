@@ -3,6 +3,7 @@
 @using Microsoft.Extensions.Logging
 @inject AnaViaggiService ViaggioService
 @inject ILogger<ViaggioSelect> Logger
+@inject ISnackbar Snackbar
 
 <MudAutocomplete T="AnaViaggi"
                  Label="@Label"
@@ -38,11 +39,13 @@
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public IEnumerable<AnaViaggi>? CustomItems { get; set; }
+    [Parameter] public bool FilterOnlyWithTransactions { get; set; }
 
     private AnaViaggi? _selectedViaggio;
     private List<AnaViaggi> _allViaggi = new();
     private int? _previousAziendaId;
     private int _previousCustomItemsCount;
+    private bool _previousFilterOnlyWithTransactions;
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,11 +64,13 @@
         int currentCount = CustomItems?.Count() ?? 0;
         bool customItemsChanged = currentCount != _previousCustomItemsCount;
         bool aziendaChanged = AziendaId != _previousAziendaId;
+        bool filterChanged = FilterOnlyWithTransactions != _previousFilterOnlyWithTransactions;
 
-        if (customItemsChanged || aziendaChanged)
+        if (customItemsChanged || aziendaChanged || filterChanged)
         {
             _previousAziendaId = AziendaId;
             _previousCustomItemsCount = currentCount;
+            _previousFilterOnlyWithTransactions = FilterOnlyWithTransactions;
 
             await LoadViaggiAsync();
 
@@ -95,6 +100,13 @@
             if (CustomItems != null)
             {
                 _allViaggi = CustomItems.ToList();
+            }
+            else if (FilterOnlyWithTransactions)
+            {
+                if (AziendaId.HasValue && AziendaId.Value > 0)
+                    _allViaggi = await ViaggioService.GetViaggiWithTransactionsAsync(AziendaId.Value);
+                else
+                    _allViaggi = new List<AnaViaggi>();
             }
             else if (AziendaId.HasValue && AziendaId.Value > 0)
             {

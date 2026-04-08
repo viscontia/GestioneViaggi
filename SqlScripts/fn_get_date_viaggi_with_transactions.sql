@@ -23,9 +23,12 @@ AS $function$
         d.data_viaggio_data_fine,
         d.data_viaggio_effettuato_sino,
         EXISTS (
-            SELECT 1 
-            FROM mov_transazioni t 
+            SELECT 1
+            FROM mov_transazioni t
+            JOIN ana_tipi_causali tcx ON t.transazione_causale_tipo_id = tcx.causale_id
             WHERE t.transazione_data_viaggio_id = d.data_viaggio_id
+              AND t.transazione_stato != 'ANNULLATO'
+              AND tcx.causale_is_documento = TRUE
         ) as has_transactions
     FROM ana_date_viaggi d
     WHERE d.viaggio_id_fk = p_viaggio_id

@@ -44,8 +44,19 @@ namespace GestioneViaggi.Services.CRUD
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
-                // Foreign key violation
-                throw new InvalidOperationException("Impossibile aggiungere il partecipante: alcuni dati riferiti (cliente, viaggio o tipo partecipante) non sono validi.", ex);
+                // Foreign key violation - mappa il constraint al campo specifico
+                var fieldName = ex.ConstraintName switch
+                {
+                    "fk_mov_clienti_viaggi_cliente" => "Cliente",
+                    "fk_mov_clienti_viaggi_tipo_part" => "Tipo Partecipante",
+                    "fk_mov_clienti_viaggi_pilota" => "Pilota assegnato",
+                    "fk_mov_clienti_viaggi_viaggio" => "Viaggio",
+                    "fk_mov_clienti_viaggi_data" => "Data Viaggio",
+                    "mov_clienti_viaggi_ana_mezzi_id_fk_fkey" => "Marca Veicolo",
+                    "mov_clienti_viaggi_mezzo_modello_id_fk_fkey" => "Modello Veicolo",
+                    _ => $"campo sconosciuto ({ex.ConstraintName})"
+                };
+                throw new InvalidOperationException($"Impossibile aggiungere il partecipante: il campo '{fieldName}' fa riferimento a un dato non valido o non più presente in archivio.", ex);
             }
             catch (PostgresException ex)
             {

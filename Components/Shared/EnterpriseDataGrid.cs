@@ -72,6 +72,15 @@ namespace GestioneViaggi.Components.Shared
             builder.CloseComponent();
         }
 
+        protected override void OnInitialized()
+        {
+            base.OnInitialized();
+            // Imposta 25 righe per pagina come default (10 è il default MudBlazor).
+            // Fatto qui e non nel costruttore per evitare loop di render.
+            if (RowsPerPage == 10)
+                RowsPerPage = 25;
+        }
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             await base.OnAfterRenderAsync(firstRender);

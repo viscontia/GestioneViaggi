@@ -778,6 +778,12 @@
             return;
         }
 
+        if (_currentEntity.TipoPartecipanteIdFk == 0)
+        {
+            Snackbar.Add("Selezionare il ruolo del partecipante (Pilota/Passeggero)", Severity.Warning);
+            return;
+        }
+
         try
         {
             // 1. Save Movimento Viaggio
@@ -905,7 +911,9 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore salvataggio: {ex.Message}", Severity.Error);
+            // Dettaglio diagnostico: mostra i valori inviati per identificare il campo problematico
+            var diagInfo = $"[ViaggioId={_currentEntity.ViaggioIdFk}, DataId={_currentEntity.DataViaggioIdFk}, ClienteId={_currentEntity.ClienteIdFk}, TipoPartId={_currentEntity.TipoPartecipanteIdFk}, MarcaId={_currentEntity.AnaMezziIdFk?.ToString() ?? "null"}, ModelloId={_currentEntity.MezzoModelloIdFk?.ToString() ?? "null"}, PilotaId={_currentEntity.ClientePilotaIdFk?.ToString() ?? "null"}]";
+            Snackbar.Add($"Errore salvataggio: {ex.Message} {diagInfo}", Severity.Error);
         }
     }
 

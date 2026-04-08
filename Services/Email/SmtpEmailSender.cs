@@ -66,6 +66,8 @@ public class SmtpEmailSender : IEmailSender
 
             // Invia tramite MailKit
             using var client = new SmtpClient();
+            client.Timeout = 30_000;
+            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
             var secureSocketOptions = config.SecurityMethod?.ToLower() switch
             {
@@ -105,7 +107,7 @@ public class SmtpEmailSender : IEmailSender
             if (string.IsNullOrEmpty(configJson))
             {
                 _logger.LogWarning("Nessuna configurazione SMTP trovata per azienda {AziendaId}", _aziendaId);
-                return false;
+                throw new InvalidOperationException($"Nessuna configurazione SMTP attiva trovata per questa azienda (ID: {_aziendaId}).");
             }
 
             var config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
@@ -116,14 +118,17 @@ public class SmtpEmailSender : IEmailSender
             if (config == null)
             {
                 _logger.LogError("Impossibile deserializzare configurazione SMTP per azienda {AziendaId}", _aziendaId);
-                return false;
+                throw new InvalidOperationException("Configurazione SMTP non valida (deserializzazione fallita).");
             }
 
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(fromName ?? config.FromName, config.FromEmail));
 
+            // To visibile obbligatorio (molti server SMTP rifiutano messaggi senza header To)
+            message.To.Add(new MailboxAddress(fromName ?? config.FromName, config.FromEmail));
+
             // BCC per proteggere la privacy dei destinatari
-            foreach (var email in toEmails)
+            foreach (var email in toEmails.Where(e => !string.IsNullOrWhiteSpace(e)))
             {
                 message.Bcc.Add(MailboxAddress.Parse(email));
             }
@@ -140,6 +145,8 @@ public class SmtpEmailSender : IEmailSender
             message.Body = bodyBuilder.ToMessageBody();
 
             using var client = new SmtpClient();
+            client.Timeout = 30_000; // 30 secondi max per connessione/autenticazione/invio
+            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
             var secureSocketOptions = config.SecurityMethod?.ToLower() switch
             {
                 "ssl" or "tls" => SecureSocketOptions.SslOnConnect,
@@ -147,6 +154,10 @@ public class SmtpEmailSender : IEmailSender
                 "none" => SecureSocketOptions.None,
                 _ => SecureSocketOptions.Auto
             };
+
+            _logger.LogInformation(
+                "SMTP connessione: host={Host} port={Port} security={Security} user={User} fromEmail={FromEmail}",
+                config.Host, config.Port, config.SecurityMethod, config.Username, config.FromEmail);
 
             await client.ConnectAsync(config.Host, config.Port, secureSocketOptions);
             await client.AuthenticateAsync(config.Username, config.Password);
@@ -161,7 +172,7 @@ public class SmtpEmailSender : IEmailSender
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore invio email HTML via SMTP aziendale (azienda {AziendaId})", _aziendaId);
-            return false;
+            throw; // propaga l'eccezione reale per diagnostica
         }
     }
 
@@ -171,10 +182,15 @@ public class SmtpEmailSender : IEmailSender
         public int Port { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("use_tls")]
         public bool UseTls { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("use_starttls")]
         public bool UseStarttls { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("security_method")]
         public string? SecurityMethod { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("from_name")]
         public string FromName { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonPropertyName("from_email")]
         public string FromEmail { get; set; } = string.Empty;
     }
 }
