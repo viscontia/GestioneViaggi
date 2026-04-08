@@ -173,7 +173,8 @@ Funzioni core per la gestione dei viaggi (`ana_viaggi` e `ana_date_viaggi`).
 | `get_datetrips_fromtrip` | - | `p_viaggio_id integer` | `TABLE(data_viaggio_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_viaggio_partecipanti` | - | `p_data_viaggio_id integer` | `TABLE(gruppo_id integer, ...)` | `Services/CRUD/AnaViaggiService.cs` |
 | `get_mezzi_count` | Conteggio efficiente dei mezzi (veicoli) partecipanti per una data viaggio. Conta solo i partecipanti con mezzo assegnato (ana_mezzi_id_fk IS NOT NULL). Utilizzata da `fn_get_viaggi_init_data` per popolare il campo `totMezzi` delle date. | `p_data_viaggio_id integer` | `integer` | `Components/Shared/AnaViaggiDialog.razor`, `SqlScripts/351_Create_GetMezziCount.sql` |
-| `fn_get_viaggi_init_data` | **FAT INIT FUNCTION**: Recupera in un'unica chiamata tutti i lookups necessari per il dialog viaggi (Nazioni, TipiViaggio, TipiTrattamento, TipiPernottamento, TipiAvvicinamento, Aziende) + le date del viaggio (se `p_viaggio_id` fornito) con contatori `totMezzi` e `totClienti`. Restituisce JSON con chiavi in camelCase. **Fixed 2026-03-16**: Corretti campi date per includere tutti i costi bambini, note e campi audit necessari per deserializzazione corretta in AnaDataViaggio. | `p_viaggio_id integer DEFAULT NULL` | `json` (include dates con tutti i campi: id, viaggioIdFk, dataInizio, dataFine, effettuatoSino, costoPilota, costoPasseggero, costoPasseggeroAutoGuida, costoBambino02/26/612, note, totMezzi, totClienti, aziendaId, createdBy, created, updatedBy, updated) | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/AnaViaggiDialog.razor` |
+| `fn_get_viaggi_init_data` | **FAT INIT FUNCTION**: Recupera in un'unica chiamata tutti i lookups necessari per il dialog viaggi (Nazioni, TipiViaggio, TipiTrattamento, TipiPernottamento, TipiAvvicinamento, Aziende) + le date del viaggio (se `p_viaggio_id` fornito) con contatori `totMezzi` e `totClienti`. Restituisce JSON con chiavi in camelCase. **Fixed 2026-03-16**: Corretti campi date per includere tutti i costi bambini, note e campi audit. **Fixed 2026-04-08**: Corretti nomi colonne (`tipo_viaggi_id`, `tipo_viaggi_descrizione`, `ana_tipo_pernottamento_id`, `ana_tipo_pernottamento_descrizione`, `ragione_sociale`); `ORDER BY` spostato dentro `json_agg()` per compatibilità PostgreSQL. | `p_viaggio_id integer DEFAULT NULL` | `json` (include dates con tutti i campi: id, viaggioIdFk, dataInizio, dataFine, effettuatoSino, costoPilota, costoPasseggero, costoPasseggeroAutoGuida, costoBambino02/26/612, note, totMezzi, totClienti, aziendaId, createdBy, created, updatedBy, updated) | `Services/CRUD/AnaViaggiService.cs`, `Components/Shared/AnaViaggiDialog.razor`, `SqlScripts/260_Create_FnGetViaggiInitData.sql` |
+| `fn_get_date_viaggi_with_transactions` | Restituisce tutti i campi di `ana_date_viaggi` per un dato `viaggio_id`, aggiungendo il flag booleano `has_transactions`. Il flag è `TRUE` solo se esistono transazioni non ANNULLATE con causale documento (`causale_is_documento = TRUE`). **Updated 2026-04-08**: Aggiunto JOIN su `ana_tipi_causali` e filtro `transazione_stato != 'ANNULLATO'` + `causale_is_documento = TRUE` per escludere transazioni annullate e movimenti non-documento. | `p_viaggio_id integer` | `TABLE(data_viaggio_id, viaggio_id_fk, data_viaggio_data_inizio, data_viaggio_data_fine, data_viaggio_effettuato_sino, has_transactions boolean)` | `Components/Shared/ViaggioDatesManager.razor`, `SqlScripts/fn_get_date_viaggi_with_transactions.sql` |
 | `get_travel_stats` | Calcola totali partecipanti, equipaggi e veicoli per una data viaggio | `p_data_viaggio_id integer` | `TABLE(total_participants, ...)` | `Services/Printing/TravelPrintService.cs` |
 
 ---
@@ -803,12 +804,13 @@ Le stored procedure MAUI `sp_mov_clienti_viaggi_create` e `sp_mov_clienti_allogg
 **Totale funzioni fn_wizard_***: 41 (7 Step 1 + 11 Step 2 Geo + 5 Step 2 Cliente lettura + 2 Step 2 Cliente scrittura + 1 Step 3 + 6 Step 4 + 3 Step 5 + 2 Prenotazione scrittura + 2 Prenotazione lettura + 2 Email)
 
 ### `fn_get_viaggi_init_data`
-Recupera tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio in un'unica chiamata JSON. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
+Recupera in un'unica chiamata JSON tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
 
 - **Parametri**:
   - `p_viaggio_id` (INT, default NULL): ID del viaggio per recuperare le date (modalità edit).
 - **Ritorna**: `JSON` contenente gli array di lookup e le date.
 - **Utilizzo**: `AnaViaggiService.GetViaggiInitDataAsync(int? viaggioId)`
+- **Fix 2026-04-08**: Corretti nomi colonne (`tipo_viaggi_id`, `ana_tipo_pernottamento_id`, `ragione_sociale`); `ORDER BY` spostato dentro `json_agg()`.
 
 ### `fn_get_viaggio_partecipanti_init_data`
 Recupera l'intero stato iniziale del dialog gestione partecipanti, inclusi partecipanti (ordinati e senza camera), contatori, riepiloghi, liste camere con occupanti, intestazione viaggio e lookups necessari. Consolidamento di circa 9 chiamate separate.
@@ -826,23 +828,6 @@ Recupera in un'unica chiamata JSON tutti i dati necessari per l'inizializzazione
   - `p_cliente_id` (INT, default NULL): ID del cliente per recuperare i dettagli comuni esistenti.
 - **Ritorna**: `JSON` contenente `Comuni`, `Aziende`, `ComuneNascita` e `ComuneResidenza`.
 - **Utilizzo**: `ClienteService.GetClienteInitDataAsync(int? clienteId)`
-
-### `fn_get_viaggi_init_data`
-Recupera in un'unica chiamata JSON tutti i lookups (Nazioni, Tipi Viaggio, Trattamenti, Pernottamenti, Avvicinamenti, Aziende) e le date di un viaggio. Utilizzata per l'inizializzazione di `AnaViaggiDialog.razor`.
-
-- **Parametri**:
-  - `p_viaggio_id` (INT, default NULL): ID del viaggio per recuperare le date (modalità edit).
-- **Ritorna**: `JSON` contenente gli array di lookup e le date.
-- **Utilizzo**: `AnaViaggiService.GetViaggiInitDataAsync(int? viaggioId)`
-
-### `fn_get_viaggio_partecipanti_init_data`
-Recupera l'intero stato iniziale del dialog gestione partecipanti, inclusi partecipanti (ordinati e senza camera), contatori, riepiloghi, liste camere con occupanti, intestazione viaggio e lookups necessari. Consolidamento di circa 9 chiamate separate.
-
-- **Parametri**:
-  - `p_viaggio_id` (INT): ID del viaggio.
-  - `p_data_viaggio_id` (INT): ID della data viaggio specifica.
-- **Ritorna**: `JSON` con lo stato completo del dialog.
-- **Utilizzo**: `MovClientiViaggiService.GetPartecipantiInitDataAsync(int viaggioId, int dataViaggioId)`
 
 ### `fn_get_controparte_init_data`
 Recupera in un'unica chiamata JSON tutti i dati necessari per l'inizializzazione del dialog Controparte: comuni, aziende (per SuperAdmin), tipi fornitore e dettaglio comune della controparte.
