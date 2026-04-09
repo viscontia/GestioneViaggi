@@ -24,7 +24,8 @@ public static class PdfFileNameHelper
     /// <returns>Nome file nel formato: SchedaViaggio_{Titolo}_Dal_{DataInizio}_al_{DataFine}.pdf</returns>
     public static string GetTravelSheetFileName(TravelHeaderInfo header, bool detailed = false)
     {
-        var safeTitle = SanitizeFileName(header.DescrizioneBreve, maxLength: 40);
+        var title = !string.IsNullOrWhiteSpace(header.DescrizioneBreve) ? header.DescrizioneBreve : header.Titolo;
+        var safeTitle = SanitizeFileName(title, maxLength: 40);
         var dateStart = header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
         var dateEnd = header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
         var prefix = detailed ? "SchedaViaggioDettaglio" : "SchedaViaggio";
@@ -38,7 +39,8 @@ public static class PdfFileNameHelper
     /// <returns>Nome file nel formato: RoomingList_{Titolo}_Dal_{DataInizio}_al_{DataFine}.pdf</returns>
     public static string GetRoomingListFileName(TravelHeaderInfo header)
     {
-        var safeTitle = SanitizeFileName(header.DescrizioneBreve, maxLength: 40);
+        var title = !string.IsNullOrWhiteSpace(header.DescrizioneBreve) ? header.DescrizioneBreve : header.Titolo;
+        var safeTitle = SanitizeFileName(title, maxLength: 40);
         var dateStart = header.DataInizio?.ToString("dd-MM-yyyy") ?? "ND";
         var dateEnd = header.DataFine?.ToString("dd-MM-yyyy") ?? "ND";
         return $"RoomingList_{safeTitle}_Dal_{dateStart}_al_{dateEnd}.pdf";

@@ -13,10 +13,14 @@ LOCAL_USER="postgres"
 
 SUPABASE_HOST="aws-1-eu-central-1.pooler.supabase.com"
 SUPABASE_PORT="6543"
+SUPABASE_SESSION_PORT="5432"  # Session Pooler: supporta DDL/import completo
 SUPABASE_DB="postgres"
 SUPABASE_USER="postgres.wqbqvhshojbfuwcuiams"
 SUPABASE_PASSWORD="U9Y7KSjQVfZ3N1Ca"
 SUPABASE_URI="postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:${SUPABASE_PORT}/${SUPABASE_DB}"
+# URI per operazioni DDL/import: usa Session Pooler (porta 5432) invece del Transaction Pooler (6543)
+# Il Transaction Pooler (PgBouncer) non supporta prepared statements e SET SESSION usati durante l'import
+SUPABASE_SESSION_URI="postgresql://${SUPABASE_USER}:${SUPABASE_PASSWORD}@${SUPABASE_HOST}:${SUPABASE_SESSION_PORT}/${SUPABASE_DB}"
 
 DUMP_FILE="/tmp/migration_dump_$(date +%Y%m%d_%H%M%S).sql"
 
@@ -109,20 +113,27 @@ PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
 " 2>&1
 
 # --- STEP 7: Import dump su Supabase ---
-log_info "Import dump su Supabase (potrebbe richiedere qualche minuto)..."
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -f "${DUMP_FILE}" 2>&1 | grep -E "^psql:|ERROR" || true
-log_info "Import completato"
+# IMPORTANTE: usa Session Pooler (porta 5432) invece del Transaction Pooler (6543)
+# Il Transaction Pooler non supporta le funzionalità di sessione necessarie per l'import DDL
+log_info "Import dump su Supabase via Session Pooler (potrebbe richiedere qualche minuto)..."
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -f "${DUMP_FILE}" 2>&1 | grep -E "^psql:.*ERROR" || true
+if PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public';" > /dev/null 2>&1; then
+    log_info "Import completato"
+else
+    log_error "Import fallito: impossibile connettersi o verificare le tabelle"
+    exit 1
+fi
 
 # --- STEP 8: Fix FK orfani ---
 log_info "Fix FK orfani in mov_clienti_viaggi..."
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "
     UPDATE mov_clienti_viaggi mcv SET mezzo_modello_id_fk = NULL
     WHERE mezzo_modello_id_fk IS NOT NULL
     AND NOT EXISTS (SELECT 1 FROM ana_mezzi_modelli WHERE mezzo_modello_id = mcv.mezzo_modello_id_fk);
 " 2>&1
 
 # Ricrea FK constraint se mancante
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "
     DO \$\$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'mov_clienti_viaggi_mezzo_modello_id_fk_fkey') THEN
             ALTER TABLE mov_clienti_viaggi
@@ -135,7 +146,7 @@ log_info "FK fix completato"
 
 # --- STEP 9: Crea ruoli applicativi ---
 log_info "Creazione ruoli applicativi..."
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "
     DO \$\$ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_superadmin') THEN CREATE ROLE app_superadmin NOLOGIN; END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'app_azienda_admin') THEN CREATE ROLE app_azienda_admin NOLOGIN; END IF;
@@ -153,7 +164,7 @@ log_info "=== VERIFICA MIGRAZIONE ==="
 
 echo ""
 echo "--- Conteggio oggetti ---"
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "
     SELECT 'Tabelle public' as oggetto, count(*)::text as valore FROM pg_tables WHERE schemaname = 'public'
     UNION ALL SELECT 'Tabelle staging', count(*)::text FROM pg_tables WHERE schemaname = 'staging'
     UNION ALL SELECT 'Funzioni/Procedure', count(*)::text FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.prokind IN ('f','p')
@@ -165,7 +176,7 @@ PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
 
 echo ""
 echo "--- Conteggio righe tabelle chiave ---"
-PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_URI}" -c "
+PGPASSWORD="${SUPABASE_PASSWORD}" psql "${SUPABASE_SESSION_URI}" -c "
     SELECT 'ana_aziende' as tbl, count(*) FROM ana_aziende UNION ALL
     SELECT 'ana_clienti', count(*) FROM ana_clienti UNION ALL
     SELECT 'ana_viaggi', count(*) FROM ana_viaggi UNION ALL

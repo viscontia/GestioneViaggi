@@ -64,12 +64,8 @@
             var data = await PrintService.GetPrintDataAsync(DataViaggioId);
 
             // 2. Definizione nome file
-            var prefix = _selectedType == PrintType.TravelDataSheetDetailed ? "Scheda_Dettagliata" : "Scheda_Sintetica";
-            var tripName = !string.IsNullOrEmpty(data.Header.DescrizioneBreve) 
-                ? data.Header.DescrizioneBreve.Replace(" ", "_").Replace("/", "-") 
-                : "Viaggio";
-            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var fullFileName = $"{prefix}_{tripName}_{timestamp}.pdf";
+            var detailed = _selectedType == PrintType.TravelDataSheetDetailed;
+            var fullFileName = PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed);
             
             // 3. Percorso di salvataggio (usa il metodo centralizzato per gestire macOS sandboxato)
             var targetFolder = PdfOpenerService.GetPdfOutputFolder();

@@ -636,11 +636,7 @@
             // Direct call for detailed sheet as requested by the shortcut menu
             var data = await TravelPrintService.GetPrintDataAsync(DataViaggioId);
             
-            var tripName = !string.IsNullOrEmpty(data.Header.DescrizioneBreve) 
-                ? data.Header.DescrizioneBreve.Replace(" ", "_").Replace("/", "-") 
-                : "Viaggio";
-            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var fileName = $"Scheda_Dettagliata_{tripName}_{timestamp}.pdf";
+            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
             
             var targetFolder = PdfOpenerService.GetPdfOutputFolder();
             var outputPath = Path.Combine(targetFolder, fileName);
