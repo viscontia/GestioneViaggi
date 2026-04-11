@@ -37,3 +37,26 @@ relative ai viaggi seguono questo formato:
 
 Il nome del file conterrà sempre il nome del viaggio e le date di inizio e fine,
 rendendo ogni stampa immediatamente identificabile anche a distanza di tempo.
+
+---
+
+### Indirizzo email ridondante rimosso dall'invio mail
+
+**Problema**
+
+Quando veniva inviata un'email ai partecipanti di un viaggio (o qualsiasi altra
+email tramite il pannello di invio), i destinatari ricevevano il messaggio
+correttamente in BCC, ma nell'intestazione della mail erano visibili due
+indirizzi aggiuntivi: l'indirizzo principale dell'azienda e, in CC,
+l'indirizzo email associato al profilo dell'utente che aveva effettuato
+l'invio. Per l'azienda 2 ciò si traduceva nella presenza di
+`segreteria@sardegnafuoritraccia.it` e `info@sardegnafuoritraccia.it`
+in ogni messaggio inviato, con quest'ultimo del tutto ridondante.
+
+**Come funziona adesso**
+
+L'indirizzo email dell'utente loggato non viene più aggiunto automaticamente
+in CC. Il campo `To` continua a riportare l'indirizzo mittente configurato
+nell'account SMTP aziendale (`segreteria@sardegnafuoritraccia.it`), che
+funge già da copia per la mailbox aziendale. I partecipanti vedranno
+nell'intestazione un solo indirizzo aggiuntivo anziché due.

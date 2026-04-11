@@ -311,14 +311,12 @@
             // 5. Ottieni sender appropriato (SMTP aziendale o Resend fallback)
             var sender = await EmailSenderFactory.GetSenderAsync(roleCode, aziendaId);
 
-            // 6. Invio (CC all'utente corrente)
-            var currentUserEmail = userInfo?.Email;
+            // 6. Invio (nessun CC aggiuntivo: segreteria@ già riceve copia via campo To)
             var success = await sender.SendHtmlEmailAsync(
                 _recipientEmails,
                 _subject,
                 fullHtmlBody,
-                companyName,
-                currentUserEmail
+                companyName
             );
 
             if (success)
