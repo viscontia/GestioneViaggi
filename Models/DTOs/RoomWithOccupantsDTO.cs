@@ -14,4 +14,6 @@ public class RoomWithOccupantsDTO
     public string[] OccupantNames { get; set; } = Array.Empty<string>();
     public int[] OccupantIds { get; set; } = Array.Empty<int>();
     public bool HasSupplement { get; set; }
+    /// <summary>Cognome del pilota della camera. Usato per ordinare le camere per pilota. 'ZZZZZ' se nessun pilota.</summary>
+    public string PilotCognome { get; set; } = "ZZZZZ";
 }

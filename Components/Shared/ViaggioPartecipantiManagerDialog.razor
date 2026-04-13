@@ -245,7 +245,7 @@
 
                                             @foreach (var roomGroup in roomsByType)
                                             {
-                                                var groupRooms = roomGroup.OrderBy(r => string.Join(", ", r.OccupantNames)).ToList();
+                                                var groupRooms = roomGroup.OrderBy(r => r.PilotCognome).ToList();
                                                 var hasSupplementInGroup = groupRooms.Any(r => r.HasSupplement);
 
                                                             <!-- Header Tipologia -->
@@ -276,7 +276,19 @@
                                                                                 <td style="padding: 4px 8px;">
                                                                     @if (room.OccupantNames.Any())
                                                                     {
-                                                                                            <span>@string.Join(", ", room.OccupantNames)</span>
+                                                                        var hasPilot = room.PilotCognome != "ZZZZZ";
+                                                                        for (var i = 0; i < room.OccupantNames.Count; i++)
+                                                                        {
+                                                                            if (i > 0) { <text>, </text> }
+                                                                            if (i == 0 && hasPilot)
+                                                                            {
+                                                                                <strong>@room.OccupantNames[i]</strong>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <text>@room.OccupantNames[i]</text>
+                                                                            }
+                                                                        }
                                                                     }
                                                                     else
                                                                     {
@@ -721,7 +733,8 @@
                 OccupantNames = dto.OccupantNames.ToList(),
                 OccupantIds = dto.OccupantIds.ToList(),
                 HasSupplement = dto.HasSupplement,
-                RoomEntity = new MovClientiAlloggi() 
+                PilotCognome = dto.PilotCognome,
+                RoomEntity = new MovClientiAlloggi()
             }).ToList();
         }
         catch (Exception ex)
@@ -1351,6 +1364,7 @@
         public List<string> OccupantNames { get; set; } = new();
         public List<int> OccupantIds { get; set; } = new();
         public bool HasSupplement { get; set; }
+        public string PilotCognome { get; set; } = "ZZZZZ";
         public MovClientiAlloggi RoomEntity { get; set; } = new();
 
         public bool IsFull => CurrentOccupants >= MaxOccupants;

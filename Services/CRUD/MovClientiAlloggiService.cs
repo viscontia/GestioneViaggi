@@ -220,7 +220,10 @@ namespace GestioneViaggi.Services.CRUD
                         OccupantIds = reader.IsDBNull(reader.GetOrdinal("occupant_ids"))
                             ? Array.Empty<int>()
                             : reader.GetFieldValue<int[]>(reader.GetOrdinal("occupant_ids")),
-                        HasSupplement = reader.GetBoolean(reader.GetOrdinal("has_supplement"))
+                        HasSupplement = reader.GetBoolean(reader.GetOrdinal("has_supplement")),
+                        PilotCognome = reader.IsDBNull(reader.GetOrdinal("pilot_cognome"))
+                            ? "ZZZZZ"
+                            : reader.GetString(reader.GetOrdinal("pilot_cognome"))
                     });
                 }
                 return result;
@@ -324,11 +327,11 @@ namespace GestioneViaggi.Services.CRUD
                 return new RoomConsistencyCheckResult
                 {
                     ViolationDetected = reader.GetBoolean(reader.GetOrdinal("violation_detected")),
-                    RoomId = reader.GetInt32(reader.GetOrdinal("room_id")),
+                    RoomId = reader.IsDBNull(reader.GetOrdinal("room_id")) ? 0 : reader.GetInt32(reader.GetOrdinal("room_id")),
                     RoomTypeDesc = reader.IsDBNull(reader.GetOrdinal("room_type_desc")) ? null : reader.GetString(reader.GetOrdinal("room_type_desc")),
-                    RequiredSeats = reader.GetInt32(reader.GetOrdinal("required_seats")),
-                    CurrentOccupantsCount = reader.GetInt32(reader.GetOrdinal("current_occupants_count")),
-                    RemainingOccupantsCount = reader.GetInt32(reader.GetOrdinal("remaining_occupants_count")),
+                    RequiredSeats = reader.IsDBNull(reader.GetOrdinal("required_seats")) ? 0 : reader.GetInt32(reader.GetOrdinal("required_seats")),
+                    CurrentOccupantsCount = reader.IsDBNull(reader.GetOrdinal("current_occupants_count")) ? 0 : reader.GetInt32(reader.GetOrdinal("current_occupants_count")),
+                    RemainingOccupantsCount = reader.IsDBNull(reader.GetOrdinal("remaining_occupants_count")) ? 0 : reader.GetInt32(reader.GetOrdinal("remaining_occupants_count")),
                     SurvivorIds = reader.IsDBNull(reader.GetOrdinal("survivor_ids"))
                         ? null
                         : reader.GetFieldValue<int[]>(reader.GetOrdinal("survivor_ids"))

@@ -60,3 +60,47 @@ in CC. Il campo `To` continua a riportare l'indirizzo mittente configurato
 nell'account SMTP aziendale (`segreteria@sardegnafuoritraccia.it`), che
 funge già da copia per la mailbox aziendale. I partecipanti vedranno
 nell'intestazione un solo indirizzo aggiuntivo anziché due.
+
+---
+
+### Ordinamento e visualizzazione camere nella sezione Alloggi
+
+**Problema**
+
+Nella scheda Alloggi del dialog di gestione partecipanti, le camere all'interno
+di ogni tipologia (ad esempio "Camera Matrimoniale") venivano mostrate in un
+ordine non prevedibile. Inoltre, all'interno di ogni camera i nomi degli
+occupanti erano elencati casualmente, senza distinguere visivamente il pilota
+dagli altri passeggeri.
+
+**Come funziona adesso**
+
+Le camere sono ora ordinate per cognome del pilota all'interno di ogni
+tipologia, rendendo immediato il confronto tra le diverse camere dello stesso
+tipo. All'interno di ogni camera il pilota appare sempre per primo, seguito dai
+passeggeri in ordine alfabetico per cognome e nome. Il nome del pilota è
+visualizzato in **grassetto** per distinguerlo a colpo d'occhio dagli altri
+occupanti.
+
+---
+
+### Errore nella cancellazione di un partecipante senza camera assegnata
+
+**Problema**
+
+Quando si tentava di rimuovere un partecipante da un viaggio che non aveva
+nessuna camera assegnata nella sezione Alloggi, l'applicazione mostrava un
+messaggio di errore:
+
+```
+Errore: Column 'room_id' is null.
+```
+
+La cancellazione non veniva eseguita e il partecipante rimaneva nell'elenco,
+costringendo a riprovare senza possibilità di riuscita.
+
+**Come funziona adesso**
+
+La rimozione di un partecipante senza camera assegnata viene completata
+correttamente. Il messaggio di conferma viene mostrato e l'elenco dei
+partecipanti si aggiorna subito dopo l'operazione.
