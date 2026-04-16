@@ -84,6 +84,27 @@ occupanti.
 
 ---
 
+### Cartella di salvataggio delle stampe PDF su Windows
+
+**Problema**
+
+Su Windows, le stampe PDF generate dall'applicazione (schede viaggio, rooming
+list, ecc.) venivano salvate direttamente nella cartella **Downloads**
+dell'utente. Di conseguenza, il menu "Posizione delle stampe PDF" apriva la
+cartella Downloads anziché una cartella dedicata all'applicazione, mescolando
+i file generati da GestioneViaggi con tutto il resto del contenuto di quella
+cartella.
+
+**Come funziona adesso**
+
+Le stampe PDF vengono ora salvate nella cartella dedicata dell'applicazione su
+tutte le piattaforme. Su Windows corrisponde alla cartella dati locale dell'app
+(`%LOCALAPPDATA%`), coerentemente con il comportamento già in uso su macOS.
+Il menu "Posizione delle stampe PDF" apre ora sempre la cartella corretta,
+separata dal filesystem utente.
+
+---
+
 ### Errore nella cancellazione di un partecipante senza camera assegnata
 
 **Problema**

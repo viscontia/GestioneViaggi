@@ -22,7 +22,7 @@ public class FileOpenerService : IFileOpenerService
 
         bool? confirm = await _dialogService.ShowMessageBox(
             title,
-            $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
+            $"Il file è stato generato:\n{fileName}\n\nVuoi aprirlo?",
             yesText: "Sì, Apri", cancelText: "No");
 
         if (confirm == true)
@@ -57,7 +57,7 @@ public class FileOpenerService : IFileOpenerService
                 await _dialogService.ShowMessageBox(
                     "Impossibile aprire il file",
                     "Non è stato possibile aprire il file. Verificare di avere un'applicazione installata in grado di aprire questo tipo di file.\n\n" +
-                    $"Il file è comunque disponibile nella cartella Downloads:\n{fileName}",
+                    $"Il file è comunque disponibile nella cartella dell'applicazione:\n{fileName}",
                     yesText: "OK");
                 return false;
             }
