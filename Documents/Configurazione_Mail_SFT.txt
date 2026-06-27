@@ -1,0 +1,14 @@
+Secure SSL/TLS consigliato
+
+Configurazione IMAP (non POP)
+
+Nome utente: segreteria@sardegnafuoritraccia.it
+Password: Sardegna2025
+
+Server posta in entrata: mail.sardegnafuoritraccia.it
+
+IMAP Port: 993 POP3 Port: 995
+
+Server posta in uscita: mail.sardegnafuoritraccia.it
+
+SMTP Port: 465

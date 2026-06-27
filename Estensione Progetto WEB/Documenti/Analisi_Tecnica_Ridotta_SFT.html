@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Il lavoro da svolgere — Sardegna Fuori Traccia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6EEE0; --card:#FCF7EE; --ink:#241F1A; --ink-soft:#5E544A;
+    --rust:#AF4220; --rust-deep:#8C3415; --olive:#5E6638; --sea:#235C66; --ochre:#C2812A;
+    --line:rgba(36,31,26,.13);
+  }
+  @page{ size:A4; margin:13mm 0; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5;font-size:13.5px}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+  .display{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.05;letter-spacing:-.01em}
+
+  /* HEADER */
+  .hero{position:relative;overflow:hidden;background:var(--ink);color:var(--paper);padding:30px 0 26px;break-inside:avoid}
+  .hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;z-index:0}
+  .hero-veil{position:absolute;inset:0;z-index:1;background:linear-gradient(95deg,rgba(20,15,12,.94),rgba(20,15,12,.72) 55%,rgba(20,15,12,.42))}
+  .hero .wrap{position:relative;z-index:2}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+  .brand img{width:42px;height:42px;border-radius:50%;background:#fff;padding:3px;object-fit:contain}
+  .brand span{font-family:'Fraunces',serif;font-weight:600;font-size:1rem}
+  .kicker{font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;font-weight:600;color:#F0A861}
+  .hero h1{font-size:2rem;margin:.25rem 0 .35rem;color:var(--paper)}
+  .hero p.sub{color:#EADFCE;font-size:1rem;max-width:48ch}
+  .hero .meta{margin-top:14px;font-size:.78rem;color:#CBBBA4;border-top:1px solid rgba(243,234,216,.25);padding-top:10px;display:inline-block}
+
+  section{padding:22px 0 4px}
+  .tag{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:var(--rust);margin-bottom:8px}
+  h2.display{font-size:1.4rem;margin-bottom:10px}
+  .lead{color:var(--ink-soft);font-size:.97rem;margin-bottom:6px}
+  .lead.box{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--ochre);border-radius:0 10px 10px 0;padding:13px 16px}
+
+  /* STEPS */
+  .step{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;margin-top:11px;break-inside:avoid}
+  .num{flex:0 0 34px;width:34px;height:34px;border-radius:9px;background:var(--rust);color:#fff;font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;display:grid;place-items:center}
+  .step h3{font-size:1.02rem;font-weight:700;margin-bottom:3px}
+  .step p{color:var(--ink-soft);font-size:.93rem}
+  .step ul{margin:6px 0 0 0;padding-left:16px;color:var(--ink-soft);font-size:.9rem}
+  .step ul li{margin:1px 0}
+  .step.flag{border-color:rgba(175,66,32,.45);background:#FBEDE6}
+  .step.flag .num{background:var(--ochre)}
+  .step.flag .note{margin-top:7px;font-size:.88rem;color:var(--rust-deep);font-weight:600}
+
+  /* COSTS */
+  .costs{background:#EFE3CE;border-radius:14px;padding:18px 18px 8px;margin-top:12px;break-inside:avoid}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:4px}
+  th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+  td.price{font-family:'Fraunces',serif;font-weight:600;white-space:nowrap}
+  td.free{color:var(--olive)}
+  .costs ul{margin:12px 0 6px 0;padding-left:16px;font-size:.9rem;color:var(--ink)}
+  .costs ul li{margin:3px 0}
+  .hl{background:var(--rust);color:#fff;border-radius:8px;padding:2px 8px;font-weight:600;font-family:'Fraunces',serif}
+
+  .synth{background:#21413F;color:#EADFCE;border-radius:14px;padding:18px 20px;margin-top:14px;break-inside:avoid}
+  .synth h2{color:#F0A861;font-size:1.2rem;margin-bottom:6px}
+  .synth p{font-size:.95rem}
+  .synth .sep{margin-top:10px;font-size:.86rem;color:#C9BBA6}
+
+  footer{margin-top:18px;border-top:1px solid var(--line);padding:14px 0 0}
+  .foot{display:flex;align-items:center;justify-content:space-between;gap:14px;font-size:.8rem;color:var(--ink-soft)}
+  .foot-b{display:flex;align-items:center;gap:9px}
+  .foot-b img{width:26px;height:26px;border-radius:50%;background:#fff;padding:2px;object-fit:contain}
+  .foot-b b{font-family:'Fraunces',serif;color:var(--ink)}
+  .foot-g{display:flex;align-items:center;gap:8px}
+  .foot-g img{width:22px;height:22px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img class="hero-bg" src="assets/hero.jpg" alt="">
+  <div class="hero-veil"></div>
+  <div class="wrap">
+    <div class="brand"><img src="assets/logo-sft.png" alt=""><span>Sardegna Fuori Traccia</span></div>
+    <div class="kicker">Il lavoro da svolgere — Sintesi</div>
+    <h1 class="display">Nuovo sito web<br>alimentato dal gestionale</h1>
+    <p class="sub">Una panoramica, passo per passo, di tutto ciò che serve costruire.</p>
+    <div class="meta">Preparato per Sardegna Fuori Traccia · Giugno 2026</div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="tag">In due parole</div>
+    <p class="lead">L'obiettivo è far diventare il <b>gestionale</b> che già usi il <b>motore unico</b> anche del sito: aggiorni i viaggi una volta sola e il sito si aggiorna di conseguenza, in 5 lingue.</p>
+    <p class="lead box">Il lavoro è articolato in <b>fasi sequenziali</b>: ognuna viene prima sviluppata e <b>collaudata in un ambiente protetto</b> e solo dopo, a test superati, <b>messa online</b>. I passi qui sotto servono a dare la misura del volume di lavoro. Il <b>preventivo economico</b> è fornito a parte.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="tag">I passi del lavoro</div>
+
+    <div class="step"><div class="num">1</div><div>
+      <h3>Ampliare il "cuore dati" del gestionale</h3>
+      <p>Aggiungere al gestionale tutte le informazioni che oggi vivono solo sul sito:</p>
+      <ul><li>schede tour estese (sottotitolo, descrizioni, difficoltà, durata, luoghi)</li><li>itinerario giorno-per-giorno con testi, foto e didascalie</li><li>gallerie fotografiche</li><li>informazioni utili per essere trovati su Google</li><li>archivio contatti della newsletter, traduzioni, regole dei pagamenti e impostazioni diverse per ciascuna azienda</li></ul>
+    </div></div>
+
+    <div class="step"><div class="num">2</div><div>
+      <h3>Collegare in modo sicuro gestionale e sito</h3>
+      <p>Realizzare il "ponte" che porta sul sito <b>solo i contenuti pubblicati</b>, tenendo al sicuro i dati gestionali e contabili, che restano riservati.</p>
+    </div></div>
+
+    <div class="step"><div class="num">3</div><div>
+      <h3>Creare la nuova area "Contenuti Web" nel gestionale</h3>
+      <p>La parte con cui aggiornerai il sito in autonomia: editor dei testi, gestione dell'itinerario giorno-per-giorno con foto (riordinabile), gallerie, campi per il posizionamento su Google, e i pulsanti <b>Anteprima</b>, <b>Pubblica</b> e <b>Clona</b>.</p>
+    </div></div>
+
+    <div class="step"><div class="num">4</div><div>
+      <h3>Traduzione automatica in 5 lingue</h3>
+      <p>Sistema che traduce i contenuti in <b>francese, inglese, tedesco e spagnolo</b>, con possibilità di revisione e segnalazione automatica delle traduzioni da aggiornare.</p>
+    </div></div>
+
+    <div class="step"><div class="num">5</div><div>
+      <h3>Mappe dei percorsi</h3>
+      <p>Generazione automatica della mappa del percorso, <b>centrata sull'area giusta</b>, mostrando il tracciato in forma indicativa <b>senza renderlo scaricabile</b>.</p>
+    </div></div>
+
+    <div class="step"><div class="num">6</div><div>
+      <h3>Newsletter unificata</h3>
+      <p>Unione dei contatti (clienti e iscritti) in un unico elenco, <b>invio senza duplicati</b>, gestione dei consensi e della disiscrizione a norma di legge.</p>
+    </div></div>
+
+    <div class="step"><div class="num">7</div><div>
+      <h3>Realizzare il nuovo sito web</h3>
+      <p>Verranno impiegati <b>strumenti e tecnologie moderni</b> (come da tua richiesta), per un sito <b>accattivante, attraente, capace di fidelizzare</b> e <b>facile da usare</b> su ogni dispositivo. In 5 lingue, con: home, elenco viaggi con filtri, pagina di dettaglio (itinerario, gallerie, mappa, prezzi, "Iscriviti", PDF), calendario partenze, recensioni, FAQ, contatti con WhatsApp, iscrizione newsletter.</p>
+    </div></div>
+
+    <div class="step"><div class="num">8</div><div>
+      <h3>Pagamenti online</h3>
+      <p>Integrazione del pagamento con carta, con <b>regole impostabili per ogni azienda</b> (acconti, saldi, scadenze) e <b>promemoria/solleciti automatici</b> ai clienti, con copia al tour operator.</p>
+      <p style="margin-top:6px"><b>Vantaggio importante:</b> a ogni pagamento il sistema <b>registra da solo l'incasso in contabilità</b> (cliente, viaggio e contabilità generale) ed <b>emette la fattura</b> (acconto e saldo), inviandone subito una <b>copia PDF</b> al cliente. <i>(La fattura elettronica segue il consueto flusso di legge.)</i></p>
+    </div></div>
+
+    <div class="step flag"><div class="num">9</div><div>
+      <h3>⚠️ Recupero dei contenuti già esistenti</h3>
+      <p>Per <b>non perdere il lavoro già fatto</b>, sarà necessario <b>estrarre dall'attuale piattaforma del sito</b> tutti i contenuti: descrizioni dei viaggi, <b>itinerari giorno-per-giorno</b> e tutte le <b>immagini</b>, per trasferirli nel nuovo sistema.</p>
+      <div class="note">Servirà l'accesso completo all'attuale area di gestione del sito: è un passaggio necessario, da prevedere per tempo.</div>
+    </div></div>
+
+    <div class="step"><div class="num">10</div><div>
+      <h3>Collaudo, messa online e passaggio dal vecchio al nuovo</h3>
+      <p>Test completo, trasferimento dei contenuti recuperati, <b>reindirizzamento</b> degli indirizzi attuali verso i nuovi (per <b>non perdere il posizionamento su Google</b>), messa online del nuovo sito e spegnimento del vecchio.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="tag">I costi fissi da mettere in conto</div>
+    <div class="costs">
+      <p class="lead" style="margin-bottom:4px">Oltre alla <b>realizzazione</b> (preventivo separato), il sito comporta alcuni costi di <b>gestione mensile</b>:</p>
+      <table>
+        <tr><th>Voce</th><th>Costo</th><th>Note</th></tr>
+        <tr><td><b>Server del nuovo sito</b> (Hetzner)</td><td class="price">10 €/mese</td><td>indispensabile per tenere online il sito</td></tr>
+        <tr><td><b>App iscrizioni già attiva</b> (Hetzner)</td><td class="price">5 €/mese</td><td>costo <b>già in addebito oggi</b> per l'iscrizione online dei clienti</td></tr>
+        <tr><td><b>Sistema email professionale</b> (Mailchimp)</td><td class="price">11,41 €/mese</td><td><i>raccomandato, non obbligatorio</i> — invii sicuri/affidabili fino a 15.000 email/mese</td></tr>
+        <tr><td><b>Mappe dei percorsi</b> (OpenStreetMap)</td><td class="price free">gratuite</td><td>nessun costo</td></tr>
+      </table>
+      <ul>
+        <li>Costo fisso indispensabile: <span class="hl">~15 €/mese</span> (server del nuovo sito + app iscrizioni già attiva).</li>
+        <li>Il sistema email professionale è una <b>scelta</b>: in alternativa la casella attuale, senza costi aggiuntivi ma meno affidabile per i grandi invii.</li>
+        <li>Gli eventuali <b>pagamenti online</b> non hanno canone fisso: solo una piccola commissione a transazione.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="synth">
+      <h2 class="display">In sintesi</h2>
+      <p>Non è un semplice "restyling grafico": è la costruzione di un <b>sistema integrato</b> in cui un solo programma alimenta il sito, le traduzioni, la newsletter e i pagamenti. Ogni fase è collegata alle altre e viene rilasciata solo dopo i collaudi.</p>
+      <div class="sep">Il dettaglio economico e i tempi sono oggetto di un documento separato.</div>
+    </div>
+    <footer>
+      <div class="foot">
+        <div class="foot-b"><img src="assets/logo-sft.png" alt=""> <b>Sardegna Fuori Traccia</b></div>
+        <div class="foot-g"><img src="assets/logo-gest.png" alt=""> Gestione Viaggi Offroad</div>
+      </div>
+    </footer>
+  </div>
+</section>
+
+</body>
+</html>
