@@ -55,10 +55,16 @@ var result = await db.QueryAsync<Foo>("SELECT * FROM fn_get_foo(@p_id::INTEGER)"
 
 Dopo ogni function DB creata o modificata → **aggiornare `Documents/Funzioni_DB.md`**.
 
-Script SQL deploy locale:
+**Deploy script SQL — usare SEMPRE il wrapper, mai `docker exec` a mano:**
 ```bash
-docker exec -i postgres_db psql -U postgres -d gestione_viaggi < SqlScripts/NNN_NomeScript.sql
+./deploy_sql.sh SqlScripts/NNN_NomeScript.sql
 ```
+Il wrapper esegue lo script sul DB Docker e rigenera automaticamente, in fondo a `Documents/Funzioni_DB.md`
+stesso, un'**appendice auto-generata** (letta in tempo reale da `pg_catalog`, tra i marker
+`AUTO-GENERATED-START/END`) che elenca tutte le function e segnala quelle non ancora citate nella parte
+curata sopra. Non sostituisce l'aggiornamento manuale della parte curata, ma garantisce che nessuna
+function nuova/modificata passi inosservata. Non modificare mai a mano il contenuto tra i marker: viene
+sovrascritto ad ogni deploy. Vedi `Documents/Funzioni_DB.md` sezione documentazione (§15).
 
 ### 3.2 COMPONENTI SHARED (ASSOLUTA)
 Usare sempre i componenti da `Components/Shared/`. Non duplicare logica.
@@ -150,9 +156,9 @@ Pool: MinPoolSize=1, MaxPoolSize=20
 Container: postgres_db (PostgreSQL 17.5)
 ```
 
-Deploy script locale:
+Deploy script locale (usare sempre il wrapper, vedi §3.1):
 ```bash
-docker exec -i postgres_db psql -U postgres -d gestione_viaggi < SqlScripts/NNN_Script.sql
+./deploy_sql.sh SqlScripts/NNN_Script.sql
 ```
 
 ### Produzione (Supabase, `appsettings.json`)
@@ -357,7 +363,7 @@ Classi in `Statistics/`:
 
 | File | Contenuto |
 |------|-----------|
-| `Funzioni_DB.md` | **Single source of truth** per tutte le function PostgreSQL. Aggiornare SEMPRE dopo ogni modifica DB. |
+| `Funzioni_DB.md` | **Single source of truth** per tutte le function PostgreSQL. Parte curata a mano (sopra il marker `AUTO-GENERATED-START`) + appendice finale auto-generata da `pg_catalog` via `deploy_sql.sh`/`generate_db_functions_doc.sh` (non modificare a mano l'appendice, viene sovrascritta ad ogni deploy). Aggiornare SEMPRE la parte curata dopo ogni modifica DB. |
 | `ComponentiShared.md` | **Single source of truth** per tutti i componenti shared. Aggiornare SEMPRE dopo ogni modifica. |
 | `Gestione_check.md` | Architettura validazione, catalogo validatori, DbErrorTranslator |
 | `DataBaseLocale.md` | Credenziali e comandi Docker per sviluppo locale |
@@ -385,8 +391,8 @@ es: 401_Create_FnGetClientiAttivi.sql
 ## 17. FLUSSO TIPICO AGGIUNTA FEATURE
 
 1. **Creare function PostgreSQL** in un file `NNN_*.sql`
-2. **Deploy su Docker** con `docker exec -i ...`
-3. **Aggiornare `Documents/Funzioni_DB.md`**
+2. **Deploy su Docker** con `./deploy_sql.sh SqlScripts/NNN_*.sql` (rigenera anche l'appendice auto in fondo a `Funzioni_DB.md`)
+3. **Aggiornare la parte curata di `Documents/Funzioni_DB.md`** (usare l'appendice auto-generata per verificare di non aver dimenticato nulla)
 4. **Creare/aggiornare Model** in `Models/`
 5. **Creare/aggiornare Service** in `Services/CRUD/` — chiama la function, niente SQL inline
 6. **Registrare il service** in `MauiProgram.cs` se nuovo
