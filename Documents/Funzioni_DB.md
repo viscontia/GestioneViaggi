@@ -1160,7 +1160,10 @@ Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`. Chiavi Stripe/s
 - **`ana_clienti`** (`SqlScripts/428`) — consenso marketing: `consenso_marketing BOOLEAN DEFAULT false`, `consenso_marketing_data`, `consenso_marketing_fonte`. + `controparte_fk INTEGER NULL` (**predisposizione Fase 4**, SENZA FK: `ana_fornitori` citata dalla Spec §1.4 NON esiste; target reale previsto `ana_controparti(controparte_id)`, vincolo differito).
 - **`ana_aziende`** (`SqlScripts/429`) — `token_iscrizione VARCHAR(64)`: token per il link "Iscriviti" dell'app iscrizioni Flask (da allineare al `.env` su Hetzner).
 
+> **Correzioni da review consolidata** (`SqlScripts/430`): CHECK `lingua IN ('IT','FR','EN','DE','ES')` su `web_newsletter_iscritti`, `web_newsletter_invii_destinatari`, `web_pagamenti_reminder_log`; `ON DELETE SET NULL` sulle FK di arricchimento `web_newsletter_iscritti.cliente_fk` e `web_pagamenti_reminder_regole.ccn_email_fk`.
+
 > **Rollback:** `SqlScripts/499_Rollback_EstensioneWeb.sql` annulla l'intero schema estensione (alter + 19 tabelle + `trg_web_audit` + ruolo `anon`), idempotente `IF EXISTS`. Solo locale, con backup.
+
 
 
 
@@ -1690,7 +1693,6 @@ Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`. Chiavi Stripe/s
 - `trg_prevent_client_delete_func`
 - `trg_user_roles_delete_protection`
 - `trg_user_roles_updated_at`
-- `trg_web_audit`
 - `update_changetimestamp_column`
 - `update_modified_column`
 - `update_updated_at_column`
