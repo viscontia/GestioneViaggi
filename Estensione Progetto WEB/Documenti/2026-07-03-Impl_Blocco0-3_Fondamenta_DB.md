@@ -28,7 +28,8 @@ Ogni nuova tabella di dominio termina con:
 -- audit trigger condiviso
 CREATE TRIGGER trg_<tabella>_audit BEFORE INSERT OR UPDATE ON <tabella>
     FOR EACH ROW EXECUTE FUNCTION trg_web_audit();
--- indice tenant
+-- indice tenant — SOLO se la tabella NON ha già una UNIQUE/indice che inizia per (azienda_id, …)
+-- (in tal caso il prefisso più a sinistra copre già i filtri su azienda_id → l'indice standalone è ridondante)
 CREATE INDEX idx_<tabella>_azienda ON <tabella>(azienda_id);
 -- RLS: superadmin bypass (come tabelle esistenti)
 ALTER TABLE <tabella> ENABLE ROW LEVEL SECURITY;
@@ -38,6 +39,10 @@ CREATE POLICY superadmin_bypass_all ON <tabella>
 > `created_by` è `NOT NULL` ma viene popolato dal trigger `trg_web_audit()` (priorità `my.app_user` → `current_user` → `'system'`), quindi gli INSERT via funzione non devono passarlo esplicitamente.
 
 **⚠️ Nota naming:** le nuove tabelle usano `azienda_id` (come da Spec), NON `azienda_fk` del legacy. Scelta consapevole per coerenza interna delle `web_*`.
+
+**⚠️ Regola larghezza FK (da code review Task 1.1):** FK verso una PK `web_*` (che è `BIGINT` identity) → colonna **`BIGINT`**; FK verso una PK `ana_*` (che è `INTEGER`, es. `viaggio_id`, `azienda_id`, `cliente_id`) → colonna **`INTEGER`**. La Spec già rispetta questa regola (es. `itinerario_id_fk BIGINT`, `viaggio_id_fk INTEGER`).
+
+**⚠️ Regola indice azienda (da code review Task 1.1):** aggiungere `idx_<tabella>_azienda` **solo** se non esiste già una UNIQUE/indice che parte da `azienda_id`. Tabelle con UNIQUE `(azienda_id, …)` (es. `web_categorie_sport`, `web_tour_contenuti`, `web_aziende_funzioni`, newsletter) → **niente** indice standalone; tabelle senza (es. `web_tour_itinerario` con UNIQUE `(viaggio_id_fk, giorno_numero)`, `web_tour_immagini`) → indice sull'FK più usato in lettura, non necessariamente `azienda_id`.
 
 ### PK dei target FK (verificati sul DB reale)
 `ana_aziende(azienda_id)` · `ana_viaggi(viaggio_id)` · `ana_clienti(cliente_id)` · `ana_date_viaggi(data_viaggio_id)` · `ana_tipo_viaggi(tipo_viaggi_id)` · `ana_controparti(controparte_id)` · `ana_aziende_email(email_id)`. **`ana_fornitori`: PK da riconfermare** (serve solo per `ana_clienti.controparte_fk`, che è predisposizione Fase 4 — vedi Task 1.19).
@@ -216,7 +221,7 @@ CREATE TABLE web_categorie_sport (
     CONSTRAINT uq_web_categorie_sport_codice UNIQUE (azienda_id, codice),
     CONSTRAINT uq_web_categorie_sport_slug   UNIQUE (azienda_id, slug)
 );
-CREATE INDEX idx_web_categorie_sport_azienda ON web_categorie_sport(azienda_id);
+-- niente idx standalone su azienda_id: le due UNIQUE (azienda_id, …) lo coprono già
 CREATE TRIGGER trg_web_categorie_sport_audit BEFORE INSERT OR UPDATE ON web_categorie_sport
     FOR EACH ROW EXECUTE FUNCTION trg_web_audit();
 ALTER TABLE web_categorie_sport ENABLE ROW LEVEL SECURITY;
@@ -226,10 +231,10 @@ CREATE POLICY superadmin_bypass_all ON web_categorie_sport
 Deploy → verifica `\d web_categorie_sport` mostra PK identity, 2 unique, indice, trigger, policy → commit.
 
 ### Task 1.2: Alter `ana_tipo_viaggi` + `web_categoria_fk`
-Spec §1.3. `409_Alter_AnaTipoViaggi_WebCategoria.sql`:
+Spec §1.3. `409_Alter_AnaTipoViaggi_WebCategoria.sql` (FK verso PK `web_*` BIGINT → colonna `BIGINT`):
 ```sql
 ALTER TABLE ana_tipo_viaggi
-    ADD COLUMN web_categoria_fk INTEGER NULL
+    ADD COLUMN web_categoria_fk BIGINT NULL
     REFERENCES web_categorie_sport(web_categorie_sport_id) ON DELETE SET NULL;
 ```
 Verifica: colonna presente, FK valida.
