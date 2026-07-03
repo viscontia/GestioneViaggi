@@ -209,3 +209,43 @@
 **Checklist test ricorrenti:** multi-azienda (isolamento dati) · RLS · contenuti in bozza non pubblici · 5 lingue + hreflang · invio/dedup/disiscrizione newsletter · mappa centrata + niente GPX scaricabile · pagamenti sandbox · promemoria senza doppioni.
 
 **Documentazione da tenere aggiornata:** `Funzioni_DB.md` (funzioni DB), script in `SqlScripts/`, manuale utente per le nuove funzioni del gestionale.
+
+---
+
+## AGGIORNAMENTO DECISIONI — scelte di dettaglio (2026-07-03)
+
+> Rispetto alla stesura iniziale, in fase di progettazione esecutiva e di avvio implementazione sono state prese scelte più fini. Questa sezione le consolida; prevale su quanto sopra dove diverge.
+
+### A. Perimetro e rilascio
+- **Scope di questo repository = gestionale (MAUI) + DB.** Il **sito Next.js (Fase 3)** e la **logica pagamenti Stripe + integrazione contabile (Fase 4)** sono **binari separati**, pianificati a parte.
+- **1° rilascio = Contenuti + Newsletter.** Pagamenti online e blog entrano come **sole tabelle di predisposizione** (create ma non cablate), da attivare in un secondo momento.
+- Costruzione **sequenziale per Fasi**; piano esecutivo di dettaglio in `2026-07-03-Piano_Operativo_Estensione_Web_design.md` (13 blocchi) e `2026-07-03-Impl_Blocco0-3_Fondamenta_DB.md`.
+
+### B. Sicurezza / RLS — scoperta architetturale
+- Le **RLS esistenti sono role-based native** (ruoli Postgres `app_*`), **non** usano `auth.*` di Supabase; il contesto tenant passa dal GUC `my.app_user` (`set_config`).
+- Il **gestionale si connette come superuser `postgres`** → **bypassa le RLS**: l'isolamento multi-tenant reale vive **nelle funzioni PL/pgSQL**. Le **RLS diventano il confine di sicurezza SOLO per la lettura pubblica del sito** (ruolo `anon`, non-superuser).
+- Conseguenza operativa: le policy pubbliche si scrivono **`TO anon` role-based** (niente `auth.*`) e sono **testabili in locale** con `CREATE ROLE anon` + `SET ROLE anon`, **senza Supabase CLI**. `FORCE RLS` non serve (l'app è superuser; `anon` non è owner).
+- **Hardening `EXECUTE`:** `anon` eredita da `PUBLIC` l'`EXECUTE` su tutte le funzioni (incluse `SECURITY DEFINER` che bypassano RLS) → prima di esporre `anon` si esegue `REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC` e si concede `EXECUTE` solo alle `fn_web_*` pubbliche.
+
+### C. Storage media (decisione C2 "A+")
+- Backend = **bucket Supabase di test reale** dietro un **seam `IWebMediaStorage`** (accesso via **HTTP REST + service key**, **niente SDK**).
+- **`storage_path` = sorgente di verità**; l'URL pubblico si **ricompone a runtime dal base-URL d'ambiente** (nessun dato "sporco" dev/prod).
+- **NO Supabase CLI** in locale: troppo invasiva sulla toolchain di deploy consolidata (`deploy_sql.sh`, 400+ script numerati). La `ServiceKey` service-role **non** andrà nel binario client (upload/delete server-side o chiave scoped).
+
+### D. Convenzioni DB fissate
+- Nuove tabelle con **`azienda_id`** (non `azienda_fk` legacy) + coda audit + **trigger condiviso `trg_web_audit()`** + RLS `superadmin_bypass_all`.
+- **Larghezza FK:** verso PK `web_*` (BIGINT identity) → `BIGINT`; verso PK `ana_*` (INTEGER) → `INTEGER`.
+- **Indice azienda** standalone **solo** se non esiste già una UNIQUE/indice che parte da `azienda_id`.
+- Segreti (ESP/Stripe) cifrati in `JSONB` **riusando il pattern `password_enc`** di `ana_aziende_smtp`.
+
+### E. Correzioni emerse verificando il DB reale
+- **`ana_fornitori` NON esiste**: `ana_clienti.controparte_fk` aggiunta **senza FK** (predisposizione); target reale = `ana_controparti(controparte_id)`, vincolo in Fase 4.
+- **`web_pagamenti_transazioni.mov_transazione_fk` = `INTEGER`** con **FK reale** a `mov_transazioni(transazione_id)` (PK legacy INTEGER) e **`UNIQUE`** (idempotenza 1:1 incasso→contabilità).
+- **`ana_tipo_viaggi.web_categoria_fk` = `BIGINT`** (allineata alla PK identity).
+- **`CHECK lingua IN ('IT','FR','EN','DE','ES')`** su newsletter/reminder; **`ON DELETE SET NULL`** sulle FK di arricchimento nullable.
+
+### F. Approccio "lean" ai componenti
+- **Douglas-Peucker implementato a mano** (~30 righe, no NetTopologySuite); **Claude API** e **Supabase Storage** via `HttpClient`/REST (nessun SDK aggiuntivo). Presenti e riusati: SkiaSharp, ImageSharp, Blazored.TextEditor, QuestPDF, Npgsql.
+
+### G. Stato avanzamento (2026-07-03)
+- **Blocco 0** (preparazione: ruolo `anon`, `trg_web_audit`, seam storage) e **Blocco 1** (19 tabelle + alter + rollback) **completati e verificati in locale**; **Blocco 2** (funzioni PL/pgSQL) in corso. Riferimenti campo-per-campo e diagramma E/R in `Dettaglio_Tabelle_DB.md`.
