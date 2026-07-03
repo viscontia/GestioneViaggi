@@ -1118,7 +1118,9 @@ Categorie sportive (es. `FUORISTRADA`, `QUAD`, `MOTO_ENDURO`, `MOTO_STRADALE`) m
 
 ### Colonna `ana_tipo_viaggi.web_categoria_fk` — mappatura tipo viaggio → categoria sport web
 
-Colonna `INTEGER NULL` aggiunta a `ana_tipo_viaggi` che associa un tipo viaggio a una categoria sport del sito. FK `web_categoria_fk → web_categorie_sport(web_categorie_sport_id)` ON DELETE SET NULL (se la categoria viene eliminata, il tipo viaggio resta senza mappatura). **Script**: `SqlScripts/409_Alter_AnaTipoViaggi_WebCategoria.sql`.
+Colonna `BIGINT NULL` aggiunta a `ana_tipo_viaggi` che associa un tipo viaggio a una categoria sport del sito (allineata alla PK `BIGINT` identity di `web_categorie_sport`). FK `web_categoria_fk → web_categorie_sport(web_categorie_sport_id)` ON DELETE SET NULL (se la categoria viene eliminata, il tipo viaggio resta senza mappatura). **Script**: `SqlScripts/409_Alter_AnaTipoViaggi_WebCategoria.sql`.
+
+
 
 
 

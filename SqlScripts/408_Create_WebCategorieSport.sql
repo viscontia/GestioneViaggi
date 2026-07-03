@@ -12,7 +12,6 @@ CREATE TABLE web_categorie_sport (
     CONSTRAINT uq_web_categorie_sport_codice UNIQUE (azienda_id, codice),
     CONSTRAINT uq_web_categorie_sport_slug   UNIQUE (azienda_id, slug)
 );
-CREATE INDEX idx_web_categorie_sport_azienda ON web_categorie_sport(azienda_id);
 CREATE TRIGGER trg_web_categorie_sport_audit BEFORE INSERT OR UPDATE ON web_categorie_sport
     FOR EACH ROW EXECUTE FUNCTION trg_web_audit();
 ALTER TABLE web_categorie_sport ENABLE ROW LEVEL SECURITY;
