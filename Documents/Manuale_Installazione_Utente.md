@@ -1,7 +1,7 @@
 # Manuale di Installazione — Gestione Viaggi per Windows
 
-**Versione**: 1.25
-**Ultimo aggiornamento**: Aprile 2026
+**Versione**: 1.35
+**Ultimo aggiornamento**: Luglio 2026
 **A chi è rivolto**: Utenti finali — nessuna conoscenza tecnica richiesta
 
 ---
