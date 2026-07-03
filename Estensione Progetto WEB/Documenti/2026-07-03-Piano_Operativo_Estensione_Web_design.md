@@ -47,7 +47,7 @@ Verificato sul DB reale e sul codice:
 | # | Capability | Rischio | Note |
 |---|-----------|---------|------|
 | 1 | Cifratura segreti per-azienda | Basso | riuso `password_enc` |
-| 2 | Upload Supabase Storage da C# (seam REST) | Medio | nuovo; `storage_path` canonico |
+| 2 | Upload Supabase Storage da C# (seam REST) | Medio | nuovo; `storage_path` canonico. **Vincolo Blocco 7 (da review Task 0.4):** la `ServiceKey` service-role NON va nel binario MAUI client (estraibile) → instradare upload/delete server-side o usare una chiave scoped al bucket; documentare il return di `UploadAsync` (= `storage_path` effettivo). |
 | 3 | GPX → mappa statica (Douglas-Peucker → Geoapify → WebP → Storage) | **Alto** | pezzo più complesso; spike prima della UI |
 | 4 | Traduzione Claude API per-campo (5 lingue, obsolescenza) | Medio | nuova integrazione HTTP |
 | 5 | Strato lettura pubblica + RLS `anon` | Medio | testabile in locale (vedi C3) |
