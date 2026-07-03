@@ -1,0 +1,87 @@
+digraph ER_Estensione_Web {
+    rankdir=LR;
+    graph [splines=spline, nodesep=0.45, ranksep=1.05, bgcolor="white", fontname="Helvetica", pad=0.3];
+    node  [shape=plain, fontname="Helvetica", fontsize=11];
+    edge  [color="#5b6b63", penwidth=1.3, fontname="Helvetica", fontsize=9, fontcolor="#3a4a42", dir=both];
+
+    // ===== Legenda / titolo =====
+    labelloc="t";
+    label=<<font point-size="20" color="#0b3d2e"><b>Estensione Web — Diagramma E/R</b></font><br/><font point-size="10" color="#667">Ogni tabella ha inoltre <b>azienda_id → ana_aziende</b> (hub multi-tenant, archi omessi per chiarezza). Notazione: &#124;&#124; = uno · &lt; = molti · O&lt; = zero-o-molti</font>>;
+
+    // ===== Tabelle esistenti (grigio) =====
+    node [color="#9aa5a0"];
+    ana_viaggi        [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>ana_viaggi</b></font></td></tr><tr><td align="left"><b>viaggio_id</b> PK</td></tr></table>>];
+    ana_tipo_viaggi   [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>ana_tipo_viaggi</b></font></td></tr><tr><td align="left"><b>tipo_viaggi_id</b> PK</td></tr><tr><td align="left"><i>web_categoria_fk</i> (NEW)</td></tr></table>>];
+    ana_clienti       [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>ana_clienti</b></font></td></tr><tr><td align="left"><b>cliente_id</b> PK</td></tr><tr><td align="left"><i>consenso_marketing, controparte_fk</i> (NEW)</td></tr></table>>];
+    ana_date_viaggi   [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>ana_date_viaggi</b></font></td></tr><tr><td align="left"><b>data_viaggio_id</b> PK</td></tr></table>>];
+    ana_aziende_email [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>ana_aziende_email</b></font></td></tr><tr><td align="left"><b>email_id</b> PK</td></tr></table>>];
+    mov_transazioni   [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#6b7280"><font color="white"><b>mov_transazioni</b></font></td></tr><tr><td align="left"><b>transazione_id</b> PK</td></tr></table>>];
+
+    // ===== Cluster: Contenuti tour (verde) =====
+    subgraph cluster_tour {
+        label=<<font color="#0b7a4b"><b>Contenuti tour</b></font>>; color="#bfe0d0"; style="rounded"; fontname="Helvetica";
+        node [color="#0b7a4b"];
+        web_categorie_sport [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_categorie_sport</b></font></td></tr><tr><td align="left"><b>web_categorie_sport_id</b> PK</td></tr><tr><td align="left">codice · slug</td></tr></table>>];
+        web_tour_contenuti [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_tour_contenuti</b></font></td></tr><tr><td align="left"><b>web_tour_contenuti_id</b> PK</td></tr><tr><td align="left"><i>viaggio_id_fk</i> UQ · slug · stato</td></tr></table>>];
+        web_tour_itinerario [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_tour_itinerario</b></font></td></tr><tr><td align="left"><b>web_tour_itinerario_id</b> PK</td></tr><tr><td align="left"><i>viaggio_id_fk</i> · giorno_numero</td></tr></table>>];
+        web_tour_itinerario_passaggi [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_tour_itinerario_passaggi</b></font></td></tr><tr><td align="left"><b>...passaggi_id</b> PK</td></tr><tr><td align="left"><i>itinerario_id_fk</i> (CASCADE)</td></tr></table>>];
+        web_tour_immagini [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_tour_immagini</b></font></td></tr><tr><td align="left"><b>web_tour_immagini_id</b> PK</td></tr><tr><td align="left"><i>viaggio_id_fk</i> · tipo</td></tr></table>>];
+        web_tour_mappa [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0b7a4b"><font color="white"><b>web_tour_mappa</b></font></td></tr><tr><td align="left"><b>web_tour_mappa_id</b> PK</td></tr><tr><td align="left"><i>viaggio_id_fk</i> UQ</td></tr></table>>];
+    }
+
+    // ===== Cluster: Traduzioni (teal) =====
+    web_traduzioni [color="#0891b2", label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#0891b2"><font color="white"><b>web_traduzioni</b></font></td></tr><tr><td align="left"><b>web_traduzioni_id</b> PK</td></tr><tr><td align="left">entita · entita_id · lingua <i>(polimorfica)</i></td></tr></table>>];
+
+    // ===== Cluster: Newsletter (blu) =====
+    subgraph cluster_nl {
+        label=<<font color="#2563eb"><b>Newsletter</b></font>>; color="#cdddfb"; style="rounded";
+        node [color="#2563eb"];
+        web_newsletter_iscritti [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#2563eb"><font color="white"><b>web_newsletter_iscritti</b></font></td></tr><tr><td align="left"><b>...iscritti_id</b> PK</td></tr><tr><td align="left">email · <i>cliente_fk</i> (SET NULL)</td></tr></table>>];
+        web_newsletter_invii [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#2563eb"><font color="white"><b>web_newsletter_invii</b></font></td></tr><tr><td align="left"><b>web_newsletter_invii_id</b> PK</td></tr></table>>];
+        web_newsletter_invii_destinatari [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#2563eb"><font color="white"><b>...invii_destinatari</b></font></td></tr><tr><td align="left"><b>...destinatari_id</b> PK</td></tr><tr><td align="left"><i>invio_id_fk</i> (CASCADE)</td></tr></table>>];
+        web_newsletter_soppressioni [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#2563eb"><font color="white"><b>web_newsletter_soppressioni</b></font></td></tr><tr><td align="left"><b>...soppressioni_id</b> PK · email</td></tr></table>>];
+    }
+
+    // ===== Cluster: Config per-azienda (viola) =====
+    subgraph cluster_cfg {
+        label=<<font color="#7c3aed"><b>Config per-azienda</b></font>>; color="#e0d4fb"; style="rounded";
+        node [color="#7c3aed"];
+        web_aziende_funzioni [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#7c3aed"><font color="white"><b>web_aziende_funzioni</b></font></td></tr><tr><td align="left"><b>...funzioni_id</b> PK · funzione</td></tr></table>>];
+        ana_aziende_esp [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#7c3aed"><font color="white"><b>ana_aziende_esp</b></font></td></tr><tr><td align="left"><b>ana_aziende_esp_id</b> PK · api_key_enc</td></tr></table>>];
+    }
+
+    // ===== Cluster: Pagamenti (ambra, predisposizione) =====
+    subgraph cluster_pay {
+        label=<<font color="#b45309"><b>Pagamenti (predisposizione Fase 4)</b></font>>; color="#f4dcb8"; style="rounded";
+        node [color="#b45309"];
+        web_pagamenti_config [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#b45309"><font color="white"><b>web_pagamenti_config</b></font></td></tr><tr><td align="left"><b>...config_id</b> PK (1/azienda)</td></tr></table>>];
+        web_pagamenti_regole [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#b45309"><font color="white"><b>web_pagamenti_regole</b></font></td></tr><tr><td align="left"><b>...regole_id</b> PK (1/azienda)</td></tr></table>>];
+        web_pagamenti_reminder_regole [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#b45309"><font color="white"><b>web_pagamenti_reminder_regole</b></font></td></tr><tr><td align="left"><b>...reminder_regole_id</b> PK</td></tr><tr><td align="left"><i>ccn_email_fk</i> (SET NULL)</td></tr></table>>];
+        web_pagamenti_transazioni [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#b45309"><font color="white"><b>web_pagamenti_transazioni</b></font></td></tr><tr><td align="left"><b>...transazioni_id</b> PK</td></tr><tr><td align="left"><i>cliente_fk · data_viaggio_id_fk</i></td></tr><tr><td align="left"><i>mov_transazione_fk</i> UQ</td></tr></table>>];
+        web_pagamenti_reminder_log [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#b45309"><font color="white"><b>web_pagamenti_reminder_log</b></font></td></tr><tr><td align="left"><b>...reminder_log_id</b> PK</td></tr><tr><td align="left"><i>transazione_fk · reminder_regola_fk</i></td></tr></table>>];
+    }
+
+    // ===== Blog (slate) =====
+    web_blog_articoli [color="#475569", label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="5"><tr><td bgcolor="#475569"><font color="white"><b>web_blog_articoli</b></font></td></tr><tr><td align="left"><b>web_blog_articoli_id</b> PK · slug</td></tr></table>>];
+
+    // ===== Relazioni di dominio =====
+    // 1:1
+    ana_viaggi -> web_tour_contenuti [arrowtail=tee, arrowhead=tee, xlabel="1:1"];
+    ana_viaggi -> web_tour_mappa     [arrowtail=tee, arrowhead=tee, xlabel="1:1"];
+    // 1:N
+    ana_viaggi -> web_tour_itinerario [arrowtail=tee, arrowhead=crow];
+    ana_viaggi -> web_tour_immagini   [arrowtail=tee, arrowhead=crow];
+    web_tour_itinerario -> web_tour_itinerario_passaggi [arrowtail=tee, arrowhead=crow];
+    web_categorie_sport -> ana_tipo_viaggi [arrowtail=tee, arrowhead=crowodot, xlabel="mappa sport"];
+    web_newsletter_invii -> web_newsletter_invii_destinatari [arrowtail=tee, arrowhead=crow];
+    // 0:N (optional)
+    ana_clienti -> web_newsletter_iscritti   [arrowtail=tee, arrowhead=crowodot, style=dashed, xlabel="dedup"];
+    ana_clienti -> web_pagamenti_transazioni [arrowtail=tee, arrowhead=crowodot, style=dashed];
+    ana_date_viaggi -> web_pagamenti_transazioni [arrowtail=tee, arrowhead=crowodot, style=dashed];
+    ana_aziende_email -> web_pagamenti_reminder_regole [arrowtail=tee, arrowhead=crowodot, style=dashed, xlabel="CCN"];
+    // 0:1 idempotenza
+    mov_transazioni -> web_pagamenti_transazioni [arrowtail=tee, arrowhead=teeodot, style=dashed, xlabel="idempotenza 1:1"];
+    // pagamenti interne
+    web_pagamenti_transazioni -> web_pagamenti_reminder_log     [arrowtail=tee, arrowhead=crow];
+    web_pagamenti_reminder_regole -> web_pagamenti_reminder_log [arrowtail=tee, arrowhead=crow];
+}
