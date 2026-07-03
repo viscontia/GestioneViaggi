@@ -1120,6 +1120,21 @@ Categorie sportive (es. `FUORISTRADA`, `QUAD`, `MOTO_ENDURO`, `MOTO_STRADALE`) m
 
 Colonna `BIGINT NULL` aggiunta a `ana_tipo_viaggi` che associa un tipo viaggio a una categoria sport del sito (allineata alla PK `BIGINT` identity di `web_categorie_sport`). FK `web_categoria_fk → web_categorie_sport(web_categorie_sport_id)` ON DELETE SET NULL (se la categoria viene eliminata, il tipo viaggio resta senza mappatura). **Script**: `SqlScripts/409_Alter_AnaTipoViaggi_WebCategoria.sql`.
 
+### Cluster contenuti tour web (1° rilascio)
+
+Tutte con coda standard (`azienda_id` FK `ana_aziende` ON DELETE RESTRICT, audit `created/created_by/updated/updated_by`), trigger `trg_web_audit()`, RLS `superadmin_bypass_all`. Nessun grant ad `anon` (rimandato al Blocco 3).
+
+- **`web_tour_contenuti`** (`SqlScripts/410`) — contenuti editoriali del tour, **1:1** con `ana_viaggi` (`viaggio_id_fk INTEGER UNIQUE`). Campi: sottotitolo, `descrizione_html`, `difficolta` (CHECK `turistica/media/medio_alta/alta`), durata_testo, luoghi_visitati, `info_*_html`, `slug`, meta SEO, `stato_pubblicazione` (CHECK `bozza/pubblicato/archiviato`, default `bozza`), ordine, data_pubblicazione. UNIQUE `(azienda_id, slug)`; indice `(azienda_id, stato_pubblicazione)`.
+- **`web_tour_itinerario`** (`SqlScripts/411`) — giornate dell'itinerario (N per tour). `viaggio_id_fk INTEGER`, giorno_numero, titolo_giornata, ordine. UNIQUE `(viaggio_id_fk, giorno_numero)`.
+- **`web_tour_itinerario_passaggi`** (`SqlScripts/412`) — passaggi di ogni giornata. `itinerario_id_fk BIGINT` → `web_tour_itinerario` **ON DELETE CASCADE**; testo_html, immagine (url/storage_path/didascalia), ordine.
+- **`web_tour_immagini`** (`SqlScripts/413`) — galleria del tour. `viaggio_id_fk INTEGER`, `tipo` (CHECK `principale/galleria`, default `galleria`), url, storage_path, alt/titolo/dimensioni/mime, ordine. Indice `(viaggio_id_fk, tipo, ordine)`; **unique parziale** `uq_web_tour_immagini_principale` (una sola `principale` per tour).
+- **`web_tour_mappa`** (`SqlScripts/414`) — mappa percorso, **1:1** (`viaggio_id_fk INTEGER UNIQUE`). `gpx_originale` (solo server), bbox `NUMERIC(9,6)`, provider (`geoapify`), stile (`osm-bright`), `parametri_render JSONB`, immagine (url/storage_path), data_generazione.
+
+
+
+
+
+
 
 
 
