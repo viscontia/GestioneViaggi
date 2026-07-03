@@ -1088,6 +1088,26 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 - **Supabase (prod)**: 169 funzioni `fn_*`
 - **Differenze**: Nessuna
 
+---
+
+## Estensione Web / Utility
+
+Oggetti fondazionali condivisi da tutte le future tabelle `web_*` (nuovo sito pubblico).
+
+### `trg_web_audit()` — trigger di audit condiviso
+
+Funzione trigger unica, riusata da tutte le tabelle `web_*` (DRY, niente copie per-tabella).
+
+- **INSERT**: se `NEW.created_by` è NULL lo valorizza con `COALESCE(current_setting('my.app_user', true), current_user, 'system')`; se `NEW.created` è NULL lo valorizza con `CURRENT_TIMESTAMP`.
+- **UPDATE**: valorizza sempre `NEW.updated = CURRENT_TIMESTAMP` e `NEW.updated_by = COALESCE(current_setting('my.app_user', true), current_user, 'system')`.
+- Legge il tenant/utente corrente dalla GUC `my.app_user` (impostata dal gestionale via `set_config('my.app_user', <email>, true)`).
+- **Script**: `SqlScripts/407_Create_FnTrgWebAudit.sql`. Va agganciato con un trigger `BEFORE INSERT OR UPDATE` su ogni tabella `web_*` che espone le colonne `created`, `created_by`, `updated`, `updated_by`.
+
+### Ruolo `anon`
+
+Ruolo di sola lettura per il traffico pubblico del sito (equivalente locale dell'`anon` di Supabase): `NOLOGIN`, non superuser, **subisce le RLS** (`rolbypassrls=f`). Ha solo `USAGE` su `schema public`; i `GRANT SELECT` specifici vivono negli script delle singole tabelle web. **Script**: `SqlScripts/406_Setup_RoleAnon.sql`.
+
+
 
 
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
@@ -1395,8 +1415,8 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 | `request_password_reset_retool` | p_email character varying, p_ip_address inet DEFAULT NULL::inet, p_user_agent character varying DEFAULT NULL::character varying | void | Procedura principale per Retool con messaggi italiani |
 | `reset_password_with_token` | p_token character varying, p_new_password_plain text | character varying |  |
 | `reset_password_with_token` | p_token character varying, p_new_password_hash character varying | character varying | Esegue reset password con token e invalida tutti i token utente |
-| `set_user_context` | p_user_id uuid | TABLE(tenant_id text, azienda_id integer, role_code text) | Imposta contesto completo utente: tenant, azienda e ruolo |
 | `set_user_context` | p_user_id uuid, p_azienda_id integer | void |  |
+| `set_user_context` | p_user_id uuid | TABLE(tenant_id text, azienda_id integer, role_code text) | Imposta contesto completo utente: tenant, azienda e ruolo |
 | `sp_ana_aliquote_iva_create` | p_azienda_fk integer, p_iva_codice character varying, p_iva_descrizione character varying, p_iva_percentuale numeric, p_iva_natura character varying, p_is_default boolean, p_is_active boolean, p_ordinamento smallint, p_created_by character varying, p_updated_by character varying | integer | Crea nuova aliquota IVA con validazione e normalizzazione UPPER CASE. Ritorna iva_id. |
 | `sp_ana_aliquote_iva_delete` | p_iva_id integer | void | Elimina aliquota IVA. Solleva eccezione se in uso da altre tabelle. |
 | `sp_ana_aliquote_iva_set_default` | p_iva_id integer, p_azienda_id integer | void | Imposta un'aliquota come default per azienda. Il trigger rimuove automaticamente il flag dalle altre. |
@@ -1412,13 +1432,13 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 | `sp_ana_date_viaggi_create` | p_viaggio_id_fk integer, p_data_viaggio_data_inizio date, p_data_viaggio_data_fine date, p_data_viaggio_effettuato_sino character, p_data_viaggio_costo_pilota integer, p_data_viaggio_costo_passeggero integer, p_data_viaggio_costo_passeggero_auto_guida integer, p_data_viaggio_costo_bambino_0_2 integer, p_data_viaggio_costo_bambino_2_6 integer, p_data_viaggio_costo_bambino_6_12 integer, p_data_viaggio_note character varying, p_azienda_id integer, p_created_by character varying | integer |  |
 | `sp_ana_date_viaggi_delete` | p_data_viaggio_id integer | TABLE(deleted boolean, error_message text) |  |
 | `sp_ana_date_viaggi_update` | p_data_viaggio_id integer, p_data_viaggio_data_inizio date, p_data_viaggio_data_fine date, p_data_viaggio_effettuato_sino character, p_data_viaggio_costo_pilota integer, p_data_viaggio_costo_passeggero integer, p_data_viaggio_costo_passeggero_auto_guida integer, p_data_viaggio_costo_bambino_0_2 integer, p_data_viaggio_costo_bambino_2_6 integer, p_data_viaggio_costo_bambino_6_12 integer, p_data_viaggio_note character varying, p_azienda_id integer, p_updated_by character varying, p_updated timestamp with time zone | void |  |
-| `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false, p_tipo_documento_sdi character varying DEFAULT NULL::character varying | integer |  |
 | `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false | integer |  |
 | `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying | integer | Crea nuova causale con validazione completa e normalizzazione automatica UPPER CASE. |
+| `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false, p_tipo_documento_sdi character varying DEFAULT NULL::character varying | integer |  |
 | `sp_ana_tipi_causali_delete` | p_causale_id integer | void | Elimina causale. Blocca eliminazione se in uso da transazioni. |
-| `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false | void |  |
 | `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean, p_causale_giorni_scadenza_default integer, p_causale_genera_scadenza_auto boolean, p_causale_genera_iva boolean, p_causale_richiede_iva boolean, p_causale_aliquota_iva_default_fk integer, p_is_active boolean, p_updated_by character varying | void | Aggiorna causale esistente con validazione completa e normalizzazione automatica UPPER CASE. |
 | `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false, p_tipo_documento_sdi character varying DEFAULT NULL::character varying | void |  |
+| `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false | void |  |
 | `sp_ana_tipo_fornitore_create` | p_azienda_fk integer, p_descrizione character varying, p_categoria character varying DEFAULT NULL::character varying, p_conto_contabile_default character varying DEFAULT NULL::character varying | integer | Crea nuovo tipo fornitore con normalizzazione UPPER CASE e validazioni business logic |
 | `sp_ana_tipo_fornitore_delete` | p_tipo_fornitore_id integer | void | Elimina tipo fornitore. Blocca eliminazione se in uso da controparti (FK violation) |
 | `sp_ana_tipo_fornitore_update` | p_tipo_fornitore_id integer, p_descrizione character varying, p_categoria character varying DEFAULT NULL::character varying, p_conto_contabile_default character varying DEFAULT NULL::character varying | void | Aggiorna tipo fornitore esistente con normalizzazione UPPER CASE e validazioni |
@@ -1454,6 +1474,7 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 | `trg_prevent_client_delete_func` |  | trigger |  |
 | `trg_user_roles_delete_protection` |  | trigger |  |
 | `trg_user_roles_updated_at` |  | trigger |  |
+| `trg_web_audit` |  | trigger |  |
 | `update_changetimestamp_column` |  | trigger |  |
 | `update_modified_column` |  | trigger |  |
 | `update_updated_at_column` |  | trigger |  |
@@ -1590,6 +1611,7 @@ Gli script SQL sono stati corretti per allinearsi allo schema effettivo delle ta
 - `trg_prevent_client_delete_func`
 - `trg_user_roles_delete_protection`
 - `trg_user_roles_updated_at`
+- `trg_web_audit`
 - `update_changetimestamp_column`
 - `update_modified_column`
 - `update_updated_at_column`
