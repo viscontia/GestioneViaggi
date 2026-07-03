@@ -1107,6 +1107,21 @@ Funzione trigger unica, riusata da tutte le tabelle `web_*` (DRY, niente copie p
 
 Ruolo di sola lettura per il traffico pubblico del sito (equivalente locale dell'`anon` di Supabase): `NOLOGIN`, non superuser, **subisce le RLS** (`rolbypassrls=f`). Ha solo `USAGE` su `schema public`; i `GRANT SELECT` specifici vivono negli script delle singole tabelle web. **Script**: `SqlScripts/406_Setup_RoleAnon.sql`.
 
+### Tabella `web_categorie_sport` — categorie "Sport" del sito
+
+Categorie sportive (es. `FUORISTRADA`, `QUAD`, `MOTO_ENDURO`, `MOTO_STRADALE`) mostrate sul sito pubblico, per azienda (multi-tenant).
+
+- **Colonne**: `web_categorie_sport_id` (PK identity), `codice` VARCHAR(20), `etichetta` VARCHAR(50), `slug` VARCHAR(50), `ordine` INTEGER DEFAULT 0, più coda standard `azienda_id` / `created_by` / `created` / `updated_by` / `updated`.
+- **Vincoli**: unique `(azienda_id, codice)` e `(azienda_id, slug)`; FK `azienda_id → ana_aziende(azienda_id)` ON DELETE RESTRICT.
+- **Audit/RLS**: trigger `trg_web_categorie_sport_audit` (usa `trg_web_audit()`); RLS abilitata con policy `superadmin_bypass_all` per `app_superadmin`.
+- **Script**: `SqlScripts/408_Create_WebCategorieSport.sql`.
+
+### Colonna `ana_tipo_viaggi.web_categoria_fk` — mappatura tipo viaggio → categoria sport web
+
+Colonna `INTEGER NULL` aggiunta a `ana_tipo_viaggi` che associa un tipo viaggio a una categoria sport del sito. FK `web_categoria_fk → web_categorie_sport(web_categorie_sport_id)` ON DELETE SET NULL (se la categoria viene eliminata, il tipo viaggio resta senza mappatura). **Script**: `SqlScripts/409_Alter_AnaTipoViaggi_WebCategoria.sql`.
+
+
+
 
 
 
