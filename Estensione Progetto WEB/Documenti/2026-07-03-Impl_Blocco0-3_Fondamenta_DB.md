@@ -444,7 +444,14 @@ docker exec -i postgres_db psql -U postgres -d gestione_viaggi -c "
 SELECT table_name, privilege_type FROM information_schema.role_table_grants
 WHERE grantee='anon' ORDER BY 1;"
 ```
-Expected: SOLO `SELECT` sulle tabelle-contenuto web previste + `INSERT` su `web_newsletter_iscritti` (Task 3.4). Nessun grant su tabelle operative/contabili/config/pagamenti. Se compare altro → revocare. Commit.
+Expected: SOLO `SELECT` sulle tabelle-contenuto web previste + `INSERT` su `web_newsletter_iscritti` (Task 3.4). Nessun grant su tabelle operative/contabili/config/pagamenti. Se compare altro → revocare.
+**Estendere l'audit ai GRANT sulle FUNZIONI** (non solo tabelle) — vedi Task 3.5:
+```bash
+docker exec -i postgres_db psql -U postgres -d gestione_viaggi -c "
+SELECT routine_name, privilege_type FROM information_schema.role_routine_grants
+WHERE grantee IN ('anon','PUBLIC') ORDER BY 1;"
+```
+Commit.
 
 ### Task 3.3: Funzioni/viste di lettura per il sito
 Esporre (o riusare `fn_web_tour_pubblicati`) le letture per: lista tour, dettaglio, itinerario, immagini, mappa, categorie, prezzi/date, traduzioni — tutte già filtrate su pubblicato e per lingua.
@@ -452,7 +459,33 @@ Esporre (o riusare `fn_web_tour_pubblicati`) le letture per: lista tour, dettagl
 
 Verifica: eseguite come `anon` restituiscono solo pubblicati. Doc + commit.
 
-**→ Checkpoint finale del chunk: DB "pronto per il sito" — schema + funzioni + RLS anon verificati, senza UI.**
+### Task 3.5: Hardening EXECUTE per `anon` (chiudere l'ereditarietà da PUBLIC) — *emerso da code review Task 0.2/0.3*
+**Files:** Create `SqlScripts/452_Rls_Harden_AnonExecute.sql`
+**Problema:** in PostgreSQL ogni funzione ha `EXECUTE` di default a `PUBLIC`; `anon` è membro implicito di `PUBLIC` → eredita l'`EXECUTE` su TUTTE le funzioni, incluse le ~23 `SECURITY DEFINER` esistenti (auth, gestione utenti) che girano come owner-superuser e **bypassano le RLS**. Va chiuso PRIMA che `anon` sia raggiungibile dal sito (Supabase: anon key → ruolo `anon`).
+
+**Step 1: Verifica-che-fallisce (mostra il buco)**
+```bash
+docker exec -i postgres_db psql -U postgres -d gestione_viaggi -c "
+SELECT count(*) AS funzioni_eseguibili_da_public
+FROM information_schema.role_routine_grants WHERE grantee='PUBLIC' AND privilege_type='EXECUTE';"
+```
+Expected: numero > 0 (il buco esiste).
+
+**Step 2: Script** — revoca l'EXECUTE di massa da PUBLIC e ri-concede SOLO le funzioni di lettura pubblica del sito ad `anon`:
+```sql
+-- Chiude l'ereditarietà: nessuna funzione eseguibile da PUBLIC (quindi da anon) per default.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC;
+-- (difesa in profondità) nessuna creazione oggetti da PUBLIC nello schema
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+-- Ri-concede l'EXECUTE SOLO sulle funzioni di lettura pubblica destinate al sito (Task 3.3).
+-- Elencare esplicitamente ogni fn_web_* pubblica, es.:
+-- GRANT EXECUTE ON FUNCTION fn_web_tour_pubblicati(INTEGER, CHAR) TO anon;
+```
+> **⚠️ Impatto da verificare PRIMA del deploy:** il gestionale si connette come superuser `postgres` (bypassa i grant → non impattato). Verificare però che i ruoli applicativi `app_tenant_user`/`app_tenant_admin`/`app_readonly` **non** dipendano dall'EXECUTE ereditato da PUBLIC per funzionare (oggi l'app gira come `postgres`, quindi il rischio è teorico, ma va confermato). Se dipendessero, concedere esplicitamente l'EXECUTE ai ruoli `app_*` sulle funzioni che usano, invece di lasciarlo a PUBLIC. **Non deployare finché questo impatto non è confermato.**
+
+**Step 3: Deploy** → **Step 4: Verifica** `anon` (via `SET ROLE anon`) NON può più chiamare una funzione `SECURITY DEFINER` sensibile, e PUÒ chiamare le `fn_web_*` pubbliche esplicitamente concesse. Ripetere l'audit routine-grants del Task 3.2. **Step 5: Commit.**
+
+**→ Checkpoint finale del chunk: DB "pronto per il sito" — schema + funzioni + RLS anon (tabelle E funzioni) verificati, senza UI.**
 
 ---
 
