@@ -1130,6 +1130,25 @@ Tutte con coda standard (`azienda_id` FK `ana_aziende` ON DELETE RESTRICT, audit
 - **`web_tour_immagini`** (`SqlScripts/413`) — galleria del tour. `viaggio_id_fk INTEGER`, `tipo` (CHECK `principale/galleria`, default `galleria`), url, storage_path, alt/titolo/dimensioni/mime, ordine. Indice `(viaggio_id_fk, tipo, ordine)`; **unique parziale** `uq_web_tour_immagini_principale` (una sola `principale` per tour).
 - **`web_tour_mappa`** (`SqlScripts/414`) — mappa percorso, **1:1** (`viaggio_id_fk INTEGER UNIQUE`). `gpx_originale` (solo server), bbox `NUMERIC(9,6)`, provider (`geoapify`), stile (`osm-bright`), `parametri_render JSONB`, immagine (url/storage_path), data_generazione.
 
+### Traduzioni, newsletter e config per-azienda (1° rilascio)
+
+Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`; nessun grant ad `anon` (Blocco 3). `email` = `CITEXT` (case-insensitive).
+
+- **`web_traduzioni`** (`SqlScripts/415`) — traduzioni per-campo **polimorfiche** (`entita`, `entita_id BIGINT`, `campo`, `lingua CHAR(2)` CHECK `FR/EN/DE/ES`; IT = sorgente, non qui). Flag `tradotto_auto/revisionato/obsoleto`. UNIQUE `(entita, entita_id, campo, lingua)`.
+- **`web_newsletter_iscritti`** (`SqlScripts/416`) — iscritti newsletter. `email CITEXT`, lingua, consenso (+data/fonte), `stato` CHECK `attivo/disiscritto`, `token_disiscrizione`, `cliente_fk → ana_clienti` (solo dedup). UNIQUE `(azienda_id, email)`.
+- **`web_newsletter_invii`** (`SqlScripts/417`) — invii (IT; traduzioni in `web_traduzioni`). `stato` CHECK `bozza/in_invio/inviata`, canale, numero_destinatari.
+- **`web_newsletter_invii_destinatari`** (`SqlScripts/418`) — log consegna per destinatario. `invio_id_fk BIGINT` → `web_newsletter_invii` **ON DELETE CASCADE**; email, stato_consegna.
+- **`web_newsletter_soppressioni`** (`SqlScripts/419`) — lista soppressione (esclusa da ogni invio). `motivo`, UNIQUE `(azienda_id, email)`.
+- **`web_aziende_funzioni`** (`SqlScripts/420`) — toggle funzioni per-azienda (recensioni/pagamenti_online/blog/newsletter_esp/…). `attiva`, `parametri JSONB`. UNIQUE `(azienda_id, funzione)`.
+- **`ana_aziende_esp`** (`SqlScripts/421`) — credenziali ESP per-azienda (1 per azienda: `azienda_id UNIQUE`). `api_key_enc JSONB` **cifrata** (pattern `password_enc`), sender_email/name/domain, attivo.
+
+
+
+
+
+
+
+
 
 
 
