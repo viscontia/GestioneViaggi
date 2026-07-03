@@ -1142,6 +1142,25 @@ Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`; nessun grant ad
 - **`web_aziende_funzioni`** (`SqlScripts/420`) — toggle funzioni per-azienda (recensioni/pagamenti_online/blog/newsletter_esp/…). `attiva`, `parametri JSONB`. UNIQUE `(azienda_id, funzione)`.
 - **`ana_aziende_esp`** (`SqlScripts/421`) — credenziali ESP per-azienda (1 per azienda: `azienda_id UNIQUE`). `api_key_enc JSONB` **cifrata** (pattern `password_enc`), sender_email/name/domain, attivo.
 
+### Predisposizione pagamenti + blog (create ma NON cablate nel 1° rilascio)
+
+Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`. Chiavi Stripe/segreti in `JSONB` cifrati lato app; importi in **centesimi** (`INTEGER`).
+
+- **`web_pagamenti_config`** (`SqlScripts/422`) — chiavi Stripe per-azienda (`azienda_id UNIQUE`): `stripe_publishable_key`, `stripe_secret_key_enc`/`stripe_webhook_secret_enc` cifrate, `modo` CHECK `test/live`.
+- **`web_pagamenti_regole`** (`SqlScripts/423`) — regole pagamento per-azienda (`azienda_id UNIQUE`): `modalita` CHECK `soluzione_unica/acconto_saldo` + scadenze acconto/saldo/unica (CHECK sui tipi), valuta.
+- **`web_pagamenti_reminder_regole`** (`SqlScripts/424`) — regole promemoria/solleciti (N per azienda): `tipo` CHECK `promemoria/sollecito`, `offset_giorni`, CCN operatore (`ccn_email_fk → ana_aziende_email`), template IT.
+- **`web_pagamenti_transazioni`** (`SqlScripts/425`) — incassi Stripe. `importo_cent INTEGER`, `tipo` CHECK `acconto/saldo/unica`, `stato` CHECK `creato/in_attesa/pagato/fallito/rimborsato`, link Stripe, `data_viaggio_id_fk`/`cliente_fk`. **`mov_transazione_fk INTEGER`** → `mov_transazioni(transazione_id)` (PK legacy INTEGER) **UNIQUE** = idempotenza 1:1 incasso→contabilità. Campi fattura (numero/pdf_storage_path/inviata_data). Indici `(azienda_id, stato)`, `(scadenza)`.
+- **`web_pagamenti_reminder_log`** (`SqlScripts/426`) — log promemoria anti-duplicati. `transazione_fk` → `web_pagamenti_transazioni` ON DELETE CASCADE; UNIQUE `(transazione_fk, reminder_regola_fk)`.
+- **`web_blog_articoli`** (`SqlScripts/427`) — blog/diario. slug UNIQUE per azienda, `stato_pubblicazione` CHECK, meta SEO.
+
+> **Nota deviazione da Spec §2.17:** `mov_transazione_fk` è `INTEGER` (non `BIGINT`) per allinearsi alla PK legacy `mov_transazioni.transazione_id` (INTEGER) e consentire una FK reale; aggiunto `UNIQUE` per l'idempotenza indicata dalla Spec.
+
+
+
+
+
+
+
 
 
 
