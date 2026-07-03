@@ -1155,6 +1155,15 @@ Coda standard + `trg_web_audit()` + RLS `superadmin_bypass_all`. Chiavi Stripe/s
 
 > **Nota deviazione da Spec §2.17:** `mov_transazione_fk` è `INTEGER` (non `BIGINT`) per allinearsi alla PK legacy `mov_transazioni.transazione_id` (INTEGER) e consentire una FK reale; aggiunto `UNIQUE` per l'idempotenza indicata dalla Spec.
 
+### Modifiche a tabelle esistenti (`ana_*`)
+
+- **`ana_clienti`** (`SqlScripts/428`) — consenso marketing: `consenso_marketing BOOLEAN DEFAULT false`, `consenso_marketing_data`, `consenso_marketing_fonte`. + `controparte_fk INTEGER NULL` (**predisposizione Fase 4**, SENZA FK: `ana_fornitori` citata dalla Spec §1.4 NON esiste; target reale previsto `ana_controparti(controparte_id)`, vincolo differito).
+- **`ana_aziende`** (`SqlScripts/429`) — `token_iscrizione VARCHAR(64)`: token per il link "Iscriviti" dell'app iscrizioni Flask (da allineare al `.env` su Hetzner).
+
+> **Rollback:** `SqlScripts/499_Rollback_EstensioneWeb.sql` annulla l'intero schema estensione (alter + 19 tabelle + `trg_web_audit` + ruolo `anon`), idempotente `IF EXISTS`. Solo locale, con backup.
+
+
+
 
 
 
