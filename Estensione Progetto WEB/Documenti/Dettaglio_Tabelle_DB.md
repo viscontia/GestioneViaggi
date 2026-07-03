@@ -4,6 +4,13 @@
 > 🔧 **USO INTERNO (Adriano + AI).** Spec **campo-per-campo** delle modifiche al DB. Verificato sul DB reale (PostgreSQL **17.7**, Docker `postgres_db`, db `gestione_viaggi`).
 > **Versione:** 1.0 · **Data:** 20 Giugno 2026
 
+> ## ⚙️ STATO AS-BUILT — aggiornamento 2026-07-03
+> Lo schema è stato **implementato e deployato in locale** (branch `feature/estensione-web`, script `406`–`430`; funzioni CRUD da `431`). Convenzioni confermate: ogni tabella con `azienda_id` + audit + trigger condiviso `trg_web_audit()` + RLS `superadmin_bypass_all`. **Deviazioni rispetto a questa spec, decise durante l'implementazione** (celle qui sotto già aggiornate):
+> - **§1.3** `ana_tipo_viaggi.web_categoria_fk` → **`BIGINT`** (non INTEGER): la PK `web_categorie_sport_id` è `BIGINT` identity. Regola generale: FK verso PK `web_*` = `BIGINT`, verso PK `ana_*` = `INTEGER`.
+> - **§1.4** `ana_clienti.controparte_fk` → aggiunta **senza FK** (predisposizione): la tabella `ana_fornitori` citata **non esiste**; target reale = `ana_controparti(controparte_id)`; il vincolo si aggiunge in **Fase 4**.
+> - **§2.17** `web_pagamenti_transazioni.mov_transazione_fk` → **`INTEGER`** (non BIGINT) con **FK reale** a `mov_transazioni(transazione_id)` (PK legacy INTEGER) e **`UNIQUE`** (idempotenza 1:1).
+> - **Aggiunte da review** (`SqlScripts/430`): `CHECK lingua IN ('IT','FR','EN','DE','ES')` su `web_newsletter_iscritti`, `web_newsletter_invii_destinatari`, `web_pagamenti_reminder_log`; `ON DELETE SET NULL` su `web_newsletter_iscritti.cliente_fk` e `web_pagamenti_reminder_regole.ccn_email_fk`.
+
 ---
 
 ## CONVENZIONI (valgono per tutte le tabelle nuove)
@@ -18,6 +25,179 @@
 - **Enum:** realizzati con `VARCHAR(n) + CHECK` (come `data_viaggio_effettuato_sino`).
 - **Accesso:** tutto via **funzioni PL/pgSQL** (DB-First) + documentazione in `Funzioni_DB.md`. Script numerati in `SqlScripts/`.
 - **Importi pagamenti:** in **centesimi** (`INTEGER`, unità minima Stripe) + `valuta CHAR(3) DEFAULT 'EUR'`.
+
+---
+
+## DIAGRAMMA E/R (as-built, 2026-07-03)
+
+> Panoramica delle 19 nuove tabelle e dei legami con le tabelle esistenti (in grigio i riferimenti a entità già presenti: `ana_aziende`, `ana_viaggi`, `ana_tipo_viaggi`, `ana_clienti`, `ana_date_viaggi`, `ana_aziende_email`, `mov_transazioni`). Tutte le tabelle di dominio hanno `azienda_id → ana_aziende` (hub multi-tenant). `web_traduzioni` è **polimorfica** (nessuna FK verso l'entità tradotta, solo `entita`/`entita_id`).
+
+```mermaid
+erDiagram
+    ana_aziende {
+        int azienda_id PK
+        varchar token_iscrizione "NEW §1.2"
+    }
+    ana_viaggi { int viaggio_id PK }
+    ana_tipo_viaggi {
+        int tipo_viaggi_id PK
+        bigint web_categoria_fk FK "NEW §1.3"
+    }
+    ana_clienti {
+        int cliente_id PK
+        bool consenso_marketing "NEW §1.1"
+        int controparte_fk "NEW §1.4 (no FK, Fase 4)"
+    }
+    ana_date_viaggi { int data_viaggio_id PK }
+    ana_aziende_email { int email_id PK }
+    mov_transazioni { int transazione_id PK }
+
+    web_categorie_sport {
+        bigint web_categorie_sport_id PK
+        int azienda_id FK
+        varchar codice
+        varchar slug
+    }
+    web_tour_contenuti {
+        bigint web_tour_contenuti_id PK
+        int viaggio_id_fk FK "UNIQUE 1:1"
+        int azienda_id FK
+        varchar slug
+        varchar stato_pubblicazione
+    }
+    web_tour_itinerario {
+        bigint web_tour_itinerario_id PK
+        int viaggio_id_fk FK
+        int azienda_id FK
+        int giorno_numero
+    }
+    web_tour_itinerario_passaggi {
+        bigint web_tour_itinerario_passaggi_id PK
+        bigint itinerario_id_fk FK "CASCADE"
+        int azienda_id FK
+    }
+    web_tour_immagini {
+        bigint web_tour_immagini_id PK
+        int viaggio_id_fk FK
+        int azienda_id FK
+        varchar tipo "principale/galleria"
+    }
+    web_tour_mappa {
+        bigint web_tour_mappa_id PK
+        int viaggio_id_fk FK "UNIQUE 1:1"
+        int azienda_id FK
+    }
+    web_traduzioni {
+        bigint web_traduzioni_id PK
+        int azienda_id FK
+        varchar entita "polimorfica"
+        bigint entita_id
+        char lingua
+    }
+    web_newsletter_iscritti {
+        bigint web_newsletter_iscritti_id PK
+        int azienda_id FK
+        citext email
+        int cliente_fk FK "SET NULL"
+    }
+    web_newsletter_invii {
+        bigint web_newsletter_invii_id PK
+        int azienda_id FK
+        varchar stato
+    }
+    web_newsletter_invii_destinatari {
+        bigint web_newsletter_invii_destinatari_id PK
+        bigint invio_id_fk FK "CASCADE"
+        int azienda_id FK
+    }
+    web_newsletter_soppressioni {
+        bigint web_newsletter_soppressioni_id PK
+        int azienda_id FK
+        citext email
+    }
+    web_aziende_funzioni {
+        bigint web_aziende_funzioni_id PK
+        int azienda_id FK
+        varchar funzione
+    }
+    ana_aziende_esp {
+        bigint ana_aziende_esp_id PK
+        int azienda_id FK "UNIQUE"
+        jsonb api_key_enc
+    }
+    web_pagamenti_config {
+        bigint web_pagamenti_config_id PK
+        int azienda_id FK "UNIQUE"
+    }
+    web_pagamenti_regole {
+        bigint web_pagamenti_regole_id PK
+        int azienda_id FK "UNIQUE"
+    }
+    web_pagamenti_reminder_regole {
+        bigint web_pagamenti_reminder_regole_id PK
+        int azienda_id FK
+        int ccn_email_fk FK "SET NULL"
+    }
+    web_pagamenti_transazioni {
+        bigint web_pagamenti_transazioni_id PK
+        int azienda_id FK
+        int data_viaggio_id_fk FK
+        int cliente_fk FK
+        int mov_transazione_fk FK "UNIQUE 1:1"
+    }
+    web_pagamenti_reminder_log {
+        bigint web_pagamenti_reminder_log_id PK
+        int azienda_id FK
+        bigint transazione_fk FK "CASCADE"
+        bigint reminder_regola_fk FK
+    }
+    web_blog_articoli {
+        bigint web_blog_articoli_id PK
+        int azienda_id FK
+        varchar slug
+    }
+
+    %% Multi-tenant (azienda_id -> ana_aziende)
+    ana_aziende ||--o{ web_categorie_sport : ""
+    ana_aziende ||--o{ web_tour_contenuti : ""
+    ana_aziende ||--o{ web_tour_itinerario : ""
+    ana_aziende ||--o{ web_tour_itinerario_passaggi : ""
+    ana_aziende ||--o{ web_tour_immagini : ""
+    ana_aziende ||--o{ web_tour_mappa : ""
+    ana_aziende ||--o{ web_traduzioni : ""
+    ana_aziende ||--o{ web_newsletter_iscritti : ""
+    ana_aziende ||--o{ web_newsletter_invii : ""
+    ana_aziende ||--o{ web_newsletter_invii_destinatari : ""
+    ana_aziende ||--o{ web_newsletter_soppressioni : ""
+    ana_aziende ||--o{ web_aziende_funzioni : ""
+    ana_aziende ||--|| ana_aziende_esp : ""
+    ana_aziende ||--|| web_pagamenti_config : ""
+    ana_aziende ||--|| web_pagamenti_regole : ""
+    ana_aziende ||--o{ web_pagamenti_reminder_regole : ""
+    ana_aziende ||--o{ web_pagamenti_transazioni : ""
+    ana_aziende ||--o{ web_pagamenti_reminder_log : ""
+    ana_aziende ||--o{ web_blog_articoli : ""
+
+    %% Contenuti tour (ana_viaggi)
+    ana_viaggi ||--|| web_tour_contenuti : "1:1"
+    ana_viaggi ||--|| web_tour_mappa : "1:1"
+    ana_viaggi ||--o{ web_tour_itinerario : ""
+    ana_viaggi ||--o{ web_tour_immagini : ""
+    web_tour_itinerario ||--o{ web_tour_itinerario_passaggi : ""
+    web_categorie_sport ||--o{ ana_tipo_viaggi : "mappa sport"
+
+    %% Newsletter
+    ana_clienti ||--o{ web_newsletter_iscritti : "dedup"
+    web_newsletter_invii ||--o{ web_newsletter_invii_destinatari : ""
+
+    %% Pagamenti (predisposizione Fase 4)
+    ana_clienti ||--o{ web_pagamenti_transazioni : ""
+    ana_date_viaggi ||--o{ web_pagamenti_transazioni : ""
+    mov_transazioni ||--o| web_pagamenti_transazioni : "idempotenza"
+    ana_aziende_email ||--o{ web_pagamenti_reminder_regole : "CCN"
+    web_pagamenti_transazioni ||--o{ web_pagamenti_reminder_log : ""
+    web_pagamenti_reminder_regole ||--o{ web_pagamenti_reminder_log : ""
+```
 
 ---
 
@@ -46,14 +226,14 @@
 
 | Campo (NUOVO) | Tipo | Null | Default | Note |
 |---|---|---|---|---|
-| `web_categoria_fk` | INTEGER | NULL | — | FK → `web_categorie_sport(web_categorie_sport_id)` |
+| `web_categoria_fk` | **BIGINT** | NULL | — | FK → `web_categorie_sport(web_categorie_sport_id)` ON DELETE SET NULL *(as-built: BIGINT per allinearsi alla PK identity)* |
 
 ## 1.4 `ana_clienti` — collegamento alla contabilità *(DECISO: creazione al primo incasso)*
 *Motivo: per far confluire gli incassi Stripe nella contabilità serve collegare il cliente-viaggio (`ana_clienti`) alla controparte fiscale (`ana_controparti` / fisicamente `ana_fornitori`).*
 
 | Campo (NUOVO) | Tipo | Null | Default | Note |
 |---|---|---|---|---|
-| `controparte_fk` | INTEGER | NULL | — | FK → `ana_fornitori` (controparte `is_cliente`). **La controparte si crea/abbina al PRIMO incasso** e il link si **memorizza qui**, per riusarlo al saldo (niente controparti duplicate). |
+| `controparte_fk` | INTEGER | NULL | — | *(as-built: colonna SENZA FK, predisposizione Fase 4)* Target reale = **`ana_controparti(controparte_id)`** (`ana_fornitori` NON esiste). **La controparte si crea/abbina al PRIMO incasso** e il link si **memorizza qui**, per riusarlo al saldo (niente controparti duplicate). FK aggiunta in Fase 4. |
 
 ---
 
@@ -302,7 +482,7 @@
 | `stripe_payment_intent` | VARCHAR(64) | NULL | — | |
 | `stripe_checkout_session` | VARCHAR(80) | NULL | — | |
 | `data_pagamento` | TIMESTAMPTZ | NULL | — | |
-| `mov_transazione_fk` | BIGINT | NULL | — | **link → `mov_transazioni`**: la **FV** generata (l'`IN` la salda). **Idempotenza** incasso→contabilità |
+| `mov_transazione_fk` | **INTEGER** | NULL | — | *(as-built: INTEGER + FK reale + UNIQUE)* **link → `mov_transazioni(transazione_id)`** ON DELETE SET NULL: la **FV** generata (l'`IN` la salda). **`UNIQUE`** = **Idempotenza** 1:1 incasso→contabilità |
 | `fattura_numero` | VARCHAR(30) | NULL | — | numero fattura emessa |
 | `fattura_pdf_storage_path` | VARCHAR(500) | NULL | — | copia di cortesia PDF (Supabase Storage) |
 | `fattura_inviata_data` | TIMESTAMPTZ | NULL | — | quando la copia PDF è stata inviata al cliente |
