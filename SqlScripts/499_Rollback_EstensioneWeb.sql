@@ -1,4 +1,4 @@
--- ROLLBACK completo dello schema Estensione Web (Blocchi 0-1, script 406-429).
+-- ROLLBACK completo dello schema Estensione Web (Blocchi 0-3, script 406-453).
 -- Uso: solo per annullare l'intera estensione in locale. Idempotente (IF EXISTS).
 -- NON eseguire in produzione senza backup.
 
@@ -31,13 +31,41 @@ DROP TABLE IF EXISTS web_tour_itinerario              CASCADE;
 DROP TABLE IF EXISTS web_tour_contenuti               CASCADE;
 DROP TABLE IF EXISTS web_categorie_sport              CASCADE;
 
--- 3) Funzione audit condivisa
+-- 3) Funzioni dell'estensione web non eliminate dal CASCADE delle tabelle
+--    (le funzioni SETOF <tabella> cadono col DROP TABLE; quelle che ritornano
+--    scalari o TABLE(...) - insert/update/delete/servizio - vanno rimosse a mano).
+DO $$
+DECLARE r RECORD;
+BEGIN
+    FOR r IN SELECT p.oid::regprocedure AS firma
+               FROM pg_proc p
+              WHERE p.pronamespace = 'public'::regnamespace
+                AND (p.proname LIKE 'fn\_web\_%'
+                     OR p.proname LIKE 'fn\_ana\_aziende\_esp\_%')
+    LOOP
+        EXECUTE format('DROP FUNCTION IF EXISTS %s', r.firma);
+    END LOOP;
+END $$;
+
+-- Funzione audit condivisa
 DROP FUNCTION IF EXISTS trg_web_audit();
 
--- 4) Ruolo pubblico (revoca i grant residui, poi drop)
+-- 3b) Revert RLS Blocco 3 sulle tabelle legacy (le policy sulle tabelle web cadono col DROP TABLE)
+DROP POLICY IF EXISTS anon_read_if_tour_pubblicato ON ana_viaggi;
+DROP POLICY IF EXISTS anon_read_if_tour_pubblicato ON ana_date_viaggi;
+
+-- 3c) Revert hardening EXECUTE (script 453): ripristina i default Postgres
+GRANT EXECUTE ON ALL ROUTINES IN SCHEMA public TO PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+    GRANT EXECUTE ON FUNCTIONS TO PUBLIC;
+GRANT CREATE ON SCHEMA public TO PUBLIC;
+
+-- 4) Ruolo pubblico: DROP OWNED revoca TUTTI i privilegi concessi ad anon
+--    (grant di colonna sulle ana_* inclusi; senza, il DROP ROLE fallirebbe), poi drop.
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='anon') THEN
+        DROP OWNED BY anon;
         REVOKE USAGE ON SCHEMA public FROM anon;
         DROP ROLE anon;
     END IF;
