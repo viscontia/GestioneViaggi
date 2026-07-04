@@ -163,6 +163,10 @@ public static class MauiProgram
         // ESTENSIONE WEB - SERVIZI CMS (Blocco 4)
         // ==========================================================
         builder.Services.AddScoped<WebTourContenutiService>();
+        builder.Services.AddScoped<WebTourItinerarioService>();
+        builder.Services.AddScoped<WebTourItinerarioPassaggiService>();
+        builder.Services.AddScoped<WebTourImmaginiService>();
+        builder.Services.AddScoped<WebTourMappaService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
