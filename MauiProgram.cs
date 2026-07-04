@@ -14,6 +14,7 @@ using GestioneViaggi.Services.Session;
 using GestioneViaggi.Services.Navigation;
 using GestioneViaggi.Services.UI;
 using GestioneViaggi.Services.CRUD;
+using GestioneViaggi.Services.Web;
 using GestioneViaggi.Services;
 using GestioneViaggi.Repositories;
 using GestioneViaggi.Repositories.Interfaces;
@@ -157,6 +158,11 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaRegimiFiscaliService>();
         builder.Services.AddScoped<FiscalCalculationService>();
         builder.Services.AddScoped<ApiConfigService>();
+
+        // ==========================================================
+        // ESTENSIONE WEB - SERVIZI CMS (Blocco 4)
+        // ==========================================================
+        builder.Services.AddScoped<WebTourContenutiService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
