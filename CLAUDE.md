@@ -79,3 +79,37 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+## graphify (grafo di conoscenza del progetto)
+
+Questo progetto ha un grafo di conoscenza in `graphify-out/` (god node, struttura a community, relazioni cross-file). Esiste `graphify-out/graph.json`.
+
+### A. Uso quotidiano — OBBLIGATORIO orientarsi con graphify PRIMA di leggere i sorgenti
+
+Quando esiste `graphify-out/graph.json`, per qualsiasi domanda sul codebase o esplorazione del codice **devi interrogare graphify prima di leggere/grep-are i file grezzi**:
+- `graphify query "<domanda>"` → sottografo mirato (molto più piccolo di GRAPH_REPORT.md o del grep grezzo). È il punto di partenza per capire "come funziona X", "cosa usa Y", "dov'è definito Z".
+- `graphify path "<A>" "<B>"` → relazione/percorso tra due concetti.
+- `graphify explain "<concetto>"` → spiegazione focalizzata di un nodo.
+- Leggi `graphify-out/GRAPH_REPORT.md` solo per una review architetturale ampia o quando query/path/explain non bastano.
+- Leggi i file sorgente grezzi **solo dopo** che graphify ti ha orientato, oppure per modificare/debuggare righe specifiche.
+- Questa regola vale **anche per i subagent**: includila in ogni prompt di subagent che esplora codice.
+
+### B. Aggiornamento del grafo — mantenerlo allineato dopo ogni modifica
+
+Un `graph.json` obsoleto rende inaffidabili query/path/explain, quindi il grafo va sempre riallineato dopo aver modificato elementi del progetto.
+
+**Codice e script DB → automatico (hook git installato).** È attivo un hook `post-commit` (+`post-checkout`) che, a ogni commit, rileva i file di codice cambiati (`git diff HEAD~1 HEAD`), ri-estrae via AST solo quelli e ricostruisce `graph.json` + `GRAPH_REPORT.md` in background. Copre:
+- **Codice** C#/XAML/Razor/JS (`Components/`, `Services/`, `Models/`, `Validation/`, `Statistics/`, ecc.).
+- **Funzioni/script DB** in `SqlScripts/` (`.sql`) — trattati come file di codice.
+
+Nessun comando manuale necessario per questi: basta committare. (Gestione hook: `graphify hook status | install | uninstall`.)
+
+**Documentazione → manuale via assistente.** Le modifiche a doc/PDF/immagini NON sono coperte dall'hook (richiedono estrazione semantica). Dopo aver aggiornato `Documents/`, `overview.md`, `Funzioni_DB.md` o le spec dell'Estensione Web, esegui nell'assistente:
+
+```
+/graphify --update
+```
+
+Note operative:
+- L'estrazione documentale usa subagent semantici (ha un costo di token); quella del codice è AST puro e gratuita.
+- Evita il raw `graphify update .` da shell per riallineamenti manuali: fa un merge incrementale sull'intero albero che può accumulare nodi. Per il codice affidati all'hook; per i doc usa `/graphify --update`.

@@ -483,3 +483,8 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 Setup Windows/*.exe
+
+# graphify knowledge graph (output di tooling rigenerabile: cache AST, dotfile
+# machine-specific, graph.json riscritto dall'hook a ogni commit). Ogni dev lo
+# rigenera in locale con graphify/hook — vedi CLAUDE.md sezione graphify.
+graphify-out/

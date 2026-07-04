@@ -132,6 +132,13 @@
         <Compile Remove="Test*.cs" />
         <Compile Remove="test_*.cs" />
         <MauiAsset Remove="Unit_Tests\**" />
+
+        <!-- Escludi output del tooling graphify dal bundling MAUI (non è codice/asset dell'app) -->
+        <Compile Remove="graphify-out\**" />
+        <Content Remove="graphify-out\**" />
+        <None Remove="graphify-out\**" />
+        <MauiAsset Remove="graphify-out\**" />
+        <EmbeddedResource Remove="graphify-out\**" />
     </ItemGroup>
 
     <!-- Manually include QuestPDF Lato fonts as MAUI assets for cross-platform support -->

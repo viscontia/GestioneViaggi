@@ -1,8 +1,8 @@
 # Dettaglio Tabelle DB — Estensione Web — DOCUMENTO INTERNO
 ## Progetto SFT · companion di `Analisi Tecnica Dettagliata.md`
 
-> 🔧 **USO INTERNO (Adriano + AI).** Spec **campo-per-campo** delle modifiche al DB. Verificato sul DB reale (PostgreSQL **17.7**, Docker `postgres_db`, db `gestione_viaggi`).
-> **Versione:** 1.0 · **Data:** 20 Giugno 2026
+> 🔧 **USO INTERNO (Adriano).** Spec **campo-per-campo** delle modifiche al DB. Verificato sul DB reale (PostgreSQL **17.7**, Docker `postgres_db`, db `gestione_viaggi`).
+> **Versione:** 2.0 · **Data:** 3 Luglio 2026
 
 > ## ⚙️ STATO AS-BUILT — aggiornamento 2026-07-03
 > Lo schema è stato **implementato e deployato in locale** (branch `feature/estensione-web`, script `406`–`430`; funzioni CRUD da `431`). Convenzioni confermate: ogni tabella con `azienda_id` + audit + trigger condiviso `trg_web_audit()` + RLS `superadmin_bypass_all`. **Deviazioni rispetto a questa spec, decise durante l'implementazione** (celle qui sotto già aggiornate):
