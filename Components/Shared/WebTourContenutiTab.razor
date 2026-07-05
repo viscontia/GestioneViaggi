@@ -1,0 +1,353 @@
+@using System.Globalization
+@using System.Text
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using Blazored.TextEditor
+@using MudBlazor
+@inject WebTourContenutiService ContenutiService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@* Scheda "Contenuti Web" del viaggio (Blocco 5 estensione web).
+   ECCEZIONE UI DOCUMENTATA: i campi editoriali/RichText NON usano il maiuscolo
+   forzato (uppercase-input/converter) perché destinati alle pagine del sito
+   pubblico — vedi overview.md §3.3 e piano operativo Blocco 5. *@
+
+@if (_loading)
+{
+    <div class="d-flex justify-center pa-8">
+        <MudProgressCircular Indeterminate="true" />
+    </div>
+}
+else
+{
+    <MudGrid>
+        <!-- CAMPI EDITORIALI -->
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_model.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
+                          MaxLength="255" AutoFocus="true" Immediate="true" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" @bind-Value="_model.Difficolta" Label="Difficoltà" Variant="Variant.Outlined" Clearable="true">
+                <MudSelectItem T="string" Value="@("turistica")">Turistica</MudSelectItem>
+                <MudSelectItem T="string" Value="@("media")">Media</MudSelectItem>
+                <MudSelectItem T="string" Value="@("medio_alta")">Medio-Alta</MudSelectItem>
+                <MudSelectItem T="string" Value="@("alta")">Alta</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_model.DurataTesto" Label="Durata (testo libero, es. 5 giorni / 4 notti)"
+                          Variant="Variant.Outlined" MaxLength="100" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_model.LuoghiVisitati" Label="Luoghi visitati" Variant="Variant.Outlined" Lines="2" />
+        </MudItem>
+
+        <!-- DESCRIZIONE PRINCIPALE (RichText) -->
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Descrizione</MudText>
+            <div style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                <BlazoredTextEditor @ref="_edDescrizione" Placeholder="Descrizione del tour per il sito...">
+                    <ToolbarContent>@ToolbarStandard</ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+        </MudItem>
+
+        <!-- SEZIONI INFORMATIVE (RichText) -->
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Pernottamento</MudText>
+            <div style="height:170px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                <BlazoredTextEditor @ref="_edPernottamento" Placeholder="Info pernottamento...">
+                    <ToolbarContent>@ToolbarCompatta</ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Pasti</MudText>
+            <div style="height:170px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                <BlazoredTextEditor @ref="_edPasti" Placeholder="Info pasti...">
+                    <ToolbarContent>@ToolbarCompatta</ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Equipaggiamento</MudText>
+            <div style="height:170px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                <BlazoredTextEditor @ref="_edEquipaggiamento" Placeholder="Info equipaggiamento...">
+                    <ToolbarContent>@ToolbarCompatta</ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Altre informazioni</MudText>
+            <div style="height:170px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                <BlazoredTextEditor @ref="_edAltre" Placeholder="Altre info utili...">
+                    <ToolbarContent>@ToolbarCompatta</ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+        </MudItem>
+
+        <!-- SEO -->
+        <MudItem xs="12">
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.subtitle1">SEO</MudText>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_model.Slug" Label="Slug (URL)" Variant="Variant.Outlined"
+                          MaxLength="160" Required="true" RequiredError="Lo slug è obbligatorio"
+                          HelperText="Minuscolo, senza spazi (es. dalle-dune-alla-gallura)"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Autorenew"
+                          OnAdornmentClick="GeneraSlug" AdornmentAriaLabel="Genera dallo slug dal titolo" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_model.MetaTitle" Label="Meta title" Variant="Variant.Outlined" MaxLength="255" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_model.MetaDescription" Label="Meta description" Variant="Variant.Outlined"
+                          Lines="2" MaxLength="320" Counter="320" />
+        </MudItem>
+
+        <!-- PUBBLICAZIONE -->
+        <MudItem xs="12">
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.subtitle1">Pubblicazione</MudText>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" Label="Stato" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
+                <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
+                <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudNumericField T="int" @bind-Value="_model.Ordine" Label="Ordine sul sito" Variant="Variant.Outlined" Min="0" />
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <MudTextField Value="@(_model.DataPubblicazione?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                          Label="Prima pubblicazione" ReadOnly="true" Variant="Variant.Outlined" />
+        </MudItem>
+
+        <!-- AZIONI -->
+        <MudItem xs="12" Class="d-flex justify-end">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Salva" Disabled="@_saving"
+                       StartIcon="@(_saving ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Save)">
+                @(_saving ? "Salvataggio..." : "Salva Contenuti Web")
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Titolo del viaggio (descrizione breve), usato per suggerire lo slug.</summary>
+    [Parameter] public string? DescrizioneBreve { get; set; }
+
+    private WebTourContenuto _model = new();
+    private bool _loading = true;
+    private bool _saving;
+    private bool _htmlLoaded;
+
+    private BlazoredTextEditor _edDescrizione = default!;
+    private BlazoredTextEditor _edPernottamento = default!;
+    private BlazoredTextEditor _edPasti = default!;
+    private BlazoredTextEditor _edEquipaggiamento = default!;
+    private BlazoredTextEditor _edAltre = default!;
+
+    // Toolbar Quill riusate dai 5 editor
+    private static readonly RenderFragment ToolbarStandard = __builder =>
+    {
+        <select class="ql-header">
+            <option selected=""></option>
+            <option value="2"></option>
+            <option value="3"></option>
+        </select>
+        <span class="ql-formats">
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+            <button class="ql-underline"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="ordered"></button>
+            <button class="ql-list" value="bullet"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-link"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-clean"></button>
+        </span>
+    };
+
+    private static readonly RenderFragment ToolbarCompatta = __builder =>
+    {
+        <span class="ql-formats">
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="bullet"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-clean"></button>
+        </span>
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var existing = await ContenutiService.GetByViaggioAsync(ViaggioId, AziendaId);
+            if (existing != null)
+            {
+                _model = existing;
+            }
+            else
+            {
+                _model = new WebTourContenuto
+                {
+                    ViaggioIdFk = ViaggioId,
+                    AziendaId = AziendaId,
+                    Slug = Slugify(DescrizioneBreve)
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento contenuti web: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Gli editor Quill esistono solo dopo che _loading è false: carica l'HTML
+        // esistente una volta sola, con retry breve (Quill si inizializza async).
+        if (!_loading && !_htmlLoaded)
+        {
+            _htmlLoaded = true;
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch { /* Ignore JS errors on init */ }
+
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    await Task.Delay(150);
+                    await LoadHtml(_edDescrizione, _model.DescrizioneHtml);
+                    await LoadHtml(_edPernottamento, _model.InfoPernottamentoHtml);
+                    await LoadHtml(_edPasti, _model.InfoPastiHtml);
+                    await LoadHtml(_edEquipaggiamento, _model.InfoEquipaggiamentoHtml);
+                    await LoadHtml(_edAltre, _model.AltreInfoHtml);
+                    break;
+                }
+                catch when (attempt < 2)
+                {
+                    // Quill non ancora pronto: riprova
+                }
+            }
+        }
+    }
+
+    private static async Task LoadHtml(BlazoredTextEditor editor, string? html)
+    {
+        if (!string.IsNullOrWhiteSpace(html))
+        {
+            await editor.LoadHTMLContent(html);
+        }
+    }
+
+    private void GeneraSlug()
+    {
+        _model.Slug = Slugify(DescrizioneBreve);
+    }
+
+    /// <summary>Slug da testo: minuscolo, accenti rimossi, non-alfanumerici → '-'.</summary>
+    private static string Slugify(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            var cat = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (cat == UnicodeCategory.NonSpacingMark) continue;
+            sb.Append(char.IsLetterOrDigit(c) ? c : '-');
+        }
+        var slug = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-{2,}", "-").Trim('-');
+        return slug.Length > 160 ? slug[..160].Trim('-') : slug;
+    }
+
+    /// <summary>Quill "vuoto" restituisce &lt;p&gt;&lt;br&gt;&lt;/p&gt;: normalizza a NULL.</summary>
+    private static string? NormalizeHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var stripped = html.Replace("<p><br></p>", string.Empty).Replace("<p></p>", string.Empty).Trim();
+        return stripped.Length == 0 ? null : html;
+    }
+
+    private async Task Salva()
+    {
+        // Raccoglie l'HTML dagli editor
+        try
+        {
+            _model.DescrizioneHtml = NormalizeHtml(await _edDescrizione.GetHTML());
+            _model.InfoPernottamentoHtml = NormalizeHtml(await _edPernottamento.GetHTML());
+            _model.InfoPastiHtml = NormalizeHtml(await _edPasti.GetHTML());
+            _model.InfoEquipaggiamentoHtml = NormalizeHtml(await _edEquipaggiamento.GetHTML());
+            _model.AltreInfoHtml = NormalizeHtml(await _edAltre.GetHTML());
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore lettura editor: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_model.Slug))
+        {
+            _model.Slug = Slugify(DescrizioneBreve);
+        }
+        _model.Slug = Slugify(_model.Slug);
+        if (string.IsNullOrWhiteSpace(_model.Slug))
+        {
+            Snackbar.Add("Inserire uno slug valido.", Severity.Warning);
+            return;
+        }
+
+        // Prima pubblicazione: valorizza data_pubblicazione al primo passaggio a 'pubblicato'
+        if (_model.StatoPubblicazione == "pubblicato" && _model.DataPubblicazione == null)
+        {
+            _model.DataPubblicazione = DateTime.UtcNow;
+        }
+
+        _saving = true;
+        try
+        {
+            if (_model.WebTourContenutoId == 0)
+            {
+                _model = await ContenutiService.CreateAsync(_model);
+                Snackbar.Add("Contenuti web creati con successo", Severity.Success);
+            }
+            else
+            {
+                _model = await ContenutiService.UpdateAsync(_model);
+                Snackbar.Add("Contenuti web aggiornati con successo", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

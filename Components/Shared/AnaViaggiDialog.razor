@@ -153,6 +153,16 @@
                                           DatesChanged="@(() => StateHasChanged())" OnTripDeleted="HandleTripDeleted" />
                      </ChildContent>
                 </MudTabPanel>
+
+                @* Scheda Contenuti Web (Blocco 5): solo in edit — la relazione 1:1 su
+                   viaggio_id richiede un viaggio già salvato. Salvataggio autonomo nel tab. *@
+                @if (IsEditMode)
+                {
+                    <MudTabPanel Text="Contenuti Web" Icon="@Icons.Material.Filled.Language">
+                        <WebTourContenutiTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
+                                             DescrizioneBreve="@Entity.DescrizioneBreve" />
+                    </MudTabPanel>
+                }
              </MudTabs>
         </MudContainer>
     </DialogContent>

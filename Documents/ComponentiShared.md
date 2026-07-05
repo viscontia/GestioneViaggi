@@ -505,6 +505,25 @@ Dialog per la selezione del conto bancario da stampare sulla fattura attiva (`Co
 
 ---
 
+### WebTourContenutiTab
+Scheda "Contenuti Web" del viaggio — estensione web, Blocco 5 (`Components/Shared/WebTourContenutiTab.razor`).
+*   **Funzionalità**:
+    *   Carica/crea i contenuti editoriali web del tour (1:1 con `ana_viaggi`) via `WebTourContenutiService` (funzioni `fn_web_tour_contenuti_*`).
+    *   Campi editoriali: sottotitolo, difficoltà (select `turistica/media/medio_alta/alta`), durata testo, luoghi visitati.
+    *   5 editor RichText (`Blazored.TextEditor`/Quill): descrizione + pernottamento/pasti/equipaggiamento/altre info. L'HTML esistente è caricato con `LoadHTMLContent` (retry perché Quill si inizializza async); l'HTML "vuoto" di Quill (`<p><br></p>`) è normalizzato a NULL.
+    *   SEO: slug (obbligatorio, con generazione dal titolo via adornment e slugify accent-safe), meta title, meta description (counter 320).
+    *   Pubblicazione: stato (`bozza/pubblicato/archiviato`), ordine, prima pubblicazione (readonly, valorizzata al primo passaggio a `pubblicato`).
+    *   Salvataggio autonomo nel tab ("Salva Contenuti Web"): create se nuovo, update altrimenti; violazione slug univoco → messaggio tradotto da `DbErrorTranslator` via snackbar.
+*   **⚠️ ECCEZIONE UI (documentata)**: i campi editoriali/RichText NON usano il maiuscolo forzato — sono destinati alle pagine del sito pubblico (overview.md §3.3).
+*   **UI rules rispettate**: `AutoFocus` sul primo campo (sottotitolo), `dialogFormHelper.setupTabNavigation` in `OnAfterRenderAsync`, `BackdropClick=false` (impostato dal chiamante di `AnaViaggiDialog`).
+*   **Parametri Chiave**:
+    *   `ViaggioId` (int, required): viaggio a cui appartengono i contenuti.
+    *   `AziendaId` (int, required): scoping multi-tenant.
+    *   `DescrizioneBreve` (string?): titolo del viaggio, usato per suggerire lo slug.
+*   **Contesto**: montato come terzo `MudTabPanel` ("Contenuti Web") in `AnaViaggiDialog`, **solo in edit mode** (la FK 1:1 richiede un viaggio già salvato).
+
+---
+
 ## Componenti Export
 
 ### ExcelExportButton
