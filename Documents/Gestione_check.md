@@ -273,6 +273,13 @@ catch (PostgresException ex)
 }
 ```
 
+### DatabaseExceptionHelper (usato dai CRUD service)
+
+I servizi CRUD basati su `BaseCrudService` non usano `DbErrorTranslator` ma `Helpers/DatabaseExceptionHelper.WrapException(ex, TableName)`, che traduce la `PostgresException` in `GestioneViaggiException` con messaggio ITA. Due punti di estensione:
+
+- **Messaggio dedicato per unique constraint** → aggiungere una riga in `DescribeUniqueConstraint(ex.ConstraintName)` (dice all'utente *quale* campo è duplicato). Esempi mappati: `uq_web_tour_contenuti_slug` → *"Esiste già un tour con questo indirizzo web…"*, `web_tour_contenuti_viaggio_id_fk_key` → *"Questo viaggio ha già una scheda di contenuti web."*
+- **Nome tabella nei messaggi generici** → `TranslateTableName()` traduce il nome tecnico in etichetta ITA (mai esporre il nome grezzo della tabella all'utente). Aggiungere qui i nuovi elementi.
+
 ---
 
 ## 📚 Catalogo Validatori

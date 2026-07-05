@@ -93,11 +93,11 @@ else
             <MudText Typo="Typo.subtitle1">SEO</MudText>
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_model.Slug" Label="Slug (URL)" Variant="Variant.Outlined"
-                          MaxLength="160" Required="true" RequiredError="Lo slug è obbligatorio"
+            <MudTextField @bind-Value="_model.Slug" Label="Indirizzo web (URL)" Variant="Variant.Outlined"
+                          MaxLength="160" Required="true" RequiredError="L'indirizzo web è obbligatorio"
                           HelperText="Minuscolo, senza spazi (es. dalle-dune-alla-gallura)"
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Autorenew"
-                          OnAdornmentClick="GeneraSlug" AdornmentAriaLabel="Genera dallo slug dal titolo" />
+                          OnAdornmentClick="GeneraSlug" AdornmentAriaLabel="Genera l'indirizzo web dal titolo" />
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="_model.MetaTitle" Label="Meta title" Variant="Variant.Outlined" MaxLength="255" />
@@ -317,7 +317,7 @@ else
         _model.Slug = Slugify(_model.Slug);
         if (string.IsNullOrWhiteSpace(_model.Slug))
         {
-            Snackbar.Add("Inserire uno slug valido.", Severity.Warning);
+            Snackbar.Add("Inserire un indirizzo web valido.", Severity.Warning);
             return;
         }
 

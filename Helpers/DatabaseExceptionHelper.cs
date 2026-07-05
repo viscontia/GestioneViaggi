@@ -22,7 +22,9 @@ public static class DatabaseExceptionHelper
     private static GestioneViaggiException TranslatePostgresException(PostgresException ex, string? entityName)
     {
         string message = "Si è verificato un errore imprevisto nel database.";
-        string label = entityName ?? "questo elemento";
+        // entityName è il nome tecnico della tabella: contestualizzalo sempre in italiano
+        // (GetItalianPrefixFor si aspetta l'etichetta tradotta, non il nome grezzo).
+        string label = entityName != null ? TranslateTableName(entityName) : "questo elemento";
 
         switch (ex.SqlState)
         {
@@ -61,7 +63,12 @@ public static class DatabaseExceptionHelper
                 break;
 
             case "23505": // unique_violation
-                message = $"Esiste già un record per {GetItalianPrefixFor(label)}{label}. Non sono ammessi duplicati.";
+                // Messaggio specifico per constraint noti (dice ALL'utente quale campo è duplicato);
+                // altrimenti fallback generico contestualizzato sull'elemento.
+                string duplicateMsg = DescribeUniqueConstraint(ex.ConstraintName);
+                message = !string.IsNullOrEmpty(duplicateMsg)
+                    ? duplicateMsg
+                    : $"Esiste già un record per {GetItalianPrefixFor(label)}{label}. Non sono ammessi duplicati.";
                 break;
 
             case "23502": // not_null_violation
@@ -139,6 +146,31 @@ public static class DatabaseExceptionHelper
         return string.Empty;
     }
 
+    /// <summary>
+    /// Messaggio user-friendly per unique constraint noti, così l'utente sa QUALE campo è
+    /// duplicato (es. lo slug) invece del generico "esiste già un record". Vuoto se sconosciuto.
+    /// </summary>
+    private static string DescribeUniqueConstraint(string? constraintName)
+    {
+        if (string.IsNullOrEmpty(constraintName)) return string.Empty;
+
+        var uniqueMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "uq_web_tour_contenuti_slug", "Esiste già un tour con questo indirizzo web. Scegline uno diverso." },
+            { "web_tour_contenuti_viaggio_id_fk_key", "Questo viaggio ha già una scheda di contenuti web." }
+        };
+
+        foreach (var mapping in uniqueMessages)
+        {
+            if (constraintName.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                return mapping.Value;
+            }
+        }
+
+        return string.Empty;
+    }
+
     private static string TranslateTableName(string tableName)
     {
         return tableName.ToLower() switch
@@ -155,6 +187,7 @@ public static class DatabaseExceptionHelper
             "ana_regimi_fiscali" => "regime fiscale",
             "azienda_sede" => "sede aziendale",
             "mov_clienti_viaggi" => "prenotazione cliente",
+            "web_tour_contenuti" => "scheda contenuti web del tour",
             _ => tableName // Fallback al nome tecnico se non mappato
         };
     }
@@ -170,7 +203,7 @@ public static class DatabaseExceptionHelper
         if (l.StartsWith("a") || l.StartsWith("e") || l.StartsWith("i") || l.StartsWith("o") || l.StartsWith("u"))
             return "l'";
         
-        if (l.StartsWith("transazione") || l.StartsWith("causale") || l.StartsWith("controparte") || l.StartsWith("valuta") || l.StartsWith("data") || l.StartsWith("prenotazione") || l.StartsWith("sede") || l.StartsWith("aliquota") || l.StartsWith("anagrafica"))
+        if (l.StartsWith("transazione") || l.StartsWith("causale") || l.StartsWith("controparte") || l.StartsWith("valuta") || l.StartsWith("data") || l.StartsWith("prenotazione") || l.StartsWith("sede") || l.StartsWith("aliquota") || l.StartsWith("anagrafica") || l.StartsWith("scheda"))
             return "la ";
             
         if (l.StartsWith("viaggio") || l.StartsWith("regime"))
