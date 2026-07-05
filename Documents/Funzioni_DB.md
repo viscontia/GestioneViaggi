@@ -1157,7 +1157,7 @@ Stessa convenzione CRUD web. Completano le CRUD del 1° rilascio:
 
 Tutte `SECURITY INVOKER` (chiamate dal sito come `anon` rispettano le RLS del Blocco 3). **Script**: `SqlScripts/444_Create_FnWebServizio.sql`.
 
-- **`fn_web_prezzo_da(p_viaggio_id)` → `INTEGER`** — prezzo "da" del tour: minimo tra le tariffe **adulto** (`costo_pilota`, `costo_passeggero`, `costo_passeggero_auto_guida`, zeri/NULL esclusi) delle sole **partenze future** (`data_inizio >= CURRENT_DATE`) in `ana_date_viaggi`. Tariffe bambino escluse (fuorvianti come "da"). `NULL` se nessuna partenza futura con tariffa.
+- **`fn_web_prezzo_da(p_viaggio_id)` → `INTEGER`** — prezzo "da" del tour: minimo tra **tutte le tariffe** (pilota, passeggero, passeggero auto guida, bambino 0-2/2-6/6-12; zeri/NULL esclusi) delle sole **partenze future** (`data_inizio >= CURRENT_DATE`) in `ana_date_viaggi`. `NULL` se nessuna partenza futura con tariffa.
 - **`fn_web_tour_pubblicati(p_azienda_id, p_lingua CHAR(2) DEFAULT 'IT')` → `TABLE`** — lista tour per il sito: solo `stato_pubblicazione='pubblicato'`, scoped per azienda. Ritorna viaggio/contenuto id, titolo (= `ana_viaggi.viaggio_descrizione_breve`, sempre IT fino al Blocco 10), sottotitolo/descrizione_html/durata_testo **in lingua** da `web_traduzioni` (entità `web_tour_contenuti`, traduzioni non `obsoleto`, fallback IT), slug, difficoltà, numero_giorni, categoria sport (via `ana_tipo_viaggi.web_categoria_fk`), `prezzo_da`, immagine principale (url/storage_path), data_pubblicazione, ordine.
 - **`fn_web_destinatari_newsletter(p_azienda_id)` → `TABLE`** — destinatari newsletter: UNION con dedup per email (CITEXT, case-insensitive) di `ana_clienti` con `consenso_marketing=true` + `web_newsletter_iscritti` `stato='attivo'` e `consenso=true`, **meno** `web_newsletter_soppressioni`. `fonte` = `cliente`/`iscritto`/`entrambi`; su `entrambi` prevalgono lingua e `token_disiscrizione` dell'iscritto ma resta anche `cliente_id`. Duplicati interni ad `ana_clienti`: vince il `cliente_id` minore.
 
@@ -1217,6 +1217,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - **`SqlScripts/453`** — hardening EXECUTE: `REVOKE EXECUTE ON ALL ROUTINES ... FROM PUBLIC` (**ROUTINES**, non FUNCTIONS: copre anche le procedure `sp_app_*` di gestione utenti/ruoli), `ALTER DEFAULT PRIVILEGES` per le routine future, `REVOKE CREATE ON SCHEMA public FROM PUBLIC`. Ad `anon` restano SOLO `fn_web_tour_pubblicati` e `fn_web_prezzo_da`. Il gestionale (postgres, superuser) non è impattato; i ruoli `app_*` non sono usati da alcuna connection string. ⚠️ Al deploy su Supabase riverificare l'impatto su `authenticated`/`service_role`.
 
 > **Rollback:** `SqlScripts/499_Rollback_EstensioneWeb.sql` annulla l'intera estensione Blocchi 0–3 (alter + 19 tabelle + funzioni `fn_web_*`/`fn_ana_aziende_esp_*` + `trg_web_audit` + policy RLS su tabelle legacy + revert hardening EXECUTE + ruolo `anon` via `DROP OWNED`), idempotente `IF EXISTS`. Solo locale, con backup.
+
 
 
 
@@ -1845,7 +1846,6 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_web_newsletter_soppressioni_insert`
 - `fn_web_newsletter_soppressioni_list`
 - `fn_web_newsletter_soppressioni_update`
-- `fn_web_prezzo_da`
 - `fn_web_tour_contenuti_delete`
 - `fn_web_tour_contenuti_get`
 - `fn_web_tour_contenuti_get_by_viaggio`
@@ -1873,7 +1873,6 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_web_tour_mappa_insert`
 - `fn_web_tour_mappa_list`
 - `fn_web_tour_mappa_update`
-- `fn_web_tour_pubblicati`
 - `fn_web_traduzioni_delete`
 - `fn_web_traduzioni_get`
 - `fn_web_traduzioni_insert`

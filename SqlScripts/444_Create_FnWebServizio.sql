@@ -7,11 +7,10 @@
 --   3. fn_web_destinatari_newsletter(azienda)-> unione+dedup clienti/iscritti meno soppressioni
 
 -- ---------------------------------------------------------------------------
--- 1) Prezzo "da": minimo tra le tariffe ADULTO (pilota / passeggero / passeggero
---    auto guida) delle sole partenze future (data_inizio >= oggi).
---    Le tariffe bambino sono escluse (un "da 50 EUR" basato sulla tariffa 0-2 anni
---    sarebbe fuorviante). Tariffe a 0 o NULL ignorate. NULL se nessuna partenza
---    futura con tariffa valorizzata.
+-- 1) Prezzo "da": minimo tra TUTTE le tariffe (pilota / passeggero / passeggero
+--    auto guida / bambino 0-2 / 2-6 / 6-12) delle sole partenze future
+--    (data_inizio >= oggi). Tariffe a 0 o NULL ignorate. NULL se nessuna
+--    partenza futura con tariffa valorizzata.
 --    NB: LEAST() in PostgreSQL ignora i NULL -> NULLIF(costo,0) esclude gli zeri.
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_web_prezzo_da(p_viaggio_id INTEGER)
@@ -19,7 +18,10 @@ RETURNS INTEGER LANGUAGE sql STABLE AS $$
     SELECT MIN(LEAST(
                NULLIF(d.data_viaggio_costo_pilota, 0),
                NULLIF(d.data_viaggio_costo_passeggero, 0),
-               NULLIF(d.data_viaggio_costo_passeggero_auto_guida, 0)))
+               NULLIF(d.data_viaggio_costo_passeggero_auto_guida, 0),
+               NULLIF(d.data_viaggio_costo_bambino_0_2, 0),
+               NULLIF(d.data_viaggio_costo_bambino_2_6, 0),
+               NULLIF(d.data_viaggio_costo_bambino_6_12, 0)))
       FROM ana_date_viaggi d
      WHERE d.viaggio_id_fk = p_viaggio_id
        AND d.data_viaggio_data_inizio >= CURRENT_DATE;
