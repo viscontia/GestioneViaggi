@@ -1,0 +1,106 @@
+@using GestioneViaggi.Models.Web
+@using Blazored.TextEditor
+@using MudBlazor
+
+@* Editor di un passo dell'itinerario (Blocco 6). Quill on-demand: una sola istanza
+   viva mentre il dialog è aperto → board leggera. ECCEZIONE UI: testo e didascalia
+   NON in maiuscolo forzato (destinati al sito) — come Blocco 5. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passo</MudText>
+        <div style="height:280px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <BlazoredTextEditor @ref="_editor" Placeholder="Descrivi questo momento della giornata...">
+                <ToolbarContent>
+                    <select class="ql-header">
+                        <option selected=""></option>
+                        <option value="3"></option>
+                    </select>
+                    <span class="ql-formats">
+                        <button class="ql-bold"></button>
+                        <button class="ql-italic"></button>
+                        <button class="ql-underline"></button>
+                    </span>
+                    <span class="ql-formats">
+                        <button class="ql-list" value="ordered"></button>
+                        <button class="ql-list" value="bullet"></button>
+                    </span>
+                    <span class="ql-formats">
+                        <button class="ql-link"></button>
+                    </span>
+                    <span class="ql-formats">
+                        <button class="ql-clean"></button>
+                    </span>
+                </ToolbarContent>
+            </BlazoredTextEditor>
+        </div>
+
+        <MudTextField @bind-Value="_didascalia" Label="Didascalia immagine (opzionale)" Variant="Variant.Outlined"
+                      MaxLength="255" Class="mt-4"
+                      HelperText="L'immagine si assegna nella Galleria (Blocco 7); qui solo la didascalia." />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Salva" Disabled="@_saving">
+            @(_saving ? "Salvataggio..." : "Salva passo")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>Passo da modificare (i valori vengono applicati solo al Salva).</summary>
+    [Parameter, EditorRequired] public WebTourItinerarioPassaggio Passo { get; set; } = default!;
+
+    private BlazoredTextEditor _editor = default!;
+    private string? _didascalia;
+    private bool _saving;
+    private bool _htmlLoaded;
+
+    protected override void OnInitialized() => _didascalia = Passo.ImmagineDidascalia;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_htmlLoaded)
+        {
+            _htmlLoaded = true;
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    await Task.Delay(150); // Quill si inizializza async
+                    if (!string.IsNullOrWhiteSpace(Passo.TestoHtml))
+                        await _editor.LoadHTMLContent(Passo.TestoHtml);
+                    break;
+                }
+                catch when (attempt < 2) { /* riprova */ }
+            }
+        }
+    }
+
+    private async Task Salva()
+    {
+        _saving = true;
+        try
+        {
+            Passo.TestoHtml = NormalizeHtml(await _editor.GetHTML()) ?? string.Empty;
+            Passo.ImmagineDidascalia = string.IsNullOrWhiteSpace(_didascalia) ? null : _didascalia.Trim();
+            MudDialog.Close(DialogResult.Ok(Passo));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Quill "vuoto" restituisce &lt;p&gt;&lt;br&gt;&lt;/p&gt;: normalizza a NULL.</summary>
+    private static string? NormalizeHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var stripped = html.Replace("<p><br></p>", string.Empty).Replace("<p></p>", string.Empty).Trim();
+        return stripped.Length == 0 ? null : html;
+    }
+}

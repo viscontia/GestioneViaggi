@@ -151,6 +151,33 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         }
     }
 
+    /// <summary>
+    /// Riordina atomicamente le giornate del viaggio: la posizione degli id nell'array
+    /// diventa il nuovo giorno_numero/ordine (fn_web_tour_itinerario_reorder, UNNEST WITH ORDINALITY).
+    /// Ritorna il numero di righe aggiornate.
+    /// </summary>
+    public async Task<int> ReorderAsync(int aziendaId, int viaggioId, IReadOnlyList<long> orderedIds)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_tour_itinerario_reorder(@AziendaId::integer, @ViaggioId::integer, @Ids::bigint[])", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("Ids", orderedIds.ToArray());
+
+            var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            _logger.LogInformation("Riordino {Rows} giornate itinerario (viaggio {ViaggioId})", rows, viaggioId);
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore riordino giornate itinerario (viaggio {ViaggioId})", viaggioId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourItinerario e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);

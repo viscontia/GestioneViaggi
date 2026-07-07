@@ -1,0 +1,35 @@
+/* Blocco 6 — stili scoped della scheda Itinerario.
+   ::deep serve perché le classi sono applicate a elementi resi da MudBlazor
+   (MudDropZone/MudPaper), non dal markup di questo componente. */
+
+/* Zona passi: min-height indispensabile — una giornata senza passi
+   collasserebbe a 0px e diventerebbe un bersaglio di drop inesistente. */
+.itinerario-tab ::deep .drop-zone-passo {
+    min-height: 100px;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 8px;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.itinerario-tab ::deep .dz-giornate {
+    min-height: 60px;
+}
+
+/* Feedback visivo durante il drag (CanDropClass/NoDropClass dei container). */
+.itinerario-tab ::deep .dz-can-drop {
+    background-color: var(--mud-palette-action-default-hover);
+    border: 2px dashed var(--mud-palette-primary);
+}
+
+.itinerario-tab ::deep .dz-no-drop {
+    opacity: .55;
+}
+
+/* Le card trascinabili invitano al grab. */
+.itinerario-tab ::deep .cursor-grab {
+    cursor: grab;
+}
+
+.itinerario-tab ::deep .cursor-grab:active {
+    cursor: grabbing;
+}

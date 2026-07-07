@@ -154,6 +154,35 @@ public class WebTourItinerarioPassaggiService : BaseCrudService<WebTourItinerari
         }
     }
 
+    /// <summary>
+    /// Riordina atomicamente i passi di UNA giornata: ogni id viene (ri)assegnato a
+    /// <paramref name="itinerarioId"/> e la sua posizione nell'array diventa il nuovo ordine
+    /// (fn_web_tour_itinerario_passaggi_reorder). Gestisce il cross-day: un id proveniente da
+    /// un'altra giornata viene reparentato. Su uno spostamento cross-day chiamare per la zona di
+    /// ARRIVO e per quella di PARTENZA. Ritorna il numero di righe aggiornate.
+    /// </summary>
+    public async Task<int> ReorderAsync(int aziendaId, long itinerarioId, IReadOnlyList<long> orderedIds)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_tour_itinerario_passaggi_reorder(@AziendaId::integer, @ItinerarioId::bigint, @Ids::bigint[])", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ItinerarioId", itinerarioId);
+            cmd.Parameters.AddWithValue("Ids", orderedIds.ToArray());
+
+            var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            _logger.LogInformation("Riordino {Rows} passi (giornata {ItinerarioId})", rows, itinerarioId);
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore riordino passi (giornata {ItinerarioId})", itinerarioId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourItinerarioPassaggio e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);

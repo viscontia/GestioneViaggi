@@ -162,6 +162,12 @@
                         <WebTourContenutiTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
                                              DescrizioneBreve="@Entity.DescrizioneBreve" />
                     </MudTabPanel>
+
+                    @* Scheda Itinerario (Blocco 6): solo in edit — relazione su viaggio salvato,
+                       salvataggio autonomo (live-save) nel tab. *@
+                    <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route">
+                        <WebTourItinerarioTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
+                    </MudTabPanel>
                 }
              </MudTabs>
         </MudContainer>

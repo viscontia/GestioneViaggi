@@ -1,0 +1,331 @@
+@using System.Text.RegularExpressions
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebTourItinerarioService GiornateService
+@inject WebTourItinerarioPassaggiService PassiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@* Scheda "Itinerario" (Blocco 6). Pattern Sidebar + Main Board: due MudDropContainer
+   PARALLELI (non annidati). Sinistra = riordino giornate (DnD); destra = passi trascinabili
+   dentro e TRA le giornate. Live-save: ogni drop/add/edit persiste subito via i service
+   (riordino atomico via fn_..._reorder). Immagine del passo rinviata al Blocco 7.
+   ECCEZIONE UI: titoli/testi editoriali NON in maiuscolo forzato (destinati al sito). *@
+
+<div class="itinerario-tab">
+@if (_loading)
+{
+    <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" /></div>
+}
+else
+{
+    <MudGrid>
+        <!-- SIDEBAR: sommario giornate (riordino DnD) -->
+        <MudItem xs="12" md="3">
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText Typo="Typo.subtitle1">Giornate</MudText>
+                <MudTooltip Text="Aggiungi giornata">
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddGiornata" />
+                </MudTooltip>
+            </div>
+
+            @if (_giornate.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna giornata. Aggiungi la prima.</MudText>
+            }
+            else
+            {
+                <MudDropContainer T="WebTourItinerario" @ref="_giornateContainer" Items="_giornate"
+                                  ItemsSelector="GiornataInZone" ItemDropped="OnGiornataDropped"
+                                  ApplyDropClassesOnDragStarted="true" CanDropClass="dz-can-drop" NoDropClass="dz-no-drop">
+                    <ChildContent>
+                        <MudDropZone T="WebTourItinerario" Identifier="sidebar" AllowReorder="true"
+                                     Class="dz-giornate d-flex flex-column gap-2" />
+                    </ChildContent>
+                    <ItemRenderer>
+                        <MudPaper Elevation="2" Class="pa-2 cursor-grab d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <MudText Typo="Typo.subtitle2">Giorno @context.GiornoNumero</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary"
+                                         Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@context.TitoloGiornata</MudText>
+                            </div>
+                        </MudPaper>
+                    </ItemRenderer>
+                </MudDropContainer>
+            }
+        </MudItem>
+
+        <!-- BOARD: dettaglio passi (trascinamento dentro e tra le giornate) -->
+        <MudItem xs="12" md="9">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Dettaglio giornate</MudText>
+
+            @if (_giornate.Count == 0)
+            {
+                <MudPaper Outlined="true" Class="pa-8 d-flex justify-center">
+                    <MudText Color="Color.Secondary">Aggiungi una giornata dalla colonna a sinistra per iniziare l'itinerario.</MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudDropContainer T="WebTourItinerarioPassaggio" @ref="_passiContainer" Items="_passi"
+                                  ItemsSelector="@((p, id) => p.ItinerarioIdFk.ToString() == id)" ItemDropped="OnPassoDropped"
+                                  ApplyDropClassesOnDragStarted="true" CanDropClass="dz-can-drop" NoDropClass="dz-no-drop">
+                    <ChildContent>
+                        @foreach (var g in _giornate.OrderBy(x => x.Ordine))
+                        {
+                            <MudPaper Outlined="true" Class="pa-3 mb-4">
+                                <div class="d-flex align-center gap-2 mb-2">
+                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">Giorno @g.GiornoNumero</MudChip>
+                                    <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
+                                                  ValueChanged="@(v => OnTitoloChanged(g, v))"
+                                                  Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
+                                    <MudTooltip Text="Aggiungi passo">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="@(() => AddPasso(g))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Elimina giornata">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteGiornata(g))" />
+                                    </MudTooltip>
+                                </div>
+                                <MudDropZone T="WebTourItinerarioPassaggio" Identifier="@g.WebTourItinerarioId.ToString()"
+                                             AllowReorder="true" Class="drop-zone-passo pa-2 d-flex flex-column gap-2" />
+                            </MudPaper>
+                        }
+                    </ChildContent>
+                    <ItemRenderer>
+                        <MudPaper Elevation="1" Class="pa-2 cursor-grab d-flex align-center gap-2"
+                                  Style="border-left:3px solid var(--mud-palette-primary);">
+                            <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
+                            <div class="flex-grow-1" style="min-width:0;">
+                                <MudText Typo="Typo.body2"
+                                         Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@Snippet(context.TestoHtml)</MudText>
+                                @if (!string.IsNullOrWhiteSpace(context.ImmagineDidascalia))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">🖼 @context.ImmagineDidascalia</MudText>
+                                }
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditPasso(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeletePasso(context))" />
+                        </MudPaper>
+                    </ItemRenderer>
+                </MudDropContainer>
+            }
+        </MudItem>
+    </MudGrid>
+}
+</div>
+
+@code {
+    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private List<WebTourItinerario> _giornate = new();
+    private List<WebTourItinerarioPassaggio> _passi = new();
+    private bool _loading = true;
+    private bool _tabSetup;
+
+    private MudDropContainer<WebTourItinerario>? _giornateContainer;
+    private MudDropContainer<WebTourItinerarioPassaggio>? _passiContainer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loading && !_tabSetup)
+        {
+            _tabSetup = true;
+            try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); } catch { /* ignore */ }
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        _giornate = await GiornateService.ListByViaggioAsync(ViaggioId, AziendaId);
+        var passi = new List<WebTourItinerarioPassaggio>();
+        foreach (var g in _giornate)
+            passi.AddRange(await PassiService.ListByItinerarioAsync(g.WebTourItinerarioId, AziendaId));
+        _passi = passi;
+        _giornateContainer?.Refresh();
+        _passiContainer?.Refresh();
+        StateHasChanged();
+    }
+
+    // ---- Giornate ------------------------------------------------------------
+
+    private async Task AddGiornata()
+    {
+        var n = _giornate.Count + 1;
+        var g = new WebTourItinerario
+        {
+            ViaggioIdFk = ViaggioId, AziendaId = AziendaId,
+            GiornoNumero = n, Ordine = n, TitoloGiornata = $"Giorno {n}"
+        };
+        try
+        {
+            g = await GiornateService.CreateAsync(g);
+            _giornate.Add(g);
+            _giornateContainer?.Refresh();
+            _passiContainer?.Refresh();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione giornata: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task OnTitoloChanged(WebTourItinerario g, string value)
+    {
+        var v = string.IsNullOrWhiteSpace(value) ? $"Giorno {g.GiornoNumero}" : value.Trim();
+        if (v == g.TitoloGiornata) return;
+        g.TitoloGiornata = v;
+        try { await GiornateService.UpdateAsync(g); }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio titolo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    private async Task DeleteGiornata(WebTourItinerario g)
+    {
+        if (!await ConfirmDelete("Elimina giornata", $"Eliminare \"{g.TitoloGiornata}\" e tutti i suoi passi?")) return;
+        try
+        {
+            await GiornateService.DeleteAsync(g.WebTourItinerarioId, AziendaId); // cascata sui passi lato DB
+            _passi.RemoveAll(x => x.ItinerarioIdFk == g.WebTourItinerarioId);
+            _giornate.Remove(g);
+            for (int i = 0; i < _giornate.Count; i++) { _giornate[i].Ordine = i + 1; _giornate[i].GiornoNumero = i + 1; }
+            if (_giornate.Count > 0)
+                await GiornateService.ReorderAsync(AziendaId, ViaggioId, _giornate.Select(x => x.WebTourItinerarioId).ToList());
+            _giornateContainer?.Refresh();
+            _passiContainer?.Refresh();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore eliminazione giornata: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    private async Task OnGiornataDropped(MudItemDropInfo<WebTourItinerario> info)
+    {
+        var g = info.Item;
+        _giornate.Remove(g);
+        var idx = Math.Clamp(info.IndexInZone, 0, _giornate.Count);
+        _giornate.Insert(idx, g);
+        for (int i = 0; i < _giornate.Count; i++) { _giornate[i].Ordine = i + 1; _giornate[i].GiornoNumero = i + 1; }
+        _giornateContainer?.Refresh();
+        _passiContainer?.Refresh(); // l'ordine delle zone dipende da Ordine
+
+        try { await GiornateService.ReorderAsync(AziendaId, ViaggioId, _giornate.Select(x => x.WebTourItinerarioId).ToList()); }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino giornate: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    // ---- Passi ---------------------------------------------------------------
+
+    private async Task AddPasso(WebTourItinerario g)
+    {
+        var passo = new WebTourItinerarioPassaggio
+        {
+            ItinerarioIdFk = g.WebTourItinerarioId, AziendaId = AziendaId, TestoHtml = string.Empty,
+            Ordine = _passi.Count(x => x.ItinerarioIdFk == g.WebTourItinerarioId) + 1
+        };
+        var edited = await OpenPassoDialog(passo, "Nuovo passo");
+        if (edited == null) return;
+        try
+        {
+            var created = await PassiService.CreateAsync(edited);
+            _passi.Add(created);
+            _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
+            _passiContainer?.Refresh();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione passo: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task EditPasso(WebTourItinerarioPassaggio passo)
+    {
+        var edited = await OpenPassoDialog(passo, "Modifica passo");
+        if (edited == null) return;
+        try { await PassiService.UpdateAsync(edited); _passiContainer?.Refresh(); StateHasChanged(); }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio passo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    private async Task DeletePasso(WebTourItinerarioPassaggio passo)
+    {
+        if (!await ConfirmDelete("Elimina passo", "Eliminare questo passo?")) return;
+        try
+        {
+            var dayId = passo.ItinerarioIdFk;
+            await PassiService.DeleteAsync(passo.WebTourItinerarioPassaggioId, AziendaId);
+            _passi.Remove(passo);
+            var rest = _passi.Where(x => x.ItinerarioIdFk == dayId).OrderBy(x => x.Ordine).ToList();
+            for (int i = 0; i < rest.Count; i++) rest[i].Ordine = i + 1;
+            if (rest.Count > 0)
+                await PassiService.ReorderAsync(AziendaId, dayId, rest.Select(x => x.WebTourItinerarioPassaggioId).ToList());
+            _passiContainer?.Refresh();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore eliminazione passo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    private async Task OnPassoDropped(MudItemDropInfo<WebTourItinerarioPassaggio> info)
+    {
+        var p = info.Item;
+        if (!long.TryParse(info.DropzoneIdentifier, out var targetDayId)) return;
+        var sourceDayId = p.ItinerarioIdFk;
+        p.ItinerarioIdFk = targetDayId;
+
+        var target = _passi.Where(x => x.ItinerarioIdFk == targetDayId && !ReferenceEquals(x, p)).OrderBy(x => x.Ordine).ToList();
+        var idx = Math.Clamp(info.IndexInZone, 0, target.Count);
+        target.Insert(idx, p);
+        for (int i = 0; i < target.Count; i++) target[i].Ordine = i + 1;
+
+        List<WebTourItinerarioPassaggio>? source = null;
+        if (sourceDayId != targetDayId)
+        {
+            source = _passi.Where(x => x.ItinerarioIdFk == sourceDayId).OrderBy(x => x.Ordine).ToList();
+            for (int i = 0; i < source.Count; i++) source[i].Ordine = i + 1;
+        }
+
+        _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
+        _passiContainer?.Refresh();
+
+        try
+        {
+            await PassiService.ReorderAsync(AziendaId, targetDayId, target.Select(x => x.WebTourItinerarioPassaggioId).ToList());
+            if (source is { Count: > 0 })
+                await PassiService.ReorderAsync(AziendaId, sourceDayId, source.Select(x => x.WebTourItinerarioPassaggioId).ToList());
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino passi: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    // ---- Helpers -------------------------------------------------------------
+
+    /// <summary>Tutte le giornate vivono nell'unica zona "sidebar" (riordino).</summary>
+    private static bool GiornataInZone(WebTourItinerario g, string identifier) => identifier == "sidebar";
+
+    private async Task<WebTourItinerarioPassaggio?> OpenPassoDialog(WebTourItinerarioPassaggio passo, string title)
+    {
+        var parameters = new DialogParameters<WebTourPassoEditDialog> { { x => x.Passo, passo } };
+        var options = new DialogOptions { BackdropClick = false, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        var dialog = await DialogService.ShowAsync<WebTourPassoEditDialog>(title, parameters, options);
+        var result = await dialog.Result;
+        return result!.Canceled ? null : result.Data as WebTourItinerarioPassaggio;
+    }
+
+    private async Task<bool> ConfirmDelete(string title, string message)
+    {
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, title },
+            { x => x.ContentText, message }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>(title, parameters, new DialogOptions { BackdropClick = false });
+        return !(await dialog.Result)!.Canceled;
+    }
+
+    /// <summary>Anteprima testuale del passo per la card (tag rimossi, troncata).</summary>
+    private static string Snippet(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return "(passo vuoto)";
+        var text = Regex.Replace(html, "<.*?>", " ");
+        text = System.Net.WebUtility.HtmlDecode(text);
+        text = Regex.Replace(text, "\\s+", " ").Trim();
+        if (text.Length == 0) return "(passo vuoto)";
+        return text.Length > 90 ? text[..90] + "…" : text;
+    }
+}

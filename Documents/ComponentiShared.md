@@ -522,6 +522,24 @@ Scheda "Contenuti Web" del viaggio — estensione web, Blocco 5 (`Components/Sha
     *   `DescrizioneBreve` (string?): titolo del viaggio, usato per suggerire lo slug.
 *   **Contesto**: montato come terzo `MudTabPanel` ("Contenuti Web") in `AnaViaggiDialog`, **solo in edit mode** (la FK 1:1 richiede un viaggio già salvato).
 
+### WebTourItinerarioTab
+Scheda "Itinerario" del viaggio — estensione web, Blocco 6 (`Components/Shared/WebTourItinerarioTab.razor` + `.razor.css`).
+*   **Struttura a due livelli**: Giornate (`web_tour_itinerario`) → Passi (`web_tour_itinerario_passaggi`), gestiti via `WebTourItinerarioService` / `WebTourItinerarioPassaggiService`.
+*   **Pattern "Sidebar + Main Board"**: due `MudDropContainer` **paralleli** (non annidati). Sinistra (`xs=3`) = sommario giornate riordinabili in DnD (1 sola zona `sidebar`, `AllowReorder`). Destra (`xs=9`) = una `MudDropZone` **per giornata** (Identifier = id giornata), generate da `@foreach ... OrderBy(Ordine)`: i passi si trascinano dentro e **tra** le giornate. I due container sono isolati → nessun conflitto di puntatore su WebView; il riordino giornate è implicito (aggiorna `Ordine`, la board ridisegna le zone).
+*   **Live-save**: ogni add/modifica/elimina/riordino persiste subito. Il **riordino è atomico** via `fn_web_tour_itinerario_reorder` / `fn_web_tour_itinerario_passaggi_reorder` (`ReorderAsync`, un array di id ordinati → `UNNEST WITH ORDINALITY`). Su errore si ricarica dal DB.
+*   **Passo**: card leggera (snippet del testo + didascalia). La modifica del contenuto (Quill + didascalia) avviene in `WebTourPassoEditDialog` on-demand (niente Quill inline nella card → board a 60fps, no guerra eventi puntatore). **Immagine rinviata al Blocco 7**: qui solo `immagine_didascalia`.
+*   **DropZone vuota**: `min-height` nel `.razor.css` scoped (`::deep .drop-zone-passo`) — una giornata senza passi collasserebbe a 0px e non sarebbe un bersaglio di drop.
+*   **⚠️ ECCEZIONE UI (documentata)**: titoli/testi editoriali NON in maiuscolo forzato (destinati al sito).
+*   **UI rules rispettate**: `dialogFormHelper.setupTabNavigation` in `OnAfterRenderAsync` (fa anche il focus primo campo), `BackdropClick=false` (dal chiamante).
+*   **Parametri Chiave**: `ViaggioId` (int, required), `AziendaId` (int, required).
+*   **Contesto**: montato come quarto `MudTabPanel` ("Itinerario") in `AnaViaggiDialog`, **solo in edit mode**.
+
+### WebTourPassoEditDialog
+Dialog di modifica di un passo dell'itinerario — Blocco 6 (`Components/Shared/WebTourPassoEditDialog.razor`).
+*   Editor RichText Quill (`Blazored.TextEditor`) per `testo_html` (caricato con `LoadHTMLContent` + retry; vuoto Quill `<p><br></p>` normalizzato a NULL) + campo `immagine_didascalia`.
+*   Ritorna il passo modificato (`DialogResult.Ok`) al `WebTourItinerarioTab`, che persiste via create/update (pattern CRUD: il dialog non salva).
+*   **Parametro**: `Passo` (`WebTourItinerarioPassaggio`, required) — i valori sono applicati solo al Salva.
+
 ---
 
 ## Componenti Export
