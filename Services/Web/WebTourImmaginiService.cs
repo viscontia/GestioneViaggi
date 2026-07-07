@@ -158,6 +158,58 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         }
     }
 
+    /// <summary>
+    /// Riordina atomicamente le immagini del viaggio: la posizione nell'array diventa il nuovo
+    /// ordine (fn_web_tour_immagini_reorder). Ritorna il numero di righe aggiornate.
+    /// </summary>
+    public async Task<int> ReorderAsync(int aziendaId, int viaggioId, IReadOnlyList<long> orderedIds)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_tour_immagini_reorder(@AziendaId::integer, @ViaggioId::integer, @Ids::bigint[])", conn);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("Ids", orderedIds.ToArray());
+
+            var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            _logger.LogInformation("Riordino {Rows} immagini (viaggio {ViaggioId})", rows, viaggioId);
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore riordino immagini (viaggio {ViaggioId})", viaggioId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
+    /// <summary>
+    /// Imposta l'immagine come "principale" (copertina) del viaggio, retrocedendo l'eventuale
+    /// principale precedente (fn_web_tour_immagini_set_principale, atomico). True se impostata.
+    /// </summary>
+    public async Task<bool> SetPrincipaleAsync(long id, int aziendaId, int viaggioId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_tour_immagini_set_principale(@Id::bigint, @AziendaId::integer, @ViaggioId::integer)", conn);
+            cmd.Parameters.AddWithValue("Id", id);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+
+            var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            _logger.LogInformation("Immagine {Id} impostata principale ({Rows})", id, rows);
+            return rows > 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore impostazione copertina immagine {Id}", id);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourImmagine e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);

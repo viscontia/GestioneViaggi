@@ -168,6 +168,11 @@
                     <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route">
                         <WebTourItinerarioTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
                     </MudTabPanel>
+
+                    @* Scheda Galleria (Blocco 7): upload immagini → Storage; solo in edit. *@
+                    <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary">
+                        <WebTourGalleriaTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
+                    </MudTabPanel>
                 }
              </MudTabs>
         </MudContainer>

@@ -98,6 +98,11 @@ else
                         <MudPaper Elevation="1" Class="pa-2 cursor-grab d-flex align-center gap-2"
                                   Style="border-left:3px solid var(--mud-palette-primary);">
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
+                            @if (!string.IsNullOrWhiteSpace(context.ImmagineUrl))
+                            {
+                                <img src="@context.ImmagineUrl" alt="@context.ImmagineDidascalia"
+                                     style="width:48px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0;" loading="lazy" />
+                            }
                             <div class="flex-grow-1" style="min-width:0;">
                                 <MudText Typo="Typo.body2"
                                          Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@Snippet(context.TestoHtml)</MudText>
@@ -300,7 +305,12 @@ else
 
     private async Task<WebTourItinerarioPassaggio?> OpenPassoDialog(WebTourItinerarioPassaggio passo, string title)
     {
-        var parameters = new DialogParameters<WebTourPassoEditDialog> { { x => x.Passo, passo } };
+        var parameters = new DialogParameters<WebTourPassoEditDialog>
+        {
+            { x => x.Passo, passo },
+            { x => x.ViaggioId, ViaggioId },
+            { x => x.AziendaId, AziendaId }
+        };
         var options = new DialogOptions { BackdropClick = false, FullWidth = true, MaxWidth = MaxWidth.Medium };
         var dialog = await DialogService.ShowAsync<WebTourPassoEditDialog>(title, parameters, options);
         var result = await dialog.Result;

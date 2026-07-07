@@ -537,8 +537,21 @@ Scheda "Itinerario" del viaggio — estensione web, Blocco 6 (`Components/Shared
 ### WebTourPassoEditDialog
 Dialog di modifica di un passo dell'itinerario — Blocco 6 (`Components/Shared/WebTourPassoEditDialog.razor`).
 *   Editor RichText Quill (`Blazored.TextEditor`) per `testo_html` (caricato con `LoadHTMLContent` + retry; vuoto Quill `<p><br></p>` normalizzato a NULL) + campo `immagine_didascalia`.
+*   **Picker immagine (Blocco 7)**: strip di thumbnail della galleria del viaggio (`ListByViaggioAsync`); la selezione valorizza `immagine_storage_path` + `immagine_url`. Opzione "Nessuna".
 *   Ritorna il passo modificato (`DialogResult.Ok`) al `WebTourItinerarioTab`, che persiste via create/update (pattern CRUD: il dialog non salva).
-*   **Parametro**: `Passo` (`WebTourItinerarioPassaggio`, required) — i valori sono applicati solo al Salva.
+*   **Parametri**: `Passo` (required), `ViaggioId`/`AziendaId` (per caricare la galleria) — i valori sono applicati solo al Salva.
+
+### WebTourGalleriaTab
+Scheda "Galleria" del viaggio — estensione web, Blocco 7 (`Components/Shared/WebTourGalleriaTab.razor` + `.razor.css`).
+*   **Upload multiplo** (`MudFileUpload`, accept image/*): per file → `WebImageProcessor.ToOptimizedWebpAsync` (WebP ≤2000px, q80, cattura larghezza/altezza) → `IWebMediaStorage.UploadAsync` (Supabase Storage) → `WebTourImmaginiService.CreateAsync` (url = `BuildPublicUrl`, `storage_path` = verità).
+*   **Griglia con DnD reorder** (`MudDropContainer` 1 zona, `AllowReorder`) → `ReorderAsync` atomico. Per immagine: **copertina** (`SetPrincipaleAsync`, badge sulla `principale`), modifica alt/titolo (`WebTourImmagineEditDialog`), elimina (record + `IWebMediaStorage.DeleteAsync`; orfano storage tollerato).
+*   **Live-save**; MUST UI: `setupTabNavigation`, niente uppercase su alt/titolo (web), `BackdropClick=false` dal chiamante.
+*   **Parametri**: `ViaggioId`/`AziendaId` (required). Montato come **5° `MudTabPanel`** ("Galleria") in `AnaViaggiDialog`, solo edit mode.
+*   **Sicurezza**: la `ServiceKey` (service-role) è usata contro il bucket di TEST; hardening produzione (chiave scoped / upload server-side) = **debito documentato** per il go-live.
+
+### WebTourImmagineEditDialog
+Dialog di modifica alt/titolo di un'immagine di galleria — Blocco 7 (`Components/Shared/WebTourImmagineEditDialog.razor`).
+*   Campi `titolo` + `alt_text` (no uppercase, web). Ritorna l'immagine modificata; il `WebTourGalleriaTab` persiste via `UpdateAsync`. In dialog per non mettere campi editabili in una card trascinabile (conflitto col DnD).
 
 ---
 
@@ -701,6 +714,17 @@ Restituisce la lista degli anni (in formato intero, ordinati decrescenti) in cui
 ---
 
 ## Servizi Shared (Backend Logic)
+
+### IWebMediaStorage / SupabaseMediaStorage (Blocco 7)
+Storage media web su Supabase Storage via HTTP REST, no SDK (`Services/Shared/Storage/`).
+*   **`IWebMediaStorage`**: `UploadAsync(storagePath, stream, contentType)` → ritorna `storage_path`; `BuildPublicUrl(storagePath)`; `DeleteAsync(storagePath)`.
+*   **`SupabaseMediaStorage`**: `PUT/DELETE {apiRoot}/{bucket}/{path}` con `Authorization: Bearer {ServiceKey}` (`apiRoot` = BaseUrl senza `/public`); `x-upsert:true`. `storage_path` = verità, URL ricomposto dal `BaseUrl` d'ambiente. Registrato con `AddHttpClient<IWebMediaStorage, SupabaseMediaStorage>()`.
+*   **`WebMediaStorageOptions`**: `BaseUrl`/`Bucket`/`ServiceKey` (sezione `WebMediaStorage` in appsettings).
+*   ⚠️ **Sicurezza**: `ServiceKey` service-role usata contro il bucket di TEST; in produzione non deve restare nel binario MAUI → chiave scoped o upload server-side (debito go-live).
+
+### WebImageProcessor (Blocco 7)
+Ottimizzazione immagini web (`Services/Shared/Storage/WebImageProcessor.cs`, ImageSharp).
+*   Statico: `ToOptimizedWebpAsync(stream)` → downscale lato lungo a ≤2000px (mai upscale) + WebP q80; ritorna `ProcessedImage(Bytes, Width, Height, Mime)`. Alias `using` per risolvere i clash `Image/Size/ResizeMode` coi global using MAUI.
 
 ### CompanyEmailTemplate
 Template HTML generico per email aziendali (`Services/Email/CompanyEmailTemplate.cs`).

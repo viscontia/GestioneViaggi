@@ -237,7 +237,7 @@ public static class MauiProgram
         // Exchange Rate Service
         builder.Services.AddScoped<Services.Shared.IExchangeRateService, Services.Shared.ExchangeRateService>();
 
-        // Web Media Storage (Supabase) - solo opzioni; nessuna implementazione IWebMediaStorage in questo blocco
+        // Web Media Storage (Supabase) - opzioni + implementazione HTTP REST (Blocco 7)
         var webMediaStorageSection = builder.Configuration.GetSection("WebMediaStorage");
         builder.Services.AddSingleton(new Services.Shared.Storage.WebMediaStorageOptions
         {
@@ -245,6 +245,7 @@ public static class MauiProgram
             Bucket = webMediaStorageSection["Bucket"] ?? "tour-media",
             ServiceKey = webMediaStorageSection["ServiceKey"] ?? ""
         });
+        builder.Services.AddHttpClient<Services.Shared.Storage.IWebMediaStorage, Services.Shared.Storage.SupabaseMediaStorage>();
 
         return builder.Build();
     }

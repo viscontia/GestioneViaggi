@@ -1,0 +1,53 @@
+/* Blocco 7 — stili scoped della scheda Galleria.
+   ::deep perché le classi sono su elementi resi da MudBlazor (MudDropZone/MudPaper). */
+
+.galleria-tab ::deep .dz-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 120px;
+    padding: 8px;
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 8px;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.galleria-tab ::deep .dz-can-drop {
+    background-color: var(--mud-palette-action-default-hover);
+    border: 2px dashed var(--mud-palette-primary);
+}
+
+.galleria-tab ::deep .img-card {
+    overflow: hidden;
+}
+
+.galleria-tab ::deep .img-card-cover {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: -2px;
+}
+
+.galleria-tab ::deep .thumb-wrap {
+    position: relative;
+}
+
+.galleria-tab ::deep .thumb {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    display: block;
+    background: var(--mud-palette-background-grey);
+}
+
+.galleria-tab ::deep .badge-cover {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+}
+
+.galleria-tab ::deep .cursor-grab {
+    cursor: grab;
+}
+
+.galleria-tab ::deep .cursor-grab:active {
+    cursor: grabbing;
+}

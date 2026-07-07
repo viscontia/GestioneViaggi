@@ -1,15 +1,16 @@
 @using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 @using Blazored.TextEditor
 @using MudBlazor
+@inject WebTourImmaginiService ImmaginiService
 
-@* Editor di un passo dell'itinerario (Blocco 6). Quill on-demand: una sola istanza
-   viva mentre il dialog è aperto → board leggera. ECCEZIONE UI: testo e didascalia
-   NON in maiuscolo forzato (destinati al sito) — come Blocco 5. *@
+@* Editor di un passo dell'itinerario (Blocco 6, + picker immagine Blocco 7). Quill on-demand.
+   ECCEZIONE UI: testo e didascalia NON in maiuscolo forzato (destinati al sito). *@
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passo</MudText>
-        <div style="height:280px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+        <div style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
             <BlazoredTextEditor @ref="_editor" Placeholder="Descrivi questo momento della giornata...">
                 <ToolbarContent>
                     <select class="ql-header">
@@ -35,9 +36,31 @@
             </BlazoredTextEditor>
         </div>
 
+        <!-- Immagine dalla galleria (Blocco 7) -->
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Immagine (dalla galleria del viaggio)</MudText>
+        @if (_galleria.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna immagine in galleria. Caricane dal tab "Galleria".</MudText>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap gap-2" style="max-height:150px; overflow-y:auto;">
+                <MudPaper Elevation="@(_selectedStoragePath is null ? 4 : 0)" Class="pa-1 d-flex align-center justify-center"
+                          Style="@ThumbStyle(null)" @onclick="@(() => Select(null))">
+                    <MudText Typo="Typo.caption">Nessuna</MudText>
+                </MudPaper>
+                @foreach (var img in _galleria)
+                {
+                    <MudPaper Elevation="@(_selectedStoragePath == img.StoragePath ? 4 : 0)" Class="pa-0"
+                              Style="@ThumbStyle(img.StoragePath)" @onclick="@(() => Select(img))">
+                        <img src="@img.Url" alt="@img.AltText" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" />
+                    </MudPaper>
+                }
+            </div>
+        }
+
         <MudTextField @bind-Value="_didascalia" Label="Didascalia immagine (opzionale)" Variant="Variant.Outlined"
-                      MaxLength="255" Class="mt-4"
-                      HelperText="L'immagine si assegna nella Galleria (Blocco 7); qui solo la didascalia." />
+                      MaxLength="255" Class="mt-3" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
@@ -52,13 +75,26 @@
 
     /// <summary>Passo da modificare (i valori vengono applicati solo al Salva).</summary>
     [Parameter, EditorRequired] public WebTourItinerarioPassaggio Passo { get; set; } = default!;
+    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private BlazoredTextEditor _editor = default!;
     private string? _didascalia;
     private bool _saving;
     private bool _htmlLoaded;
 
-    protected override void OnInitialized() => _didascalia = Passo.ImmagineDidascalia;
+    private List<WebTourImmagine> _galleria = new();
+    private string? _selectedStoragePath;
+    private string? _selectedUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _didascalia = Passo.ImmagineDidascalia;
+        _selectedStoragePath = Passo.ImmagineStoragePath;
+        _selectedUrl = Passo.ImmagineUrl;
+        try { _galleria = await ImmaginiService.ListByViaggioAsync(ViaggioId, AziendaId); }
+        catch { _galleria = new(); }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -79,6 +115,19 @@
         }
     }
 
+    private void Select(WebTourImmagine? img)
+    {
+        _selectedStoragePath = img?.StoragePath;
+        _selectedUrl = img?.Url;
+    }
+
+    private string ThumbStyle(string? storagePath)
+    {
+        var selected = _selectedStoragePath == storagePath;
+        var border = selected ? "2px solid var(--mud-palette-primary)" : "1px solid var(--mud-palette-lines-default)";
+        return $"width:96px;height:72px;overflow:hidden;cursor:pointer;border:{border};border-radius:4px;";
+    }
+
     private async Task Salva()
     {
         _saving = true;
@@ -86,6 +135,8 @@
         {
             Passo.TestoHtml = NormalizeHtml(await _editor.GetHTML()) ?? string.Empty;
             Passo.ImmagineDidascalia = string.IsNullOrWhiteSpace(_didascalia) ? null : _didascalia.Trim();
+            Passo.ImmagineStoragePath = _selectedStoragePath;
+            Passo.ImmagineUrl = _selectedUrl;
             MudDialog.Close(DialogResult.Ok(Passo));
         }
         finally
