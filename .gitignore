@@ -488,3 +488,6 @@ Setup Windows/*.exe
 # machine-specific, graph.json riscritto dall'hook a ogni commit). Ogni dev lo
 # rigenera in locale con graphify/hook — vedi CLAUDE.md sezione graphify.
 graphify-out/
+
+# Cartella GPX di test (Blocco 9) - non versionare
+GPX/

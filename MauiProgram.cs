@@ -247,6 +247,16 @@ public static class MauiProgram
         });
         builder.Services.AddHttpClient<Services.Shared.Storage.IWebMediaStorage, Services.Shared.Storage.SupabaseMediaStorage>();
 
+        // Geoapify Static Maps (Blocco 9) - opzioni + client HTTP + pipeline GPX→mappa
+        var geoapifySection = builder.Configuration.GetSection("Geoapify");
+        builder.Services.AddSingleton(new Services.Shared.Geo.GeoapifyOptions
+        {
+            ApiKey = geoapifySection["ApiKey"] ?? "",
+            Style = string.IsNullOrWhiteSpace(geoapifySection["Style"]) ? "osm-bright" : geoapifySection["Style"]!
+        });
+        builder.Services.AddHttpClient<Services.Shared.Geo.GeoapifyStaticMapClient>();
+        builder.Services.AddScoped<Services.Web.WebTourMappaGeneratorService>();
+
         return builder.Build();
     }
 }

@@ -173,6 +173,11 @@
                     <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary">
                         <WebTourGalleriaTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
                     </MudTabPanel>
+
+                    @* Scheda Mappa (Blocco 9): GPX → mappa statica Geoapify; solo in edit. *@
+                    <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map">
+                        <WebTourMappaTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
+                    </MudTabPanel>
                 }
              </MudTabs>
         </MudContainer>

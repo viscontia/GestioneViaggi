@@ -559,6 +559,13 @@ Gestione delle **descrizioni web dei tipi di viaggio** (lookup GLOBALE `web_tipi
 *   **Dialog** `Components/Shared/WebTipoViaggioDescrizioneDialog.razor`: campi `descrizione_web`/`slug`/`ordine` — **niente uppercase** (è web); setupTabNavigation + focus primo campo.
 *   **Mapping**: `TipoViaggioDialog` (esistente) ha un `MudSelect` "Descrizione web (sito)" che valorizza `TipoViaggio.DescrizioneWebFk` (persistito da `TipoViaggioService.UpdateAsync`); `TipoViaggioPage` mostra la descrizione mappata in colonna. Più tipi possono condividere la stessa descrizione (N:1). Esposta al sito da `fn_web_tour_pubblicati`.
 
+### WebTourMappaTab + pipeline GPX→mappa (Blocco 9)
+Scheda "Mappa" del viaggio: genera una **mappa statica** dal GPX, tutto lato gestionale (la traccia non raggiunge mai il browser).
+*   **Componente** `Components/Shared/WebTourMappaTab.razor` (6° `MudTabPanel` in `AnaViaggiDialog`, solo edit): upload `.gpx` (`MudFileUpload`) → "Genera mappa" → anteprima immagine + rigenera/elimina. Attribuzione © OpenStreetMap contributors.
+*   **Pipeline** `Services/Web/WebTourMappaGeneratorService.cs`: `GpxParser` (parse `<trkpt>`) → `DouglasPeucker` (decimazione a mano, iterativa, cap punti per limite URL) → `GeoapifyStaticMapClient.ComputeBbox` + `FetchAsync` (Geoapify Static Maps, HTTP REST, formato validato: `area=rect`/`geometry=polyline` in lon,lat, colori %23) → JPEG → `WebImageProcessor` WebP → `IWebMediaStorage` (`{azienda}/{viaggio}/mappa.webp`, bucket `tour-media`) → upsert 1:1 su `web_tour_mappa` (gpx_originale, bbox, provider/stile, parametri_render jsonb, immagine_*).
+*   **Config**: sezione `Geoapify` in appsettings (`GeoapifyOptions`: ApiKey, Style, colori, MaxPolylinePoints). Chiave **non cifrata** (free, rigenerabile dal cliente). Registrazione: `AddHttpClient<GeoapifyStaticMapClient>` + generator Scoped.
+*   **Parametri tab**: `ViaggioId`/`AziendaId` (required). Se la chiave non è configurata (`Generator.IsConfigured=false`) la generazione è disabilitata con avviso.
+
 ---
 
 ## Componenti Export
