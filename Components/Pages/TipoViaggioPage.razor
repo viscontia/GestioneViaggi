@@ -2,10 +2,12 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Web
 @using GestioneViaggi.Services.UI
 @using GestioneViaggi.Components.Shared
 @using MudBlazor
 @inject TipoViaggioService Service
+@inject WebTipiViaggioDescrizioniService DescrizioniService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
@@ -40,9 +42,15 @@ else
             <PropertyColumn Property="x => x.Tipo" Title="Tipo"
                             HeaderStyle="min-width: 80px; text-align: center;"
                             CellStyle="min-width: 80px; text-align: center;" />
-            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" 
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione"
                             HeaderStyle="min-width: 200px;"
                             CellStyle="min-width: 200px;" />
+            <TemplateColumn Title="Descrizione web (sito)" Sortable="false"
+                            HeaderStyle="min-width: 180px;" CellStyle="min-width: 180px;">
+                <CellTemplate>
+                    @(context.Item.DescrizioneWebFk is long fk && _descrDict.TryGetValue(fk, out var lbl) ? lbl : "—")
+                </CellTemplate>
+            </TemplateColumn>
 
             <EnterpriseActionsColumn T="TipoViaggio"
                                      OnEdit="@OpenEditDialog"
@@ -56,10 +64,13 @@ else
     private List<TipoViaggio> _items = new();
     private TipoViaggio? _selectedItem;
     private string _errorMessage = string.Empty;
+    private Dictionary<long, string> _descrDict = new();
 
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("ana_tipo_viaggi");
+        _descrDict = (await DescrizioniService.ListAsync())
+            .ToDictionary(d => d.WebTipoViaggioDescrizioneId, d => d.DescrizioneWeb);
         await LoadDataAsync();
     }
 
@@ -126,7 +137,7 @@ else
     {
         var parameters = new DialogParameters<TipoViaggioDialog>
         {
-            { x => x.Entity, new TipoViaggio { Id = item.Id, Tipo = item.Tipo, Descrizione = item.Descrizione } },
+            { x => x.Entity, new TipoViaggio { Id = item.Id, Tipo = item.Tipo, Descrizione = item.Descrizione, DescrizioneWebFk = item.DescrizioneWebFk } },
             { x => x.IsEditMode, true }
         };
 

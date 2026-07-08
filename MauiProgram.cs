@@ -167,7 +167,7 @@ public static class MauiProgram
         builder.Services.AddScoped<WebTourItinerarioPassaggiService>();
         builder.Services.AddScoped<WebTourImmaginiService>();
         builder.Services.AddScoped<WebTourMappaService>();
-        builder.Services.AddScoped<WebCategorieSportService>();
+        builder.Services.AddScoped<WebTipiViaggioDescrizioniService>();
         builder.Services.AddScoped<WebTraduzioniService>();
         builder.Services.AddScoped<WebNewsletterIscrittiService>();
         builder.Services.AddScoped<WebNewsletterInviiService>();

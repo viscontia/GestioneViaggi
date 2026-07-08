@@ -83,6 +83,11 @@
                 <MudText Typo="Typo.body1">Tipologie Viaggio</MudText>
             </MudNavLink>
 
+            <MudNavLink Icon="@Icons.Material.Filled.Language"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/descrizioni-web", "Descrizioni Web", "table"))">
+                <MudText Typo="Typo.body1">Descrizioni Web (sito)</MudText>
+            </MudNavLink>
+
             <MudNavLink Icon="@Icons.Material.Filled.People"
                         OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-partecipanti", "Tipologie Partecipanti", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Partecipanti</MudText>

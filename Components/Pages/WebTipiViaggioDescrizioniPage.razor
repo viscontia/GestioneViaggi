@@ -1,0 +1,148 @@
+@page "/tabelle/descrizioni-web"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject WebTipiViaggioDescrizioniService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@* Gestione descrizioni web dei tipi di viaggio (Blocco 8): lookup GLOBALE condivisa,
+   referenziata da ana_tipo_viaggi.descrizione_web_fk. *@
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">@_errorMessage</MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="WebTipoViaggioDescrizione"
+                        Items="@_items"
+                        Title="Descrizioni Web dei Tipi di Viaggio"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="@OpenCreateDialog">Nuovo</MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.DescrizioneWeb" Title="Descrizione (sito)"
+                            HeaderStyle="min-width: 220px;" CellStyle="min-width: 220px;" />
+            <PropertyColumn Property="x => x.Slug" Title="Slug"
+                            HeaderStyle="min-width: 160px;" CellStyle="min-width: 160px;" />
+            <PropertyColumn Property="x => x.Ordine" Title="Ordine"
+                            HeaderStyle="min-width: 80px; text-align:center;" CellStyle="min-width: 80px; text-align:center;" />
+            <EnterpriseActionsColumn T="WebTipoViaggioDescrizione" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
+        </Columns>
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<WebTipoViaggioDescrizione> _items = new();
+    private WebTipoViaggioDescrizione? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("web_tipi_viaggio_descrizioni");
+        await LoadDataAsync();
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.ListAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(WebTipoViaggioDescrizione item, string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return true;
+        return item.DescrizioneWeb.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || item.Slug.Contains(s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
+        {
+            { x => x.Entity, new WebTipoViaggioDescrizione() },
+            { x => x.IsEditMode, false }
+        };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Nuova Descrizione Web", parameters, options);
+        var result = await dialog.Result;
+        if (!result!.Canceled && result.Data is WebTipoViaggioDescrizione newItem)
+        {
+            try
+            {
+                _items.Add(await Service.CreateAsync(newItem));
+                Snackbar.Add("Creato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    private async Task OpenEditDialog(WebTipoViaggioDescrizione item)
+    {
+        var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
+        {
+            { x => x.Entity, new WebTipoViaggioDescrizione { WebTipoViaggioDescrizioneId = item.WebTipoViaggioDescrizioneId, DescrizioneWeb = item.DescrizioneWeb, Slug = item.Slug, Ordine = item.Ordine } },
+            { x => x.IsEditMode, true }
+        };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Modifica Descrizione Web", parameters, options);
+        var result = await dialog.Result;
+        if (!result!.Canceled && result.Data is WebTipoViaggioDescrizione updated)
+        {
+            try
+            {
+                var saved = await Service.UpdateAsync(updated);
+                var idx = _items.FindIndex(x => x.WebTipoViaggioDescrizioneId == saved.WebTipoViaggioDescrizioneId);
+                if (idx >= 0) _items[idx] = saved;
+                Snackbar.Add("Aggiornato con successo", Severity.Success);
+                StateHasChanged();
+            }
+            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        }
+    }
+
+    private async Task DeleteItem(WebTipoViaggioDescrizione item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Eliminare la descrizione \"{item.DescrizioneWeb}\"? I tipi che la usano resteranno senza descrizione web." }
+        };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parameters, options);
+        if (!(await dialog.Result)!.Canceled)
+        {
+            try
+            {
+                if (await Service.DeleteAsync(item.WebTipoViaggioDescrizioneId))
+                {
+                    _items.Remove(item);
+                    Snackbar.Add("Eliminato con successo", Severity.Success);
+                    StateHasChanged();
+                }
+                else Snackbar.Add("Impossibile eliminare", Severity.Warning);
+            }
+            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        }
+    }
+}

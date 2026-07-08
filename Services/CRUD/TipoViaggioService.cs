@@ -26,7 +26,7 @@ public class TipoViaggioService : BaseCrudService<TipoViaggio>
                     tipo_viaggi_descrizione
                 )
                 VALUES (@tipo, @descrizione)
-                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione";
+                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione, descrizione_web_fk";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("tipo", entity.Tipo);
@@ -55,14 +55,16 @@ public class TipoViaggioService : BaseCrudService<TipoViaggio>
             var sql = @"
                 UPDATE ana_tipo_viaggi
                 SET tipo_viaggi_tipo = @tipo,
-                    tipo_viaggi_descrizione = @descrizione
+                    tipo_viaggi_descrizione = @descrizione,
+                    descrizione_web_fk = @descrizioneWebFk
                 WHERE tipo_viaggi_id = @id
-                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione";
+                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione, descrizione_web_fk";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", entity.Id);
             command.Parameters.AddWithValue("tipo", entity.Tipo);
             command.Parameters.AddWithValue("descrizione", entity.Descrizione);
+            command.Parameters.AddWithValue("descrizioneWebFk", (object?)entity.DescrizioneWebFk ?? DBNull.Value);
 
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
@@ -81,11 +83,13 @@ public class TipoViaggioService : BaseCrudService<TipoViaggio>
 
     protected override TipoViaggio MapFromReader(NpgsqlDataReader reader)
     {
+        var descrOrd = reader.GetOrdinal("descrizione_web_fk");
         return new TipoViaggio
         {
             Id = ReadInt(reader, "tipo_viaggi_id"),
             Tipo = reader.GetString(reader.GetOrdinal("tipo_viaggi_tipo")),
-            Descrizione = reader.GetString(reader.GetOrdinal("tipo_viaggi_descrizione"))
+            Descrizione = reader.GetString(reader.GetOrdinal("tipo_viaggi_descrizione")),
+            DescrizioneWebFk = reader.IsDBNull(descrOrd) ? null : reader.GetInt64(descrOrd)
         };
     }
 }

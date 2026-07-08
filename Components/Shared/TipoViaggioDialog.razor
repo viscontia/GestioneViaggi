@@ -1,7 +1,10 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
+@inject WebTipiViaggioDescrizioniService DescrizioniService
 @implements IDisposable
 
 <MudDialog>
@@ -47,6 +50,16 @@
                           Adornment="Adornment.End"
                           AdornmentText="*"
                           AdornmentColor="Color.Error" />
+
+            <!-- DESCRIZIONE WEB (mapping Blocco 8): lookup condivisa; niente uppercase (è web) -->
+            <MudSelect T="long?" @bind-Value="Entity.DescrizioneWebFk" Label="Descrizione web (sito)"
+                       Variant="Variant.Outlined" Clearable="true" tabindex="3" Class="mb-3"
+                       HelperText="Etichetta pubblica condivisa; più tipi possono usare la stessa.">
+                @foreach (var d in _descrizioni)
+                {
+                    <MudSelectItem T="long?" Value="@((long?)d.WebTipoViaggioDescrizioneId)">@d.DescrizioneWeb</MudSelectItem>
+                }
+            </MudSelect>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -71,6 +84,13 @@
 
     [Parameter]
     public bool IsEditMode { get; set; }
+
+    private List<WebTipoViaggioDescrizione> _descrizioni = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _descrizioni = await DescrizioniService.ListAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

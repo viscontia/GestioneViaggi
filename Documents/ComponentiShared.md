@@ -553,6 +553,12 @@ Scheda "Galleria" del viaggio — estensione web, Blocco 7 (`Components/Shared/W
 Dialog di modifica alt/titolo di un'immagine di galleria — Blocco 7 (`Components/Shared/WebTourImmagineEditDialog.razor`).
 *   Campi `titolo` + `alt_text` (no uppercase, web). Ritorna l'immagine modificata; il `WebTourGalleriaTab` persiste via `UpdateAsync`. In dialog per non mettere campi editabili in una card trascinabile (conflitto col DnD).
 
+### WebTipiViaggioDescrizioniPage + WebTipoViaggioDescrizioneDialog (Blocco 8)
+Gestione delle **descrizioni web dei tipi di viaggio** (lookup GLOBALE `web_tipi_viaggio_descrizioni`, ex categoria sport).
+*   **Pagina** `Components/Pages/WebTipiViaggioDescrizioniPage.razor` (`/tabelle/descrizioni-web`, menu "Descrizioni Web (sito)"): CRUD via `EnterpriseDataGrid` su `WebTipiViaggioDescrizioniService` (globale, `ListAsync`/Create/Update/Delete). Colonne descrizione/slug/ordine.
+*   **Dialog** `Components/Shared/WebTipoViaggioDescrizioneDialog.razor`: campi `descrizione_web`/`slug`/`ordine` — **niente uppercase** (è web); setupTabNavigation + focus primo campo.
+*   **Mapping**: `TipoViaggioDialog` (esistente) ha un `MudSelect` "Descrizione web (sito)" che valorizza `TipoViaggio.DescrizioneWebFk` (persistito da `TipoViaggioService.UpdateAsync`); `TipoViaggioPage` mostra la descrizione mappata in colonna. Più tipi possono condividere la stessa descrizione (N:1). Esposta al sito da `fn_web_tour_pubblicati`.
+
 ---
 
 ## Componenti Export

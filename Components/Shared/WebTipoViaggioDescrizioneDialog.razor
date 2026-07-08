@@ -1,0 +1,77 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@implements IDisposable
+
+@* Dialog CRUD di una descrizione web di tipo viaggio (Blocco 8).
+   ECCEZIONE UI: descrizione/slug NON in maiuscolo forzato (destinati al sito). *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEditMode ? "Modifica Descrizione Web" : "Nuova Descrizione Web")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField T="string" @ref="_firstField" @bind-Value="Entity.DescrizioneWeb"
+                          For="@(() => Entity.DescrizioneWeb)" Label="Descrizione (mostrata sul sito)"
+                          Variant="Variant.Outlined" Immediate="true" Required="true"
+                          RequiredError="La descrizione è obbligatoria" MaxLength="50" tabindex="1" Class="mb-3" />
+
+            <MudTextField T="string" @bind-Value="Entity.Slug" For="@(() => Entity.Slug)" Label="Slug (URL)"
+                          Variant="Variant.Outlined" Immediate="true" Required="true"
+                          RequiredError="Lo slug è obbligatorio" MaxLength="50" tabindex="2" Class="mb-3"
+                          HelperText="Minuscolo, senza spazi (es. viaggi-4x4). Univoco." />
+
+            <MudNumericField T="int" @bind-Value="Entity.Ordine" Label="Ordine" Variant="Variant.Outlined"
+                             Min="0" tabindex="3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+            @(IsEditMode ? "Aggiorna" : "Crea")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _firstField;
+
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public WebTipoViaggioDescrizione Entity { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); } catch { }
+            if (_firstField != null)
+            {
+                await Task.Delay(300);
+                try { await _firstField.FocusAsync(); } catch { }
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    private async Task HandleSubmit()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (_form.IsValid)
+                MudDialog?.Close(DialogResult.Ok(Entity));
+            else if (_firstField?.Error == true)
+                await _firstField.FocusAsync();
+        }
+    }
+}

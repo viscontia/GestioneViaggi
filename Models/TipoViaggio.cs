@@ -14,4 +14,7 @@ public class TipoViaggio : BaseEntity
     [Required(ErrorMessage = "La descrizione è obbligatoria")]
     [StringLength(100, ErrorMessage = "Max 100 caratteri")]
     public string Descrizione { get; set; } = string.Empty;
+
+    /// <summary>FK opzionale alla descrizione web condivisa (web_tipi_viaggio_descrizioni). Blocco 8.</summary>
+    public long? DescrizioneWebFk { get; set; }
 }
