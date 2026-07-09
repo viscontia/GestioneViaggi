@@ -1,0 +1,78 @@
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebTraduzioneOrchestratorService Orchestrator
+@inject ISnackbar Snackbar
+
+@* Sotto-tab azienda "Traduzioni" (Blocco 10): gestisce la chiave API Claude per-azienda
+   (ana_aziende.claude_api_key) usata dalla traduzione automatica dei contenuti web.
+   ⚠️ Chiave in chiaro (come SMTP/ESP) → da cifrare prima del rilascio. *@
+
+<MudPaper Elevation="0" Class="pa-2">
+    <MudText Typo="Typo.subtitle1" Class="mb-1">Chiave API Claude (Anthropic)</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        Usata per tradurre automaticamente i contenuti web del tour (EN/DE/FR/ES). A consumo: la chiave è dell'azienda.
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+    }
+    else
+    {
+        <div class="d-flex align-center gap-2" style="max-width:640px;">
+            <MudTextField @bind-Value="_key" Label="Chiave Claude"
+                          Placeholder="@(_hasKey ? "•••••• (configurata) — incolla per sostituire" : "Incolla la chiave API")"
+                          Variant="Variant.Outlined" InputType="InputType.Password" Class="flex-grow-1" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Salva" Disabled="@_busy">Salva</MudButton>
+            @if (_hasKey)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="Rimuovi" Disabled="@_busy">Rimuovi</MudButton>
+            }
+        </div>
+        <MudText Typo="Typo.caption" Color="@(_hasKey ? Color.Success : Color.Warning)" Class="mt-1">
+            @(_hasKey ? "Chiave configurata." : "Nessuna chiave: traduzione automatica non disponibile.")
+        </MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private bool _hasKey;
+    private string? _key;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId));
+        _loading = false;
+    }
+
+    private async Task Salva()
+    {
+        if (string.IsNullOrWhiteSpace(_key)) { Snackbar.Add("Incolla una chiave.", Severity.Warning); return; }
+        _busy = true;
+        try
+        {
+            await Orchestrator.SetClaudeKeyAsync(AziendaId, _key.Trim());
+            _key = null; _hasKey = true;
+            Snackbar.Add("Chiave Claude salvata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Rimuovi()
+    {
+        _busy = true;
+        try
+        {
+            await Orchestrator.SetClaudeKeyAsync(AziendaId, null);
+            _key = null; _hasKey = false;
+            Snackbar.Add("Chiave rimossa.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+}

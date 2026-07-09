@@ -71,6 +71,26 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
         }
     }
 
+    /// <summary>Marca obsolete le traduzioni di un campo di un'entità GLOBALE (senza filtro azienda). Non lancia.</summary>
+    public async Task<int> MarkObsoleteGlobalAsync(string entita, long entitaId, string campo)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_traduzioni_marca_obsolete_global(@E::varchar, @Eid::bigint, @C::varchar)", conn);
+            cmd.Parameters.AddWithValue("E", entita);
+            cmd.Parameters.AddWithValue("Eid", entitaId);
+            cmd.Parameters.AddWithValue("C", campo);
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Marca-obsolete-global traduzioni fallita {Entita}/{Campo} (ignorato)", entita, campo);
+            return 0;
+        }
+    }
+
     /// <summary>Elenco di tutte le traduzioni di un'azienda.</summary>
     public async Task<List<WebTraduzione>> ListByAziendaAsync(int aziendaId)
     {

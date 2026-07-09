@@ -1,0 +1,115 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.Shared.Ai
+@using MudBlazor
+@inject WebTraduzioneOrchestratorService Orchestrator
+@inject WebTraduzioniService TraduzioniService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Traduzioni della descrizione web (tipo viaggio) — Blocco 10, punto scope descrizione tipo.
+   Entità GLOBALE web_tipi_viaggio_descrizioni: la chiave/azienda è quella dell'utente corrente. *@
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">Traduzioni: @DescrizioneWeb</MudText></TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-4"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else
+        {
+            <div class="d-flex align-center gap-3 mb-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Translate"
+                           Disabled="@_busy" OnClick="TraduciTutto">
+                    Traduci tutto (@string.Join("/", WebTraduzioneOrchestratorService.Lingue))
+                </MudButton>
+                @if (_busy) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
+            </div>
+            <MudSimpleTable Dense="true" Bordered="true">
+                <thead><tr><th>Lingua</th><th>Stato</th><th style="text-align:right;">Azione</th></tr></thead>
+                <tbody>
+                    @foreach (var l in WebTraduzioneOrchestratorService.Lingue)
+                    {
+                        var t = _byLingua.GetValueOrDefault(l);
+                        <tr>
+                            <td>@ClaudeTranslationClient.LanguageName(l)</td>
+                            <td>
+                                @if (t == null) { <MudChip T="string" Size="Size.Small" Variant="Variant.Text">mancante</MudChip> }
+                                else if (t.Obsoleto) { <MudChip T="string" Size="Size.Small" Color="Color.Warning">obsoleto</MudChip> }
+                                else if (!t.Revisionato) { <MudChip T="string" Size="Size.Small" Color="Color.Info">da revisionare</MudChip> }
+                                else { <MudChip T="string" Size="Size.Small" Color="Color.Success">ok</MudChip> }
+                            </td>
+                            <td style="text-align:right;">
+                                <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="@(t == null)" OnClick="@(() => Rivedi(l))">Rivedi</MudButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public long DescrizioneId { get; set; }
+    [Parameter, EditorRequired] public string DescrizioneWeb { get; set; } = "";
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private const string Entita = "web_tipi_viaggio_descrizioni";
+    private const string Campo = "descrizione_web";
+
+    private bool _loading = true;
+    private bool _busy;
+    private Dictionary<string, WebTraduzione> _byLingua = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        var list = await TraduzioniService.ListByEntitaAsync(Entita, DescrizioneId, AziendaId);
+        _byLingua = list.Where(t => t.Campo == Campo).ToDictionary(t => t.Lingua, t => t);
+        StateHasChanged();
+    }
+
+    private async Task TraduciTutto()
+    {
+        _busy = true;
+        try
+        {
+            var item = new TranslatableItem(Entita, DescrizioneId, Campo, DescrizioneWeb, DescrizioneWeb);
+            var (ok, err) = await Orchestrator.TranslateAsync(AziendaId, new[] { item }, WebTraduzioneOrchestratorService.Lingue);
+            await ReloadAsync();
+            Snackbar.Add($"Tradotte {ok} lingue" + (err > 0 ? $", {err} errori" : ""), err > 0 ? Severity.Warning : Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Rivedi(string lingua)
+    {
+        var t = _byLingua.GetValueOrDefault(lingua);
+        if (t == null) return;
+        var parameters = new DialogParameters<WebTraduzioneReviewDialog>
+        {
+            { x => x.Traduzione, t },
+            { x => x.SourceText, DescrizioneWeb },
+            { x => x.Label, "Descrizione tipo" },
+            { x => x.LinguaLabel, ClaudeTranslationClient.LanguageName(lingua) }
+        };
+        var dialog = await DialogService.ShowAsync<WebTraduzioneReviewDialog>("Revisione traduzione",
+            parameters, new DialogOptions { BackdropClick = false, FullWidth = true, MaxWidth = MaxWidth.Medium });
+        if ((await dialog.Result)!.Canceled) return;
+        try { await TraduzioniService.UpdateAsync(t); await ReloadAsync(); Snackbar.Add("Traduzione aggiornata.", Severity.Success); }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+}

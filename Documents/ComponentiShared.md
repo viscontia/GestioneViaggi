@@ -574,6 +574,8 @@ Scheda "Traduzioni" del viaggio: traduce i campi editoriali in EN/DE/FR/ES via C
 *   **Obsolescenza**: al salvataggio IT (Contenuti/Itinerario) i campi cambiati → `fn_web_traduzioni_marca_obsolete` (`WebTraduzioniService.MarkObsoleteAsync`). `fn_web_tour_pubblicati` serve solo le traduzioni non-obsolete.
 *   **Sicurezza**: chiave Claude in chiaro su `ana_aziende` → nel debito "cifrare pre-rilascio" con SMTP/ESP.
 *   **Parametri tab**: `ViaggioId`/`AziendaId` (required).
+*   **Chiave azienda nel form Aziende**: sotto-tab `Components/Shared/AziendaTabs/AziendaTabTraduzioni.razor` (get/set `claude_api_key` via l'orchestratore, nessun plumbing sull'entity Azienda). Montato in `AziendaDialog`.
+*   **Descrizione tipo (globale)**: `WebTipoDescrizioneTraduzioniDialog.razor` aperto da un'azione "Traduzioni" per riga in `WebTipiViaggioDescrizioniPage` — traduce `descrizione_web` nelle 4 lingue (azienda corrente via `ITenantContext`). Obsolescenza via `fn_web_traduzioni_marca_obsolete_global` (entità globale). Riusa `WebTraduzioneReviewDialog`.
 
 ---
 

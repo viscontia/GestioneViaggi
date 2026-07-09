@@ -17,9 +17,12 @@ public class WebTipiViaggioDescrizioniService : BaseCrudService<WebTipoViaggioDe
     protected override string TableName => "web_tipi_viaggio_descrizioni";
     protected override string IdColumnName => "web_tipi_viaggio_descrizioni_id";
 
-    public WebTipiViaggioDescrizioniService(IDatabaseService databaseService, ILogger<WebTipiViaggioDescrizioniService> logger, ITenantContext? tenantContext = null)
+    private readonly WebTraduzioniService? _traduzioni;
+
+    public WebTipiViaggioDescrizioniService(IDatabaseService databaseService, ILogger<WebTipiViaggioDescrizioniService> logger, ITenantContext? tenantContext = null, WebTraduzioniService? traduzioni = null)
         : base(databaseService, logger, tenantContext)
     {
+        _traduzioni = traduzioni;
     }
 
     /// <summary>Elenco globale delle descrizioni web (ordinate per ordine, descrizione).</summary>
@@ -89,6 +92,7 @@ public class WebTipiViaggioDescrizioniService : BaseCrudService<WebTipoViaggioDe
     public override async Task<WebTipoViaggioDescrizione> UpdateAsync(WebTipoViaggioDescrizione entity)
     {
         NormalizeEntityBeforeSave(entity);
+        var old = _traduzioni != null ? await GetByIdAsync(entity.WebTipoViaggioDescrizioneId) : null;
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
@@ -102,6 +106,8 @@ public class WebTipiViaggioDescrizioniService : BaseCrudService<WebTipoViaggioDe
                 throw new InvalidOperationException($"Descrizione web {entity.WebTipoViaggioDescrizioneId} non trovata.");
 
             _logger.LogInformation("Descrizione web {Id} aggiornata", entity.WebTipoViaggioDescrizioneId);
+            if (_traduzioni != null && old != null && !string.Equals(old.DescrizioneWeb ?? "", entity.DescrizioneWeb ?? "", StringComparison.Ordinal))
+                await _traduzioni.MarkObsoleteGlobalAsync("web_tipi_viaggio_descrizioni", entity.WebTipoViaggioDescrizioneId, "descrizione_web");
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

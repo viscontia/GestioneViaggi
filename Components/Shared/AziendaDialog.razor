@@ -337,6 +337,10 @@
                 <MudTabPanel Text="Logo" Icon="@Icons.Material.Filled.Image" BadgeData="@_logoCount" BadgeColor="Color.Info">
                     <AziendaTabLogo AziendaId="@Entity.Id" OnDataChanged="@LoadBadgeCountsAsync" />
                 </MudTabPanel>
+
+                <MudTabPanel Text="Traduzioni" Icon="@Icons.Material.Filled.Translate">
+                    <AziendaTabTraduzioni AziendaId="@Entity.Id" />
+                </MudTabPanel>
             </MudTabs>
         }
         </div>

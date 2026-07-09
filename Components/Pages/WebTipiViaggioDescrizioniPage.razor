@@ -3,12 +3,14 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
 @using GestioneViaggi.Services.UI
+@using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
 @using MudBlazor
 @inject WebTipiViaggioDescrizioniService Service
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
+@inject ITenantContext TenantContext
 @attribute [Authorize]
 @implements IDisposable
 
@@ -37,6 +39,14 @@ else
                             HeaderStyle="min-width: 160px;" CellStyle="min-width: 160px;" />
             <PropertyColumn Property="x => x.Ordine" Title="Ordine"
                             HeaderStyle="min-width: 80px; text-align:center;" CellStyle="min-width: 80px; text-align:center;" />
+            <TemplateColumn Title="Traduzioni" Sortable="false" HeaderStyle="min-width:110px; text-align:center;" CellStyle="text-align:center;">
+                <CellTemplate>
+                    <MudTooltip Text="Traduzioni (EN/DE/FR/ES)">
+                        <MudIconButton Icon="@Icons.Material.Filled.Translate" Size="Size.Small" Color="Color.Primary"
+                                       Disabled="@(_aziendaId == 0)" OnClick="@(() => OpenTraduzioni(context.Item))" />
+                    </MudTooltip>
+                </CellTemplate>
+            </TemplateColumn>
             <EnterpriseActionsColumn T="WebTipoViaggioDescrizione" OnEdit="@OpenEditDialog" OnDelete="@DeleteItem" />
         </Columns>
     </EnterpriseDataGrid>
@@ -47,9 +57,26 @@ else
     private WebTipoViaggioDescrizione? _selectedItem;
     private string _errorMessage = string.Empty;
 
+    private int _aziendaId;
+
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("web_tipi_viaggio_descrizioni");
+        _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+        await LoadDataAsync();
+    }
+
+    private async Task OpenTraduzioni(WebTipoViaggioDescrizione item)
+    {
+        if (_aziendaId == 0) { Snackbar.Add("Seleziona un'azienda per tradurre.", Severity.Warning); return; }
+        var parameters = new DialogParameters<WebTipoDescrizioneTraduzioniDialog>
+        {
+            { x => x.DescrizioneId, item.WebTipoViaggioDescrizioneId },
+            { x => x.DescrizioneWeb, item.DescrizioneWeb },
+            { x => x.AziendaId, _aziendaId }
+        };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<WebTipoDescrizioneTraduzioniDialog>("Traduzioni descrizione", parameters, options);
         await LoadDataAsync();
     }
 
