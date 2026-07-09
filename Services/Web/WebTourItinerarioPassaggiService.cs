@@ -18,9 +18,12 @@ public class WebTourItinerarioPassaggiService : BaseCrudService<WebTourItinerari
     protected override string IdColumnName => "web_tour_itinerario_passaggi_id";
     protected override string? TenantColumnName => "azienda_id";
 
-    public WebTourItinerarioPassaggiService(IDatabaseService databaseService, ILogger<WebTourItinerarioPassaggiService> logger, ITenantContext? tenantContext = null)
+    private readonly WebTraduzioniService? _traduzioni;
+
+    public WebTourItinerarioPassaggiService(IDatabaseService databaseService, ILogger<WebTourItinerarioPassaggiService> logger, ITenantContext? tenantContext = null, WebTraduzioniService? traduzioni = null)
         : base(databaseService, logger, tenantContext)
     {
+        _traduzioni = traduzioni;
     }
 
     /// <summary>Passaggi di una giornata (ordinati lato DB).</summary>
@@ -99,6 +102,7 @@ public class WebTourItinerarioPassaggiService : BaseCrudService<WebTourItinerari
     public override async Task<WebTourItinerarioPassaggio> UpdateAsync(WebTourItinerarioPassaggio entity)
     {
         NormalizeEntityBeforeSave(entity);
+        var old = _traduzioni != null ? await GetByIdAsync(entity.WebTourItinerarioPassaggioId, entity.AziendaId) : null;
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
@@ -114,6 +118,8 @@ public class WebTourItinerarioPassaggiService : BaseCrudService<WebTourItinerari
                 throw new InvalidOperationException($"Passaggio {entity.WebTourItinerarioPassaggioId} non trovato per l'azienda {entity.AziendaId}.");
 
             _logger.LogInformation("Passaggio {Id} aggiornato", entity.WebTourItinerarioPassaggioId);
+            if (_traduzioni != null && old != null && !string.Equals(old.TestoHtml ?? "", entity.TestoHtml ?? "", StringComparison.Ordinal))
+                await _traduzioni.MarkObsoleteAsync(entity.AziendaId, "web_tour_itinerario_passaggi", entity.WebTourItinerarioPassaggioId, "testo_html");
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

@@ -19,9 +19,12 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
     protected override string IdColumnName => "web_tour_contenuti_id";
     protected override string? TenantColumnName => "azienda_id";
 
-    public WebTourContenutiService(IDatabaseService databaseService, ILogger<WebTourContenutiService> logger, ITenantContext? tenantContext = null)
+    private readonly WebTraduzioniService? _traduzioni;
+
+    public WebTourContenutiService(IDatabaseService databaseService, ILogger<WebTourContenutiService> logger, ITenantContext? tenantContext = null, WebTraduzioniService? traduzioni = null)
         : base(databaseService, logger, tenantContext)
     {
+        _traduzioni = traduzioni;
     }
 
     /// <summary>Elenco dei contenuti tour di un'azienda.</summary>
@@ -140,6 +143,8 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
     public override async Task<WebTourContenuto> UpdateAsync(WebTourContenuto entity)
     {
         NormalizeEntityBeforeSave(entity);
+        // Snapshot pre-update per marcare obsolete le traduzioni dei campi IT cambiati (Blocco 10).
+        var old = _traduzioni != null ? await GetByIdAsync(entity.WebTourContenutoId, entity.AziendaId) : null;
 
         try
         {
@@ -177,6 +182,7 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
             }
 
             _logger.LogInformation("Contenuto tour {Id} aggiornato", entity.WebTourContenutoId);
+            await MarcaTraduzioniObsoleteAsync(old, entity);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")
@@ -189,6 +195,26 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
             _logger.LogError(ex, "Errore durante l'aggiornamento del contenuto tour {Id}", entity.WebTourContenutoId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
+    }
+
+    /// <summary>Marca obsolete le traduzioni dei campi editoriali IT cambiati (Blocco 10). No-op senza _traduzioni.</summary>
+    private async Task MarcaTraduzioniObsoleteAsync(WebTourContenuto? old, WebTourContenuto nuovo)
+    {
+        if (_traduzioni == null || old == null) return;
+        var campi = new List<string>();
+        void Chk(string campo, string? o, string? n) { if (!string.Equals(o ?? "", n ?? "", StringComparison.Ordinal)) campi.Add(campo); }
+        Chk("sottotitolo", old.Sottotitolo, nuovo.Sottotitolo);
+        Chk("descrizione_html", old.DescrizioneHtml, nuovo.DescrizioneHtml);
+        Chk("durata_testo", old.DurataTesto, nuovo.DurataTesto);
+        Chk("luoghi_visitati", old.LuoghiVisitati, nuovo.LuoghiVisitati);
+        Chk("info_pernottamento_html", old.InfoPernottamentoHtml, nuovo.InfoPernottamentoHtml);
+        Chk("info_pasti_html", old.InfoPastiHtml, nuovo.InfoPastiHtml);
+        Chk("info_equipaggiamento_html", old.InfoEquipaggiamentoHtml, nuovo.InfoEquipaggiamentoHtml);
+        Chk("altre_info_html", old.AltreInfoHtml, nuovo.AltreInfoHtml);
+        Chk("meta_title", old.MetaTitle, nuovo.MetaTitle);
+        Chk("meta_description", old.MetaDescription, nuovo.MetaDescription);
+        foreach (var campo in campi)
+            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "web_tour_contenuti", nuovo.WebTourContenutoId, campo);
     }
 
     /// <summary>Elimina un contenuto tour, scopato per azienda. True se una riga è stata eliminata.</summary>
