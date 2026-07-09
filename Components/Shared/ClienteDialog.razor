@@ -192,6 +192,16 @@
                                         HelperText="Email principale" Immediate="true" DebounceInterval="800"
                                         Validation="@(async (string e) => await ValidateEmailAsync(e))" />
                                 </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudSelect T="string" @bind-Value="_lingua" Label="Lingua newsletter" Variant="Variant.Outlined" Clearable="true"
+                                               HelperText="Vuoto = auto dalla nazione di residenza.">
+                                        <MudSelectItem T="string" Value="@("IT")">Italiano</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("EN")">Inglese</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("DE")">Tedesco</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("FR")">Francese</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("ES")">Spagnolo</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
                                 <MudItem xs="4" sm="3">
                                     <MudTextField @ref="_prefTelField" @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
                                         Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39" />

@@ -21,10 +21,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     [Inject] public ComuneService ComuneService { get; set; } = default!;
     [Inject] public ISnackbar Snackbar { get; set; } = default!;
     [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
+    [Inject] public ClienteLinguaService ClienteLinguaService { get; set; } = default!;
 
     [Parameter] public Cliente Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
     [Parameter] public int AziendaFk { get; set; }
+
+    /// <summary>Lingua preferita del cliente per la newsletter (side-field, Blocco 11). null = auto dalla nazione.</summary>
+    private string? _lingua;
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -116,6 +120,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 
                 if (Entity.ComuneResidenzaFk > 0)
                     Entity.ComuneResidenza = _initData.ComuneResidenza;
+
+                _lingua = await ClienteLinguaService.GetAsync(Entity.ClienteId);
             }
         }
         catch (Exception ex)
@@ -187,12 +193,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 if (IsEditMode)
                 {
                     var updated = await ClienteService.UpdateAsync(Entity);
+                    await ClienteLinguaService.SetAsync(Entity.ClienteId, _lingua);
                     Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(updated));
                 }
                 else
                 {
                     var created = await ClienteService.CreateAsync(Entity);
+                    await ClienteLinguaService.SetAsync(created.ClienteId, _lingua);
                     Snackbar.Add("Cliente creato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(created));
                 }
