@@ -1,0 +1,58 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Revisione di una traduzione (Blocco 10): mostra il sorgente IT (readonly) e la traduzione
+   editabile; toggle "revisionato". Ritorna la traduzione aggiornata al tab, che la persiste. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@Label — @LinguaLabel</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Sorgente (italiano)</MudText>
+        <MudPaper Outlined="true" Class="pa-2 mb-3" Style="max-height:160px;overflow:auto;">
+            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@SourceText</MudText>
+        </MudPaper>
+
+        <MudTextField @bind-Value="_testo" Label="@($"Traduzione ({LinguaLabel})")" Variant="Variant.Outlined"
+                      Lines="6" AutoGrow="true" AutoFocus="true" />
+        <MudCheckBox @bind-Value="_revisionato" Label="Revisionato (traduzione verificata)" Color="Color.Primary" Class="mt-2" />
+        @if (Traduzione.Obsoleto)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">Questa traduzione è segnata obsoleta (l'italiano è cambiato).</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Salva">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public WebTraduzione Traduzione { get; set; } = default!;
+    [Parameter, EditorRequired] public string SourceText { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string LinguaLabel { get; set; } = "";
+
+    private string? _testo;
+    private bool _revisionato;
+
+    protected override void OnInitialized()
+    {
+        _testo = Traduzione.Testo;
+        _revisionato = Traduzione.Revisionato;
+    }
+
+    private void Salva()
+    {
+        Traduzione.Testo = _testo ?? string.Empty;
+        Traduzione.Revisionato = _revisionato;
+        Traduzione.Obsoleto = false;        // una revisione risolve l'obsolescenza
+        Traduzione.TradottoAuto = false;    // toccata a mano
+        MudDialog.Close(DialogResult.Ok(Traduzione));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

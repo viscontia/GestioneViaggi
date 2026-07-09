@@ -178,6 +178,11 @@
                     <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map">
                         <WebTourMappaTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
                     </MudTabPanel>
+
+                    @* Scheda Traduzioni (Blocco 10): traduzione Claude API nelle lingue target; solo in edit. *@
+                    <MudTabPanel Text="Traduzioni" Icon="@Icons.Material.Filled.Translate">
+                        <WebTraduzioniTab ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()" />
+                    </MudTabPanel>
                 }
              </MudTabs>
         </MudContainer>

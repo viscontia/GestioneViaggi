@@ -566,6 +566,15 @@ Scheda "Mappa" del viaggio: genera una **mappa statica** dal GPX, tutto lato ges
 *   **Config**: sezione `Geoapify` in appsettings (`GeoapifyOptions`: ApiKey, Style, colori, MaxPolylinePoints). Chiave **non cifrata** (free, rigenerabile dal cliente). Registrazione: `AddHttpClient<GeoapifyStaticMapClient>` + generator Scoped.
 *   **Parametri tab**: `ViaggioId`/`AziendaId` (required). Se la chiave non è configurata (`Generator.IsConfigured=false`) la generazione è disabilitata con avviso.
 
+### WebTraduzioniTab + pipeline traduzioni Claude (Blocco 10)
+Scheda "Traduzioni" del viaggio: traduce i campi editoriali in EN/DE/FR/ES via Claude API.
+*   **Componente** `Components/Shared/WebTraduzioniTab.razor` (7° `MudTabPanel` in `AnaViaggiDialog`, solo edit): campo per la **chiave Claude per-azienda**, pulsante **"Traduci tutto"**, tabella stato per lingua (mancante / da revisionare / obsoleto / ok) e **revisione** via `WebTraduzioneReviewDialog` (edit testo + toggle `revisionato`).
+*   **Orchestratore** `Services/Web/WebTraduzioneOrchestratorService.cs`: get/set chiave (`ana_aziende.claude_api_key` via `fn_ana_aziende_*_claude_key`); raccoglie i campi IT del viaggio (`web_tour_contenuti` + passi `web_tour_itinerario_passaggi`); per (campo × lingua) chiama `ClaudeTranslationClient` → upsert `web_traduzioni` (`fn_web_traduzioni_upsert`). Lingue: `WebTraduzioneOrchestratorService.Lingue` = EN/DE/FR/ES.
+*   **Client** `Services/Shared/Ai/ClaudeTranslationClient.cs` (HTTP REST, Anthropic Messages, no SDK; Haiku 4.5 via `ClaudeOptions`): prompt che preserva l'HTML e non traduce i nomi propri. Chiave passata per-chiamata (per-azienda).
+*   **Obsolescenza**: al salvataggio IT (Contenuti/Itinerario) i campi cambiati → `fn_web_traduzioni_marca_obsolete` (`WebTraduzioniService.MarkObsoleteAsync`). `fn_web_tour_pubblicati` serve solo le traduzioni non-obsolete.
+*   **Sicurezza**: chiave Claude in chiaro su `ana_aziende` → nel debito "cifrare pre-rilascio" con SMTP/ESP.
+*   **Parametri tab**: `ViaggioId`/`AziendaId` (required).
+
 ---
 
 ## Componenti Export

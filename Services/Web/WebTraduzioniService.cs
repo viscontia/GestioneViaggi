@@ -24,6 +24,53 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     {
     }
 
+    /// <summary>Upsert di una traduzione per (entita, entita_id, campo, lingua). Resetta i flag (ri-tradotto auto).</summary>
+    public async Task<long> UpsertAsync(int aziendaId, string entita, long entitaId, string campo, string lingua, string testo)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_traduzioni_upsert(@Az::integer, @E::varchar, @Eid::bigint, @C::varchar, @L::varchar, @T::text)", conn);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            cmd.Parameters.AddWithValue("E", entita);
+            cmd.Parameters.AddWithValue("Eid", entitaId);
+            cmd.Parameters.AddWithValue("C", campo);
+            cmd.Parameters.AddWithValue("L", lingua);
+            cmd.Parameters.AddWithValue("T", testo);
+            return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore upsert traduzione {Entita}/{Campo}/{Lingua}", entita, campo, lingua);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
+    /// <summary>
+    /// Marca obsolete tutte le traduzioni (ogni lingua) di un campo sorgente quando l'IT cambia.
+    /// Non lancia: l'obsolescenza non deve rompere il salvataggio della sorgente.
+    /// </summary>
+    public async Task<int> MarkObsoleteAsync(int aziendaId, string entita, long entitaId, string campo)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_traduzioni_marca_obsolete(@Az::integer, @E::varchar, @Eid::bigint, @C::varchar)", conn);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            cmd.Parameters.AddWithValue("E", entita);
+            cmd.Parameters.AddWithValue("Eid", entitaId);
+            cmd.Parameters.AddWithValue("C", campo);
+            return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Marca-obsolete traduzioni fallita {Entita}/{Campo} (ignorato)", entita, campo);
+            return 0;
+        }
+    }
+
     /// <summary>Elenco di tutte le traduzioni di un'azienda.</summary>
     public async Task<List<WebTraduzione>> ListByAziendaAsync(int aziendaId)
     {

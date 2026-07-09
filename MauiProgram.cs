@@ -257,6 +257,15 @@ public static class MauiProgram
         builder.Services.AddHttpClient<Services.Shared.Geo.GeoapifyStaticMapClient>();
         builder.Services.AddScoped<Services.Web.WebTourMappaGeneratorService>();
 
+        // Claude API (Blocco 10) - traduzioni. Chiave PER-AZIENDA (ana_aziende.claude_api_key), non da config.
+        var claudeSection = builder.Configuration.GetSection("Claude");
+        builder.Services.AddSingleton(new Services.Shared.Ai.ClaudeOptions
+        {
+            Model = string.IsNullOrWhiteSpace(claudeSection["Model"]) ? "claude-haiku-4-5-20251001" : claudeSection["Model"]!
+        });
+        builder.Services.AddHttpClient<Services.Shared.Ai.ClaudeTranslationClient>();
+        builder.Services.AddScoped<Services.Web.WebTraduzioneOrchestratorService>();
+
         return builder.Build();
     }
 }
