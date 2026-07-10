@@ -878,3 +878,11 @@ Motore newsletter **per-azienda** e relativa UI. Multilingua: la lingua di ogni 
 *   **NewsletterUnsubscribe** (`Services/Shared/NewsletterUnsubscribe.cs`): helper statico per il link di disiscrizione firmato HMAC-SHA256 (segreto = `ana_aziende.token_iscrizione`). `BuildUrl(baseUrl, email, secret)` → `{baseUrl}/unsubscribe?email=...&sig=...` (il sito in Fase 3 verifica la firma).
 *   **NewsletterPage** (`/newsletter`, `Components/Pages/NewsletterPage.razor`): pagina a 4 tab — **Campagna** (compose Quill + conteggio + invio di prova + invia a tutti con conferma), **Storico** (elenco invii + log per-destinatario), **Iscritti** (read-only, dal sito), **Soppressioni** (aggiungi/rimuovi). `aziendaId` via `ITenantContext.GetCurrentAziendaIdAsync()`.
 *   **NewsletterLogDialog** (`Components/Shared/NewsletterLogDialog.razor`): dialog di log consegna per-destinatario di una campagna (email/lingua/esito/data).
+
+### Funzioni Web per-azienda (Estensione Web — Blocco 12)
+
+Toggle **per-azienda** delle funzionalità web (`web_aziende_funzioni`, chiave logica azienda+funzione).
+
+*   **WebAziendeFunzioniService** (`Services/Web/WebAziendeFunzioniService.cs`): CRUD DB-first sulle funzioni (`fn_web_aziende_funzioni_*`). Costanti funzione note (`newsletter`/`recensioni`/`blog`/`pagamenti_online`). `SetAttivaAsync(azienda, funzione, attiva)` = upsert; `IsAttivaAsync(azienda, funzione, defaultWhenMissing)` e `IsNewsletterEnabledAsync(azienda)` (default **true** = opt-out) per il **gating**.
+*   **AziendaTabFunzioniWeb** (`Components/Shared/AziendaTabs/AziendaTabFunzioniWeb.razor`): sotto-tab della form Aziende con gli switch dei 4 flag + card **"Regole di pagamento" disabilitata** (placeholder Fase 4). Solo `newsletter` ha effetto nel gestionale oggi (gating menu/pagina); gli altri sono predisposti per il sito pubblico (Fase 3).
+*   **Gating newsletter**: `NavMenu` nasconde il gruppo "Estensione Web" quando la newsletter è disattivata per l'azienda corrente (best-effort); `NewsletterPage` (`/newsletter`) è la **guardia autoritativa** (mostra "non attiva" se disabilitata). ESP (`ana_aziende_esp`) **rimandato** pre-release (vedi Checklist Go-Live §2.2).

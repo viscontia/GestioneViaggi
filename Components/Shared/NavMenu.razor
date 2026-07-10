@@ -3,6 +3,8 @@
 @using GestioneViaggi.Services.Printing
 @using Microsoft.AspNetCore.Components.Authorization
 @inject IAuthenticationService AuthService
+@inject GestioneViaggi.Services.Session.ITenantContext TenantContext
+@inject GestioneViaggi.Services.Web.WebAziendeFunzioniService WebFunzioniService
 
 @inject NavigationManager Navigation
 @inject ITabManagerService TabManager
@@ -173,12 +175,15 @@
         </MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Estensione Web" Icon="@Icons.Material.Filled.Language" Expanded="false">
-        <MudNavLink Icon="@Icons.Material.Filled.Email"
-                    OnClick="@(() => OpenTabAndNotify("/newsletter", "Newsletter", "email"))">
-            <MudText Typo="Typo.body1">Newsletter</MudText>
-        </MudNavLink>
-    </MudNavGroup>
+    @if (_newsletterVisible)
+    {
+        <MudNavGroup Title="Estensione Web" Icon="@Icons.Material.Filled.Language" Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Filled.Email"
+                        OnClick="@(() => OpenTabAndNotify("/newsletter", "Newsletter", "email"))">
+                <MudText Typo="Typo.body1">Newsletter</MudText>
+            </MudNavLink>
+        </MudNavGroup>
+    }
 
     <MudNavGroup Title="Stampe Viaggi" Icon="@Icons.Material.Filled.Print" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Description"
@@ -285,6 +290,7 @@
     public EventCallback OnItemClick { get; set; }
 
     private string _dashboardRoute = "/dashboard-admin";
+    private bool _newsletterVisible = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -292,6 +298,18 @@
         _dashboardRoute = user?.IsSuperAdmin == true
             ? "/dashboard-superadmin"
             : "/dashboard-admin";
+
+        // Gating best-effort della voce Newsletter (la pagina resta la guardia autoritativa).
+        // Se nessuna azienda è selezionata (es. SuperAdmin) la voce resta visibile.
+        try
+        {
+            var aziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            _newsletterVisible = aziendaId is null || await WebFunzioniService.IsNewsletterEnabledAsync(aziendaId.Value);
+        }
+        catch
+        {
+            _newsletterVisible = true;
+        }
     }
 
     private void OpenTab(string route, string title, string icon)

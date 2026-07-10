@@ -1,0 +1,105 @@
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebAziendeFunzioniService FunzioniService
+@inject ISnackbar Snackbar
+
+@* Sotto-tab azienda "Funzioni Web" (Blocco 12): toggle web_aziende_funzioni per-azienda.
+   Solo 'newsletter' ha effetto nel gestionale (gating menu/pagina); gli altri flag sono
+   predisposti per il sito pubblico (Fase 3) e oggi sono solo persistiti. *@
+
+<MudPaper Elevation="0" Class="pa-2">
+    <MudText Typo="Typo.subtitle1" Class="mb-1">Funzioni web dell'azienda</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        Abilita/disabilita le funzionalità web per questa azienda.
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+    }
+    else
+    {
+        <div style="max-width:680px;">
+            @foreach (var t in Toggles)
+            {
+                <MudPaper Outlined="true" Class="pa-3 mb-2">
+                    <div class="d-flex align-center justify-space-between">
+                        <div class="pr-3">
+                            <MudText Typo="Typo.body1">@t.Label</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@t.Desc</MudText>
+                        </div>
+                        <MudSwitch T="bool" Color="Color.Primary" Disabled="@_busy"
+                                   Value="@_state[t.Code]"
+                                   ValueChanged="@(v => OnToggle(t.Code, v))" />
+                    </div>
+                </MudPaper>
+            }
+        </div>
+
+        <!-- Predisposizione regole di pagamento (Fase 4): non attiva -->
+        <MudPaper Outlined="true" Class="pa-3 mt-4" Style="max-width:680px;opacity:0.6;">
+            <div class="d-flex align-center gap-2">
+                <MudIcon Icon="@Icons.Material.Filled.Payments" />
+                <div>
+                    <MudText Typo="Typo.body1">Regole di pagamento</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Predisposto — non ancora attivo. La configurazione delle regole di pagamento sarà disponibile in una fase successiva (Fase 4).
+                    </MudText>
+                </div>
+                <MudSpacer />
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Disabled="true">Non attivo</MudChip>
+            </div>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private sealed record ToggleDef(string Code, string Label, string Desc, bool DefaultOn);
+
+    private static readonly ToggleDef[] Toggles =
+    {
+        new(WebAziendeFunzioniService.FunzioneNewsletter, "Newsletter",
+            "Abilita la sezione Newsletter nel gestionale per questa azienda. Se disattiva, la voce di menu e la pagina non sono disponibili.", true),
+        new(WebAziendeFunzioniService.FunzioneRecensioni, "Recensioni",
+            "Predisposta per il sito pubblico (Fase 3): mostra le recensioni. Oggi non ha effetto nel gestionale.", false),
+        new(WebAziendeFunzioniService.FunzioneBlog, "Blog",
+            "Predisposta per il sito pubblico (Fase 3): abilita il blog. Oggi non ha effetto nel gestionale.", false),
+        new(WebAziendeFunzioniService.FunzionePagamentiOnline, "Pagamenti online",
+            "Predisposta per il sito pubblico (Fase 3/4): checkout online. Oggi non ha effetto nel gestionale.", false),
+    };
+
+    private bool _loading = true;
+    private bool _busy;
+    private readonly Dictionary<string, bool> _state = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var rows = await FunzioniService.ListByAziendaAsync(AziendaId);
+        foreach (var t in Toggles)
+        {
+            var row = rows.FirstOrDefault(r => string.Equals(r.Funzione, t.Code, StringComparison.OrdinalIgnoreCase));
+            _state[t.Code] = row?.Attiva ?? t.DefaultOn;
+        }
+        _loading = false;
+    }
+
+    private async Task OnToggle(string code, bool value)
+    {
+        _busy = true;
+        var previous = _state[code];
+        _state[code] = value; // ottimistico
+        try
+        {
+            await FunzioniService.SetAttivaAsync(AziendaId, code, value);
+            Snackbar.Add($"Funzione '{code}' {(value ? "attivata" : "disattivata")}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _state[code] = previous; // rollback UI
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally { _busy = false; }
+    }
+}

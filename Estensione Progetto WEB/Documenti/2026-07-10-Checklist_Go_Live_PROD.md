@@ -92,6 +92,8 @@ done
 ### 2.2 — Cifratura segreti (`_enc` FINTI) — **BLOCCANTE PRE-RELEASE**
 I campi `*_enc` di `ana_aziende_esp` (421), `web_pagamenti_config` (422) e la chiave Claude azienda (462/463) sono **JSONB in chiaro (placeholder)**, NON cifrati. Prima del rilascio va implementata la **cifratura reale** (SMTP, ESP/Resend, chiave Claude, credenziali pagamenti). Vedi memoria [[encrypt-smtp-esp-before-release]]. Finché è finto, **non caricare segreti reali in un DB PROD accessibile**.
 
+> **ESP rimandato (deciso in Blocco 12, 2026-07-10):** il **tab di configurazione ESP** (`ana_aziende_esp`) e il **wiring nell'`EmailSenderFactory`** (usare l'ESP quando `attivo` per gli invii bulk/newsletter) NON sono stati implementati nel Blocco 12 — la newsletter usa l'**SMTP aziendale esistente**. Vanno realizzati **qui, insieme alla cifratura reale**, prima del rilascio. Finché non esistono, la config ESP non è disponibile in UI.
+
 ### 2.3 — `token_iscrizione` per azienda (429)
 Serve come **segreto HMAC** per il link di disiscrizione newsletter (`NewsletterUnsubscribe`). Ogni azienda in PROD deve avere un `token_iscrizione` valorizzato (random, per-azienda). Verificare che il backfill/valore non sia NULL prima di inviare newsletter.
 

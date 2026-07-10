@@ -117,6 +117,8 @@ Ogni blocco: *Obiettivo · Deliverable · Verifica*. Sequenziali; dentro il bloc
 ### BLOCCO 12 — Config per-azienda (Fase 2.9)
 - UI toggle `web_aziende_funzioni`; config ESP; UI predisposta (non attiva) per regole pagamento.
 - **Verifica:** flag riflessi nel comportamento.
+- **Scelta (2026-07-10) — scope gating flag:** solo il flag **`newsletter`** ha comportamento nel gestionale ORA (se OFF → voce di menu/pagina Newsletter nascosta/disabilitata per quell'azienda; gating **opt-out**: se non esiste riga esplicita la newsletter resta visibile). Gli altri flag (`recensioni`, `blog`, `pagamenti_online`) sono **stored-only**: persistiti come configurazione predisposta, ma il loro wiring comportamentale è del **sito pubblico (Fase 3)** → vedi §8.
+- **Scelta (2026-07-10) — ESP rimandato:** la **config ESP** (`ana_aziende_esp`: Brevo/Mailchimp/SES…) è **rimandata**. Motivo: la newsletter oggi parte via **SMTP aziendale esistente** (`EmailSenderFactory`), sufficiente per i volumi attuali; e la `api_key_enc` è ancora finta (cifratura reale = bloccante pre-release). Il tab ESP + il wiring nell'`EmailSenderFactory` si faranno **insieme alla cifratura**, pre-release → tracciato nel Checklist Go-Live PROD. Blocco 12 realizza quindi: **toggle funzioni** (gating `newsletter`) + **placeholder regole pagamento** (Fase 4).
 
 ### BLOCCO 13 — Anteprima / Pubblica / Clona (Fase 2.10) — *checkpoint finale*
 - Anteprima; "Pubblica" (cambia stato → futura revalidation on-demand del sito); "Clona" esteso ai contenuti web.
@@ -130,6 +132,7 @@ Ogni blocco: *Obiettivo · Deliverable · Verifica*. Sequenziali; dentro il bloc
 
 ## 8. Fuori dal piano (da pianificare a parte)
 - Sito Next.js (Fase 3 intera).
+  - **Wiring flag `web_aziende_funzioni` → comportamento sito** (rimandato da Blocco 12): i flag `recensioni`, `blog`, `pagamenti_online` sono già salvati per-azienda ma oggi NON attivano nulla nel gestionale. In Fase 3 il sito pubblico dovrà leggerli e mostrare/nascondere le relative sezioni (recensioni, blog, checkout online). Solo `newsletter` è già collegato lato gestionale.
 - Pagamenti + integrazione contabile + fattura (Fase 4) — tabelle predisposte qui, logica differita.
 - Import vecchio sito, traduzioni batch, SEO migration, go-live (Fase 5).
 

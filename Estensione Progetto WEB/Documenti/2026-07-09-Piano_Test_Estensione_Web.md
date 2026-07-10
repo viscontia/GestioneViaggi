@@ -75,7 +75,18 @@
 - ☐ Tab **Iscritti**: elenco read-only (email/nome/lingua/stato/consenso).
 - ☐ Tab **Soppressioni**: aggiungi email+motivo, rimuovi → un indirizzo soppresso è escluso dal conteggio e dall'invio.
 
-## 9. Trasversale — Multi-tenant (silos)
+## 9. Blocco 12 — Config per-azienda (tab "Funzioni Web")
+
+- ☐ **Anagrafica Aziende → tab "Funzioni Web"**: i 4 toggle (newsletter/recensioni/blog/pagamenti_online) si caricano; `newsletter` di default **ON**, gli altri **OFF** (se mai configurati).
+- ☐ Attiva/disattiva un toggle → snackbar di conferma → riapri il dialog azienda: lo stato è **persistito**.
+- ☐ **Gating newsletter**: disattiva `newsletter` per l'azienda → la voce di menu "Estensione Web > Newsletter" **sparisce** e la pagina `/newsletter` mostra "non attiva" (guardia autoritativa).
+- ☐ Ri-attiva `newsletter` → menu e pagina tornano disponibili.
+- ☐ **Opt-out**: un'azienda **senza** riga `newsletter` (es. SFT prima di toccare il tab) vede comunque la newsletter (default visibile).
+- ☐ I flag `recensioni`/`blog`/`pagamenti_online` **non cambiano nulla** nel gestionale (sono per la Fase 3): solo persistenza.
+- ☐ Card **"Regole di pagamento"** visibile ma **disabilitata** (placeholder Fase 4).
+- ☐ *(ESP rimandato: nessun tab ESP in questa fase — vedi Checklist Go-Live §2.2.)*
+
+## 10. Trasversale — Multi-tenant (silos)
 
 - ☐ Isolamento dati tra aziende (un'azienda non vede/modifica i dati di un'altra).
 - ☐ Unico condiviso/globale = tipi viaggio (`ana_tipo_viaggi`) + descrizioni web + loro traduzioni. Nient'altro.

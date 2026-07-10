@@ -15,6 +15,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
+@inject WebAziendeFunzioniService FunzioniService
 @attribute [Authorize]
 @implements IDisposable
 
@@ -25,6 +26,10 @@
 @if (_aziendaId == 0)
 {
     <MudAlert Severity="Severity.Warning">Seleziona un'azienda per gestire la newsletter.</MudAlert>
+}
+else if (!_enabled)
+{
+    <MudAlert Severity="Severity.Info">La funzione Newsletter non è attiva per questa azienda. Attivala in <strong>Anagrafica Aziende → Funzioni Web</strong>.</MudAlert>
 }
 else
 {
@@ -129,6 +134,7 @@ else
 
 @code {
     private int _aziendaId;
+    private bool _enabled = true;
     private bool _busy;
     private int _count;
     private string? _oggetto;
@@ -145,7 +151,11 @@ else
     {
         StatusBarService.SetCurrentTable("web_newsletter_invii");
         _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
-        if (_aziendaId != 0) await ReloadAsync();
+        if (_aziendaId != 0)
+        {
+            _enabled = await FunzioniService.IsNewsletterEnabledAsync(_aziendaId);
+            if (_enabled) await ReloadAsync();
+        }
     }
 
     public void Dispose() => StatusBarService.SetCurrentTable(null);
