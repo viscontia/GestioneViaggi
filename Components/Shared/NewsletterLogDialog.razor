@@ -1,0 +1,60 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebNewsletterInviiDestinatariService DestinatariService
+
+@* Log consegna per-destinatario di una campagna newsletter (Blocco 11). *@
+
+<MudDialog>
+    <TitleContent><MudText Typo="Typo.h6">Log invio: @Oggetto</MudText></TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-4"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else if (_log.Count == 0)
+        {
+            <MudText Color="Color.Secondary">Nessun destinatario registrato.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Dense="true" Bordered="true" Style="max-height:400px;overflow:auto;">
+                <thead><tr><th>Email</th><th>Lingua</th><th>Esito</th><th>Data</th></tr></thead>
+                <tbody>
+                    @foreach (var d in _log)
+                    {
+                        <tr>
+                            <td>@d.Email</td>
+                            <td>@d.Lingua</td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@(d.StatoConsegna == "inviato" ? Color.Success : Color.Error)">@d.StatoConsegna</MudChip>
+                            </td>
+                            <td>@(d.Data?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public long InvioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+    [Parameter] public string Oggetto { get; set; } = "";
+
+    private bool _loading = true;
+    private List<WebNewsletterInvioDestinatario> _log = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _log = await DestinatariService.ListByInvioAsync(InvioId, AziendaId); }
+        catch { _log = new(); }
+        _loading = false;
+    }
+}

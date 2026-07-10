@@ -174,6 +174,7 @@ public static class MauiProgram
         builder.Services.AddScoped<WebNewsletterInviiService>();
         builder.Services.AddScoped<WebNewsletterInviiDestinatariService>();
         builder.Services.AddScoped<WebNewsletterSoppressioniService>();
+        builder.Services.AddScoped<Services.Web.NewsletterSenderService>();
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();

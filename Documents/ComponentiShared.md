@@ -866,3 +866,15 @@ Servizio generico per la generazione di file Excel .xlsx (`Services/Export/Excel
     ```csharp
     await PdfOpenerService.OpenPdfAsync(outputPath);
     ```
+
+### Newsletter (Estensione Web — Blocco 11)
+
+Motore newsletter **per-azienda** e relativa UI. Multilingua: la lingua di ogni destinatario deriva da `iscritti.lingua` o `ana_clienti.cliente_lingua` (funzione DB `fn_web_destinatari_newsletter`). Il corpo, scritto in italiano, viene tradotto per-lingua via Claude (chiave per-azienda, riuso Blocco 10); senza chiave i destinatari non-IT ricevono la versione italiana.
+
+*   **NewsletterSenderService** (`Services/Web/NewsletterSenderService.cs`): risolve i destinatari (clienti+iscritti−soppressioni), traduce oggetto+corpo per-lingua, invia via SMTP/ESP dell'azienda (`EmailSenderFactory`), logga la consegna per-destinatario e registra la campagna.
+    *   `CountRecipientsAsync(aziendaId)` / `GetRecipientsAsync(aziendaId)` — conteggio/elenco destinatari risolti.
+    *   `SendCampaignAsync(aziendaId, oggetto, corpoHtml)` → `NewsletterSendResult(Totale, Inviate, Errori, TradottoIncompleto)`.
+    *   `SendTestAsync(aziendaId, oggetto, corpoHtml, testEmail)` — invio di prova (solo IT, non registra la campagna).
+*   **NewsletterUnsubscribe** (`Services/Shared/NewsletterUnsubscribe.cs`): helper statico per il link di disiscrizione firmato HMAC-SHA256 (segreto = `ana_aziende.token_iscrizione`). `BuildUrl(baseUrl, email, secret)` → `{baseUrl}/unsubscribe?email=...&sig=...` (il sito in Fase 3 verifica la firma).
+*   **NewsletterPage** (`/newsletter`, `Components/Pages/NewsletterPage.razor`): pagina a 4 tab — **Campagna** (compose Quill + conteggio + invio di prova + invia a tutti con conferma), **Storico** (elenco invii + log per-destinatario), **Iscritti** (read-only, dal sito), **Soppressioni** (aggiungi/rimuovi). `aziendaId` via `ITenantContext.GetCurrentAziendaIdAsync()`.
+*   **NewsletterLogDialog** (`Components/Shared/NewsletterLogDialog.razor`): dialog di log consegna per-destinatario di una campagna (email/lingua/esito/data).

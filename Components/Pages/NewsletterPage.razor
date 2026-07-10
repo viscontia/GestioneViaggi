@@ -1,0 +1,263 @@
+@page "/newsletter"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using Blazored.TextEditor
+@using MudBlazor
+@inject NewsletterSenderService Sender
+@inject WebNewsletterInviiService InviiService
+@inject WebNewsletterIscrittiService IscrittiService
+@inject WebNewsletterSoppressioniService SoppressioniService
+@inject ITenantContext TenantContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@* Pagina Newsletter (Blocco 11), per-azienda. Compose+invio multilingua, storico, iscritti, soppressioni. *@
+
+<MudText Typo="Typo.h5" Class="mb-3">Newsletter</MudText>
+
+@if (_aziendaId == 0)
+{
+    <MudAlert Severity="Severity.Warning">Seleziona un'azienda per gestire la newsletter.</MudAlert>
+}
+else
+{
+<MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+
+    <!-- CAMPAGNA -->
+    <MudTabPanel Text="Campagna" Icon="@Icons.Material.Filled.Campaign">
+        <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined" MaxLength="255" Class="mb-3" />
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Corpo (in italiano — sarà tradotto per lingua dei destinatari)</MudText>
+        <div style="height:300px;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;display:flex;flex-direction:column;">
+            <BlazoredTextEditor @ref="_editor" Placeholder="Scrivi la newsletter...">
+                <ToolbarContent>
+                    <select class="ql-header"><option selected=""></option><option value="2"></option><option value="3"></option></select>
+                    <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button></span>
+                    <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>
+                    <span class="ql-formats"><button class="ql-link"></button></span>
+                    <span class="ql-formats"><button class="ql-clean"></button></span>
+                </ToolbarContent>
+            </BlazoredTextEditor>
+        </div>
+
+        <MudPaper Outlined="true" Class="pa-3 mt-3">
+            <div class="d-flex align-center flex-wrap gap-3">
+                <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group">Destinatari: @_count</MudChip>
+                <MudTextField @bind-Value="_testEmail" Label="Email di prova" Variant="Variant.Outlined" Style="max-width:280px;" Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Send" Disabled="@_busy" OnClick="InviaProva">Invia prova</MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
+                           Disabled="@(_busy || _count == 0)" OnClick="InviaTutti">Invia a tutti (@_count)</MudButton>
+                @if (_busy) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
+            </div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">Senza chiave Claude sull'azienda, i destinatari non-IT ricevono la versione italiana.</MudText>
+        </MudPaper>
+    </MudTabPanel>
+
+    <!-- STORICO -->
+    <MudTabPanel Text="Storico" Icon="@Icons.Material.Filled.History">
+        <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+            <thead><tr><th>Oggetto</th><th>Stato</th><th>Data invio</th><th style="text-align:center;">Destinatari</th><th>Canale</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var i in _storico)
+                {
+                    <tr>
+                        <td>@i.Oggetto</td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@(i.Stato == "inviato" ? Color.Success : Color.Default)">@i.Stato</MudChip></td>
+                        <td>@(i.DataInvio?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                        <td style="text-align:center;">@(i.NumeroDestinatari?.ToString() ?? "—")</td>
+                        <td>@(i.Canale ?? "—")</td>
+                        <td style="text-align:right;"><MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => VediLog(i))">Log</MudButton></td>
+                    </tr>
+                }
+                @if (_storico.Count == 0) { <tr><td colspan="6"><MudText Color="Color.Secondary">Nessun invio.</MudText></td></tr> }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+
+    <!-- ISCRITTI -->
+    <MudTabPanel Text="Iscritti" Icon="@Icons.Material.Filled.MarkEmailRead">
+        <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+            <thead><tr><th>Email</th><th>Nome</th><th>Lingua</th><th>Stato</th><th>Consenso</th></tr></thead>
+            <tbody>
+                @foreach (var s in _iscritti)
+                {
+                    <tr>
+                        <td>@s.Email</td>
+                        <td>@($"{s.Nome} {s.Cognome}".Trim())</td>
+                        <td>@s.Lingua</td>
+                        <td>@s.Stato</td>
+                        <td>@(s.Consenso ? "sì" : "no")</td>
+                    </tr>
+                }
+                @if (_iscritti.Count == 0) { <tr><td colspan="5"><MudText Color="Color.Secondary">Nessun iscritto (le iscrizioni arrivano dal sito).</MudText></td></tr> }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+
+    <!-- SOPPRESSIONI -->
+    <MudTabPanel Text="Soppressioni" Icon="@Icons.Material.Filled.Block">
+        <div class="d-flex align-center gap-2 mb-3">
+            <MudTextField @bind-Value="_sopEmail" Label="Email da sopprimere" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px;" />
+            <MudTextField @bind-Value="_sopMotivo" Label="Motivo" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px;" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="AggiungiSoppressione">Aggiungi</MudButton>
+        </div>
+        <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+            <thead><tr><th>Email</th><th>Motivo</th><th>Data</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in _soppressioni)
+                {
+                    <tr>
+                        <td>@s.Email</td>
+                        <td>@s.Motivo</td>
+                        <td>@(s.Data?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—")</td>
+                        <td style="text-align:right;"><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RimuoviSoppressione(s))" /></td>
+                    </tr>
+                }
+                @if (_soppressioni.Count == 0) { <tr><td colspan="4"><MudText Color="Color.Secondary">Nessuna soppressione.</MudText></td></tr> }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+</MudTabs>
+}
+
+@code {
+    private int _aziendaId;
+    private bool _busy;
+    private int _count;
+    private string? _oggetto;
+    private string? _testEmail;
+    private string? _sopEmail;
+    private string? _sopMotivo;
+    private BlazoredTextEditor _editor = default!;
+
+    private List<WebNewsletterInvio> _storico = new();
+    private List<WebNewsletterIscritto> _iscritti = new();
+    private List<WebNewsletterSoppressione> _soppressioni = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("web_newsletter_invii");
+        _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+        if (_aziendaId != 0) await ReloadAsync();
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task ReloadAsync()
+    {
+        try
+        {
+            _count = await Sender.CountRecipientsAsync(_aziendaId);
+            _storico = await InviiService.ListByAziendaAsync(_aziendaId);
+            _iscritti = await IscrittiService.ListByAziendaAsync(_aziendaId);
+            _soppressioni = await SoppressioniService.ListByAziendaAsync(_aziendaId);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore caricamento: {ex.Message}", Severity.Error); }
+        StateHasChanged();
+    }
+
+    private async Task<(string Oggetto, string Corpo)?> ReadComposeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_oggetto)) { Snackbar.Add("Inserisci l'oggetto.", Severity.Warning); return null; }
+        var corpo = NormalizeHtml(await _editor.GetHTML());
+        if (string.IsNullOrWhiteSpace(corpo)) { Snackbar.Add("Il corpo è vuoto.", Severity.Warning); return null; }
+        return (_oggetto!.Trim(), corpo!);
+    }
+
+    private async Task InviaProva()
+    {
+        var c = await ReadComposeAsync();
+        if (c is null) return;
+        if (string.IsNullOrWhiteSpace(_testEmail)) { Snackbar.Add("Inserisci un'email di prova.", Severity.Warning); return; }
+        _busy = true;
+        try
+        {
+            var ok = await Sender.SendTestAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo, _testEmail!.Trim());
+            Snackbar.Add(ok ? "Email di prova inviata." : "Invio di prova fallito (verifica config email).", ok ? Severity.Success : Severity.Error);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task InviaTutti()
+    {
+        var c = await ReadComposeAsync();
+        if (c is null) return;
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, "Conferma invio" },
+            { x => x.ContentText, $"Inviare la newsletter a {_count} destinatari?" },
+            { x => x.ButtonText, "Invia" },
+            { x => x.Color, Color.Primary }
+        };
+        var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma invio", parameters, new DialogOptions { BackdropClick = false });
+        if ((await dlg.Result)!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            var res = await Sender.SendCampaignAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo);
+            var msg = $"Inviate {res.Inviate}/{res.Totale}" + (res.Errori > 0 ? $", {res.Errori} errori" : "")
+                    + (res.TradottoIncompleto ? " (alcune lingue inviate in IT: chiave Claude mancante/errore)" : "");
+            Snackbar.Add(msg, res.Errori > 0 || res.TradottoIncompleto ? Severity.Warning : Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore invio: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task VediLog(WebNewsletterInvio invio)
+    {
+        var parameters = new DialogParameters<NewsletterLogDialog>
+        {
+            { x => x.InvioId, invio.WebNewsletterInvioId },
+            { x => x.AziendaId, _aziendaId },
+            { x => x.Oggetto, invio.Oggetto }
+        };
+        await DialogService.ShowAsync<NewsletterLogDialog>("Log invio", parameters, new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true });
+    }
+
+    private async Task AggiungiSoppressione()
+    {
+        if (string.IsNullOrWhiteSpace(_sopEmail)) { Snackbar.Add("Inserisci un'email.", Severity.Warning); return; }
+        _busy = true;
+        try
+        {
+            await SoppressioniService.CreateAsync(new WebNewsletterSoppressione
+            {
+                AziendaId = _aziendaId, Email = _sopEmail!.Trim(),
+                Motivo = string.IsNullOrWhiteSpace(_sopMotivo) ? "manuale" : _sopMotivo!.Trim(), Data = DateTime.UtcNow
+            });
+            _sopEmail = null; _sopMotivo = null;
+            Snackbar.Add("Soppressione aggiunta.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task RimuoviSoppressione(WebNewsletterSoppressione s)
+    {
+        try
+        {
+            await SoppressioniService.DeleteAsync(s.WebNewsletterSoppressioneId, _aziendaId);
+            Snackbar.Add("Soppressione rimossa.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+    }
+
+    private static string? NormalizeHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var stripped = html.Replace("<p><br></p>", string.Empty).Replace("<p></p>", string.Empty).Trim();
+        return stripped.Length == 0 ? null : html;
+    }
+}

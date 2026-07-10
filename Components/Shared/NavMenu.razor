@@ -173,6 +173,13 @@
         </MudNavLink>
     </MudNavGroup>
 
+    <MudNavGroup Title="Estensione Web" Icon="@Icons.Material.Filled.Language" Expanded="false">
+        <MudNavLink Icon="@Icons.Material.Filled.Email"
+                    OnClick="@(() => OpenTabAndNotify("/newsletter", "Newsletter", "email"))">
+            <MudText Typo="Typo.body1">Newsletter</MudText>
+        </MudNavLink>
+    </MudNavGroup>
+
     <MudNavGroup Title="Stampe Viaggi" Icon="@Icons.Material.Filled.Print" Expanded="false">
         <MudNavLink Icon="@Icons.Material.Filled.Description"
                     OnClick="@OpenStampaSchedaDataViaggio">
