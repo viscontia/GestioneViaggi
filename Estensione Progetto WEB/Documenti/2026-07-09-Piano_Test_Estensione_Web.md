@@ -12,6 +12,7 @@
 - **Geoapify `ApiKey`** → già in `appsettings.Development.json` → `Geoapify:ApiKey`. Serve per Mappa (Blocco 9).
 - **Claude `ApiKey` per-azienda** → scheda **Aziende → Traduzioni** (o tab Traduzioni del viaggio). Serve per Traduzioni (Blocco 10) e newsletter multilingua (Blocco 11).
 - **PROD:** applicare `SqlScripts/465` in produzione per il backfill di `ana_clienti.cliente_lingua` sui clienti veri (idempotente).
+- **Go-Live PROD:** l'elenco completo di *cosa* modificare/configurare in produzione (script 406–466, cifratura segreti, RLS anon, Storage, backfill, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
 
 ---
 
@@ -61,13 +62,18 @@
 - ☐ Revisione: edita traduzione + marca **revisionato**.
 - ☐ Traduzione della **descrizione tipo** dalla pagina Descrizioni Web.
 
-## 8. Blocco 11 — Newsletter *(parte C da implementare)*
+## 8. Blocco 11 — Newsletter *(pagina `/newsletter`, menu "Estensione Web")*
 
-- ☐ Dedup destinatari (clienti-con-consenso + iscritti − soppressioni, per email).
-- ☐ **Invio di prova** a un indirizzo.
+- ☐ **Conteggio destinatari** in tab Campagna corretto (dedup clienti-con-consenso + iscritti − soppressioni, per email).
+- ☐ **Invio di prova** a un indirizzo (oggetto con prefisso `[TEST]`, solo IT).
+- ☐ **Invia a tutti**: dialog di conferma con conteggio → invio → snackbar con inviate/errori.
 - ☐ **Multilingua**: iscritto nella sua lingua; cliente estero nella lingua della nazione (CH→DE, non coperti→EN); residenti IT in italiano.
-- ☐ **Link di disiscrizione** presente e firmato (HMAC).
-- ☐ Storico invii + log per-destinatario popolati.
+- ☐ **Template brandizzato**: l'email usa `CompanyEmailTemplate` (logo azienda, nome, sito/telefono nel footer) — **non** più il wrapper minimale.
+- ☐ **Senza chiave Claude** sull'azienda: i destinatari non-IT ricevono la versione **italiana** e lo snackbar segnala "alcune lingue inviate in IT".
+- ☐ **Link di disiscrizione** presente in coda al corpo e firmato (HMAC su `token_iscrizione` azienda).
+- ☐ Tab **Storico**: invii elencati (oggetto/stato/data/n.destinatari/canale) + azione **Log** → dialog con esito per-destinatario.
+- ☐ Tab **Iscritti**: elenco read-only (email/nome/lingua/stato/consenso).
+- ☐ Tab **Soppressioni**: aggiungi email+motivo, rimuovi → un indirizzo soppresso è escluso dal conteggio e dall'invio.
 
 ## 9. Trasversale — Multi-tenant (silos)
 

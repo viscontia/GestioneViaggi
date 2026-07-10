@@ -1,4 +1,5 @@
 using GestioneViaggi.Models.Web;
+using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Email;
 using GestioneViaggi.Services.Shared;
@@ -27,15 +28,18 @@ public sealed class NewsletterSenderService
     private readonly WebTraduzioneOrchestratorService _orchestrator;
     private readonly WebNewsletterInviiService _inviiService;
     private readonly WebNewsletterInviiDestinatariService _destinatariService;
+    private readonly AziendaLogoService _logoService;
     private readonly ILogger<NewsletterSenderService> _logger;
 
     public NewsletterSenderService(
         IDatabaseService db, EmailSenderFactory emailFactory, ClaudeTranslationClient claude,
         WebTraduzioneOrchestratorService orchestrator, WebNewsletterInviiService inviiService,
-        WebNewsletterInviiDestinatariService destinatariService, ILogger<NewsletterSenderService> logger)
+        WebNewsletterInviiDestinatariService destinatariService, AziendaLogoService logoService,
+        ILogger<NewsletterSenderService> logger)
     {
         _db = db; _emailFactory = emailFactory; _claude = claude; _orchestrator = orchestrator;
-        _inviiService = inviiService; _destinatariService = destinatariService; _logger = logger;
+        _inviiService = inviiService; _destinatariService = destinatariService;
+        _logoService = logoService; _logger = logger;
     }
 
     public async Task<int> CountRecipientsAsync(int aziendaId)
@@ -65,15 +69,42 @@ public sealed class NewsletterSenderService
         return list;
     }
 
-    private async Task<(string Nome, string? Sito, string? Token)> GetAziendaConfigAsync(int aziendaId)
+    /// <summary>Dati azienda + logo per il template email brandizzato (caricati una volta per campagna).</summary>
+    private sealed record NlBranding(string Nome, string? Sito, string? Token, string? Telefono, string? LogoBase64, string? LogoMime);
+
+    private async Task<NlBranding> GetBrandingAsync(int aziendaId)
     {
-        await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT ragione_sociale, sito_web, token_iscrizione FROM ana_aziende WHERE azienda_id=@Id", conn);
-        cmd.Parameters.AddWithValue("Id", aziendaId);
-        await using var r = await cmd.ExecuteReaderAsync();
-        if (await r.ReadAsync())
-            return (r.GetString(0), r.IsDBNull(1) ? null : r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2));
-        return ("", null, null);
+        string nome = ""; string? sito = null, token = null, tel = null;
+        await using (var conn = await _db.GetConnectionAsync())
+        await using (var cmd = new NpgsqlCommand("SELECT ragione_sociale, sito_web, token_iscrizione, telefono_principale FROM ana_aziende WHERE azienda_id=@Id", conn))
+        {
+            cmd.Parameters.AddWithValue("Id", aziendaId);
+            await using var r = await cmd.ExecuteReaderAsync();
+            if (await r.ReadAsync())
+            {
+                nome = r.GetString(0);
+                sito = r.IsDBNull(1) ? null : r.GetString(1);
+                token = r.IsDBNull(2) ? null : r.GetString(2);
+                tel = r.IsDBNull(3) ? null : r.GetString(3);
+            }
+        }
+
+        // Logo aziendale (non-critical: se assente si prosegue senza)
+        string? logoBase64 = null, logoMime = null;
+        try
+        {
+            var logos = await _logoService.GetByAziendaIdAsync(aziendaId);
+            var logo = logos.Where(l => l.IsActive && l.IsDefault).OrderBy(l => l.Priority).FirstOrDefault()
+                    ?? logos.Where(l => l.IsActive).OrderBy(l => l.Priority).FirstOrDefault();
+            if (logo != null)
+            {
+                var bin = await _logoService.GetBinaryDataAsync(logo.Id);
+                if (bin != null && bin.Length > 0) { logoBase64 = Convert.ToBase64String(bin); logoMime = logo.MimeType; }
+            }
+        }
+        catch (Exception ex) { _logger.LogWarning(ex, "Logo azienda {Az} non disponibile per newsletter", aziendaId); }
+
+        return new NlBranding(nome, sito, token, tel, logoBase64, logoMime);
     }
 
     /// <summary>Traduce (oggetto, corpo) per ogni lingua richiesta ≠ IT. Senza chiave Claude → tutti IT.</summary>
@@ -105,11 +136,14 @@ public sealed class NewsletterSenderService
         return (bodies, incompleto);
     }
 
-    private static string WrapBody(string corpo, string azienda, string unsubUrl) => $@"<div style=""font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5;"">
-{corpo}
-<hr style=""margin-top:24px;border:none;border-top:1px solid #ddd;"" />
-<p style=""font-size:12px;color:#888;"">{System.Net.WebUtility.HtmlEncode(azienda)} — <a href=""{unsubUrl}"" style=""color:#888;"">Disiscriviti</a></p>
-</div>";
+    /// <summary>Footer di disiscrizione, aggiunto in coda al corpo dentro il template brandizzato.</summary>
+    private static string UnsubFooter(string unsubUrl) =>
+        $@"<hr style=""margin-top:24px;border:none;border-top:1px solid #ddd;"" /><p style=""font-size:12px;color:#888;"">Non desideri più ricevere la nostra newsletter? <a href=""{unsubUrl}"" style=""color:#888;"">Disiscriviti</a></p>";
+
+    /// <summary>Genera l'email brandizzata (template aziendale con logo) includendo il footer di disiscrizione.</summary>
+    private static string BuildHtml(NlBranding b, string corpo, string unsubUrl) =>
+        CompanyEmailTemplate.GetHtmlBody(b.LogoBase64, b.LogoMime, b.Nome, null, null,
+            corpo + UnsubFooter(unsubUrl), DateTime.Now, b.Sito, b.Telefono);
 
     /// <summary>Invia la campagna a tutti i destinatari (multilingua) e registra invio + log.</summary>
     public async Task<NewsletterSendResult> SendCampaignAsync(int aziendaId, string oggetto, string corpoHtml)
@@ -118,7 +152,7 @@ public sealed class NewsletterSenderService
         if (recipients.Count == 0)
             throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
 
-        var cfg = await GetAziendaConfigAsync(aziendaId);
+        var branding = await GetBrandingAsync(aziendaId);
         var (bodies, incompleto) = await BuildBodiesAsync(aziendaId, oggetto, corpoHtml, recipients.Select(r => r.Lingua).ToList());
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
         var canale = sender is SmtpEmailSender ? "smtp" : "resend";
@@ -133,11 +167,11 @@ public sealed class NewsletterSenderService
         {
             var lang = bodies.ContainsKey(rec.Lingua) ? rec.Lingua : "IT";
             var (subj, corpo) = bodies[lang];
-            var unsub = NewsletterUnsubscribe.BuildUrl(cfg.Sito, rec.Email, cfg.Token);
-            var html = WrapBody(corpo, cfg.Nome, unsub);
+            var unsub = NewsletterUnsubscribe.BuildUrl(branding.Sito, rec.Email, branding.Token);
+            var html = BuildHtml(branding, corpo, unsub);
 
             bool sent;
-            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, subj, html, cfg.Nome); }
+            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, subj, html, branding.Nome); }
             catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
             if (sent) ok++; else err++;
 
@@ -163,10 +197,10 @@ public sealed class NewsletterSenderService
     /// <summary>Invio di prova a un solo indirizzo (in IT, senza registrare la campagna).</summary>
     public async Task<bool> SendTestAsync(int aziendaId, string oggetto, string corpoHtml, string testEmail)
     {
-        var cfg = await GetAziendaConfigAsync(aziendaId);
+        var branding = await GetBrandingAsync(aziendaId);
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
-        var unsub = NewsletterUnsubscribe.BuildUrl(cfg.Sito, testEmail, cfg.Token);
-        var html = WrapBody(corpoHtml, cfg.Nome, unsub);
-        return await sender.SendHtmlEmailAsync(new[] { testEmail }, "[TEST] " + oggetto, html, cfg.Nome);
+        var unsub = NewsletterUnsubscribe.BuildUrl(branding.Sito, testEmail, branding.Token);
+        var html = BuildHtml(branding, corpoHtml, unsub);
+        return await sender.SendHtmlEmailAsync(new[] { testEmail }, "[TEST] " + oggetto, html, branding.Nome);
     }
 }

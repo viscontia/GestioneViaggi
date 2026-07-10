@@ -871,7 +871,7 @@ Servizio generico per la generazione di file Excel .xlsx (`Services/Export/Excel
 
 Motore newsletter **per-azienda** e relativa UI. Multilingua: la lingua di ogni destinatario deriva da `iscritti.lingua` o `ana_clienti.cliente_lingua` (funzione DB `fn_web_destinatari_newsletter`). Il corpo, scritto in italiano, viene tradotto per-lingua via Claude (chiave per-azienda, riuso Blocco 10); senza chiave i destinatari non-IT ricevono la versione italiana.
 
-*   **NewsletterSenderService** (`Services/Web/NewsletterSenderService.cs`): risolve i destinatari (clienti+iscritti−soppressioni), traduce oggetto+corpo per-lingua, invia via SMTP/ESP dell'azienda (`EmailSenderFactory`), logga la consegna per-destinatario e registra la campagna.
+*   **NewsletterSenderService** (`Services/Web/NewsletterSenderService.cs`): risolve i destinatari (clienti+iscritti−soppressioni), traduce oggetto+corpo per-lingua, genera l'email con il template brandizzato **`CompanyEmailTemplate`** (logo azienda + footer con sito/telefono, come le altre mail) aggiungendo in coda il footer di disiscrizione, invia via SMTP/ESP dell'azienda (`EmailSenderFactory`), logga la consegna per-destinatario e registra la campagna.
     *   `CountRecipientsAsync(aziendaId)` / `GetRecipientsAsync(aziendaId)` — conteggio/elenco destinatari risolti.
     *   `SendCampaignAsync(aziendaId, oggetto, corpoHtml)` → `NewsletterSendResult(Totale, Inviate, Errori, TradottoIncompleto)`.
     *   `SendTestAsync(aziendaId, oggetto, corpoHtml, testEmail)` — invio di prova (solo IT, non registra la campagna).
