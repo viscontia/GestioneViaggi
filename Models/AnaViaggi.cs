@@ -81,6 +81,9 @@ public class AnaViaggi : BaseEntity, IAuditable, IValidatableObject
     [Required(ErrorMessage = "Il campo Pasti al sacco è obbligatorio")]
     public string PastiAlSacco { get; set; } = "N"; // 'Y' o 'N'
 
+    [Column("viaggio_difficolta")]
+    public string? Difficolta { get; set; } // turistica/media/medio_alta/alta (opzionale) — usata dai contenuti web (Blocco 13)
+
     // === Audit Fields ===
     [Column("created_by")]
     public string? CreatedBy { get; set; }

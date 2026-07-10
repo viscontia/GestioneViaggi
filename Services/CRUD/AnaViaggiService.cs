@@ -189,7 +189,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             string sql = "SELECT sp_ana_viaggi_create(@p_viaggio_descrizione_breve, @p_viaggio_descrizione_estesa, " +
                 "@p_viaggio_numero_giorni, @p_viaggio_numero_notti, @p_viaggio_pasti_al_sacco, " +
-                "@p_viaggio_num_km, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
+                "@p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
                 "@p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, @p_viaggio_tipo_trattamento_fk, " +
                 "@p_viaggio_tipo_pernottamento_fk, @p_azienda_id, @p_created_by::VARCHAR, @p_created, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -201,6 +201,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_numero_notti", entity.NumeroNotti);
             cmd.Parameters.AddWithValue("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
             cmd.Parameters.AddWithValue("p_viaggio_num_km", entity.Km);
+            cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -235,7 +236,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             string sql = "SELECT sp_ana_viaggi_update(@p_viaggio_id, @p_viaggio_descrizione_breve, " +
                 "@p_viaggio_descrizione_estesa, @p_viaggio_numero_giorni, @p_viaggio_numero_notti, " +
-                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_tipo_avvicinamento_fk, " +
+                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_tipo_avvicinamento_fk, " +
                 "@p_viaggio_note, @p_viaggio_link, @p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, " +
                 "@p_viaggio_tipo_trattamento_fk, @p_viaggio_tipo_pernottamento_fk, @p_azienda_id, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -248,6 +249,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_numero_notti", entity.NumeroNotti);
             cmd.Parameters.AddWithValue("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
             cmd.Parameters.AddWithValue("p_viaggio_num_km", entity.Km);
+            cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -315,6 +317,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         command.Parameters.AddWithValue("notti", entity.NumeroNotti);
         command.Parameters.AddWithValue("pasti", entity.PastiAlSacco);
         command.Parameters.AddWithValue("km", entity.Km);
+        command.Parameters.AddWithValue("difficolta", (object?)entity.Difficolta ?? DBNull.Value);
         command.Parameters.AddWithValue("avvicinamento", entity.TipoAvvicinamentoIdFk);
         command.Parameters.AddWithValue("note", (object?)entity.Note?.ToUpper() ?? DBNull.Value); // Uppercase enforced
         command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
@@ -348,6 +351,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             NumeroNotti = ReadInt(reader, "viaggio_numero_notti"),
             PastiAlSacco = reader.GetString(reader.GetOrdinal("viaggio_pasti_al_sacco")),
             Km = ReadInt(reader, "viaggio_num_km"),
+            Difficolta = ReadNullableString(reader, "viaggio_difficolta"),
 
             Note = ReadNullableString(reader, "viaggio_note"),
             Link = ReadNullableString(reader, "viaggio_link"),
@@ -462,6 +466,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     viaggio_descrizione_breve, viaggio_descrizione_estesa,
                     viaggio_numero_giorni, viaggio_numero_notti,
                     viaggio_pasti_al_sacco, viaggio_num_km,
+                    viaggio_difficolta,
                     viaggio_tipo_avvicinamento_fk,
                     viaggio_note, viaggio_link,
                     viaggio_nazione_fk, viaggio_tipo_viaggio_fk,
@@ -472,6 +477,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     @descBreve, @descEstesa,
                     @giorni, @notti,
                     @pasti, @km,
+                    @difficolta,
                     @avvicinamento,
                     @note, @link,
                     @nazione, @tipo,

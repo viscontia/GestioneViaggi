@@ -81,6 +81,17 @@
                                     ValueChanged="@(val => Entity.PastiAlSacco = val ? "Y" : "N")" Label="Pasti al Sacco"
                                     Color="Color.Primary" />
                             </MudItem>
+
+                            <!-- Difficoltà (usata dai contenuti web) -->
+                            <MudItem xs="6" sm="3">
+                                <MudSelect T="string" @bind-Value="Entity.Difficolta" Label="Difficoltà"
+                                    Variant="Variant.Outlined" Clearable="true">
+                                    <MudSelectItem T="string" Value="@("turistica")">Turistica</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("media")">Media</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("medio_alta")">Medio-alta</MudSelectItem>
+                                    <MudSelectItem T="string" Value="@("alta")">Alta</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
                         </MudGrid>
 
                         <MudDivider Class="my-4" />
