@@ -86,7 +86,19 @@
 - ☐ Card **"Regole di pagamento"** visibile ma **disabilitata** (placeholder Fase 4).
 - ☐ *(ESP rimandato: nessun tab ESP in questa fase — vedi Checklist Go-Live §2.2.)*
 
-## 10. Trasversale — Multi-tenant (silos)
+## 10. Blocco 13 — Contenuti per edizione (viaggio+data) *(in corso)*
+
+**Anagrafica viaggio — nuovo campo Difficoltà (`ana_viaggi.viaggio_difficolta`)** *(fatto, commit 0dde963)*:
+- ☐ Apri un viaggio esistente → il dialog mostra la select **Difficoltà** (turistica/media/medio_alta/alta); vuota se mai impostata.
+- ☐ Imposta una difficoltà → salva → riapri: il valore è **persistito**.
+- ☐ Cambia la difficoltà su un viaggio esistente → salva → riapri: aggiornata.
+- ☐ Svuota la difficoltà (Clearable) → salva → riapri: torna vuota (NULL ammesso).
+- ☐ Nuovo viaggio con date: crea con difficoltà impostata → verifica che sia salvata (path create con date).
+- ☐ La difficoltà è **solo** in anagrafica viaggio: non compare (editabile) nei contenuti web — verrà letta live dalla pagina/anteprima.
+
+*(Contenuti per edizione, Crea/Clona/Anteprima/Pubblica: casi da aggiungere man mano che il re-model procede.)*
+
+## 11. Trasversale — Multi-tenant (silos)
 
 - ☐ Isolamento dati tra aziende (un'azienda non vede/modifica i dati di un'altra).
 - ☐ Unico condiviso/globale = tipi viaggio (`ana_tipo_viaggi`) + descrizioni web + loro traduzioni. Nient'altro.
