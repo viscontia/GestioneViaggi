@@ -1,18 +1,20 @@
 namespace GestioneViaggi.Models.Web;
 
 /// <summary>
-/// Contenuti editoriali "web" di un tour (scheda pubblica del viaggio).
-/// Mappa la tabella web_tour_contenuti. Un record per viaggio (viaggio_id_fk UNIQUE).
-/// Audit (created/created_by/updated/updated_by) è popolato dal trigger DB trg_web_audit,
-/// non dal codice C# — vedi Blocco 0.
+/// Contenuti editoriali "web" di un tour, per EDIZIONE (viaggio + data_viaggio).
+/// Mappa la tabella web_tour_contenuti. Un record per edizione (data_viaggio_id_fk UNIQUE);
+/// n record per viaggio. Audit popolato dal trigger DB trg_web_audit (Blocco 0).
 /// </summary>
 public class WebTourContenuto : BaseEntity
 {
     /// <summary>PK bigint (web_tour_contenuti_id).</summary>
     public long WebTourContenutoId { get; set; }
 
-    /// <summary>FK al viaggio (ana_viaggi.viaggio_id). Univoco.</summary>
+    /// <summary>FK al viaggio (ana_viaggi.viaggio_id). NON univoco (n edizioni per viaggio).</summary>
     public int ViaggioIdFk { get; set; }
+
+    /// <summary>FK all'edizione/data (ana_date_viaggi.data_viaggio_id). Univoco: 1 contenuto per data.</summary>
+    public int DataViaggioIdFk { get; set; }
 
     /// <summary>Azienda proprietaria (multi-tenant).</summary>
     public int AziendaId { get; set; }
@@ -22,9 +24,6 @@ public class WebTourContenuto : BaseEntity
 
     public string? Sottotitolo { get; set; }
     public string? DescrizioneHtml { get; set; }
-
-    /// <summary>Difficoltà: turistica | media | medio_alta | alta.</summary>
-    public string? Difficolta { get; set; }
 
     public string? DurataTesto { get; set; }
     public string? LuoghiVisitati { get; set; }
@@ -47,4 +46,19 @@ public class WebTourContenuto : BaseEntity
     public DateTime? Created { get; set; }
     public string? UpdatedBy { get; set; }
     public DateTime? Updated { get; set; }
+}
+
+/// <summary>
+/// Riga del selettore edizione (fn_web_edizioni_per_viaggio): una data del viaggio con
+/// stato del contenuto web (ContenutoId null = nessun contenuto) ed effettuazione.
+/// </summary>
+public sealed record EdizioneViaggio(
+    int DataViaggioId,
+    DateTime? DataInizio,
+    DateTime? DataFine,
+    bool Effettuato,
+    long? ContenutoId,
+    string? StatoPubblicazione)
+{
+    public bool HaContenuto => ContenutoId.HasValue;
 }

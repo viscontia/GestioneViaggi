@@ -33,7 +33,7 @@ public sealed class WebTourMappaGeneratorService
     public bool IsConfigured => _geo.IsConfigured;
 
     /// <summary>Genera (o rigenera) la mappa statica del viaggio dal testo GPX. Upsert 1:1 su web_tour_mappa.</summary>
-    public async Task<WebTourMappa> GenerateAsync(int viaggioId, int aziendaId, string gpxText, string? gpxFilename, CancellationToken ct = default)
+    public async Task<WebTourMappa> GenerateAsync(long contenutoId, int aziendaId, string gpxText, string? gpxFilename, CancellationToken ct = default)
     {
         if (!_geo.IsConfigured)
             throw new InvalidOperationException("Chiave Geoapify non configurata (sezione 'Geoapify' in appsettings).");
@@ -51,7 +51,7 @@ public sealed class WebTourMappaGeneratorService
         using var msIn = new MemoryStream(jpeg);
         var processed = await WebImageProcessor.ToOptimizedWebpAsync(msIn, ct);
 
-        var storagePath = $"{aziendaId}/{viaggioId}/mappa.webp";
+        var storagePath = $"{aziendaId}/{contenutoId}/mappa.webp";
         using var msOut = new MemoryStream(processed.Bytes);
         await _storage.UploadAsync(storagePath, msOut, processed.Mime, ct);
         var url = _storage.BuildPublicUrl(storagePath);
@@ -68,8 +68,8 @@ public sealed class WebTourMappaGeneratorService
         });
 
         // Upsert 1:1
-        var existing = await _mappaService.GetByViaggioAsync(viaggioId, aziendaId);
-        var entity = existing ?? new WebTourMappa { ViaggioIdFk = viaggioId, AziendaId = aziendaId };
+        var existing = await _mappaService.GetByContenutoAsync(contenutoId, aziendaId);
+        var entity = existing ?? new WebTourMappa { WebTourContenutoIdFk = contenutoId, AziendaId = aziendaId };
         entity.GpxOriginale = gpxText;
         entity.GpxFilename = gpxFilename;
         entity.BboxMinLat = (decimal)bbox.MinLat;
@@ -84,7 +84,7 @@ public sealed class WebTourMappaGeneratorService
         entity.DataGenerazione = DateTime.UtcNow;
 
         var saved = existing == null ? await _mappaService.CreateAsync(entity) : await _mappaService.UpdateAsync(entity);
-        _logger.LogInformation("Mappa generata per viaggio {ViaggioId}: {Orig}→{Simpl} punti", viaggioId, points.Count, simplified.Count);
+        _logger.LogInformation("Mappa generata per contenuto {ContenutoId}: {Orig}→{Simpl} punti", contenutoId, points.Count, simplified.Count);
         return saved;
     }
 }

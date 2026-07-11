@@ -56,11 +56,11 @@ public sealed class WebTraduzioneOrchestratorService
 
     // ---- Campi traducibili di un viaggio -------------------------------------
 
-    public async Task<List<TranslatableItem>> GetTranslatableItemsAsync(int viaggioId, int aziendaId)
+    public async Task<List<TranslatableItem>> GetTranslatableItemsAsync(long contenutoId, int aziendaId)
     {
         var items = new List<TranslatableItem>();
 
-        var c = await _contenuti.GetByViaggioAsync(viaggioId, aziendaId);
+        var c = await _contenuti.GetByIdAsync(contenutoId, aziendaId);
         if (c != null)
         {
             void Add(string campo, string label, string? val)
@@ -80,7 +80,7 @@ public sealed class WebTraduzioneOrchestratorService
             Add("meta_description", "Meta description", c.MetaDescription);
         }
 
-        var giornate = await _itinerario.ListByViaggioAsync(viaggioId, aziendaId);
+        var giornate = await _itinerario.ListByContenutoAsync(contenutoId, aziendaId);
         foreach (var g in giornate)
         {
             var passi = await _passi.ListByItinerarioAsync(g.WebTourItinerarioId, aziendaId);

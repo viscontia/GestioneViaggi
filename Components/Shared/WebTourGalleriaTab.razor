@@ -89,7 +89,7 @@ else
 </div>
 
 @code {
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private const long MaxUploadBytes = 20L * 1024 * 1024;
@@ -117,7 +117,7 @@ else
 
     private async Task ReloadAsync()
     {
-        _immagini = await ImmaginiService.ListByViaggioAsync(ViaggioId, AziendaId);
+        _immagini = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId);
         _container?.Refresh();
         StateHasChanged();
     }
@@ -144,13 +144,13 @@ else
                     buffer.Position = 0;
 
                     var processed = await WebImageProcessor.ToOptimizedWebpAsync(buffer);
-                    var storagePath = $"{AziendaId}/{ViaggioId}/{Guid.NewGuid():N}.webp";
+                    var storagePath = $"{AziendaId}/{ContenutoId}/{Guid.NewGuid():N}.webp";
                     using var upStream = new MemoryStream(processed.Bytes);
                     await Storage.UploadAsync(storagePath, upStream, processed.Mime);
 
                     var img = new WebTourImmagine
                     {
-                        ViaggioIdFk = ViaggioId, AziendaId = AziendaId, Tipo = "galleria",
+                        WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId, Tipo = "galleria",
                         StoragePath = storagePath, Url = Storage.BuildPublicUrl(storagePath),
                         Larghezza = processed.Width, Altezza = processed.Height, Mime = processed.Mime,
                         Ordine = _immagini.Count + 1
@@ -180,7 +180,7 @@ else
         for (int i = 0; i < _immagini.Count; i++) _immagini[i].Ordine = i + 1;
         _container?.Refresh();
 
-        try { await ImmaginiService.ReorderAsync(AziendaId, ViaggioId, _immagini.Select(x => x.WebTourImmagineId).ToList()); }
+        try { await ImmaginiService.ReorderAsync(AziendaId, ContenutoId, _immagini.Select(x => x.WebTourImmagineId).ToList()); }
         catch (Exception ex) { Snackbar.Add($"Errore riordino: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
@@ -188,7 +188,7 @@ else
     {
         try
         {
-            await ImmaginiService.SetPrincipaleAsync(img.WebTourImmagineId, AziendaId, ViaggioId);
+            await ImmaginiService.SetPrincipaleAsync(img.WebTourImmagineId, AziendaId, ContenutoId);
             foreach (var i in _immagini) i.Tipo = "galleria";
             img.Tipo = "principale";
             StateHasChanged();
@@ -216,7 +216,7 @@ else
             _immagini.Remove(img);
             for (int i = 0; i < _immagini.Count; i++) _immagini[i].Ordine = i + 1;
             if (_immagini.Count > 0)
-                await ImmaginiService.ReorderAsync(AziendaId, ViaggioId, _immagini.Select(x => x.WebTourImmagineId).ToList());
+                await ImmaginiService.ReorderAsync(AziendaId, ContenutoId, _immagini.Select(x => x.WebTourImmagineId).ToList());
             _container?.Refresh();
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error); await ReloadAsync(); }

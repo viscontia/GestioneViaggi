@@ -22,14 +22,14 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
     {
     }
 
-    /// <summary>Giornate dell'itinerario di un viaggio (ordinate lato DB).</summary>
-    public async Task<List<WebTourItinerario>> ListByViaggioAsync(int viaggioId, int aziendaId)
+    /// <summary>Giornate dell'itinerario di un contenuto (ordinate lato DB).</summary>
+    public async Task<List<WebTourItinerario>> ListByContenutoAsync(long contenutoId, int aziendaId)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_itinerario_list(@ViaggioId::integer, @AziendaId::integer)", conn);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_itinerario_list(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
 
             var results = new List<WebTourItinerario>();
@@ -42,7 +42,7 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nel recupero itinerario per viaggio {ViaggioId} azienda {AziendaId}", viaggioId, aziendaId);
+            _logger.LogError(ex, "Errore nel recupero itinerario per contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
             return new List<WebTourItinerario>();
         }
     }
@@ -74,12 +74,12 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             const string sql = @"SELECT fn_web_tour_itinerario_insert(
-                @AziendaId::integer, @ViaggioIdFk::integer, @GiornoNumero::integer, @TitoloGiornata::varchar, @Ordine::integer)";
+                @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GiornoNumero::integer, @TitoloGiornata::varchar, @Ordine::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             BindWritableParams(cmd, entity);
 
             entity.WebTourItinerarioId = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-            _logger.LogInformation("Giornata itinerario creata ID {Id} (viaggio {ViaggioId})", entity.WebTourItinerarioId, entity.ViaggioIdFk);
+            _logger.LogInformation("Giornata itinerario creata ID {Id} (contenuto {ContenutoId})", entity.WebTourItinerarioId, entity.WebTourContenutoIdFk);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")
@@ -89,7 +89,7 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore creazione giornata itinerario (viaggio {ViaggioId})", entity.ViaggioIdFk);
+            _logger.LogError(ex, "Errore creazione giornata itinerario (contenuto {ContenutoId})", entity.WebTourContenutoIdFk);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -101,7 +101,7 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             const string sql = @"SELECT fn_web_tour_itinerario_update(
-                @Id::bigint, @AziendaId::integer, @ViaggioIdFk::integer, @GiornoNumero::integer, @TitoloGiornata::varchar, @Ordine::integer)";
+                @Id::bigint, @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GiornoNumero::integer, @TitoloGiornata::varchar, @Ordine::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("Id", entity.WebTourItinerarioId);
             BindWritableParams(cmd, entity);
@@ -152,28 +152,28 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
     }
 
     /// <summary>
-    /// Riordina atomicamente le giornate del viaggio: la posizione degli id nell'array
+    /// Riordina atomicamente le giornate del contenuto: la posizione degli id nell'array
     /// diventa il nuovo giorno_numero/ordine (fn_web_tour_itinerario_reorder, UNNEST WITH ORDINALITY).
     /// Ritorna il numero di righe aggiornate.
     /// </summary>
-    public async Task<int> ReorderAsync(int aziendaId, int viaggioId, IReadOnlyList<long> orderedIds)
+    public async Task<int> ReorderAsync(int aziendaId, long contenutoId, IReadOnlyList<long> orderedIds)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_tour_itinerario_reorder(@AziendaId::integer, @ViaggioId::integer, @Ids::bigint[])", conn);
+                "SELECT fn_web_tour_itinerario_reorder(@AziendaId::integer, @ContenutoId::bigint, @Ids::bigint[])", conn);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
             cmd.Parameters.AddWithValue("Ids", orderedIds.ToArray());
 
             var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-            _logger.LogInformation("Riordino {Rows} giornate itinerario (viaggio {ViaggioId})", rows, viaggioId);
+            _logger.LogInformation("Riordino {Rows} giornate itinerario (contenuto {ContenutoId})", rows, contenutoId);
             return rows;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore riordino giornate itinerario (viaggio {ViaggioId})", viaggioId);
+            _logger.LogError(ex, "Errore riordino giornate itinerario (contenuto {ContenutoId})", contenutoId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -181,7 +181,7 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourItinerario e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);
-        cmd.Parameters.AddWithValue("ViaggioIdFk", e.ViaggioIdFk);
+        cmd.Parameters.AddWithValue("WebTourContenutoIdFk", e.WebTourContenutoIdFk);
         cmd.Parameters.AddWithValue("GiornoNumero", e.GiornoNumero);
         cmd.Parameters.AddWithValue("TitoloGiornata", e.TitoloGiornata);
         cmd.Parameters.AddWithValue("Ordine", e.Ordine);
@@ -192,7 +192,7 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
         return new WebTourItinerario
         {
             WebTourItinerarioId = reader.GetInt64(reader.GetOrdinal("web_tour_itinerario_id")),
-            ViaggioIdFk = ReadInt(reader, "viaggio_id_fk"),
+            WebTourContenutoIdFk = reader.GetInt64(reader.GetOrdinal("web_tour_contenuti_id_fk")),
             AziendaId = ReadInt(reader, "azienda_id"),
             GiornoNumero = ReadInt(reader, "giorno_numero"),
             TitoloGiornata = reader.GetString(reader.GetOrdinal("titolo_giornata")),

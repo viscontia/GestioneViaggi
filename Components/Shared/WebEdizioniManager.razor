@@ -1,0 +1,216 @@
+@using System.Globalization
+@using System.Text
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebTourContenutiService ContenutiService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@* Gestione contenuti web PER EDIZIONE (Blocco 13): il contenuto è figlio di (viaggio + data_viaggio).
+   Selettore edizione (date del viaggio) con stato contenuto ed effettuazione; Crea/Clona; 5 sotto-tab. *@
+
+@if (_loading)
+{
+    <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" /></div>
+}
+else if (_edizioni.Count == 0)
+{
+    <MudAlert Severity="Severity.Info">Questo viaggio non ha date. Aggiungi le date nella scheda <strong>Date Viaggio</strong>: i contenuti web si creano per singola edizione (data).</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center gap-3 flex-wrap mb-3">
+        <MudSelect T="int" Label="Edizione (data del viaggio)" Value="_selectedDataId" ValueChanged="OnEdizioneChanged"
+                   Variant="Variant.Outlined" Dense="true" Style="min-width:340px;">
+            @foreach (var e in _edizioni)
+            {
+                <MudSelectItem T="int" Value="e.DataViaggioId">@FormatEdizione(e)</MudSelectItem>
+            }
+        </MudSelect>
+
+        @if (_selected != null)
+        {
+            <MudChip T="string" Size="Size.Small" Icon="@(_selected.HaContenuto ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                     Color="@(_selected.HaContenuto ? Color.Success : Color.Default)">
+                @(_selected.HaContenuto ? $"Con contenuto ({_selected.StatoPubblicazione})" : "Senza contenuto")
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Icon="@(_selected.Effettuato ? Icons.Material.Filled.EventAvailable : Icons.Material.Filled.Schedule)"
+                     Color="@(_selected.Effettuato ? Color.Info : Color.Warning)">
+                @(_selected.Effettuato ? "Già effettuato" : "Da effettuare")
+            </MudChip>
+            @if (_selected.HaContenuto)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Anteprima">Anteprima</MudButton>
+            }
+        }
+    </div>
+
+    @if (_selected == null)
+    {
+        <MudText Color="Color.Secondary">Seleziona un'edizione.</MudText>
+    }
+    else if (!_selected.HaContenuto)
+    {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudText Class="mb-3">Nessun contenuto web per questa data. Puoi crearne uno nuovo o clonarlo da un'altra edizione dello stesso viaggio.</MudText>
+            <div class="d-flex align-center gap-3 flex-wrap">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@_busy" OnClick="Crea">Crea contenuto</MudButton>
+                @if (_edizioniConContenuto.Any())
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">oppure clona da:</MudText>
+                    <MudSelect T="long?" @bind-Value="_cloneSourceId" Label="Edizione sorgente" Variant="Variant.Outlined" Dense="true" Style="min-width:300px;">
+                        @foreach (var e in _edizioniConContenuto)
+                        {
+                            <MudSelectItem T="long?" Value="e.ContenutoId">@FormatEdizione(e)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ContentCopy"
+                               Disabled="@(_busy || _cloneSourceId == null)" OnClick="Clona">Clona</MudButton>
+                }
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <div @key="_selected.ContenutoId">
+            <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-3">
+                <MudTabPanel Text="Contenuti" Icon="@Icons.Material.Filled.Article">
+                    <WebTourContenutiTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve" />
+                </MudTabPanel>
+                <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route">
+                    <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                </MudTabPanel>
+                <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary">
+                    <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                </MudTabPanel>
+                <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map">
+                    <WebTourMappaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                </MudTabPanel>
+                <MudTabPanel Text="Traduzioni" Icon="@Icons.Material.Filled.Translate">
+                    <WebTraduzioniTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                </MudTabPanel>
+            </MudTabs>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+    [Parameter] public string? DescrizioneBreve { get; set; }
+
+    private List<EdizioneViaggio> _edizioni = new();
+    private EdizioneViaggio? _selected;
+    private int _selectedDataId;
+    private long? _cloneSourceId;
+    private bool _loading = true;
+    private bool _busy;
+
+    private IEnumerable<EdizioneViaggio> _edizioniConContenuto => _edizioni.Where(e => e.HaContenuto);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+        _loading = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        _edizioni = await ContenutiService.ListEdizioniAsync(ViaggioId, AziendaId);
+        if (_selectedDataId != 0)
+            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
+        if (_selected == null && _edizioni.Count > 0)
+        {
+            _selected = _edizioni[0];
+            _selectedDataId = _selected.DataViaggioId;
+        }
+    }
+
+    private void OnEdizioneChanged(int dataId)
+    {
+        _selectedDataId = dataId;
+        _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == dataId);
+        _cloneSourceId = null;
+    }
+
+    private async Task Crea()
+    {
+        if (_selected == null) return;
+        _busy = true;
+        try
+        {
+            var nuovo = await ContenutiService.CreateAsync(new WebTourContenuto
+            {
+                ViaggioIdFk = ViaggioId,
+                DataViaggioIdFk = _selected.DataViaggioId,
+                AziendaId = AziendaId,
+                Slug = BuildSlug(_selected),
+                StatoPubblicazione = "bozza"
+            });
+            Snackbar.Add("Contenuto creato.", Severity.Success);
+            await ReloadAsync();
+            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Clona()
+    {
+        if (_selected == null || _cloneSourceId == null) return;
+        _busy = true;
+        try
+        {
+            await ContenutiService.ClonaAsync(_cloneSourceId.Value, _selected.DataViaggioId, AziendaId);
+            Snackbar.Add("Contenuto clonato.", Severity.Success);
+            _cloneSourceId = null;
+            await ReloadAsync();
+            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore clone: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Anteprima()
+    {
+        if (_selected?.ContenutoId == null) return;
+        var parameters = new DialogParameters<WebTourAnteprimaDialog>
+        {
+            { x => x.ContenutoId, _selected.ContenutoId.Value },
+            { x => x.AziendaId, AziendaId }
+        };
+        await DialogService.ShowAsync<WebTourAnteprimaDialog>("Anteprima pagina web", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true, Position = DialogPosition.Center });
+    }
+
+    private string FormatEdizione(EdizioneViaggio e)
+    {
+        var range = $"{e.DataInizio?.ToString("dd/MM/yyyy") ?? "?"} – {e.DataFine?.ToString("dd/MM/yyyy") ?? "?"}";
+        var stato = e.HaContenuto ? $"• {e.StatoPubblicazione}" : "• senza contenuto";
+        var eff = e.Effettuato ? " • effettuato" : "";
+        return $"{range} {stato}{eff}";
+    }
+
+    private string BuildSlug(EdizioneViaggio e)
+    {
+        var baseSlug = Slugify(DescrizioneBreve);
+        var suffix = e.DataInizio?.ToString("yyyy-MM-dd") ?? _selectedDataId.ToString();
+        return string.IsNullOrEmpty(baseSlug) ? $"tour-{suffix}" : $"{baseSlug}-{suffix}";
+    }
+
+    private static string Slugify(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+            sb.Append(char.IsLetterOrDigit(c) ? c : '-');
+        }
+        var slug = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-{2,}", "-").Trim('-');
+        return slug.Length > 140 ? slug[..140].Trim('-') : slug;
+    }
+}

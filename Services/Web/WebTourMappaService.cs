@@ -66,14 +66,14 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         }
     }
 
-    /// <summary>Recupera la mappa associata a un viaggio (relazione 1:1), scopata per azienda.</summary>
-    public async Task<WebTourMappa?> GetByViaggioAsync(int viaggioId, int aziendaId)
+    /// <summary>Recupera la mappa associata a un contenuto web (relazione 1:1), scopata per azienda.</summary>
+    public async Task<WebTourMappa?> GetByContenutoAsync(long contenutoId, int aziendaId)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_mappa_get_by_viaggio(@ViaggioId::integer, @AziendaId::integer)", conn);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_mappa_get_by_contenuto(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -81,7 +81,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nel recupero mappa per viaggio {ViaggioId} azienda {AziendaId}", viaggioId, aziendaId);
+            _logger.LogError(ex, "Errore nel recupero mappa per contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -93,7 +93,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             const string sql = @"SELECT fn_web_tour_mappa_insert(
-                @AziendaId::integer, @ViaggioIdFk::integer, @GpxOriginale::text, @GpxFilename::varchar,
+                @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GpxOriginale::text, @GpxFilename::varchar,
                 @BboxMinLat::numeric, @BboxMinLon::numeric, @BboxMaxLat::numeric, @BboxMaxLon::numeric,
                 @Provider::varchar, @Stile::varchar, @ParametriRender::jsonb,
                 @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz)";
@@ -101,7 +101,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
             BindWritableParams(cmd, entity);
 
             entity.WebTourMappaId = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-            _logger.LogInformation("Mappa creata ID {Id} (viaggio {ViaggioId})", entity.WebTourMappaId, entity.ViaggioIdFk);
+            _logger.LogInformation("Mappa creata ID {Id} (contenuto {ContenutoId})", entity.WebTourMappaId, entity.WebTourContenutoIdFk);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")
@@ -111,7 +111,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore creazione mappa (viaggio {ViaggioId})", entity.ViaggioIdFk);
+            _logger.LogError(ex, "Errore creazione mappa (contenuto {ContenutoId})", entity.WebTourContenutoIdFk);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -123,7 +123,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             const string sql = @"SELECT fn_web_tour_mappa_update(
-                @Id::bigint, @AziendaId::integer, @ViaggioIdFk::integer, @GpxOriginale::text, @GpxFilename::varchar,
+                @Id::bigint, @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GpxOriginale::text, @GpxFilename::varchar,
                 @BboxMinLat::numeric, @BboxMinLon::numeric, @BboxMaxLat::numeric, @BboxMaxLon::numeric,
                 @Provider::varchar, @Stile::varchar, @ParametriRender::jsonb,
                 @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz)";
@@ -179,7 +179,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourMappa e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);
-        cmd.Parameters.AddWithValue("ViaggioIdFk", e.ViaggioIdFk);
+        cmd.Parameters.AddWithValue("WebTourContenutoIdFk", e.WebTourContenutoIdFk);
         cmd.Parameters.AddWithValue("GpxOriginale", (object?)e.GpxOriginale ?? DBNull.Value);
         cmd.Parameters.AddWithValue("GpxFilename", (object?)e.GpxFilename ?? DBNull.Value);
         cmd.Parameters.AddWithValue("BboxMinLat", (object?)e.BboxMinLat ?? DBNull.Value);
@@ -199,7 +199,7 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         return new WebTourMappa
         {
             WebTourMappaId = reader.GetInt64(reader.GetOrdinal("web_tour_mappa_id")),
-            ViaggioIdFk = ReadInt(reader, "viaggio_id_fk"),
+            WebTourContenutoIdFk = reader.GetInt64(reader.GetOrdinal("web_tour_contenuti_id_fk")),
             AziendaId = ReadInt(reader, "azienda_id"),
             GpxOriginale = ReadNullableString(reader, "gpx_originale"),
             GpxFilename = ReadNullableString(reader, "gpx_filename"),

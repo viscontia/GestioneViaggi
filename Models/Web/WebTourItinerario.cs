@@ -7,7 +7,8 @@ namespace GestioneViaggi.Models.Web;
 public class WebTourItinerario : BaseEntity
 {
     public long WebTourItinerarioId { get; set; }
-    public int ViaggioIdFk { get; set; }
+    /// <summary>FK al contenuto/edizione (web_tour_contenuti.web_tour_contenuti_id, BIGINT).</summary>
+    public long WebTourContenutoIdFk { get; set; }
     public int AziendaId { get; set; }
 
     public int GiornoNumero { get; set; }

@@ -71,14 +71,14 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         }
     }
 
-    /// <summary>Recupera il contenuto associato a un viaggio (relazione 1:1), scopato per azienda.</summary>
-    public async Task<WebTourContenuto?> GetByViaggioAsync(int viaggioId, int aziendaId)
+    /// <summary>Recupera il contenuto di un'edizione (data_viaggio), relazione 1:1, scopato per azienda. NULL se non esiste.</summary>
+    public async Task<WebTourContenuto?> GetByDataViaggioAsync(int dataViaggioId, int aziendaId)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_contenuti_get_by_viaggio(@ViaggioId::integer, @AziendaId::integer)", conn);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_contenuti_get_by_data_viaggio(@DataViaggioId::integer, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("DataViaggioId", dataViaggioId);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -86,7 +86,62 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nel recupero contenuto per viaggio {ViaggioId} azienda {AziendaId}", viaggioId, aziendaId);
+            _logger.LogError(ex, "Errore nel recupero contenuto per edizione {DataViaggioId} azienda {AziendaId}", dataViaggioId, aziendaId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
+    /// <summary>Elenco edizioni (date) di un viaggio con stato contenuto e flag effettuazione, per il selettore edizione.</summary>
+    public async Task<List<EdizioneViaggio>> ListEdizioniAsync(int viaggioId, int aziendaId)
+    {
+        var list = new List<EdizioneViaggio>();
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_edizioni_per_viaggio(@ViaggioId::integer, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var contenutoOrd = reader.GetOrdinal("web_tour_contenuti_id");
+                list.Add(new EdizioneViaggio(
+                    ReadInt(reader, "data_viaggio_id"),
+                    ReadNullableDateTime(reader, "data_inizio"),
+                    ReadNullableDateTime(reader, "data_fine"),
+                    (ReadNullableString(reader, "effettuato_sino") ?? "N") == "Y",
+                    reader.IsDBNull(contenutoOrd) ? (long?)null : reader.GetInt64(contenutoOrd),
+                    ReadNullableString(reader, "stato_pubblicazione")));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero edizioni per viaggio {ViaggioId} azienda {AziendaId}", viaggioId, aziendaId);
+        }
+        return list;
+    }
+
+    /// <summary>Clona un contenuto (con figlie e traduzioni) su una nuova data del medesimo viaggio. Ritorna l'id del nuovo contenuto.</summary>
+    public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT fn_web_tour_contenuti_clona(@Src::bigint, @Dest::integer, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("Src", contenutoSorgenteId);
+            cmd.Parameters.AddWithValue("Dest", dataViaggioDestId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+        }
+        catch (PostgresException pex) when (pex.SqlState == "P0001")
+        {
+            _logger.LogWarning("Errore business durante clone contenuto {Id}: {Error}", contenutoSorgenteId, pex.MessageText);
+            throw new InvalidOperationException(pex.MessageText);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore durante il clone del contenuto {Id}", contenutoSorgenteId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -102,10 +157,10 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
             const string sql = @"SELECT fn_web_tour_contenuti_insert(
                 @AziendaId::integer,
                 @ViaggioIdFk::integer,
+                @DataViaggioIdFk::integer,
                 @Slug::varchar,
                 @Sottotitolo::varchar,
                 @DescrizioneHtml::text,
-                @Difficolta::varchar,
                 @DurataTesto::varchar,
                 @LuoghiVisitati::text,
                 @InfoPernottamentoHtml::text,
@@ -154,10 +209,10 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
                 @Id::bigint,
                 @AziendaId::integer,
                 @ViaggioIdFk::integer,
+                @DataViaggioIdFk::integer,
                 @Slug::varchar,
                 @Sottotitolo::varchar,
                 @DescrizioneHtml::text,
-                @Difficolta::varchar,
                 @DurataTesto::varchar,
                 @LuoghiVisitati::text,
                 @InfoPernottamentoHtml::text,
@@ -251,10 +306,10 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);
         cmd.Parameters.AddWithValue("ViaggioIdFk", e.ViaggioIdFk);
+        cmd.Parameters.AddWithValue("DataViaggioIdFk", e.DataViaggioIdFk);
         cmd.Parameters.AddWithValue("Slug", e.Slug);
         cmd.Parameters.AddWithValue("Sottotitolo", (object?)e.Sottotitolo ?? DBNull.Value);
         cmd.Parameters.AddWithValue("DescrizioneHtml", (object?)e.DescrizioneHtml ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("Difficolta", (object?)e.Difficolta ?? DBNull.Value);
         cmd.Parameters.AddWithValue("DurataTesto", (object?)e.DurataTesto ?? DBNull.Value);
         cmd.Parameters.AddWithValue("LuoghiVisitati", (object?)e.LuoghiVisitati ?? DBNull.Value);
         cmd.Parameters.AddWithValue("InfoPernottamentoHtml", (object?)e.InfoPernottamentoHtml ?? DBNull.Value);
@@ -274,11 +329,11 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         {
             WebTourContenutoId = reader.GetInt64(reader.GetOrdinal("web_tour_contenuti_id")),
             ViaggioIdFk = ReadInt(reader, "viaggio_id_fk"),
+            DataViaggioIdFk = ReadInt(reader, "data_viaggio_id_fk"),
             AziendaId = ReadInt(reader, "azienda_id"),
             Slug = reader.GetString(reader.GetOrdinal("slug")),
             Sottotitolo = ReadNullableString(reader, "sottotitolo"),
             DescrizioneHtml = ReadNullableString(reader, "descrizione_html"),
-            Difficolta = ReadNullableString(reader, "difficolta"),
             DurataTesto = ReadNullableString(reader, "durata_testo"),
             LuoghiVisitati = ReadNullableString(reader, "luoghi_visitati"),
             InfoPernottamentoHtml = ReadNullableString(reader, "info_pernottamento_html"),

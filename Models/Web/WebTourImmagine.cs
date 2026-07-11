@@ -8,7 +8,8 @@ namespace GestioneViaggi.Models.Web;
 public class WebTourImmagine : BaseEntity
 {
     public long WebTourImmagineId { get; set; }
-    public int ViaggioIdFk { get; set; }
+    /// <summary>FK al contenuto/edizione (web_tour_contenuti.web_tour_contenuti_id, BIGINT).</summary>
+    public long WebTourContenutoIdFk { get; set; }
     public int AziendaId { get; set; }
 
     /// <summary>Tipo immagine (es. galleria, copertina). Default 'galleria'.</summary>

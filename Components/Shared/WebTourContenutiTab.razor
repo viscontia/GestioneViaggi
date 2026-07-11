@@ -23,17 +23,9 @@ else
 {
     <MudGrid>
         <!-- CAMPI EDITORIALI -->
-        <MudItem xs="12" sm="8">
+        <MudItem xs="12">
             <MudTextField @bind-Value="_model.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
                           MaxLength="255" AutoFocus="true" Immediate="true" />
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="string" @bind-Value="_model.Difficolta" Label="Difficoltà" Variant="Variant.Outlined" Clearable="true">
-                <MudSelectItem T="string" Value="@("turistica")">Turistica</MudSelectItem>
-                <MudSelectItem T="string" Value="@("media")">Media</MudSelectItem>
-                <MudSelectItem T="string" Value="@("medio_alta")">Medio-Alta</MudSelectItem>
-                <MudSelectItem T="string" Value="@("alta")">Alta</MudSelectItem>
-            </MudSelect>
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="_model.DurataTesto" Label="Durata (testo libero, es. 5 giorni / 4 notti)"
@@ -138,7 +130,8 @@ else
 }
 
 @code {
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    /// <summary>Id del contenuto/edizione (web_tour_contenuti). Il contenuto esiste già (creato/clonato dal dialog viaggio).</summary>
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
     /// <summary>Titolo del viaggio (descrizione breve), usato per suggerire lo slug.</summary>
     [Parameter] public string? DescrizioneBreve { get; set; }
@@ -197,20 +190,11 @@ else
     {
         try
         {
-            var existing = await ContenutiService.GetByViaggioAsync(ViaggioId, AziendaId);
+            var existing = await ContenutiService.GetByIdAsync(ContenutoId, AziendaId);
             if (existing != null)
-            {
                 _model = existing;
-            }
             else
-            {
-                _model = new WebTourContenuto
-                {
-                    ViaggioIdFk = ViaggioId,
-                    AziendaId = AziendaId,
-                    Slug = Slugify(DescrizioneBreve)
-                };
-            }
+                Snackbar.Add("Contenuto non trovato.", Severity.Error);
         }
         catch (Exception ex)
         {
@@ -330,16 +314,8 @@ else
         _saving = true;
         try
         {
-            if (_model.WebTourContenutoId == 0)
-            {
-                _model = await ContenutiService.CreateAsync(_model);
-                Snackbar.Add("Contenuti web creati con successo", Severity.Success);
-            }
-            else
-            {
-                _model = await ContenutiService.UpdateAsync(_model);
-                Snackbar.Add("Contenuti web aggiornati con successo", Severity.Success);
-            }
+            _model = await ContenutiService.UpdateAsync(_model);
+            Snackbar.Add("Contenuti web salvati con successo", Severity.Success);
         }
         catch (Exception ex)
         {

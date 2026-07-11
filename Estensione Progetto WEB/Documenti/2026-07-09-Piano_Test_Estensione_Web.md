@@ -96,7 +96,16 @@
 - ☐ Nuovo viaggio con date: crea con difficoltà impostata → verifica che sia salvata (path create con date).
 - ☐ La difficoltà è **solo** in anagrafica viaggio: non compare (editabile) nei contenuti web — verrà letta live dalla pagina/anteprima.
 
-*(Contenuti per edizione, Crea/Clona/Anteprima/Pubblica: casi da aggiungere man mano che il re-model procede.)*
+**Contenuti web per edizione (re-model DB + UI, commit DB `8f16e91`):**
+- ☐ **Selettore edizione** (dialog viaggio → tab "Contenuti Web"): elenca le date del viaggio con **dal–al**, chip **con/senza contenuto** e chip **effettuato/da effettuare**.
+- ☐ Data **senza contenuto** → pulsante **Crea contenuto**: crea una bozza per quella data → compaiono i 5 sotto-tab.
+- ☐ Data senza contenuto → **Clona da** un'altra edizione (con contenuto) → copia contenuti+itinerario+galleria+mappa+traduzioni sulla nuova data; prezzi/date restano quelli della nuova data.
+- ☐ **Vincoli clone**: consentito solo tra date dello **stesso viaggio**; data già con contenuto non selezionabile come destinazione.
+- ☐ I 5 sotto-tab operano sul contenuto dell'edizione selezionata (creare 2 edizioni dello stesso viaggio e verificare che i contenuti siano **indipendenti**).
+- ☐ Nel tab Contenuti **non** c'è più la difficoltà (è in anagrafica viaggio); prezzi/date **non** editabili qui.
+- ☐ **Anteprima**: mostra il contenuto assemblato (descrizione, itinerario+passi, galleria, mappa) in IT.
+- ☐ **Pubblicazione**: cambiando lo **Stato** del contenuto a "pubblicato", lo strato pubblico (`fn_web_tour_pubblicati`) espone **una riga per edizione** con prezzo/date della singola data e difficoltà dall'anagrafica.
+- ☐ **Multi-tenant**: un'azienda non vede le edizioni/contenuti di un'altra.
 
 ## 11. Trasversale — Multi-tenant (silos)
 

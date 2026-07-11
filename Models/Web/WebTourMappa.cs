@@ -2,13 +2,14 @@ namespace GestioneViaggi.Models.Web;
 
 /// <summary>
 /// Mappa statica di un tour generata da GPX (web_tour_mappa).
-/// Relazione 1:1 col viaggio. GPX conservato lato server; immagine su storage.
+/// Relazione 1:1 col contenuto/edizione. GPX conservato lato server; immagine su storage.
 /// Audit popolato dal trigger DB trg_web_audit.
 /// </summary>
 public class WebTourMappa : BaseEntity
 {
     public long WebTourMappaId { get; set; }
-    public int ViaggioIdFk { get; set; }
+    /// <summary>FK al contenuto/edizione (web_tour_contenuti.web_tour_contenuti_id, BIGINT).</summary>
+    public long WebTourContenutoIdFk { get; set; }
     public int AziendaId { get; set; }
 
     public string? GpxOriginale { get; set; }

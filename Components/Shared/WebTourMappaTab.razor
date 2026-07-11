@@ -73,7 +73,7 @@ else
 </div>
 
 @code {
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private const long MaxGpxBytes = 20L * 1024 * 1024;
@@ -87,7 +87,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try { _mappa = await MappaService.GetByViaggioAsync(ViaggioId, AziendaId); }
+        try { _mappa = await MappaService.GetByContenutoAsync(ContenutoId, AziendaId); }
         catch (Exception ex) { Snackbar.Add($"Errore caricamento mappa: {ex.Message}", Severity.Error); }
         _loading = false;
     }
@@ -123,7 +123,7 @@ else
         _busy = true;
         try
         {
-            _mappa = await Generator.GenerateAsync(ViaggioId, AziendaId, gpxText, filename);
+            _mappa = await Generator.GenerateAsync(ContenutoId, AziendaId, gpxText, filename);
             _pendingGpxText = null; _pendingGpxName = null;
             Snackbar.Add("Mappa generata con successo", Severity.Success);
         }

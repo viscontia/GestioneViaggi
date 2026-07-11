@@ -23,14 +23,14 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
     {
     }
 
-    /// <summary>Immagini di un viaggio (ordinate lato DB).</summary>
-    public async Task<List<WebTourImmagine>> ListByViaggioAsync(int viaggioId, int aziendaId)
+    /// <summary>Immagini di un contenuto (ordinate lato DB).</summary>
+    public async Task<List<WebTourImmagine>> ListByContenutoAsync(long contenutoId, int aziendaId)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_immagini_list(@ViaggioId::integer, @AziendaId::integer)", conn);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_immagini_list(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
 
             var results = new List<WebTourImmagine>();
@@ -43,7 +43,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore nel recupero immagini per viaggio {ViaggioId} azienda {AziendaId}", viaggioId, aziendaId);
+            _logger.LogError(ex, "Errore nel recupero immagini per contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
             return new List<WebTourImmagine>();
         }
     }
@@ -76,14 +76,14 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
             await using var conn = await _databaseService.GetConnectionAsync();
             // Ordine argomenti insert: azienda, viaggio, url, storage_path, tipo, alt, titolo, larghezza, altezza, mime, ordine
             const string sql = @"SELECT fn_web_tour_immagini_insert(
-                @AziendaId::integer, @ViaggioIdFk::integer, @Url::text, @StoragePath::varchar,
+                @AziendaId::integer, @WebTourContenutoIdFk::bigint, @Url::text, @StoragePath::varchar,
                 @Tipo::varchar, @AltText::varchar, @Titolo::varchar,
                 @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             BindWritableParams(cmd, entity);
 
             entity.WebTourImmagineId = Convert.ToInt64(await cmd.ExecuteScalarAsync());
-            _logger.LogInformation("Immagine creata ID {Id} (viaggio {ViaggioId})", entity.WebTourImmagineId, entity.ViaggioIdFk);
+            _logger.LogInformation("Immagine creata ID {Id} (contenuto {ContenutoId})", entity.WebTourImmagineId, entity.WebTourContenutoIdFk);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")
@@ -93,7 +93,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore creazione immagine (viaggio {ViaggioId})", entity.ViaggioIdFk);
+            _logger.LogError(ex, "Errore creazione immagine (contenuto {ContenutoId})", entity.WebTourContenutoIdFk);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -106,7 +106,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
             await using var conn = await _databaseService.GetConnectionAsync();
             // Ordine argomenti update: id, azienda, viaggio, tipo, url, storage_path, alt, titolo, larghezza, altezza, mime, ordine
             const string sql = @"SELECT fn_web_tour_immagini_update(
-                @Id::bigint, @AziendaId::integer, @ViaggioIdFk::integer, @Tipo::varchar,
+                @Id::bigint, @AziendaId::integer, @WebTourContenutoIdFk::bigint, @Tipo::varchar,
                 @Url::text, @StoragePath::varchar, @AltText::varchar, @Titolo::varchar,
                 @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
@@ -162,24 +162,24 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
     /// Riordina atomicamente le immagini del viaggio: la posizione nell'array diventa il nuovo
     /// ordine (fn_web_tour_immagini_reorder). Ritorna il numero di righe aggiornate.
     /// </summary>
-    public async Task<int> ReorderAsync(int aziendaId, int viaggioId, IReadOnlyList<long> orderedIds)
+    public async Task<int> ReorderAsync(int aziendaId, long contenutoId, IReadOnlyList<long> orderedIds)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_tour_immagini_reorder(@AziendaId::integer, @ViaggioId::integer, @Ids::bigint[])", conn);
+                "SELECT fn_web_tour_immagini_reorder(@AziendaId::integer, @ContenutoId::bigint, @Ids::bigint[])", conn);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
             cmd.Parameters.AddWithValue("Ids", orderedIds.ToArray());
 
             var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
-            _logger.LogInformation("Riordino {Rows} immagini (viaggio {ViaggioId})", rows, viaggioId);
+            _logger.LogInformation("Riordino {Rows} immagini (contenuto {ContenutoId})", rows, contenutoId);
             return rows;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore riordino immagini (viaggio {ViaggioId})", viaggioId);
+            _logger.LogError(ex, "Errore riordino immagini (contenuto {ContenutoId})", contenutoId);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
     }
@@ -188,16 +188,16 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
     /// Imposta l'immagine come "principale" (copertina) del viaggio, retrocedendo l'eventuale
     /// principale precedente (fn_web_tour_immagini_set_principale, atomico). True se impostata.
     /// </summary>
-    public async Task<bool> SetPrincipaleAsync(long id, int aziendaId, int viaggioId)
+    public async Task<bool> SetPrincipaleAsync(long id, int aziendaId, long contenutoId)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_tour_immagini_set_principale(@Id::bigint, @AziendaId::integer, @ViaggioId::integer)", conn);
+                "SELECT fn_web_tour_immagini_set_principale(@Id::bigint, @AziendaId::integer, @ContenutoId::bigint)", conn);
             cmd.Parameters.AddWithValue("Id", id);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
-            cmd.Parameters.AddWithValue("ViaggioId", viaggioId);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
 
             var rows = Convert.ToInt32(await cmd.ExecuteScalarAsync());
             _logger.LogInformation("Immagine {Id} impostata principale ({Rows})", id, rows);
@@ -213,7 +213,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
     private static void BindWritableParams(NpgsqlCommand cmd, WebTourImmagine e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);
-        cmd.Parameters.AddWithValue("ViaggioIdFk", e.ViaggioIdFk);
+        cmd.Parameters.AddWithValue("WebTourContenutoIdFk", e.WebTourContenutoIdFk);
         cmd.Parameters.AddWithValue("Tipo", string.IsNullOrWhiteSpace(e.Tipo) ? "galleria" : e.Tipo);
         cmd.Parameters.AddWithValue("Url", e.Url);
         cmd.Parameters.AddWithValue("StoragePath", e.StoragePath);
@@ -230,7 +230,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         return new WebTourImmagine
         {
             WebTourImmagineId = reader.GetInt64(reader.GetOrdinal("web_tour_immagini_id")),
-            ViaggioIdFk = ReadInt(reader, "viaggio_id_fk"),
+            WebTourContenutoIdFk = reader.GetInt64(reader.GetOrdinal("web_tour_contenuti_id_fk")),
             AziendaId = ReadInt(reader, "azienda_id"),
             Tipo = reader.GetString(reader.GetOrdinal("tipo")),
             Url = reader.GetString(reader.GetOrdinal("url")),

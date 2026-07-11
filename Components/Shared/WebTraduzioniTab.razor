@@ -97,7 +97,7 @@ else
 </div>
 
 @code {
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private bool _loading = true;
@@ -131,7 +131,7 @@ else
     private async Task ReloadAsync()
     {
         _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId));
-        _items = await Orchestrator.GetTranslatableItemsAsync(ViaggioId, AziendaId);
+        _items = await Orchestrator.GetTranslatableItemsAsync(ContenutoId, AziendaId);
 
         var ids = _items.Select(i => (i.Entita, i.EntitaId)).ToHashSet();
         var all = await TraduzioniService.ListByAziendaAsync(AziendaId);

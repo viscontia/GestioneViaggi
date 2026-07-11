@@ -75,7 +75,7 @@
 
     /// <summary>Passo da modificare (i valori vengono applicati solo al Salva).</summary>
     [Parameter, EditorRequired] public WebTourItinerarioPassaggio Passo { get; set; } = default!;
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private BlazoredTextEditor _editor = default!;
@@ -92,7 +92,7 @@
         _didascalia = Passo.ImmagineDidascalia;
         _selectedStoragePath = Passo.ImmagineStoragePath;
         _selectedUrl = Passo.ImmagineUrl;
-        try { _galleria = await ImmaginiService.ListByViaggioAsync(ViaggioId, AziendaId); }
+        try { _galleria = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId); }
         catch { _galleria = new(); }
     }
 

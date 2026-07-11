@@ -1,0 +1,134 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebTourContenutiService ContenutiService
+@inject WebTourItinerarioService ItinerarioService
+@inject WebTourItinerarioPassaggiService PassaggiService
+@inject WebTourImmaginiService ImmaginiService
+@inject WebTourMappaService MappaService
+
+@* Anteprima IT del contenuto web di un'edizione (Blocco 13): rende l'editoriale come apparirà sul sito. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" /></div>
+        }
+        else if (_contenuto == null)
+        {
+            <MudAlert Severity="Severity.Error">Contenuto non trovato.</MudAlert>
+        }
+        else
+        {
+            <div style="max-width:760px;">
+                @if (!string.IsNullOrWhiteSpace(_contenuto.Sottotitolo))
+                {
+                    <MudText Typo="Typo.h6" Class="mb-1">@_contenuto.Sottotitolo</MudText>
+                }
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    @if (!string.IsNullOrWhiteSpace(_contenuto.DurataTesto))
+                    {
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Schedule">@_contenuto.DurataTesto</MudChip>
+                    }
+                    <MudChip T="string" Size="Size.Small" Color="@(_contenuto.StatoPubblicazione == "pubblicato" ? Color.Success : Color.Default)">@_contenuto.StatoPubblicazione</MudChip>
+                </div>
+
+                @if (_immaginePrincipale != null)
+                {
+                    <MudImage Src="@_immaginePrincipale.Url" Alt="@_immaginePrincipale.AltText" Fluid="true" Class="rounded mb-3" Style="max-height:280px;" />
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_contenuto.DescrizioneHtml))
+                {
+                    <div class="mb-3">@((MarkupString)_contenuto.DescrizioneHtml!)</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(_contenuto.LuoghiVisitati))
+                {
+                    <MudText Typo="Typo.body2" Class="mb-3"><strong>Luoghi:</strong> @_contenuto.LuoghiVisitati</MudText>
+                }
+
+                @if (_giornate.Count > 0)
+                {
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Itinerario</MudText>
+                    @foreach (var g in _giornate)
+                    {
+                        <MudText Typo="Typo.subtitle2">Giorno @g.GiornoNumero — @g.TitoloGiornata</MudText>
+                        @if (_passi.TryGetValue(g.WebTourItinerarioId, out var passi))
+                        {
+                            foreach (var p in passi)
+                            {
+                                <div class="ml-3 mb-2">
+                                    @if (!string.IsNullOrWhiteSpace(p.TestoHtml)) { <div>@((MarkupString)p.TestoHtml)</div> }
+                                    @if (!string.IsNullOrWhiteSpace(p.ImmagineUrl))
+                                    {
+                                        <MudImage Src="@p.ImmagineUrl" Alt="@p.ImmagineDidascalia" Fluid="true" Class="rounded mt-1" Style="max-height:180px;" />
+                                    }
+                                </div>
+                            }
+                        }
+                    }
+                }
+
+                @if (_galleria.Count > 0)
+                {
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Galleria</MudText>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var img in _galleria)
+                        {
+                            <MudImage Src="@img.Url" Alt="@img.AltText" Width="120" Height="90" ObjectFit="ObjectFit.Cover" Class="rounded" />
+                        }
+                    </div>
+                }
+
+                @if (_mappa != null && !string.IsNullOrWhiteSpace(_mappa.ImmagineUrl))
+                {
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Mappa</MudText>
+                    <MudImage Src="@_mappa.ImmagineUrl" Alt="Mappa del tour" Fluid="true" Class="rounded" Style="max-height:320px;" />
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Close())">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private bool _loading = true;
+    private WebTourContenuto? _contenuto;
+    private List<WebTourItinerario> _giornate = new();
+    private readonly Dictionary<long, List<WebTourItinerarioPassaggio>> _passi = new();
+    private List<WebTourImmagine> _galleria = new();
+    private WebTourImmagine? _immaginePrincipale;
+    private WebTourMappa? _mappa;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _contenuto = await ContenutiService.GetByIdAsync(ContenutoId, AziendaId);
+            if (_contenuto == null) return;
+
+            _giornate = await ItinerarioService.ListByContenutoAsync(ContenutoId, AziendaId);
+            foreach (var g in _giornate)
+                _passi[g.WebTourItinerarioId] = await PassaggiService.ListByItinerarioAsync(g.WebTourItinerarioId, AziendaId);
+
+            var immagini = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId);
+            _immaginePrincipale = immagini.FirstOrDefault(i => i.Tipo == "principale");
+            _galleria = immagini.Where(i => i.Tipo != "principale").ToList();
+
+            _mappa = await MappaService.GetByContenutoAsync(ContenutoId, AziendaId);
+        }
+        catch { /* anteprima best-effort */ }
+        finally { _loading = false; }
+    }
+}

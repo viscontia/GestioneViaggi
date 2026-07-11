@@ -123,7 +123,7 @@ else
 </div>
 
 @code {
-    [Parameter, EditorRequired] public int ViaggioId { get; set; }
+    [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     private List<WebTourItinerario> _giornate = new();
@@ -151,7 +151,7 @@ else
 
     private async Task ReloadAsync()
     {
-        _giornate = await GiornateService.ListByViaggioAsync(ViaggioId, AziendaId);
+        _giornate = await GiornateService.ListByContenutoAsync(ContenutoId, AziendaId);
         var passi = new List<WebTourItinerarioPassaggio>();
         foreach (var g in _giornate)
             passi.AddRange(await PassiService.ListByItinerarioAsync(g.WebTourItinerarioId, AziendaId));
@@ -168,7 +168,7 @@ else
         var n = _giornate.Count + 1;
         var g = new WebTourItinerario
         {
-            ViaggioIdFk = ViaggioId, AziendaId = AziendaId,
+            WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId,
             GiornoNumero = n, Ordine = n, TitoloGiornata = $"Giorno {n}"
         };
         try
@@ -200,7 +200,7 @@ else
             _giornate.Remove(g);
             for (int i = 0; i < _giornate.Count; i++) { _giornate[i].Ordine = i + 1; _giornate[i].GiornoNumero = i + 1; }
             if (_giornate.Count > 0)
-                await GiornateService.ReorderAsync(AziendaId, ViaggioId, _giornate.Select(x => x.WebTourItinerarioId).ToList());
+                await GiornateService.ReorderAsync(AziendaId, ContenutoId, _giornate.Select(x => x.WebTourItinerarioId).ToList());
             _giornateContainer?.Refresh();
             _passiContainer?.Refresh();
         }
@@ -217,7 +217,7 @@ else
         _giornateContainer?.Refresh();
         _passiContainer?.Refresh(); // l'ordine delle zone dipende da Ordine
 
-        try { await GiornateService.ReorderAsync(AziendaId, ViaggioId, _giornate.Select(x => x.WebTourItinerarioId).ToList()); }
+        try { await GiornateService.ReorderAsync(AziendaId, ContenutoId, _giornate.Select(x => x.WebTourItinerarioId).ToList()); }
         catch (Exception ex) { Snackbar.Add($"Errore riordino giornate: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
@@ -308,7 +308,7 @@ else
         var parameters = new DialogParameters<WebTourPassoEditDialog>
         {
             { x => x.Passo, passo },
-            { x => x.ViaggioId, ViaggioId },
+            { x => x.ContenutoId, ContenutoId },
             { x => x.AziendaId, AziendaId }
         };
         var options = new DialogOptions { BackdropClick = false, FullWidth = true, MaxWidth = MaxWidth.Medium };
