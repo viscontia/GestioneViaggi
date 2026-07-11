@@ -89,3 +89,33 @@ La difficoltà diventa un attributo del viaggio (non del contenuto web).
 - **Migrazione dati esistenti** → **non necessaria**: nessun contenuto web esistente per alcuna azienda (§2.4). Schema change a freddo.
 - **Difficoltà** → spostata in **`ana_viaggi`** (§2.5), letta live dal web, non editabile; rimossa da `web_tour_contenuti`.
 - **Slug** al clone → slug sorgente + **date dal–al complete** dell'edizione (§3.2), con suffisso progressivo in caso di collisione.
+
+## 7. Piano d'implementazione dettagliato (mappa workflow, validato 2026-07-11)
+
+Mappa prodotta da un workflow di 7 reader paralleli (uno per sottosistema). Findings chiave:
+- **`web_tour_contenuti_id` è BIGINT** → le FK figlie diventano `web_tour_contenuti_id_fk BIGINT`; in C# `int → long`, cast Dapper `::integer → ::bigint` (rischio 42883 se disallineato).
+- **`web_traduzioni` non cambia** (schema/funzioni/service/model): è polimorfica su `(entita, entita_id, campo, lingua)` con `entita_id` = PK del contenuto/passaggio (già per-contenuto). Cambia solo lo scope di raccolta nell'orchestrator e la **copia re-keyed al clone**.
+- **`web_tour_itinerario_passaggi` non cambia schema** (pende da `itinerario_id_fk`; cascade dal contenuto via giornata). Solo `web_tour_itinerario` si ri-ancora al contenuto.
+- **Nessun consumatore C#/Razor** di `fn_web_tour_pubblicati` (solo sito esterno) → cambiarne l'output è sicuro.
+- **Nessuna routine di clone** esiste: va creata.
+
+### Ordine di deploy (vincolante — le FK figlie puntano al PK contenuti)
+- **Fase A — Contenuti (DB):** `410` (+`data_viaggio_id_fk`→`ana_date_viaggi(data_viaggio_id)`, via `UNIQUE(viaggio_id_fk)`, +`UNIQUE(data_viaggio_id_fk)`, −colonna `difficolta`+CHECK); `432` (fn insert/update: +`p_data_viaggio_id_fk`, −`p_difficolta`; +`fn_web_tour_contenuti_get_by_data_viaggio`; `get_by_viaggio` ora N righe).
+- **Fase B — Figlie (DB):** immagini `413`+`435`+`457`+`458`; itinerario `411`+`456`+`433`+`454` (giornate → contenuto, vincolo `UNIQUE(web_tour_contenuti_id_fk, giorno_numero)` DEFERRABLE mantenuto); mappa `414`+`436` (`get_by_viaggio`→`get_by_contenuto`). FK `viaggio_id_fk`→`web_tour_contenuti_id_fk BIGINT`, indici/parziali ricreati per-contenuto. Passaggi `412/434/455` invariati.
+- **Fase C — Public/RLS/Clone (DB):** `461` per-edizione (JOIN `ana_date_viaggi` per date/prezzo, `difficolta` da `ana_viaggi.viaggio_difficolta`, immagine via `web_tour_contenuti_id_fk`, traduzioni invariate); nuova `fn_web_prezzo_da_data(p_data_viaggio_id)` (LEAST 6 tariffe della singola data) + GRANT anon; `450/452/453` RLS ricablate (figlie gated via `web_tour_contenuti_id_fk`; GRANT: −`difficolta`/+`data_viaggio_id_fk` su contenuti, +`viaggio_difficolta` su ana_viaggi; `ana_date_viaggi` stretta alla sola data pubblicata); **nuova `fn_web_tour_contenuti_clona(p_contenuto_sorgente, p_data_viaggio_dest, p_azienda_id)`** che copia contenuto + immagini + itinerario/passaggi + mappa + traduzioni (re-key `entita_id` vecchia→nuova PK), slug nuovo.
+- **Fase D — C# model/service:** `WebTourContenuto`(+`DataViaggioIdFk`, −`Difficolta`), `WebTourImmagine`/`WebTourItinerario`/`WebTourMappa` (`ViaggioIdFk int` → `WebTourContenutiIdFk long`); service: `*ByViaggio`→`*ByContenuto`, cast `::bigint`, `MapFromReader` GetInt64; `WebTraduzioneOrchestratorService` per-edizione.
+- **Fase E — UI:** in `AnaViaggiDialog`, sopra i tab web, **selettore edizione** (Opzione A) + i 5 tab su `contenutoId`; **Crea** (wizard scheletro per data senza contenuto), **Clona** (sorgente + data libera), **Anteprima** IT speculare, **Pubblica/Bozza/Archivia**. Rimuovere select difficoltà dal tab contenuti.
+- **Fase F — Doc + build + commit.**
+
+### Selettore edizione (Fase E) — requisiti
+Per ogni data del viaggio (`ana_date_viaggi`) il selettore mostra:
+- range **dal–al** (`data_viaggio_data_inizio`/`_data_fine`);
+- **stato contenuto**: "con contenuto" vs "senza contenuto" (LEFT JOIN `web_tour_contenuti` su `data_viaggio_id_fk`), con evidenza visiva (chip/icona);
+- **stato effettuazione**: "effettuato" vs "da effettuare" da `data_viaggio_effettuato_sino` (Y/N), con evidenza visiva.
+- Supporto DB: nuova `fn_web_edizioni_per_viaggio(p_viaggio_id, p_azienda_id)` → righe (data_viaggio_id, data_inizio, data_fine, effettuato_sino, web_tour_contenuti_id NULL-able, stato_pubblicazione). Alimenta il selettore.
+- Azioni contestuali: data **senza** contenuto → "Crea" o "Clona da…"; data **con** contenuto → apre i tab; sempre disponibili Anteprima/Pubblica sul contenuto selezionato.
+
+### Default adottati (validati)
+- Prezzo per-edizione via nuova `fn_web_prezzo_da_data`.
+- RLS `ana_date_viaggi` stretta alla sola data pubblicata.
+- Storage immagini/mappa **per-contenuto** (`{azienda}/{contenuto}/…`) per evitare collisioni tra edizioni.
