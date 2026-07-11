@@ -119,3 +119,25 @@ Per ogni data del viaggio (`ana_date_viaggi`) il selettore mostra:
 - Prezzo per-edizione via nuova `fn_web_prezzo_da_data`.
 - RLS `ana_date_viaggi` stretta alla sola data pubblicata.
 - Storage immagini/mappa **per-contenuto** (`{azienda}/{contenuto}/…`) per evitare collisioni tra edizioni.
+
+## 8. Stato implementazione + dettaglio Fase D/E (per ripresa)
+
+**FATTO (committato):**
+- Fase 1 difficoltà `ana_viaggi` (commit `0dde963`, script 467).
+- Fase A/B/C DB re-model (commit `8f16e91`, script 468–474): contenuti per-edizione, figlie su `web_tour_contenuti_id_fk` (BIGINT), public per-edizione, RLS ricablata, `fn_web_tour_contenuti_clona` (clone **testato** ok), `fn_web_edizioni_per_viaggio` (selettore).
+
+**DA FARE — Fase D (C#, un unico commit build-verde con E):**
+- Models: `WebTourContenuto` (+`DataViaggioIdFk` int, −`Difficolta`); `WebTourImmagine`/`WebTourItinerario`/`WebTourMappa`: `ViaggioIdFk` (int) → `WebTourContenutiIdFk` (**long**).
+- `WebTourContenutiService`: SQL insert/update (+`@DataViaggioIdFk::integer`, −`@Difficolta`, ordine param allineato a fn 468), `BindWritableParams`, `MapFromReader` (+`data_viaggio_id_fk`, −`difficolta`); `GetByViaggioAsync` → `GetByDataViaggioAsync(int dataViaggioId,int aziendaId)` su `fn_web_tour_contenuti_get_by_data_viaggio`; aggiungere `ClonaAsync(long src,int dataDest,int azienda)` su `fn_web_tour_contenuti_clona` e `ListEdizioniAsync(int viaggioId,int azienda)` su `fn_web_edizioni_per_viaggio`.
+- `WebTourImmaginiService`/`WebTourItinerarioService`/`WebTourMappaService`: `*ByViaggioAsync` → `*ByContenutoAsync(long)`; cast `::integer`→`::bigint`; `MapFromReader` `GetInt64`; reorder/set_principale/get_by param `long`; `WebTourMappaService.GetByViaggioAsync`→`GetByContenutoAsync` su `fn_web_tour_mappa_get_by_contenuto`.
+- `WebTourMappaGeneratorService.GenerateAsync(int viaggioId,…)` → `(long contenutoId,…)`; storage path per-contenuto.
+- `WebTraduzioneOrchestratorService.GetTranslatableItemsAsync`: per-edizione (risolve il contenuto, `ListByContenutoAsync`); entita_id invariati.
+
+**DA FARE — Fase E (UI, stesso commit):**
+- `WebTourContenutiTab`: `ViaggioId`→`DataViaggioId`; `GetByDataViaggioAsync`; set `DataViaggioIdFk`; **rimuovere select Difficoltà** (ora su ana_viaggi).
+- `WebTourItinerarioTab`/`WebTourGalleriaTab`/`WebTourMappaTab`/`WebTraduzioniTab`: `ViaggioId`→`ContenutoId (long)`; aggiornare le chiamate ai service.
+- `WebTourPassoEditDialog`: `ViaggioId`→`ContenutoId` (picker galleria).
+- `AnaViaggiDialog`: sopra i 5 tab web, **selettore edizione** (via `fn_web_edizioni_per_viaggio`: mostra dal–al, chip "con/senza contenuto", chip "effettuato/da effettuare" da `data_viaggio_effettuato_sino`); scelta data → risolve/crea il contenuto e passa `contenutoId` ai tab. Nuovi: **Crea** (contenuto per data senza contenuto), **Clona** (sorgente+data libera → `ClonaAsync`), **Anteprima** (dialog IT speculare a `fn_web_tour_pubblicati`), **Pubblica/Bozza/Archivia** (stato).
+- Nota: cambiare le firme dei service rompe il build dei tab → Fase D+E vanno completate insieme prima del build/commit.
+
+**Fase F:** ComponentiShared, Funzioni_DB (già rigenerato dai deploy), Piano Test §10, Go-Live (script 467–474), Piano Operativo.
