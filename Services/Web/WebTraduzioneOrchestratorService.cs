@@ -24,15 +24,18 @@ public sealed class WebTraduzioneOrchestratorService
     private readonly WebTourContenutiService _contenuti;
     private readonly WebTourItinerarioService _itinerario;
     private readonly WebTourItinerarioPassaggiService _passi;
+    private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
     private readonly ILogger<WebTraduzioneOrchestratorService> _logger;
 
     public WebTraduzioneOrchestratorService(
         IDatabaseService db, ClaudeTranslationClient claude, WebTraduzioniService traduzioni,
         WebTourContenutiService contenuti, WebTourItinerarioService itinerario, WebTourItinerarioPassaggiService passi,
+        GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
         ILogger<WebTraduzioneOrchestratorService> logger)
     {
         _db = db; _claude = claude; _traduzioni = traduzioni;
-        _contenuti = contenuti; _itinerario = itinerario; _passi = passi; _logger = logger;
+        _contenuti = contenuti; _itinerario = itinerario; _passi = passi;
+        _secretKey = secretKey; _logger = logger;
     }
 
     // ---- Chiave Claude per-azienda -------------------------------------------
@@ -40,17 +43,19 @@ public sealed class WebTraduzioneOrchestratorService
     public async Task<string?> GetClaudeKeyAsync(int aziendaId)
     {
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT fn_ana_aziende_get_claude_key(@Az::integer)", conn);
+        await using var cmd = new NpgsqlCommand("SELECT fn_ana_aziende_get_claude_key(@Az::integer, @Master::text)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Master", _secretKey.GetMasterKey());
         return (await cmd.ExecuteScalarAsync()) as string;
     }
 
     public async Task<bool> SetClaudeKeyAsync(int aziendaId, string? key)
     {
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT fn_ana_aziende_set_claude_key(@Az::integer, @K::text)", conn);
+        await using var cmd = new NpgsqlCommand("SELECT fn_ana_aziende_set_claude_key(@Az::integer, @K::text, @Master::text)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
         cmd.Parameters.AddWithValue("K", (object?)key ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("Master", _secretKey.GetMasterKey());
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
 

@@ -98,6 +98,7 @@ public static class MauiProgram
         builder.Services.AddAuthorizationCore();
 
         // Password Reset & Email Services
+        builder.Services.AddSingleton<GestioneViaggi.Services.Security.ISecretKeyProvider, GestioneViaggi.Services.Security.SecretKeyProvider>();
         builder.Services.AddHttpClient<ResendEmailSender>();
         builder.Services.AddScoped<EmailSenderFactory>();
         builder.Services.AddScoped<PasswordResetService>();

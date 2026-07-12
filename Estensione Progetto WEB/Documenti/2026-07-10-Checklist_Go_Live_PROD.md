@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web introduce gli script **`SqlScripts/406` → `474`** (i numeri 445–449 non esistono). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `475`** (i numeri 445–449 non esistono; `475` = cifratura segreti). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -91,10 +91,15 @@ done
 - Su **Supabase** il ruolo `anon` **esiste già** (usato da PostgREST). Lo script `406_Setup_RoleAnon` va **riconciliato**: NON ricreare il ruolo, applicare solo i `GRANT`/policy mancanti. Verificare che i `GRANT EXECUTE` verso `anon` (hardening 453) combacino con la config Supabase.
 - Le policy RLS anon (450–453) espongono in lettura solo i contenuti web pubblicati e consentono l'insert delle iscrizioni newsletter. **Verificare in staging** che nessuna tabella per-azienda sia leggibile da `anon` oltre il previsto (invariante silos: [[multitenancy-invariant-silos]]).
 
-### 2.2 — Cifratura segreti (`_enc` FINTI) — **BLOCCANTE PRE-RELEASE**
-I campi `*_enc` di `ana_aziende_esp` (421), `web_pagamenti_config` (422) e la chiave Claude azienda (462/463) sono **JSONB in chiaro (placeholder)**, NON cifrati. Prima del rilascio va implementata la **cifratura reale** (SMTP, ESP/Resend, chiave Claude, credenziali pagamenti). Vedi memoria [[encrypt-smtp-esp-before-release]]. Finché è finto, **non caricare segreti reali in un DB PROD accessibile**.
+### 2.2 — Cifratura segreti (`_enc`) — **FATTA (script 475, 2026-07-11)**
+Cifratura reale implementata con **pgcrypto** (`pgp_sym_encrypt/decrypt`), master key dall'ambiente. Vedi design `Documents/2026-07-11-Cifratura_Segreti_design.md`. Coperti: SMTP (`ana_aziende_smtp.password_enc`/`inbound_password_enc`), ESP (`ana_aziende_esp.api_key_enc`), Claude (`ana_aziende.claude_api_key_enc`). Colonne `_enc` ora **bytea**; i valori finti sono stati **azzerati** dalla migrazione. Esclusi: Geoapify (deciso), `sys_redis_endpoints` (infra).
 
-> **ESP rimandato (deciso in Blocco 12, 2026-07-10):** il **tab di configurazione ESP** (`ana_aziende_esp`) e il **wiring nell'`EmailSenderFactory`** (usare l'ESP quando `attivo` per gli invii bulk/newsletter) NON sono stati implementati nel Blocco 12 — la newsletter usa l'**SMTP aziendale esistente**. Vanno realizzati **qui, insieme alla cifratura reale**, prima del rilascio. Finché non esistono, la config ESP non è disponibile in UI.
+**Da fare in PROD (go-live):**
+- [ ] Impostare la variabile d'ambiente **`GV_SECRET_KEY`** (stringa forte, es. base64 di 32 byte), **la STESSA su tutte le installazioni** che condividono il DB. Senza, le operazioni sui segreti falliscono con errore chiaro (fail-fast).
+- [ ] **Re-inserire** i segreti reali (SMTP/Claude/ESP) dalle form dopo il deploy di `475` (i finti sono stati azzerati; in PROD non c'erano segreti reali cifrati).
+- [ ] `web_pagamenti_config.stripe_*_enc`: formato bytea pronto (Fase 4), nessun valore.
+
+> **ESP ancora da wire-are (rimandato da Blocco 12):** lo **schema/funzioni ESP sono già cifrati** (`fn_ana_aziende_esp_insert/update` cifrano `api_key_enc`, `fn_ana_aziende_esp_get_key` decifra), ma manca ancora il **tab UI** e il **wiring nell'`EmailSenderFactory`** (usare l'ESP quando `attivo` per il bulk/newsletter). Finché non fatto, la newsletter usa l'**SMTP aziendale**.
 
 ### 2.3 — `token_iscrizione` per azienda (429)
 Serve come **segreto HMAC** per il link di disiscrizione newsletter (`NewsletterUnsubscribe`). Ogni azienda in PROD deve avere un `token_iscrizione` valorizzato (random, per-azienda). Verificare che il backfill/valore non sia NULL prima di inviare newsletter.
@@ -111,6 +116,7 @@ Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_
 
 Da impostare lato app / ambiente (NON in git):
 
+- [ ] **`GV_SECRET_KEY`** (env var, master key cifratura segreti — stessa su tutte le installazioni). Vedi §2.2.
 - [ ] **Supabase**: connection string PROD, `Service Key` (Storage), eventuale `anon key`.
 - [ ] **Geoapify** API key (Blocco 9, generazione mappe statiche).
 - [ ] **Chiave Claude per-azienda** (Blocco 10/11 traduzioni + newsletter) — via UI form azienda, salvata cifrata (§2.2).

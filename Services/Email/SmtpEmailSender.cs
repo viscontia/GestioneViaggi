@@ -13,15 +13,18 @@ public class SmtpEmailSender : IEmailSender
     private readonly IDatabaseService _databaseService;
     private readonly ILogger<SmtpEmailSender> _logger;
     private readonly int _aziendaId;
+    private readonly string _masterKey;
 
     public SmtpEmailSender(
         IDatabaseService databaseService,
         ILogger<SmtpEmailSender> logger,
-        int aziendaId)
+        int aziendaId,
+        string masterKey)
     {
         _databaseService = databaseService;
         _logger = logger;
         _aziendaId = aziendaId;
+        _masterKey = masterKey;
     }
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string userName, string resetCode)
@@ -30,9 +33,10 @@ public class SmtpEmailSender : IEmailSender
         {
             // Recupera config SMTP dall'azienda
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId)";
+            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId, @Master)";
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", _aziendaId);
+            cmd.Parameters.AddWithValue("Master", _masterKey);
             var configJson = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(configJson))
@@ -99,9 +103,10 @@ public class SmtpEmailSender : IEmailSender
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId)";
+            var sql = "SELECT fn_get_smtp_config_for_email(@AziendaId, @Master)";
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", _aziendaId);
+            cmd.Parameters.AddWithValue("Master", _masterKey);
             var configJson = await cmd.ExecuteScalarAsync() as string;
 
             if (string.IsNullOrEmpty(configJson))

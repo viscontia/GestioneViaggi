@@ -6,7 +6,6 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using System.Text.Json;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -26,15 +25,18 @@ public class AziendaSmtpService
     protected readonly IDatabaseService _databaseService;
     protected readonly ILogger<AziendaSmtpService> _logger;
     protected readonly ITenantContext _tenantContext;
+    protected readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
 
     public AziendaSmtpService(
         IDatabaseService databaseService,
         ILogger<AziendaSmtpService> logger,
-        ITenantContext tenantContext)
+        ITenantContext tenantContext,
+        GestioneViaggi.Services.Security.ISecretKeyProvider secretKey)
     {
         _databaseService = databaseService;
         _logger = logger;
         _tenantContext = tenantContext;
+        _secretKey = secretKey;
     }
 
     protected int ReadInt(NpgsqlDataReader reader, string columnName)
@@ -187,13 +189,8 @@ public class AziendaSmtpService
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Crea un JSON per la password cifrata (semplificato per ora)
-            var passwordJson = JsonSerializer.Serialize(new { value = entity.Password });
-
-            // Crea JSON per password inbound se presente
-            var inboundPasswordJson = !string.IsNullOrWhiteSpace(entity.InboundPassword)
-                ? JsonSerializer.Serialize(new { value = entity.InboundPassword })
-                : null;
+            // Cifratura reale via pgcrypto (pgp_sym_encrypt nel SQL). Master key dall'ambiente (GV_SECRET_KEY).
+            var master = _secretKey.GetMasterKey();
 
             var sql = @"
                 INSERT INTO ana_aziende_smtp (
@@ -208,12 +205,12 @@ public class AziendaSmtpService
                     custom_headers, webhook_url, webhook_events
                 )
                 VALUES (
-                    @aziendaFk, @configName, @configType, @host, @port, @username, @passwordEnc::jsonb,
+                    @aziendaFk, @configName, @configType, @host, @port, @username, pgp_sym_encrypt(@password::text, @master::text),
                     @useTls, @useStartTls, @fromName, @fromEmail, @replyTo, @isActive,
                     @protocol, @securityMethod, @connectionTimeout, @readTimeout, @maxConnections,
                     @rateLimitPerHour, @priority, @description, @status, @testFrequencyHours,
                     @autoFailover, @failoverSmtpId,
-                    @inboundHost, @inboundPort, @inboundProtocol, @inboundUsername, @inboundPasswordEnc::jsonb,
+                    @inboundHost, @inboundPort, @inboundProtocol, @inboundUsername, CASE WHEN @inboundPassword IS NULL THEN NULL ELSE pgp_sym_encrypt(@inboundPassword::text, @master::text) END,
                     @inboundUseSsl, @inboundFolder, @bounceHandling, @bounceEmail,
                     @trackingEnabled, @dkimEnabled, @dkimSelector, @dkimPrivateKey,
                     @customHeaders::jsonb, @webhookUrl, @webhookEvents
@@ -236,7 +233,8 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("host", entity.Host);
             command.Parameters.AddWithValue("port", entity.Port);
             command.Parameters.AddWithValue("username", entity.Username);
-            command.Parameters.AddWithValue("passwordEnc", passwordJson);
+            command.Parameters.AddWithValue("password", entity.Password);
+            command.Parameters.AddWithValue("master", master);
             command.Parameters.AddWithValue("useTls", entity.UseTls);
             command.Parameters.AddWithValue("useStartTls", entity.UseStartTls);
             command.Parameters.AddWithValue("fromName", entity.FromName);
@@ -259,7 +257,7 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("inboundPort", (object?)entity.InboundPort ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundProtocol", (object?)entity.InboundProtocol ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUsername", (object?)entity.InboundUsername ?? DBNull.Value);
-            command.Parameters.AddWithValue("inboundPasswordEnc", (object?)inboundPasswordJson ?? DBNull.Value);
+            command.Parameters.AddWithValue("inboundPassword", (object?)(string.IsNullOrWhiteSpace(entity.InboundPassword) ? null : entity.InboundPassword) ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUseSsl", (object?)entity.InboundUseSsl ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundFolder", (object?)entity.InboundFolder ?? DBNull.Value);
             command.Parameters.AddWithValue("bounceHandling", entity.BounceHandling);
@@ -302,15 +300,10 @@ public class AziendaSmtpService
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Se la password è mascherata (***), non sovrascrivere quella nel DB
+            // Cifratura reale via pgcrypto. Password mascherata (***) = non sovrascrivere.
+            var master = _secretKey.GetMasterKey();
             var passwordMasked = entity.Password == "***";
-            var passwordJson = passwordMasked ? null : JsonSerializer.Serialize(new { value = entity.Password });
-
-            // Se la password inbound è mascherata (***), non sovrascrivere quella nel DB
             var inboundPasswordMasked = entity.InboundPassword == "***";
-            var inboundPasswordJson = inboundPasswordMasked || string.IsNullOrWhiteSpace(entity.InboundPassword)
-                ? null
-                : JsonSerializer.Serialize(new { value = entity.InboundPassword });
 
             var sql = $@"
                 UPDATE ana_aziende_smtp
@@ -319,7 +312,7 @@ public class AziendaSmtpService
                     host = @host,
                     port = @port,
                     username = @username,
-                    password_enc = {(passwordMasked ? "password_enc" : "@passwordEnc::jsonb")},
+                    password_enc = {(passwordMasked ? "password_enc" : "pgp_sym_encrypt(@password::text, @master::text)")},
                     use_tls = @useTls,
                     use_starttls = @useStartTls,
                     from_name = @fromName,
@@ -342,7 +335,7 @@ public class AziendaSmtpService
                     inbound_port = @inboundPort,
                     inbound_protocol = @inboundProtocol,
                     inbound_username = @inboundUsername,
-                    inbound_password_enc = {(inboundPasswordMasked ? "inbound_password_enc" : "@inboundPasswordEnc::jsonb")},
+                    inbound_password_enc = {(inboundPasswordMasked ? "inbound_password_enc" : "CASE WHEN @inboundPassword IS NULL THEN NULL ELSE pgp_sym_encrypt(@inboundPassword::text, @master::text) END")},
                     inbound_use_ssl = @inboundUseSsl,
                     inbound_folder = @inboundFolder,
                     bounce_handling = @bounceHandling,
@@ -374,7 +367,8 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("port", entity.Port);
             command.Parameters.AddWithValue("username", entity.Username);
             if (!passwordMasked)
-                command.Parameters.AddWithValue("passwordEnc", passwordJson!);
+                command.Parameters.AddWithValue("password", entity.Password);
+            command.Parameters.AddWithValue("master", master);
             command.Parameters.AddWithValue("useTls", entity.UseTls);
             command.Parameters.AddWithValue("useStartTls", entity.UseStartTls);
             command.Parameters.AddWithValue("fromName", entity.FromName);
@@ -398,7 +392,7 @@ public class AziendaSmtpService
             command.Parameters.AddWithValue("inboundProtocol", (object?)entity.InboundProtocol ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUsername", (object?)entity.InboundUsername ?? DBNull.Value);
             if (!inboundPasswordMasked)
-                command.Parameters.AddWithValue("inboundPasswordEnc", (object?)inboundPasswordJson ?? DBNull.Value);
+                command.Parameters.AddWithValue("inboundPassword", (object?)(string.IsNullOrWhiteSpace(entity.InboundPassword) ? null : entity.InboundPassword) ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundUseSsl", (object?)entity.InboundUseSsl ?? DBNull.Value);
             command.Parameters.AddWithValue("inboundFolder", (object?)entity.InboundFolder ?? DBNull.Value);
             command.Parameters.AddWithValue("bounceHandling", entity.BounceHandling);
