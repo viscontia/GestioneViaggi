@@ -99,7 +99,7 @@ Cifratura reale implementata con **pgcrypto** (`pgp_sym_encrypt/decrypt`), maste
 - [ ] **Re-inserire** i segreti reali (SMTP/Claude/ESP) dalle form dopo il deploy di `475` (i finti sono stati azzerati; in PROD non c'erano segreti reali cifrati).
 - [ ] `web_pagamenti_config.stripe_*_enc`: formato bytea pronto (Fase 4), nessun valore.
 
-> **ESP ancora da wire-are (rimandato da Blocco 12):** lo **schema/funzioni ESP sono già cifrati** (`fn_ana_aziende_esp_insert/update` cifrano `api_key_enc`, `fn_ana_aziende_esp_get_key` decifra), ma manca ancora il **tab UI** e il **wiring nell'`EmailSenderFactory`** (usare l'ESP quando `attivo` per il bulk/newsletter). Finché non fatto, la newsletter usa l'**SMTP aziendale**.
+> **ESP-come-provider abbandonato (deciso 2026-07-12):** il canale email (incluse le newsletter) è lo **SMTP del cliente** (`ana_aziende_smtp`, già in anagrafica), instradato da `EmailSenderFactory` (SMTP configurato → usato; fallback Resend). **Nessun provider ESP esterno** (Brevo/Mailchimp/SES) da wire-are. La tabella `ana_aziende_esp` resta **predisposta ma inutilizzata** (schema/funzioni già cifrati, pronta per un eventuale uso futuro): nessun tab UI, nessun wiring nel factory. Niente da fare qui per il go-live.
 
 ### 2.3 — `token_iscrizione` per azienda (429)
 Serve come **segreto HMAC** per il link di disiscrizione newsletter (`NewsletterUnsubscribe`). Ogni azienda in PROD deve avere un `token_iscrizione` valorizzato (random, per-azienda). Verificare che il backfill/valore non sia NULL prima di inviare newsletter.
