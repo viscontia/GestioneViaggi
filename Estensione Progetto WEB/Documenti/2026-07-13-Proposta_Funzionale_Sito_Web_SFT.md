@@ -59,5 +59,4 @@ Un sito-vetrina premium vive di **foto e video**. Struttura, filtri e mappe sono
 
 ## 9. Prossimi passi
 1. **La tua conferma** — la direzione è giusta?
-2. **Progetto di dettaglio** — specifiche e mockup definitivi.
-3. Si sviluppa il sito.
+2. **Progetto di dettaglio** — specifiche e mockup definitivi, poi si sviluppa il sito.

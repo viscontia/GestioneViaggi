@@ -7,7 +7,7 @@
 - **Infra confermata**: DB su **Supabase**, iscrizioni su **Hetzner**, Cloudflare davanti.
 - **Frontend deciso** (Allegato 2 — Analisi Tecnica Dettagliata): **Next.js (App Router, React), SEO-first**, ISR (pagine tour statiche + rigenerazione in background) + **revalidation on-demand**, lettura server-side con `@supabase/ssr`, espone **solo i contenuti pubblicati** via **RLS anon**. Fasi 0→4.
 - **Incluso/Escluso**: campi **dedicati su `ana_viaggi`** (livello viaggio, non per data). Prossimo passo immediato.
-- **Capienza / posti rimasti**: due campi su `ana_viaggi` + **trigger** DB-first (dettaglio sotto). Prossimo passo immediato.
+- **Capienza / posti rimasti**: due campi su `ana_viaggi` + **trigger** DB-first (dettaglio sotto). Prossimo passo immediato. ** Nota Adriano: il trigger deve scattare appena raggiunto il limite di capienza, ma deve scattare (sotto questo limite) ogni volta che arriva una nuova prenotazione, gestendo quindi di conseguenza una ripubblicazione della pagina web in automatico per avere immediatezza lato cliente che i posti rimasti non sono più (ad esempio) 3, ma sono diventati 2, poi uno, poi va anche gestito il caso 0 posti disponibili, con la scritta SOLD OUT
 - **Tour brevi/giornalieri**: **flag su `ana_tipo_viaggi`** → categoria web dedicata → sezione sito **condizionale** (compare solo se esistono tour di quel tipo). Non solo per stranieri.
 - **Recensioni**: fonte **Google + TripAdvisor** (il cliente ha 5/5). Integrazione lato sito, vicino alla CTA.
 - **Mappa interattiva nazioni**: **nel 1° rilascio**.
@@ -20,7 +20,7 @@
 
 ### A.1 Incluso / Escluso (su `ana_viaggi`)
 Attributo del **viaggio** (uguale per tutte le edizioni), come la difficoltà — letto live dal sito.
-- **DB**: aggiungere a `ana_viaggi` due campi: `viaggio_incluso` e `viaggio_escluso` (rich-text/HTML; l'operatore scrive elenchi puntati). *Alternativa* per liste veramente strutturate/filtrabili: tabella figlia `ana_viaggio_incluso_escluso` (voce + tipo incluso/escluso + ordine) — più lavoro; da valutare se serve davvero. **Default proposto: due campi HTML** (rapido, coerente col resto).
+- **DB**: aggiungere a `ana_viaggi` **due campi HTML** — `viaggio_incluso` e `viaggio_escluso` (l'operatore scrive elenchi puntati). **Deciso (Adriano): niente tabella figlia strutturata, bastano i due campi.**
 - **CRUD**: estendere `sp_ana_viaggi_create/update` + `fn_ana_viaggi_get_by_id/get_all` (come già fatto per `viaggio_difficolta`, script 467).
 - **C#**: `AnaViaggi` model + `AnaViaggiService` (bind/map) + editor nel dialog viaggio (2 editor Quill).
 - **Traduzioni**: aggiungere i due campi al set tradotto (Blocco 10 orchestrator + `web_traduzioni`).
@@ -31,7 +31,8 @@ Proposta tecnica **approvata dal cliente**.
 - **DB — `ana_viaggi`**: `viaggio_capienza_max` INTEGER (posti totali) + `viaggio_capienza_alert` INTEGER (soglia: sotto questo numero il sito scrive "Rimangono solo N posti", dove N è il residuo reale).
 - **Calcolo posti rimasti** (per **edizione/data**, perché gli iscritti sono per data): `posti_rimasti(data) = viaggio_capienza_max − occupati(data)`, dove `occupati(data)` = iscritti in `mov_clienti_viaggi` per quella `data_viaggio` (verificare la chiave data in `mov_clienti_viaggi`).
 - **Trigger DB-first**: su `mov_clienti_viaggi` (INSERT/UPDATE/DELETE) → ricalcola e mantiene un **campo cache** su `ana_date_viaggi` (es. `data_viaggio_posti_rimasti` o `_occupati`), così il sito legge veloce senza contare al volo. Ricalcolo idempotente (SET = max − count). *(Alternativa senza trigger: calcolo live in `fn_web_tour_pubblicati`; ma la scelta condivisa è il trigger → cache mantenuta.)*
-- **Logica badge (strato pubblico / sito)**: `rimasti > alert` → nessuna scritta (o "Disponibile"); `0 < rimasti ≤ alert` → **"Rimangono solo N posti"**; `rimasti ≤ 0` → **"Completo / Esaurito"**.
+- **Logica badge (strato pubblico / sito)**: `rimasti > alert` → nessuna scritta (o "Disponibile"); `0 < rimasti ≤ alert` → **"Rimangono solo N posti"**; `rimasti = 0` → **"SOLD OUT"**.
+- **Aggiornamento IMMEDIATO sul sito (richiesta Adriano)**: il trigger scatta **ad ogni variazione** di prenotazione (non solo al raggiungimento della soglia) e, oltre a ricalcolare il residuo, **innesca la ripubblicazione automatica della pagina tour** (revalidation on-demand di Next.js) così il visitatore vede subito il numero aggiornato in tempo reale (3 → 2 → 1) e, a **0 posti, "SOLD OUT"**. Meccanismo: il trigger (o una funzione chiamata da esso) segnala al sito quale pagina/edizione rigenerare (webhook/endpoint di revalidation). *(Da definire in fase tecnica il canale di notifica trigger→sito; il concetto è approvato.)*
 - **Esposizione**: aggiungere `posti_rimasti` (e/o il badge) all'output di `fn_web_tour_pubblicati` per-edizione.
 - **UI gestionale**: i due campi capienza nel dialog viaggio (accanto a difficoltà/km).
 
