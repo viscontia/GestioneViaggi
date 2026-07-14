@@ -20,14 +20,7 @@ public class TipoViaggioService : BaseCrudService<TipoViaggio>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                INSERT INTO ana_tipo_viaggi (
-                    tipo_viaggi_tipo,
-                    tipo_viaggi_descrizione,
-                    tipo_viaggio_breve
-                )
-                VALUES (@tipo, @descrizione, @breve)
-                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione, descrizione_web_fk, tipo_viaggio_breve";
+            var sql = "SELECT * FROM fn_ana_tipo_viaggi_create(@tipo::varchar, @descrizione::varchar, @breve::boolean)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("tipo", entity.Tipo);
@@ -54,14 +47,7 @@ public class TipoViaggioService : BaseCrudService<TipoViaggio>
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                UPDATE ana_tipo_viaggi
-                SET tipo_viaggi_tipo = @tipo,
-                    tipo_viaggi_descrizione = @descrizione,
-                    descrizione_web_fk = @descrizioneWebFk,
-                    tipo_viaggio_breve = @breve
-                WHERE tipo_viaggi_id = @id
-                RETURNING tipo_viaggi_id, tipo_viaggi_tipo, tipo_viaggi_descrizione, descrizione_web_fk, tipo_viaggio_breve";
+            var sql = "SELECT * FROM fn_ana_tipo_viaggi_update(@id::integer, @tipo::varchar, @descrizione::varchar, @descrizioneWebFk::bigint, @breve::boolean)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.AddWithValue("id", entity.Id);

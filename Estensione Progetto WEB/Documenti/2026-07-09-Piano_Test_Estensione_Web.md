@@ -1,7 +1,7 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS §A: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15, Recensioni §16).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS §A: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15, Recensioni §16; CRUD DB-first Tipologie Viaggio §17).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
@@ -15,7 +15,7 @@
 - **Geoapify `ApiKey`** → già in `appsettings.Development.json` → `Geoapify:ApiKey`. Serve per Mappa (Blocco 9).
 - **Claude `ApiKey` per-azienda** → scheda **Aziende → Traduzioni**. Serve per Traduzioni (Blocco 10) e newsletter multilingua (Blocco 11).
 - **SMTP azienda** → scheda **Aziende → SMTP** (server di posta del cliente). È il canale email/newsletter (nessun provider ESP esterno).
-- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–481`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
+- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–482`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
 
 ---
 
@@ -200,3 +200,16 @@ Nessuna tabella recensioni interna: si usano le schede Google/TripAdvisor. Confi
 - ☐ Con Recensioni **attiva** e config salvata: `SELECT fn_web_recensioni_config(<azienda_id>);` ritorna il JSONB `{"google_place_id":"…","tripadvisor_url":"…"}`.
 - ☐ Con Recensioni **disattivata**: la stessa funzione ritorna `NULL` (il sito non mostrerà il widget recensioni).
 - ☐ **Multi-tenant**: `fn_web_recensioni_config` di un'azienda non ritorna la config di un'altra.
+
+## 17. CRUD Tipologie Viaggio dalla UI (DB-first, script `482`)
+
+La CRUD di `ana_tipo_viaggi` è stata portata a **funzioni DB** (`fn_ana_tipo_viaggi_create`/`fn_ana_tipo_viaggi_update`, niente più SQL inline). Verifica end-to-end dalla pagina **Tipologie Viaggio**:
+
+- ☐ **Create**: nuovo tipo (Tipo max 6 char maiuscolo forzato + Descrizione) → salva → compare in griglia; riapri: valori corretti.
+- ☐ **Read/lista**: la griglia elenca i tipi con Tipo, Descrizione, mapping "Descrizione web" e (se mostrato) flag breve.
+- ☐ **Update**: modifica Tipo/Descrizione → salva → la griglia riflette le modifiche; riapri il dialog: coerente.
+- ☐ **Mapping web (Blocco 8)**: imposta/cambia/azzera la "Descrizione web (sito)" → salva → persistito (in create resta vuota, si imposta in modifica).
+- ☐ **Flag breve (§A.3)**: marca/smarca "Tour giornaliero / esperienza breve" → salva → persistito (vedi anche §15).
+- ☐ **Delete**: elimina un tipo **non usato** → rimosso. Elimina un tipo **usato da un viaggio** → l'operazione è **bloccata** con messaggio chiaro (trigger `ana_tipo_viaggi_check_delete`).
+- ☐ **Validazioni**: Tipo obbligatorio (max 6), Descrizione obbligatoria (max 100) → errori di form corretti.
+- ☐ **Regressione DB-first**: create e update passano dalle funzioni `fn_ana_tipo_viaggi_*` (nessun errore di mapping; la riga tornata popola correttamente griglia/dialog).
