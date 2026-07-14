@@ -2,6 +2,7 @@
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Validation.Syntax
 @using GestioneViaggi.Validation.Semantic
+@using Blazored.TextEditor
 @using MudBlazor
 
 <MudDialog>
@@ -133,6 +134,32 @@
                             </MudItem>
                         </MudGrid>
 
+                        <MudDivider Class="my-4" />
+
+                        <!-- 6. INCLUSO / ESCLUSO (mostrati nella scheda tour del sito, tradotti) -->
+                        <MudText Typo="Typo.subtitle1" Class="mb-2">
+                            Incluso / Escluso
+                            <MudText Typo="Typo.caption" HtmlTag="span" Class="mud-text-secondary">— mostrati nella scheda tour del sito</MudText>
+                        </MudText>
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.subtitle2" Class="mb-1">La quota comprende</MudText>
+                                <div style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                                    <BlazoredTextEditor @ref="_edIncluso" Placeholder="Elenco di ciò che è incluso nella quota...">
+                                        <ToolbarContent>@ToolbarIncluso</ToolbarContent>
+                                    </BlazoredTextEditor>
+                                </div>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudText Typo="Typo.subtitle2" Class="mb-1">La quota non comprende</MudText>
+                                <div style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+                                    <BlazoredTextEditor @ref="_edEscluso" Placeholder="Elenco di ciò che è escluso...">
+                                        <ToolbarContent>@ToolbarIncluso</ToolbarContent>
+                                    </BlazoredTextEditor>
+                                </div>
+                            </MudItem>
+                        </MudGrid>
+
                     </MudForm>
                 </MudTabPanel>
                 
@@ -218,6 +245,34 @@
     private ViaggioDatesManager? _datesManager;
     private GestioneViaggi.Models.DTOs.ViaggiInitData _initData = new();
     private bool _hasLoadedData = false;
+
+    // Editor Quill Incluso/Escluso (contenuto editoriale per il sito — NON uppercase)
+    private BlazoredTextEditor _edIncluso = default!;
+    private BlazoredTextEditor _edEscluso = default!;
+    private bool _editorsLoaded;
+
+    private static readonly RenderFragment ToolbarIncluso = __builder =>
+    {
+        <span class="ql-formats">
+            <button class="ql-bold"></button>
+            <button class="ql-italic"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-list" value="bullet"></button>
+            <button class="ql-list" value="ordered"></button>
+        </span>
+        <span class="ql-formats">
+            <button class="ql-clean"></button>
+        </span>
+    };
+
+    /// <summary>Quill "vuoto" restituisce &lt;p&gt;&lt;br&gt;&lt;/p&gt;: normalizza a NULL.</summary>
+    private static string? NormalizeHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var stripped = html.Replace("<p><br></p>", string.Empty).Replace("<p></p>", string.Empty).Trim();
+        return stripped.Length == 0 ? null : html;
+    }
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -315,6 +370,22 @@
                 }
             }
             catch { /* Ignore JS errors on init */ }
+        }
+
+        // Carica l'HTML esistente negli editor Quill una volta sola, quando i ref sono pronti
+        // (i pannelli sono KeepPanelsAlive, quindi esistono anche se il tab attivo è un altro).
+        if (!_editorsLoaded && _edIncluso is not null && _edEscluso is not null)
+        {
+            _editorsLoaded = true;
+            try
+            {
+                await Task.Delay(150); // Quill si inizializza async
+                if (!string.IsNullOrWhiteSpace(Entity.Incluso))
+                    await _edIncluso.LoadHTMLContent(Entity.Incluso);
+                if (!string.IsNullOrWhiteSpace(Entity.Escluso))
+                    await _edEscluso.LoadHTMLContent(Entity.Escluso);
+            }
+            catch { /* Editor non ancora pronto: i campi restano vuoti/modificabili */ }
         }
     }
 
@@ -426,6 +497,21 @@
         if (!_form.IsValid)
         {
             Snackbar.Add("Compilare tutti i campi obbligatori prima di salvare.", Severity.Warning);
+            return;
+        }
+
+        // Incluso/Escluso: raccoglie l'HTML dagli editor Quill (NON uppercase — vanno sul sito)
+        try
+        {
+            if (_editorsLoaded)
+            {
+                Entity.Incluso = NormalizeHtml(await _edIncluso.GetHTML());
+                Entity.Escluso = NormalizeHtml(await _edEscluso.GetHTML());
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore lettura editor Incluso/Escluso: {ex.Message}", Severity.Error);
             return;
         }
 

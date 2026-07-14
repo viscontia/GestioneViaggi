@@ -84,6 +84,12 @@ public class AnaViaggi : BaseEntity, IAuditable, IValidatableObject
     [Column("viaggio_difficolta")]
     public string? Difficolta { get; set; } // turistica/media/medio_alta/alta (opzionale) — usata dai contenuti web (Blocco 13)
 
+    [Column("viaggio_incluso")]
+    public string? Incluso { get; set; } // HTML — "cosa è incluso" nella quota; letto live dal sito, tradotto (entita ana_viaggi)
+
+    [Column("viaggio_escluso")]
+    public string? Escluso { get; set; } // HTML — "cosa è escluso"; letto live dal sito, tradotto (entita ana_viaggi)
+
     // === Audit Fields ===
     [Column("created_by")]
     public string? CreatedBy { get; set; }

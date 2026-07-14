@@ -24,18 +24,20 @@ public sealed class WebTraduzioneOrchestratorService
     private readonly WebTourContenutiService _contenuti;
     private readonly WebTourItinerarioService _itinerario;
     private readonly WebTourItinerarioPassaggiService _passi;
+    private readonly GestioneViaggi.Services.CRUD.AnaViaggiService _viaggi;
     private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
     private readonly ILogger<WebTraduzioneOrchestratorService> _logger;
 
     public WebTraduzioneOrchestratorService(
         IDatabaseService db, ClaudeTranslationClient claude, WebTraduzioniService traduzioni,
         WebTourContenutiService contenuti, WebTourItinerarioService itinerario, WebTourItinerarioPassaggiService passi,
+        GestioneViaggi.Services.CRUD.AnaViaggiService viaggi,
         GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
         ILogger<WebTraduzioneOrchestratorService> logger)
     {
         _db = db; _claude = claude; _traduzioni = traduzioni;
         _contenuti = contenuti; _itinerario = itinerario; _passi = passi;
-        _secretKey = secretKey; _logger = logger;
+        _viaggi = viaggi; _secretKey = secretKey; _logger = logger;
     }
 
     // ---- Chiave Claude per-azienda -------------------------------------------
@@ -83,6 +85,20 @@ public sealed class WebTraduzioneOrchestratorService
             Add("altre_info_html", "Altre info", c.AltreInfoHtml);
             Add("meta_title", "Meta title", c.MetaTitle);
             Add("meta_description", "Meta description", c.MetaDescription);
+
+            // Incluso/Escluso vivono su ana_viaggi (livello viaggio, condivisi tra le edizioni):
+            // si traducono con entita='ana_viaggi', entita_id=viaggio_id (una sola volta per viaggio).
+            var viaggio = await _viaggi.GetByIdAsync(c.ViaggioIdFk);
+            if (viaggio != null)
+            {
+                void AddViaggio(string campo, string label, string? val)
+                {
+                    if (!string.IsNullOrWhiteSpace(val))
+                        items.Add(new TranslatableItem("ana_viaggi", viaggio.Id, campo, label, val!));
+                }
+                AddViaggio("viaggio_incluso", "Incluso", viaggio.Incluso);
+                AddViaggio("viaggio_escluso", "Escluso", viaggio.Escluso);
+            }
         }
 
         var giornate = await _itinerario.ListByContenutoAsync(contenutoId, aziendaId);

@@ -19,9 +19,14 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
     };
 
-    public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger, ITenantContext tenantContext)
+    // Opzionale: usato solo per marcare obsolete le traduzioni di Incluso/Escluso quando l'IT cambia.
+    private readonly GestioneViaggi.Services.Web.WebTraduzioniService? _traduzioni;
+
+    public AnaViaggiService(IDatabaseService databaseService, ILogger<AnaViaggiService> logger, ITenantContext tenantContext,
+        GestioneViaggi.Services.Web.WebTraduzioniService? traduzioni = null)
         : base(databaseService, logger, tenantContext)
     {
+        _traduzioni = traduzioni;
     }
 
     public async Task<List<ViaggioPartecipantiGruppoDTO>> GetPartecipantiAsync(int dateId)
@@ -189,7 +194,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             string sql = "SELECT sp_ana_viaggi_create(@p_viaggio_descrizione_breve, @p_viaggio_descrizione_estesa, " +
                 "@p_viaggio_numero_giorni, @p_viaggio_numero_notti, @p_viaggio_pasti_al_sacco, " +
-                "@p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
+                "@p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
                 "@p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, @p_viaggio_tipo_trattamento_fk, " +
                 "@p_viaggio_tipo_pernottamento_fk, @p_azienda_id, @p_created_by::VARCHAR, @p_created, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -202,6 +207,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
             cmd.Parameters.AddWithValue("p_viaggio_num_km", entity.Km);
             cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_incluso", (object?)entity.Incluso ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_escluso", (object?)entity.Escluso ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -230,13 +237,15 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     public override async Task<AnaViaggi> UpdateAsync(AnaViaggi entity)
     {
         await PopulateAuditFieldsAsync(entity, false);
+        // Snapshot pre-update: se Incluso/Escluso (IT) cambiano, le traduzioni vanno marcate obsolete.
+        var old = _traduzioni != null ? await GetByIdAsync(entity.Id) : null;
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
 
             string sql = "SELECT sp_ana_viaggi_update(@p_viaggio_id, @p_viaggio_descrizione_breve, " +
                 "@p_viaggio_descrizione_estesa, @p_viaggio_numero_giorni, @p_viaggio_numero_notti, " +
-                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_tipo_avvicinamento_fk, " +
+                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_tipo_avvicinamento_fk, " +
                 "@p_viaggio_note, @p_viaggio_link, @p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, " +
                 "@p_viaggio_tipo_trattamento_fk, @p_viaggio_tipo_pernottamento_fk, @p_azienda_id, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -250,6 +259,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_pasti_al_sacco", entity.PastiAlSacco);
             cmd.Parameters.AddWithValue("p_viaggio_num_km", entity.Km);
             cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_incluso", (object?)entity.Incluso ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_escluso", (object?)entity.Escluso ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -263,6 +274,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             await cmd.ExecuteNonQueryAsync();
 
+            await MarcaTraduzioniInclusoEsclusoObsoleteAsync(old, entity);
             return entity;
         }
         catch (Exception ex)
@@ -270,6 +282,16 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             _logger.LogError(ex, "Errore aggiornamento viaggio {Id}", entity.Id);
             throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
         }
+    }
+
+    /// <summary>Se Incluso/Escluso (IT) sono cambiati, marca obsolete le relative traduzioni (entita='ana_viaggi'). No-op senza _traduzioni.</summary>
+    private async Task MarcaTraduzioniInclusoEsclusoObsoleteAsync(AnaViaggi? old, AnaViaggi nuovo)
+    {
+        if (_traduzioni == null || old == null) return;
+        if (!string.Equals(old.Incluso ?? "", nuovo.Incluso ?? "", StringComparison.Ordinal))
+            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_incluso");
+        if (!string.Equals(old.Escluso ?? "", nuovo.Escluso ?? "", StringComparison.Ordinal))
+            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_escluso");
     }
 
     public override async Task<bool> DeleteAsync(int id)
@@ -318,6 +340,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         command.Parameters.AddWithValue("pasti", entity.PastiAlSacco);
         command.Parameters.AddWithValue("km", entity.Km);
         command.Parameters.AddWithValue("difficolta", (object?)entity.Difficolta ?? DBNull.Value);
+        command.Parameters.AddWithValue("incluso", (object?)entity.Incluso ?? DBNull.Value);
+        command.Parameters.AddWithValue("escluso", (object?)entity.Escluso ?? DBNull.Value);
         command.Parameters.AddWithValue("avvicinamento", entity.TipoAvvicinamentoIdFk);
         command.Parameters.AddWithValue("note", (object?)entity.Note?.ToUpper() ?? DBNull.Value); // Uppercase enforced
         command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
@@ -352,6 +376,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             PastiAlSacco = reader.GetString(reader.GetOrdinal("viaggio_pasti_al_sacco")),
             Km = ReadInt(reader, "viaggio_num_km"),
             Difficolta = ReadNullableString(reader, "viaggio_difficolta"),
+            Incluso = ReadNullableString(reader, "viaggio_incluso"),
+            Escluso = ReadNullableString(reader, "viaggio_escluso"),
 
             Note = ReadNullableString(reader, "viaggio_note"),
             Link = ReadNullableString(reader, "viaggio_link"),
@@ -466,7 +492,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     viaggio_descrizione_breve, viaggio_descrizione_estesa,
                     viaggio_numero_giorni, viaggio_numero_notti,
                     viaggio_pasti_al_sacco, viaggio_num_km,
-                    viaggio_difficolta,
+                    viaggio_difficolta, viaggio_incluso, viaggio_escluso,
                     viaggio_tipo_avvicinamento_fk,
                     viaggio_note, viaggio_link,
                     viaggio_nazione_fk, viaggio_tipo_viaggio_fk,
@@ -477,7 +503,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     @descBreve, @descEstesa,
                     @giorni, @notti,
                     @pasti, @km,
-                    @difficolta,
+                    @difficolta, @incluso, @escluso,
                     @avvicinamento,
                     @note, @link,
                     @nazione, @tipo,
