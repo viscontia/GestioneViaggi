@@ -194,7 +194,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             string sql = "SELECT sp_ana_viaggi_create(@p_viaggio_descrizione_breve, @p_viaggio_descrizione_estesa, " +
                 "@p_viaggio_numero_giorni, @p_viaggio_numero_notti, @p_viaggio_pasti_al_sacco, " +
-                "@p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
+                "@p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_capienza_max::integer, @p_viaggio_capienza_alert::integer, @p_viaggio_tipo_avvicinamento_fk, @p_viaggio_note, @p_viaggio_link, " +
                 "@p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, @p_viaggio_tipo_trattamento_fk, " +
                 "@p_viaggio_tipo_pernottamento_fk, @p_azienda_id, @p_created_by::VARCHAR, @p_created, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -209,6 +209,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_incluso", (object?)entity.Incluso ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_escluso", (object?)entity.Escluso ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_capienza_max", (object?)entity.CapienzaMax ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_capienza_alert", (object?)entity.CapienzaAlert ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -245,7 +247,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
 
             string sql = "SELECT sp_ana_viaggi_update(@p_viaggio_id, @p_viaggio_descrizione_breve, " +
                 "@p_viaggio_descrizione_estesa, @p_viaggio_numero_giorni, @p_viaggio_numero_notti, " +
-                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_tipo_avvicinamento_fk, " +
+                "@p_viaggio_pasti_al_sacco, @p_viaggio_num_km, @p_viaggio_difficolta::VARCHAR, @p_viaggio_incluso::text, @p_viaggio_escluso::text, @p_viaggio_capienza_max::integer, @p_viaggio_capienza_alert::integer, @p_viaggio_tipo_avvicinamento_fk, " +
                 "@p_viaggio_note, @p_viaggio_link, @p_viaggio_nazione_fk, @p_viaggio_tipo_viaggio_fk, " +
                 "@p_viaggio_tipo_trattamento_fk, @p_viaggio_tipo_pernottamento_fk, @p_azienda_id, " +
                 "@p_updated_by::VARCHAR, @p_updated)";
@@ -261,6 +263,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             cmd.Parameters.AddWithValue("p_viaggio_difficolta", (object?)entity.Difficolta ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_incluso", (object?)entity.Incluso ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_escluso", (object?)entity.Escluso ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_capienza_max", (object?)entity.CapienzaMax ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("p_viaggio_capienza_alert", (object?)entity.CapienzaAlert ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_tipo_avvicinamento_fk", entity.TipoAvvicinamentoIdFk);
             cmd.Parameters.AddWithValue("p_viaggio_note", (object?)entity.Note?.ToUpper() ?? DBNull.Value);
             cmd.Parameters.AddWithValue("p_viaggio_link", (object?)entity.Link ?? DBNull.Value);
@@ -342,6 +346,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         command.Parameters.AddWithValue("difficolta", (object?)entity.Difficolta ?? DBNull.Value);
         command.Parameters.AddWithValue("incluso", (object?)entity.Incluso ?? DBNull.Value);
         command.Parameters.AddWithValue("escluso", (object?)entity.Escluso ?? DBNull.Value);
+        command.Parameters.AddWithValue("capienzaMax", (object?)entity.CapienzaMax ?? DBNull.Value);
+        command.Parameters.AddWithValue("capienzaAlert", (object?)entity.CapienzaAlert ?? DBNull.Value);
         command.Parameters.AddWithValue("avvicinamento", entity.TipoAvvicinamentoIdFk);
         command.Parameters.AddWithValue("note", (object?)entity.Note?.ToUpper() ?? DBNull.Value); // Uppercase enforced
         command.Parameters.AddWithValue("link", (object?)entity.Link ?? DBNull.Value);
@@ -378,6 +384,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             Difficolta = ReadNullableString(reader, "viaggio_difficolta"),
             Incluso = ReadNullableString(reader, "viaggio_incluso"),
             Escluso = ReadNullableString(reader, "viaggio_escluso"),
+            CapienzaMax = ReadNullableInt(reader, "viaggio_capienza_max"),
+            CapienzaAlert = ReadNullableInt(reader, "viaggio_capienza_alert"),
 
             Note = ReadNullableString(reader, "viaggio_note"),
             Link = ReadNullableString(reader, "viaggio_link"),
@@ -493,6 +501,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     viaggio_numero_giorni, viaggio_numero_notti,
                     viaggio_pasti_al_sacco, viaggio_num_km,
                     viaggio_difficolta, viaggio_incluso, viaggio_escluso,
+                    viaggio_capienza_max, viaggio_capienza_alert,
                     viaggio_tipo_avvicinamento_fk,
                     viaggio_note, viaggio_link,
                     viaggio_nazione_fk, viaggio_tipo_viaggio_fk,
@@ -504,6 +513,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     @giorni, @notti,
                     @pasti, @km,
                     @difficolta, @incluso, @escluso,
+                    @capienzaMax, @capienzaAlert,
                     @avvicinamento,
                     @note, @link,
                     @nazione, @tipo,

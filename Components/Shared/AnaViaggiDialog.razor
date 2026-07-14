@@ -93,6 +93,18 @@
                                     <MudSelectItem T="string" Value="@("alta")">Alta</MudSelectItem>
                                 </MudSelect>
                             </MudItem>
+
+                            <!-- Capienza (posti in EQUIPAGGI/MEZZI) — usata dal sito per "posti rimasti" -->
+                            <MudItem xs="6" sm="3">
+                                <MudNumericField T="int?" @bind-Value="Entity.CapienzaMax" Label="Capienza (mezzi)"
+                                    Variant="Variant.Outlined" Min="0" Clearable="true"
+                                    HelperText="Posti totali in equipaggi. Vuoto = non gestita." />
+                            </MudItem>
+                            <MudItem xs="6" sm="3">
+                                <MudNumericField T="int?" @bind-Value="Entity.CapienzaAlert" Label="Soglia ultimi posti"
+                                    Variant="Variant.Outlined" Min="0" Clearable="true"
+                                    HelperText="Sotto questo residuo: &quot;Rimangono solo N posti&quot;." />
+                            </MudItem>
                         </MudGrid>
 
                         <MudDivider Class="my-4" />

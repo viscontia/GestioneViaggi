@@ -90,6 +90,12 @@ public class AnaViaggi : BaseEntity, IAuditable, IValidatableObject
     [Column("viaggio_escluso")]
     public string? Escluso { get; set; } // HTML — "cosa è escluso"; letto live dal sito, tradotto (entita ana_viaggi)
 
+    [Column("viaggio_capienza_max")]
+    public int? CapienzaMax { get; set; } // Posti totali in EQUIPAGGI/MEZZI (NULL = capienza non gestita)
+
+    [Column("viaggio_capienza_alert")]
+    public int? CapienzaAlert { get; set; } // Soglia "ultimi posti": sotto questo residuo il sito scrive "Rimangono solo N posti"
+
     // === Audit Fields ===
     [Column("created_by")]
     public string? CreatedBy { get; set; }
