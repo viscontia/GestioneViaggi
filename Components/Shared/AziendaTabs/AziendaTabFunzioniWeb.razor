@@ -36,6 +36,29 @@
             }
         </div>
 
+        <!-- Config Recensioni (§A.4): visibile solo quando 'recensioni' è attiva -->
+        @if (_state.TryGetValue(WebAziendeFunzioniService.FunzioneRecensioni, out var recOn) && recOn)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mt-3" Style="max-width:680px;">
+                <MudText Typo="Typo.body1" Class="mb-1">Schede recensioni (Google / TripAdvisor)</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    Identificativi delle schede pubbliche dell'azienda. Il sito (Fase 3) li userà per mostrare le recensioni accanto alla prenotazione.
+                </MudText>
+                <MudTextField T="string" @bind-Value="_recGooglePlaceId" Label="Google Place ID"
+                              Variant="Variant.Outlined" Class="mb-2" Disabled="@_recSaving"
+                              HelperText="Es. ChIJ… (dal profilo Google Business / Place ID Finder)." />
+                <MudTextField T="string" @bind-Value="_recTripAdvisorUrl" Label="URL scheda TripAdvisor"
+                              Variant="Variant.Outlined" Class="mb-3" Disabled="@_recSaving"
+                              HelperText="URL completo della pagina TripAdvisor dell'azienda." />
+                <div class="d-flex justify-end">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveRecensioni" Disabled="@_recSaving"
+                               StartIcon="@(_recSaving ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Save)">
+                        @(_recSaving ? "Salvataggio..." : "Salva schede recensioni")
+                    </MudButton>
+                </div>
+            </MudPaper>
+        }
+
         <!-- Predisposizione regole di pagamento (Fase 4): non attiva -->
         <MudPaper Outlined="true" Class="pa-3 mt-4" Style="max-width:680px;opacity:0.6;">
             <div class="d-flex align-center gap-2">
@@ -74,6 +97,11 @@
     private bool _busy;
     private readonly Dictionary<string, bool> _state = new();
 
+    // Config recensioni (§A.4)
+    private string? _recGooglePlaceId;
+    private string? _recTripAdvisorUrl;
+    private bool _recSaving;
+
     protected override async Task OnInitializedAsync()
     {
         var rows = await FunzioniService.ListByAziendaAsync(AziendaId);
@@ -82,7 +110,29 @@
             var row = rows.FirstOrDefault(r => string.Equals(r.Funzione, t.Code, StringComparison.OrdinalIgnoreCase));
             _state[t.Code] = row?.Attiva ?? t.DefaultOn;
         }
+
+        var recCfg = await FunzioniService.GetRecensioniConfigAsync(AziendaId);
+        _recGooglePlaceId = recCfg.GooglePlaceId;
+        _recTripAdvisorUrl = recCfg.TripAdvisorUrl;
+
         _loading = false;
+    }
+
+    private async Task SaveRecensioni()
+    {
+        _recSaving = true;
+        try
+        {
+            await FunzioniService.SaveRecensioniConfigAsync(AziendaId, new RecensioniConfig(_recGooglePlaceId, _recTripAdvisorUrl));
+            // La riga 'recensioni' ora esiste ed è attiva
+            _state[WebAziendeFunzioniService.FunzioneRecensioni] = true;
+            Snackbar.Add("Schede recensioni salvate.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally { _recSaving = false; }
     }
 
     private async Task OnToggle(string code, bool value)

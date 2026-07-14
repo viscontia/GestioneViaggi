@@ -1,7 +1,7 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS §A: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15, Recensioni §16).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
@@ -15,7 +15,7 @@
 - **Geoapify `ApiKey`** → già in `appsettings.Development.json` → `Geoapify:ApiKey`. Serve per Mappa (Blocco 9).
 - **Claude `ApiKey` per-azienda** → scheda **Aziende → Traduzioni**. Serve per Traduzioni (Blocco 10) e newsletter multilingua (Blocco 11).
 - **SMTP azienda** → scheda **Aziende → SMTP** (server di posta del cliente). È il canale email/newsletter (nessun provider ESP esterno).
-- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–480`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
+- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–481`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
 
 ---
 
@@ -183,3 +183,20 @@ Flag sul **tipo viaggio** (`ana_tipo_viaggi.tipo_viaggio_breve`) che marca le "e
 - ☐ `fn_web_ha_tour_brevi_pubblicati(<azienda_id>)` = `false` finché nessun tipo marcato ha tour **pubblicati**; diventa `true` dopo aver marcato il tipo di un tour pubblicato.
   > es.: `SELECT fn_web_ha_tour_brevi_pubblicati(<azienda_id>);`
 - ☐ `fn_web_tour_pubblicati(<azienda_id>,'IT')` espone `is_tour_breve` = `true` per le edizioni di tipi marcati, `false` altrimenti (serve al sito per instradare i tour nella sezione "Tour giornalieri").
+
+## 16. Aggiunte CMS — Recensioni Google / TripAdvisor (§A.4, script `481`)
+
+Nessuna tabella recensioni interna: si usano le schede Google/TripAdvisor. Config per-azienda nel JSONB `web_aziende_funzioni.parametri` della funzione `recensioni`; il flag `attiva` (Blocco 12) governa on/off.
+
+**Gestionale (Anagrafica Aziende → tab "Funzioni Web"):**
+- ☐ Con il toggle **Recensioni** OFF: la card di configurazione schede **non** è visibile.
+- ☐ Attiva il toggle **Recensioni** → compare la card **"Schede recensioni (Google / TripAdvisor)"** con i campi **Google Place ID** e **URL scheda TripAdvisor**.
+- ☐ Inserisci Place ID + URL TripAdvisor → **Salva schede recensioni** → snackbar di conferma → riapri il dialog azienda: i valori sono **persistiti**.
+- ☐ **Persistenza sul toggle**: disattiva e riattiva il toggle Recensioni → i valori Place ID/TripAdvisor **restano** (il toggle non azzera i `parametri`).
+- ☐ Svuota entrambi i campi → Salva → i `parametri` tornano a `NULL` (config rimossa).
+- ☐ Il salvataggio config **non** altera gli altri toggle (newsletter/blog/pagamenti).
+
+**Strato pubblico (verifica via query DB):**
+- ☐ Con Recensioni **attiva** e config salvata: `SELECT fn_web_recensioni_config(<azienda_id>);` ritorna il JSONB `{"google_place_id":"…","tripadvisor_url":"…"}`.
+- ☐ Con Recensioni **disattivata**: la stessa funzione ritorna `NULL` (il sito non mostrerà il widget recensioni).
+- ☐ **Multi-tenant**: `fn_web_recensioni_config` di un'azienda non ritorna la config di un'altra.
