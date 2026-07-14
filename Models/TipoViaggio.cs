@@ -17,4 +17,7 @@ public class TipoViaggio : BaseEntity
 
     /// <summary>FK opzionale alla descrizione web condivisa (web_tipi_viaggio_descrizioni). Blocco 8.</summary>
     public long? DescrizioneWebFk { get; set; }
+
+    /// <summary>Marca il tipo come "esperienza breve / tour giornaliero" (§A.3): guida la sezione condizionale del sito.</summary>
+    public bool TipoViaggioBreve { get; set; }
 }

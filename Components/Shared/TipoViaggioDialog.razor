@@ -60,6 +60,10 @@
                     <MudSelectItem T="long?" Value="@((long?)d.WebTipoViaggioDescrizioneId)">@d.DescrizioneWeb</MudSelectItem>
                 }
             </MudSelect>
+
+            <!-- TOUR BREVE / GIORNALIERO (§A.3): guida la sezione condizionale del sito -->
+            <MudCheckBox T="bool" @bind-Value="Entity.TipoViaggioBreve" Color="Color.Primary" tabindex="4"
+                         Label="Tour giornaliero / esperienza breve (1–3 gg)" />
         </MudForm>
     </DialogContent>
     <DialogActions>

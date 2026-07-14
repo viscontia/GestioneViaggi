@@ -1,7 +1,7 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS: Incluso/Escluso §13, Capienza/posti rimasti §14).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
@@ -15,7 +15,7 @@
 - **Geoapify `ApiKey`** → già in `appsettings.Development.json` → `Geoapify:ApiKey`. Serve per Mappa (Blocco 9).
 - **Claude `ApiKey` per-azienda** → scheda **Aziende → Traduzioni**. Serve per Traduzioni (Blocco 10) e newsletter multilingua (Blocco 11).
 - **SMTP azienda** → scheda **Aziende → SMTP** (server di posta del cliente). È il canale email/newsletter (nessun provider ESP esterno).
-- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–479`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
+- **Go-Live PROD:** cosa modificare/configurare in produzione (script `406–480`, cifratura segreti + `GV_SECRET_KEY`, RLS anon, Storage, backfill `cliente_lingua`, config app) è tracciato in `2026-07-10-Checklist_Go_Live_PROD.md`.
 
 ---
 
@@ -168,3 +168,18 @@ Capienza a livello **viaggio** (uguale per tutte le edizioni), in **equipaggi/me
 **Trigger / revalidation (concetto Fase 3):**
 - ☐ Ogni INSERT/UPDATE/DELETE su una prenotazione emette `NOTIFY web_tour_revalidate` con `{viaggio_id, data_viaggio_id}` (verificabile con `LISTEN web_tour_revalidate;` in una sessione psql, poi una modifica prenotazione). Senza listener è un no-op: **non** rompe il salvataggio prenotazioni.
 - ☐ **Regressione**: inserire/modificare prenotazioni su una data con storico "durata giorni" incoerente **funziona ancora** (il trigger posti non scrive su `ana_date_viaggi`, quindi non innesca `trg_validate_date_viaggio_duration`).
+
+## 15. Aggiunte CMS — Tour brevi / giornalieri (§A.3, script `480`)
+
+Flag sul **tipo viaggio** (`ana_tipo_viaggi.tipo_viaggio_breve`) che marca le "esperienze brevi 1–3 gg". Il sito userà il flag per una **sezione condizionale "Tour giornalieri"**.
+
+**Gestionale (Tipologie Viaggio → dialog tipo):**
+- ☐ Il dialog mostra la checkbox **"Tour giornaliero / esperienza breve (1–3 gg)"** (default OFF sui tipi esistenti).
+- ☐ Marca un tipo come breve → salva → riapri: il flag è persistito. Togli il flag → salva → riapri: persistito.
+- ☐ Nuovo tipo con flag ON alla creazione → salvato correttamente (il create ora include il flag).
+- ☐ Il flag **non** intacca le altre funzioni del tipo (descrizione, mapping descrizione web).
+
+**Strato pubblico (verifica via query DB):**
+- ☐ `fn_web_ha_tour_brevi_pubblicati(<azienda_id>)` = `false` finché nessun tipo marcato ha tour **pubblicati**; diventa `true` dopo aver marcato il tipo di un tour pubblicato.
+  > es.: `SELECT fn_web_ha_tour_brevi_pubblicati(<azienda_id>);`
+- ☐ `fn_web_tour_pubblicati(<azienda_id>,'IT')` espone `is_tour_breve` = `true` per le edizioni di tipi marcati, `false` altrimenti (serve al sito per instradare i tour nella sezione "Tour giornalieri").
