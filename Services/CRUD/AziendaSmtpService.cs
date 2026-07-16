@@ -667,24 +667,33 @@ public class AziendaSmtpService
     }
 
     /// <summary>
-    /// Recupera la password reale (in chiaro) dal DB per una configurazione SMTP esistente.
-    /// La password è salvata come JSONB nel campo password_enc: {"value": "plaintext"}.
+    /// Recupera outbound + inbound password reali (decifrate via pgcrypto) per una config SMTP.
+    /// La master key arriva dall'ambiente (GV_SECRET_KEY) via ISecretKeyProvider.
     /// </summary>
-    private async Task<string?> GetRealPasswordAsync(Guid smtpId)
+    private async Task<(string? password, string? inboundPassword)> GetRealSecretsAsync(Guid smtpId)
     {
         try
         {
+            var master = _secretKey.GetMasterKey();
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT password_enc->>'value' FROM ana_aziende_smtp WHERE smtp_id = @smtpId";
-            await using var cmd = new NpgsqlCommand(sql, connection);
-            cmd.Parameters.AddWithValue("smtpId", smtpId);
-            var result = await cmd.ExecuteScalarAsync();
-            return result as string;
+            await using var cmd = new NpgsqlCommand(
+                "SELECT password, inbound_password FROM fn_ana_aziende_smtp_secrets_get(@id, @master)", connection);
+            cmd.Parameters.AddWithValue("id", smtpId);
+            cmd.Parameters.AddWithValue("master", master);
+            await using var r = await cmd.ExecuteReaderAsync();
+            if (await r.ReadAsync())
+                return (r.IsDBNull(0) ? null : r.GetString(0),
+                        r.IsDBNull(1) ? null : r.GetString(1));
+            return (null, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore recupero password per smtp_id {SmtpId}", smtpId);
-            return null;
+            _logger.LogError(ex, "Errore recupero segreti SMTP per smtp_id {SmtpId}", smtpId);
+            return (null, null);
         }
     }
+
+    // Compat: firma usata dal test connessione outbound (TestConnectionAsync)
+    private async Task<string?> GetRealPasswordAsync(Guid smtpId)
+        => (await GetRealSecretsAsync(smtpId)).password;
 }
