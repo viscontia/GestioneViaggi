@@ -100,17 +100,18 @@
             <!-- Password - OBBLIGATORIO -->
             <MudTextField @bind-Value="Entity.Password"
                           For="@(() => Entity.Password)"
-                          Label="Password"
+                          Label="Password *"
                           Variant="Variant.Outlined"
                           Required="true"
                           RequiredError="La password è obbligatoria"
                           Validation="@(new Func<string, IEnumerable<string>>(ValidateSmtpPassword))"
                           Immediate="true"
-                          InputType="InputType.Password"
+                          InputType="@(_showPassword ? InputType.Text : InputType.Password)"
                           Class="mb-3"
                           Adornment="Adornment.End"
-                          AdornmentText="*"
-                          AdornmentColor="Color.Error" />
+                          AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="ToggleShowPassword"
+                          AdornmentAriaLabel="Mostra/Nascondi password" />
 
             <!-- From Name - OBBLIGATORIO -->
             <MudTextField @bind-Value="Entity.FromName"
@@ -228,6 +229,10 @@
                     }
                 </MudAlert>
             }
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2">
+                Il test può fallire con VPN attiva: molti server di posta bloccano gli IP VPN/datacenter. Disattiva la VPN per testare.
+            </MudText>
                 </MudTabPanel>
 
                 <MudTabPanel Text="Ricezione (Inbound)" Icon="@Icons.Material.Filled.MailOutline">
@@ -286,7 +291,11 @@
                                   Variant="Variant.Outlined"
                                   Validation="@(new Func<string?, IEnumerable<string>>(ValidateInboundPassword))"
                                   Immediate="true"
-                                  InputType="InputType.Password"
+                                  InputType="@(_showInboundPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showInboundPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="ToggleShowInboundPassword"
+                                  AdornmentAriaLabel="Mostra/Nascondi password"
                                   Class="mb-3" />
 
                     <!-- Inbound Use SSL -->
@@ -446,6 +455,8 @@
     private MudForm? _form;
     private MudTextField<string>? _configNameField;
     private bool _isTestingConnection = false;
+    private bool _showPassword;
+    private bool _showInboundPassword;
 
     [CascadingParameter]
     private IMudDialogInstance? MudDialog { get; set; }
@@ -477,6 +488,26 @@
     private void Cancel()
     {
         MudDialog?.Cancel();
+    }
+
+    private async Task ToggleShowPassword()
+    {
+        if (!_showPassword && Entity.Password == "***" && Entity.Id != Guid.Empty)
+        {
+            var real = await SmtpService.GetRealPasswordForEditAsync(Entity.Id, Entity.AziendaIdFk);
+            if (!string.IsNullOrEmpty(real)) Entity.Password = real;
+        }
+        _showPassword = !_showPassword;
+    }
+
+    private async Task ToggleShowInboundPassword()
+    {
+        if (!_showInboundPassword && Entity.InboundPassword == "***" && Entity.Id != Guid.Empty)
+        {
+            var real = await SmtpService.GetRealInboundPasswordForEditAsync(Entity.Id, Entity.AziendaIdFk);
+            if (!string.IsNullOrEmpty(real)) Entity.InboundPassword = real;
+        }
+        _showInboundPassword = !_showInboundPassword;
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)

@@ -688,4 +688,18 @@ public class AziendaSmtpService
     // Compat: firma usata dal test connessione outbound (TestConnectionAsync)
     private async Task<string?> GetRealPasswordAsync(Guid smtpId)
         => (await GetRealSecretsAsync(smtpId)).password;
+
+    /// <summary>Password outbound reale (decifrata) per la UI di modifica. Valida l'accesso al tenant.</summary>
+    public async Task<string?> GetRealPasswordForEditAsync(Guid smtpId, int aziendaId)
+    {
+        await _tenantContext.ValidateAccessAsync(aziendaId);
+        return (await GetRealSecretsAsync(smtpId)).password;
+    }
+
+    /// <summary>Password inbound reale (decifrata) per la UI di modifica. Valida l'accesso al tenant.</summary>
+    public async Task<string?> GetRealInboundPasswordForEditAsync(Guid smtpId, int aziendaId)
+    {
+        await _tenantContext.ValidateAccessAsync(aziendaId);
+        return (await GetRealSecretsAsync(smtpId)).inboundPassword;
+    }
 }
