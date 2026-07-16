@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Email;
 using GestioneViaggi.Services.Session;
 using GestioneViaggi.Validation.Syntax;
 using MailKit.Net.Smtp;
@@ -581,8 +582,9 @@ public class AziendaSmtpService
         }
         catch (OperationCanceledException)
         {
+            var reachable = await SmtpErrorTranslator.IsHostReachableOnWebAsync(config.Host);
             result.IsSuccess = false;
-            result.ErrorMessage = $"Timeout durante la connessione al server ({timeout}s)";
+            result.ErrorMessage = SmtpErrorTranslator.TimeoutMessage(reachable, config.Host, config.Port);
             result.Message = "Connessione fallita: timeout";
             result.Duration = DateTime.Now - startTime;
             return result;
@@ -590,8 +592,8 @@ public class AziendaSmtpService
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.ErrorMessage = ex.Message;
-            result.Message = $"Connessione al server fallita ({config.Host}:{config.Port})";
+            result.ErrorMessage = SmtpErrorTranslator.Translate(ex, SmtpPhase.Connect, config.Host, config.Port);
+            result.Message = "Connessione al server fallita";
             result.Duration = DateTime.Now - startTime;
             _logger.LogError(ex, "Errore Connect SMTP a {Host}:{Port}", config.Host, config.Port);
             return result;
@@ -604,23 +606,13 @@ public class AziendaSmtpService
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
             await client.AuthenticateAsync(config.Username, effectivePassword, cts.Token);
         }
-        catch (AuthenticationException ex)
-        {
-            result.IsSuccess = false;
-            result.ErrorMessage = $"Credenziali non valide: {ex.Message}";
-            result.Message = "Autenticazione fallita: username o password errati";
-            result.Duration = DateTime.Now - startTime;
-            _logger.LogWarning("Autenticazione SMTP fallita per {Username} su {Host}", config.Username, config.Host);
-            try { await client.DisconnectAsync(true); } catch { }
-            return result;
-        }
         catch (Exception ex)
         {
             result.IsSuccess = false;
-            result.ErrorMessage = ex.Message;
+            result.ErrorMessage = SmtpErrorTranslator.Translate(ex, SmtpPhase.Authenticate, config.Host, config.Port);
             result.Message = "Autenticazione fallita";
             result.Duration = DateTime.Now - startTime;
-            _logger.LogError(ex, "Errore autenticazione SMTP per {Username} su {Host}", config.Username, config.Host);
+            _logger.LogWarning(ex, "Auth SMTP fallita per {Username} su {Host}", config.Username, config.Host);
             try { await client.DisconnectAsync(true); } catch { }
             return result;
         }
