@@ -577,6 +577,12 @@ Scheda "Traduzioni" del viaggio: traduce i campi editoriali in EN/DE/FR/ES via C
 *   **Chiave azienda nel form Aziende**: sotto-tab `Components/Shared/AziendaTabs/AziendaTabTraduzioni.razor` (get/set `claude_api_key` via l'orchestratore, nessun plumbing sull'entity Azienda). Montato in `AziendaDialog`.
 *   **Descrizione tipo (globale)**: `WebTipoDescrizioneTraduzioniDialog.razor` aperto da un'azione "Traduzioni" per riga in `WebTipiViaggioDescrizioniPage` — traduce `descrizione_web` nelle 4 lingue (azienda corrente via `ITenantContext`). Obsolescenza via `fn_web_traduzioni_marca_obsolete_global` (entità globale). Riusa `WebTraduzioneReviewDialog`.
 
+### AziendaSmtpDialog + AziendaTabSmtp
+Dialog di configurazione SMTP/IMAP dell'azienda (`Components/Shared/AziendaSmtpDialog.razor`), montato da `Components/Shared/AziendaTabs/AziendaTabSmtp.razor` (sotto-tab della form Aziende, elenco configurazioni + apri/elimina).
+*   **Toggle mostra/nascondi password** (icona occhio, outbound e inbound indipendenti): `ToggleShowPassword`/`ToggleShowInboundPassword` cambiano l'`InputType` del campo Password/Password Inbound tra `Password` e `Text`. Al **primo** "mostra" (se il campo contiene ancora il placeholder `***`) recuperano il valore reale decifrato dal DB via `AziendaSmtpService.GetRealPasswordForEditAsync(smtpId, aziendaId)` / `GetRealInboundPasswordForEditAsync(smtpId, aziendaId)` (validano il tenant, poi chiamano `fn_ana_aziende_smtp_secrets_get` che decifra outbound+inbound via pgcrypto).
+*   **Fix lettura password reale**: `AziendaSmtpService.GetRealPasswordAsync` (usato anche dal test connessione) ora passa dalla stessa function `fn_ana_aziende_smtp_secrets_get` invece di leggere `password_enc->>'value'` su colonna `bytea` (pattern rotto, non decifrava nulla).
+*   **Avviso VPN**: testo in dialog che avvisa che il test connessione può fallire con VPN attiva (molti server di posta bloccano gli IP VPN/datacenter); i messaggi d'errore del test sono generati da `SmtpErrorTranslator` (vedi `Documents/Gestione_check.md` §SmtpErrorTranslator), inclusa la diagnostica che distingue "host irraggiungibile" da "porta bloccata da firewall/VPN".
+
 ---
 
 ## Componenti Export

@@ -7,7 +7,8 @@
 4. [Categorie di Validazione](#categorie-di-validazione)
 5. [Integrazione con FluentValidation](#integrazione-con-fluentvalidation)
 6. [DbErrorTranslator](#dberrortranslator)
-7. [Catalogo Validatori](#catalogo-validatori)
+7. [SmtpErrorTranslator](#smtperrortranslator)
+8. [Catalogo Validatori](#catalogo-validatori)
 
 ---
 
@@ -279,6 +280,56 @@ I servizi CRUD basati su `BaseCrudService` non usano `DbErrorTranslator` ma `Hel
 
 - **Messaggio dedicato per unique constraint** → aggiungere una riga in `DescribeUniqueConstraint(ex.ConstraintName)` (dice all'utente *quale* campo è duplicato). Esempi mappati: `uq_web_tour_contenuti_slug` → *"Esiste già un tour con questo indirizzo web…"*, `web_tour_contenuti_viaggio_id_fk_key` → *"Questo viaggio ha già una scheda di contenuti web."*
 - **Nome tabella nei messaggi generici** → `TranslateTableName()` traduce il nome tecnico in etichetta ITA (mai esporre il nome grezzo della tabella all'utente). Aggiungere qui i nuovi elementi.
+
+---
+
+## 📧 SmtpErrorTranslator
+
+### Responsabilità
+Punto **UNICO** dei messaggi d'errore SMTP (ITA) — mirror di `DbErrorTranslator` ma per il dominio rete/posta (connessione, DNS, TLS, autenticazione) invece che per i vincoli PostgreSQL.
+
+### Struttura
+Classe statica `Services/Email/SmtpErrorTranslator.cs`:
+
+```csharp
+public enum SmtpPhase { Connect, Authenticate }
+
+public static class SmtpErrorTranslator
+{
+    public static string Translate(Exception ex, SmtpPhase phase, string host, int port) => ex switch
+    {
+        SocketException se when se.SocketErrorCode is SocketError.HostNotFound
+                                                    or SocketError.NoData
+                                                    or SocketError.TryAgain
+            => $"Server di posta non trovato (DNS): controlla il nome host \"{host}\".",
+        SocketException se when se.SocketErrorCode == SocketError.ConnectionRefused
+            => $"Connessione rifiutata sulla porta {port}: porta chiusa o servizio non attivo su \"{host}\".",
+        SocketException
+            => $"Rete non raggiungibile verso \"{host}:{port}\": controlla la connessione.",
+        SslHandshakeException
+            => $"Errore TLS/SSL su \"{host}:{port}\": metodo di sicurezza o certificato non compatibili con la porta.",
+        AuthenticationException
+            => "Credenziali rifiutate: username o password errati.",
+        SmtpCommandException sce
+            => $"Errore SMTP dal server: {sce.Message}",
+        SmtpProtocolException
+            => "Errore di protocollo SMTP nella comunicazione con il server.",
+        OperationCanceledException
+            => $"Timeout: nessuna risposta da \"{host}:{port}\".",
+        _ => "Errore imprevisto durante l'operazione SMTP. Dettaglio tecnico nei log."
+    };
+}
+```
+
+### Diagnostica timeout (VPN vs host irraggiungibile)
+Un `OperationCanceledException` da solo non dice se il problema è un host morto o una porta bloccata da firewall/VPN. `IsHostReachableOnWebAsync(host)` fa una probe TCP breve (timeout 4s) su **443 poi 80**: se una delle due risponde, l'host è raggiungibile sul web ma la porta SMTP no → `TimeoutMessage(hostReachableOnWeb: true, host, port)` restituisce un messaggio che invita a **disattivare la VPN** (molti server di posta bloccano gli IP VPN/datacenter); se nessuna risponde → messaggio "host irraggiungibile".
+
+### Utilizzo
+- `AziendaSmtpService.TestConnectionAsync` → cattura le eccezioni MailKit/Socket del test connessione e le traduce con `Translate(ex, SmtpPhase, host, port)`; sui timeout chiama `IsHostReachableOnWebAsync` per scegliere il messaggio giusto.
+- Predisposto per l'invio effettivo (non solo il test) — stesso punto da riusare quando `SmtpEmailSender` dovrà tradurre gli errori di invio.
+
+### Come si estende
+Aggiungere un nuovo ramo allo `switch` di `Translate()` per un nuovo tipo di eccezione (pattern match su tipo/proprietà, come `SocketException se when ...`). Non duplicare la logica altrove: qualsiasi nuovo punto che parli SMTP/MailKit deve passare da qui.
 
 ---
 
