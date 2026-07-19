@@ -1,0 +1,32 @@
+@using MudBlazor
+
+@* Icona "?" che apre un popover di aiuto contestuale accanto a un campo form.
+   Riutilizzabile: passare Title + Text (testo semplice) oppure ChildContent
+   per contenuti formattati (es. esempi). Apertura/chiusura gestite da MudMenu
+   (click sull'icona apre, click fuori chiude automaticamente). *@
+
+<MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" AriaLabel="Aiuto">
+    <ActivatorContent>
+        <MudIconButton Icon="@Icons.Material.Outlined.HelpOutline" Size="Size.Small" Color="Color.Info"
+                       aria-label="Aiuto" />
+    </ActivatorContent>
+    <ChildContent>
+        <MudPaper Class="pa-3" Style="max-width:320px" Elevation="0">
+            <MudText Typo="Typo.subtitle2">@Title</MudText>
+            @if (ChildContent is not null)
+            {
+                @ChildContent
+            }
+            else if (!string.IsNullOrWhiteSpace(Text))
+            {
+                <MudText Typo="Typo.body2" Class="mt-1">@Text</MudText>
+            }
+        </MudPaper>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
