@@ -505,14 +505,21 @@ Dialog per la selezione del conto bancario da stampare sulla fattura attiva (`Co
 
 ---
 
+### FieldHelp
+Icona "?" di aiuto contestuale riutilizzabile accanto a un campo form — Blocco 5 Task 1 (`Components/Shared/FieldHelp.razor`).
+*   **Funzionalità**: `MudMenu` con `MudIconButton` (`HelpOutline`, `Size.Small`, `Color.Info`) come activator; il click apre un `MudPaper` con `Title` (subtitle2) + `Text` (body2) o, in alternativa, `ChildContent` per contenuti formattati (es. esempi). Apertura/chiusura gestite da `MudMenu` (click fuori chiude automaticamente).
+*   **Parametri**: `Title` (string, required), `Text` (string?), `ChildContent` (RenderFragment?).
+*   **Contesto**: usato in `WebTourContenutiTab` accanto ai campi SEO/tecnici (slug, meta title/description, ordine, prima pubblicazione) per spiegare in linguaggio semplice il significato di ciascun campo a utenti non tecnici.
+
 ### WebTourContenutiTab
 Scheda "Contenuti Web" del viaggio — estensione web, Blocco 5 (`Components/Shared/WebTourContenutiTab.razor`).
 *   **Funzionalità**:
     *   Carica/crea i contenuti editoriali web del tour (1:1 con `ana_viaggi`) via `WebTourContenutiService` (funzioni `fn_web_tour_contenuti_*`).
     *   Campi editoriali: sottotitolo, difficoltà (select `turistica/media/medio_alta/alta`), durata testo, luoghi visitati.
     *   5 editor RichText (`Blazored.TextEditor`/Quill): descrizione + pernottamento/pasti/equipaggiamento/altre info. L'HTML esistente è caricato con `LoadHTMLContent` (retry perché Quill si inizializza async); l'HTML "vuoto" di Quill (`<p><br></p>`) è normalizzato a NULL.
-    *   SEO: slug (obbligatorio, con generazione dal titolo via adornment e slugify accent-safe), meta title, meta description (counter 320).
-    *   Pubblicazione: stato (`bozza/pubblicato/archiviato`), ordine, prima pubblicazione (readonly, valorizzata al primo passaggio a `pubblicato`).
+    *   SEO: slug (obbligatorio, con generazione dal titolo via adornment e slugify accent-safe), meta title, meta description (counter 320). Ogni campo tecnico ha un'icona `FieldHelp` con spiegazione in linguaggio semplice (Blocco 5 Fase 1).
+    *   **Pulsanti "Suggerisci" (Blocco 5 Fase 2, Task 5)**: adornment End (icona `AutoFixHigh`, stesso pattern del "genera" slug) su meta title e meta description. `SuggerisciMetaTitle()` pre-compila da `DescrizioneBreve` troncato a 60 caratteri; `SuggerisciMetaDescription()` pre-compila da `StripHtml(DescrizioneHtml)` (fallback `Sottotitolo`) troncato a 155 caratteri. Helper statici `StripHtml` (rimuove tag HTML via regex, decodifica entità con `WebUtility.HtmlDecode`, comprime spazi multipli) e `Troncatura` (taglia sull'ultimo confine di parola prima del limite). Il valore resta editabile dopo il suggerimento; questi campi alimentano il fallback DB-side di `fn_web_tour_pubblicati` (script `486`, vedi `Funzioni_DB.md`).
+    *   Pubblicazione: stato (`bozza/pubblicato/archiviato`), ordine, prima pubblicazione (resa come label statica non editabile — `MudField` con icona lucchetto — valorizzata dal sistema al primo passaggio a `pubblicato`).
     *   Salvataggio autonomo nel tab ("Salva Contenuti Web"): create se nuovo, update altrimenti; violazione slug univoco → messaggio tradotto da `DbErrorTranslator` via snackbar.
 *   **⚠️ ECCEZIONE UI (documentata)**: i campi editoriali/RichText NON usano il maiuscolo forzato — sono destinati alle pagine del sito pubblico (overview.md §3.3).
 *   **UI rules rispettate**: `AutoFocus` sul primo campo (sottotitolo), `dialogFormHelper.setupTabNavigation` in `OnAfterRenderAsync`, `BackdropClick=false` (impostato dal chiamante di `AnaViaggiDialog`).
