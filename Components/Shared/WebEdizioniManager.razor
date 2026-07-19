@@ -20,7 +20,7 @@ else if (_edizioni.Count == 0)
 }
 else
 {
-    <div class="d-flex align-center gap-3 flex-wrap mb-3">
+    <div class="d-flex align-center gap-3 flex-wrap mb-3 pr-4">
         <MudSelect T="int" Label="Edizione (data del viaggio)" Value="_selectedDataId" ValueChanged="OnEdizioneChanged"
                    Variant="Variant.Outlined" Dense="true" Style="min-width:340px;">
             @foreach (var e in _edizioni)
