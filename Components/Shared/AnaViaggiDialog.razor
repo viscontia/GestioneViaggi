@@ -7,7 +7,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0" Style="max-height: 80vh; overflow-y: auto;">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0" Style="max-height: 80vh; overflow-y: auto; scrollbar-gutter: stable; padding-right: 12px;">
              <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4" KeepPanelsAlive="true">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
                     <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
