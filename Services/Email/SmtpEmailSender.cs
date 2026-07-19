@@ -29,6 +29,7 @@ public class SmtpEmailSender : IEmailSender
 
     public async Task<bool> SendPasswordResetEmailAsync(string toEmail, string userName, string resetCode)
     {
+        SmtpConfig? config = null;
         try
         {
             // Recupera config SMTP dall'azienda
@@ -45,7 +46,7 @@ public class SmtpEmailSender : IEmailSender
                 return false;
             }
 
-            var config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
+            config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -92,14 +93,16 @@ public class SmtpEmailSender : IEmailSender
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore invio email via SMTP aziendale (azienda {AziendaId}) a {Email}",
-                _aziendaId, toEmail);
+            var motivo = SmtpErrorTranslator.Translate(ex, SmtpPhase.Connect, config?.Host ?? "?", config?.Port ?? 0);
+            _logger.LogError(ex, "Errore invio reset password (azienda {AziendaId}) a {Email}: {Motivo}",
+                _aziendaId, toEmail, motivo);
             return false;
         }
     }
 
     public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
     {
+        SmtpConfig? config = null;
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
@@ -115,7 +118,7 @@ public class SmtpEmailSender : IEmailSender
                 throw new InvalidOperationException($"Nessuna configurazione SMTP attiva trovata per questa azienda (ID: {_aziendaId}).");
             }
 
-            var config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
+            config = JsonSerializer.Deserialize<SmtpConfig>(configJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
@@ -174,10 +177,15 @@ public class SmtpEmailSender : IEmailSender
                 _aziendaId, toEmails.Count());
             return true;
         }
+        catch (InvalidOperationException)
+        {
+            throw; // messaggi di configurazione già chiari (es. "Nessuna configurazione SMTP attiva")
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore invio email HTML via SMTP aziendale (azienda {AziendaId})", _aziendaId);
-            throw; // propaga l'eccezione reale per diagnostica
+            throw new InvalidOperationException(
+                SmtpErrorTranslator.Translate(ex, SmtpPhase.Connect, config?.Host ?? "?", config?.Port ?? 0), ex);
         }
     }
 
