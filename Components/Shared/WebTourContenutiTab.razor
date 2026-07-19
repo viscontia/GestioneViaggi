@@ -102,7 +102,9 @@ else
                 <FieldHelp Title="Meta title"
                            Text="Il titolo che Google mostra nei risultati di ricerca e nella scheda del browser. Tienilo entro ~60 caratteri, con le parole più importanti all'inizio. Se lo lasci vuoto verrà usato il titolo del tour." />
             </div>
-            <MudTextField @bind-Value="_model.MetaTitle" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri." />
+            <MudTextField @bind-Value="_model.MetaTitle" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri."
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
+                          OnAdornmentClick="SuggerisciMetaTitle" AdornmentAriaLabel="Suggerisci meta title" />
         </MudItem>
         <MudItem xs="12">
             <div class="d-flex align-center mb-1">
@@ -111,7 +113,9 @@ else
                            Text="La breve frase che appare sotto il titolo nei risultati di Google: serve a invogliare il clic. Circa 150 caratteri, invitante e chiara." />
             </div>
             <MudTextField @bind-Value="_model.MetaDescription" Variant="Variant.Outlined"
-                          Lines="2" MaxLength="320" Counter="320" HelperText="~150 caratteri." />
+                          Lines="2" MaxLength="320" Counter="320" HelperText="~150 caratteri."
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
+                          OnAdornmentClick="SuggerisciMetaDescription" AdornmentAriaLabel="Suggerisci meta description" />
         </MudItem>
 
         <!-- PUBBLICAZIONE -->
@@ -276,6 +280,39 @@ else
     private void GeneraSlug()
     {
         _model.Slug = Slugify(DescrizioneBreve);
+    }
+
+    private void SuggerisciMetaTitle()
+    {
+        _model.MetaTitle = Troncatura(DescrizioneBreve, 60);
+    }
+
+    private void SuggerisciMetaDescription()
+    {
+        _model.MetaDescription = Troncatura(StripHtml(_model.DescrizioneHtml) ?? _model.Sottotitolo, 155);
+    }
+
+    /// <summary>Rimuove i tag HTML, decodifica le entità e comprime gli spazi multipli.</summary>
+    private static string? StripHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var senzaTag = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+        var decodificato = System.Net.WebUtility.HtmlDecode(senzaTag);
+        var compresso = System.Text.RegularExpressions.Regex.Replace(decodificato, @"\s+", " ").Trim();
+        return compresso.Length == 0 ? null : compresso;
+    }
+
+    /// <summary>Taglia il testo a <paramref name="max"/> caratteri sull'ultimo confine di parola.</summary>
+    private static string? Troncatura(string? text, int max)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var trimmed = text.Trim();
+        if (trimmed.Length <= max) return trimmed;
+
+        var tagliato = trimmed[..max];
+        var ultimoSpazio = tagliato.LastIndexOf(' ');
+        if (ultimoSpazio > 0) tagliato = tagliato[..ultimoSpazio];
+        return tagliato.Trim();
     }
 
     /// <summary>Slug da testo: minuscolo, accenti rimossi, non-alfanumerici → '-'.</summary>
