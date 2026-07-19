@@ -41,7 +41,7 @@ public sealed class ClienteLinguaService
         try
         {
             await using var conn = await _db.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT fn_ana_clienti_set_lingua(@Id::integer, @L::char)", conn);
+            await using var cmd = new NpgsqlCommand("SELECT fn_ana_clienti_set_lingua(@Id::integer, @L::varchar)", conn);
             cmd.Parameters.AddWithValue("Id", clienteId);
             cmd.Parameters.AddWithValue("L", (object?)lingua ?? DBNull.Value);
             return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
