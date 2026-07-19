@@ -491,3 +491,6 @@ graphify-out/
 
 # Cartella GPX di test (Blocco 9) - non versionare
 GPX/
+
+# Master key cifratura segreti (GV_SECRET_KEY) - MAI committare
+.gv_secret_key.local.sh

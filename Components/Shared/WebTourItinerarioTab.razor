@@ -210,6 +210,7 @@ else
     private async Task OnGiornataDropped(MudItemDropInfo<WebTourItinerario> info)
     {
         var g = info.Item;
+        if (g is null) return;
         _giornate.Remove(g);
         var idx = Math.Clamp(info.IndexInZone, 0, _giornate.Count);
         _giornate.Insert(idx, g);
@@ -270,6 +271,7 @@ else
     private async Task OnPassoDropped(MudItemDropInfo<WebTourItinerarioPassaggio> info)
     {
         var p = info.Item;
+        if (p is null) return;
         if (!long.TryParse(info.DropzoneIdentifier, out var targetDayId)) return;
         var sourceDayId = p.ItinerarioIdFk;
         p.ItinerarioIdFk = targetDayId;
