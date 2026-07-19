@@ -59,7 +59,7 @@
                         
                         <!-- TAB 1: GENERALE -->
                         <MudTabPanel Text="Generale" Icon="@Icons.Material.Filled.Person" IconColor="@GetTabColor("Generale")">
-                            <MudGrid Spacing="12" Class="mt-12">
+                            <MudGrid Spacing="3" Class="mt-2">
                                 <!-- Azienda - Solo per SuperAdmin -->
                                 @if (IsSuperAdmin)
                                 {
@@ -216,7 +216,7 @@
 
                         <!-- TAB 3: DOCUMENTI -->
                         <MudTabPanel Text="Documenti" Icon="@Icons.Material.Filled.Badge" IconColor="@GetTabColor("Documenti")">
-                            <MudGrid Spacing="12" Class="mt-12">
+                            <MudGrid Spacing="3" Class="mt-2">
                                 <MudItem xs="12" sm="4">
                                     <MudSelect T="string" @ref="_tipoDocField" @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
                                         Label="Tipo Doc." Variant="Variant.Outlined" Required="true"
@@ -268,7 +268,7 @@
 
                         <!-- TAB 4: ALTRO -->
                         <MudTabPanel Text="Altro" Icon="@Icons.Material.Filled.Note" IconColor="@GetTabColor("Altro")">
-                            <MudGrid Spacing="12" Class="mt-12">
+                            <MudGrid Spacing="3" Class="mt-2">
                                 <MudItem xs="12">
                                     <MudTextField @ref="_intolleranzaField" @bind-Value="Entity.Intolleranza" For="@(() => Entity.Intolleranza)"
                                         Label="Intolleranze/Allergie" Variant="Variant.Outlined" Lines="3" Class="uppercase-input"

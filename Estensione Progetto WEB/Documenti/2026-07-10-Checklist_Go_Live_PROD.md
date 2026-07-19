@@ -8,11 +8,11 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `482`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `484`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
-> **Aggiunte CMS (476–479)** — §A.1/§A.2: `476` `ana_viaggi.viaggio_incluso`/`viaggio_escluso`; `477` `fn_web_tour_pubblicati` espone incluso/escluso tradotti; `478` `ana_viaggi.viaggio_capienza_max`/`viaggio_capienza_alert` + trigger `trg_mov_clienti_viaggi_posti` (solo `pg_notify('web_tour_revalidate')`); `479` `fn_web_mezzi_occupati_data` (**SECURITY DEFINER**, `EXECUTE` a `anon`) + `fn_web_tour_pubblicati` espone `posti_rimasti`/`posti_stato`; `480` `ana_tipo_viaggi.tipo_viaggio_breve` (flag tour brevi) + `fn_web_ha_tour_brevi_pubblicati` (`EXECUTE` a `anon`) + `fn_web_tour_pubblicati` espone `is_tour_breve`; `481` `fn_web_recensioni_config` (**SECURITY DEFINER**, `EXECUTE` a `anon`): config recensioni Google/TripAdvisor dal JSONB `web_aziende_funzioni.parametri` (solo se `attiva`). Tutti idempotenti (`ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE`). ⚠️ I `GRANT EXECUTE ... TO anon` su `fn_web_mezzi_occupati_data`, `fn_web_ha_tour_brevi_pubblicati` e `fn_web_recensioni_config` vanno verificati dopo l'hardening (§ RLS anon). Il canale `web_tour_revalidate` sarà consumato dal frontend Fase 3 (Next.js on-demand revalidation). `482` converte la CRUD di `ana_tipo_viaggi` in funzioni DB (`fn_ana_tipo_viaggi_create`/`update`), nessun impatto su `anon`.
+> **Aggiunte CMS (476–479)** — §A.1/§A.2: `476` `ana_viaggi.viaggio_incluso`/`viaggio_escluso`; `477` `fn_web_tour_pubblicati` espone incluso/escluso tradotti; `478` `ana_viaggi.viaggio_capienza_max`/`viaggio_capienza_alert` + trigger `trg_mov_clienti_viaggi_posti` (solo `pg_notify('web_tour_revalidate')`); `479` `fn_web_mezzi_occupati_data` (**SECURITY DEFINER**, `EXECUTE` a `anon`) + `fn_web_tour_pubblicati` espone `posti_rimasti`/`posti_stato`; `480` `ana_tipo_viaggi.tipo_viaggio_breve` (flag tour brevi) + `fn_web_ha_tour_brevi_pubblicati` (`EXECUTE` a `anon`) + `fn_web_tour_pubblicati` espone `is_tour_breve`; `481` `fn_web_recensioni_config` (**SECURITY DEFINER**, `EXECUTE` a `anon`): config recensioni Google/TripAdvisor dal JSONB `web_aziende_funzioni.parametri` (solo se `attiva`). Tutti idempotenti (`ADD COLUMN IF NOT EXISTS`, `CREATE OR REPLACE`). ⚠️ I `GRANT EXECUTE ... TO anon` su `fn_web_mezzi_occupati_data`, `fn_web_ha_tour_brevi_pubblicati` e `fn_web_recensioni_config` vanno verificati dopo l'hardening (§ RLS anon). Il canale `web_tour_revalidate` sarà consumato dal frontend Fase 3 (Next.js on-demand revalidation). `482` converte la CRUD di `ana_tipo_viaggi` in funzioni DB (`fn_ana_tipo_viaggi_create`/`update`), nessun impatto su `anon`. `483` aggiunge `fn_ana_aziende_smtp_secrets_get` (lettura password SMTP outbound/inbound decifrate via `pgp_sym_decrypt`; nessun impatto su `anon`). `484` è un **repair dati**: rimappa i `cliente_lingua` troncati a 1 carattere dal vecchio bug del cast `::char` ai codici ISO a 2 lettere (idempotente, solo valori di lunghezza 1; `'E'`→`'EN'` di default, ambiguo con `ES`) — richiede anche il deploy dell'app col fix del cast (vedi §2.5).
 
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
@@ -116,6 +116,8 @@ Blocco 7 (immagini tour, WebP) e Blocco 9 (mappe da GPX) salvano su **Supabase S
 ### 2.5 — Backfill `ana_clienti.cliente_lingua` (465)
 Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_comune(...), 'IT') WHERE cliente_lingua IS NULL`. **Va eseguito sui clienti reali di PROD** (in locale ha popolato 740 clienti Docker). È **idempotente** (`WHERE cliente_lingua IS NULL`). Vedi [[prod-backfill-cliente-lingua]]. Dopo il backfill, verificare la distribuzione lingue prima del primo invio newsletter.
 
+**Fix troncamento `cliente_lingua` (script 484 + app):** il vecchio `ClienteLinguaService.SetAsync` usava il cast `@L::char` (= `char(1)`), che troncava `'IT'`→`'I'` **prima** della funzione DB → il select in `ClienteDialog` mostrava il codice grezzo al rientro. Corretto in `::varchar`. Lo **script 484** ripara le righe già salvate corrotte (rimappa il singolo carattere → ISO 2 lettere; `'E'`→`'EN'` di default, ambiguo con `ES`). Su PROD: eseguire 484 **dopo** aver rilasciato l'app col fix del cast, poi riverificare la distribuzione lingue.
+
 ---
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
@@ -134,7 +136,7 @@ Da impostare lato app / ambiente (NON in git):
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–466 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–484 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
