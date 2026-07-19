@@ -1175,7 +1175,7 @@ Tutte `SECURITY INVOKER` (chiamate dal sito come `anon` rispettano le RLS del Bl
   - **Trigger `trg_mov_clienti_viaggi_posti`** (AFTER INS/UPD/DEL su `mov_clienti_viaggi`, script `478`): fa **solo** `pg_notify('web_tour_revalidate', {viaggio_id, data_viaggio_id})` come hook di revalidation on-demand della Fase 3 (Next.js). Nessuna scrittura su altre tabelle → nessuna cache da mantenere, nessuna collisione con `trg_validate_date_viaggio_duration`. `posti_rimasti` è calcolato **live**.
 - **`fn_web_destinatari_newsletter(p_azienda_id)` → `TABLE`** — destinatari newsletter: UNION con dedup per email (CITEXT, case-insensitive) di `ana_clienti` con `consenso_marketing=true` + `web_newsletter_iscritti` `stato='attivo'` e `consenso=true`, **meno** `web_newsletter_soppressioni`. `fonte` = `cliente`/`iscritto`/`entrambi`; su `entrambi` prevalgono lingua e `token_disiscrizione` dell'iscritto ma resta anche `cliente_id`. Duplicati interni ad `ana_clienti`: vince il `cliente_id` minore. **Blocco 11 (multilingua):** la `lingua` effettiva è `COALESCE(iscritto.lingua, cliente_lingua, fn_lingua_da_comune(comune), 'IT')` (`SqlScripts/465`).
 - **`fn_lingua_da_comune(p_comune_id)` → `CHAR(2)`** (`SqlScripts/465`, Blocco 11) — deriva la lingua dalla nazione di residenza (comune → provincia → regione → `eba_countries.iso_alpha2`): `IT→IT`; `DE/AT/CH→DE`; `FR/BE/LU/MC→FR`; `ES/AR/MX/…→ES`; anglofoni→`EN`; non coperti/NULL→`EN`/`IT`. Usata per il backfill di `ana_clienti.cliente_lingua` (nuovo campo **editabile** nella scheda cliente) e come fallback in `fn_web_destinatari_newsletter`.
-- **`fn_ana_clienti_get_lingua(p_cliente_id)` / `fn_ana_clienti_set_lingua(p_cliente_id, p_lingua)`** (`SqlScripts/466`, Blocco 11) — get/set della lingua preferita del cliente, usati da `ClienteLinguaService` come **side-field** nella scheda cliente (evita di toccare la grande `ClienteRepository`).
+- **`fn_ana_clienti_get_lingua(p_cliente_id)` / `fn_ana_clienti_set_lingua(p_cliente_id, p_lingua)`** (`SqlScripts/466`, Blocco 11) — get/set della lingua preferita del cliente, usati da `ClienteLinguaService` come **side-field** nella scheda cliente (evita di toccare la grande `ClienteRepository`). **`SqlScripts/485`:** `set` con `p_lingua` vuoto/NULL **auto-deriva** da `fn_lingua_da_comune(cliente_comune_residenza_fk)` (fallback `IT`) → `cliente_lingua` **mai NULL** (colonna ora `NOT NULL DEFAULT 'IT'`); la newsletter la legge senza ragionare. Nota: il vecchio cast `@L::char` in `ClienteLinguaService` (troncava `IT`→`I`) è stato corretto a `::varchar` (script 484 ripara i dati già troncati).
 
 ### Colonna `ana_tipo_viaggi.web_categoria_fk` — mappatura tipo viaggio → categoria sport web
 
@@ -1237,6 +1237,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - **`SqlScripts/453`** — hardening EXECUTE: `REVOKE EXECUTE ON ALL ROUTINES ... FROM PUBLIC` (**ROUTINES**, non FUNCTIONS: copre anche le procedure `sp_app_*` di gestione utenti/ruoli), `ALTER DEFAULT PRIVILEGES` per le routine future, `REVOKE CREATE ON SCHEMA public FROM PUBLIC`. Ad `anon` restano SOLO `fn_web_tour_pubblicati` e `fn_web_prezzo_da`. Il gestionale (postgres, superuser) non è impattato; i ruoli `app_*` non sono usati da alcuna connection string. ⚠️ Al deploy su Supabase riverificare l'impatto su `authenticated`/`service_role`.
 
 > **Rollback:** `SqlScripts/499_Rollback_EstensioneWeb.sql` annulla l'intera estensione Blocchi 0–3 (alter + 19 tabelle + funzioni `fn_web_*`/`fn_ana_aziende_esp_*` + `trg_web_audit` + policy RLS su tabelle legacy + revert hardening EXECUTE + ruolo `anon` via `DROP OWNED`), idempotente `IF EXISTS`. Solo locale, con backup.
+
 
 
 
@@ -1826,7 +1827,6 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_ana_aziende_esp_update`
 - `fn_ana_aziende_get_claude_key`
 - `fn_ana_aziende_set_claude_key`
-- `fn_ana_aziende_smtp_secrets_get`
 - `fn_ana_clienti_get_lingua`
 - `fn_ana_clienti_set_lingua`
 - `fn_ana_tipo_viaggi_update`

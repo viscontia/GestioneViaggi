@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `484`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `485`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -118,6 +118,8 @@ Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_
 
 **Fix troncamento `cliente_lingua` (script 484 + app):** il vecchio `ClienteLinguaService.SetAsync` usava il cast `@L::char` (= `char(1)`), che troncava `'IT'`→`'I'` **prima** della funzione DB → il select in `ClienteDialog` mostrava il codice grezzo al rientro. Corretto in `::varchar`. Lo **script 484** ripara le righe già salvate corrotte (rimappa il singolo carattere → ISO 2 lettere; `'E'`→`'EN'` di default, ambiguo con `ES`). Su PROD: eseguire 484 **dopo** aver rilasciato l'app col fix del cast, poi riverificare la distribuzione lingue.
 
+**`cliente_lingua` mai NULL (script 485):** `fn_ana_clienti_set_lingua` auto-deriva dalla nazione di residenza quando il campo è vuoto (`fn_lingua_da_comune`, fallback `IT`); backfilla i NULL residui; imposta colonna `DEFAULT 'IT'` + `NOT NULL`. La newsletter legge `cliente_lingua` senza ragionare (il `COALESCE` in `fn_web_destinatari_newsletter` resta solo come fallback difensivo). Applicare 485 su PROD **dopo** 484.
+
 ---
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
@@ -136,7 +138,7 @@ Da impostare lato app / ambiente (NON in git):
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–484 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–485 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
