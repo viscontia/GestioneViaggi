@@ -349,6 +349,7 @@ else
     {
       try
       {
+        try { System.IO.File.AppendAllText("/tmp/gv_save_error.log", $"{DateTime.Now:O} SALVA-START id={_model.WebTourContenutoId} durata=[{_model.DurataTesto}] luoghi=[{_model.LuoghiVisitati}] sott=[{_model.Sottotitolo}]\n"); } catch { }
         // Raccoglie l'HTML dagli editor
         try
         {
@@ -385,6 +386,7 @@ else
         try
         {
             _model = await ContenutiService.UpdateAsync(_model);
+            try { System.IO.File.AppendAllText("/tmp/gv_save_error.log", $"{DateTime.Now:O} SALVA-OK id={_model.WebTourContenutoId}\n"); } catch { }
             Snackbar.Add("Contenuti web salvati con successo", Severity.Success);
         }
         catch (Exception ex)
