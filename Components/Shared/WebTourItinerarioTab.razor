@@ -82,7 +82,7 @@ else
                                     <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
                                                   ValueChanged="@(v => OnTitoloChanged(g, v))"
                                                   Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
-                                    <MudTooltip Text="Aggiungi passo">
+                                    <MudTooltip Text="Aggiungi passaggio">
                                         <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="@(() => AddPasso(g))" />
                                     </MudTooltip>
                                     <MudTooltip Text="Elimina giornata">
@@ -200,7 +200,7 @@ else
 
     private async Task DeleteGiornata(WebTourItinerario g)
     {
-        if (!await ConfirmDelete("Elimina giornata", $"Eliminare \"{g.TitoloGiornata}\" e tutti i suoi passi?")) return;
+        if (!await ConfirmDelete("Elimina giornata", $"Eliminare \"{g.TitoloGiornata}\" e tutti i suoi passaggi?")) return;
         try
         {
             await GiornateService.DeleteAsync(g.WebTourItinerarioId, AziendaId); // cascata sui passi lato DB
@@ -240,7 +240,7 @@ else
             ItinerarioIdFk = g.WebTourItinerarioId, AziendaId = AziendaId, TestoHtml = string.Empty,
             Ordine = _passi.Count(x => x.ItinerarioIdFk == g.WebTourItinerarioId) + 1
         };
-        var edited = await OpenPassoDialog(passo, "Nuovo passo");
+        var edited = await OpenPassoDialog(passo, "Nuovo passaggio");
         if (edited == null) return;
         try
         {
@@ -249,20 +249,20 @@ else
             _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
             _passiContainer?.Refresh();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore creazione passo: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione passaggio: {ex.Message}", Severity.Error); }
     }
 
     private async Task EditPasso(WebTourItinerarioPassaggio passo)
     {
-        var edited = await OpenPassoDialog(passo, "Modifica passo");
+        var edited = await OpenPassoDialog(passo, "Modifica passaggio");
         if (edited == null) return;
         try { await PassiService.UpdateAsync(edited); _passiContainer?.Refresh(); StateHasChanged(); }
-        catch (Exception ex) { Snackbar.Add($"Errore salvataggio passo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio passaggio: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
     private async Task DeletePasso(WebTourItinerarioPassaggio passo)
     {
-        if (!await ConfirmDelete("Elimina passo", "Eliminare questo passo?")) return;
+        if (!await ConfirmDelete("Elimina passaggio", "Eliminare questo passaggio?")) return;
         try
         {
             var dayId = passo.ItinerarioIdFk;
@@ -274,7 +274,7 @@ else
                 await PassiService.ReorderAsync(AziendaId, dayId, rest.Select(x => x.WebTourItinerarioPassaggioId).ToList());
             _passiContainer?.Refresh();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore eliminazione passo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+        catch (Exception ex) { Snackbar.Add($"Errore eliminazione passaggio: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
     private async Task OnPassoDropped(MudItemDropInfo<WebTourItinerarioPassaggio> info)
@@ -306,7 +306,7 @@ else
             if (source is { Count: > 0 })
                 await PassiService.ReorderAsync(AziendaId, sourceDayId, source.Select(x => x.WebTourItinerarioPassaggioId).ToList());
         }
-        catch (Exception ex) { Snackbar.Add($"Errore riordino passi: {ex.Message}", Severity.Error); await ReloadAsync(); }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino passaggi: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
     // ---- Helpers -------------------------------------------------------------
@@ -342,11 +342,11 @@ else
     /// <summary>Anteprima testuale del passo per la card (tag rimossi, troncata).</summary>
     private static string Snippet(string? html)
     {
-        if (string.IsNullOrWhiteSpace(html)) return "(passo vuoto)";
+        if (string.IsNullOrWhiteSpace(html)) return "(passaggio vuoto)";
         var text = Regex.Replace(html, "<.*?>", " ");
         text = System.Net.WebUtility.HtmlDecode(text);
         text = Regex.Replace(text, "\\s+", " ").Trim();
-        if (text.Length == 0) return "(passo vuoto)";
+        if (text.Length == 0) return "(passaggio vuoto)";
         return text.Length > 90 ? text[..90] + "…" : text;
     }
 }

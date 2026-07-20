@@ -9,7 +9,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passo</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passaggio</MudText>
         <div style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
             <BlazoredTextEditor @ref="_editor" Placeholder="Descrivi questo momento della giornata...">
                 <ToolbarContent>
@@ -65,7 +65,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Salva" Disabled="@_saving">
-            @(_saving ? "Salvataggio..." : "Salva passo")
+            @(_saving ? "Salvataggio..." : "Salva passaggio")
         </MudButton>
     </DialogActions>
 </MudDialog>
