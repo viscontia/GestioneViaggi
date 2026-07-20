@@ -25,19 +25,24 @@ else
         <!-- CAMPI EDITORIALI -->
         <MudItem xs="12">
             <MudTextField @bind-Value="_model.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
-                          MaxLength="255" AutoFocus="true" Immediate="true" />
+                          MaxLength="255" AutoFocus="true" Immediate="true"
+                          HelperText="Descrivi il tour in una frase." />
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="_model.DurataTesto" Label="Durata (testo libero, es. 5 giorni / 4 notti)"
                           Variant="Variant.Outlined" MaxLength="100" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_model.LuoghiVisitati" Label="Luoghi visitati" Variant="Variant.Outlined" Lines="2" />
+            <MudTextField @bind-Value="_model.LuoghiVisitati" Label="Luoghi visitati" Variant="Variant.Outlined" Lines="2"
+                          HelperText="Principali luoghi visitati, separati da virgola. Es: Barbagia, Supramonte, Gennargentu, Ogliastra." />
         </MudItem>
 
         <!-- DESCRIZIONE PRINCIPALE (RichText) -->
         <MudItem xs="12">
-            <MudText Typo="Typo.subtitle2" Class="mb-1">Descrizione</MudText>
+            <div class="d-flex align-center mb-1">
+                <MudText Typo="Typo.subtitle2">Descrizione</MudText>
+                <FieldHelp Title="Descrizione" Text="Descrizione dettagliata del Tour/Viaggio." />
+            </div>
             <div style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edDescrizione" Placeholder="Descrizione del tour per il sito...">
                     <ToolbarContent>@ToolbarStandard</ToolbarContent>
