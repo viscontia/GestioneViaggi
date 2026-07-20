@@ -37,13 +37,20 @@ else
                           HelperText="Principali luoghi visitati, separati da virgola. Es: Barbagia, Supramonte, Gennargentu, Ogliastra." />
         </MudItem>
 
+        <MudItem xs="12" Class="py-0">
+            <style>
+                /* BlazoredTextEditor (Quill): scroll interno quando il testo supera l'altezza del box */
+                .rte-lg .ql-editor { max-height: 150px; overflow-y: auto; }
+                .rte-sm .ql-editor { max-height: 90px; overflow-y: auto; }
+            </style>
+        </MudItem>
         <!-- DESCRIZIONE PRINCIPALE (RichText) -->
         <MudItem xs="12">
             <div class="d-flex align-center mb-1">
                 <MudText Typo="Typo.subtitle2">Descrizione</MudText>
                 <FieldHelp Title="Descrizione" Text="Descrizione dettagliata del Tour/Viaggio." />
             </div>
-            <div @oninput="MarkDirty" style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" class="rte-lg" style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edDescrizione" Placeholder="Descrizione del tour per il sito...">
                     <ToolbarContent>@ToolbarStandard</ToolbarContent>
                 </BlazoredTextEditor>
@@ -53,7 +60,7 @@ else
         <!-- SEZIONI INFORMATIVE (RichText) -->
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Pernottamento</MudText>
-            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" class="rte-sm" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edPernottamento" Placeholder="Info pernottamento...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -61,7 +68,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Pasti</MudText>
-            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" class="rte-sm" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edPasti" Placeholder="Info pasti...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -69,7 +76,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Equipaggiamento</MudText>
-            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" class="rte-sm" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edEquipaggiamento" Placeholder="Info equipaggiamento...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -77,7 +84,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Altre informazioni</MudText>
-            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" class="rte-sm" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edAltre" Placeholder="Altre info utili...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -118,7 +125,7 @@ else
                            Text="La breve frase che appare sotto il titolo nei risultati di Google: serve a invogliare il clic. Circa 150 caratteri, invitante e chiara." />
             </div>
             <MudTextField @bind-Value="_model.MetaDescription" @bind-Value:after="MarkDirty" Variant="Variant.Outlined"
-                          Lines="2" MaxLength="320" Counter="320" HelperText="~150 caratteri."
+                          Lines="2" AutoGrow="true" MaxLines="6" MaxLength="320" Counter="320" HelperText="~150 caratteri."
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
                           OnAdornmentClick="SuggerisciMetaDescription" AdornmentAriaLabel="Suggerisci meta description" />
         </MudItem>
