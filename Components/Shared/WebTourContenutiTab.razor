@@ -172,6 +172,8 @@ else
     [Parameter] public string? DescrizioneBreve { get; set; }
     /// <summary>Notifica al parent (WebEdizioniManager) che ci sono modifiche non salvate in questa scheda.</summary>
     [Parameter] public EventCallback<bool> HasUnsavedChangesChanged { get; set; }
+    /// <summary>Notifica al parent lo stato di completamento (semaforo), ricalcolato dopo il load e dopo ogni Salva.</summary>
+    [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
@@ -240,6 +242,7 @@ else
         }
         finally
         {
+            await NotifyStatoAsync();
             _loading = false;
         }
     }
@@ -284,6 +287,20 @@ else
             await editor.LoadHTMLContent(html);
         }
     }
+
+    /// <summary>Completo se slug + sottotitolo + descrizione sono tutti presenti; Vuoto se tutti assenti; altrimenti Parziale.</summary>
+    private WebTabStato ComputeStato()
+    {
+        var hasSlug = !string.IsNullOrWhiteSpace(_model.Slug);
+        var hasSottotitolo = !string.IsNullOrWhiteSpace(_model.Sottotitolo);
+        var hasDescrizione = !string.IsNullOrWhiteSpace(_model.DescrizioneHtml);
+
+        if (hasSlug && hasSottotitolo && hasDescrizione) return WebTabStato.Completo;
+        if (!hasSlug && !hasSottotitolo && !hasDescrizione) return WebTabStato.Vuoto;
+        return WebTabStato.Parziale;
+    }
+
+    private Task NotifyStatoAsync() => StatoChanged.InvokeAsync(ComputeStato());
 
     /// <summary>Segnala al parent che ci sono modifiche non salvate (una tantum: notifica solo al primo cambiamento).</summary>
     private Task MarkDirty()
@@ -409,6 +426,7 @@ else
             Snackbar.Add("Contenuti web salvati con successo", Severity.Success);
             _dirty = false;
             await HasUnsavedChangesChanged.InvokeAsync(false);
+            await NotifyStatoAsync();
             return true;
         }
         catch (Exception ex)

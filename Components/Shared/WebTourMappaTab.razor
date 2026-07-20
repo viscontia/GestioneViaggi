@@ -75,6 +75,8 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Notifica al parent lo stato di completamento: la mappa è opzionale, quindi sempre Completo.</summary>
+    [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private const long MaxGpxBytes = 20L * 1024 * 1024;
 
@@ -90,6 +92,8 @@ else
         try { _mappa = await MappaService.GetByContenutoAsync(ContenutoId, AziendaId); }
         catch (Exception ex) { Snackbar.Add($"Errore caricamento mappa: {ex.Message}", Severity.Error); }
         _loading = false;
+        // La mappa è opzionale: non blocca mai il gating di pubblicazione.
+        await StatoChanged.InvokeAsync(WebTabStato.Completo);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

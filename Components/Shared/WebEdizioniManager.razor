@@ -76,21 +76,26 @@ else
     {
         <div @key="_selected.ContenutoId">
             <MudTabs ActivePanelIndex="@_activeSubTabIndex" ActivePanelIndexChanged="OnSubTabChanged" Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="py-3 pl-3 pr-6">
-                <MudTabPanel Text="Contenuti" Icon="@Icons.Material.Filled.Article">
+                <MudTabPanel Text="Contenuti" Icon="@Icons.Material.Filled.Article" IconColor="@GetTabColor(TabContenuti)">
                     <WebTourContenutiTab @ref="_contenutiTab" ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve"
-                                          HasUnsavedChangesChanged="OnContenutiDirtyChanged" />
+                                          HasUnsavedChangesChanged="OnContenutiDirtyChanged"
+                                          StatoChanged="@(s => OnStatoChanged(TabContenuti, s))" />
                 </MudTabPanel>
-                <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route">
-                    <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route" IconColor="@GetTabColor(TabItinerario)">
+                    <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
+                                           StatoChanged="@(s => OnStatoChanged(TabItinerario, s))" />
                 </MudTabPanel>
-                <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary">
-                    <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary" IconColor="@GetTabColor(TabGalleria)">
+                    <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
+                                         StatoChanged="@(s => OnStatoChanged(TabGalleria, s))" />
                 </MudTabPanel>
-                <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map">
-                    <WebTourMappaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map" IconColor="@GetTabColor(TabMappa)">
+                    <WebTourMappaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
+                                      StatoChanged="@(s => OnStatoChanged(TabMappa, s))" />
                 </MudTabPanel>
-                <MudTabPanel Text="Traduzioni" Icon="@Icons.Material.Filled.Translate">
-                    <WebTraduzioniTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
+                <MudTabPanel Text="Traduzioni" Icon="@Icons.Material.Filled.Translate" IconColor="@GetTabColor(TabTraduzioni)">
+                    <WebTraduzioniTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
+                                       StatoChanged="@(s => OnStatoChanged(TabTraduzioni, s))" />
                 </MudTabPanel>
             </MudTabs>
         </div>
@@ -113,6 +118,32 @@ else
     private int _activeSubTabIndex;
     private bool _dirty;
     private WebTourContenutiTab? _contenutiTab;
+
+    // Semaforo sotto-tab (Fase 2): stato di completamento per tab, usato per colorare l'icona e (Fase 3) per il gating.
+    private const string TabContenuti = "Contenuti";
+    private const string TabItinerario = "Itinerario";
+    private const string TabGalleria = "Galleria";
+    private const string TabMappa = "Mappa";
+    private const string TabTraduzioni = "Traduzioni";
+    private readonly Dictionary<string, WebTabStato> _stati = new()
+    {
+        [TabContenuti] = WebTabStato.Vuoto,
+        [TabItinerario] = WebTabStato.Vuoto,
+        [TabGalleria] = WebTabStato.Vuoto,
+        [TabMappa] = WebTabStato.Vuoto,
+        [TabTraduzioni] = WebTabStato.Vuoto
+    };
+
+    /// <summary>Tab non ancora Completo, nell'ordine dei sotto-tab. Usato dal gating di pubblicazione (Fase 3).</summary>
+    public IReadOnlyList<string> TabNonCompleti => _stati.Where(kv => kv.Value != WebTabStato.Completo).Select(kv => kv.Key).ToList();
+
+    private void OnStatoChanged(string tab, WebTabStato stato)
+    {
+        _stati[tab] = stato;
+        StateHasChanged();
+    }
+
+    private Color GetTabColor(string tab) => _stati.TryGetValue(tab, out var stato) ? stato.ToColor() : Color.Default;
 
     private IEnumerable<EdizioneViaggio> _edizioniConContenuto => _edizioni.Where(e => e.HaContenuto);
 

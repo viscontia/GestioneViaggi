@@ -99,6 +99,10 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Notifica al parent lo stato di completamento (semaforo) rispetto alle lingue target (EN/DE/FR/ES).
+    /// LIMITE NOTO: non esiste ancora un concetto di "lingue attive per azienda" nel gestionale — si usano
+    /// tutte le lingue di <see cref="WebTraduzioneOrchestratorService.Lingue"/> per ogni azienda.</summary>
+    [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private bool _loading = true;
     private bool _busy;
@@ -137,7 +141,28 @@ else
         var all = await TraduzioniService.ListByAziendaAsync(AziendaId);
         _traduzioni = all.Where(t => ids.Contains((t.Entita, t.EntitaId)))
                          .ToDictionary(t => Key(t.Entita, t.EntitaId, t.Campo, t.Lingua), t => t);
+        await NotifyStatoAsync();
         StateHasChanged();
+    }
+
+    /// <summary>Completo se tutti i campi traducibili hanno una traduzione in tutte le lingue target; Vuoto se nessuna;
+    /// Parziale altrimenti. Nessun campo da tradurre → Completo (vacuamente vero, non blocca la pubblicazione).</summary>
+    private Task NotifyStatoAsync()
+    {
+        var totalPairs = _items.Count * WebTraduzioneOrchestratorService.Lingue.Length;
+        WebTabStato stato;
+        if (totalPairs == 0)
+        {
+            stato = WebTabStato.Completo;
+        }
+        else
+        {
+            var translated = _items.Sum(it => WebTraduzioneOrchestratorService.Lingue.Count(l => Find(it, l) != null));
+            stato = translated == 0 ? WebTabStato.Vuoto
+                : translated == totalPairs ? WebTabStato.Completo
+                : WebTabStato.Parziale;
+        }
+        return StatoChanged.InvokeAsync(stato);
     }
 
     private async Task SalvaChiave()

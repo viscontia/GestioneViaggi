@@ -91,6 +91,8 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Notifica al parent lo stato di completamento (semaforo): Completo se >=1 immagine + copertina impostata.</summary>
+    [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private const long MaxUploadBytes = 20L * 1024 * 1024;
 
@@ -119,7 +121,17 @@ else
     {
         _immagini = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId);
         _container?.Refresh();
+        await NotifyStatoAsync();
         StateHasChanged();
+    }
+
+    /// <summary>Vuoto se nessuna immagine; Parziale se immagini senza copertina; Completo se >=1 immagine + copertina.</summary>
+    private Task NotifyStatoAsync()
+    {
+        var stato = _immagini.Count == 0
+            ? WebTabStato.Vuoto
+            : _immagini.Any(i => i.Tipo == "principale") ? WebTabStato.Completo : WebTabStato.Parziale;
+        return StatoChanged.InvokeAsync(stato);
     }
 
     private static bool ImmagineInZone(WebTourImmagine img, string identifier) => identifier == "gallery";
@@ -164,6 +176,7 @@ else
                 }
             }
             _container?.Refresh();
+            await NotifyStatoAsync();
         }
         finally
         {
@@ -192,6 +205,7 @@ else
             await ImmaginiService.SetPrincipaleAsync(img.WebTourImmagineId, AziendaId, ContenutoId);
             foreach (var i in _immagini) i.Tipo = "galleria";
             img.Tipo = "principale";
+            await NotifyStatoAsync();
             StateHasChanged();
         }
         catch (Exception ex) { Snackbar.Add($"Errore copertina: {ex.Message}", Severity.Error); await ReloadAsync(); }
@@ -219,6 +233,7 @@ else
             if (_immagini.Count > 0)
                 await ImmaginiService.ReorderAsync(AziendaId, ContenutoId, _immagini.Select(x => x.WebTourImmagineId).ToList());
             _container?.Refresh();
+            await NotifyStatoAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }

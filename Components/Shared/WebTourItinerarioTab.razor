@@ -125,6 +125,8 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Notifica al parent lo stato di completamento (semaforo): Completo se >=1 giornata, altrimenti Vuoto.</summary>
+    [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private List<WebTourItinerario> _giornate = new();
     private List<WebTourItinerarioPassaggio> _passi = new();
@@ -158,8 +160,13 @@ else
         _passi = passi;
         _giornateContainer?.Refresh();
         _passiContainer?.Refresh();
+        await NotifyStatoAsync();
         StateHasChanged();
     }
+
+    /// <summary>Completo se c'è almeno una giornata, altrimenti Vuoto (nessuno stato "Parziale" per l'itinerario).</summary>
+    private Task NotifyStatoAsync()
+        => StatoChanged.InvokeAsync(_giornate.Count > 0 ? WebTabStato.Completo : WebTabStato.Vuoto);
 
     // ---- Giornate ------------------------------------------------------------
 
@@ -177,6 +184,7 @@ else
             _giornate.Add(g);
             _giornateContainer?.Refresh();
             _passiContainer?.Refresh();
+            await NotifyStatoAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore creazione giornata: {ex.Message}", Severity.Error); }
     }
@@ -203,6 +211,7 @@ else
                 await GiornateService.ReorderAsync(AziendaId, ContenutoId, _giornate.Select(x => x.WebTourItinerarioId).ToList());
             _giornateContainer?.Refresh();
             _passiContainer?.Refresh();
+            await NotifyStatoAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione giornata: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
