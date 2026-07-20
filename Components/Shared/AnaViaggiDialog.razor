@@ -12,8 +12,8 @@
             .avd-scroll::-webkit-scrollbar-track { background: transparent; }
             .avd-scroll::-webkit-scrollbar-thumb { background: var(--mud-palette-lines-inputs); border-radius: 5px; }
         </style>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="pa-0 avd-scroll" Style="max-height: 80vh; overflow-y: auto; padding-right: 6px;">
-             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4 pr-6" KeepPanelsAlive="true">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="avd-scroll py-0 pl-2 pr-6" Style="max-height: 80vh; overflow-y: auto;">
+             <MudTabs @ref="_tabs" ActivePanelIndex="@_activeTabIndex" ActivePanelIndexChanged="OnTabChanged" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="py-4 pl-4 pr-6" KeepPanelsAlive="true">
                 <MudTabPanel Text="Dati Generali" Icon="@Icons.Material.Filled.Flight">
                     <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid" ValidationDelay="0">
 
