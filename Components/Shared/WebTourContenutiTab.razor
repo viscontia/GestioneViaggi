@@ -347,6 +347,8 @@ else
 
     private async Task Salva()
     {
+      try
+      {
         // Raccoglie l'HTML dagli editor
         try
         {
@@ -393,5 +395,12 @@ else
         {
             _saving = false;
         }
+      }
+      catch (Exception exOuter)
+      {
+          _saving = false;
+          try { System.IO.File.AppendAllText("/tmp/gv_save_error.log", $"{DateTime.Now:O} SALVA: {exOuter}\n\n"); } catch { }
+          Snackbar.Add($"Errore imprevisto nel salvataggio: {exOuter.Message}", Severity.Error);
+      }
     }
 }
