@@ -174,6 +174,9 @@ else
     [Parameter] public EventCallback<bool> HasUnsavedChangesChanged { get; set; }
     /// <summary>Notifica al parent lo stato di completamento (semaforo), ricalcolato dopo il load e dopo ogni Salva.</summary>
     [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
+    /// <summary>Gating pubblicazione (Fase 3): interrogato al Salva per sapere quali ALTRI sub-tab (Itinerario/
+    /// Galleria/Mappa/Traduzioni) non sono ancora Completo. Fornito da WebEdizioniManager, che tiene lo stato dei 5 tab.</summary>
+    [Parameter] public Func<IReadOnlyList<string>>? GetTabNonCompletiAltri { get; set; }
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
@@ -411,6 +414,21 @@ else
         {
             Snackbar.Add("Inserire un indirizzo web valido.", Severity.Warning);
             return false;
+        }
+
+        // Gating pubblicazione (Fase 3): non si passa a "pubblicato" finché tutti i sub-tab non sono Completo.
+        // Enforcement solo UI in questo pass; un enforcement DB-first (funzione che rifiuta l'UPDATE) è previsto
+        // come difesa futura, non obbligatoria ora.
+        if (_model.StatoPubblicazione == "pubblicato")
+        {
+            var mancanti = new List<string>();
+            if (ComputeStato() != WebTabStato.Completo) mancanti.Add("Contenuti");
+            mancanti.AddRange(GetTabNonCompletiAltri?.Invoke() ?? Array.Empty<string>());
+            if (mancanti.Count > 0)
+            {
+                _model.StatoPubblicazione = "bozza";
+                Snackbar.Add($"Pubblicazione bloccata: completare prima {string.Join(", ", mancanti)}. Salvato come bozza.", Severity.Warning);
+            }
         }
 
         // Prima pubblicazione: valorizza data_pubblicazione al primo passaggio a 'pubblicato'

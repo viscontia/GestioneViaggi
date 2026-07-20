@@ -79,7 +79,8 @@ else
                 <MudTabPanel Text="Contenuti" Icon="@Icons.Material.Filled.Article" IconColor="@GetTabColor(TabContenuti)">
                     <WebTourContenutiTab @ref="_contenutiTab" ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve"
                                           HasUnsavedChangesChanged="OnContenutiDirtyChanged"
-                                          StatoChanged="@(s => OnStatoChanged(TabContenuti, s))" />
+                                          StatoChanged="@(s => OnStatoChanged(TabContenuti, s))"
+                                          GetTabNonCompletiAltri="@(() => (IReadOnlyList<string>)TabNonCompleti.Where(t => t != TabContenuti).ToList())" />
                 </MudTabPanel>
                 <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route" IconColor="@GetTabColor(TabItinerario)">
                     <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
