@@ -24,16 +24,16 @@ else
     <MudGrid Spacing="2">
         <!-- CAMPI EDITORIALI -->
         <MudItem xs="12">
-            <MudTextField @bind-Value="_model.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
+            <MudTextField @bind-Value="_model.Sottotitolo" @bind-Value:after="MarkDirty" Label="Sottotitolo" Variant="Variant.Outlined"
                           MaxLength="255" AutoFocus="true" Immediate="true"
                           HelperText="Descrivi il tour in una frase." />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_model.DurataTesto" Label="Durata (testo libero, es. 5 giorni / 4 notti)"
+            <MudTextField @bind-Value="_model.DurataTesto" @bind-Value:after="MarkDirty" Label="Durata (testo libero, es. 5 giorni / 4 notti)"
                           Variant="Variant.Outlined" MaxLength="100" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_model.LuoghiVisitati" Label="Luoghi visitati" Variant="Variant.Outlined" Lines="2"
+            <MudTextField @bind-Value="_model.LuoghiVisitati" @bind-Value:after="MarkDirty" Label="Luoghi visitati" Variant="Variant.Outlined" Lines="2"
                           HelperText="Principali luoghi visitati, separati da virgola. Es: Barbagia, Supramonte, Gennargentu, Ogliastra." />
         </MudItem>
 
@@ -43,7 +43,7 @@ else
                 <MudText Typo="Typo.subtitle2">Descrizione</MudText>
                 <FieldHelp Title="Descrizione" Text="Descrizione dettagliata del Tour/Viaggio." />
             </div>
-            <div style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" style="height:200px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edDescrizione" Placeholder="Descrizione del tour per il sito...">
                     <ToolbarContent>@ToolbarStandard</ToolbarContent>
                 </BlazoredTextEditor>
@@ -53,7 +53,7 @@ else
         <!-- SEZIONI INFORMATIVE (RichText) -->
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Pernottamento</MudText>
-            <div style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edPernottamento" Placeholder="Info pernottamento...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -61,7 +61,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Pasti</MudText>
-            <div style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edPasti" Placeholder="Info pasti...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -69,7 +69,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Equipaggiamento</MudText>
-            <div style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edEquipaggiamento" Placeholder="Info equipaggiamento...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -77,7 +77,7 @@ else
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Altre informazioni</MudText>
-            <div style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+            <div @oninput="MarkDirty" style="height:140px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
                 <BlazoredTextEditor @ref="_edAltre" Placeholder="Altre info utili...">
                     <ToolbarContent>@ToolbarCompatta</ToolbarContent>
                 </BlazoredTextEditor>
@@ -95,7 +95,7 @@ else
                 <FieldHelp Title="Indirizzo web"
                            Text="È l'indirizzo della pagina sul sito. Tienilo corto e semplice, tutto minuscolo, parole separate da trattini (es. tour-dune-gallura). ⚠️ Dopo la pubblicazione non cambiarlo: il vecchio link smetterebbe di funzionare." />
             </div>
-            <MudTextField @bind-Value="_model.Slug" Variant="Variant.Outlined"
+            <MudTextField @bind-Value="_model.Slug" @bind-Value:after="MarkDirty" Variant="Variant.Outlined"
                           MaxLength="160" Required="true" RequiredError="L'indirizzo web è obbligatorio"
                           HelperText="Minuscolo, senza spazi (es. dalle-dune-alla-gallura). Non cambiarlo dopo la pubblicazione."
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Autorenew"
@@ -107,7 +107,7 @@ else
                 <FieldHelp Title="Meta title"
                            Text="Il titolo che Google mostra nei risultati di ricerca e nella scheda del browser. Tienilo entro ~60 caratteri, con le parole più importanti all'inizio. Se lo lasci vuoto verrà usato il titolo del tour." />
             </div>
-            <MudTextField @bind-Value="_model.MetaTitle" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri."
+            <MudTextField @bind-Value="_model.MetaTitle" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri."
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
                           OnAdornmentClick="SuggerisciMetaTitle" AdornmentAriaLabel="Suggerisci meta title" />
         </MudItem>
@@ -117,7 +117,7 @@ else
                 <FieldHelp Title="Meta description"
                            Text="La breve frase che appare sotto il titolo nei risultati di Google: serve a invogliare il clic. Circa 150 caratteri, invitante e chiara." />
             </div>
-            <MudTextField @bind-Value="_model.MetaDescription" Variant="Variant.Outlined"
+            <MudTextField @bind-Value="_model.MetaDescription" @bind-Value:after="MarkDirty" Variant="Variant.Outlined"
                           Lines="2" MaxLength="320" Counter="320" HelperText="~150 caratteri."
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
                           OnAdornmentClick="SuggerisciMetaDescription" AdornmentAriaLabel="Suggerisci meta description" />
@@ -129,7 +129,7 @@ else
             <MudText Typo="Typo.subtitle1">Pubblicazione</MudText>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" Label="Stato" Variant="Variant.Outlined">
+            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" @bind-Value:after="MarkDirty" Label="Stato" Variant="Variant.Outlined">
                 <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
                 <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
                 <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
@@ -141,7 +141,7 @@ else
                 <FieldHelp Title="Ordine sul sito"
                            Text="Decide in che ordine appaiono i tour nell'elenco del sito. Numeri più bassi vanno prima. Lascia 0 se non ti interessa; usa 1, 2, 3… per mettere alcuni tour in cima." />
             </div>
-            <MudNumericField T="int" @bind-Value="_model.Ordine" Variant="Variant.Outlined" Min="0" HelperText="Più basso = più in alto nell'elenco." />
+            <MudNumericField T="int" @bind-Value="_model.Ordine" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" Min="0" HelperText="Più basso = più in alto nell'elenco." />
         </MudItem>
         <MudItem xs="6" sm="4">
             <div class="d-flex align-center">
@@ -170,11 +170,14 @@ else
     [Parameter, EditorRequired] public int AziendaId { get; set; }
     /// <summary>Titolo del viaggio (descrizione breve), usato per suggerire lo slug.</summary>
     [Parameter] public string? DescrizioneBreve { get; set; }
+    /// <summary>Notifica al parent (WebEdizioniManager) che ci sono modifiche non salvate in questa scheda.</summary>
+    [Parameter] public EventCallback<bool> HasUnsavedChangesChanged { get; set; }
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
     private bool _saving;
     private bool _htmlLoaded;
+    private bool _dirty;
 
     private BlazoredTextEditor _edDescrizione = default!;
     private BlazoredTextEditor _edPernottamento = default!;
@@ -282,19 +285,30 @@ else
         }
     }
 
-    private void GeneraSlug()
+    /// <summary>Segnala al parent che ci sono modifiche non salvate (una tantum: notifica solo al primo cambiamento).</summary>
+    private Task MarkDirty()
+    {
+        if (_dirty) return Task.CompletedTask;
+        _dirty = true;
+        return HasUnsavedChangesChanged.InvokeAsync(true);
+    }
+
+    private async Task GeneraSlug()
     {
         _model.Slug = Slugify(DescrizioneBreve);
+        await MarkDirty();
     }
 
-    private void SuggerisciMetaTitle()
+    private async Task SuggerisciMetaTitle()
     {
         _model.MetaTitle = Troncatura(DescrizioneBreve, 60);
+        await MarkDirty();
     }
 
-    private void SuggerisciMetaDescription()
+    private async Task SuggerisciMetaDescription()
     {
         _model.MetaDescription = Troncatura(StripHtml(_model.DescrizioneHtml) ?? _model.Sottotitolo, 155);
+        await MarkDirty();
     }
 
     /// <summary>Rimuove i tag HTML, decodifica le entità e comprime gli spazi multipli.</summary>
@@ -345,7 +359,14 @@ else
         return stripped.Length == 0 ? null : html;
     }
 
-    private async Task Salva()
+    /// <summary>Salva solo se ci sono modifiche non salvate. Usato dal guard "modifiche non salvate" del parent.</summary>
+    public async Task<bool> SaveIfDirtyAsync()
+    {
+        if (!_dirty) return true;
+        return await Salva();
+    }
+
+    private async Task<bool> Salva()
     {
       try
       {
@@ -361,7 +382,7 @@ else
         catch (Exception ex)
         {
             Snackbar.Add($"Errore lettura editor: {ex.Message}", Severity.Error);
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(_model.Slug))
@@ -372,7 +393,7 @@ else
         if (string.IsNullOrWhiteSpace(_model.Slug))
         {
             Snackbar.Add("Inserire un indirizzo web valido.", Severity.Warning);
-            return;
+            return false;
         }
 
         // Prima pubblicazione: valorizza data_pubblicazione al primo passaggio a 'pubblicato'
@@ -386,10 +407,14 @@ else
         {
             _model = await ContenutiService.UpdateAsync(_model);
             Snackbar.Add("Contenuti web salvati con successo", Severity.Success);
+            _dirty = false;
+            await HasUnsavedChangesChanged.InvokeAsync(false);
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -400,6 +425,7 @@ else
       {
           _saving = false;
           Snackbar.Add($"Errore imprevisto nel salvataggio: {exOuter.Message}", Severity.Error);
+          return false;
       }
     }
 }

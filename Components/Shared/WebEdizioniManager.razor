@@ -75,9 +75,10 @@ else
     else
     {
         <div @key="_selected.ContenutoId">
-            <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="py-3 pl-3 pr-6">
+            <MudTabs ActivePanelIndex="@_activeSubTabIndex" ActivePanelIndexChanged="OnSubTabChanged" Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="py-3 pl-3 pr-6">
                 <MudTabPanel Text="Contenuti" Icon="@Icons.Material.Filled.Article">
-                    <WebTourContenutiTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve" />
+                    <WebTourContenutiTab @ref="_contenutiTab" ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve"
+                                          HasUnsavedChangesChanged="OnContenutiDirtyChanged" />
                 </MudTabPanel>
                 <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route">
                     <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" />
@@ -100,6 +101,8 @@ else
     [Parameter, EditorRequired] public int ViaggioId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
     [Parameter] public string? DescrizioneBreve { get; set; }
+    /// <summary>Bubbla al parent (AnaViaggiDialog) lo stato "modifiche non salvate" della scheda Contenuti.</summary>
+    [Parameter] public EventCallback<bool> HasUnsavedChangesChanged { get; set; }
 
     private List<EdizioneViaggio> _edizioni = new();
     private EdizioneViaggio? _selected;
@@ -107,6 +110,9 @@ else
     private long? _cloneSourceId;
     private bool _loading = true;
     private bool _busy;
+    private int _activeSubTabIndex;
+    private bool _dirty;
+    private WebTourContenutiTab? _contenutiTab;
 
     private IEnumerable<EdizioneViaggio> _edizioniConContenuto => _edizioni.Where(e => e.HaContenuto);
 
@@ -128,11 +134,61 @@ else
         }
     }
 
-    private void OnEdizioneChanged(int dataId)
+    private async Task OnEdizioneChanged(int dataId)
     {
+        if (dataId == _selectedDataId) return;
+
+        if (_dirty && !await ConfirmDiscardOrSaveAsync())
+        {
+            StateHasChanged(); // ripristina la selezione precedente nel MudSelect
+            return;
+        }
+
         _selectedDataId = dataId;
         _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == dataId);
         _cloneSourceId = null;
+    }
+
+    /// <summary>Guard cambio sotto-tab (Contenuti/Itinerario/Galleria/Mappa/Traduzioni) con modifiche non salvate.</summary>
+    private async Task OnSubTabChanged(int index)
+    {
+        var previousIndex = _activeSubTabIndex;
+        _activeSubTabIndex = index;
+
+        if (previousIndex != index && _dirty)
+        {
+            if (!await ConfirmDiscardOrSaveAsync())
+            {
+                _activeSubTabIndex = previousIndex; // annulla il cambio tab
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task OnContenutiDirtyChanged(bool dirty)
+    {
+        _dirty = dirty;
+        await HasUnsavedChangesChanged.InvokeAsync(dirty);
+    }
+
+    /// <summary>Salva la scheda Contenuti se ha modifiche non salvate. Usato dal guard del dialog padre (Chiudi).</summary>
+    public async Task<bool> SaveActiveIfDirtyAsync()
+    {
+        if (_contenutiTab == null) return true;
+        return await _contenutiTab.SaveIfDirtyAsync();
+    }
+
+    /// <summary>Modifiche non salvate: chiede Salva/Scarta/Annulla. Ritorna true se si può procedere (salvato o scartato).</summary>
+    private async Task<bool> ConfirmDiscardOrSaveAsync()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Modifiche non salvate",
+            "Ci sono modifiche non salvate nei Contenuti. Vuoi salvarle prima di continuare?",
+            yesText: "Salva", noText: "Scarta", cancelText: "Annulla");
+
+        if (result == null) return false; // Annulla: resta dove sei
+        if (result == true) return await SaveActiveIfDirtyAsync(); // Salva: procedi solo se il salvataggio riesce
+        return true; // Scarta: procedi perdendo le modifiche
     }
 
     private async Task Crea()

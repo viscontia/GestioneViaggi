@@ -214,26 +214,34 @@
                 @if (IsEditMode)
                 {
                     <MudTabPanel Text="Contenuti Web" Icon="@Icons.Material.Filled.Language">
-                        <WebEdizioniManager ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
-                                            DescrizioneBreve="@Entity.DescrizioneBreve" />
+                        <WebEdizioniManager @ref="_webEdizioniManager" ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
+                                            DescrizioneBreve="@Entity.DescrizioneBreve"
+                                            HasUnsavedChangesChanged="OnContentDirtyChanged" />
                     </MudTabPanel>
                 }
              </MudTabs>
         </MudContainer>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@_isSaving">
-            @if (_isSaving)
-            {
-                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                <MudText Class="ms-2">Salvataggio...</MudText>
-            }
-            else
-            {
-                <MudText>Salva</MudText>
-            }
-        </MudButton>
+        @if (IsContenutiWebTabActive)
+        {
+            <MudButton OnClick="CloseFromContentTab">Chiudi</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="Cancel">Annulla</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@_isSaving">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Salvataggio...</MudText>
+                }
+                else
+                {
+                    <MudText>Salva</MudText>
+                }
+            </MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -252,6 +260,10 @@
 
     private MudTabs _tabs = default!;
     private int _activeTabIndex = 0;
+    private const int ContenutiWebTabIndex = 2; // Dati Generali=0, Date e Costi=1, Contenuti Web=2 (solo IsEditMode)
+    private bool IsContenutiWebTabActive => IsEditMode && _activeTabIndex == ContenutiWebTabIndex;
+    private WebEdizioniManager? _webEdizioniManager;
+    private bool _contentTabDirty;
 
     [Parameter] public int AziendaFk { get; set; } // Current Session AziendaId
 
@@ -572,7 +584,19 @@
 
     private async Task OnTabChanged(int index)
     {
+        var previousIndex = _activeTabIndex;
         _activeTabIndex = index;
+
+        // Guard: si lascia il tab Contenuti Web con modifiche non salvate nella scheda attiva.
+        if (previousIndex == ContenutiWebTabIndex && index != ContenutiWebTabIndex && _contentTabDirty)
+        {
+            if (!await ConfirmDiscardOrSaveContentAsync())
+            {
+                _activeTabIndex = previousIndex; // annulla il cambio tab
+                StateHasChanged();
+                return;
+            }
+        }
 
         // Auto-open Add Date Dialog if:
         // 1. We switch to Dates Tab (Index 1)
@@ -582,12 +606,37 @@
         if (index == 1 && !IsEditMode && _dates.Count == 0 && _datesManager != null)
         {
              // Give UI a moment to render the tab content
-             await Task.Delay(100); 
+             await Task.Delay(100);
              if (_datesManager != null)
              {
                  await _datesManager.AddDate();
              }
         }
+    }
+
+    private void OnContentDirtyChanged(bool dirty) => _contentTabDirty = dirty;
+
+    /// <summary>Modifiche non salvate nei Contenuti Web: chiede Salva/Scarta/Annulla. True se si può procedere.</summary>
+    private async Task<bool> ConfirmDiscardOrSaveContentAsync()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Modifiche non salvate",
+            "Ci sono modifiche non salvate nei Contenuti Web. Vuoi salvarle prima di continuare?",
+            yesText: "Salva", noText: "Scarta", cancelText: "Annulla");
+
+        if (result == null) return false; // Annulla: resta nel tab Contenuti Web
+        if (result == true) return _webEdizioniManager != null && await _webEdizioniManager.SaveActiveIfDirtyAsync();
+        return true; // Scarta: procedi perdendo le modifiche
+    }
+
+    /// <summary>Uscita esplicita dal tab Contenuti Web (footer "Chiudi"): niente Salva-viaggio in competizione.</summary>
+    private async Task CloseFromContentTab()
+    {
+        if (_contentTabDirty && !await ConfirmDiscardOrSaveContentAsync())
+        {
+            return;
+        }
+        Cancel();
     }
 
     private void HandleTripDeleted()
