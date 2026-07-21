@@ -31,7 +31,7 @@ else
     var copertina = _immagini.FirstOrDefault(i => i.Tipo == "principale");
     var altre = _immagini.Where(i => i.Tipo != "principale").ToList();
 
-    RenderFragment<WebTourImmagine> CardTemplate = img =>
+    RenderFragment<WebTourImmagine> CardTemplateDettaglio = img =>
     @<MudPaper Elevation="@(img.Tipo == "principale" ? 4 : 2)" Class="@CardClass(img)">
         <div class="thumb-wrap">
             <img src="@img.Url" alt="@img.AltText" class="thumb" loading="lazy" />
@@ -42,9 +42,9 @@ else
         </div>
         <div class="pa-2">
             <MudTextField T="string" @bind-Value="img.Titolo" @bind-Value:after="@(() => SaveCampi(img))"
-                          Label="Titolo" Variant="Variant.Text" Margin="Margin.Dense" FullWidth="true" Class="mb-1" />
+                          Label="Titolo" Placeholder="Tooltip al passaggio del mouse" Variant="Variant.Text" Margin="Margin.Dense" FullWidth="true" Class="mb-1" />
             <MudTextField T="string" @bind-Value="img.AltText" @bind-Value:after="@(() => SaveCampi(img))"
-                          Label="Testo alternativo" Variant="Variant.Text" Margin="Margin.Dense" FullWidth="true" Class="mb-2" />
+                          Label="Testo alternativo" Placeholder="Per screen reader / SEO / fallback" Variant="Variant.Text" Margin="Margin.Dense" FullWidth="true" Class="mb-2" />
             <div class="d-flex justify-space-between">
                 <MudTooltip Text="Imposta come copertina">
                     <MudIconButton Icon="@(img.Tipo == "principale" ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarBorder)"
@@ -57,6 +57,32 @@ else
             </div>
         </div>
     </MudPaper>;
+
+    RenderFragment<WebTourImmagine> CardTemplateGriglia = img =>
+    @<MudPaper Elevation="2" Class="img-card img-card-mini">
+        <div class="thumb-wrap">
+            <img src="@img.Url" alt="@img.AltText" class="thumb" loading="lazy" />
+            @if (img.Tipo == "principale")
+            {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Star" Class="badge-cover">COPERTINA</MudChip>
+            }
+        </div>
+        <div class="d-flex justify-space-between pa-1">
+            <MudTooltip Text="Imposta come copertina">
+                <MudIconButton Icon="@(img.Tipo == "principale" ? Icons.Material.Filled.Star : Icons.Material.Outlined.StarBorder)"
+                               Color="@(img.Tipo == "principale" ? Color.Primary : Color.Default)" Size="Size.Small"
+                               OnClick="@(() => SetPrincipale(img))" />
+            </MudTooltip>
+            <MudTooltip Text="Elimina">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteImmagine(img))" />
+            </MudTooltip>
+        </div>
+    </MudPaper>;
+
+    <MudButtonGroup Class="mb-3" Color="Color.Primary">
+        <MudButton Variant="@(!_vistaGriglia ? Variant.Filled : Variant.Outlined)" StartIcon="@Icons.Material.Filled.ViewAgenda" OnClick="@(() => _vistaGriglia = false)">Dettaglio</MudButton>
+        <MudButton Variant="@(_vistaGriglia ? Variant.Filled : Variant.Outlined)" StartIcon="@Icons.Material.Filled.GridView" OnClick="@(() => _vistaGriglia = true)">Griglia</MudButton>
+    </MudButtonGroup>
 
     <div class="d-flex align-center gap-3 mb-3">
         <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept="image/*" AppendMultipleFiles="true"
@@ -76,12 +102,24 @@ else
             <MudText Color="Color.Secondary">Nessuna immagine. Carica le foto del tour.</MudText>
         </MudPaper>
     }
+    else if (_vistaGriglia)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            In vista Griglia i campi Titolo e Testo alternativo non sono modificabili. Passa alla vista <strong>Dettaglio</strong> per modificarli.
+        </MudAlert>
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var img in _immagini)
+            {
+                @CardTemplateGriglia(img)
+            }
+        </div>
+    }
     else
     {
         if (copertina != null)
         {
             <div class="mb-4">
-                @CardTemplate(copertina)
+                @CardTemplateDettaglio(copertina)
             </div>
         }
         else
@@ -93,9 +131,22 @@ else
         <div class="d-flex flex-wrap gap-3">
             @foreach (var img in altre)
             {
-                @CardTemplate(img)
+                @CardTemplateDettaglio(img)
             }
         </div>
+
+        <MudPaper Outlined="true" Class="pa-4 mt-4">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Applica a tutte le foto</MudText>
+            <div class="d-flex gap-3 flex-wrap align-end">
+                <MudTextField T="string" @bind-Value="_masterTitolo" Label="Titolo (applica a tutte)"
+                              HelperText="Il titolo è usato come tooltip quando l'utente posiziona il mouse sopra l'immagine."
+                              Variant="Variant.Outlined" Style="min-width:280px;" />
+                <MudTextField T="string" @bind-Value="_masterAltText" Label="Testo alternativo (applica a tutte)"
+                              HelperText="Questo testo verrà usato da screen reader, motori di ricerca, oppure quando l'immagine non può essere caricata."
+                              Variant="Variant.Outlined" Style="min-width:280px;" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplicaATutte">Applica a tutte le foto</MudButton>
+            </div>
+        </MudPaper>
     }
 }
 </div>
@@ -114,6 +165,9 @@ else
     private int _uploadCurrent;
     private int _uploadTotal;
     private bool _tabSetup;
+    private bool _vistaGriglia;
+    private string? _masterTitolo;
+    private string? _masterAltText;
 
     protected override async Task OnInitializedAsync()
     {
@@ -215,6 +269,29 @@ else
     {
         try { await ImmaginiService.UpdateAsync(img); }
         catch (Exception ex) { Snackbar.Add($"Errore salvataggio: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task ApplicaATutte()
+    {
+        var titolo = _masterTitolo?.Trim();
+        var altText = _masterAltText?.Trim();
+        if (string.IsNullOrEmpty(titolo) && string.IsNullOrEmpty(altText))
+        {
+            Snackbar.Add("Compila almeno un campo.", Severity.Warning);
+            return;
+        }
+
+        if (!await ConfirmDelete("Applica a tutte le foto", $"Sovrascrivere titolo/testo alternativo di tutte le {_immagini.Count} foto?"))
+            return;
+
+        foreach (var img in _immagini)
+        {
+            if (!string.IsNullOrEmpty(titolo)) img.Titolo = titolo;
+            if (!string.IsNullOrEmpty(altText)) img.AltText = altText;
+            try { await ImmaginiService.UpdateAsync(img); }
+            catch (Exception ex) { Snackbar.Add($"Errore su una foto: {ex.Message}", Severity.Error); }
+        }
+        StateHasChanged();
     }
 
     private async Task DeleteImmagine(WebTourImmagine img)
