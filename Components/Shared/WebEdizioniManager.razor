@@ -41,7 +41,10 @@ else
             </MudChip>
             @if (_selected.HaContenuto)
             {
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Anteprima">Anteprima</MudButton>
+                <MudTooltip Text="Serve una foto di copertina per l'anteprima" Disabled="@(_stati[TabGalleria] == WebTabStato.Completo)">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Anteprima"
+                               Disabled="@(_stati[TabGalleria] != WebTabStato.Completo)">Anteprima</MudButton>
+                </MudTooltip>
             }
         }
     </div>
