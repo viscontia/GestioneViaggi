@@ -160,6 +160,7 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaRegimiFiscaliService>();
         builder.Services.AddScoped<FiscalCalculationService>();
         builder.Services.AddScoped<ApiConfigService>();
+        builder.Services.AddScoped<UserPreferenzeService>();
 
         // ==========================================================
         // ESTENSIONE WEB - SERVIZI CMS (Blocco 4)
