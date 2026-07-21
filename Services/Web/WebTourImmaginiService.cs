@@ -74,11 +74,11 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            // Ordine argomenti insert: azienda, viaggio, url, storage_path, tipo, alt, titolo, larghezza, altezza, mime, ordine
+            // Ordine argomenti insert: azienda, viaggio, url, storage_path, tipo, alt, titolo, larghezza, altezza, mime, ordine, nome_file
             const string sql = @"SELECT fn_web_tour_immagini_insert(
                 @AziendaId::integer, @WebTourContenutoIdFk::bigint, @Url::text, @StoragePath::varchar,
                 @Tipo::varchar, @AltText::varchar, @Titolo::varchar,
-                @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer)";
+                @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer, @NomeFile::varchar)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             BindWritableParams(cmd, entity);
 
@@ -104,11 +104,11 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            // Ordine argomenti update: id, azienda, viaggio, tipo, url, storage_path, alt, titolo, larghezza, altezza, mime, ordine
+            // Ordine argomenti update: id, azienda, viaggio, tipo, url, storage_path, alt, titolo, larghezza, altezza, mime, ordine, nome_file
             const string sql = @"SELECT fn_web_tour_immagini_update(
                 @Id::bigint, @AziendaId::integer, @WebTourContenutoIdFk::bigint, @Tipo::varchar,
                 @Url::text, @StoragePath::varchar, @AltText::varchar, @Titolo::varchar,
-                @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer)";
+                @Larghezza::integer, @Altezza::integer, @Mime::varchar, @Ordine::integer, @NomeFile::varchar)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("Id", entity.WebTourImmagineId);
             BindWritableParams(cmd, entity);
@@ -223,6 +223,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         cmd.Parameters.AddWithValue("Altezza", (object?)e.Altezza ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Mime", (object?)e.Mime ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Ordine", e.Ordine);
+        cmd.Parameters.AddWithValue("NomeFile", (object?)e.NomeFile ?? DBNull.Value);
     }
 
     protected override WebTourImmagine MapFromReader(NpgsqlDataReader reader)
@@ -240,6 +241,7 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
             Larghezza = ReadNullableInt(reader, "larghezza"),
             Altezza = ReadNullableInt(reader, "altezza"),
             Mime = ReadNullableString(reader, "mime"),
+            NomeFile = ReadNullableString(reader, "nome_file"),
             Ordine = ReadInt(reader, "ordine"),
             CreatedBy = ReadNullableString(reader, "created_by"),
             Created = ReadNullableDateTime(reader, "created"),

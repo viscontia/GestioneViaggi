@@ -18,6 +18,8 @@ public class WebTourImmagine : BaseEntity
     public string StoragePath { get; set; } = string.Empty;
     public string? AltText { get; set; }
     public string? Titolo { get; set; }
+    /// <summary>Nome originale del file caricato (dedup upload: evita di ricaricare la stessa foto).</summary>
+    public string? NomeFile { get; set; }
     public int? Larghezza { get; set; }
     public int? Altezza { get; set; }
     public string? Mime { get; set; }
