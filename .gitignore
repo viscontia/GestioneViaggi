@@ -494,3 +494,6 @@ GPX/
 
 # Master key cifratura segreti (GV_SECRET_KEY) - MAI committare
 .gv_secret_key.local.sh
+
+# Foto di test della galleria web - non versionare (solo test data locale) + escluse da graphify
+Gallerie Foto Web/
