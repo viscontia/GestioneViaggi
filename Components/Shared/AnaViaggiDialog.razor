@@ -225,9 +225,7 @@
     <DialogActions>
         @if (IsContenutiWebTabActive)
         {
-            <MudText Typo="Typo.caption" Class="mud-text-secondary me-2 align-self-center">
-                Continua pure a lavorare sui contenuti passando tra le schede. Per chiudere il viaggio usa la ✕ in alto a destra.
-            </MudText>
+            <MudButton OnClick="CloseFromContentTab">Chiudi</MudButton>
         }
         else
         {
@@ -632,13 +630,11 @@
     }
 
     /// <summary>Uscita esplicita dal tab Contenuti Web (footer "Chiudi"): niente Salva-viaggio in competizione.</summary>
-    private async Task CloseFromContentTab()
+    private void CloseFromContentTab()
     {
-        if (_contentTabDirty && !await ConfirmDiscardOrSaveContentAsync())
-        {
-            return;
-        }
-        Cancel();
+        // "Chiudi" NON esce dal viaggio: riporta alla sotto-scheda Contenuti restando nel dialog.
+        // Per uscire dal viaggio si usa la X in alto a destra.
+        _webEdizioniManager?.GoToContenuti();
     }
 
     private void HandleTripDeleted()

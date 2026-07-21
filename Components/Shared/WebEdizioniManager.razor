@@ -207,6 +207,13 @@ else
     }
 
     /// <summary>Salva la scheda Contenuti se ha modifiche non salvate. Usato dal guard del dialog padre (Chiudi).</summary>
+    /// <summary>Riporta alla sotto-scheda "Contenuti" (indice 0) restando nel manager. Usato dal pulsante "Chiudi" del dialog viaggio.</summary>
+    public void GoToContenuti()
+    {
+        _activeSubTabIndex = 0;
+        StateHasChanged();
+    }
+
     public async Task<bool> SaveActiveIfDirtyAsync()
     {
         if (_contenutiTab == null) return true;
