@@ -26,16 +26,22 @@
     .galleria-tab .img-card-row { width: 100%; overflow: hidden; }
     .galleria-tab .thumb-wrap { position: relative; }
     .galleria-tab .thumb-wrap-row { position: relative; flex: 0 0 auto; }
-    .galleria-tab .thumb { width: 100%; height: 120px; object-fit: cover; display: block; background: var(--mud-palette-background-grey); }
-    .galleria-tab .img-card-cover .thumb { height: 240px; }
+    .galleria-tab .thumb { width: 100%; height: 120px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
+    .galleria-tab .img-card-cover .thumb { height: auto; max-height: 300px; }
     .galleria-tab .img-card-mini .thumb { height: 90px; }
-    .galleria-tab .thumb-row { width: 240px; height: 190px; object-fit: cover; display: block; background: var(--mud-palette-background-grey); }
+    .galleria-tab .thumb-row { width: 280px; height: auto; max-height: 340px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
     .galleria-tab .badge-cover { position: absolute; top: 8px; left: 8px; font-weight: 700; }
 </style>
 <MudOverlay Visible="_uploading" DarkBackground="true" ZIndex="2000">
     <MudPaper Class="pa-6 d-flex flex-column align-center gap-3" Elevation="4">
         <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
         <MudText Typo="Typo.body1">Caricamento foto @_uploadCurrent di @_uploadTotal…</MudText>
+    </MudPaper>
+</MudOverlay>
+<MudOverlay Visible="_busy" DarkBackground="true" ZIndex="2000">
+    <MudPaper Class="pa-6 d-flex flex-column align-center gap-3" Elevation="4">
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.body1">Attendere…</MudText>
     </MudPaper>
 </MudOverlay>
 
@@ -122,7 +128,7 @@ else
     </MudButtonGroup>
 
     <div class="d-flex align-center gap-3 mb-3">
-        <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept="image/*" AppendMultipleFiles="true"
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="_fileUpload" Accept="image/*" AppendMultipleFiles="false"
                        MaximumFileCount="30" MaxFileSize="20971520" FilesChanged="OnFilesSelected" Disabled="@_uploading">
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="@_uploading">
@@ -213,8 +219,10 @@ else
     private int _uploadTotal;
     private bool _tabSetup;
     private bool _vistaGriglia;
+    private bool _busy;
     private string? _masterTitolo;
     private string? _masterAltText;
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,6 +261,8 @@ else
         _uploading = true;
         _uploadTotal = files.Count;
         _uploadCurrent = 0;
+        var saltate = new List<string>();
+        var errori = new List<string>();
         try
         {
             for (int i = 0; i < files.Count; i++)
@@ -265,7 +275,7 @@ else
                 var nomeFile = file.Name?.Trim() ?? string.Empty;
                 if (_immagini.Any(x => string.Equals((x.NomeFile ?? string.Empty).Trim(), nomeFile, StringComparison.OrdinalIgnoreCase)))
                 {
-                    Snackbar.Add($"Foto '{file.Name}' già presente: saltata.", Severity.Warning);
+                    saltate.Add(nomeFile);
                     continue;
                 }
 
@@ -294,29 +304,45 @@ else
                 }
                 catch (Exception ex)
                 {
-                    Snackbar.Add($"Errore su '{file.Name}': {ex.Message}", Severity.Error);
+                    errori.Add($"{file.Name}: {ex.Message}");
                 }
             }
             await NotifyStatoAsync();
             StateHasChanged();
+
+            if (saltate.Count > 0)
+            {
+                var elenco = string.Join(", ", saltate.Take(5));
+                if (saltate.Count > 5) elenco += $" e altre {saltate.Count - 5}";
+                Snackbar.Add($"Saltate {saltate.Count} foto già presenti: {elenco}.", Severity.Warning);
+            }
+            if (errori.Count > 0)
+            {
+                var elenco = string.Join("; ", errori.Take(5));
+                if (errori.Count > 5) elenco += $"; e altri {errori.Count - 5} errori";
+                Snackbar.Add($"Errore su {errori.Count} foto: {elenco}", Severity.Error);
+            }
         }
         finally
         {
             _uploading = false;
+            try { if (_fileUpload != null) await _fileUpload.ClearAsync(); } catch { /* ignore */ }
         }
     }
 
     private async Task SetPrincipale(WebTourImmagine img)
     {
+        _busy = true;
+        StateHasChanged();
         try
         {
             await ImmaginiService.SetPrincipaleAsync(img.WebTourImmagineId, AziendaId, ContenutoId);
             foreach (var i in _immagini) i.Tipo = "galleria";
             img.Tipo = "principale";
             await NotifyStatoAsync();
-            StateHasChanged();
         }
         catch (Exception ex) { Snackbar.Add($"Errore copertina: {ex.Message}", Severity.Error); await ReloadAsync(); }
+        finally { _busy = false; }
     }
 
     private async Task SaveCampi(WebTourImmagine img)
@@ -335,8 +361,15 @@ else
             return;
         }
 
-        if (!await ConfirmDelete("Applica a tutte le foto", $"Sovrascrivere titolo/testo alternativo di tutte le {_immagini.Count} foto?"))
-            return;
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, "Applica a tutte" },
+            { x => x.ContentText, $"Sovrascrivere titolo/testo alternativo di tutte le {_immagini.Count} foto?" },
+            { x => x.ButtonText, "Applica" },
+            { x => x.Color, Color.Primary }
+        };
+        var confirmDialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Applica a tutte", parameters, new DialogOptions { BackdropClick = false });
+        if ((await confirmDialog.Result)!.Canceled) return;
 
         foreach (var img in _immagini)
         {
@@ -351,6 +384,8 @@ else
     private async Task DeleteImmagine(WebTourImmagine img)
     {
         if (!await ConfirmDelete("Elimina immagine", "Eliminare questa immagine?")) return;
+        _busy = true;
+        StateHasChanged();
         try
         {
             await ImmaginiService.DeleteAsync(img.WebTourImmagineId, AziendaId);
@@ -362,6 +397,7 @@ else
             await NotifyStatoAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error); await ReloadAsync(); }
+        finally { _busy = false; }
     }
 
     private async Task<bool> ConfirmDelete(string title, string message)
