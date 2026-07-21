@@ -116,6 +116,10 @@ Serve come **segreto HMAC** per il link di disiscrizione newsletter (`Newsletter
 ### 2.4 — Supabase Storage (immagini WebP, mappe GPX)
 Blocco 7 (immagini tour, WebP) e Blocco 9 (mappe da GPX) salvano su **Supabase Storage**. In PROD devono esistere i **bucket** corrispondenti con le policy corrette. La `Service Key` Supabase va configurata lato app (NON committata). Verificare bucket + permessi prima di caricare media.
 
+**⚠️ Due punti emersi in test (2026-07-21) — NON dimenticare:**
+- [ ] **Creare il bucket `tour-media` (PUBBLICO)** nel progetto Supabase PROD. Nel progetto di test i bucket erano **azzerati** (`GET /storage/v1/bucket` → `[]`): è stato creato `tour-media-dev` (pubblico) il 2026-07-21. Il bucket dev'essere **public** perché l'URL pubblico usa `…/object/public/<bucket>/…` (`SupabaseMediaStorage.BuildPublicUrl`). Il nome bucket è per-ambiente in `appsettings` (`WebMediaStorage:Bucket`): dev = `tour-media-dev`, prod = `tour-media`.
+- [ ] **Formato chiave Storage.** Se si usa una **nuova chiave Supabase `sb_secret_…`** (non-JWT), DEVE essere passata nell'header **`apikey`** (il solo `Authorization: Bearer` dà `400 Invalid Compact JWS`). Già gestito nel codice: `SupabaseMediaStorage` invia `apikey` + `Bearer`. La vecchia `service_role` (JWT `eyJ…`) funziona con entrambi. Ricorda comunque il debito go-live: la ServiceKey NON deve restare nel binario MAUI (estraibile) → chiave scoped al bucket o upload server-side.
+
 ### 2.5 — Backfill `ana_clienti.cliente_lingua` (465)
 Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_comune(...), 'IT') WHERE cliente_lingua IS NULL`. **Va eseguito sui clienti reali di PROD** (in locale ha popolato 740 clienti Docker). È **idempotente** (`WHERE cliente_lingua IS NULL`). Vedi [[prod-backfill-cliente-lingua]]. Dopo il backfill, verificare la distribuzione lingue prima del primo invio newsletter.
 
