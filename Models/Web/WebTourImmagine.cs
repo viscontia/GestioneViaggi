@@ -29,4 +29,11 @@ public class WebTourImmagine : BaseEntity
     public DateTime? Created { get; set; }
     public string? UpdatedBy { get; set; }
     public DateTime? Updated { get; set; }
+
+    /// <summary>
+    /// Transiente (non persistita, non mappata da nessuna function DB): true se lo storage_path
+    /// risulta usato in un passaggio dell'itinerario (fn_web_immagini_in_uso). Valorizzata lato UI
+    /// dopo il caricamento per disabilitare il pulsante "Elimina".
+    /// </summary>
+    public bool InUso { get; set; }
 }

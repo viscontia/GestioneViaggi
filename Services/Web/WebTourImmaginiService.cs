@@ -48,6 +48,36 @@ public class WebTourImmaginiService : BaseCrudService<WebTourImmagine>
         }
     }
 
+    /// <summary>
+    /// Storage_path delle immagini del contenuto attualmente in uso in un passaggio dell'itinerario
+    /// (fn_web_immagini_in_uso; legame debole per storage_path, nessuna FK). Usato lato UI per
+    /// disabilitare preventivamente il pulsante "Elimina" sulle foto in uso.
+    /// </summary>
+    public async Task<HashSet<string>> GetStoragePathInUsoAsync(long contenutoId, int aziendaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT storage_path FROM fn_web_immagini_in_uso(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0)) result.Add(reader.GetString(0));
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero immagini in uso per contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
     /// <summary>Recupera un'immagine per id, scopata per azienda.</summary>
     public async Task<WebTourImmagine?> GetByIdAsync(long id, int aziendaId)
     {
