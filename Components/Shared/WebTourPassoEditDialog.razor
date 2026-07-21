@@ -1,8 +1,10 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.CRUD
 @using Blazored.TextEditor
 @using MudBlazor
 @inject WebTourImmaginiService ImmaginiService
+@inject UserPreferenzeService Prefs
 
 @* Editor di un passo dell'itinerario (Blocco 6, + picker immagine Blocco 7). Quill on-demand.
    ECCEZIONE UI: testo e didascalia NON in maiuscolo forzato (destinati al sito). *@
@@ -37,14 +39,23 @@
         </div>
 
         <!-- Immagine dalla galleria (Blocco 7) -->
-        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Immagine (dalla galleria del viaggio)</MudText>
+        <div class="d-flex justify-space-between align-center flex-wrap mt-4 mb-1">
+            <MudText Typo="Typo.subtitle2">Immagine (dalla galleria del viaggio)</MudText>
+            @if (_galleria.Count > 0)
+            {
+                <div class="d-flex align-center gap-2" style="min-width:220px; max-width:300px;">
+                    <MudText Typo="Typo.caption" Style="white-space:nowrap;">Dimensione miniature</MudText>
+                    <MudSlider T="int" Min="96" Max="240" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
+                </div>
+            }
+        </div>
         @if (_galleria.Count == 0)
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna immagine in galleria. Caricane dal tab "Galleria".</MudText>
         }
         else
         {
-            <div class="d-flex flex-wrap gap-2" style="max-height:150px; overflow-y:auto;">
+            <div class="d-flex flex-wrap gap-2" style="max-height:@(MaxPickerHeight)px; overflow-y:auto;">
                 <MudPaper Elevation="@(_selectedStoragePath is null ? 4 : 0)" Class="pa-1 d-flex align-center justify-center"
                           Style="@ThumbStyle(null)" @onclick="@(() => Select(null))">
                     <MudText Typo="Typo.caption">Nessuna</MudText>
@@ -87,6 +98,11 @@
     private string? _selectedStoragePath;
     private string? _selectedUrl;
 
+    /// <summary>Chiave preferenza utente "nascosta" (sys_utente_preferenze), condivisa con WebTourGalleriaTab.</summary>
+    private const string ThumbSizePrefKey = "galleria.thumb_size";
+    private int _thumbSize = 120;
+    private int MaxPickerHeight => _thumbSize + 60;
+
     protected override async Task OnInitializedAsync()
     {
         _didascalia = Passo.ImmagineDidascalia;
@@ -94,6 +110,18 @@
         _selectedUrl = Passo.ImmagineUrl;
         try { _galleria = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId); }
         catch { _galleria = new(); }
+
+        var pref = await Prefs.GetAsync(ThumbSizePrefKey);
+        if (int.TryParse(pref, out var savedThumbSize))
+        {
+            _thumbSize = Math.Clamp(savedThumbSize, 96, 240);
+        }
+    }
+
+    private async Task OnThumbSizeChanged(int value)
+    {
+        _thumbSize = value;
+        await Prefs.SetAsync(ThumbSizePrefKey, value.ToString());
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -125,7 +153,8 @@
     {
         var selected = _selectedStoragePath == storagePath;
         var border = selected ? "2px solid var(--mud-palette-primary)" : "1px solid var(--mud-palette-lines-default)";
-        return $"width:96px;height:72px;overflow:hidden;cursor:pointer;border:{border};border-radius:4px;";
+        var height = (int)Math.Round(_thumbSize * 0.75);
+        return $"width:{_thumbSize}px;height:{height}px;overflow:hidden;cursor:pointer;border:{border};border-radius:4px;";
     }
 
     private async Task Salva()
