@@ -59,7 +59,7 @@ else
     </MudPaper>;
 
     RenderFragment<WebTourImmagine> CardTemplateGriglia = img =>
-    @<MudPaper Elevation="2" Class="img-card img-card-mini">
+    @<MudPaper Elevation="2" Class="img-card img-card-mini" Style="width:120px;">
         <div class="thumb-wrap">
             <img src="@img.Url" alt="@img.AltText" class="thumb" loading="lazy" />
             @if (img.Tipo == "principale")
@@ -107,8 +107,8 @@ else
         <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
             In vista Griglia i campi Titolo e Testo alternativo non sono modificabili. Passa alla vista <strong>Dettaglio</strong> per modificarli.
         </MudAlert>
-        <div class="d-flex flex-wrap gap-3">
-            @foreach (var img in _immagini)
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, 130px); gap:12px; justify-content:start;">
+            @foreach (var img in _immagini.OrderByDescending(i => i.Tipo == "principale"))
             {
                 @CardTemplateGriglia(img)
             }
