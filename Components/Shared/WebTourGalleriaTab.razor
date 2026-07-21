@@ -15,6 +15,18 @@
    salvataggio automatico all'uscita dal campo. storage_path = verità, URL ricomposto. *@
 
 <div class="galleria-tab">
+<style>
+    /* Stili GLOBALI (non scoped): le card sono rese da RenderFragment-field e lo scoped CSS
+       (::deep) non le raggiunge. Prefissati .galleria-tab per non collidere con altri componenti. */
+    .galleria-tab .img-card { width: 180px; overflow: hidden; }
+    .galleria-tab .img-card-cover { width: 360px; outline: 3px solid var(--mud-palette-primary); outline-offset: -3px; }
+    .galleria-tab .img-card-mini { width: 120px; }
+    .galleria-tab .thumb-wrap { position: relative; }
+    .galleria-tab .thumb { width: 100%; height: 120px; object-fit: cover; display: block; background: var(--mud-palette-background-grey); }
+    .galleria-tab .img-card-cover .thumb { height: 240px; }
+    .galleria-tab .img-card-mini .thumb { height: 90px; }
+    .galleria-tab .badge-cover { position: absolute; top: 8px; left: 8px; font-weight: 700; }
+</style>
 <MudOverlay Visible="_uploading" DarkBackground="true" ZIndex="2000">
     <MudPaper Class="pa-6 d-flex flex-column align-center gap-3" Elevation="4">
         <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
