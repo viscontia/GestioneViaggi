@@ -82,13 +82,13 @@ else
                                           StatoChanged="@(s => OnStatoChanged(TabContenuti, s))"
                                           GetTabNonCompletiAltri="@(() => (IReadOnlyList<string>)TabNonCompleti.Where(t => t != TabContenuti).ToList())" />
                 </MudTabPanel>
-                <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route" IconColor="@GetTabColor(TabItinerario)">
-                    <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
-                                           StatoChanged="@(s => OnStatoChanged(TabItinerario, s))" />
-                </MudTabPanel>
                 <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary" IconColor="@GetTabColor(TabGalleria)">
                     <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
                                          StatoChanged="@(s => OnStatoChanged(TabGalleria, s))" />
+                </MudTabPanel>
+                <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route" IconColor="@GetTabColor(TabItinerario)">
+                    <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
+                                           StatoChanged="@(s => OnStatoChanged(TabItinerario, s))" />
                 </MudTabPanel>
                 <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map" IconColor="@GetTabColor(TabMappa)">
                     <WebTourMappaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
@@ -129,8 +129,8 @@ else
     private readonly Dictionary<string, WebTabStato> _stati = new()
     {
         [TabContenuti] = WebTabStato.Vuoto,
-        [TabItinerario] = WebTabStato.Vuoto,
         [TabGalleria] = WebTabStato.Vuoto,
+        [TabItinerario] = WebTabStato.Vuoto,
         [TabMappa] = WebTabStato.Vuoto,
         [TabTraduzioni] = WebTabStato.Vuoto
     };
