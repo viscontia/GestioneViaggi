@@ -33,6 +33,9 @@ public sealed class SupabaseMediaStorage : IWebMediaStorage
     {
         var url = $"{ApiRoot}/{_opt.Bucket}/{storagePath}";
         using var req = new HttpRequestMessage(HttpMethod.Put, url);
+        // Le nuove chiavi Supabase (sb_secret_…) NON sono JWT: vanno passate nell'header `apikey`.
+        // Solo il Bearer causava "Invalid Compact JWS" (l'API prova a decodificarla come JWT) → 400.
+        req.Headers.TryAddWithoutValidation("apikey", _opt.ServiceKey);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opt.ServiceKey);
         req.Headers.TryAddWithoutValidation("x-upsert", "true");
         req.Content = new StreamContent(content);
@@ -55,6 +58,7 @@ public sealed class SupabaseMediaStorage : IWebMediaStorage
     {
         var url = $"{ApiRoot}/{_opt.Bucket}/{storagePath}";
         using var req = new HttpRequestMessage(HttpMethod.Delete, url);
+        req.Headers.TryAddWithoutValidation("apikey", _opt.ServiceKey);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opt.ServiceKey);
 
         using var resp = await _http.SendAsync(req, ct);
