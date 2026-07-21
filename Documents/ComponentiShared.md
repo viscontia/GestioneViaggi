@@ -549,16 +549,17 @@ Dialog di modifica di un passo dell'itinerario — Blocco 6 (`Components/Shared/
 *   **Parametri**: `Passo` (required), `ViaggioId`/`AziendaId` (per caricare la galleria) — i valori sono applicati solo al Salva.
 
 ### WebTourGalleriaTab
-Scheda "Galleria" del viaggio — estensione web, Blocco 7 (`Components/Shared/WebTourGalleriaTab.razor` + `.razor.css`).
-*   **Upload multiplo** (`MudFileUpload`, accept image/*): per file → `WebImageProcessor.ToOptimizedWebpAsync` (WebP ≤2000px, q80, cattura larghezza/altezza) → `IWebMediaStorage.UploadAsync` (Supabase Storage) → `WebTourImmaginiService.CreateAsync` (url = `BuildPublicUrl`, `storage_path` = verità).
-*   **Griglia con DnD reorder** (`MudDropContainer` 1 zona, `AllowReorder`) → `ReorderAsync` atomico. Per immagine: **copertina** (`SetPrincipaleAsync`, badge sulla `principale`), modifica alt/titolo (`WebTourImmagineEditDialog`), elimina (record + `IWebMediaStorage.DeleteAsync`; orfano storage tollerato).
+Scheda "Galleria" del contenuto/edizione — estensione web, Blocco 7 (`Components/Shared/WebTourGalleriaTab.razor`; gli stili delle card sono un `<style>` GLOBALE inline nel component, prefissato `.galleria-tab`, perché sono resi da `RenderFragment<T>` locali e lo scoped CSS `::deep` di `.razor.css` non li raggiunge — `.razor.css` è volutamente vuoto).
+*   **Upload multiplo** (`MudFileUpload`, accept image/*) con **overlay bloccante** (`MudOverlay`) e contatore "Caricamento foto N di M…" durante il loop. Per file → dedup per **nome file** (case-insensitive/trim contro `NomeFile` delle immagini già in memoria, incluse quelle appena caricate nello stesso batch: skip + Snackbar warning) → `WebImageProcessor.ToOptimizedWebpAsync` (WebP ≤2000px, q80, cattura larghezza/altezza) → `IWebMediaStorage.UploadAsync` (Supabase Storage) → `WebTourImmaginiService.CreateAsync` (url = `BuildPublicUrl`, `storage_path` = verità, `NomeFile` = `IBrowserFile.Name`).
+*   **Due viste** (toggle `MudButtonGroup`, default Dettaglio): **Dettaglio** = copertina grande in cima (`CardTemplateCopertina`) + "Altre foto" in **colonna verticale, una per riga, card orizzontale grande** (immagine ~240px a sinistra, Titolo/Testo alternativo + azioni a destra — `CardTemplateDettaglio`), editing inline con auto-save (`@bind-Value:after` → `SaveCampi`/`ImmaginiService.UpdateAsync`); **Griglia** = panoramica compatta di sola lettura (`CardTemplateGriglia`, thumb 120px), niente campi editabili (alert informativo). `@foreach` con `@key="img.WebTourImmagineId"` (e sulla copertina) per evitare che Blazor riusi il DOM/i binding della card sbagliata quando la copertina cambia o una foto viene caricata/rimossa.
+*   **Copertina**: `SetPrincipaleAsync` + ricalcolo locale di `Tipo` su tutte le immagini + `StateHasChanged` (copertina/"altre" sono ricomputate ad ogni render, non cachate). Elimina: record + `IWebMediaStorage.DeleteAsync` (orfano storage tollerato).
+*   **"Applica a tutte le foto"** (sezione in alto, solo vista Dettaglio): due campi master Titolo/Testo alternativo (con `HelperText` esplicativo) + pulsante che, dopo conferma (`DeleteConfirmationDialog`), sovrascrive e salva solo i campi master non vuoti su tutte le foto.
 *   **Live-save**; MUST UI: `setupTabNavigation`, niente uppercase su alt/titolo (web), `BackdropClick=false` dal chiamante.
-*   **Parametri**: `ViaggioId`/`AziendaId` (required). Montato come **5° `MudTabPanel`** ("Galleria") in `AnaViaggiDialog`, solo edit mode.
+*   **Parametri**: `ContenutoId` (long)/`AziendaId` (required). Montato come 2° `MudTabPanel` ("Galleria") in `WebEdizioniManager`; il pulsante "Anteprima" del manager è disabilitato finché la Galleria non è `WebTabStato.Completo` (serve una copertina).
 *   **Sicurezza**: la `ServiceKey` (service-role) è usata contro il bucket di TEST; hardening produzione (chiave scoped / upload server-side) = **debito documentato** per il go-live.
 
-### WebTourImmagineEditDialog
-Dialog di modifica alt/titolo di un'immagine di galleria — Blocco 7 (`Components/Shared/WebTourImmagineEditDialog.razor`).
-*   Campi `titolo` + `alt_text` (no uppercase, web). Ritorna l'immagine modificata; il `WebTourGalleriaTab` persiste via `UpdateAsync`. In dialog per non mettere campi editabili in una card trascinabile (conflitto col DnD).
+### WebTourImmagineEditDialog (orfano, non referenziato)
+Dialog di modifica alt/titolo di un'immagine di galleria — Blocco 7 (`Components/Shared/WebTourImmagineEditDialog.razor`). Sostituito dai campi Titolo/Testo alternativo **inline** in `WebTourGalleriaTab` (vista Dettaglio, auto-save on blur). Lasciato nel codebase (non eliminato) per eventuale riuso futuro, ma non più montato da nessun component.
 
 ### WebTipiViaggioDescrizioniPage + WebTipoViaggioDescrizioneDialog (Blocco 8)
 Gestione delle **descrizioni web dei tipi di viaggio** (lookup GLOBALE `web_tipi_viaggio_descrizioni`, ex categoria sport).
