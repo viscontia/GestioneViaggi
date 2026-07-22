@@ -54,7 +54,7 @@
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Itinerario</MudText>
                     @foreach (var g in _giornate)
                     {
-                        <MudText Typo="Typo.subtitle2">Giorno @g.GiornoNumero — @g.TitoloGiornata</MudText>
+                        <MudText Typo="Typo.subtitle2">@g.TitoloGiornata</MudText>
                         @if (_passi.TryGetValue(g.WebTourItinerarioId, out var passi))
                         {
                             foreach (var p in passi)

@@ -38,7 +38,7 @@ else
         <MudItem xs="12" md="3">
             <div class="d-flex align-center justify-space-between mb-2">
                 <MudText Typo="Typo.subtitle1">Giornate</MudText>
-                <MudTooltip Text="Aggiungi passaggio">
+                <MudTooltip Text="Aggiungi una Giornata">
                     <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddGiornata" />
                 </MudTooltip>
             </div>
@@ -141,8 +141,12 @@ else
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">🖼 @passo.ImmagineDidascalia</MudText>
                                             }
                                         </div>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditPasso(passo))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeletePasso(passo))" />
+                                        <MudTooltip Text="Modifica passaggio">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditPasso(passo))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Elimina passaggio">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeletePasso(passo))" />
+                                        </MudTooltip>
                                     </MudPaper>
                                 }
                             </div>
