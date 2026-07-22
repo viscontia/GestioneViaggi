@@ -1,0 +1,84 @@
+@using MudBlazor
+
+@* Guida della scheda Itinerario (Blocco 6). Spiega layout (giornate a sx, passaggi a dx),
+   riordino, vincoli di indivisibilità e controlli di pubblicazione. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Come funziona l'Itinerario</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer Style="max-height: 520px; overflow-y: auto;">
+            <MudText Typo="Typo.body1" Class="mb-4">
+                L'itinerario descrive il viaggio <b>giorno per giorno</b>. La pagina è divisa in due:
+                a <b>sinistra</b> l'elenco delle <b>Giornate</b>, a <b>destra</b> il <b>Dettaglio</b> con i
+                <b>Passaggi</b> di ciascuna giornata.
+            </MudText>
+
+            @* ===== GIORNATE ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Giornate (colonna a sinistra)</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Una <b>giornata</b> è un giorno/tappa del viaggio, con un <b>titolo</b> che scrivi tu
+                (es. <i>GIORNO 1 : Olbia - Monte Limbara - Tempio</i>).
+            </MudText>
+            <ul style="margin:0 0 12px 20px;">
+                <li><b>Aggiungere:</b> pulsante <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" /> "Aggiungi una Giornata" sopra l'elenco.</li>
+                <li><b>Titolo:</b> lo decidi tu, compresa la numerazione. Il default è <i>GIORNO X :</i> da completare.</li>
+                <li><b>Riordinare:</b> trascina le giornate nell'elenco a sinistra, oppure usa le frecce <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small" /><MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" /> nel dettaglio a destra. L'ordine lo stabilisci tu.</li>
+                <li><b>Eliminare:</b> cestino <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" /> sulla testata della giornata: rimuove la giornata <b>e tutti i suoi passaggi</b>.</li>
+            </ul>
+
+            @* ===== PASSAGGI ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Passaggi (colonna a destra)</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                Ogni giornata contiene <b>uno o più passaggi</b>: i momenti/tappe della giornata, ognuno con un
+                <b>testo</b> e, se vuoi, una <b>foto</b> scelta dalla galleria del viaggio.
+            </MudText>
+            <ul style="margin:0 0 12px 20px;">
+                <li><b>Aggiungere:</b> pulsante <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" /> "Aggiungi passaggio" nella testata della giornata.</li>
+                <li><b>Modificare:</b> matita <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" /> sul passaggio (testo, foto e didascalia; da qui puoi anche correggere il titolo della giornata).</li>
+                <li><b>Riordinare:</b> frecce <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small" /><MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" /> su/giù. Il riordino avviene <b>solo dentro la stessa giornata</b>.</li>
+                <li><b>Eliminare:</b> cestino <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" /> sul passaggio.</li>
+            </ul>
+
+            @* ===== VINCOLI ===== *@
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-3">
+                <MudText Typo="Typo.subtitle2"><b>Titolo e descrizione sono indivisibili</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Una giornata esiste sempre insieme ai suoi passaggi:
+                    <br />• aggiungendo una giornata viene creato subito il <b>primo passaggio</b>;
+                    <br />• eliminando l'<b>ultimo</b> passaggio viene eliminata <b>l'intera giornata</b>;
+                    <br />• un passaggio <b>non</b> può essere spostato in un'altra giornata.
+                </MudText>
+            </MudAlert>
+
+            @* ===== PUBBLICAZIONE ===== *@
+            <MudText Typo="Typo.h6" Class="mt-4 mb-2">Controlli per la pubblicazione</MudText>
+            <MudAlert Severity="Severity.Warning" Class="mb-3">
+                <MudText Typo="Typo.body2">
+                    Per <b>pubblicare</b> il tour devi descrivere <b>tutte le giornate previste</b> dal viaggio
+                    (campo "numero giorni" in anagrafica). Finché ne mancano, la scheda Itinerario resta
+                    <b>gialla</b> e la pubblicazione è <b>bloccata</b>. L'<b>anteprima</b> resta comunque disponibile.
+                </MudText>
+            </MudAlert>
+            <MudAlert Severity="Severity.Normal" Class="mb-2">
+                <MudText Typo="Typo.body2">
+                    Puoi inserire <b>più</b> giornate di quelle previste (caso raro: una giornata opzionale o di
+                    riposo). È consentito, ma compare un <b>avviso</b> di verifica.
+                </MudText>
+            </MudAlert>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">Ho capito</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private void Close() => MudDialog.Close();
+}

@@ -71,7 +71,13 @@ else
 
         <!-- BOARD: dettaglio passi (trascinamento dentro e tra le giornate) -->
         <MudItem xs="12" md="9">
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Dettaglio giornate</MudText>
+            <div class="d-flex align-center justify-space-between mb-2">
+                <MudText Typo="Typo.subtitle1">Dettaglio giornate</MudText>
+                <MudTooltip Text="Come funziona questa pagina">
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.HelpOutline"
+                               Size="Size.Small" OnClick="OpenHelp">Guida</MudButton>
+                </MudTooltip>
+            </div>
 
             @if (_giornate.Count == 0)
             {
@@ -222,6 +228,10 @@ else
         else stato = WebTabStato.Completo;
         return StatoChanged.InvokeAsync(stato);
     }
+
+    private Task OpenHelp()
+        => DialogService.ShowAsync<WebTourItinerarioHelpDialog>("",
+               new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
 
     // ---- Giornate ------------------------------------------------------------
 
