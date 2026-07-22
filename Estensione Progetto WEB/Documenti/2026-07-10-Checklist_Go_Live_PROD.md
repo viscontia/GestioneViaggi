@@ -19,12 +19,14 @@ L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `491`
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
 ```bash
-for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=466' | sort -t_ -k1 -n); do
+for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=491' | sort -t_ -k1 -n); do
   echo "==> $f"; psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
 done
 ```
 
 ### Elenco ordinato (406–466)
+
+> Nota: questa tabella dettaglia i primi script; quelli `467`–`491` (Blocco 13, aggiunte CMS §A, integrità DB) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–491 in ordine numerico.
 
 | # | Script | Note |
 |---|--------|------|
