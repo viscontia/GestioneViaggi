@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `486`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `490`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -145,7 +145,7 @@ Da impostare lato app / ambiente (NON in git):
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–486 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–490 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
