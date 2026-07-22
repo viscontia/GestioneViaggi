@@ -14,7 +14,7 @@
         <MudTextField @bind-Value="_titoloGiornata" Label="Titolo della giornata" Immediate="true"
                       Placeholder="es. GIORNO 3 : Dorgali - Baunei - Arbatax" Variant="Variant.Outlined" Class="mb-3" />
         <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passaggio</MudText>
-        <div style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
+        <div class="passo-editor" style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
             <BlazoredTextEditor @ref="_editor" Placeholder="Descrivi questo momento della giornata...">
                 <ToolbarContent>
                     <select class="ql-header">
@@ -84,6 +84,16 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    /* Editor Quill del passaggio: deve scrollare verticalmente sui testi lunghi.
+       Regole globali perché gli elementi .ql-* sono creati da Quill via JS
+       (il CSS scoped non li raggiunge). Vincolo l'altezza del container così
+       .ql-editor (height:100% + overflow-y:auto di default) può scrollare. */
+    .passo-editor .ql-toolbar { flex: 0 0 auto; }
+    .passo-editor .ql-container { flex: 1 1 auto; min-height: 0; }
+    .passo-editor .ql-editor { overflow-y: auto; }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
