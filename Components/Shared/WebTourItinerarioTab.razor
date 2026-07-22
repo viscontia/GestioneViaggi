@@ -110,7 +110,8 @@ else
                                     </MudTooltip>
                                 </div>
                                 <MudDropZone T="WebTourItinerarioPassaggio" Identifier="@g.WebTourItinerarioId.ToString()"
-                                             AllowReorder="true" Class="drop-zone-passo pa-2 d-flex flex-column gap-2" />
+                                             AllowReorder="true" CanDrop="@(p => p.ItinerarioIdFk == g.WebTourItinerarioId)"
+                                             Class="drop-zone-passo pa-2 d-flex flex-column gap-2" />
                             </MudPaper>
                         }
                     </ChildContent>
