@@ -51,6 +51,26 @@
                 </div>
             }
         </div>
+
+        <!-- Foto attualmente abbinata (si aggiorna in tempo reale se ne scegli un'altra sotto) -->
+        <div class="d-flex align-center gap-3 mb-2 pa-2"
+             style="border:1px solid var(--mud-palette-lines-default); border-radius:4px; background:var(--mud-palette-background-grey);">
+            <MudText Typo="Typo.caption" Style="min-width:88px; white-space:nowrap;">Foto attuale</MudText>
+            @if (!string.IsNullOrEmpty(_selectedUrl))
+            {
+                <img src="@_selectedUrl" alt="Foto abbinata"
+                     style="height:90px; max-width:160px; object-fit:contain; border-radius:4px; background:#fff;" />
+                @if (!string.IsNullOrWhiteSpace(_didascalia))
+                {
+                    <MudText Typo="Typo.body2" Style="font-style:italic;">@_didascalia</MudText>
+                }
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna foto abbinata</MudText>
+            }
+        </div>
+
         @if (_galleria.Count == 0)
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna immagine in galleria. Caricane dal tab "Galleria".</MudText>
