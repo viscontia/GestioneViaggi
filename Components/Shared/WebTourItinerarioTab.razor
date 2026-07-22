@@ -206,7 +206,7 @@ else
         var g = new WebTourItinerario
         {
             WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId,
-            GiornoNumero = n, Ordine = n, TitoloGiornata = $"Giorno {n}"
+            GiornoNumero = n, Ordine = n, TitoloGiornata = "GIORNO X :"
         };
         var passo = new WebTourItinerarioPassaggio { AziendaId = AziendaId, TestoHtml = string.Empty, Ordine = 1 };
         var edited = await OpenPassoDialog(passo, "Aggiungi passaggio", g);
@@ -232,7 +232,7 @@ else
 
     private async Task OnTitoloChanged(WebTourItinerario g, string value)
     {
-        var v = string.IsNullOrWhiteSpace(value) ? $"Giorno {g.GiornoNumero}" : value.Trim();
+        var v = string.IsNullOrWhiteSpace(value) ? "GIORNO X :" : value.Trim();
         if (v == g.TitoloGiornata) return;
         g.TitoloGiornata = v;
         try { await GiornateService.UpdateAsync(g); }
