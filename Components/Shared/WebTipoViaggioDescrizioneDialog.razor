@@ -1,7 +1,11 @@
 @using GestioneViaggi.Models.Web
 @using MudBlazor
 @using Microsoft.JSInterop
+@using System.Globalization
+@using System.Text
+@using System.Text.RegularExpressions
 @inject IJSRuntime JS
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 @* Dialog CRUD di una descrizione web di tipo viaggio (Blocco 8).
@@ -17,12 +21,16 @@
                           ValueChanged="@((string value) => Entity.DescrizioneWeb = value?.ToUpper() ?? string.Empty)"
                           For="@(() => Entity.DescrizioneWeb)" Label="Descrizione (mostrata sul sito)"
                           Variant="Variant.Outlined" Immediate="true" Required="true"
-                          RequiredError="La descrizione è obbligatoria" MaxLength="50" tabindex="1" Class="mb-3 uppercase-input" />
+                          RequiredError="La descrizione è obbligatoria" Validation="@ValidateDescrizioneMinLen"
+                          MaxLength="50" tabindex="1" Class="mb-3 uppercase-input" />
 
             <MudTextField T="string" @bind-Value="Entity.Slug" For="@(() => Entity.Slug)" Label="Slug (URL)"
                           Variant="Variant.Outlined" Immediate="true" Required="true"
                           RequiredError="Lo slug è obbligatorio" MaxLength="50" tabindex="2" Class="mb-3"
-                          HelperText="Minuscolo, senza spazi (es. viaggi-4x4). Univoco." />
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
+                          AdornmentColor="Color.Primary" AdornmentAriaLabel="Genera slug dalla descrizione"
+                          OnAdornmentClick="GenerateSlug"
+                          HelperText="Minuscolo, senza spazi (es. viaggi-4x4). Univoco. Usa la bacchetta per generarlo dalla descrizione." />
 
             <MudNumericField T="int" @bind-Value="Entity.Ordine" Label="Ordine" Variant="Variant.Outlined"
                              Min="0" tabindex="3" />
@@ -63,6 +71,37 @@
     }
 
     private void Cancel() => MudDialog?.Cancel();
+
+    /// <summary>Genera lo slug (minuscolo, trattini) dalla descrizione. Richiede una descrizione non vuota.</summary>
+    private void GenerateSlug()
+    {
+        if (string.IsNullOrWhiteSpace(Entity.DescrizioneWeb))
+        {
+            Snackbar.Add("Inserisci prima la descrizione: lo slug si genera da lì.", Severity.Warning);
+            return;
+        }
+        Entity.Slug = Slugify(Entity.DescrizioneWeb);
+    }
+
+    /// <summary>La descrizione deve avere almeno 3 caratteri (es. sigle come UTV, MTB). Il vuoto lo gestisce Required.</summary>
+    private static string? ValidateDescrizioneMinLen(string value)
+        => !string.IsNullOrWhiteSpace(value) && value.Trim().Length < 3
+            ? "Inserisci almeno 3 caratteri (es. UTV, MTB)."
+            : null;
+
+    private static string Slugify(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(normalized.Length);
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
+            sb.Append(char.IsLetterOrDigit(c) ? c : '-');
+        }
+        var slug = Regex.Replace(sb.ToString(), "-{2,}", "-").Trim('-');
+        return slug.Length > 50 ? slug[..50].Trim('-') : slug;
+    }
 
     private async Task HandleSubmit()
     {
