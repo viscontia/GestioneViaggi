@@ -215,7 +215,7 @@
                 {
                     <MudTabPanel Text="Contenuti Web" Icon="@Icons.Material.Filled.Language">
                         <WebEdizioniManager @ref="_webEdizioniManager" ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
-                                            DescrizioneBreve="@Entity.DescrizioneBreve"
+                                            DescrizioneBreve="@Entity.DescrizioneBreve" NumeroGiorni="@Entity.NumeroGiorni"
                                             HasUnsavedChangesChanged="OnContentDirtyChanged" />
                     </MudTabPanel>
                 }

@@ -21,6 +21,18 @@
 }
 else
 {
+    @if (NumeroGiorni > 0 && _giornate.Count < NumeroGiorni)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            Hai descritto <strong>@_giornate.Count</strong> giornate su <strong>@NumeroGiorni</strong> previste dal viaggio: completa tutte le giornate per poter <strong>pubblicare</strong> (ne mancano @(NumeroGiorni - _giornate.Count)). L'anteprima resta comunque disponibile.
+        </MudAlert>
+    }
+    else if (NumeroGiorni > 0 && _giornate.Count > NumeroGiorni)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+            Hai inserito <strong>@_giornate.Count</strong> giornate, più delle <strong>@NumeroGiorni</strong> previste dal viaggio in anagrafica. Assicurati che sia intenzionale (es. giornata opzionale o di riposo).
+        </MudAlert>
+    }
     <MudGrid>
         <!-- SIDEBAR: sommario giornate (riordino DnD) -->
         <MudItem xs="12" md="3">
@@ -48,8 +60,7 @@ else
                         <MudPaper Elevation="2" Class="pa-2 cursor-grab d-flex align-center gap-2">
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                             <div class="flex-grow-1" style="min-width:0;">
-                                <MudText Typo="Typo.subtitle2">Giorno @context.GiornoNumero</MudText>
-                                <MudText Typo="Typo.body2" Color="Color.Secondary"
+                                <MudText Typo="Typo.subtitle2"
                                          Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@context.TitoloGiornata</MudText>
                             </div>
                         </MudPaper>
@@ -78,7 +89,6 @@ else
                         {
                             <MudPaper Outlined="true" Class="pa-3 mb-4">
                                 <div class="d-flex align-center gap-2 mb-2">
-                                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">Giorno @g.GiornoNumero</MudChip>
                                     <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
                                                   ValueChanged="@(v => OnTitoloChanged(g, v))"
                                                   Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
@@ -125,13 +135,16 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
-    /// <summary>Notifica al parent lo stato di completamento (semaforo): Completo se >=1 giornata, altrimenti Vuoto.</summary>
+    /// <summary>Durata del viaggio (ana_viaggi.numero_giorni): l'itinerario è Completo solo se tutte le giornate sono descritte.</summary>
+    [Parameter] public int NumeroGiorni { get; set; }
+    /// <summary>Notifica al parent lo stato (semaforo): Completo se descritte tutte le NumeroGiorni giornate, Parziale se meno, Vuoto se nessuna.</summary>
     [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private List<WebTourItinerario> _giornate = new();
     private List<WebTourItinerarioPassaggio> _passi = new();
     private bool _loading = true;
     private bool _tabSetup;
+    private int _seenNumeroGiorni = -1;
 
     private MudDropContainer<WebTourItinerario>? _giornateContainer;
     private MudDropContainer<WebTourItinerarioPassaggio>? _passiContainer;
@@ -140,6 +153,16 @@ else
     {
         await ReloadAsync();
         _loading = false;
+    }
+
+    /// <summary>Se NumeroGiorni cambia (modificato nei Dati Generali a dialog aperto) ricalcola lo stato di completamento.</summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_loading && _seenNumeroGiorni != NumeroGiorni)
+        {
+            _seenNumeroGiorni = NumeroGiorni;
+            await NotifyStatoAsync();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -164,9 +187,16 @@ else
         StateHasChanged();
     }
 
-    /// <summary>Completo se c'è almeno una giornata, altrimenti Vuoto (nessuno stato "Parziale" per l'itinerario).</summary>
+    /// <summary>Vuoto se nessuna giornata; Parziale se descritte meno di NumeroGiorni; Completo se tutte
+    /// (o più: caso raro con giornata extra, comunque pubblicabile ma segnalato con warning nella UI).</summary>
     private Task NotifyStatoAsync()
-        => StatoChanged.InvokeAsync(_giornate.Count > 0 ? WebTabStato.Completo : WebTabStato.Vuoto);
+    {
+        WebTabStato stato;
+        if (_giornate.Count == 0) stato = WebTabStato.Vuoto;
+        else if (NumeroGiorni > 0 && _giornate.Count < NumeroGiorni) stato = WebTabStato.Parziale;
+        else stato = WebTabStato.Completo;
+        return StatoChanged.InvokeAsync(stato);
+    }
 
     // ---- Giornate ------------------------------------------------------------
 
