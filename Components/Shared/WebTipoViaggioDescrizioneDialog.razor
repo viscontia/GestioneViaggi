@@ -5,7 +5,7 @@
 @implements IDisposable
 
 @* Dialog CRUD di una descrizione web di tipo viaggio (Blocco 8).
-   ECCEZIONE UI: descrizione/slug NON in maiuscolo forzato (destinati al sito). *@
+   NB: lo Slug resta minuscolo (è un URL). La DescrizioneWeb è in MAIUSCOLO forzato (linea guida UI del progetto). *@
 
 <MudDialog>
     <TitleContent>
@@ -13,10 +13,11 @@
     </TitleContent>
     <DialogContent>
         <MudForm @ref="_form" Model="@Entity">
-            <MudTextField T="string" @ref="_firstField" @bind-Value="Entity.DescrizioneWeb"
+            <MudTextField T="string" @ref="_firstField" Value="@Entity.DescrizioneWeb"
+                          ValueChanged="@((string value) => Entity.DescrizioneWeb = value?.ToUpper() ?? string.Empty)"
                           For="@(() => Entity.DescrizioneWeb)" Label="Descrizione (mostrata sul sito)"
                           Variant="Variant.Outlined" Immediate="true" Required="true"
-                          RequiredError="La descrizione è obbligatoria" MaxLength="50" tabindex="1" Class="mb-3" />
+                          RequiredError="La descrizione è obbligatoria" MaxLength="50" tabindex="1" Class="mb-3 uppercase-input" />
 
             <MudTextField T="string" @bind-Value="Entity.Slug" For="@(() => Entity.Slug)" Label="Slug (URL)"
                           Variant="Variant.Outlined" Immediate="true" Required="true"
