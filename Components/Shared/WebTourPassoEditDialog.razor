@@ -56,9 +56,11 @@
         else
         {
             <div class="d-flex flex-wrap gap-2" style="max-height:@(MaxPickerHeight)px; overflow-y:auto;">
-                <MudPaper Elevation="@(_selectedStoragePath is null ? 4 : 0)" Class="pa-1 d-flex align-center justify-center"
-                          Style="@ThumbStyle(null)" @onclick="@(() => Select(null))">
-                    <MudText Typo="Typo.caption">Nessuna</MudText>
+                <MudPaper Elevation="0" Class="pa-1 d-flex flex-column align-center justify-center"
+                          Style="@($"{ThumbStyle(null)}border-style:dashed;background:var(--mud-palette-background-grey);")" @onclick="@(() => Select(null))">
+                    <MudIcon Icon="@Icons.Material.Outlined.HideImage" Size="Size.Small"
+                             Color="@(_selectedStoragePath is null ? Color.Primary : Color.Default)" />
+                    <MudText Typo="Typo.caption" Class="mt-1">Nessuna</MudText>
                 </MudPaper>
                 @foreach (var img in _galleria)
                 {

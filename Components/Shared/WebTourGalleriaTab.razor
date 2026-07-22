@@ -18,7 +18,7 @@
    panoramica compatta di sola lettura. Titolo/alt-text editabili inline con salvataggio
    automatico all'uscita dal campo. storage_path = verità, URL ricomposto. *@
 
-<div class="galleria-tab">
+<div class="galleria-tab" style="--thumb:@(_thumbSize)px">
 <style>
     /* Stili GLOBALI (non scoped): le card sono rese da RenderFragment-field e lo scoped CSS
        (::deep) non le raggiunge. Prefissati .galleria-tab per non collidere con altri componenti. */
@@ -31,7 +31,7 @@
     .galleria-tab .thumb { width: 100%; height: 120px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
     .galleria-tab .img-card-cover .thumb { height: auto; max-height: 300px; }
     .galleria-tab .img-card-mini .thumb { height: calc(var(--thumb, 120px) * 0.75); }
-    .galleria-tab .thumb-row { width: 280px; height: auto; max-height: 340px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
+    .galleria-tab .thumb-row { width: var(--thumb, 240px); height: auto; max-height: 340px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
     .galleria-tab .badge-cover { position: absolute; top: 8px; left: 8px; font-weight: 700; }
 </style>
 <MudOverlay Visible="_uploading" DarkBackground="true" ZIndex="2000">
@@ -129,14 +129,11 @@ else
             <MudButton Variant="@(!_vistaGriglia ? Variant.Filled : Variant.Outlined)" StartIcon="@Icons.Material.Filled.ViewAgenda" OnClick="@(() => _vistaGriglia = false)">Dettaglio</MudButton>
             <MudButton Variant="@(_vistaGriglia ? Variant.Filled : Variant.Outlined)" StartIcon="@Icons.Material.Filled.GridView" OnClick="@(() => _vistaGriglia = true)">Griglia</MudButton>
         </MudButtonGroup>
-        @if (_vistaGriglia)
-        {
-            <div class="d-flex align-center gap-2" style="min-width:260px; max-width:340px;">
-                <MudText Typo="Typo.body2" Style="white-space:nowrap;">Dimensione miniature</MudText>
-                <MudSlider T="int" Min="96" Max="240" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
-                <MudText Typo="Typo.body2" Style="white-space:nowrap;">@(_thumbSize)px</MudText>
-            </div>
-        }
+        <div class="d-flex align-center gap-2" style="min-width:260px; max-width:340px;">
+            <MudText Typo="Typo.body2" Style="white-space:nowrap;">Dimensione miniature</MudText>
+            <MudSlider T="int" Min="96" Max="240" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
+            <MudText Typo="Typo.body2" Style="white-space:nowrap;">@(_thumbSize)px</MudText>
+        </div>
     </div>
 
     <div class="d-flex align-center gap-3 mb-3">
