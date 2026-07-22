@@ -108,8 +108,7 @@ else
         var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
         {
             { x => x.Entity, new WebTipoViaggioDescrizione { Ordine = nextOrdine } },
-            { x => x.IsEditMode, false },
-            { x => x.OrdiniUsati, _items.Select(x => x.Ordine).ToHashSet() }
+            { x => x.IsEditMode, false }
         };
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Nuova Descrizione Web", parameters, options);
@@ -122,7 +121,7 @@ else
                 Snackbar.Add("Creato con successo", Severity.Success);
                 StateHasChanged();
             }
-            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
         }
     }
 
@@ -131,8 +130,7 @@ else
         var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
         {
             { x => x.Entity, new WebTipoViaggioDescrizione { WebTipoViaggioDescrizioneId = item.WebTipoViaggioDescrizioneId, DescrizioneWeb = item.DescrizioneWeb, Slug = item.Slug, Ordine = item.Ordine } },
-            { x => x.IsEditMode, true },
-            { x => x.OrdiniUsati, _items.Where(x => x.WebTipoViaggioDescrizioneId != item.WebTipoViaggioDescrizioneId).Select(x => x.Ordine).ToHashSet() }
+            { x => x.IsEditMode, true }
         };
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Modifica Descrizione Web", parameters, options);
@@ -147,8 +145,19 @@ else
                 Snackbar.Add("Aggiornato con successo", Severity.Success);
                 StateHasChanged();
             }
-            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
         }
+    }
+
+    /// <summary>Traduce le violazioni dei vincoli DB in messaggi comprensibili (le regole vivono ora nel DB: script 490/491).</summary>
+    private static string FriendlyDbError(Exception ex)
+    {
+        var m = ex.ToString();
+        if (m.Contains("uq_web_tipi_viaggio_descrizioni_ordine")) return "Ordine già usato da un'altra descrizione.";
+        if (m.Contains("uq_web_tipi_viaggio_descrizioni_slug")) return "Slug già usato da un'altra descrizione.";
+        if (m.Contains("ck_web_tipi_viaggio_descrizioni_descrizione_min")) return "La descrizione deve avere almeno 3 caratteri.";
+        if (m.Contains("ck_web_tipi_viaggio_descrizioni_ordine_min")) return "L'ordine deve essere almeno 1.";
+        return ex.Message;
     }
 
     private async Task DeleteItem(WebTipoViaggioDescrizione item)
@@ -172,7 +181,7 @@ else
                 }
                 else Snackbar.Add("Impossibile eliminare", Severity.Warning);
             }
-            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
         }
     }
 }
