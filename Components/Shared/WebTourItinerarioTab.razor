@@ -89,6 +89,16 @@ else
                         {
                             <MudPaper Outlined="true" Class="pa-3 mb-4">
                                 <div class="d-flex align-center gap-2 mb-2">
+                                    <div class="d-flex flex-column" style="margin:-6px 0;">
+                                        <MudTooltip Text="Sposta la giornata su">
+                                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="Size.Small"
+                                                           Disabled="@(_giornate.IndexOf(g) == 0)" OnClick="@(() => MoveGiornata(g, -1))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="Sposta la giornata giù">
+                                            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small"
+                                                           Disabled="@(_giornate.IndexOf(g) == _giornate.Count - 1)" OnClick="@(() => MoveGiornata(g, 1))" />
+                                        </MudTooltip>
+                                    </div>
                                     <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
                                                   ValueChanged="@(v => OnTitoloChanged(g, v))"
                                                   Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
@@ -237,6 +247,21 @@ else
         g.TitoloGiornata = v;
         try { await GiornateService.UpdateAsync(g); }
         catch (Exception ex) { Snackbar.Add($"Errore salvataggio titolo: {ex.Message}", Severity.Error); await ReloadAsync(); }
+    }
+
+    /// <summary>Riordino giornate dal board di destra (frecce su/giù): alternativa al DnD della sidebar, stessa persistenza.</summary>
+    private async Task MoveGiornata(WebTourItinerario g, int delta)
+    {
+        var idx = _giornate.IndexOf(g);
+        var newIdx = idx + delta;
+        if (idx < 0 || newIdx < 0 || newIdx >= _giornate.Count) return;
+        _giornate.RemoveAt(idx);
+        _giornate.Insert(newIdx, g);
+        for (int i = 0; i < _giornate.Count; i++) { _giornate[i].Ordine = i + 1; _giornate[i].GiornoNumero = i + 1; }
+        _giornateContainer?.Refresh();
+        _passiContainer?.Refresh(); // l'ordine delle zone dipende da Ordine
+        try { await GiornateService.ReorderAsync(AziendaId, ContenutoId, _giornate.Select(x => x.WebTourItinerarioId).ToList()); }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino giornate: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
     private async Task DeleteGiornata(WebTourItinerario g)
