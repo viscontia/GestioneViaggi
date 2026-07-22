@@ -131,7 +131,7 @@ else
         </MudButtonGroup>
         <div class="d-flex align-center gap-2" style="min-width:260px; max-width:340px;">
             <MudText Typo="Typo.body2" Style="white-space:nowrap;">Dimensione miniature</MudText>
-            <MudSlider T="int" Min="96" Max="240" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
+            <MudSlider T="int" Min="96" Max="400" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
             <MudText Typo="Typo.body2" Style="white-space:nowrap;">@(_thumbSize)px</MudText>
         </div>
     </div>
@@ -247,7 +247,7 @@ else
         var pref = await Prefs.GetAsync(ThumbSizePrefKey);
         if (int.TryParse(pref, out var savedThumbSize))
         {
-            _thumbSize = Math.Clamp(savedThumbSize, 96, 240);
+            _thumbSize = Math.Clamp(savedThumbSize, 96, 400);
         }
 
         await ReloadAsync();
