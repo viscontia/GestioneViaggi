@@ -346,16 +346,38 @@ else
 
     private async Task DeletePasso(WebTourItinerarioPassaggio passo)
     {
-        if (!await ConfirmDelete("Elimina passaggio", "Eliminare questo passaggio?")) return;
+        var dayId = passo.ItinerarioIdFk;
+        var isUltimo = _passi.Count(x => x.ItinerarioIdFk == dayId) <= 1; // è l'unico passaggio della giornata
+        var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == dayId);
+
+        var msg = isUltimo
+            ? $"È l'unico passaggio della giornata: eliminandolo verrà eliminata anche l'intera giornata \"{g?.TitoloGiornata}\" (titolo e descrizione sono indivisibili). Procedere?"
+            : "Eliminare questo passaggio?";
+        if (!await ConfirmDelete("Elimina passaggio", msg)) return;
+
         try
         {
-            var dayId = passo.ItinerarioIdFk;
-            await PassiService.DeleteAsync(passo.WebTourItinerarioPassaggioId, AziendaId);
-            _passi.Remove(passo);
-            var rest = _passi.Where(x => x.ItinerarioIdFk == dayId).OrderBy(x => x.Ordine).ToList();
-            for (int i = 0; i < rest.Count; i++) rest[i].Ordine = i + 1;
-            if (rest.Count > 0)
-                await PassiService.ReorderAsync(AziendaId, dayId, rest.Select(x => x.WebTourItinerarioPassaggioId).ToList());
+            if (isUltimo && g != null)
+            {
+                // Ultimo passaggio → elimino l'intera giornata: la cascata DB rimuove anche il passaggio.
+                await GiornateService.DeleteAsync(g.WebTourItinerarioId, AziendaId);
+                _passi.RemoveAll(x => x.ItinerarioIdFk == dayId);
+                _giornate.Remove(g);
+                for (int i = 0; i < _giornate.Count; i++) { _giornate[i].Ordine = i + 1; _giornate[i].GiornoNumero = i + 1; }
+                if (_giornate.Count > 0)
+                    await GiornateService.ReorderAsync(AziendaId, ContenutoId, _giornate.Select(x => x.WebTourItinerarioId).ToList());
+                _giornateContainer?.Refresh();
+                await NotifyStatoAsync();
+            }
+            else
+            {
+                await PassiService.DeleteAsync(passo.WebTourItinerarioPassaggioId, AziendaId);
+                _passi.Remove(passo);
+                var rest = _passi.Where(x => x.ItinerarioIdFk == dayId).OrderBy(x => x.Ordine).ToList();
+                for (int i = 0; i < rest.Count; i++) rest[i].Ordine = i + 1;
+                if (rest.Count > 0)
+                    await PassiService.ReorderAsync(AziendaId, dayId, rest.Select(x => x.WebTourItinerarioPassaggioId).ToList());
+            }
             StateHasChanged();
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione passaggio: {ex.Message}", Severity.Error); await ReloadAsync(); }
