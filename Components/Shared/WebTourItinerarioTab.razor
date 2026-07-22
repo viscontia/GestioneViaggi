@@ -236,14 +236,11 @@ else
         {
             g = await GiornateService.CreateAsync(g); // titolo eventualmente modificato nella modale
             _giornate.Add(g);
-            // creo il passaggio solo se ha contenuto (testo o immagine)
-            if (!string.IsNullOrWhiteSpace(edited.TestoHtml) || !string.IsNullOrWhiteSpace(edited.ImmagineStoragePath))
-            {
-                edited.ItinerarioIdFk = g.WebTourItinerarioId;
-                var created = await PassiService.CreateAsync(edited);
-                _passi.Add(created);
-                _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
-            }
+            // Una giornata ha sempre >=1 passaggio (titolo e descrizione indivisibili): creo comunque il primo passaggio.
+            edited.ItinerarioIdFk = g.WebTourItinerarioId;
+            var created = await PassiService.CreateAsync(edited);
+            _passi.Add(created);
+            _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
             _giornateContainer?.Refresh();
             await NotifyStatoAsync();
         }
