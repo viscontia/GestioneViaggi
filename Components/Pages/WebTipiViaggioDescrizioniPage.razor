@@ -104,10 +104,12 @@ else
 
     private async Task OpenCreateDialog()
     {
+        var nextOrdine = _items.Count == 0 ? 1 : _items.Max(x => x.Ordine) + 1;
         var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
         {
-            { x => x.Entity, new WebTipoViaggioDescrizione() },
-            { x => x.IsEditMode, false }
+            { x => x.Entity, new WebTipoViaggioDescrizione { Ordine = nextOrdine } },
+            { x => x.IsEditMode, false },
+            { x => x.OrdiniUsati, _items.Select(x => x.Ordine).ToHashSet() }
         };
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Nuova Descrizione Web", parameters, options);
@@ -129,7 +131,8 @@ else
         var parameters = new DialogParameters<WebTipoViaggioDescrizioneDialog>
         {
             { x => x.Entity, new WebTipoViaggioDescrizione { WebTipoViaggioDescrizioneId = item.WebTipoViaggioDescrizioneId, DescrizioneWeb = item.DescrizioneWeb, Slug = item.Slug, Ordine = item.Ordine } },
-            { x => x.IsEditMode, true }
+            { x => x.IsEditMode, true },
+            { x => x.OrdiniUsati, _items.Where(x => x.WebTipoViaggioDescrizioneId != item.WebTipoViaggioDescrizioneId).Select(x => x.Ordine).ToHashSet() }
         };
         var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<WebTipoViaggioDescrizioneDialog>("Modifica Descrizione Web", parameters, options);

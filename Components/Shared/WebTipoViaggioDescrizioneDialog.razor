@@ -33,7 +33,8 @@
                           HelperText="Minuscolo, senza spazi (es. viaggi-4x4). Univoco. Usa la bacchetta per generarlo dalla descrizione." />
 
             <MudNumericField T="int" @bind-Value="Entity.Ordine" Label="Ordine" Variant="Variant.Outlined"
-                             Min="0" tabindex="3" />
+                             Min="1" tabindex="3" Validation="@ValidateOrdine"
+                             HelperText="Posizione nell'elenco: deve essere univoco." />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -51,6 +52,8 @@
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
     [Parameter] public WebTipoViaggioDescrizione Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
+    /// <summary>Ordini già usati dalle ALTRE descrizioni: per validare l'unicità dell'ordine.</summary>
+    [Parameter] public HashSet<int> OrdiniUsati { get; set; } = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -88,6 +91,12 @@
         => !string.IsNullOrWhiteSpace(value) && value.Trim().Length < 3
             ? "Inserisci almeno 3 caratteri (es. UTV, MTB)."
             : null;
+
+    /// <summary>L'ordine deve essere >=1 e non già usato da un'altra descrizione.</summary>
+    private string? ValidateOrdine(int value)
+        => value < 1 ? "L'ordine deve essere almeno 1."
+           : OrdiniUsati.Contains(value) ? "Ordine già usato da un'altra descrizione."
+           : null;
 
     private static string Slugify(string? text)
     {
