@@ -26,7 +26,7 @@ else
         <MudItem xs="12" md="3">
             <div class="d-flex align-center justify-space-between mb-2">
                 <MudText Typo="Typo.subtitle1">Giornate</MudText>
-                <MudTooltip Text="Aggiungi giornata">
+                <MudTooltip Text="Aggiungi passaggio">
                     <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddGiornata" />
                 </MudTooltip>
             </div>
@@ -178,10 +178,21 @@ else
             WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId,
             GiornoNumero = n, Ordine = n, TitoloGiornata = $"Giorno {n}"
         };
+        var passo = new WebTourItinerarioPassaggio { AziendaId = AziendaId, TestoHtml = string.Empty, Ordine = 1 };
+        var edited = await OpenPassoDialog(passo, "Aggiungi passaggio", g);
+        if (edited == null) return; // annullato: non creo né giornata né passaggio
         try
         {
-            g = await GiornateService.CreateAsync(g);
+            g = await GiornateService.CreateAsync(g); // titolo eventualmente modificato nella modale
             _giornate.Add(g);
+            // creo il passaggio solo se ha contenuto (testo o immagine)
+            if (!string.IsNullOrWhiteSpace(edited.TestoHtml) || !string.IsNullOrWhiteSpace(edited.ImmagineStoragePath))
+            {
+                edited.ItinerarioIdFk = g.WebTourItinerarioId;
+                var created = await PassiService.CreateAsync(edited);
+                _passi.Add(created);
+                _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
+            }
             _giornateContainer?.Refresh();
             _passiContainer?.Refresh();
             await NotifyStatoAsync();
@@ -240,13 +251,16 @@ else
             ItinerarioIdFk = g.WebTourItinerarioId, AziendaId = AziendaId, TestoHtml = string.Empty,
             Ordine = _passi.Count(x => x.ItinerarioIdFk == g.WebTourItinerarioId) + 1
         };
-        var edited = await OpenPassoDialog(passo, "Nuovo passaggio");
+        var oldTitolo = g.TitoloGiornata;
+        var edited = await OpenPassoDialog(passo, "Aggiungi passaggio", g);
         if (edited == null) return;
         try
         {
+            if (g.TitoloGiornata != oldTitolo) await GiornateService.UpdateAsync(g);
             var created = await PassiService.CreateAsync(edited);
             _passi.Add(created);
             _passi = _passi.OrderBy(x => x.ItinerarioIdFk).ThenBy(x => x.Ordine).ToList();
+            _giornateContainer?.Refresh();
             _passiContainer?.Refresh();
         }
         catch (Exception ex) { Snackbar.Add($"Errore creazione passaggio: {ex.Message}", Severity.Error); }
@@ -254,9 +268,19 @@ else
 
     private async Task EditPasso(WebTourItinerarioPassaggio passo)
     {
-        var edited = await OpenPassoDialog(passo, "Modifica passaggio");
+        var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == passo.ItinerarioIdFk);
+        if (g == null) return;
+        var oldTitolo = g.TitoloGiornata;
+        var edited = await OpenPassoDialog(passo, "Modifica passaggio", g);
         if (edited == null) return;
-        try { await PassiService.UpdateAsync(edited); _passiContainer?.Refresh(); StateHasChanged(); }
+        try
+        {
+            if (g.TitoloGiornata != oldTitolo) await GiornateService.UpdateAsync(g);
+            await PassiService.UpdateAsync(edited);
+            _giornateContainer?.Refresh();
+            _passiContainer?.Refresh();
+            StateHasChanged();
+        }
         catch (Exception ex) { Snackbar.Add($"Errore salvataggio passaggio: {ex.Message}", Severity.Error); await ReloadAsync(); }
     }
 
@@ -314,13 +338,14 @@ else
     /// <summary>Tutte le giornate vivono nell'unica zona "sidebar" (riordino).</summary>
     private static bool GiornataInZone(WebTourItinerario g, string identifier) => identifier == "sidebar";
 
-    private async Task<WebTourItinerarioPassaggio?> OpenPassoDialog(WebTourItinerarioPassaggio passo, string title)
+    private async Task<WebTourItinerarioPassaggio?> OpenPassoDialog(WebTourItinerarioPassaggio passo, string title, WebTourItinerario giornata)
     {
         var parameters = new DialogParameters<WebTourPassoEditDialog>
         {
             { x => x.Passo, passo },
             { x => x.ContenutoId, ContenutoId },
-            { x => x.AziendaId, AziendaId }
+            { x => x.AziendaId, AziendaId },
+            { x => x.Giornata, giornata }
         };
         var options = new DialogOptions { BackdropClick = false, FullWidth = true, MaxWidth = MaxWidth.Medium };
         var dialog = await DialogService.ShowAsync<WebTourPassoEditDialog>(title, parameters, options);

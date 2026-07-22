@@ -11,6 +11,8 @@
 
 <MudDialog>
     <DialogContent>
+        <MudTextField @bind-Value="_titoloGiornata" Label="Titolo della giornata" Immediate="true"
+                      Placeholder="es. GIORNO 3 : Dorgali - Baunei - Arbatax" Variant="Variant.Outlined" Class="mb-3" />
         <MudText Typo="Typo.subtitle2" Class="mb-1">Testo del passaggio</MudText>
         <div style="height:240px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;">
             <BlazoredTextEditor @ref="_editor" Placeholder="Descrivi questo momento della giornata...">
@@ -90,9 +92,12 @@
     [Parameter, EditorRequired] public WebTourItinerarioPassaggio Passo { get; set; } = default!;
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Giornata a cui appartiene il passaggio: consente di modificarne il titolo dalla modale.</summary>
+    [Parameter, EditorRequired] public WebTourItinerario Giornata { get; set; } = default!;
 
     private BlazoredTextEditor _editor = default!;
     private string? _didascalia;
+    private string? _titoloGiornata;
     private bool _saving;
     private bool _htmlLoaded;
 
@@ -107,6 +112,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _titoloGiornata = Giornata?.TitoloGiornata;
         _didascalia = Passo.ImmagineDidascalia;
         _selectedStoragePath = Passo.ImmagineStoragePath;
         _selectedUrl = Passo.ImmagineUrl;
@@ -164,6 +170,7 @@
         _saving = true;
         try
         {
+            if (Giornata != null && !string.IsNullOrWhiteSpace(_titoloGiornata)) Giornata.TitoloGiornata = _titoloGiornata.Trim();
             Passo.TestoHtml = NormalizeHtml(await _editor.GetHTML()) ?? string.Empty;
             Passo.ImmagineDidascalia = string.IsNullOrWhiteSpace(_didascalia) ? null : _didascalia.Trim();
             Passo.ImmagineStoragePath = _selectedStoragePath;
