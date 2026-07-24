@@ -129,6 +129,15 @@ Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_
 
 **`cliente_lingua` mai NULL (script 485):** `fn_ana_clienti_set_lingua` auto-deriva dalla nazione di residenza quando il campo è vuoto (`fn_lingua_da_comune`, fallback `IT`); backfilla i NULL residui; imposta colonna `DEFAULT 'IT'` + `NOT NULL`. La newsletter legge `cliente_lingua` senza ragionare (il `COALESCE` in `fn_web_destinatari_newsletter` resta solo come fallback difensivo). Applicare 485 su PROD **dopo** 484.
 
+### 2.6 — Dati di tabelle "tecniche" da MIGRARE (contenuto, non solo schema)
+
+Alcune tabelle sono troppo tecniche per gli utenti finali: vengono **compilate a mano in TEST** con i dati corretti e poi il **contenuto** (non solo lo schema creato dagli script §1) va copiato sul DB Supabase di PROD. Riguarda:
+
+- **`web_tipi_viaggio_descrizioni`** — lookup **GLOBALE** delle descrizioni web dei tipi di viaggio + le relative **traduzioni** (`web_traduzioni` per questa entità).
+- **`ana_tipo_viaggi`** — tipologie di viaggio (**GLOBALE**/condivisa), inclusa la colonna `descrizione_web_fk` che referenzia la tabella sopra.
+
+⚠️ **Ordine di migrazione**: prima `web_tipi_viaggio_descrizioni` (referenziata), poi `ana_tipo_viaggi` (che la referenzia via `descrizione_web_fk`). Migrare i record **così come sono in TEST** (`ordine`/`slug` già conformi ai vincoli 490/491). Metodo consigliato: `pg_dump --data-only -t <tabella>` da TEST → restore su PROD, oppure copia manuale dei record; verificare che gli **id/FK restino coerenti**. Da fare **dopo** aver applicato gli script §1 (schema + vincoli) e **prima** di pubblicare contenuti che dipendono da questi tipi.
+
 ---
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
@@ -153,6 +162,7 @@ Da impostare lato app / ambiente (NON in git):
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
 - [ ] Bucket Supabase Storage creati + policy (§2.4).
 - [ ] Backfill `cliente_lingua` eseguito e verificato (§2.5).
+- [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti (§2.6).
 - [ ] Config app PROD completata (§3).
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.

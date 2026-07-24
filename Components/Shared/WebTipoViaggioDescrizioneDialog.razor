@@ -1,4 +1,5 @@
 @using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 @using MudBlazor
 @using Microsoft.JSInterop
 @using System.Globalization
@@ -6,6 +7,7 @@
 @using System.Text.RegularExpressions
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
+@inject WebTipiViaggioDescrizioniService Service
 @implements IDisposable
 
 @* Dialog CRUD di una descrizione web di tipo viaggio (Blocco 8).
@@ -16,6 +18,10 @@
         <MudText Typo="Typo.h6">@(IsEditMode ? "Modifica Descrizione Web" : "Nuova Descrizione Web")</MudText>
     </TitleContent>
     <DialogContent>
+        @if (!string.IsNullOrEmpty(_errore))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_errore</MudAlert>
+        }
         <MudForm @ref="_form" Model="@Entity">
             <MudTextField T="string" @ref="_firstField" Value="@Entity.DescrizioneWeb"
                           ValueChanged="@((string value) => Entity.DescrizioneWeb = value?.ToUpper() ?? string.Empty)"
@@ -39,8 +45,8 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
-        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
-            @(IsEditMode ? "Aggiorna" : "Crea")
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_saving">
+            @(_saving ? "Salvataggio..." : (IsEditMode ? "Aggiorna" : "Crea"))
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -52,6 +58,9 @@
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
     [Parameter] public WebTipoViaggioDescrizione Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
+
+    private bool _saving;
+    private string? _errore;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -100,13 +109,30 @@
 
     private async Task HandleSubmit()
     {
-        if (_form != null)
+        if (_form == null) return;
+        await _form.Validate();
+        if (!_form.IsValid)
         {
-            await _form.Validate();
-            if (_form.IsValid)
-                MudDialog?.Close(DialogResult.Ok(Entity));
-            else if (_firstField?.Error == true)
-                await _firstField.FocusAsync();
+            if (_firstField?.Error == true) await _firstField.FocusAsync();
+            return;
+        }
+
+        _saving = true;
+        _errore = null;
+        try
+        {
+            // Salvataggio nel dialog: su violazione dei vincoli DB (490/491) mostro l'errore e RESTO nella form.
+            var saved = IsEditMode ? await Service.UpdateAsync(Entity) : await Service.CreateAsync(Entity);
+            MudDialog?.Close(DialogResult.Ok(saved));
+        }
+        catch (Exception ex)
+        {
+            // Messaggio già tradotto in ITA dal service (Helpers/DatabaseExceptionHelper). Resto nella form.
+            _errore = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
         }
     }
 }

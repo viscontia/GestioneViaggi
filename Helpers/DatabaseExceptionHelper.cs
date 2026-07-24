@@ -79,6 +79,13 @@ public static class DatabaseExceptionHelper
                 message = "Uno dei testi inseriti supera la lunghezza massima consentita. Riduci il testo e riprova.";
                 break;
 
+            case "23514": // check_violation
+                string checkMsg = DescribeCheckConstraint(ex.ConstraintName);
+                message = !string.IsNullOrEmpty(checkMsg)
+                    ? checkMsg
+                    : $"Un valore inserito per {GetItalianPrefixFor(label)}{label} non rispetta le regole di validità.";
+                break;
+
             default:
                 message = $"Errore database ({ex.SqlState}): {ex.MessageText}";
                 break;
@@ -157,10 +164,34 @@ public static class DatabaseExceptionHelper
         var uniqueMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "uq_web_tour_contenuti_slug", "Esiste già un tour con questo indirizzo web. Scegline uno diverso." },
-            { "web_tour_contenuti_viaggio_id_fk_key", "Questo viaggio ha già una scheda di contenuti web." }
+            { "web_tour_contenuti_viaggio_id_fk_key", "Questo viaggio ha già una scheda di contenuti web." },
+            { "uq_web_tipi_viaggio_descrizioni_ordine", "Esiste già una descrizione web con questo ordine. Scegline uno diverso." },
+            { "uq_web_tipi_viaggio_descrizioni_slug", "Esiste già una descrizione web con questo slug. Scegline uno diverso." }
         };
 
         foreach (var mapping in uniqueMessages)
+        {
+            if (constraintName.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase))
+            {
+                return mapping.Value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>Messaggio user-friendly per CHECK constraint noti. Vuoto se sconosciuto.</summary>
+    private static string DescribeCheckConstraint(string? constraintName)
+    {
+        if (string.IsNullOrEmpty(constraintName)) return string.Empty;
+
+        var checkMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "ck_web_tipi_viaggio_descrizioni_descrizione_min", "La descrizione deve avere almeno 3 caratteri." },
+            { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." }
+        };
+
+        foreach (var mapping in checkMessages)
         {
             if (constraintName.Contains(mapping.Key, StringComparison.OrdinalIgnoreCase))
             {
@@ -188,6 +219,7 @@ public static class DatabaseExceptionHelper
             "azienda_sede" => "sede aziendale",
             "mov_clienti_viaggi" => "prenotazione cliente",
             "web_tour_contenuti" => "scheda contenuti web del tour",
+            "web_tipi_viaggio_descrizioni" => "descrizione web del tipo di viaggio",
             _ => tableName // Fallback al nome tecnico se non mappato
         };
     }

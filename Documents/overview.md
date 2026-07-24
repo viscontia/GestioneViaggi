@@ -78,6 +78,7 @@ Documento di riferimento completo: `Documents/ComponentiShared.md`.
 2. **Maiuscolo forzato**: tutti i campi alfanumerici → `Style="text-transform:uppercase"` + normalizzazione nel model. Eccezione: campi destinati a pagine web.
 3. **Tabulazione con JS helper**: usare il `dialogFormHelper.js` già presente per gestire il tab tra campi. È mandatorio in tutte le form di edit.
 4. **BackdropClick=false**: tutte le modali devono avere `new DialogOptions { BackdropClick = false }` per impedire chiusure accidentali.
+5. **Errore ⇒ restare nella form (MANDATORIO)**: il salvataggio si fa **dentro il dialog** (che inietta il service e chiama `CreateAsync`/`UpdateAsync`), NON in pagina dopo la chiusura. Il dialog si chiude **solo** a esito positivo (`MudDialog.Close(Ok(entitàSalvata))`); su errore — di validazione client **o di vincolo DB** — mostra il messaggio (es. `MudAlert` in cima al form) e **resta aperto**, senza perdere i dati inseriti. Mai chiudere la form e poi mostrare l'errore fuori. I messaggi degli errori DB sono tradotti in ITA da `Helpers/DatabaseExceptionHelper` (estendere lì i constraint noti — vedi `Gestione_check.md` — mai traduzioni inline nei componenti). Pattern di riferimento: `WebTipoViaggioDescrizioneDialog`.
 
 ### 3.4 VALIDAZIONE
 Il sistema di validazione è centralizzato in `Validation/`. Non scrivere regole inline nei componenti. Usare/estendere i validator già presenti. Vedi `Documents/Gestione_check.md` per il catalogo completo.

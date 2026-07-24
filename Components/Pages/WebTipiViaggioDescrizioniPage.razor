@@ -115,13 +115,9 @@ else
         var result = await dialog.Result;
         if (!result!.Canceled && result.Data is WebTipoViaggioDescrizione newItem)
         {
-            try
-            {
-                _items.Add(await Service.CreateAsync(newItem));
-                Snackbar.Add("Creato con successo", Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
+            _items.Add(newItem); // già salvato nel dialog
+            Snackbar.Add("Creato con successo", Severity.Success);
+            StateHasChanged();
         }
     }
 
@@ -137,27 +133,11 @@ else
         var result = await dialog.Result;
         if (!result!.Canceled && result.Data is WebTipoViaggioDescrizione updated)
         {
-            try
-            {
-                var saved = await Service.UpdateAsync(updated);
-                var idx = _items.FindIndex(x => x.WebTipoViaggioDescrizioneId == saved.WebTipoViaggioDescrizioneId);
-                if (idx >= 0) _items[idx] = saved;
-                Snackbar.Add("Aggiornato con successo", Severity.Success);
-                StateHasChanged();
-            }
-            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
+            var idx = _items.FindIndex(x => x.WebTipoViaggioDescrizioneId == updated.WebTipoViaggioDescrizioneId);
+            if (idx >= 0) _items[idx] = updated; else _items.Add(updated); // già salvato nel dialog
+            Snackbar.Add("Aggiornato con successo", Severity.Success);
+            StateHasChanged();
         }
-    }
-
-    /// <summary>Traduce le violazioni dei vincoli DB in messaggi comprensibili (le regole vivono ora nel DB: script 490/491).</summary>
-    private static string FriendlyDbError(Exception ex)
-    {
-        var m = ex.ToString();
-        if (m.Contains("uq_web_tipi_viaggio_descrizioni_ordine")) return "Ordine già usato da un'altra descrizione.";
-        if (m.Contains("uq_web_tipi_viaggio_descrizioni_slug")) return "Slug già usato da un'altra descrizione.";
-        if (m.Contains("ck_web_tipi_viaggio_descrizioni_descrizione_min")) return "La descrizione deve avere almeno 3 caratteri.";
-        if (m.Contains("ck_web_tipi_viaggio_descrizioni_ordine_min")) return "L'ordine deve essere almeno 1.";
-        return ex.Message;
     }
 
     private async Task DeleteItem(WebTipoViaggioDescrizione item)
@@ -181,7 +161,7 @@ else
                 }
                 else Snackbar.Add("Impossibile eliminare", Severity.Warning);
             }
-            catch (Exception ex) { Snackbar.Add($"Errore: {FriendlyDbError(ex)}", Severity.Error); }
+            catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
         }
     }
 }
