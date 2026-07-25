@@ -2,7 +2,7 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-07-10 (chiusura Blocco 11). **Stato:** NON ancora rilasciato. I test si faranno tutti alla fine.
+> **Ultimo aggiornamento:** 2026-07-25 (test "Descrizioni web dei tipi" superato → §2.6 con conteggi e procedura di migrazione dati). **Stato:** NON ancora rilasciato.
 
 ---
 
@@ -136,7 +136,32 @@ Alcune tabelle sono troppo tecniche per gli utenti finali: vengono **compilate a
 - **`web_tipi_viaggio_descrizioni`** — lookup **GLOBALE** delle descrizioni web dei tipi di viaggio + le relative **traduzioni** (`web_traduzioni` per questa entità).
 - **`ana_tipo_viaggi`** — tipologie di viaggio (**GLOBALE**/condivisa), inclusa la colonna `descrizione_web_fk` che referenzia la tabella sopra.
 
-⚠️ **Ordine di migrazione**: prima `web_tipi_viaggio_descrizioni` (referenziata), poi `ana_tipo_viaggi` (che la referenzia via `descrizione_web_fk`). Migrare i record **così come sono in TEST** (`ordine`/`slug` già conformi ai vincoli 490/491). Metodo consigliato: `pg_dump --data-only -t <tabella>` da TEST → restore su PROD, oppure copia manuale dei record; verificare che gli **id/FK restino coerenti**. Da fare **dopo** aver applicato gli script §1 (schema + vincoli) e **prima** di pubblicare contenuti che dipendono da questi tipi.
+> **Stato TEST (2026-07-25):** test funzionale delle "Descrizioni web dei tipi" **superato**. Contenuto attuale in TEST (Docker): **10** righe in `web_tipi_viaggio_descrizioni`, **9** righe in `ana_tipo_viaggi` (tutte con `descrizione_web_fk` valorizzato — sono stati **aggiunti record** rispetto al set originario), **0** righe in `web_traduzioni` (nessuna traduzione ancora generata: se al momento del go-live ce ne saranno, vanno migrate anch'esse).
+
+⚠️ **Ordine di migrazione**: prima `web_tipi_viaggio_descrizioni` (referenziata), poi `ana_tipo_viaggi` (che la referenzia via `descrizione_web_fk`), infine le eventuali righe di `web_traduzioni` con `entita = 'web_tipi_viaggio_descrizioni'`. Migrare i record **così come sono in TEST** (`ordine`/`slug` già conformi ai vincoli 490/491, `ordine` UNIQUE e ≥ 1). Da fare **dopo** aver applicato gli script §1 (schema + vincoli) e **prima** di pubblicare contenuti che dipendono da questi tipi.
+
+**Metodo consigliato** — dump dati da TEST e restore su PROD mantenendo gli **id** (le FK dipendono da essi):
+
+```bash
+# 1) export da TEST (Docker)
+docker exec -i postgres_db pg_dump -U postgres -d gestione_viaggi --data-only \
+  -t web_tipi_viaggio_descrizioni -t ana_tipo_viaggi > /tmp/tipi_viaggio_data.sql
+
+# 2) su PROD: svuotare le due tabelle SOLO se contengono dati non voluti,
+#    rispettando la FK (prima ana_tipo_viaggi, poi le descrizioni), poi:
+psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f /tmp/tipi_viaggio_data.sql
+```
+
+⚠️ **Dopo il restore, riallineare le sequence identity** (altrimenti il primo insert da UI va in errore di chiave duplicata):
+
+```sql
+SELECT setval(pg_get_serial_sequence('web_tipi_viaggio_descrizioni','web_tipi_viaggio_descrizioni_id'),
+              COALESCE((SELECT MAX(web_tipi_viaggio_descrizioni_id) FROM web_tipi_viaggio_descrizioni),1));
+SELECT setval(pg_get_serial_sequence('ana_tipo_viaggi','tipo_viaggi_id'),
+              COALESCE((SELECT MAX(tipo_viaggi_id) FROM ana_tipo_viaggi),1));
+```
+
+Verifica finale: conteggi identici a TEST, nessun `descrizione_web_fk` orfano, `ordine` = 1..N senza duplicati.
 
 ---
 
@@ -162,7 +187,7 @@ Da impostare lato app / ambiente (NON in git):
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
 - [ ] Bucket Supabase Storage creati + policy (§2.4).
 - [ ] Backfill `cliente_lingua` eseguito e verificato (§2.5).
-- [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti (§2.6).
+- [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3).
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
