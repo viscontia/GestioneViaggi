@@ -24,6 +24,7 @@ public sealed class WebTraduzioneOrchestratorService
     private readonly WebTourContenutiService _contenuti;
     private readonly WebTourItinerarioService _itinerario;
     private readonly WebTourItinerarioPassaggiService _passi;
+    private readonly WebTourMappaService _mappe;
     private readonly GestioneViaggi.Services.CRUD.AnaViaggiService _viaggi;
     private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
     private readonly ILogger<WebTraduzioneOrchestratorService> _logger;
@@ -31,12 +32,13 @@ public sealed class WebTraduzioneOrchestratorService
     public WebTraduzioneOrchestratorService(
         IDatabaseService db, ClaudeTranslationClient claude, WebTraduzioniService traduzioni,
         WebTourContenutiService contenuti, WebTourItinerarioService itinerario, WebTourItinerarioPassaggiService passi,
+        WebTourMappaService mappe,
         GestioneViaggi.Services.CRUD.AnaViaggiService viaggi,
         GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
         ILogger<WebTraduzioneOrchestratorService> logger)
     {
         _db = db; _claude = claude; _traduzioni = traduzioni;
-        _contenuti = contenuti; _itinerario = itinerario; _passi = passi;
+        _contenuti = contenuti; _itinerario = itinerario; _passi = passi; _mappe = mappe;
         _viaggi = viaggi; _secretKey = secretKey; _logger = logger;
     }
 
@@ -99,6 +101,17 @@ public sealed class WebTraduzioneOrchestratorService
                 AddViaggio("viaggio_incluso", "Incluso", viaggio.Incluso);
                 AddViaggio("viaggio_escluso", "Escluso", viaggio.Escluso);
             }
+        }
+
+        // Descrizioni delle mappe: sono testo mostrato al cliente sul sito, quindi vanno tradotte.
+        // Chi modifica questo elenco deve aggiornare anche fn_web_tour_stato_sezioni (SqlScripts/495),
+        // che conta gli stessi campi per il semaforo Traduzioni: se i due divergono, il denominatore
+        // del conteggio è sbagliato e il tab non risulta mai completo.
+        foreach (var m in await _mappe.ListByContenutoAsync(contenutoId, aziendaId))
+        {
+            if (!string.IsNullOrWhiteSpace(m.Descrizione))
+                items.Add(new TranslatableItem("web_tour_mappa", m.WebTourMappaId, "descrizione",
+                    $"Mappa — {m.Descrizione}", m.Descrizione!));
         }
 
         var giornate = await _itinerario.ListByContenutoAsync(contenutoId, aziendaId);
