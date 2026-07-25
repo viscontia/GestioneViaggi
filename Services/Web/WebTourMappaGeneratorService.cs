@@ -32,11 +32,41 @@ public sealed class WebTourMappaGeneratorService
 
     public bool IsConfigured => _geo.IsConfigured;
 
-    /// <summary>Genera (o rigenera) la mappa statica del viaggio dal testo GPX. Upsert 1:1 su web_tour_mappa.</summary>
-    public async Task<WebTourMappa> GenerateAsync(long contenutoId, int aziendaId, string gpxText, string? gpxFilename, CancellationToken ct = default)
+    /// <summary>
+    /// Genera (o rigenera) una mappa statica dal testo GPX e la salva.
+    /// <paramref name="itinerarioId"/> null = mappa dell'intero viaggio (richiede <paramref name="descrizione"/>);
+    /// valorizzato = mappa di quella giornata. L'upsert è per <i>(contenuto, giornata)</i>: rigenerare
+    /// una mappa esistente la sovrascrive, caricare un GPX per una giornata libera ne crea una nuova.
+    /// </summary>
+    public async Task<WebTourMappa> GenerateAsync(long contenutoId, int aziendaId, string gpxText, string? gpxFilename,
+        long? itinerarioId = null, string? descrizione = null, CancellationToken ct = default)
     {
         if (!_geo.IsConfigured)
             throw new InvalidOperationException("Chiave Geoapify non configurata (sezione 'Geoapify' in appsettings).");
+
+        // Stessa regola del CHECK ck_web_tour_mappa_descrizione_insieme, verificata qui per non
+        // spendere una chiamata Geoapify su un salvataggio che il DB rifiuterebbe comunque.
+        if (itinerarioId == null && string.IsNullOrWhiteSpace(descrizione))
+            throw new InvalidOperationException("La mappa dell'intero viaggio richiede una descrizione.");
+
+        var gpxBytes = System.Text.Encoding.UTF8.GetByteCount(gpxText);
+        var esistenti = await _mappaService.ListByContenutoAsync(contenutoId, aziendaId);
+        var existing = esistenti.FirstOrDefault(m => m.WebTourItinerarioIdFk == itinerarioId);
+
+        // Doppione: stesso file (nome case-insensitive + dimensione) su un'ALTRA mappa della stessa
+        // edizione. Controllato PRIMA di Geoapify. Come l'indice uq_web_tour_mappa_gpx_dedup, non si
+        // giudica doppione ciò di cui manca nome o dimensione. Il DB resta la difesa finale.
+        if (!string.IsNullOrWhiteSpace(gpxFilename))
+        {
+            var doppione = esistenti.FirstOrDefault(m =>
+                m.WebTourMappaId != (existing?.WebTourMappaId ?? 0)
+                && m.GpxBytes == gpxBytes
+                && string.Equals(m.GpxFilename, gpxFilename, StringComparison.OrdinalIgnoreCase));
+
+            if (doppione != null)
+                throw new InvalidOperationException(
+                    $"Questo file GPX è già stato caricato per questa edizione: \"{doppione.Descrizione ?? doppione.GpxFilename}\".");
+        }
 
         var points = GpxParser.Parse(gpxText);
         if (points.Count < 2)
@@ -51,7 +81,11 @@ public sealed class WebTourMappaGeneratorService
         using var msIn = new MemoryStream(jpeg);
         var processed = await WebImageProcessor.ToOptimizedWebpAsync(msIn, ct);
 
-        var storagePath = $"{aziendaId}/{contenutoId}/mappa.webp";
+        // Un percorso per mappa: rigenerare sovrascrive lo stesso oggetto, senza accumulare file.
+        // Si usa l'id della giornata e NON il giorno_numero, che cambia riordinando l'itinerario:
+        // il percorso resta stabile e nessun file resta orfano dopo un riordino.
+        var suffisso = itinerarioId == null ? "viaggio" : $"giornata-{itinerarioId}";
+        var storagePath = $"{aziendaId}/{contenutoId}/mappa-{suffisso}.webp";
         using var msOut = new MemoryStream(processed.Bytes);
         await _storage.UploadAsync(storagePath, msOut, processed.Mime, ct);
         var url = _storage.BuildPublicUrl(storagePath);
@@ -67,11 +101,13 @@ public sealed class WebTourMappaGeneratorService
             margine = _opt.BboxMargin
         });
 
-        // Upsert 1:1
-        var existing = await _mappaService.GetByContenutoAsync(contenutoId, aziendaId);
+        // Upsert per (contenuto, giornata): existing è già stato risolto sopra, prima di Geoapify.
         var entity = existing ?? new WebTourMappa { WebTourContenutoIdFk = contenutoId, AziendaId = aziendaId };
+        entity.WebTourItinerarioIdFk = itinerarioId;
+        entity.Descrizione = descrizione;
         entity.GpxOriginale = gpxText;
         entity.GpxFilename = gpxFilename;
+        entity.GpxBytes = gpxBytes;
         entity.BboxMinLat = (decimal)bbox.MinLat;
         entity.BboxMinLon = (decimal)bbox.MinLon;
         entity.BboxMaxLat = (decimal)bbox.MaxLat;
@@ -84,7 +120,8 @@ public sealed class WebTourMappaGeneratorService
         entity.DataGenerazione = DateTime.UtcNow;
 
         var saved = existing == null ? await _mappaService.CreateAsync(entity) : await _mappaService.UpdateAsync(entity);
-        _logger.LogInformation("Mappa generata per contenuto {ContenutoId}: {Orig}→{Simpl} punti", contenutoId, points.Count, simplified.Count);
+        _logger.LogInformation("Mappa generata per contenuto {ContenutoId} ({Abbinamento}): {Orig}→{Simpl} punti",
+            contenutoId, itinerarioId == null ? "intero viaggio" : $"giornata {itinerarioId}", points.Count, simplified.Count);
         return saved;
     }
 }

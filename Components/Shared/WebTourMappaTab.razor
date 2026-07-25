@@ -127,7 +127,10 @@ else
         _busy = true;
         try
         {
-            _mappa = await Generator.GenerateAsync(ContenutoId, AziendaId, gpxText, filename);
+            // Ponte fino alla UI a elenco (Task 7): resta la sola mappa d'insieme, con la descrizione
+            // presa dal nome del file — la stessa convenzione usata dal backfill dello script 493.
+            var descrizione = string.IsNullOrWhiteSpace(filename) ? "Mappa del tour" : filename;
+            _mappa = await Generator.GenerateAsync(ContenutoId, AziendaId, gpxText, filename, null, descrizione);
             _pendingGpxText = null; _pendingGpxName = null;
             Snackbar.Add("Mappa generata con successo", Severity.Success);
         }
