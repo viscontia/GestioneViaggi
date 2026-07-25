@@ -14,64 +14,36 @@
 
 ---
 
-## Task 1 — Campioni visivi di semplificazione (decisione utente)
+## Task 1 — Campioni visivi di semplificazione (decisione utente) — ✅ FATTO 2026-07-25
 
-Va per primo perché richiede una scelta dell'utente e non blocca il resto.
+Eseguito replicando la pipeline C# in Python (script nello scratchpad): la replica ha prodotto **220 punti** con i parametri attuali, identici a `parametri_render` della generazione reale → campioni attendibili.
 
-**Files:** nessuno (solo artefatti temporanei nello scratchpad).
-
-**Step 1.** Estrarre il GPX reale già in DB:
-
-```bash
-docker exec -i postgres_db psql -U postgres -d gestione_viaggi -t -A \
-  -c "select gpx_originale from web_tour_mappa where web_tour_mappa_id = 7" > /tmp/traccia.gpx
-```
-
-**Step 2.** Con uno script Python nello scratchpad, applicare Douglas-Peucker alla traccia con tolleranze ~150 m (0,0013°), ~300 m (0,0027°), ~600 m (0,0054°) e comporre per ciascuna l'URL Geoapify Static Maps con gli stessi parametri dell'app (`osm-bright`, 800×600, linea `#c0392b`, margine bbox 0,08 — vedi `GeoapifyOptions`). Chiave in `appsettings.json`, sezione `Geoapify`.
-
-**Step 3.** Scaricare le tre immagini e mostrarle all'utente insieme al numero di punti risultante.
-
-**Step 4. CHECKPOINT:** l'utente sceglie il livello. Annotare il valore scelto: sarà `MinSimplifyEps`.
-
-Nessun commit (nessun file di progetto modificato).
+Esito: la tolleranza in metri è stata **scartata** (su una tappa di un giorno 600 m collassano la traccia a 6 punti). Si usa il **budget di punti**, già presente come `MaxPolylinePoints`. **Valore scelto dall'utente: 70.** Dettagli e tabella dei campioni nel design, §Semplificazione.
 
 ---
 
-## Task 2 — Semplificazione configurabile
+## Task 2 — Ritaratura del budget di punti
 
 **Files:**
 - Modifica: `Services/Shared/Geo/GeoapifyOptions.cs`
-- Modifica: `Services/Shared/Geo/DouglasPeucker.cs:11`
 - Modifica: `appsettings.json`, `appsettings.Development.json`
 
-**Step 1.** In `GeoapifyOptions` aggiungere:
+`DouglasPeucker.cs` **non** si tocca: con la semantica "budget" l'uscita anticipata su tracce già sotto la soglia è corretta.
 
-```csharp
-/// <summary>Tolleranza minima di semplificazione in gradi (pavimento): generalizza il tracciato
-/// perché non sia replicabile. 0,0027 ≈ 300 m. Il cap MaxPolylinePoints resta come limite URL.</summary>
-public double MinSimplifyEps { get; set; } = <valore scelto nel Task 1>;
-```
+**Step 1.** In `GeoapifyOptions` portare `MaxPolylinePoints` da 280 a **70**, aggiornando il commento: non è più solo un cap per la lunghezza dell'URL, è il criterio di generalizzazione del tracciato.
 
-**Step 2.** In `DouglasPeucker.Simplify` il parametro `startEps` resta, ma il chiamante passa il pavimento. In `WebTourMappaGeneratorService.cs:45`:
+**Step 2.** Esporre `"MaxPolylinePoints": 70` nella sezione `Geoapify` dei due appsettings, così è ritoccabile senza ricompilare.
 
-```csharp
-var simplified = DouglasPeucker.Simplify(points, _opt.MaxPolylinePoints, _opt.MinSimplifyEps);
-```
-
-Attenzione alla riga `if (points.Count <= maxPoints) return points.ToList();` in `DouglasPeucker.cs:13`: con un pavimento di tolleranza va rimossa o resa condizionale, altrimenti una traccia già corta salterebbe del tutto la generalizzazione.
-
-**Step 3.** Aggiungere `"MinSimplifyEps": <valore>` alla sezione `Geoapify` dei due appsettings.
-
-**Step 4.** Verifica: `dotnet build -f net9.0-maccatalyst -v q --nologo` → 0 errori. Poi, a runtime, "Rigenera" sulla mappa esistente e controllo del conteggio punti:
+**Step 3.** Verifica: `dotnet build -f net9.0-maccatalyst -v q --nologo` → 0 errori. Poi, a runtime, "Rigenera" sulla mappa esistente e controllo del conteggio punti:
 
 ```bash
 docker exec -i postgres_db psql -U postgres -d gestione_viaggi \
   -c "select parametri_render->>'punti_originali', parametri_render->>'punti_semplificati' from web_tour_mappa"
 ```
 
-Atteso: punti semplificati molto inferiori a 220, coerenti col campione scelto.
+Atteso: `punti_semplificati` ≈ 70 (era 220).
 
-**Step 5. Commit:** `feat(mappa): pavimento di tolleranza per generalizzare il tracciato`
+**Step 4. Commit:** `feat(mappa): budget di 70 punti per generalizzare il tracciato`
 
 ---
 

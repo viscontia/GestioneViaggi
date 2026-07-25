@@ -100,9 +100,22 @@ La descrizione è **proposta** dal titolo della giornata scelta e resta modifica
 
 Oggi `DouglasPeucker.Simplify` alza la tolleranza finché i punti scendono sotto `MaxPolylinePoints = 280`, che è un cap nato per la **lunghezza dell'URL Geoapify**, non per l'occultamento: la traccia di prova è passata da 5.239 a **220 punti**, circa un punto ogni 270 m, con i tornanti ancora leggibili.
 
-Si aggiunge a `GeoapifyOptions` un **pavimento di tolleranza** (`MinSimplifyEps`, in gradi, configurabile in appsettings) da cui `Simplify` parte, invece di 0,00005° (~5 m). La generalizzazione diventa una scelta esplicita e non un effetto collaterale del cap URL.
+**Soluzione: si ritara `MaxPolylinePoints` da 280 a 70.** Nessun parametro nuovo — il numero di punti diventa il criterio esplicito ("il tracciato si disegna con al più N punti"), e si espone in appsettings per poterlo ritoccare senza ricompilare.
 
-**I valori si scelgono guardando**: prima di fissarli si rigenera la traccia reale già in DB a 2-3 livelli (~150 m, ~300 m, ~600 m) e si confrontano le immagini. Compromesso da tenere presente: più si generalizza, più la linea taglia i tornanti e si stacca visibilmente dalle strade — meno interpretabile per chi vuole copiare, ma anche meno gradevole per chi guarda.
+**Perché non una tolleranza in metri** (ipotesi iniziale `MinSimplifyEps`, scartata dopo la verifica). Una tolleranza assoluta in gradi si comporta in modo opposto ai due zoom che avremo. Campioni generati dalla traccia reale (5.239 punti, Colle Val d'Elsa → Massa Marittima), replicando la pipeline C#:
+
+| Tolleranza | Punti — intero viaggio (~60 km, ~100 m/px) | Punti — una tappa (~4 km, ~7 m/px) |
+|---|---|---|
+| ~5 m (oggi) | 220 | — |
+| ~150 m | 139 (indistinguibile: 1,5 px) | — |
+| ~300 m | 71 | — |
+| ~600 m | 39 | **6** — il tracciato collassa in un triangolo |
+
+Sulla mappa d'insieme 600 m sono 6 px di scostamento; sulla tappa giornaliera diventano 24 px e il percorso disegnato è falso. Il **budget di punti** è invece relativo per costruzione: stessa ruvidezza visiva a qualunque estensione — 71 punti sull'intero viaggio, 66 sulla tappa. I numeri coincidono: il campione a ~300 m sull'intero viaggio produce esattamente 71 punti, cioè il budget scelto.
+
+**Valore scelto: 70** (Adriano, 2026-07-25) — il sentiero esatto non è più ricostruibile ma il percorso resta credibile. Compromesso noto: più si generalizza, più la linea taglia i tornanti e si stacca dalle strade; sotto ~40 punti alcune tappe brevi rischiano di sembrare sbagliate.
+
+Nota: l'uscita anticipata di `DouglasPeucker.Simplify` (`if (points.Count <= maxPoints) return ...`) resta corretta con la semantica "budget": una traccia già sotto i 70 punti è già grossolana e non va toccata.
 
 ## Fuori scope
 
@@ -116,6 +129,6 @@ Si aggiunge a `GeoapifyOptions` un **pavimento di tolleranza** (`MinSimplifyEps`
 - `SqlScripts/49x` — aggiornamento `fn_web_tour_stato_sezioni` (ramo traduzioni mappe)
 - `Models/Web/WebTourMappa.cs`, `Services/Web/WebTourMappaService.cs`, `Services/Web/WebTourMappaGeneratorService.cs`
 - `Services/Web/WebTraduzioneOrchestratorService.cs`
-- `Services/Shared/Geo/DouglasPeucker.cs`, `GeoapifyOptions.cs`, `appsettings*.json`
+- `Services/Shared/Geo/GeoapifyOptions.cs`, `appsettings*.json` (`MaxPolylinePoints`; `DouglasPeucker.cs` resta invariato)
 - `Components/Shared/WebTourMappaTab.razor` (elenco + form), `WebTourItinerarioTab.razor` (data), `WebEdizioniManager.razor` (passaggio data), `WebTourAnteprimaDialog.razor` (N mappe)
 - `Documents/Funzioni_DB.md`, `Documents/ComponentiShared.md`, checklist go-live
