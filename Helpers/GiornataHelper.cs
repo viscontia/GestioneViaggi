@@ -25,12 +25,21 @@ public static class GiornataHelper
         return dataInizio.Value.Date.AddDays(giornoNumero - 1);
     }
 
-    /// <summary>"Giorno 1 — sab 02/05/2026", o solo "Giorno 1" se la data non è calcolabile.</summary>
-    public static string Etichetta(DateTime? dataInizio, int giornoNumero, int numeroGiorni)
+    /// <summary>
+    /// Data per esteso, "Sabato 2 Maggio 2026", oppure null se non calcolabile.
+    /// È il testo mostrato come informazione non editabile accanto alla giornata: il titolo può
+    /// restare indietro dopo un riordino (lo corregge l'utente), la data no — deve essere sempre giusta.
+    /// </summary>
+    public static string? Estesa(DateTime? dataInizio, int giornoNumero, int numeroGiorni)
     {
         var data = Data(dataInizio, giornoNumero, numeroGiorni);
-        return data == null
-            ? $"Giorno {giornoNumero}"
-            : $"Giorno {giornoNumero} — {data.Value.ToString("ddd dd/MM/yyyy", It)}";
+        return data == null ? null : It.TextInfo.ToTitleCase(data.Value.ToString("dddd d MMMM yyyy", It));
+    }
+
+    /// <summary>"Giorno 1 — Sabato 2 Maggio 2026", o solo "Giorno 1" se la data non è calcolabile.</summary>
+    public static string Etichetta(DateTime? dataInizio, int giornoNumero, int numeroGiorni)
+    {
+        var estesa = Estesa(dataInizio, giornoNumero, numeroGiorni);
+        return estesa == null ? $"Giorno {giornoNumero}" : $"Giorno {giornoNumero} — {estesa}";
     }
 }

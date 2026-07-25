@@ -61,8 +61,8 @@ else
                         <MudPaper Elevation="2" Class="pa-2 cursor-grab d-flex align-center gap-2">
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                             <div class="flex-grow-1" style="min-width:0;">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary"
-                                         Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">@EtichettaGiorno(context)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Primary"
+                                         Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">@(DataEstesa(context) ?? "—")</MudText>
                                 <MudText Typo="Typo.subtitle2"
                                          Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@context.TitoloGiornata</MudText>
                             </div>
@@ -105,7 +105,21 @@ else
                                                    Disabled="@(_giornate.IndexOf(g) == _giornate.Count - 1)" OnClick="@(() => MoveGiornata(g, 1))" />
                                 </MudTooltip>
                             </div>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary" Style="white-space:nowrap;">@EtichettaGiorno(g)</MudText>
+                            @* Data calcolata dalla partenza: informativa, non editabile, si aggiorna da sola
+                               quando la giornata cambia posizione. Il titolo resta libero e descrittivo. *@
+                            <MudTooltip Text="Data calcolata dalla partenza: si aggiorna da sola se sposti la giornata. Non è modificabile.">
+                                <div class="d-flex align-center gap-1" style="white-space:nowrap;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Color="Color.Primary" />
+                                    @if (DataEstesa(g) is { } data)
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Primary"><b>@data</b></MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">oltre la durata prevista</MudText>
+                                    }
+                                </div>
+                            </MudTooltip>
                             <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
                                           ValueChanged="@(v => OnTitoloChanged(g, v))"
                                           Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
@@ -229,9 +243,10 @@ else
     private Task NotifyStatoAsync()
         => StatoChanged.InvokeAsync(WebTabStatoRules.Itinerario(_giornate.Count, NumeroGiorni));
 
-    /// <summary>"Giorno 3 — lun 04/05/2026": la data non è memorizzata, si deriva dalla partenza (GiornataHelper).</summary>
-    private string EtichettaGiorno(WebTourItinerario g)
-        => GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni);
+    /// <summary>"Sabato 2 Maggio 2026": non memorizzata, derivata dalla partenza (GiornataHelper).
+    /// Deriva da GiornoNumero, che il riordino riscrive: la data segue lo spostamento senza altro codice.</summary>
+    private string? DataEstesa(WebTourItinerario g)
+        => GiornataHelper.Estesa(DataInizio, g.GiornoNumero, NumeroGiorni);
 
     private Task OpenHelp()
         => DialogService.ShowAsync<WebTourItinerarioHelpDialog>("",
