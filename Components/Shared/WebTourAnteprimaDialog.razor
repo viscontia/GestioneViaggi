@@ -83,11 +83,23 @@
                     </div>
                 }
 
-                @if (_mappa != null && !string.IsNullOrWhiteSpace(_mappa.ImmagineUrl))
+                @* Mappe in ordine (prima l'intero viaggio, poi le giornate) con la loro descrizione.
+                   Dove andranno di preciso su sito e flyer si decide quando si faranno: qui si
+                   verifica solo che ci siano e che l'abbinamento sia leggibile. *@
+                @if (_mappe.Any(m => !string.IsNullOrWhiteSpace(m.ImmagineUrl)))
                 {
                     <MudDivider Class="my-3" />
-                    <MudText Typo="Typo.subtitle1" Class="mb-2">Mappa</MudText>
-                    <MudImage Src="@_mappa.ImmagineUrl" Alt="Mappa del tour" Fluid="true" Class="rounded" Style="max-height:320px;" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">@(_mappe.Count > 1 ? "Mappe" : "Mappa")</MudText>
+                    @foreach (var m in _mappe.Where(m => !string.IsNullOrWhiteSpace(m.ImmagineUrl)))
+                    {
+                        <div class="mb-3">
+                            @if (!string.IsNullOrWhiteSpace(m.Descrizione))
+                            {
+                                <MudText Typo="Typo.body2" Class="mb-1"><b>@m.Descrizione</b></MudText>
+                            }
+                            <MudImage Src="@m.ImmagineUrl" Alt="@(m.Descrizione ?? "Mappa del tour")" Fluid="true" Class="rounded" Style="max-height:320px;" />
+                        </div>
+                    }
                 }
             </div>
         }
@@ -109,7 +121,7 @@
     private readonly Dictionary<long, List<WebTourItinerarioPassaggio>> _passi = new();
     private List<WebTourImmagine> _galleria = new();
     private WebTourImmagine? _immaginePrincipale;
-    private WebTourMappa? _mappa;
+    private List<WebTourMappa> _mappe = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,7 +138,7 @@
             _immaginePrincipale = immagini.FirstOrDefault(i => i.Tipo == "principale");
             _galleria = immagini.Where(i => i.Tipo != "principale").ToList();
 
-            _mappa = await MappaService.GetByContenutoAsync(ContenutoId, AziendaId);
+            _mappe = await MappaService.ListByContenutoAsync(ContenutoId, AziendaId);
         }
         catch { /* anteprima best-effort */ }
         finally { _loading = false; }
