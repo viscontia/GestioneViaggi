@@ -8,8 +8,9 @@ using Npgsql;
 namespace GestioneViaggi.Services.Web;
 
 /// <summary>
-/// Service DB-First per la mappa statica del tour (web_tour_mappa), relazione 1:1 col viaggio.
-/// Wrappa fn_web_tour_mappa_*. Multi-tenant (azienda_id); audit via trg_web_audit.
+/// Service DB-First per le mappe statiche del tour (web_tour_mappa): N per edizione, una dell'intero
+/// viaggio e una per giornata dell'itinerario. Wrappa fn_web_tour_mappa_*.
+/// Multi-tenant (azienda_id); audit via trg_web_audit.
 /// </summary>
 public class WebTourMappaService : BaseCrudService<WebTourMappa>
 {
@@ -66,7 +67,58 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         }
     }
 
-    /// <summary>Recupera la mappa associata a un contenuto web (relazione 1:1), scopata per azienda.</summary>
+    /// <summary>
+    /// Tutte le mappe di una edizione, già ordinate: prima quella dell'intero viaggio,
+    /// poi le giornate per giorno_numero.
+    /// </summary>
+    public async Task<List<WebTourMappa>> ListByContenutoAsync(long contenutoId, int aziendaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_mappa_list_by_contenuto(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            var results = new List<WebTourMappa>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero mappe del contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
+            return new List<WebTourMappa>();
+        }
+    }
+
+    /// <summary>Mappa abbinata a una giornata dell'itinerario (0 o 1), scopata per azienda.</summary>
+    public async Task<WebTourMappa?> GetByGiornataAsync(long itinerarioId, int aziendaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_mappa_get_by_giornata(@ItinerarioId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ItinerarioId", itinerarioId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            return await reader.ReadAsync() ? MapFromReader(reader) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero mappa della giornata {ItinerarioId} azienda {AziendaId}", itinerarioId, aziendaId);
+            throw Helpers.DatabaseExceptionHelper.WrapException(ex, TableName);
+        }
+    }
+
+    /// <summary>
+    /// Mappa dell'<b>intero viaggio</b> di una edizione (quella senza giornata abbinata).
+    /// Per l'elenco completo usare <see cref="ListByContenutoAsync"/>.
+    /// </summary>
     public async Task<WebTourMappa?> GetByContenutoAsync(long contenutoId, int aziendaId)
     {
         try
@@ -96,7 +148,8 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
                 @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GpxOriginale::text, @GpxFilename::varchar,
                 @BboxMinLat::numeric, @BboxMinLon::numeric, @BboxMaxLat::numeric, @BboxMaxLon::numeric,
                 @Provider::varchar, @Stile::varchar, @ParametriRender::jsonb,
-                @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz)";
+                @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz,
+                @WebTourItinerarioIdFk::bigint, @Descrizione::varchar, @GpxBytes::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             BindWritableParams(cmd, entity);
 
@@ -126,7 +179,8 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
                 @Id::bigint, @AziendaId::integer, @WebTourContenutoIdFk::bigint, @GpxOriginale::text, @GpxFilename::varchar,
                 @BboxMinLat::numeric, @BboxMinLon::numeric, @BboxMaxLat::numeric, @BboxMaxLon::numeric,
                 @Provider::varchar, @Stile::varchar, @ParametriRender::jsonb,
-                @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz)";
+                @ImmagineUrl::text, @ImmagineStoragePath::varchar, @DataGenerazione::timestamptz,
+                @WebTourItinerarioIdFk::bigint, @Descrizione::varchar, @GpxBytes::integer)";
             await using var cmd = new NpgsqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("Id", entity.WebTourMappaId);
             BindWritableParams(cmd, entity);
@@ -192,17 +246,26 @@ public class WebTourMappaService : BaseCrudService<WebTourMappa>
         cmd.Parameters.AddWithValue("ImmagineUrl", (object?)e.ImmagineUrl ?? DBNull.Value);
         cmd.Parameters.AddWithValue("ImmagineStoragePath", (object?)e.ImmagineStoragePath ?? DBNull.Value);
         cmd.Parameters.AddWithValue("DataGenerazione", (object?)e.DataGenerazione ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("WebTourItinerarioIdFk", (object?)e.WebTourItinerarioIdFk ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("Descrizione", (object?)e.Descrizione ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("GpxBytes", (object?)e.GpxBytes ?? DBNull.Value);
     }
 
     protected override WebTourMappa MapFromReader(NpgsqlDataReader reader)
     {
+        // La base non ha un ReadNullableLong: lettura inline come in WebTourContenutiService.ListEdizioniAsync.
+        var itinerarioOrd = reader.GetOrdinal("web_tour_itinerario_id_fk");
+
         return new WebTourMappa
         {
             WebTourMappaId = reader.GetInt64(reader.GetOrdinal("web_tour_mappa_id")),
             WebTourContenutoIdFk = reader.GetInt64(reader.GetOrdinal("web_tour_contenuti_id_fk")),
             AziendaId = ReadInt(reader, "azienda_id"),
+            WebTourItinerarioIdFk = reader.IsDBNull(itinerarioOrd) ? (long?)null : reader.GetInt64(itinerarioOrd),
+            Descrizione = ReadNullableString(reader, "descrizione"),
             GpxOriginale = ReadNullableString(reader, "gpx_originale"),
             GpxFilename = ReadNullableString(reader, "gpx_filename"),
+            GpxBytes = ReadNullableInt(reader, "gpx_bytes"),
             BboxMinLat = ReadNullableDecimal(reader, "bbox_min_lat"),
             BboxMinLon = ReadNullableDecimal(reader, "bbox_min_lon"),
             BboxMaxLat = ReadNullableDecimal(reader, "bbox_max_lat"),
