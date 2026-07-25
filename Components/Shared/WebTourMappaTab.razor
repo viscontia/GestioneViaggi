@@ -1,18 +1,22 @@
 @using Microsoft.AspNetCore.Components.Forms
+@using GestioneViaggi.Helpers
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
 @using GestioneViaggi.Services.Shared.Storage
 @using MudBlazor
 @inject WebTourMappaService MappaService
+@inject WebTourItinerarioService ItinerarioService
 @inject WebTourMappaGeneratorService Generator
 @inject IWebMediaStorage Storage
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
-@* Scheda "Mappa" (Blocco 9). Upload GPX → pipeline lato gestionale (parse → Douglas-Peucker →
-   Geoapify Static Maps → WebP → Storage) → salva web_tour_mappa. Il GPX resta lato server
-   (gpx_originale); al browser solo l'immagine. Attribuzione © OpenStreetMap contributors. *@
+@* Scheda "Mappa" (Blocco 9, mappe multiple dal 2026-07-25). Upload GPX → pipeline lato gestionale
+   (parse → Douglas-Peucker → Geoapify Static Maps → WebP → Storage) → salva web_tour_mappa.
+   Ogni mappa è o dell'INTERO VIAGGIO o di UNA GIORNATA dell'itinerario: i casi ambigui li rifiuta
+   il DB (script 493). Il GPX resta lato server; al browser solo l'immagine.
+   Attribuzione © OpenStreetMap contributors. *@
 
 <div class="mappa-tab">
 @if (_loading)
@@ -28,27 +32,49 @@ else
         </MudAlert>
     }
 
-    @if (_mappa?.ImmagineUrl is { Length: > 0 })
+    @if (_mappe.Count == 0)
     {
-        <MudPaper Outlined="true" Class="pa-3 mb-3">
-            <MudText Typo="Typo.subtitle1" Class="mb-2">Mappa attuale</MudText>
-            <img src="@_mappa.ImmagineUrl" alt="Mappa del tour" style="max-width:100%;border-radius:6px;display:block;" />
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">© OpenStreetMap contributors</MudText>
-            <div class="d-flex flex-wrap gap-3 mt-2">
-                <MudText Typo="Typo.body2" Color="Color.Secondary">GPX: @(_mappa.GpxFilename ?? "—")</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Generata: @(_mappa.DataGenerazione?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</MudText>
-            </div>
-            <div class="d-flex gap-2 mt-3">
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh" Disabled="@(_busy || !Generator.IsConfigured || string.IsNullOrEmpty(_mappa.GpxOriginale))"
-                           OnClick="@(() => Genera(_mappa!.GpxOriginale!, _mappa!.GpxFilename))">Rigenera</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Disabled="@_busy" OnClick="Elimina">Elimina</MudButton>
-            </div>
-        </MudPaper>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">Nessuna mappa caricata per questa edizione.</MudText>
+    }
+    else
+    {
+        @foreach (var m in _mappe)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mb-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                    <MudText Typo="Typo.subtitle1">@(string.IsNullOrWhiteSpace(m.Descrizione) ? "(senza descrizione)" : m.Descrizione)</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@(m.WebTourItinerarioIdFk == null ? Color.Info : Color.Default)"
+                             Icon="@(m.WebTourItinerarioIdFk == null ? Icons.Material.Filled.Public : Icons.Material.Filled.Today)">
+                        @Abbinamento(m)
+                    </MudChip>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(m.ImmagineUrl))
+                {
+                    <img src="@m.ImmagineUrl" alt="@m.Descrizione" style="max-width:100%;border-radius:6px;display:block;" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">© OpenStreetMap contributors</MudText>
+                }
+
+                <div class="d-flex flex-wrap gap-3 mt-2">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">GPX: @(m.GpxFilename ?? "—")</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Generata: @(m.DataGenerazione?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</MudText>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
+                               Disabled="@(_busy || !Generator.IsConfigured || string.IsNullOrEmpty(m.GpxOriginale))"
+                               OnClick="@(() => Rigenera(m))">Rigenera</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                               Disabled="@_busy" OnClick="@(() => Elimina(m))">Elimina</MudButton>
+                </div>
+            </MudPaper>
+        }
     }
 
     <MudPaper Outlined="true" Class="pa-3">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">@(_mappa?.ImmagineUrl is { Length: > 0 } ? "Sostituisci con un nuovo GPX" : "Carica un GPX per generare la mappa")</MudText>
-        <div class="d-flex align-center gap-3">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Carica un GPX</MudText>
+
+        <div class="d-flex align-center gap-3 mb-3">
             <MudFileUpload T="IBrowserFile" Accept=".gpx,.GPX" MaxFileSize="20971520" FilesChanged="OnGpxSelected" Disabled="@_busy">
                 <ActivatorContent>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="@_busy">Scegli GPX</MudButton>
@@ -57,17 +83,54 @@ else
             @if (!string.IsNullOrEmpty(_pendingGpxName))
             {
                 <MudText Typo="Typo.body2">@_pendingGpxName</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Map"
-                           Disabled="@(_busy || !Generator.IsConfigured)" OnClick="@(() => Genera(_pendingGpxText!, _pendingGpxName))">
-                    Genera mappa
-                </MudButton>
-            }
-            @if (_busy)
-            {
-                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Generazione in corso...</MudText>
             }
         </div>
+
+        @if (!string.IsNullOrEmpty(_pendingGpxName))
+        {
+            <MudText Typo="Typo.body2" Class="mb-1">Questa mappa si riferisce a:</MudText>
+            <MudRadioGroup T="bool" Value="@_abbinaGiornata" ValueChanged="OnTipoAbbinamentoChanged">
+                <MudRadio T="bool" Value="false" Disabled="@_insiemeGiaPresente" Dense="true">
+                    Intero viaggio @(_insiemeGiaPresente ? "(già presente)" : "")
+                </MudRadio>
+                <MudRadio T="bool" Value="true" Disabled="@(_giornateLibere.Count == 0)" Dense="true">
+                    Una giornata @(_giornateLibere.Count == 0 ? "(nessuna giornata libera)" : "")
+                </MudRadio>
+            </MudRadioGroup>
+
+            @if (_abbinaGiornata)
+            {
+                <MudSelect T="long?" Value="@_giornataSelezionata" ValueChanged="OnGiornataChanged" Label="Giornata"
+                           Dense="true" Variant="Variant.Outlined" Class="mt-2" Style="max-width:520px;">
+                    @foreach (var g in _giornateLibere)
+                    {
+                        <MudSelectItem T="long?" Value="@g.WebTourItinerarioId">@EtichettaGiornata(g)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudTextField T="string" @bind-Value="_descrizione" Label="Descrizione" Immediate="true"
+                          Variant="Variant.Outlined" Dense="true" Class="mt-2" Style="max-width:520px;"
+                          MaxLength="255" HelperText="Testo mostrato al cliente; verrà tradotto nelle lingue del sito." />
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                Una mappa per giornata, oppure una per l'intero viaggio.
+                Non sono ammessi GPX che coprono porzioni di giornata.
+            </MudText>
+
+            <div class="d-flex align-center gap-3 mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Map"
+                           Disabled="@(_busy || !Generator.IsConfigured || !PuoGenerare)" OnClick="Genera">
+                    Genera mappa
+                </MudButton>
+                <MudButton Variant="Variant.Text" Disabled="@_busy" OnClick="AnnullaCaricamento">Annulla</MudButton>
+                @if (_busy)
+                {
+                    <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Generazione in corso...</MudText>
+                }
+            </div>
+        }
     </MudPaper>
 }
 </div>
@@ -75,22 +138,40 @@ else
 @code {
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Data di inizio dell'edizione: serve a mostrare la data reale di ogni giornata.</summary>
+    [Parameter] public DateTime? DataInizio { get; set; }
+    /// <summary>Durata del viaggio: le giornate oltre la durata non hanno una data di calendario.</summary>
+    [Parameter] public int NumeroGiorni { get; set; }
     /// <summary>Notifica al parent lo stato di completamento: la mappa è opzionale, quindi sempre Completo.</summary>
     [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
     private const long MaxGpxBytes = 20L * 1024 * 1024;
 
-    private WebTourMappa? _mappa;
+    private List<WebTourMappa> _mappe = new();
+    private List<WebTourItinerario> _giornate = new();
     private bool _loading = true;
     private bool _busy;
     private bool _tabSetup;
+
     private string? _pendingGpxText;
     private string? _pendingGpxName;
+    private bool _abbinaGiornata;
+    private long? _giornataSelezionata;
+    private string? _descrizione;
+
+    /// <summary>Giornate senza mappa: una giornata può averne una sola (vincolo DB uq_web_tour_mappa_giornata).</summary>
+    private List<WebTourItinerario> _giornateLibere =>
+        _giornate.Where(g => !_mappe.Any(m => m.WebTourItinerarioIdFk == g.WebTourItinerarioId)).ToList();
+
+    private bool _insiemeGiaPresente => _mappe.Any(m => m.WebTourItinerarioIdFk == null);
+
+    private bool PuoGenerare => _abbinaGiornata
+        ? _giornataSelezionata != null
+        : !_insiemeGiaPresente && !string.IsNullOrWhiteSpace(_descrizione);
 
     protected override async Task OnInitializedAsync()
     {
-        try { _mappa = await MappaService.GetByContenutoAsync(ContenutoId, AziendaId); }
-        catch (Exception ex) { Snackbar.Add($"Errore caricamento mappa: {ex.Message}", Severity.Error); }
+        await RicaricaAsync();
         _loading = false;
         // La mappa è opzionale: non blocca mai il gating di pubblicazione.
         await StatoChanged.InvokeAsync(WebTabStatoRules.Mappa());
@@ -105,6 +186,29 @@ else
         }
     }
 
+    private async Task RicaricaAsync()
+    {
+        try
+        {
+            _mappe = await MappaService.ListByContenutoAsync(ContenutoId, AziendaId);
+            _giornate = await ItinerarioService.ListByContenutoAsync(ContenutoId, AziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore caricamento mappe: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string EtichettaGiornata(WebTourItinerario g)
+        => $"{GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni)} — {g.TitoloGiornata}";
+
+    private string Abbinamento(WebTourMappa m)
+    {
+        if (m.WebTourItinerarioIdFk == null) return "Intero viaggio";
+        var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == m.WebTourItinerarioIdFk);
+        return g == null ? "Giornata" : GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni);
+    }
+
     private async Task OnGpxSelected(IBrowserFile? file)
     {
         if (file is null) return;
@@ -114,28 +218,59 @@ else
             using var reader = new StreamReader(stream);
             _pendingGpxText = await reader.ReadToEndAsync();
             _pendingGpxName = file.Name;
+
+            // Se la mappa d'insieme c'è già, l'unica scelta possibile è una giornata.
+            _abbinaGiornata = _insiemeGiaPresente && _giornateLibere.Count > 0;
+            _giornataSelezionata = null;
+            _descrizione = null;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Errore lettura GPX: {ex.Message}", Severity.Error);
-            _pendingGpxText = null; _pendingGpxName = null;
+            AnnullaCaricamento();
         }
     }
 
-    private async Task Genera(string gpxText, string? filename)
+    private void OnTipoAbbinamentoChanged(bool abbinaGiornata)
     {
+        _abbinaGiornata = abbinaGiornata;
+        _giornataSelezionata = null;
+        if (!abbinaGiornata) _descrizione = null;
+    }
+
+    /// <summary>La descrizione della mappa eredita il titolo della giornata scelta, ma resta modificabile.</summary>
+    private void OnGiornataChanged(long? itinerarioId)
+    {
+        _giornataSelezionata = itinerarioId;
+        var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == itinerarioId);
+        if (g != null)
+            _descrizione = $"{GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni)} — {g.TitoloGiornata}";
+    }
+
+    private void AnnullaCaricamento()
+    {
+        _pendingGpxText = null;
+        _pendingGpxName = null;
+        _giornataSelezionata = null;
+        _descrizione = null;
+        _abbinaGiornata = false;
+    }
+
+    private async Task Genera()
+    {
+        if (_pendingGpxText == null) return;
         _busy = true;
         try
         {
-            // Ponte fino alla UI a elenco (Task 7): resta la sola mappa d'insieme, con la descrizione
-            // presa dal nome del file — la stessa convenzione usata dal backfill dello script 493.
-            var descrizione = string.IsNullOrWhiteSpace(filename) ? "Mappa del tour" : filename;
-            _mappa = await Generator.GenerateAsync(ContenutoId, AziendaId, gpxText, filename, null, descrizione);
-            _pendingGpxText = null; _pendingGpxName = null;
+            await Generator.GenerateAsync(ContenutoId, AziendaId, _pendingGpxText, _pendingGpxName,
+                _abbinaGiornata ? _giornataSelezionata : null, _descrizione);
+            AnnullaCaricamento();
+            await RicaricaAsync();
             Snackbar.Add("Mappa generata con successo", Severity.Success);
         }
         catch (Exception ex)
         {
+            // L'errore non deve far perdere il file scelto: si resta nella form e si può correggere.
             Snackbar.Add($"Errore generazione mappa: {ex.Message}", Severity.Error);
         }
         finally
@@ -144,23 +279,38 @@ else
         }
     }
 
-    private async Task Elimina()
+    private async Task Rigenera(WebTourMappa m)
     {
-        if (_mappa is null) return;
-        var parameters = new DialogParameters<DeleteConfirmationDialog>
-        {
-            { x => x.Title, "Elimina mappa" },
-            { x => x.ContentText, "Eliminare la mappa e la sua immagine?" }
-        };
-        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina mappa", parameters, new DialogOptions { BackdropClick = false });
-        if ((await dialog.Result)!.Canceled) return;
+        if (string.IsNullOrEmpty(m.GpxOriginale)) return;
         _busy = true;
         try
         {
-            var path = _mappa.ImmagineStoragePath;
-            await MappaService.DeleteAsync(_mappa.WebTourMappaId, AziendaId);
+            await Generator.GenerateAsync(ContenutoId, AziendaId, m.GpxOriginale, m.GpxFilename,
+                m.WebTourItinerarioIdFk, m.Descrizione);
+            await RicaricaAsync();
+            Snackbar.Add("Mappa rigenerata", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore rigenerazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Elimina(WebTourMappa m)
+    {
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, "Elimina mappa" },
+            { x => x.ContentText, $"Eliminare la mappa \"{m.Descrizione ?? m.GpxFilename}\" e la sua immagine?" }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina mappa", parameters, new DialogOptions { BackdropClick = false });
+        if ((await dialog.Result)!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            var path = m.ImmagineStoragePath;
+            await MappaService.DeleteAsync(m.WebTourMappaId, AziendaId);
             if (!string.IsNullOrEmpty(path)) { try { await Storage.DeleteAsync(path); } catch { /* orfano tollerato */ } }
-            _mappa = null;
+            await RicaricaAsync();
             Snackbar.Add("Mappa eliminata", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error); }
