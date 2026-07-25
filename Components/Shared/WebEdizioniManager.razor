@@ -91,6 +91,7 @@ else
                 </MudTabPanel>
                 <MudTabPanel Text="Itinerario" Icon="@Icons.Material.Filled.Route" IconColor="@GetTabColor(TabItinerario)">
                     <WebTourItinerarioTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" NumeroGiorni="@NumeroGiorni"
+                                           DataInizio="@_selected.DataInizio"
                                            StatoChanged="@(s => OnStatoChanged(TabItinerario, s))" />
                 </MudTabPanel>
                 <MudTabPanel Text="Mappa" Icon="@Icons.Material.Filled.Map" IconColor="@GetTabColor(TabMappa)">

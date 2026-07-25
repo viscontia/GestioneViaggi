@@ -1,4 +1,5 @@
 @using System.Text.RegularExpressions
+@using GestioneViaggi.Helpers
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
 @using MudBlazor
@@ -60,6 +61,8 @@ else
                         <MudPaper Elevation="2" Class="pa-2 cursor-grab d-flex align-center gap-2">
                             <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Size="Size.Small" />
                             <div class="flex-grow-1" style="min-width:0;">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary"
+                                         Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">@EtichettaGiorno(context)</MudText>
                                 <MudText Typo="Typo.subtitle2"
                                          Style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@context.TitoloGiornata</MudText>
                             </div>
@@ -102,6 +105,7 @@ else
                                                    Disabled="@(_giornate.IndexOf(g) == _giornate.Count - 1)" OnClick="@(() => MoveGiornata(g, 1))" />
                                 </MudTooltip>
                             </div>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Style="white-space:nowrap;">@EtichettaGiorno(g)</MudText>
                             <MudTextField T="string" Value="@g.TitoloGiornata" Immediate="false"
                                           ValueChanged="@(v => OnTitoloChanged(g, v))"
                                           Variant="Variant.Text" Placeholder="Titolo della giornata" Class="flex-grow-1" />
@@ -170,6 +174,8 @@ else
     [Parameter, EditorRequired] public int AziendaId { get; set; }
     /// <summary>Durata del viaggio (ana_viaggi.numero_giorni): l'itinerario è Completo solo se tutte le giornate sono descritte.</summary>
     [Parameter] public int NumeroGiorni { get; set; }
+    /// <summary>Data di inizio dell'edizione: la data di ogni giornata è derivata da qui (vedi GiornataHelper).</summary>
+    [Parameter] public DateTime? DataInizio { get; set; }
     /// <summary>Notifica al parent lo stato (semaforo): Completo se descritte tutte le NumeroGiorni giornate, Parziale se meno, Vuoto se nessuna.</summary>
     [Parameter] public EventCallback<WebTabStato> StatoChanged { get; set; }
 
@@ -222,6 +228,10 @@ else
     /// (o più: caso raro con giornata extra, comunque pubblicabile ma segnalato con warning nella UI).</summary>
     private Task NotifyStatoAsync()
         => StatoChanged.InvokeAsync(WebTabStatoRules.Itinerario(_giornate.Count, NumeroGiorni));
+
+    /// <summary>"Giorno 3 — lun 04/05/2026": la data non è memorizzata, si deriva dalla partenza (GiornataHelper).</summary>
+    private string EtichettaGiorno(WebTourItinerario g)
+        => GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni);
 
     private Task OpenHelp()
         => DialogService.ShowAsync<WebTourItinerarioHelpDialog>("",
