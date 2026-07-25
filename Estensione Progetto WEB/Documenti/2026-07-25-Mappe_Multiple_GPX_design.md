@@ -34,6 +34,7 @@ Giorno N  →  data_viaggio_data_inizio + (N − 1)
 Su `web_tour_mappa`: rimosso il `UNIQUE` su `web_tour_contenuti_id_fk`; aggiunte
 
 - `web_tour_itinerario_id_fk BIGINT NULL` → FK a `web_tour_itinerario`, **ON DELETE RESTRICT**;
+  - **In implementazione la FK è stata fatta COMPOSITA** `(web_tour_itinerario_id_fk, web_tour_contenuti_id_fk)` → `web_tour_itinerario(web_tour_itinerario_id, web_tour_contenuti_id_fk)`: con la FK sul solo id giornata nulla impedirebbe di abbinare la mappa dell'edizione A a una giornata dell'edizione B. Richiede un `UNIQUE` sulla coppia lato itinerario come bersaglio. Verificato: l'abbinamento incrociato è rifiutato dal DB.
 - `descrizione VARCHAR(255) NULL`;
 - `gpx_bytes INTEGER NULL` (dimensione del file caricato, per il dedup).
 
@@ -58,7 +59,7 @@ Nota: il dedup è per edizione, quindi la stessa traccia non è riusabile su due
 
 1. **controllo duplicato prima di Geoapify** (nome + dimensione) → un doppione non consuma una chiamata API;
 2. parse GPX → Douglas-Peucker → bbox → Geoapify → WebP → Storage;
-3. percorso Storage parlante e stabile: `{azienda}/{contenuto}/mappa-viaggio.webp` oppure `mappa-g{N}.webp` — rigenerare sovrascrive, non accumula;
+3. percorso Storage parlante e stabile: `{azienda}/{contenuto}/mappa-viaggio.webp` oppure **`mappa-giornata-{itinerarioId}.webp`** — rigenerare sovrascrive, non accumula. *In implementazione si è passati dall'ipotesi `mappa-g{N}.webp` all'**id** della giornata: il `giorno_numero` cambia riordinando l'itinerario, quindi ogni riordino lascerebbe file orfani nel bucket e nomi che indicano la giornata sbagliata;*
 4. upsert per *(contenuto, giornata)* invece che 1:1.
 
 `WebTourMappaService`: nuova `ListByContenutoAsync`; `GetByContenutoAsync` resta per la mappa d'insieme. `fn_web_tour_mappa_insert`/`_update` cambiano firma (drop + create, convenzione Blocco 13). Su eliminazione si cancella anche l'oggetto dallo Storage.

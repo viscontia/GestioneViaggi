@@ -2,13 +2,13 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-07-25 (test "Descrizioni web dei tipi" superato → §2.6 con conteggi e procedura di migrazione dati). **Stato:** NON ancora rilasciato.
+> **Ultimo aggiornamento:** 2026-07-25 (mappe multiple da GPX, script 493–495; §2.6 migrazione dati tipi viaggio). **Stato:** NON ancora rilasciato.
 
 ---
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `492`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`)). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `495`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -19,14 +19,14 @@ L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `492`
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
 ```bash
-for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=492' | sort -t_ -k1 -n); do
+for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=495' | sort -t_ -k1 -n); do
   echo "==> $f"; psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
 done
 ```
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; quelli `467`–`492` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–492 in ordine numerico.
+> Nota: questa tabella dettaglia i primi script; quelli `467`–`495` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–495 in ordine numerico.
 
 | # | Script | Note |
 |---|--------|------|
@@ -181,7 +181,7 @@ Da impostare lato app / ambiente (NON in git):
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–492 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–495 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).

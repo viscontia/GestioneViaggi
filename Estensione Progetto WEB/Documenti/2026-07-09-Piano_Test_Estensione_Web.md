@@ -213,3 +213,39 @@ La CRUD di `ana_tipo_viaggi` è stata portata a **funzioni DB** (`fn_ana_tipo_vi
 - ☐ **Delete**: elimina un tipo **non usato** → rimosso. Elimina un tipo **usato da un viaggio** → l'operazione è **bloccata** con messaggio chiaro (trigger `ana_tipo_viaggi_check_delete`).
 - ☐ **Validazioni**: Tipo obbligatorio (max 6), Descrizione obbligatoria (max 100) → errori di form corretti.
 - ☐ **Regressione DB-first**: create e update passano dalle funzioni `fn_ana_tipo_viaggi_*` (nessun errore di mapping; la riga tornata popola correttamente griglia/dialog).
+
+## 18. Mappe multiple da GPX (script `493`–`495`)
+
+Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giornata** dell'itinerario. Design: `2026-07-25-Mappe_Multiple_GPX_design.md`. *(Ogni generazione consuma una chiamata Geoapify reale.)*
+
+**Tab Mappa — caricamento e abbinamento:**
+- ☐ Edizione senza mappe: l'elenco dice "Nessuna mappa caricata"; scelto un GPX compaiono le opzioni di abbinamento.
+- ☐ **Intero viaggio**: senza descrizione il pulsante "Genera mappa" resta **disabilitato**; con descrizione la mappa si genera e compare in cima all'elenco.
+- ☐ **Una giornata**: il select elenca le giornate come "Giorno N — Sabato 2 Maggio 2026 — titolo"; scegliendone una la **descrizione si precompila** dal titolo e resta modificabile.
+- ☐ Caricata la mappa d'insieme, l'opzione "Intero viaggio" appare **disabilitata** con "(già presente)".
+- ☐ Caricata la mappa di una giornata, quella giornata **non compare più** nel select.
+- ☐ Con tutte le giornate occupate, l'opzione "Una giornata" è disabilitata con "(nessuna giornata libera)".
+- ☐ **Ordine elenco**: prima la mappa d'insieme, poi le giornate in ordine di giornata (indipendente dall'ordine di caricamento).
+
+**Duplicati e vincoli (il DB è la difesa finale):**
+- ☐ Ricaricare lo **stesso file GPX** nella stessa edizione → rifiutato con messaggio sul doppione, **prima** di chiamare Geoapify (nessuna immagine nuova generata).
+- ☐ Stesso file con il **nome in maiuscolo/minuscolo diverso** → comunque rifiutato (confronto case-insensitive).
+- ☐ Stesso file su un'**altra edizione** → consentito.
+- ☐ Dal tab Itinerario, eliminare una **giornata che ha una mappa** → bloccato con messaggio in italiano (non un errore tecnico).
+- ☐ **Rigenera** su una mappa esistente → si aggiorna senza segnalare falsi doppioni; l'immagine sostituisce la precedente (nessun file accumulato).
+- ☐ **Elimina** → sparisce dall'elenco e la giornata torna disponibile nel select.
+
+**Tracciato generalizzato (script Task 2, `MaxPolylinePoints = 70`):**
+- ☐ Rigenerando una mappa esistente, `parametri_render->>'punti_semplificati'` è ≈ 70 (era 220): `SELECT descrizione, parametri_render->>'punti_semplificati' FROM web_tour_mappa;`
+- ☐ Il tracciato è **visibilmente generalizzato**: i tornanti non sono più ricostruibili, ma il percorso resta credibile — sia sulla mappa d'insieme sia su quella di una singola giornata (che copre un'area molto più piccola).
+
+**Date delle giornate (tab Itinerario):**
+- ☐ Ogni giornata mostra la data **per esteso** ("Sabato 2 Maggio 2026"), non modificabile, con icona calendario.
+- ☐ **Spostando** una giornata (frecce o trascinamento) le date si **ricalcolano subito** e restano coerenti con la partenza.
+- ☐ Una giornata **oltre la durata** del viaggio mostra "oltre la durata prevista" invece di una data.
+- ☐ **Clone su un'altra edizione** (`fn_web_tour_contenuti_clona`): il contenuto clonato mostra le date della **nuova** partenza, non quelle di origine.
+
+**Traduzioni e anteprima:**
+- ☐ Il tab **Traduzioni** elenca le descrizioni delle mappe fra i campi da tradurre ("Mappa — …").
+- ☐ Il **semaforo Traduzioni** conta le stesse voci: dopo aver aggiunto una mappa con descrizione il totale sale di 1 (una descrizione di soli spazi non conta).
+- ☐ L'**Anteprima** mostra **tutte** le mappe con la loro descrizione, titolo "Mappe" al plurale.
