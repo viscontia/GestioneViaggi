@@ -298,17 +298,11 @@ else
         }
     }
 
-    /// <summary>Completo se slug + sottotitolo + descrizione sono tutti presenti; Vuoto se tutti assenti; altrimenti Parziale.</summary>
-    private WebTabStato ComputeStato()
-    {
-        var hasSlug = !string.IsNullOrWhiteSpace(_model.Slug);
-        var hasSottotitolo = !string.IsNullOrWhiteSpace(_model.Sottotitolo);
-        var hasDescrizione = !string.IsNullOrWhiteSpace(_model.DescrizioneHtml);
-
-        if (hasSlug && hasSottotitolo && hasDescrizione) return WebTabStato.Completo;
-        if (!hasSlug && !hasSottotitolo && !hasDescrizione) return WebTabStato.Vuoto;
-        return WebTabStato.Parziale;
-    }
+    /// <summary>Stato del tab secondo la regola condivisa (vedi WebTabStatoRules).</summary>
+    private WebTabStato ComputeStato() => WebTabStatoRules.Contenuti(
+        !string.IsNullOrWhiteSpace(_model.Slug),
+        !string.IsNullOrWhiteSpace(_model.Sottotitolo),
+        !string.IsNullOrWhiteSpace(_model.DescrizioneHtml));
 
     private Task NotifyStatoAsync() => StatoChanged.InvokeAsync(ComputeStato());
 

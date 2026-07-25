@@ -221,13 +221,7 @@ else
     /// <summary>Vuoto se nessuna giornata; Parziale se descritte meno di NumeroGiorni; Completo se tutte
     /// (o più: caso raro con giornata extra, comunque pubblicabile ma segnalato con warning nella UI).</summary>
     private Task NotifyStatoAsync()
-    {
-        WebTabStato stato;
-        if (_giornate.Count == 0) stato = WebTabStato.Vuoto;
-        else if (NumeroGiorni > 0 && _giornate.Count < NumeroGiorni) stato = WebTabStato.Parziale;
-        else stato = WebTabStato.Completo;
-        return StatoChanged.InvokeAsync(stato);
-    }
+        => StatoChanged.InvokeAsync(WebTabStatoRules.Itinerario(_giornate.Count, NumeroGiorni));
 
     private Task OpenHelp()
         => DialogService.ShowAsync<WebTourItinerarioHelpDialog>("",

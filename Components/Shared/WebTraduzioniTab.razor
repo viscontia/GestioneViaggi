@@ -150,19 +150,8 @@ else
     private Task NotifyStatoAsync()
     {
         var totalPairs = _items.Count * WebTraduzioneOrchestratorService.Lingue.Length;
-        WebTabStato stato;
-        if (totalPairs == 0)
-        {
-            stato = WebTabStato.Completo;
-        }
-        else
-        {
-            var translated = _items.Sum(it => WebTraduzioneOrchestratorService.Lingue.Count(l => Find(it, l) != null));
-            stato = translated == 0 ? WebTabStato.Vuoto
-                : translated == totalPairs ? WebTabStato.Completo
-                : WebTabStato.Parziale;
-        }
-        return StatoChanged.InvokeAsync(stato);
+        var translated = _items.Sum(it => WebTraduzioneOrchestratorService.Lingue.Count(l => Find(it, l) != null));
+        return StatoChanged.InvokeAsync(WebTabStatoRules.Traduzioni(totalPairs, translated));
     }
 
     private async Task SalvaChiave()

@@ -122,6 +122,41 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         return list;
     }
 
+    /// <summary>
+    /// Fatti sullo stato delle sezioni (Contenuti/Galleria/Itinerario/Traduzioni) di un'edizione, in una sola query.
+    /// Usato dal semaforo dei sotto-tab all'apertura, quando i sotto-tab non sono ancora istanziati.
+    /// NULL se il contenuto non esiste o è di altra azienda.
+    /// </summary>
+    public async Task<WebTourStatoSezioni?> GetStatoSezioniAsync(long contenutoId, int aziendaId, string[] lingue)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_stato_sezioni(@ContenutoId::bigint, @AziendaId::integer, @Lingue::varchar[])", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("Lingue", lingue);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return null;
+
+            return new WebTourStatoSezioni(
+                reader.GetBoolean(reader.GetOrdinal("ha_slug")),
+                reader.GetBoolean(reader.GetOrdinal("ha_sottotitolo")),
+                reader.GetBoolean(reader.GetOrdinal("ha_descrizione")),
+                reader.GetInt32(reader.GetOrdinal("n_immagini")),
+                reader.GetBoolean(reader.GetOrdinal("ha_principale")),
+                reader.GetInt32(reader.GetOrdinal("n_giornate")),
+                reader.GetInt32(reader.GetOrdinal("n_traducibili")),
+                reader.GetInt32(reader.GetOrdinal("n_tradotte")));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero stato sezioni del contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
+            return null;
+        }
+    }
+
     /// <summary>Clona un contenuto (con figlie e traduzioni) su una nuova data del medesimo viaggio. Ritorna l'id del nuovo contenuto.</summary>
     public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId)
     {

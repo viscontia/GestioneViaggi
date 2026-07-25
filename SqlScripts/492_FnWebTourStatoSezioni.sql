@@ -1,0 +1,97 @@
+-- Stato di completamento delle sezioni (sotto-tab) dei contenuti web di un'edizione.
+-- Serve al semaforo di WebEdizioniManager: all'apertura del dialog i sotto-tab NON sono
+-- ancora istanziati (MudTabs.KeepPanelsAlive=false), quindi non possono notificare il loro
+-- stato. Questa funzione restituisce in UNA sola query i FATTI grezzi da cui il C#
+-- (WebTabStatoRules) ricava Vuoto/Parziale/Completo, senza duplicare le soglie in SQL.
+--
+-- Convenzione: SECURITY INVOKER, scopata per azienda (multi-tenant).
+-- Ritorna 0 righe se il contenuto non esiste o appartiene ad altra azienda.
+--
+-- p_lingue: lingue target delle traduzioni (WebTraduzioneOrchestratorService.Lingue).
+-- L'elenco dei campi traducibili rispecchia WebTraduzioneOrchestratorService.GetTranslatableItemsAsync:
+-- se lì si aggiunge/toglie un campo, aggiornare anche qui.
+
+CREATE OR REPLACE FUNCTION fn_web_tour_stato_sezioni(
+    p_contenuto_id BIGINT,
+    p_azienda_id   INTEGER,
+    p_lingue       VARCHAR[])
+RETURNS TABLE (
+    ha_slug        BOOLEAN,
+    ha_sottotitolo BOOLEAN,
+    ha_descrizione BOOLEAN,
+    n_immagini     INTEGER,
+    ha_principale  BOOLEAN,
+    n_giornate     INTEGER,
+    n_traducibili  INTEGER,
+    n_tradotte     INTEGER)
+LANGUAGE sql STABLE AS $$
+WITH c AS (
+    SELECT *
+    FROM web_tour_contenuti
+    WHERE web_tour_contenuti_id = p_contenuto_id
+      AND azienda_id = p_azienda_id
+),
+-- Item traducibili = campi valorizzati, come in GetTranslatableItemsAsync.
+-- Il test ~ '[^[:space:]]' (almeno un carattere non-spazio) replica string.IsNullOrWhiteSpace del C#.
+traducibili AS (
+    SELECT 'web_tour_contenuti'::VARCHAR AS entita, c.web_tour_contenuti_id AS entita_id, x.campo::VARCHAR AS campo
+    FROM c
+    CROSS JOIN LATERAL (VALUES
+        ('sottotitolo',               c.sottotitolo::TEXT),
+        ('descrizione_html',          c.descrizione_html),
+        ('durata_testo',              c.durata_testo::TEXT),
+        ('luoghi_visitati',           c.luoghi_visitati),
+        ('info_pernottamento_html',   c.info_pernottamento_html),
+        ('info_pasti_html',           c.info_pasti_html),
+        ('info_equipaggiamento_html', c.info_equipaggiamento_html),
+        ('altre_info_html',           c.altre_info_html),
+        ('meta_title',                c.meta_title::TEXT),
+        ('meta_description',          c.meta_description::TEXT)
+    ) AS x(campo, valore)
+    WHERE COALESCE(x.valore, '') ~ '[^[:space:]]'
+
+    UNION ALL
+    -- Incluso/Escluso vivono su ana_viaggi (livello viaggio, condivisi tra le edizioni).
+    SELECT 'ana_viaggi'::VARCHAR, v.viaggio_id::BIGINT, y.campo::VARCHAR
+    FROM c
+    JOIN ana_viaggi v ON v.viaggio_id = c.viaggio_id_fk AND v.azienda_id = p_azienda_id
+    CROSS JOIN LATERAL (VALUES
+        ('viaggio_incluso', v.viaggio_incluso),
+        ('viaggio_escluso', v.viaggio_escluso)
+    ) AS y(campo, valore)
+    WHERE COALESCE(y.valore, '') ~ '[^[:space:]]'
+
+    UNION ALL
+    -- Testo dei passi dell'itinerario.
+    SELECT 'web_tour_itinerario_passaggi'::VARCHAR, p.web_tour_itinerario_passaggi_id, 'testo_html'::VARCHAR
+    FROM c
+    JOIN web_tour_itinerario i ON i.web_tour_contenuti_id_fk = c.web_tour_contenuti_id
+                              AND i.azienda_id = p_azienda_id
+    JOIN web_tour_itinerario_passaggi p ON p.itinerario_id_fk = i.web_tour_itinerario_id
+                                       AND p.azienda_id = p_azienda_id
+    WHERE COALESCE(p.testo_html, '') ~ '[^[:space:]]'
+)
+SELECT
+    (SELECT COALESCE(slug, '')             ~ '[^[:space:]]' FROM c),
+    (SELECT COALESCE(sottotitolo, '')      ~ '[^[:space:]]' FROM c),
+    (SELECT COALESCE(descrizione_html, '') ~ '[^[:space:]]' FROM c),
+    (SELECT COUNT(*)::INTEGER FROM web_tour_immagini
+      WHERE web_tour_contenuti_id_fk = p_contenuto_id AND azienda_id = p_azienda_id),
+    (SELECT EXISTS (SELECT 1 FROM web_tour_immagini
+                     WHERE web_tour_contenuti_id_fk = p_contenuto_id AND azienda_id = p_azienda_id
+                       AND tipo = 'principale')),
+    (SELECT COUNT(*)::INTEGER FROM web_tour_itinerario
+      WHERE web_tour_contenuti_id_fk = p_contenuto_id AND azienda_id = p_azienda_id),
+    (SELECT COUNT(*)::INTEGER FROM traducibili),
+    (SELECT COUNT(*)::INTEGER
+       FROM traducibili t
+       JOIN web_traduzioni w ON w.entita = t.entita
+                            AND w.entita_id = t.entita_id
+                            AND w.campo = t.campo
+                            AND w.azienda_id = p_azienda_id
+                            AND w.lingua = ANY (p_lingue))
+WHERE EXISTS (SELECT 1 FROM c);
+$$;
+
+COMMENT ON FUNCTION fn_web_tour_stato_sezioni(BIGINT, INTEGER, VARCHAR[]) IS
+'Fatti grezzi per il semaforo dei sotto-tab contenuti web (Contenuti/Galleria/Itinerario/Traduzioni) di una edizione. Le soglie Vuoto/Parziale/Completo restano in C# (WebTabStatoRules).';

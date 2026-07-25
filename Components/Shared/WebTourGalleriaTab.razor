@@ -278,14 +278,9 @@ else
         StateHasChanged();
     }
 
-    /// <summary>Vuoto se nessuna immagine; Parziale se immagini senza copertina; Completo se >=1 immagine + copertina.</summary>
+    /// <summary>Stato del tab secondo la regola condivisa (vedi WebTabStatoRules).</summary>
     private Task NotifyStatoAsync()
-    {
-        var stato = _immagini.Count == 0
-            ? WebTabStato.Vuoto
-            : _immagini.Any(i => i.Tipo == "principale") ? WebTabStato.Completo : WebTabStato.Parziale;
-        return StatoChanged.InvokeAsync(stato);
-    }
+        => StatoChanged.InvokeAsync(WebTabStatoRules.Galleria(_immagini.Count, _immagini.Any(i => i.Tipo == "principale")));
 
     private async Task OnFilesSelected(IReadOnlyList<IBrowserFile> files)
     {

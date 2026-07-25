@@ -151,6 +151,32 @@ else
 
     private Color GetTabColor(string tab) => _stati.TryGetValue(tab, out var stato) ? stato.ToColor() : Color.Default;
 
+    /// <summary>
+    /// Accende il semaforo di TUTTI i sotto-tab dell'edizione selezionata, leggendo i fatti in una sola query.
+    /// Serve perché MudTabs non tiene vivi i pannelli: all'apertura (e dopo un cambio edizione) i sotto-tab non
+    /// ancora visitati non esistono e non possono notificare il proprio stato via StatoChanged.
+    /// </summary>
+    private async Task CaricaStatiAsync()
+    {
+        var contenutoId = _selected?.ContenutoId;
+        var fatti = contenutoId == null
+            ? null
+            : await ContenutiService.GetStatoSezioniAsync(contenutoId.Value, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+
+        if (fatti == null)
+        {
+            foreach (var tab in _stati.Keys.ToList()) _stati[tab] = WebTabStato.Vuoto;
+            return;
+        }
+
+        _stati[TabContenuti] = WebTabStatoRules.Contenuti(fatti.HaSlug, fatti.HaSottotitolo, fatti.HaDescrizione);
+        _stati[TabGalleria] = WebTabStatoRules.Galleria(fatti.NumeroImmagini, fatti.HaPrincipale);
+        _stati[TabItinerario] = WebTabStatoRules.Itinerario(fatti.NumeroGiornate, NumeroGiorni);
+        _stati[TabMappa] = WebTabStatoRules.Mappa();
+        _stati[TabTraduzioni] = WebTabStatoRules.Traduzioni(
+            fatti.ItemTraducibili * WebTraduzioneOrchestratorService.Lingue.Length, fatti.CoppieTradotte);
+    }
+
     private IEnumerable<EdizioneViaggio> _edizioniConContenuto => _edizioni.Where(e => e.HaContenuto);
 
     protected override async Task OnInitializedAsync()
@@ -169,6 +195,7 @@ else
             _selected = _edizioni[0];
             _selectedDataId = _selected.DataViaggioId;
         }
+        await CaricaStatiAsync();
     }
 
     private async Task OnEdizioneChanged(int dataId)
@@ -184,6 +211,7 @@ else
         _selectedDataId = dataId;
         _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == dataId);
         _cloneSourceId = null;
+        await CaricaStatiAsync(); // il semaforo dell'edizione precedente non deve restare acceso
     }
 
     /// <summary>Guard cambio sotto-tab (Contenuti/Itinerario/Galleria/Mappa/Traduzioni) con modifiche non salvate.</summary>
