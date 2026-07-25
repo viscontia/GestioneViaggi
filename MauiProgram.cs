@@ -254,11 +254,15 @@ public static class MauiProgram
 
         // Geoapify Static Maps (Blocco 9) - opzioni + client HTTP + pipeline GPX→mappa
         var geoapifySection = builder.Configuration.GetSection("Geoapify");
-        builder.Services.AddSingleton(new Services.Shared.Geo.GeoapifyOptions
+        var geoapifyOptions = new Services.Shared.Geo.GeoapifyOptions
         {
             ApiKey = geoapifySection["ApiKey"] ?? "",
             Style = string.IsNullOrWhiteSpace(geoapifySection["Style"]) ? "osm-bright" : geoapifySection["Style"]!
-        });
+        };
+        // Budget punti del tracciato: se assente/non valido resta il default della classe.
+        if (int.TryParse(geoapifySection["MaxPolylinePoints"], out var maxPolylinePoints) && maxPolylinePoints > 1)
+            geoapifyOptions.MaxPolylinePoints = maxPolylinePoints;
+        builder.Services.AddSingleton(geoapifyOptions);
         builder.Services.AddHttpClient<Services.Shared.Geo.GeoapifyStaticMapClient>();
         builder.Services.AddScoped<Services.Web.WebTourMappaGeneratorService>();
 

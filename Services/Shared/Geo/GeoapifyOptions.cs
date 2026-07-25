@@ -13,5 +13,12 @@ public sealed class GeoapifyOptions
     public string StartColor { get; set; } = "#27ae60";  // verde (start)
     public string EndColor { get; set; } = "#c0392b";    // rosso (end)
     public double BboxMargin { get; set; } = 0.08;
-    public int MaxPolylinePoints { get; set; } = 280;    // cap per il limite di lunghezza URL
+    /// <summary>
+    /// Budget di punti con cui viene disegnato il tracciato: è il criterio di <b>generalizzazione</b>
+    /// (traccia non replicabile da chi conosce il territorio), non solo un cap per la lunghezza dell'URL.
+    /// Un budget è preferibile a una tolleranza in metri perché è relativo all'estensione: la stessa
+    /// ruvidezza visiva sulla mappa d'insieme e su quella di una singola giornata. 70 ≈ tolleranza di
+    /// ~300 m sull'intero tour. Sotto ~40 alcune tappe brevi iniziano a sembrare percorsi falsi.
+    /// </summary>
+    public int MaxPolylinePoints { get; set; } = 70;
 }
