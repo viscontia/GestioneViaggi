@@ -166,7 +166,10 @@ public static class DatabaseExceptionHelper
             { "uq_web_tour_contenuti_slug", "Esiste già un tour con questo indirizzo web. Scegline uno diverso." },
             { "web_tour_contenuti_viaggio_id_fk_key", "Questo viaggio ha già una scheda di contenuti web." },
             { "uq_web_tipi_viaggio_descrizioni_ordine", "Esiste già una descrizione web con questo ordine. Scegline uno diverso." },
-            { "uq_web_tipi_viaggio_descrizioni_slug", "Esiste già una descrizione web con questo slug. Scegline uno diverso." }
+            { "uq_web_tipi_viaggio_descrizioni_slug", "Esiste già una descrizione web con questo slug. Scegline uno diverso." },
+            { "uq_web_tour_mappa_giornata", "Questa giornata ha già una mappa. Elimina quella esistente prima di caricarne un'altra." },
+            { "uq_web_tour_mappa_insieme", "Questa edizione ha già una mappa dell'intero viaggio. Elimina quella esistente prima di caricarne un'altra." },
+            { "uq_web_tour_mappa_gpx_dedup", "Questo file GPX è già stato caricato per questa edizione (stesso nome e stessa dimensione)." }
         };
 
         foreach (var mapping in uniqueMessages)
@@ -188,7 +191,8 @@ public static class DatabaseExceptionHelper
         var checkMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "ck_web_tipi_viaggio_descrizioni_descrizione_min", "La descrizione deve avere almeno 3 caratteri." },
-            { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." }
+            { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." },
+            { "ck_web_tour_mappa_descrizione_insieme", "La mappa dell'intero viaggio richiede una descrizione." }
         };
 
         foreach (var mapping in checkMessages)
@@ -220,6 +224,8 @@ public static class DatabaseExceptionHelper
             "mov_clienti_viaggi" => "prenotazione cliente",
             "web_tour_contenuti" => "scheda contenuti web del tour",
             "web_tipi_viaggio_descrizioni" => "descrizione web del tipo di viaggio",
+            "web_tour_itinerario" => "giornata dell'itinerario",
+            "web_tour_mappa" => "mappa del percorso",
             _ => tableName // Fallback al nome tecnico se non mappato
         };
     }
