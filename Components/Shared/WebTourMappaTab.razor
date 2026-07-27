@@ -18,7 +18,19 @@
    il DB (script 493). Il GPX resta lato server; al browser solo l'immagine.
    Attribuzione © OpenStreetMap contributors. *@
 
-<div class="mappa-tab">
+<div class="mappa-tab" style="position:relative;">
+
+@* La generazione chiama Geoapify e può richiedere secondi: senza un segnale l'utente crede che il
+   programma sia bloccato e clicca altrove. L'overlay copre l'intera scheda, quindi vale anche per
+   "Rigenera" sulle card, dove lo spinner accanto al pulsante "Genera mappa" non è visibile. *@
+<MudOverlay Visible="@_busy" DarkBackground="true" Absolute="true" ZIndex="9">
+    <div class="d-flex flex-column align-center gap-2">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.body1" Style="color:white;">Generazione mappa in corso...</MudText>
+        <MudText Typo="Typo.caption" Style="color:white;">Può richiedere qualche secondo.</MudText>
+    </div>
+</MudOverlay>
+
 @if (_loading)
 {
     <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" /></div>
@@ -83,6 +95,14 @@ else
             @if (!string.IsNullOrEmpty(_pendingGpxName))
             {
                 <MudText Typo="Typo.body2">@_pendingGpxName</MudText>
+            }
+            else
+            {
+                @* Le opzioni di abbinamento compaiono solo dopo aver scelto il file: senza questa riga
+                   sembra che la scelta della giornata non esista. *@
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Scelto il file potrai indicare se la mappa è dell'intero viaggio o di una giornata.
+                </MudText>
             }
         </div>
 
@@ -271,6 +291,7 @@ else
     {
         if (_pendingGpxText == null) return;
         _busy = true;
+        StateHasChanged(); // mostra l'overlay prima della chiamata a Geoapify
         try
         {
             await Generator.GenerateAsync(ContenutoId, AziendaId, _pendingGpxText, _pendingGpxName,
@@ -294,6 +315,7 @@ else
     {
         if (string.IsNullOrEmpty(m.GpxOriginale)) return;
         _busy = true;
+        StateHasChanged(); // mostra l'overlay prima della chiamata a Geoapify
         try
         {
             await Generator.GenerateAsync(ContenutoId, AziendaId, m.GpxOriginale, m.GpxFilename,
