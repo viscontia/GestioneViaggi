@@ -93,8 +93,11 @@ else
                 <MudRadio T="bool" Value="false" Disabled="@_insiemeGiaPresente" Dense="true">
                     Intero viaggio @(_insiemeGiaPresente ? "(già presente)" : "")
                 </MudRadio>
+                @* Due motivi diversi per cui la scelta non è disponibile: senza distinguerli
+                   "nessuna giornata libera" farebbe pensare a giornate tutte occupate anche
+                   quando l'itinerario è semplicemente vuoto. *@
                 <MudRadio T="bool" Value="true" Disabled="@(_giornateLibere.Count == 0)" Dense="true">
-                    Una giornata @(_giornateLibere.Count == 0 ? "(nessuna giornata libera)" : "")
+                    Una giornata @MotivoGiornateNonDisponibili()
                 </MudRadio>
             </MudRadioGroup>
 
@@ -197,6 +200,14 @@ else
         {
             Snackbar.Add($"Errore caricamento mappe: {ex.Message}", Severity.Error);
         }
+    }
+
+    /// <summary>Spiega perché non si può abbinare a una giornata: itinerario vuoto ≠ giornate tutte occupate.</summary>
+    private string MotivoGiornateNonDisponibili()
+    {
+        if (_giornate.Count == 0) return "— crea prima le giornate nel tab Itinerario";
+        if (_giornateLibere.Count == 0) return "— tutte le giornate hanno già una mappa";
+        return string.Empty;
     }
 
     private string EtichettaGiornata(WebTourItinerario g)
