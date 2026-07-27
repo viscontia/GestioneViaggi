@@ -282,6 +282,10 @@ else
     }
 
     /// <summary>Salva la scheda Contenuti se ha modifiche non salvate. Usato dal guard del dialog padre (Chiudi).</summary>
+    /// <summary>true se il manager è già sulla sotto-scheda "Contenuti": la X del dialog la usa per
+    /// decidere se tornare ai Contenuti o uscire davvero dal viaggio.</summary>
+    public bool IsOnContenuti => _activeSubTabIndex == 0;
+
     /// <summary>Riporta alla sotto-scheda "Contenuti" (indice 0) restando nel manager. Usato dal pulsante "Chiudi" del dialog viaggio.</summary>
     public void GoToContenuti()
     {

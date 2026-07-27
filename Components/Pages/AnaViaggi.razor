@@ -645,7 +645,8 @@
             };
         var options = new DialogOptions
             {
-                CloseButton = true,
+                // La X la rende AnaViaggiDialog: dai sotto-tab dei contenuti torna ai Contenuti, non all'elenco viaggi.
+                CloseButton = false,
                 MaxWidth = MaxWidth.Large,
                 FullWidth = true,
                 BackdropClick =
@@ -716,7 +717,8 @@
         
         var options = new DialogOptions
             {
-                CloseButton = true,
+                // La X la rende AnaViaggiDialog: dai sotto-tab dei contenuti torna ai Contenuti, non all'elenco viaggi.
+                CloseButton = false,
                 MaxWidth = MaxWidth.Large,
                 FullWidth = true,
                 BackdropClick =

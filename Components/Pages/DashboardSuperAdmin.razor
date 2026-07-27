@@ -1046,7 +1046,8 @@ else
 
             var options = new DialogOptions
             {
-                CloseButton = true,
+                // La X la rende AnaViaggiDialog: dai sotto-tab dei contenuti torna ai Contenuti, non all'elenco viaggi.
+                CloseButton = false,
                 MaxWidth = MaxWidth.Medium,
                 FullWidth = true,
                 BackdropClick = false

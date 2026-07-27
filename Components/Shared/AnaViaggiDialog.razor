@@ -6,6 +6,18 @@
 @using MudBlazor
 
 <MudDialog>
+    @* X propria invece di quella di MudBlazor (DialogOptions.CloseButton): quella integrata chiude il
+       dialog senza passare da qui, quindi dai sotto-tab dei Contenuti Web si finiva dritti all'elenco
+       viaggi saltando anche il controllo sulle modifiche non salvate. *@
+    <TitleContent>
+        <div class="d-flex align-center justify-space-between" style="width:100%;">
+            <MudText Typo="Typo.h6">@MudDialog.Title</MudText>
+            <MudTooltip Text="@(TornaAiContenuti ? "Torna alla scheda Contenuti" : "Chiudi")">
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                               OnClick="ChiudiDallaX" aria-label="Chiudi" />
+            </MudTooltip>
+        </div>
+    </TitleContent>
     <DialogContent>
         <style>
             .avd-scroll::-webkit-scrollbar { width: 10px; }
@@ -633,8 +645,28 @@
     private void CloseFromContentTab()
     {
         // "Chiudi" NON esce dal viaggio: riporta alla sotto-scheda Contenuti restando nel dialog.
-        // Per uscire dal viaggio si usa la X in alto a destra.
         _webEdizioniManager?.GoToContenuti();
+    }
+
+    /// <summary>
+    /// La X segue la gerarchia delle schede: da un sotto-tab dei contenuti web (Galleria, Itinerario,
+    /// Mappa, Traduzioni) riporta ai <b>Contenuti</b>, non all'elenco viaggi. Dai Contenuti — o dalle
+    /// altre schede del viaggio — esce davvero, chiedendo prima cosa fare delle modifiche non salvate.
+    /// </summary>
+    private bool TornaAiContenuti => IsContenutiWebTabActive && _webEdizioniManager?.IsOnContenuti == false;
+
+    private async Task ChiudiDallaX()
+    {
+        if (TornaAiContenuti)
+        {
+            _webEdizioniManager!.GoToContenuti();
+            return;
+        }
+
+        // La X integrata di MudBlazor saltava questo controllo: si usciva perdendo le modifiche in silenzio.
+        if (_contentTabDirty && !await ConfirmDiscardOrSaveContentAsync()) return;
+
+        Cancel();
     }
 
     private void HandleTripDeleted()
