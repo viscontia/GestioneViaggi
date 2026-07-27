@@ -157,6 +157,42 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         }
     }
 
+    /// <summary>
+    /// Fatti per le verifiche NON bloccanti sui contenuti di una edizione (giornate senza foto/mappa/passi,
+    /// galleria vuota, SEO, incluso/escluso, capienza). NULL se il contenuto non esiste o è di altra azienda.
+    /// </summary>
+    public async Task<WebTourVerificheFatti?> GetVerificheAsync(long contenutoId, int aziendaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_verifiche(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return null;
+
+            return new WebTourVerificheFatti(
+                reader.GetInt32(reader.GetOrdinal("n_giornate")),
+                reader.GetInt32(reader.GetOrdinal("n_giornate_senza_passi")),
+                reader.GetInt32(reader.GetOrdinal("n_giornate_senza_foto")),
+                reader.GetInt32(reader.GetOrdinal("n_giornate_senza_mappa")),
+                reader.GetBoolean(reader.GetOrdinal("ha_mappa_insieme")),
+                reader.GetInt32(reader.GetOrdinal("n_immagini")),
+                reader.GetBoolean(reader.GetOrdinal("ha_meta_title")),
+                reader.GetBoolean(reader.GetOrdinal("ha_meta_description")),
+                reader.GetBoolean(reader.GetOrdinal("ha_incluso")),
+                reader.GetBoolean(reader.GetOrdinal("ha_escluso")),
+                reader.GetBoolean(reader.GetOrdinal("ha_capienza")));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero verifiche del contenuto {ContenutoId} azienda {AziendaId}", contenutoId, aziendaId);
+            return null;
+        }
+    }
+
     /// <summary>Clona un contenuto (con figlie e traduzioni) su una nuova data del medesimo viaggio. Ritorna l'id del nuovo contenuto.</summary>
     public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId)
     {

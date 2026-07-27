@@ -1,0 +1,44 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Verifiche non bloccanti. Due usi:
+   - consultazione (dal chip del WebEdizioniManager): un solo pulsante "Chiudi";
+   - conferma di pubblicazione: "Torna e correggi" / "Pubblica lo stesso" — mai bloccante,
+     ma costringe a VEDERE le segnalazioni prima che il contenuto finisca sul sito. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(ModoPubblicazione ? "Prima di pubblicare" : "Verifica contenuti")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (ModoPubblicazione && Verifiche.Count > 0)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Il tour è pubblicabile, ma queste cose sembrano dimenticate. Nessuna è obbligatoria.
+            </MudText>
+        }
+        <WebVerificheList Verifiche="@Verifiche" />
+    </DialogContent>
+    <DialogActions>
+        @if (ModoPubblicazione)
+        {
+            <MudButton OnClick="@(() => MudDialog.Close(DialogResult.Cancel()))">Torna e correggi</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                       OnClick="@(() => MudDialog.Close(DialogResult.Ok(true)))">Pubblica lo stesso</MudButton>
+        }
+        else
+        {
+            <MudButton OnClick="@(() => MudDialog.Close())">Chiudi</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public IReadOnlyList<Verifica> Verifiche { get; set; } = Array.Empty<Verifica>();
+    /// <summary>true = conferma prima di pubblicare (due pulsanti); false = sola consultazione.</summary>
+    [Parameter] public bool ModoPubblicazione { get; set; }
+}

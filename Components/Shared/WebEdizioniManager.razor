@@ -41,6 +41,18 @@ else
             </MudChip>
             @if (_selected.HaContenuto)
             {
+                @* Verifiche non bloccanti sempre visibili: se compaiono solo all'anteprima o alla
+                   pubblicazione, chi non apre mai l'anteprima non le vede. *@
+                @if (_verifiche.Count > 0)
+                {
+                    <MudTooltip Text="Controlli non bloccanti sui contenuti: clicca per vederli">
+                        <MudChip T="string" Size="Size.Small" Color="@(WebVerificheRules.ContaSegnalazioni(_verifiche) > 0 ? Color.Warning : Color.Info)"
+                                 Icon="@(WebVerificheRules.ContaSegnalazioni(_verifiche) > 0 ? Icons.Material.Filled.WarningAmber : Icons.Material.Filled.Info)"
+                                 OnClick="ApriVerifiche">
+                            @_verifiche.Count @(_verifiche.Count == 1 ? "segnalazione" : "segnalazioni")
+                        </MudChip>
+                    </MudTooltip>
+                }
                 <MudTooltip Text="Serve una foto di copertina per l'anteprima" Disabled="@(_stati[TabGalleria] == WebTabStato.Completo)">
                     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Anteprima"
                                Disabled="@(_stati[TabGalleria] != WebTabStato.Completo)">Anteprima</MudButton>
@@ -83,7 +95,8 @@ else
                     <WebTourContenutiTab @ref="_contenutiTab" ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId" DescrizioneBreve="@DescrizioneBreve"
                                           HasUnsavedChangesChanged="OnContenutiDirtyChanged"
                                           StatoChanged="@(s => OnStatoChanged(TabContenuti, s))"
-                                          GetTabNonCompletiAltri="@(() => (IReadOnlyList<string>)TabNonCompleti.Where(t => t != TabContenuti).ToList())" />
+                                          GetTabNonCompletiAltri="@(() => (IReadOnlyList<string>)TabNonCompleti.Where(t => t != TabContenuti).ToList())"
+                                          GetVerifiche="@CalcolaVerificheAsync" />
                 </MudTabPanel>
                 <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary" IconColor="@GetTabColor(TabGalleria)">
                     <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"
@@ -126,6 +139,7 @@ else
     private int _activeSubTabIndex;
     private bool _dirty;
     private WebTourContenutiTab? _contenutiTab;
+    private IReadOnlyList<Verifica> _verifiche = Array.Empty<Verifica>();
 
     // Semaforo sotto-tab (Fase 2): stato di completamento per tab, usato per colorare l'icona e (Fase 3) per il gating.
     private const string TabContenuti = "Contenuti";
@@ -177,6 +191,35 @@ else
         _stati[TabMappa] = WebTabStatoRules.Mappa();
         _stati[TabTraduzioni] = WebTabStatoRules.Traduzioni(
             fatti.ItemTraducibili * WebTraduzioneOrchestratorService.Lingue.Length, fatti.CoppieTradotte);
+
+        _verifiche = await CalcolaVerificheAsync();
+    }
+
+    /// <summary>
+    /// Verifiche NON bloccanti dell'edizione selezionata. Ricalcolate ogni volta invece di riusare
+    /// la lista in memoria: alla pubblicazione devono riflettere quello che l'utente ha appena sistemato.
+    /// </summary>
+    private async Task<IReadOnlyList<Verifica>> CalcolaVerificheAsync()
+    {
+        var contenutoId = _selected?.ContenutoId;
+        if (contenutoId == null) return Array.Empty<Verifica>();
+
+        var fatti = await ContenutiService.GetVerificheAsync(contenutoId.Value, AziendaId);
+        if (fatti == null) return Array.Empty<Verifica>();
+
+        // Le traduzioni non si ricontano qui: i conteggi arrivano dalla funzione del semaforo.
+        var stato = await ContenutiService.GetStatoSezioniAsync(contenutoId.Value, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+        var attese = (stato?.ItemTraducibili ?? 0) * WebTraduzioneOrchestratorService.Lingue.Length;
+
+        return WebVerificheRules.Analizza(fatti, attese, stato?.CoppieTradotte ?? 0);
+    }
+
+    private async Task ApriVerifiche()
+    {
+        _verifiche = await CalcolaVerificheAsync();
+        var parameters = new DialogParameters<WebVerificheDialog> { { x => x.Verifiche, _verifiche } };
+        await DialogService.ShowAsync<WebVerificheDialog>("Verifica contenuti", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
     }
 
     private IEnumerable<EdizioneViaggio> _edizioniConContenuto => _edizioni.Where(e => e.HaContenuto);
@@ -309,7 +352,8 @@ else
         var parameters = new DialogParameters<WebTourAnteprimaDialog>
         {
             { x => x.ContenutoId, _selected.ContenutoId.Value },
-            { x => x.AziendaId, AziendaId }
+            { x => x.AziendaId, AziendaId },
+            { x => x.Verifiche, await CalcolaVerificheAsync() }
         };
         await DialogService.ShowAsync<WebTourAnteprimaDialog>("Anteprima pagina web", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true, Position = DialogPosition.Center });

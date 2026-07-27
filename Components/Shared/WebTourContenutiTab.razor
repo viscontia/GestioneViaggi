@@ -6,6 +6,7 @@
 @using MudBlazor
 @inject WebTourContenutiService ContenutiService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject IJSRuntime JS
 
 @* Scheda "Contenuti Web" del viaggio (Blocco 5 estensione web).
@@ -184,6 +185,8 @@ else
     /// <summary>Gating pubblicazione (Fase 3): interrogato al Salva per sapere quali ALTRI sub-tab (Itinerario/
     /// Galleria/Mappa/Traduzioni) non sono ancora Completo. Fornito da WebEdizioniManager, che tiene lo stato dei 5 tab.</summary>
     [Parameter] public Func<IReadOnlyList<string>>? GetTabNonCompletiAltri { get; set; }
+    /// <summary>Verifiche non bloccanti, ricalcolate dal parent al momento della pubblicazione.</summary>
+    [Parameter] public Func<Task<IReadOnlyList<Verifica>>>? GetVerifiche { get; set; }
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
@@ -429,6 +432,26 @@ else
             {
                 _model.StatoPubblicazione = "bozza";
                 Snackbar.Add($"Pubblicazione bloccata: completare prima {string.Join(", ", mancanti)}. Salvato come bozza.", Severity.Warning);
+            }
+            else if (GetVerifiche != null)
+            {
+                // Verifiche NON bloccanti: il contenuto è pubblicabile, ma qualcosa sembra dimenticato
+                // (giornate senza foto o senza mappa, incluso/escluso vuoti...). Non si impedisce nulla:
+                // si obbliga solo a vederle prima che finiscano sul sito.
+                var verifiche = await GetVerifiche.Invoke();
+                if (verifiche.Count > 0)
+                {
+                    var parameters = new DialogParameters<WebVerificheDialog>
+                    {
+                        { x => x.Verifiche, verifiche },
+                        { x => x.ModoPubblicazione, true }
+                    };
+                    var dialog = await DialogService.ShowAsync<WebVerificheDialog>("Prima di pubblicare", parameters,
+                        new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+                    // "Torna e correggi": si annulla il salvataggio e si resta nella form senza perdere nulla.
+                    if ((await dialog.Result)!.Canceled) return false;
+                }
             }
         }
 

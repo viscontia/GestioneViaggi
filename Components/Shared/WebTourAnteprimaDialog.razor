@@ -34,6 +34,14 @@
                     <MudChip T="string" Size="Size.Small" Color="@(_contenuto.StatoPubblicazione == "pubblicato" ? Color.Success : Color.Default)">@_contenuto.StatoPubblicazione</MudChip>
                 </div>
 
+                @if (Verifiche.Count > 0)
+                {
+                    <MudPaper Outlined="true" Class="pa-3 mb-3">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Verifica contenuti</MudText>
+                        <WebVerificheList Verifiche="@Verifiche" />
+                    </MudPaper>
+                }
+
                 @if (_immaginePrincipale != null)
                 {
                     <MudImage Src="@_immaginePrincipale.Url" Alt="@_immaginePrincipale.AltText" Fluid="true" Class="rounded mb-3" Style="max-height:280px;" />
@@ -114,6 +122,8 @@
 
     [Parameter, EditorRequired] public long ContenutoId { get; set; }
     [Parameter, EditorRequired] public int AziendaId { get; set; }
+    /// <summary>Verifiche non bloccanti calcolate dal parent: mentre guardi come verrà, vedi anche cosa manca.</summary>
+    [Parameter] public IReadOnlyList<Verifica> Verifiche { get; set; } = Array.Empty<Verifica>();
 
     private bool _loading = true;
     private WebTourContenuto? _contenuto;

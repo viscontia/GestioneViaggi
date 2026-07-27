@@ -1,0 +1,31 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Elenco delle verifiche non bloccanti. Condiviso da: chip nel WebEdizioniManager,
+   pannello in cima all'Anteprima, dialogo di conferma alla pubblicazione. *@
+
+@if (Verifiche.Count == 0)
+{
+    <div class="d-flex align-center gap-2">
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+        <MudText Typo="Typo.body2">Nessuna segnalazione: i contenuti sembrano completi.</MudText>
+    </div>
+}
+else
+{
+    <div class="d-flex flex-column gap-1">
+        @foreach (var v in Verifiche.OrderBy(x => x.Livello))
+        {
+            <div class="d-flex align-start gap-2">
+                <MudIcon Size="Size.Small"
+                         Icon="@(v.Livello == LivelloVerifica.Segnalazione ? Icons.Material.Filled.WarningAmber : Icons.Material.Filled.Info)"
+                         Color="@(v.Livello == LivelloVerifica.Segnalazione ? Color.Warning : Color.Info)" />
+                <MudText Typo="Typo.body2">@v.Messaggio</MudText>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Verifica> Verifiche { get; set; } = Array.Empty<Verifica>();
+}

@@ -249,3 +249,17 @@ Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giorn
 - ☐ Il tab **Traduzioni** elenca le descrizioni delle mappe fra i campi da tradurre ("Mappa — …").
 - ☐ Il **semaforo Traduzioni** conta le stesse voci: dopo aver aggiunto una mappa con descrizione il totale sale di 1 (una descrizione di soli spazi non conta).
 - ☐ L'**Anteprima** mostra **tutte** le mappe con la loro descrizione, titolo "Mappe" al plurale.
+
+## 19. Verifiche non bloccanti sui contenuti (script `496`)
+
+Controlli che nessun vincolo può fare, perché non sono dati incoerenti ma **dimenticanze** (5 giornate e 4 con foto). Non impediscono mai la pubblicazione: obbligano solo a vederle.
+
+- ☐ **Chip nel selettore edizione**: mostra il numero di voci; giallo se c'è almeno una segnalazione, azzurro se solo suggerimenti; cliccandolo si apre l'elenco.
+- ☐ **Anteprima**: in cima compare il pannello "Verifica contenuti" con le stesse voci.
+- ☐ **Pubblicazione**: passando lo stato a "pubblicato" con contenuti completi ma segnalazioni aperte, compare il dialogo "Prima di pubblicare".
+  - ☐ *"Pubblica lo stesso"* → il salvataggio prosegue e lo stato resta "pubblicato".
+  - ☐ *"Torna e correggi"* → il salvataggio si annulla, **nulla va perso** e si resta nella form.
+- ☐ **Gating obbligatorio prima delle verifiche**: se manca un campo obbligatorio, resta il blocco esistente (salva come bozza) e il dialogo delle verifiche **non** compare.
+- ☐ **Le voci si aggiornano**: aggiungi la foto alla giornata che ne era priva → la segnalazione sparisce alla successiva apertura/pubblicazione (sono ricalcolate, non memorizzate).
+- ☐ **Concordanza dei messaggi**: "1 giornata su 5 non ha foto" al singolare, "3 giornate su 5 non hanno" al plurale.
+- ☐ **Tour completo**: nessuna voce → il chip non compare e l'anteprima non mostra il pannello.
