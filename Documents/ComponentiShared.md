@@ -563,8 +563,7 @@ Scheda "Galleria" del contenuto/edizione — estensione web, Blocco 7 (`Componen
 *   **Parametri**: `ContenutoId` (long)/`AziendaId` (required). Montato come 2° `MudTabPanel` ("Galleria") in `WebEdizioniManager`; il pulsante "Anteprima" del manager è disabilitato finché la Galleria non è `WebTabStato.Completo` (serve una copertina).
 *   **Sicurezza**: la `ServiceKey` (service-role) è usata contro il bucket di TEST; hardening produzione (chiave scoped / upload server-side) = **debito documentato** per il go-live.
 
-### WebTourImmagineEditDialog (orfano, non referenziato)
-Dialog di modifica alt/titolo di un'immagine di galleria — Blocco 7 (`Components/Shared/WebTourImmagineEditDialog.razor`). Sostituito dai campi Titolo/Testo alternativo **inline** in `WebTourGalleriaTab` (vista Dettaglio, auto-save on blur). Lasciato nel codebase (non eliminato) per eventuale riuso futuro, ma non più montato da nessun component.
+> **WebTourImmagineEditDialog — eliminato (2026-07-27).** Modificava alt/titolo di un'immagine di galleria (Blocco 7). Era stato lasciato come orfano per un eventuale riuso, ma la modifica inline in `WebTourGalleriaTab` (auto-save on blur) è la soluzione adottata e non c'è motivo di tornare a un dialog. Recuperabile dalla storia git.
 
 ### WebTipiViaggioDescrizioniPage + WebTipoViaggioDescrizioneDialog (Blocco 8)
 Gestione delle **descrizioni web dei tipi di viaggio** (lookup GLOBALE `web_tipi_viaggio_descrizioni`, ex categoria sport).
