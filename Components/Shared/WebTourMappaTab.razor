@@ -53,19 +53,30 @@ else
         @foreach (var m in _mappe)
         {
             <MudPaper Outlined="true" Class="pa-3 mb-3">
-                <div class="d-flex align-center justify-space-between mb-2">
-                    <MudText Typo="Typo.subtitle1">@(string.IsNullOrWhiteSpace(m.Descrizione) ? "(senza descrizione)" : m.Descrizione)</MudText>
-                    <MudChip T="string" Size="Size.Small" Color="@(m.WebTourItinerarioIdFk == null ? Color.Info : Color.Default)"
-                             Icon="@(m.WebTourItinerarioIdFk == null ? Icons.Material.Filled.Public : Icons.Material.Filled.Today)">
-                        @Abbinamento(m)
-                    </MudChip>
-                </div>
+                <MudText Typo="Typo.subtitle1" Class="mb-2">@(string.IsNullOrWhiteSpace(m.Descrizione) ? "(senza descrizione)" : m.Descrizione)</MudText>
 
-                @if (!string.IsNullOrWhiteSpace(m.ImmagineUrl))
-                {
-                    <img src="@m.ImmagineUrl" alt="@m.Descrizione" style="max-width:100%;border-radius:6px;display:block;" />
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">© OpenStreetMap contributors</MudText>
-                }
+                @* L'abbinamento è l'informazione che dice a COSA si riferisce la mappa: come chip piccolo
+                   in alto a destra passava inosservato. Ora è un riquadro colorato affiancato alla mappa e
+                   centrato verticalmente su di essa; su schermi stretti va a capo sotto l'immagine. *@
+                <div class="d-flex align-center gap-3 flex-wrap">
+                    @if (!string.IsNullOrWhiteSpace(m.ImmagineUrl))
+                    {
+                        <div style="flex:1 1 380px; min-width:0;">
+                            <img src="@m.ImmagineUrl" alt="@m.Descrizione" style="max-width:100%;border-radius:6px;display:block;" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">© OpenStreetMap contributors</MudText>
+                        </div>
+                    }
+
+                    <MudPaper Elevation="0" Class="pa-4 rounded-lg d-flex flex-column align-center justify-center text-center"
+                              Style="@($"min-width:210px;color:#fff;background-color:var(--mud-palette-{(m.WebTourItinerarioIdFk == null ? "info" : "primary")});")">
+                        <MudIcon Icon="@(m.WebTourItinerarioIdFk == null ? Icons.Material.Filled.Public : Icons.Material.Filled.Event)" Size="Size.Large" />
+                        <MudText Typo="Typo.h6" Class="mt-1">@BadgeTitolo(m)</MudText>
+                        @if (BadgeSottotitolo(m) is { } sotto)
+                        {
+                            <MudText Typo="Typo.body2">@sotto</MudText>
+                        }
+                    </MudPaper>
+                </div>
 
                 <div class="d-flex flex-wrap gap-3 mt-2">
                     <MudText Typo="Typo.body2" Color="Color.Secondary">GPX: @(m.GpxFilename ?? "—")</MudText>
@@ -136,7 +147,8 @@ else
 
             <MudTextField T="string" @bind-Value="_descrizione" Label="Descrizione" Immediate="true"
                           Variant="Variant.Outlined" Dense="true" Class="mt-2" Style="max-width:520px;"
-                          MaxLength="255" HelperText="Testo mostrato al cliente; verrà tradotto nelle lingue del sito." />
+                          MaxLength="255" Required="true" RequiredError="La descrizione è obbligatoria"
+                          HelperText="Il nome che vede il cliente sul sito. Obbligatorio, e distinto dal nome del file GPX." />
 
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
                 Una mappa per giornata, oppure una per l'intero viaggio.
@@ -190,9 +202,10 @@ else
 
     private bool _insiemeGiaPresente => _mappe.Any(m => m.WebTourItinerarioIdFk == null);
 
-    private bool PuoGenerare => _abbinaGiornata
-        ? _giornataSelezionata != null
-        : !_insiemeGiaPresente && !string.IsNullOrWhiteSpace(_descrizione);
+    // La descrizione è obbligatoria sempre (NOT NULL + CHECK sul DB, script 497): è il nome che vede
+    // il cliente, il nome del file GPX non è un ripiego accettabile.
+    private bool PuoGenerare => !string.IsNullOrWhiteSpace(_descrizione)
+        && (_abbinaGiornata ? _giornataSelezionata != null : !_insiemeGiaPresente);
 
     protected override async Task OnInitializedAsync()
     {
@@ -232,14 +245,24 @@ else
         return string.Empty;
     }
 
+    /// <summary>Etichetta della giornata nel select: stesso testo che verrà proposto come descrizione.</summary>
     private string EtichettaGiornata(WebTourItinerario g)
-        => $"{GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni)} — {g.TitoloGiornata}";
+        => GiornataHelper.DescrizioneMappa(g.TitoloGiornata, DataInizio, g.GiornoNumero, NumeroGiorni);
 
-    private string Abbinamento(WebTourMappa m)
+    /// <summary>Riga grande del badge: "Intero viaggio" oppure "Giorno 3".</summary>
+    private string BadgeTitolo(WebTourMappa m)
     {
         if (m.WebTourItinerarioIdFk == null) return "Intero viaggio";
         var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == m.WebTourItinerarioIdFk);
-        return g == null ? "Giornata" : GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni);
+        return g == null ? "Giornata" : $"Giorno {g.GiornoNumero}";
+    }
+
+    /// <summary>Riga piccola del badge: la data per esteso, o l'estensione per la mappa d'insieme.</summary>
+    private string? BadgeSottotitolo(WebTourMappa m)
+    {
+        if (m.WebTourItinerarioIdFk == null) return "tutte le giornate";
+        var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == m.WebTourItinerarioIdFk);
+        return g == null ? null : GiornataHelper.Estesa(DataInizio, g.GiornoNumero, NumeroGiorni);
     }
 
     private async Task OnGpxSelected(IBrowserFile? file)
@@ -277,7 +300,7 @@ else
         _giornataSelezionata = itinerarioId;
         var g = _giornate.FirstOrDefault(x => x.WebTourItinerarioId == itinerarioId);
         if (g != null)
-            _descrizione = $"{GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni)} — {g.TitoloGiornata}";
+            _descrizione = GiornataHelper.DescrizioneMappa(g.TitoloGiornata, DataInizio, g.GiornoNumero, NumeroGiorni);
     }
 
     private void AnnullaCaricamento()

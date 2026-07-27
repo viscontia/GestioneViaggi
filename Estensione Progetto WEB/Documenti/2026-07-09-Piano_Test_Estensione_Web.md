@@ -238,6 +238,9 @@ Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giorn
 - ☐ **Modifica — abbinamento**: sposta una mappa da "Intero viaggio" a una giornata (o viceversa) → l'avviso annuncia la rigenerazione → la mappa compare nella nuova posizione dell'elenco e il posto liberato torna disponibile.
 - ☐ **Nome file vs descrizione**: un GPX chiamato `provaG1.gpx` può avere descrizione "Mappa Giorno 1"; il nome del file resta visibile nella card e nel dialogo, **non modificabile**.
 - ☐ **Overlay di attesa**: durante "Genera mappa", "Rigenera" e la modifica con rigenerazione compare la sovrapposizione "Generazione mappa in corso..." che impedisce i clic.
+- ☐ **Descrizione proposta**: scegliendo la giornata compare `GIORNO 1 : Olbia - Monte Limbara - Tempio (Sabato 2 Maggio 2026)` — il titolo dell'itinerario più la data fra parentesi, **senza** doppie intestazioni. Vale sia al caricamento sia nel dialogo Modifica.
+- ☐ **Descrizione obbligatoria**: svuotandola, "Genera mappa"/"Salva" restano disabilitati; a livello DB la colonna è `NOT NULL` con CHECK sul non-vuoto (script `497`).
+- ☐ **Badge dell'abbinamento**: riquadro colorato affiancato alla mappa e centrato verticalmente, con "Giorno 2 / Domenica 3 Maggio 2026" (azzurro "Intero viaggio / tutte le giornate" per la mappa d'insieme); su finestra stretta va a capo sotto l'immagine.
 
 **Tracciato generalizzato (script Task 2, `MaxPolylinePoints = 70`):**
 - ☐ Rigenerando una mappa esistente, `parametri_render->>'punti_semplificati'` è ≈ 70 (era 220): `SELECT descrizione, parametri_render->>'punti_semplificati' FROM web_tour_mappa;`

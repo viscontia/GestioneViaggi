@@ -44,10 +44,11 @@ public sealed class WebTourMappaGeneratorService
         if (!_geo.IsConfigured)
             throw new InvalidOperationException("Chiave Geoapify non configurata (sezione 'Geoapify' in appsettings).");
 
-        // Stessa regola del CHECK ck_web_tour_mappa_descrizione_insieme, verificata qui per non
-        // spendere una chiamata Geoapify su un salvataggio che il DB rifiuterebbe comunque.
-        if (itinerarioId == null && string.IsNullOrWhiteSpace(descrizione))
-            throw new InvalidOperationException("La mappa dell'intero viaggio richiede una descrizione.");
+        // Stessa regola del CHECK ck_web_tour_mappa_descrizione (script 497): obbligatoria per TUTTE
+        // le mappe. Verificata qui per non spendere una chiamata Geoapify su un salvataggio che il DB
+        // rifiuterebbe comunque.
+        if (string.IsNullOrWhiteSpace(descrizione))
+            throw new InvalidOperationException("La descrizione della mappa è obbligatoria.");
 
         var gpxBytes = System.Text.Encoding.UTF8.GetByteCount(gpxText);
         var esistenti = await _mappaService.ListByContenutoAsync(contenutoId, aziendaId);

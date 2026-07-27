@@ -36,6 +36,21 @@ public static class GiornataHelper
         return data == null ? null : It.TextInfo.ToTitleCase(data.Value.ToString("dddd d MMMM yyyy", It));
     }
 
+    /// <summary>
+    /// Nome proposto per la mappa di una giornata: <c>"GIORNO 1 : Olbia - Monte Limbara (Sabato 2 Maggio 2026)"</c>.
+    /// Si parte dal titolo della giornata — che già contiene il numero e va lasciato all'utente — e si
+    /// aggiunge solo la data fra parentesi. Comporre anche "Giorno N" davanti produrrebbe una doppia
+    /// intestazione ("Giorno 1 — … — GIORNO 1 : …"). Senza data si usa il solo titolo.
+    /// </summary>
+    public static string DescrizioneMappa(string? titoloGiornata, DateTime? dataInizio, int giornoNumero, int numeroGiorni)
+    {
+        var titolo = (titoloGiornata ?? string.Empty).Trim();
+        if (titolo.Length == 0) titolo = $"Giorno {giornoNumero}";
+
+        var estesa = Estesa(dataInizio, giornoNumero, numeroGiorni);
+        return estesa == null ? titolo : $"{titolo} ({estesa})";
+    }
+
     /// <summary>"Giorno 1 — Sabato 2 Maggio 2026", o solo "Giorno 1" se la data non è calcolabile.</summary>
     public static string Etichetta(DateTime? dataInizio, int giornoNumero, int numeroGiorni)
     {

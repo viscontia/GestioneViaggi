@@ -15,7 +15,7 @@
                       HelperText="Nome del file di origine: non modificabile, serve a sapere da cosa è stata generata la mappa." />
 
         <MudTextField T="string" @bind-Value="_descrizione" Label="Descrizione" Variant="Variant.Outlined" Dense="true"
-                      MaxLength="255" Immediate="true" AutoFocus="true" Class="mb-3"
+                      MaxLength="255" Immediate="true" AutoFocus="true" Class="mb-3" Required="true" RequiredError="La descrizione è obbligatoria"
                       HelperText="Il nome che vede il cliente sul sito (es. «Mappa Giorno 1»). Viene tradotto nelle lingue del sito." />
 
         <MudText Typo="Typo.body2" Class="mb-1">Questa mappa si riferisce a:</MudText>
@@ -30,12 +30,12 @@
 
         @if (_abbinaGiornata)
         {
-            <MudSelect T="long?" @bind-Value="_giornataSelezionata" Label="Giornata" Dense="true"
+            <MudSelect T="long?" Value="@_giornataSelezionata" ValueChanged="OnGiornataChanged" Label="Giornata" Dense="true"
                        Variant="Variant.Outlined" Class="mt-2">
                 @foreach (var g in GiornateDisponibili)
                 {
                     <MudSelectItem T="long?" Value="@g.WebTourItinerarioId">
-                        @($"{GiornataHelper.Etichetta(DataInizio, g.GiornoNumero, NumeroGiorni)} — {g.TitoloGiornata}")
+                        @GiornataHelper.DescrizioneMappa(g.TitoloGiornata, DataInizio, g.GiornoNumero, NumeroGiorni)
                     </MudSelectItem>
                 }
             </MudSelect>
@@ -78,9 +78,9 @@
     private long? AbbinamentoScelto => _abbinaGiornata ? _giornataSelezionata : null;
     private bool AbbinamentoCambiato => AbbinamentoScelto != Mappa.WebTourItinerarioIdFk;
 
-    // La descrizione è obbligatoria solo per la mappa d'insieme (stesso CHECK del DB).
-    private bool PuoSalvare => (_abbinaGiornata ? _giornataSelezionata != null : !string.IsNullOrWhiteSpace(_descrizione))
-                               && !(_abbinaGiornata && GiornateDisponibili.Count == 0);
+    // Descrizione obbligatoria per tutte le mappe (NOT NULL + CHECK sul DB, script 497).
+    private bool PuoSalvare => !string.IsNullOrWhiteSpace(_descrizione)
+                               && (!_abbinaGiornata || _giornataSelezionata != null);
 
     protected override void OnInitialized()
     {
@@ -93,6 +93,16 @@
     {
         _abbinaGiornata = abbinaGiornata;
         if (!abbinaGiornata) _giornataSelezionata = null;
+    }
+
+    /// <summary>Cambiando giornata si ripropone la descrizione con lo stesso formato del caricamento,
+    /// così non resta il nome della giornata precedente (o il nome del file GPX). Resta modificabile.</summary>
+    private void OnGiornataChanged(long? itinerarioId)
+    {
+        _giornataSelezionata = itinerarioId;
+        var g = GiornateDisponibili.FirstOrDefault(x => x.WebTourItinerarioId == itinerarioId);
+        if (g != null)
+            _descrizione = GiornataHelper.DescrizioneMappa(g.TitoloGiornata, DataInizio, g.GiornoNumero, NumeroGiorni);
     }
 
     private void Salva() => MudDialog.Close(DialogResult.Ok(new Esito(AbbinamentoScelto, _descrizione)));
