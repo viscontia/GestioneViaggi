@@ -234,6 +234,10 @@ Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giorn
 - ☐ Dal tab Itinerario, eliminare una **giornata che ha una mappa** → bloccato con messaggio in italiano (non un errore tecnico).
 - ☐ **Rigenera** su una mappa esistente → si aggiorna senza segnalare falsi doppioni; l'immagine sostituisce la precedente (nessun file accumulato).
 - ☐ **Elimina** → sparisce dall'elenco e la giornata torna disponibile nel select.
+- ☐ **Modifica — solo descrizione**: cambia il testo → salva → nessuna attesa di generazione (non chiama Geoapify), la card mostra il nuovo nome e il file GPX resta invariato.
+- ☐ **Modifica — abbinamento**: sposta una mappa da "Intero viaggio" a una giornata (o viceversa) → l'avviso annuncia la rigenerazione → la mappa compare nella nuova posizione dell'elenco e il posto liberato torna disponibile.
+- ☐ **Nome file vs descrizione**: un GPX chiamato `provaG1.gpx` può avere descrizione "Mappa Giorno 1"; il nome del file resta visibile nella card e nel dialogo, **non modificabile**.
+- ☐ **Overlay di attesa**: durante "Genera mappa", "Rigenera" e la modifica con rigenerazione compare la sovrapposizione "Generazione mappa in corso..." che impedisce i clic.
 
 **Tracciato generalizzato (script Task 2, `MaxPolylinePoints = 70`):**
 - ☐ Rigenerando una mappa esistente, `parametri_render->>'punti_semplificati'` è ≈ 70 (era 220): `SELECT descrizione, parametri_render->>'punti_semplificati' FROM web_tour_mappa;`

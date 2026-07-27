@@ -73,6 +73,8 @@ else
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit"
+                               Disabled="@_busy" OnClick="@(() => Modifica(m))">Modifica</MudButton>
                     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh"
                                Disabled="@(_busy || !Generator.IsConfigured || string.IsNullOrEmpty(m.GpxOriginale))"
                                OnClick="@(() => Rigenera(m))">Rigenera</MudButton>
@@ -324,6 +326,66 @@ else
             Snackbar.Add("Mappa rigenerata", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Errore rigenerazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Modifica descrizione e/o abbinamento senza ricaricare il GPX.
+    /// Se cambia solo la descrizione è un semplice UPDATE: nessuna chiamata a Geoapify.
+    /// Se cambia l'abbinamento la mappa va rigenerata, perché il percorso su Storage dipende da esso;
+    /// si aggiorna prima la riga, così la rigenerazione ritrova la STESSA mappa invece di crearne una nuova.
+    /// </summary>
+    private async Task Modifica(WebTourMappa m)
+    {
+        // Giornate scegliibili: le libere più quella già abbinata a questa mappa.
+        var disponibili = _giornate
+            .Where(g => !_mappe.Any(x => x.WebTourItinerarioIdFk == g.WebTourItinerarioId && x.WebTourMappaId != m.WebTourMappaId))
+            .ToList();
+
+        var parameters = new DialogParameters<WebTourMappaEditDialog>
+        {
+            { x => x.Mappa, m },
+            { x => x.GiornateDisponibili, disponibili },
+            { x => x.InsiemeOccupatoDaAltri, _mappe.Any(x => x.WebTourItinerarioIdFk == null && x.WebTourMappaId != m.WebTourMappaId) },
+            { x => x.DataInizio, DataInizio },
+            { x => x.NumeroGiorni, NumeroGiorni }
+        };
+        var dialog = await DialogService.ShowAsync<WebTourMappaEditDialog>("Modifica mappa", parameters,
+            new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (result!.Canceled || result.Data is not WebTourMappaEditDialog.Esito esito) return;
+
+        var cambiaAbbinamento = esito.ItinerarioId != m.WebTourItinerarioIdFk;
+        if (!cambiaAbbinamento && esito.Descrizione == m.Descrizione) return;
+
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            var vecchioPath = m.ImmagineStoragePath;
+            m.WebTourItinerarioIdFk = esito.ItinerarioId;
+            m.Descrizione = esito.Descrizione;
+            await MappaService.UpdateAsync(m);
+
+            if (cambiaAbbinamento && !string.IsNullOrEmpty(m.GpxOriginale))
+            {
+                await Generator.GenerateAsync(ContenutoId, AziendaId, m.GpxOriginale, m.GpxFilename,
+                    esito.ItinerarioId, esito.Descrizione);
+
+                // L'immagine ora vive su un altro percorso: il vecchio oggetto resterebbe orfano.
+                if (!string.IsNullOrEmpty(vecchioPath) && vecchioPath != m.ImmagineStoragePath)
+                    try { await Storage.DeleteAsync(vecchioPath); } catch { /* orfano tollerato */ }
+            }
+
+            await RicaricaAsync();
+            Snackbar.Add("Mappa aggiornata", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore modifica: {ex.Message}", Severity.Error);
+            await RicaricaAsync(); // rimette in pagina lo stato vero del DB
+        }
         finally { _busy = false; }
     }
 
