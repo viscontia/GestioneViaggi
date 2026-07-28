@@ -45,7 +45,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId));
+        // Protetto come il tab Traduzioni del viaggio: un'eccezione nel ciclo di vita Blazor
+        // congelerebbe l'intera interfaccia, non solo questa scheda.
+        try { _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId)); }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura chiave Claude: {ex.Message}", Severity.Error); }
         _loading = false;
     }
 

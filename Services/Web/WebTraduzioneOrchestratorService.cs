@@ -44,8 +44,28 @@ public sealed class WebTraduzioneOrchestratorService
 
     // ---- Chiave Claude per-azienda -------------------------------------------
 
+    /// <summary>
+    /// true se la master key dei segreti è disponibile. Senza, le chiavi Claude non si possono né
+    /// leggere né salvare, ma il resto della scheda Traduzioni resta consultabile.
+    /// </summary>
+    public bool SecretKeyConfigurata => _secretKey.IsConfigured;
+
+    /// <summary>
+    /// Chiave Claude dell'azienda, o null se non configurata <b>oppure</b> se la master key non è
+    /// disponibile. È una lettura: non deve lanciare. Prima lo faceva, e siccome i tab Traduzioni la
+    /// chiamano in <c>OnInitializedAsync</c> senza protezione, l'eccezione usciva dal ciclo di vita
+    /// Blazor e congelava l'interfaccia. Il salvataggio (<see cref="SetClaudeKeyAsync"/>) resta invece
+    /// fail-fast: scrivere un segreto senza master key deve fallire in modo rumoroso.
+    /// </summary>
     public async Task<string?> GetClaudeKeyAsync(int aziendaId)
     {
+        if (!_secretKey.IsConfigured)
+        {
+            _logger.LogWarning("Master key {Var} non disponibile: la chiave Claude dell'azienda {AziendaId} non è leggibile.",
+                Services.Security.SecretKeyProvider.EnvVarName, aziendaId);
+            return null;
+        }
+
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand("SELECT fn_ana_aziende_get_claude_key(@Az::integer, @Master::text)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
@@ -132,6 +152,13 @@ public sealed class WebTraduzioneOrchestratorService
     public async Task<(int Ok, int Errori)> TranslateAsync(
         int aziendaId, IReadOnlyList<TranslatableItem> items, IReadOnlyList<string> lingue, CancellationToken ct = default)
     {
+        // Controllo esplicito: senza questo, una master key mancante verrebbe segnalata come
+        // "chiave Claude non configurata", mandando l'utente a cercare il problema dove non è.
+        if (!_secretKey.IsConfigured)
+            throw new InvalidOperationException(
+                $"Master key dei segreti non disponibile (variabile d'ambiente {Services.Security.SecretKeyProvider.EnvVarName}): " +
+                "la chiave Claude non può essere letta.");
+
         var key = await GetClaudeKeyAsync(aziendaId);
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("Chiave Claude non configurata per questa azienda.");

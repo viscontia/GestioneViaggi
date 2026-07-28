@@ -18,13 +18,31 @@
 }
 else
 {
+    @if (_errore != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-3">
+            Non è stato possibile caricare la scheda: @_errore
+        </MudAlert>
+    }
+
+    @if (!Orchestrator.SecretKeyConfigurata)
+    {
+        @* Causa tipica su macOS: l'app lanciata da Finder/IDE non eredita gli export di ~/.zshrc. *@
+        <MudAlert Severity="Severity.Warning" Class="mb-3">
+            <b>Master key dei segreti non disponibile</b> (variabile d'ambiente <code>GV_SECRET_KEY</code>):
+            la chiave Claude non può essere né letta né salvata, quindi la traduzione automatica è disabilitata.
+            Le traduzioni già presenti restano consultabili. Avvia l'applicazione da un terminale che
+            esporta la variabile, oppure impostala per le app grafiche.
+        </MudAlert>
+    }
+
     <!-- Chiave Claude per-azienda -->
     <MudPaper Outlined="true" Class="pa-3 mb-3">
         <MudText Typo="Typo.subtitle2" Class="mb-1">Chiave Claude (Anthropic) dell'azienda</MudText>
         <div class="d-flex align-center gap-2">
             <MudTextField @bind-Value="_keyInput" Placeholder="@(_hasKey ? "•••••• (configurata) — incolla per sostituire" : "Incolla la chiave API Claude")"
                           Variant="Variant.Outlined" InputType="InputType.Password" Class="flex-grow-1" />
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SalvaChiave" Disabled="@_busy">Salva chiave</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SalvaChiave" Disabled="@(_busy || !Orchestrator.SecretKeyConfigurata)">Salva chiave</MudButton>
         </div>
         @if (!_hasKey)
         {
@@ -40,7 +58,7 @@ else
     {
         <div class="d-flex align-center gap-3 mb-2">
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Translate"
-                       Disabled="@(_busy || !_hasKey)" OnClick="TraduciTutto">
+                       Disabled="@(_busy || !_hasKey || !Orchestrator.SecretKeyConfigurata)" OnClick="TraduciTutto">
                 Traduci tutto (@string.Join("/", WebTraduzioneOrchestratorService.Lingue))
             </MudButton>
             @if (_busy)
@@ -108,6 +126,7 @@ else
     private bool _busy;
     private bool _tabSetup;
     private bool _hasKey;
+    private string? _errore;
     private string? _keyInput;
 
     private List<TranslatableItem> _items = new();
@@ -115,7 +134,14 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await ReloadAsync();
+        // Un'eccezione qui uscirebbe dal ciclo di vita Blazor e congelerebbe l'intera interfaccia
+        // (non solo questa scheda): il caricamento va sempre protetto, come negli altri sotto-tab.
+        try { await ReloadAsync(); }
+        catch (Exception ex)
+        {
+            _errore = ex.Message;
+            Snackbar.Add($"Errore caricamento traduzioni: {ex.Message}", Severity.Error);
+        }
         _loading = false;
     }
 
