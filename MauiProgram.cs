@@ -268,11 +268,25 @@ public static class MauiProgram
 
         // Claude API (Blocco 10) - traduzioni. Chiave PER-AZIENDA (ana_aziende.claude_api_key), non da config.
         var claudeSection = builder.Configuration.GetSection("Claude");
-        builder.Services.AddSingleton(new Services.Shared.Ai.ClaudeOptions
+        var claudeOptions = new Services.Shared.Ai.ClaudeOptions
         {
             Model = string.IsNullOrWhiteSpace(claudeSection["Model"]) ? "claude-haiku-4-5-20251001" : claudeSection["Model"]!
-        });
+        };
+        // Prezzi per la stima dei consumi: le options si costruiscono a mano, quindi una chiave in
+        // appsettings senza la riga corrispondente qui verrebbe ignorata in silenzio. Se assenti o
+        // non valide restano i default della classe.
+        if (decimal.TryParse(claudeSection["PrezzoInputPerMilione"], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var prezzoIn) && prezzoIn >= 0)
+            claudeOptions.PrezzoInputPerMilione = prezzoIn;
+        if (decimal.TryParse(claudeSection["PrezzoOutputPerMilione"], System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var prezzoOut) && prezzoOut >= 0)
+            claudeOptions.PrezzoOutputPerMilione = prezzoOut;
+        if (!string.IsNullOrWhiteSpace(claudeSection["Valuta"]))
+            claudeOptions.Valuta = claudeSection["Valuta"]!;
+        builder.Services.AddSingleton(claudeOptions);
         builder.Services.AddHttpClient<Services.Shared.Ai.ClaudeTranslationClient>();
+        builder.Services.AddScoped<Services.Web.WebAiConsumoService>();
+        builder.Services.AddScoped<Services.Web.WebAiAlertService>();
         builder.Services.AddScoped<Services.Web.WebTraduzioneOrchestratorService>();
 
         return builder.Build();

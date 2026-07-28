@@ -29,17 +29,20 @@ public sealed class NewsletterSenderService
     private readonly WebNewsletterInviiService _inviiService;
     private readonly WebNewsletterInviiDestinatariService _destinatariService;
     private readonly AziendaLogoService _logoService;
+    private readonly WebAiConsumoService _consumi;
+    private readonly Services.Shared.Ai.ClaudeOptions _claudeOptions;
     private readonly ILogger<NewsletterSenderService> _logger;
 
     public NewsletterSenderService(
         IDatabaseService db, EmailSenderFactory emailFactory, ClaudeTranslationClient claude,
         WebTraduzioneOrchestratorService orchestrator, WebNewsletterInviiService inviiService,
         WebNewsletterInviiDestinatariService destinatariService, AziendaLogoService logoService,
+        WebAiConsumoService consumi, Services.Shared.Ai.ClaudeOptions claudeOptions,
         ILogger<NewsletterSenderService> logger)
     {
         _db = db; _emailFactory = emailFactory; _claude = claude; _orchestrator = orchestrator;
         _inviiService = inviiService; _destinatariService = destinatariService;
-        _logoService = logoService; _logger = logger;
+        _logoService = logoService; _consumi = consumi; _claudeOptions = claudeOptions; _logger = logger;
     }
 
     public async Task<int> CountRecipientsAsync(int aziendaId)
@@ -125,7 +128,14 @@ public sealed class NewsletterSenderService
             {
                 var o = await _claude.TranslateAsync(key, oggetto, l);
                 var c = await _claude.TranslateAsync(key, corpo, l);
-                bodies[l] = (o, c);
+                bodies[l] = (o.Testo, c.Testo);
+
+                // Anche le traduzioni della newsletter consumano credito: vanno nello stesso registro,
+                // altrimenti il totale mostrato all'utente sarebbe più basso della spesa reale.
+                foreach (var u in new[] { o, c })
+                    await _consumi.RegistraAsync(aziendaId, _claudeOptions.Model, $"Newsletter ({l})",
+                        u.InputTokens, u.OutputTokens,
+                        _claudeOptions.StimaCosto(u.InputTokens, u.OutputTokens), _claudeOptions.Valuta);
             }
             catch (Exception ex)
             {

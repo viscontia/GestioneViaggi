@@ -1,11 +1,12 @@
 @using GestioneViaggi.Services.Web
 @using MudBlazor
 @inject WebTraduzioneOrchestratorService Orchestrator
+@inject WebAiConsumoService ConsumiService
 @inject ISnackbar Snackbar
 
 @* Sotto-tab azienda "Traduzioni" (Blocco 10): gestisce la chiave API Claude per-azienda
    (ana_aziende.claude_api_key) usata dalla traduzione automatica dei contenuti web.
-   ⚠️ Chiave in chiaro (come SMTP/ESP) → da cifrare prima del rilascio. *@
+   La chiave è cifrata a riposo (pgcrypto, script 475: serve GV_SECRET_KEY). *@
 
 <MudPaper Elevation="0" Class="pa-2">
     <MudText Typo="Typo.subtitle1" Class="mb-1">Chiave API Claude (Anthropic)</MudText>
@@ -32,6 +33,53 @@
         <MudText Typo="Typo.caption" Color="@(_hasKey ? Color.Success : Color.Warning)" Class="mt-1">
             @(_hasKey ? "Chiave configurata." : "Nessuna chiave: traduzione automatica non disponibile.")
         </MudText>
+
+        @* ---- Consumo e soglia -------------------------------------------------
+           L'API Anthropic non espone il credito residuo della chiave: qui si mostra quanto ha
+           speso QUESTO gestionale, contando i token che ogni risposta riporta già. Se la stessa
+           chiave viene usata altrove, quel consumo non compare e la stima resta ottimistica. *@
+        <MudDivider Class="my-4" />
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Consumo stimato</MudText>
+
+        <MudSimpleTable Dense="true" Style="max-width:640px;" Class="mb-3">
+            <tbody>
+                <tr><td>Chiamate registrate</td><td style="text-align:right;"><b>@(_riepilogo?.Chiamate ?? 0)</b></td></tr>
+                <tr><td>Token (input / output)</td><td style="text-align:right;">@($"{_riepilogo?.TokenInput ?? 0:N0} / {_riepilogo?.TokenOutput ?? 0:N0}")</td></tr>
+                <tr><td>Spesa stimata totale</td><td style="text-align:right;"><b>@($"{_riepilogo?.Costo ?? 0:N2} {_riepilogo?.Valuta ?? "USD"}")</b></td></tr>
+                @if (_config != null)
+                {
+                    <tr>
+                        <td>Spesa dal @_config.ConteggioDa.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td style="text-align:right;"><b>@_spesoPeriodo.ToString("N2")</b></td>
+                    </tr>
+                }
+                <tr><td>Ultima traduzione</td><td style="text-align:right;">@(_riepilogo?.UltimaChiamata?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td></tr>
+            </tbody>
+        </MudSimpleTable>
+
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3" Style="max-width:640px;">
+            È una <b>stima</b> calcolata sui consumi registrati da questo gestionale, con i prezzi
+            configurati in <code>appsettings</code>. Anthropic non espone il credito residuo tramite API:
+            per il saldo reale consulta la console Anthropic.
+        </MudAlert>
+
+        <div class="d-flex align-center gap-2 flex-wrap" style="max-width:640px;">
+            <MudNumericField T="decimal?" @bind-Value="_soglia" Label="Soglia di spesa (avviso al 90%)"
+                             Variant="Variant.Outlined" Min="0" HideSpinButtons="false" Style="max-width:260px;"
+                             HelperText="Vuoto = nessun avviso." />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="SalvaSoglia">Salva soglia</MudButton>
+            <MudTooltip Text="Da usare dopo una ricarica: il conteggio della soglia riparte da oggi e l'avviso torna disponibile. Lo storico non viene cancellato.">
+                <MudButton Variant="Variant.Outlined" Disabled="@_busy" OnClick="RiavviaConteggio">Ho ricaricato: riparti da oggi</MudButton>
+            </MudTooltip>
+        </div>
+
+        @if (_config?.AvvisatoIl is { } avviso)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Warning" Class="mt-1">
+                Avviso di soglia già inviato il @avviso.ToLocalTime().ToString("dd/MM/yyyy HH:mm").
+                Non ne partiranno altri finché non cambi la soglia o riavvii il conteggio.
+            </MudText>
+        }
     }
 </MudPaper>
 
@@ -42,14 +90,59 @@
     private bool _busy;
     private bool _hasKey;
     private string? _key;
+    private WebAiRiepilogo? _riepilogo;
+    private WebAiConfig? _config;
+    private decimal _spesoPeriodo;
+    private decimal? _soglia;
 
     protected override async Task OnInitializedAsync()
     {
         // Protetto come il tab Traduzioni del viaggio: un'eccezione nel ciclo di vita Blazor
         // congelerebbe l'intera interfaccia, non solo questa scheda.
-        try { _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId)); }
-        catch (Exception ex) { Snackbar.Add($"Errore lettura chiave Claude: {ex.Message}", Severity.Error); }
+        try
+        {
+            _hasKey = !string.IsNullOrWhiteSpace(await Orchestrator.GetClaudeKeyAsync(AziendaId));
+            await CaricaConsumiAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura dati traduzioni: {ex.Message}", Severity.Error); }
         _loading = false;
+    }
+
+    private async Task CaricaConsumiAsync()
+    {
+        _riepilogo = await ConsumiService.RiepilogoAsync(AziendaId);
+        _config = await ConsumiService.GetConfigAsync(AziendaId);
+        _soglia = _config?.SogliaSpesa;
+        _spesoPeriodo = _config == null
+            ? (_riepilogo?.Costo ?? 0)
+            : (await ConsumiService.RiepilogoAsync(AziendaId, _config.ConteggioDa)).Costo;
+    }
+
+    private async Task SalvaSoglia()
+    {
+        _busy = true;
+        try
+        {
+            await ConsumiService.SetSogliaAsync(AziendaId, _soglia);
+            await CaricaConsumiAsync();
+            Snackbar.Add(_soglia is > 0 ? "Soglia salvata." : "Soglia rimossa: nessun avviso.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Dopo una ricarica: il conteggio della soglia riparte da ora, lo storico resta.</summary>
+    private async Task RiavviaConteggio()
+    {
+        _busy = true;
+        try
+        {
+            await ConsumiService.SetSogliaAsync(AziendaId, _soglia, riparti: true);
+            await CaricaConsumiAsync();
+            Snackbar.Add("Conteggio riavviato da oggi.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
     }
 
     private async Task Salva()

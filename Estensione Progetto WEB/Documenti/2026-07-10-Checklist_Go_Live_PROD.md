@@ -2,13 +2,13 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-07-28 (§3 riscritta per la consegna al cliente su Windows; script 496–499: verifiche non bloccanti e gating traduzioni). **Stato:** NON ancora rilasciato.
+> **Ultimo aggiornamento:** 2026-07-28 (§3 per la consegna su Windows; script 496–500: verifiche non bloccanti, gating traduzioni, registro consumi Claude). **Stato:** NON ancora rilasciato.
 
 ---
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `499`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti; `496` = `fn_web_tour_verifiche` (verifiche NON bloccanti sui contenuti: giornate senza foto/mappa, ecc. — sola lettura); `497` = `web_tour_mappa.descrizione` **obbligatoria** (backfill + `NOT NULL` + CHECK non-vuoto); `498`+`499` = **gating traduzioni**: il semaforo distingue `n_tradotte` da `n_revisionate` (revisionato AND NOT obsoleto) e solo le revisionate rendono pubblicabile il tour, più `fn_web_traduzioni_approva_contenuto` per l'approvazione in blocco e `fn_web_tour_campi_traducibili` come unica definizione dei campi traducibili. ⚠️ `498`/`499` fanno `DROP FUNCTION` su `fn_web_tour_stato_sezioni` perché ne cambia il tipo di ritorno: applicarli **in ordine**). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `500`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti; `496` = `fn_web_tour_verifiche` (verifiche NON bloccanti sui contenuti: giornate senza foto/mappa, ecc. — sola lettura); `497` = `web_tour_mappa.descrizione` **obbligatoria** (backfill + `NOT NULL` + CHECK non-vuoto); `498`+`499` = **gating traduzioni**: il semaforo distingue `n_tradotte` da `n_revisionate` (revisionato AND NOT obsoleto) e solo le revisionate rendono pubblicabile il tour, più `fn_web_traduzioni_approva_contenuto` per l'approvazione in blocco e `fn_web_tour_campi_traducibili` come unica definizione dei campi traducibili. ⚠️ `498`/`499` fanno `DROP FUNCTION` su `fn_web_tour_stato_sezioni` perché ne cambia il tipo di ritorno: applicarli **in ordine**; `500` = registro consumi Claude (`web_ai_consumi`, `web_ai_config` + funzioni): due tabelle nuove, nessun impatto sui dati esistenti né su `anon`). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -19,14 +19,14 @@ L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `499`
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
 ```bash
-for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=499' | sort -t_ -k1 -n); do
+for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=500' | sort -t_ -k1 -n); do
   echo "==> $f"; psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
 done
 ```
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; quelli `467`–`499` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple, gating traduzioni) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–499 in ordine numerico.
+> Nota: questa tabella dettaglia i primi script; quelli `467`–`500` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple, gating traduzioni) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–500 in ordine numerico.
 
 | # | Script | Note |
 |---|--------|------|
@@ -202,6 +202,8 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - [ ] **SMTP per-azienda** (invio email/newsletter) — via config azienda, cifrata (§2.2). Stessa dipendenza dalla master key.
 - [ ] **`sito_web` azienda** valorizzato: base URL usata per costruire il link di disiscrizione (`{sito_web}/unsubscribe?...`). La verifica HMAC lato sito è **Fase 3** (sito pubblico) — non ancora implementata.
 - [ ] Connection pool PROD: MaxPoolSize=10, MinPoolSize=0, IdleLifetime=180s, ConnectionLifetime=600s (già in config).
+- [ ] **Prezzi Claude per la stima dei consumi** (sezione `Claude` in appsettings: `PrezzoInputPerMilione`, `PrezzoOutputPerMilione`, `Valuta`). ⚠️ Sono valori di **configurazione**, non letti dall'API: allinearli al **listino Anthropic del modello in uso** prima della consegna, altrimenti la spesa mostrata al cliente sarà sbagliata. Il costo viene congelato su ogni riga al momento della chiamata, quindi correggere i prezzi **non** ricalcola lo storico.
+- [ ] **Soglia di spesa Claude** (facoltativa, dalla scheda Traduzioni dell'anagrafica azienda): al 90% parte un avviso in app e **una** email all'indirizzo principale dell'azienda — quindi serve un'email principale valorizzata e l'SMTP funzionante.
 - [ ] `appsettings.json` della macchina cliente: connection string, `WebMediaStorage:Bucket` = `tour-media` (non `tour-media-dev`), `Geoapify:ApiKey`. Ricorda che questi file sono **per-macchina** e non arrivano da git (vedi nota su `skip-worktree`).
 
 ### 3.3 — Prova di consegna (da fare PRIMA di dare l'eseguibile al cliente)
@@ -219,7 +221,7 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–499 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–500 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).

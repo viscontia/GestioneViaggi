@@ -4,6 +4,8 @@
 @using MudBlazor
 @inject WebTraduzioneOrchestratorService Orchestrator
 @inject WebTraduzioniService TraduzioniService
+@inject WebAiConsumoService ConsumiService
+@inject WebAiAlertService AlertService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -46,6 +48,33 @@ else
             la chiave Claude non può essere né letta né salvata, quindi la traduzione automatica è disabilitata.
             Le traduzioni già presenti restano consultabili. Avvia l'applicazione da un terminale che
             esporta la variabile, oppure impostala per le app grafiche.
+        </MudAlert>
+    }
+
+    @* Consumo del credito: l'API non espone il residuo, quindi si mostra quanto ha speso questo
+       gestionale. Il dettaglio e la soglia stanno nella scheda Traduzioni dell'anagrafica azienda. *@
+    @if (_riepilogo is { Chiamate: > 0 })
+    {
+        var oltre = _configAi?.SogliaSpesa is > 0 && _spesoPeriodo >= _configAi.SogliaSpesa * 0.9m;
+        <MudAlert Severity="@(oltre ? Severity.Warning : Severity.Normal)" Dense="true" Class="mb-3">
+            <div class="d-flex align-center gap-2 flex-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Savings" Size="Size.Small" />
+                <span>
+                    Traduzioni automatiche: <b>@_riepilogo.Costo.ToString("N2") @_riepilogo.Valuta</b> stimati
+                    su @_riepilogo.Chiamate chiamate
+                    @if (_configAi?.SogliaSpesa is > 0)
+                    {
+                        <text> — @_spesoPeriodo.ToString("N2") della soglia di @_configAi.SogliaSpesa.Value.ToString("N2")</text>
+                    }
+                </span>
+                @if (oltre)
+                {
+                    <b>Soglia quasi raggiunta: verifica il credito sulla console Anthropic.</b>
+                }
+            </div>
+            <MudText Typo="Typo.caption">
+                Stima sui consumi di questo gestionale: l'API non espone il credito residuo della chiave.
+            </MudText>
         </MudAlert>
     }
 
@@ -157,6 +186,9 @@ else
     private bool _hasKey;
     private string? _errore;
     private string _progressoTraduzione = "";
+    private WebAiRiepilogo? _riepilogo;
+    private WebAiConfig? _configAi;
+    private decimal _spesoPeriodo;
     private string? _keyInput;
 
     private List<TranslatableItem> _items = new();
@@ -214,8 +246,19 @@ else
         var all = await TraduzioniService.ListByAziendaAsync(AziendaId);
         _traduzioni = all.Where(t => ids.Contains((t.Entita, t.EntitaId)))
                          .ToDictionary(t => Key(t.Entita, t.EntitaId, t.Campo, t.Lingua), t => t);
+        await CaricaConsumiAsync();
         await NotifyStatoAsync();
         StateHasChanged();
+    }
+
+    /// <summary>Riepilogo spesa: totale storico e, se c'è una soglia, quanto è stato speso nel periodo corrente.</summary>
+    private async Task CaricaConsumiAsync()
+    {
+        _riepilogo = await ConsumiService.RiepilogoAsync(AziendaId);
+        _configAi = await ConsumiService.GetConfigAsync(AziendaId);
+        _spesoPeriodo = _configAi == null
+            ? _riepilogo.Costo
+            : (await ConsumiService.RiepilogoAsync(AziendaId, _configAi.ConteggioDa)).Costo;
     }
 
     /// <summary>Completo se tutti i campi traducibili hanno una traduzione in tutte le lingue target; Vuoto se nessuna;
@@ -284,6 +327,9 @@ else
         {
             var progress = new Progress<string>(m => { _progressoTraduzione = m; StateHasChanged(); });
             var (ok, err) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
+            // Al termine del blocco, non a ogni chiamata: la soglia si controlla una volta e
+            // l'eventuale email parte una sola volta (decisione presa dal DB).
+            await AlertService.VerificaEAvvisaAsync(AziendaId);
             await ReloadAsync();
             Snackbar.Add($"Traduzioni completate: {ok} ok" + (err > 0 ? $", {err} errori" : ""), err > 0 ? Severity.Warning : Severity.Success);
         }

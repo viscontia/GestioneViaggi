@@ -25,6 +25,8 @@ public sealed class WebTraduzioneOrchestratorService
     private readonly WebTourItinerarioService _itinerario;
     private readonly WebTourItinerarioPassaggiService _passi;
     private readonly WebTourMappaService _mappe;
+    private readonly WebAiConsumoService _consumi;
+    private readonly ClaudeOptions _claudeOptions;
     private readonly GestioneViaggi.Services.CRUD.AnaViaggiService _viaggi;
     private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
     private readonly ILogger<WebTraduzioneOrchestratorService> _logger;
@@ -32,13 +34,14 @@ public sealed class WebTraduzioneOrchestratorService
     public WebTraduzioneOrchestratorService(
         IDatabaseService db, ClaudeTranslationClient claude, WebTraduzioniService traduzioni,
         WebTourContenutiService contenuti, WebTourItinerarioService itinerario, WebTourItinerarioPassaggiService passi,
-        WebTourMappaService mappe,
+        WebTourMappaService mappe, WebAiConsumoService consumi, ClaudeOptions claudeOptions,
         GestioneViaggi.Services.CRUD.AnaViaggiService viaggi,
         GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
         ILogger<WebTraduzioneOrchestratorService> logger)
     {
         _db = db; _claude = claude; _traduzioni = traduzioni;
         _contenuti = contenuti; _itinerario = itinerario; _passi = passi; _mappe = mappe;
+        _consumi = consumi; _claudeOptions = claudeOptions;
         _viaggi = viaggi; _secretKey = secretKey; _logger = logger;
     }
 
@@ -179,7 +182,12 @@ public sealed class WebTraduzioneOrchestratorService
                 try
                 {
                     var tr = await _claude.TranslateAsync(key, it.SourceText, lang, ct);
-                    await _traduzioni.UpsertAsync(aziendaId, it.Entita, it.EntitaId, it.Campo, lang, tr);
+                    await _traduzioni.UpsertAsync(aziendaId, it.Entita, it.EntitaId, it.Campo, lang, tr.Testo);
+
+                    // I token arrivano già nella risposta: registrarli non costa una chiamata in più.
+                    await _consumi.RegistraAsync(aziendaId, _claudeOptions.Model, $"{it.Label} ({lang})",
+                        tr.InputTokens, tr.OutputTokens,
+                        _claudeOptions.StimaCosto(tr.InputTokens, tr.OutputTokens), _claudeOptions.Valuta);
                     ok++;
                 }
                 catch (Exception ex)

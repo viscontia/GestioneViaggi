@@ -282,3 +282,17 @@ Controlli che nessun vincolo può fare, perché non sono dati incoerenti ma **di
 - ☐ **Idempotenza**: ripremendo "Approva tutte" quando è già tutto revisionato, il pulsante è disabilitato ("Tutte le traduzioni sono già revisionate").
 - ☐ **Obsolescenza**: modificando un testo italiano già tradotto, le sue traduzioni tornano obsolete → il semaforo torna rosso e la pubblicazione si blocca di nuovo.
 - ☐ **Contatore**: la riga "Revisionate N di M" segue le operazioni.
+
+## 21. Consumo Claude e soglia di spesa (script `500`)
+
+Il credito della chiave è precaricato e l'API **non** espone il residuo: il gestionale conta i token che ogni risposta riporta già, quindi il tracciamento non consuma crediti.
+
+- ☐ **Registrazione**: dopo un "Traduci tutto", il pannello in *Anagrafica azienda → Traduzioni* mostra chiamate, token e spesa stimata coerenti con il numero di traduzioni fatte.
+- ☐ **Riquadro nel tour**: il tab Traduzioni del viaggio mostra in cima la spesa stimata e dichiara che è una stima, non il saldo Anthropic.
+- ☐ **Newsletter inclusa**: anche le traduzioni della newsletter incrementano il contatore (non solo quelle dei tour).
+- ☐ **Soglia**: impostata una soglia bassa (es. 0,10) e tradotto qualcosa, il riquadro diventa **arancione** al superamento del 90%.
+- ☐ **Email una sola volta**: parte **una** email all'indirizzo principale dell'azienda; traducendo ancora **non** ne arrivano altre; il pannello mostra "Avviso già inviato il ...".
+- ☐ **Riarmo**: premendo *"Ho ricaricato: riparti da oggi"* il conteggio della soglia riparte, l'avviso torna disponibile e **lo storico totale resta invariato**.
+- ☐ **Cambio soglia**: salvando una soglia diversa l'avviso si riarma (altrimenti alzando il tetto non si verrebbe più avvisati).
+- ☐ **Nessuna soglia**: con il campo vuoto non arrivano avvisi e il riquadro resta neutro.
+- ☐ **Prezzi**: modificando i prezzi in appsettings, le **nuove** traduzioni usano i nuovi valori mentre lo storico resta com'era (il costo è congelato alla chiamata).
