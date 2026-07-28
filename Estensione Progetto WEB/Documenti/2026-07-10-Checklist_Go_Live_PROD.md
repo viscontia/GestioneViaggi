@@ -2,13 +2,13 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-07-25 (mappe multiple da GPX, script 493–495; §2.6 migrazione dati tipi viaggio). **Stato:** NON ancora rilasciato.
+> **Ultimo aggiornamento:** 2026-07-28 (§3 riscritta per la consegna al cliente su Windows; script 496–499: verifiche non bloccanti e gating traduzioni). **Stato:** NON ancora rilasciato.
 
 ---
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `495`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `499`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti; `496` = `fn_web_tour_verifiche` (verifiche NON bloccanti sui contenuti: giornate senza foto/mappa, ecc. — sola lettura); `497` = `web_tour_mappa.descrizione` **obbligatoria** (backfill + `NOT NULL` + CHECK non-vuoto); `498`+`499` = **gating traduzioni**: il semaforo distingue `n_tradotte` da `n_revisionate` (revisionato AND NOT obsoleto) e solo le revisionate rendono pubblicabile il tour, più `fn_web_traduzioni_approva_contenuto` per l'approvazione in blocco e `fn_web_tour_campi_traducibili` come unica definizione dei campi traducibili. ⚠️ `498`/`499` fanno `DROP FUNCTION` su `fn_web_tour_stato_sezioni` perché ne cambia il tipo di ritorno: applicarli **in ordine**). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -19,14 +19,14 @@ L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `495`
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
 ```bash
-for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=495' | sort -t_ -k1 -n); do
+for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=499' | sort -t_ -k1 -n); do
   echo "==> $f"; psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
 done
 ```
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; quelli `467`–`495` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–495 in ordine numerico.
+> Nota: questa tabella dettaglia i primi script; quelli `467`–`499` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple, gating traduzioni) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–499 in ordine numerico.
 
 | # | Script | Note |
 |---|--------|------|
@@ -167,28 +167,66 @@ Verifica finale: conteggi identici a TEST, nessun `descrizione_web_fk` orfano, `
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
 
-Da impostare lato app / ambiente (NON in git):
+> ⚠️ **Questa sezione è quella che fa fallire una consegna.** Il DB può essere perfetto: se l'eseguibile parte sulla macchina del cliente senza queste configurazioni, le schede che toccano segreti (Traduzioni, SMTP) si presentano con le funzioni disabilitate. Prima di consegnare, eseguire la **§3.3 Prova di consegna**.
 
-- [ ] **`GV_SECRET_KEY`** (env var, master key cifratura segreti — stessa su tutte le installazioni). Vedi §2.2.
+### 3.1 — `GV_SECRET_KEY` (master key dei segreti) — la voce più insidiosa
+
+Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**ambiente del processo** dell'app: `Environment.GetEnvironmentVariable("GV_SECRET_KEY")`.
+
+**Regole non negoziabili:**
+- **La stessa identica stringa** su tutte le installazioni che condividono il DB. Chiavi diverse = segreti scritti da una postazione illeggibili dall'altra (`Wrong key or corrupt data`).
+- **Non** finisce in git né dentro il pacchetto dell'app: è configurazione d'ambiente, non un file dell'applicativo.
+- Cambiarla dopo aver salvato dei segreti li rende **irrecuperabili**: vanno re-inseriti dalle form.
+
+**Come impostarla, per sistema operativo:**
+
+| Ambiente | Comando | Ambito |
+|---|---|---|
+| **Windows 11** (macchina cliente) | `setx GV_SECRET_KEY "<valore>" /M` da **prompt come amministratore** | tutte le utenze della macchina |
+| Windows 11 (solo utente corrente) | `setx GV_SECRET_KEY "<valore>"` | utente corrente |
+| macOS — avvio da terminale | `export` in `~/.zshrc`, oppure il file locale caricato da `run_maui.sh` | shell |
+| macOS — avvio da Finder/IDE | `launchctl setenv GV_SECRET_KEY "<valore>"` | app grafiche, **fino al riavvio** |
+
+⚠️ **Trappola verificata sul campo (2026-07-27):** su macOS un'app lanciata da **Finder o dall'IDE non eredita** gli `export` di `~/.zshrc` — la variabile risulta assente e le funzioni sui segreti si disabilitano. Per questo `run_maui.sh` carica da sé la master key. Su **Windows** vale lo stesso principio con una differenza importante: `setx` **non tocca i processi già avviati**, quindi dopo averla impostata bisogna **chiudere e riaprire** il prompt (o fare logout/login) prima di lanciare l'app, altrimenti sembra che non abbia funzionato.
+
+**Come verificare che l'app la veda davvero** (non basta che il sistema la conosca):
+- Windows: `echo %GV_SECRET_KEY%` in un prompt **nuovo**; poi avviare l'app e aprire una scheda **Traduzioni**.
+- macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
+- **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
+
+### 3.2 — Resto della configurazione
+
 - [ ] **Supabase**: connection string PROD, `Service Key` (Storage), eventuale `anon key`.
-- [ ] **Geoapify** API key (Blocco 9, generazione mappe statiche).
-- [ ] **Chiave Claude per-azienda** (Blocco 10/11 traduzioni + newsletter) — via UI form azienda, salvata cifrata (§2.2).
-- [ ] **SMTP / ESP (Resend) per-azienda** (invio email/newsletter) — via config azienda, cifrata (§2.2).
+- [ ] **Geoapify** API key (Blocco 9, generazione mappe statiche). Senza, il tab Mappa avvisa e disabilita la generazione.
+- [ ] **Chiave Claude per-azienda** (Blocco 10/11 traduzioni + newsletter) — via UI form azienda, salvata cifrata (§2.2). **Richiede `GV_SECRET_KEY` già attiva**: senza, la form non permette nemmeno di salvarla.
+- [ ] **SMTP per-azienda** (invio email/newsletter) — via config azienda, cifrata (§2.2). Stessa dipendenza dalla master key.
 - [ ] **`sito_web` azienda** valorizzato: base URL usata per costruire il link di disiscrizione (`{sito_web}/unsubscribe?...`). La verifica HMAC lato sito è **Fase 3** (sito pubblico) — non ancora implementata.
 - [ ] Connection pool PROD: MaxPoolSize=10, MinPoolSize=0, IdleLifetime=180s, ConnectionLifetime=600s (già in config).
+- [ ] `appsettings.json` della macchina cliente: connection string, `WebMediaStorage:Bucket` = `tour-media` (non `tour-media-dev`), `Geoapify:ApiKey`. Ricorda che questi file sono **per-macchina** e non arrivano da git (vedi nota su `skip-worktree`).
+
+### 3.3 — Prova di consegna (da fare PRIMA di dare l'eseguibile al cliente)
+
+Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con l'app **riavviata** dopo aver impostato le variabili:
+
+- [ ] L'app si avvia e si collega al DB PROD (non a Docker locale: controllare la connection string).
+- [ ] Scheda **Traduzioni** di un tour: **nessun** avviso sulla master key; il pulsante "Salva chiave" è attivo.
+- [ ] Salvataggio e rilettura di un segreto: inserire la chiave Claude, salvare, riaprire la scheda → risulta configurata. Questo prova end-to-end che cifratura e decifratura funzionano con la key di quella macchina.
+- [ ] Scheda **Mappa**: nessun avviso su Geoapify; una generazione di prova produce l'immagine (verifica anche il bucket Storage, §2.4).
+- [ ] Invio email di prova dalla configurazione SMTP dell'azienda (attenzione: [[smtp-tests-require-vpn-off]]).
+- [ ] Un tour di prova arriva a **pubblicato**, quindi il gating (contenuti completi + traduzioni revisionate) è soddisfacibile su quella macchina.
 
 ---
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–495 su PROD (§1) senza errori.
+- [ ] Applicati in ordine gli script 406–499 su PROD (§1) senza errori.
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
 - [ ] Bucket Supabase Storage creati + policy (§2.4).
 - [ ] Backfill `cliente_lingua` eseguito e verificato (§2.5).
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
-- [ ] Config app PROD completata (§3).
+- [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
 
