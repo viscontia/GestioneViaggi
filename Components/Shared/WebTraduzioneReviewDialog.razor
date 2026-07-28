@@ -4,6 +4,13 @@
 @* Revisione di una traduzione (Blocco 10): mostra il sorgente IT (readonly) e la traduzione
    editabile; toggle "revisionato". Ritorna la traduzione aggiornata al tab, che la persiste. *@
 
+<style>
+    /* Il markup dell'editor arriva con margini propri: qui vanno compattati per non sprecare spazio. */
+    .rev-html p { margin: 0 0 .4rem 0; }
+    .rev-html p:last-child { margin-bottom: 0; }
+    .rev-html ul, .rev-html ol { margin: 0 0 .4rem 1.2rem; padding: 0; }
+</style>
+
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">@Label — @LinguaLabel</MudText>
@@ -11,11 +18,32 @@
     <DialogContent>
         <MudText Typo="Typo.caption" Color="Color.Secondary">Sorgente (italiano)</MudText>
         <MudPaper Outlined="true" Class="pa-2 mb-3" Style="max-height:160px;overflow:auto;">
-            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@SourceText</MudText>
+            @if (CampoHtml)
+            {
+                @* Campi scritti con l'editor RichText: mostrarli grezzi riempirebbe la finestra di
+                   tag e renderebbe illeggibile il testo da confrontare. Stesso trattamento
+                   dell'anteprima del tour. *@
+                <div class="rev-html">@((MarkupString)SourceText)</div>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@SourceText</MudText>
+            }
         </MudPaper>
 
         <MudTextField @bind-Value="_testo" Label="@($"Traduzione ({LinguaLabel})")" Variant="Variant.Outlined"
-                      Lines="6" AutoGrow="true" AutoFocus="true" />
+                      Lines="6" AutoGrow="true" AutoFocus="true" Immediate="@CampoHtml"
+                      HelperText="@(CampoHtml ? "Il testo contiene formattazione HTML: modifica solo le parole, lasciando i tag al loro posto." : null)" />
+
+        @if (CampoHtml)
+        {
+            @* La modifica resta sul testo con i tag (vanno conservati), ma l'anteprima mostra come
+               apparirà davvero sul sito, così si controlla il risultato invece del codice. *@
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Anteprima della traduzione</MudText>
+            <MudPaper Outlined="true" Class="pa-2" Style="max-height:160px;overflow:auto;">
+                <div class="rev-html">@((MarkupString)(_testo ?? string.Empty))</div>
+            </MudPaper>
+        }
         <MudCheckBox @bind-Value="_revisionato" Label="Revisionato (traduzione verificata)" Color="Color.Primary" Class="mt-2" />
         @if (Traduzione.Obsoleto)
         {
@@ -38,6 +66,12 @@
 
     private string? _testo;
     private bool _revisionato;
+
+    /// <summary>
+    /// I campi che finiscono per <c>_html</c> arrivano dall'editor RichText e contengono markup:
+    /// vanno mostrati resi, non come codice. Gli altri (sottotitolo, meta, durata...) sono testo puro.
+    /// </summary>
+    private bool CampoHtml => Traduzione.Campo?.EndsWith("_html", StringComparison.OrdinalIgnoreCase) == true;
 
     protected override void OnInitialized()
     {

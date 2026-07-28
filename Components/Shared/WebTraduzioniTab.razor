@@ -11,7 +11,20 @@
 @* Scheda "Traduzioni" (Blocco 10): traduce i campi editoriali del viaggio (contenuti + passi)
    in EN/DE/FR/ES via Claude, con stato per lingua e revisione. Chiave Claude per-azienda. *@
 
-<div class="traduzioni-tab">
+<div class="traduzioni-tab" style="position:relative;">
+
+@* La traduzione chiama Claude una volta per ogni campo e per ogni lingua: su un tour completo sono
+   decine di chiamate e può durare minuti. Overlay a tutta scheda: segnala l'attesa, ne dichiara la
+   durata e impedisce clic che partirebbero su dati in cambiamento. *@
+<MudOverlay Visible="@_busy" DarkBackground="true" Absolute="true" ZIndex="9">
+    <div class="d-flex flex-column align-center gap-2 pa-4 text-center">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+        <MudText Typo="Typo.h6" Style="color:white;">Traduzione in corso...</MudText>
+        <MudText Typo="Typo.body2" Style="color:white;">@_progressoTraduzione</MudText>
+        <MudText Typo="Typo.caption" Style="color:white;">Può richiedere 1-2 minuti: non chiudere la finestra.</MudText>
+    </div>
+</MudOverlay>
+
 @if (_loading)
 {
     <div class="d-flex justify-center pa-8"><MudProgressCircular Indeterminate="true" /></div>
@@ -61,12 +74,28 @@ else
                        Disabled="@(_busy || !_hasKey || !Orchestrator.SecretKeyConfigurata)" OnClick="TraduciTutto">
                 Traduci tutto (@string.Join("/", WebTraduzioneOrchestratorService.Lingue))
             </MudButton>
-            @if (_busy)
-            {
-                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Traduzione in corso...</MudText>
-            }
+
+            @* Controllare a mano 80 traduzioni non è realistico: si verifica un campione e si approva
+               il resto. Il vincolo è che il campione copra OGNI lingua. *@
+            <MudTooltip Text="@ApprovaTooltip">
+                <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.DoneAll"
+                           Disabled="@(_busy || !PuoApprovareTutto)" OnClick="ApprovaTutte">
+                    Approva tutte
+                </MudButton>
+            </MudTooltip>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Revisionate @CoppieRevisionate di @(_items.Count * WebTraduzioneOrchestratorService.Lingue.Length)
+            </MudText>
         </div>
+
+        @if (LingueSenzaCampione.Count > 0 && _items.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                Per poter approvare tutte le traduzioni in blocco, verificane prima almeno una per ogni lingua
+                (clicca una cella e salva con "Revisionato"). Mancano: <b>@string.Join(", ", LingueSenzaCampione)</b>.
+            </MudAlert>
+        }
 
         <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
             <thead>
@@ -127,6 +156,7 @@ else
     private bool _tabSetup;
     private bool _hasKey;
     private string? _errore;
+    private string _progressoTraduzione = "";
     private string? _keyInput;
 
     private List<TranslatableItem> _items = new();
@@ -154,6 +184,23 @@ else
         }
     }
 
+    /// <summary>Coppie campo×lingua revisionate e non obsolete: è ciò che rende Completo il tab.</summary>
+    private int CoppieRevisionate => _items.Sum(it => WebTraduzioneOrchestratorService.Lingue
+        .Count(l => Find(it, l) is { Revisionato: true, Obsoleto: false }));
+
+    /// <summary>Lingue in cui l'utente ha già verificato a mano almeno una traduzione.</summary>
+    private List<string> LingueSenzaCampione => WebTraduzioneOrchestratorService.Lingue
+        .Where(l => !_items.Any(it => Find(it, l) is { Revisionato: true, Obsoleto: false }))
+        .ToList();
+
+    /// <summary>
+    /// L'approvazione in blocco si sblocca solo dopo che l'utente ha verificato almeno una
+    /// traduzione <b>per ogni lingua</b>: altrimenti si approverebbe alla cieca una lingua che
+    /// nessuno ha nemmeno guardato.
+    /// </summary>
+    private bool PuoApprovareTutto => _items.Count > 0 && LingueSenzaCampione.Count == 0
+                                      && CoppieRevisionate < _items.Count * WebTraduzioneOrchestratorService.Lingue.Length;
+
     private static string Key(string entita, long entitaId, string campo, string lingua) => $"{entita}|{entitaId}|{campo}|{lingua}";
     private WebTraduzione? Find(TranslatableItem it, string lingua)
         => _traduzioni.TryGetValue(Key(it.Entita, it.EntitaId, it.Campo, lingua), out var t) ? t : null;
@@ -177,7 +224,7 @@ else
     {
         var totalPairs = _items.Count * WebTraduzioneOrchestratorService.Lingue.Length;
         var translated = _items.Sum(it => WebTraduzioneOrchestratorService.Lingue.Count(l => Find(it, l) != null));
-        return StatoChanged.InvokeAsync(WebTabStatoRules.Traduzioni(totalPairs, translated));
+        return StatoChanged.InvokeAsync(WebTabStatoRules.Traduzioni(totalPairs, translated, CoppieRevisionate));
     }
 
     private async Task SalvaChiave()
@@ -194,12 +241,49 @@ else
         finally { _busy = false; }
     }
 
+    private string ApprovaTooltip => LingueSenzaCampione.Count > 0
+        ? $"Verifica prima almeno una traduzione per ogni lingua. Mancano: {string.Join(", ", LingueSenzaCampione)}."
+        : PuoApprovareTutto
+            ? "Marca revisionate tutte le traduzioni rimanenti di questa edizione."
+            : "Tutte le traduzioni sono già revisionate.";
+
+    /// <summary>
+    /// Marca revisionate tutte le traduzioni dell'edizione. Non tocca i testi: dichiara che
+    /// l'operatore se ne assume la responsabilità dopo il controllo a campione.
+    /// </summary>
+    private async Task ApprovaTutte()
+    {
+        var totale = _items.Count * WebTraduzioneOrchestratorService.Lingue.Length;
+        var mancanti = totale - CoppieRevisionate;
+
+        var conferma = await DialogService.ShowMessageBox(
+            "Approva tutte le traduzioni",
+            $"Verranno marcate come revisionate {mancanti} traduzioni su {totale}, senza modificarne il testo. " +
+            "Dichiari di averle controllate a campione e di assumertene la responsabilità: finiranno sul sito così come sono.",
+            yesText: "Approva tutte", cancelText: "Annulla");
+        if (conferma != true) return;
+
+        _busy = true;
+        StateHasChanged();
+        try
+        {
+            var n = await TraduzioniService.ApprovaContenutoAsync(ContenutoId, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+            await ReloadAsync();
+            Snackbar.Add($"Approvate {n} traduzioni.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore approvazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
     private async Task TraduciTutto()
     {
         _busy = true;
+        _progressoTraduzione = $"0 di {_items.Count * WebTraduzioneOrchestratorService.Lingue.Length}";
+        StateHasChanged(); // mostra l'overlay prima di partire, non a operazione conclusa
         try
         {
-            var (ok, err) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue);
+            var progress = new Progress<string>(m => { _progressoTraduzione = m; StateHasChanged(); });
+            var (ok, err) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
             await ReloadAsync();
             Snackbar.Add($"Traduzioni completate: {ok} ok" + (err > 0 ? $", {err} errori" : ""), err > 0 ? Severity.Warning : Severity.Success);
         }

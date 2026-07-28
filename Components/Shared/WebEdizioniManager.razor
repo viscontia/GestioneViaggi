@@ -190,7 +190,8 @@ else
         _stati[TabItinerario] = WebTabStatoRules.Itinerario(fatti.NumeroGiornate, NumeroGiorni);
         _stati[TabMappa] = WebTabStatoRules.Mappa();
         _stati[TabTraduzioni] = WebTabStatoRules.Traduzioni(
-            fatti.ItemTraducibili * WebTraduzioneOrchestratorService.Lingue.Length, fatti.CoppieTradotte);
+            fatti.ItemTraducibili * WebTraduzioneOrchestratorService.Lingue.Length,
+            fatti.CoppieTradotte, fatti.CoppieRevisionate);
 
         _verifiche = await CalcolaVerificheAsync();
     }

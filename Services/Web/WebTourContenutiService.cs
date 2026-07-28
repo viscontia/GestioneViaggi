@@ -148,7 +148,8 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
                 reader.GetBoolean(reader.GetOrdinal("ha_principale")),
                 reader.GetInt32(reader.GetOrdinal("n_giornate")),
                 reader.GetInt32(reader.GetOrdinal("n_traducibili")),
-                reader.GetInt32(reader.GetOrdinal("n_tradotte")));
+                reader.GetInt32(reader.GetOrdinal("n_tradotte")),
+                reader.GetInt32(reader.GetOrdinal("n_revisionate")));
         }
         catch (Exception ex)
         {

@@ -149,8 +149,13 @@ public sealed class WebTraduzioneOrchestratorService
     // ---- Traduzione -----------------------------------------------------------
 
     /// <summary>Traduce gli item nelle lingue indicate e li salva (upsert). Ritorna (ok, errori).</summary>
+    /// <param name="progress">
+    /// Riceve l'avanzamento ("12 di 80 — Descrizione (EN)"): l'operazione richiede una chiamata per
+    /// ogni campo e per ogni lingua, quindi dura minuti, e senza riscontro sembra bloccata.
+    /// </param>
     public async Task<(int Ok, int Errori)> TranslateAsync(
-        int aziendaId, IReadOnlyList<TranslatableItem> items, IReadOnlyList<string> lingue, CancellationToken ct = default)
+        int aziendaId, IReadOnlyList<TranslatableItem> items, IReadOnlyList<string> lingue,
+        IProgress<string>? progress = null, CancellationToken ct = default)
     {
         // Controllo esplicito: senza questo, una master key mancante verrebbe segnalata come
         // "chiave Claude non configurata", mandando l'utente a cercare il problema dove non è.
@@ -164,10 +169,13 @@ public sealed class WebTraduzioneOrchestratorService
             throw new InvalidOperationException("Chiave Claude non configurata per questa azienda.");
 
         int ok = 0, err = 0;
+        var totale = items.Count * lingue.Count;
+        var fatte = 0;
         foreach (var it in items)
         {
             foreach (var lang in lingue)
             {
+                progress?.Report($"{++fatte} di {totale} — {it.Label} ({lang})");
                 try
                 {
                     var tr = await _claude.TranslateAsync(key, it.SourceText, lang, ct);

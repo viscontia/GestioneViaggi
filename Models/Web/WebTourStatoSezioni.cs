@@ -14,4 +14,7 @@ public record WebTourStatoSezioni(
     bool HaPrincipale,
     int NumeroGiornate,
     int ItemTraducibili,
-    int CoppieTradotte);
+    int CoppieTradotte,
+    /// <summary>Coppie campo×lingua revisionate a mano e non obsolete: è questo che rende Completo
+    /// il tab Traduzioni. Le traduzioni automatiche mai lette non bastano per pubblicare.</summary>
+    int CoppieRevisionate);

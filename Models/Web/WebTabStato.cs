@@ -45,12 +45,17 @@ public static class WebTabStatoRules
     /// <summary>La mappa è opzionale: non blocca mai il gating di pubblicazione.</summary>
     public static WebTabStato Mappa() => WebTabStato.Completo;
 
-    /// <summary>Completo se tutti i campi traducibili sono tradotti in tutte le lingue target; Vuoto se nessuna;
-    /// Parziale altrimenti. Nessun campo da tradurre → Completo (vacuamente vero, non blocca la pubblicazione).</summary>
-    public static WebTabStato Traduzioni(int coppieAttese, int coppieTradotte)
+    /// <summary>
+    /// Completo solo quando <b>tutte</b> le coppie campo×lingua sono state <b>revisionate</b> (e non
+    /// sono obsolete): le traduzioni automatiche finiscono sul sito nella lingua del cliente, quindi
+    /// nessuno deve poter pubblicare testi che nessuno ha approvato. Vuoto se non c'è ancora nulla,
+    /// Parziale in mezzo — compreso il caso "tutto tradotto ma non ancora approvato".
+    /// Nessun campo da tradurre → Completo (vacuamente vero, non blocca la pubblicazione).
+    /// </summary>
+    public static WebTabStato Traduzioni(int coppieAttese, int coppieTradotte, int coppieRevisionate)
         => coppieAttese == 0 ? WebTabStato.Completo
+         : coppieRevisionate >= coppieAttese ? WebTabStato.Completo
          : coppieTradotte == 0 ? WebTabStato.Vuoto
-         : coppieTradotte >= coppieAttese ? WebTabStato.Completo
          : WebTabStato.Parziale;
 }
 

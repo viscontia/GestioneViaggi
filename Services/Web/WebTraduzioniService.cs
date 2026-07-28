@@ -71,6 +71,22 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
         }
     }
 
+    /// <summary>
+    /// Approva in blocco le traduzioni di una edizione (revisionato=true, obsoleto=false).
+    /// Ritorna quante righe sono cambiate: quelle già a posto non vengono toccate.
+    /// La condizione "almeno una revisionata a mano per lingua" è imposta dalla UI, non da qui.
+    /// </summary>
+    public async Task<int> ApprovaContenutoAsync(long contenutoId, int aziendaId, string[] lingue)
+    {
+        await using var conn = await _databaseService.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT fn_web_traduzioni_approva_contenuto(@ContenutoId::bigint, @AziendaId::integer, @Lingue::varchar[])", conn);
+        cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+        cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+        cmd.Parameters.AddWithValue("Lingue", lingue);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
     /// <summary>Marca obsolete le traduzioni di un campo di un'entità GLOBALE (senza filtro azienda). Non lancia.</summary>
     public async Task<int> MarkObsoleteGlobalAsync(string entita, long entitaId, string campo)
     {
