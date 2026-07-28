@@ -270,3 +270,15 @@ Controlli che nessun vincolo può fare, perché non sono dati incoerenti ma **di
 - ☐ **Le voci si aggiornano**: aggiungi la foto alla giornata che ne era priva → la segnalazione sparisce alla successiva apertura/pubblicazione (sono ricalcolate, non memorizzate).
 - ☐ **Concordanza dei messaggi**: "1 giornata su 5 non ha foto" al singolare, "3 giornate su 5 non hanno" al plurale.
 - ☐ **Tour completo**: nessuna voce → il chip non compare e l'anteprima non mostra il pannello.
+
+## 20. Traduzioni — attesa, revisione e gating (script `498`/`499`)
+
+- ☐ **Attesa visibile**: "Traduci tutto" copre la scheda con l'overlay, impedisce i clic, dice che può volerci 1-2 minuti e mostra l'avanzamento ("12 di 80 — Descrizione (EN)").
+- ☐ **HTML leggibile**: aprendo una cella di un campo *Descrizione*/*Pernottamento*/*Passo*, il sorgente italiano si legge **formattato** e non come tag; sotto la traduzione compare l'anteprima resa. Nei campi non-HTML (Sottotitolo, Meta) nulla cambia.
+- ☐ **Tag conservati**: modificando una traduzione HTML e salvando, la formattazione resta (l'anteprima lo mostra subito).
+- ☐ **Gating — il caso che prima passava**: con tutte le traduzioni generate ma **nessuna revisionata**, il semaforo Traduzioni è **rosso** e la pubblicazione è bloccata.
+- ☐ **Condizione del campione**: "Approva tutte" resta disabilitato finché non si è revisionata almeno una traduzione **per ogni lingua**; l'avviso elenca le lingue mancanti e il tooltip lo ripete.
+- ☐ **Approvazione in blocco**: dopo il campione, il pulsante si attiva, chiede conferma dichiarando quante traduzioni verranno approvate, e al termine il semaforo diventa **verde** e il tour è pubblicabile.
+- ☐ **Idempotenza**: ripremendo "Approva tutte" quando è già tutto revisionato, il pulsante è disabilitato ("Tutte le traduzioni sono già revisionate").
+- ☐ **Obsolescenza**: modificando un testo italiano già tradotto, le sue traduzioni tornano obsolete → il semaforo torna rosso e la pubblicazione si blocca di nuovo.
+- ☐ **Contatore**: la riga "Revisionate N di M" segue le operazioni.
