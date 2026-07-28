@@ -202,7 +202,16 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - [ ] **SMTP per-azienda** (invio email/newsletter) — via config azienda, cifrata (§2.2). Stessa dipendenza dalla master key.
 - [ ] **`sito_web` azienda** valorizzato: base URL usata per costruire il link di disiscrizione (`{sito_web}/unsubscribe?...`). La verifica HMAC lato sito è **Fase 3** (sito pubblico) — non ancora implementata.
 - [ ] Connection pool PROD: MaxPoolSize=10, MinPoolSize=0, IdleLifetime=180s, ConnectionLifetime=600s (già in config).
-- [ ] **Prezzi Claude per la stima dei consumi** (sezione `Claude` in appsettings: `PrezzoInputPerMilione`, `PrezzoOutputPerMilione`, `Valuta`). ⚠️ Sono valori di **configurazione**, non letti dall'API: allinearli al **listino Anthropic del modello in uso** prima della consegna, altrimenti la spesa mostrata al cliente sarà sbagliata. Il costo viene congelato su ogni riga al momento della chiamata, quindi correggere i prezzi **non** ricalcola lo storico.
+- [ ] **Prezzi Claude per la stima dei consumi** (sezione `Claude` in appsettings: `PrezzoInputPerMilione`, `PrezzoOutputPerMilione`, `Valuta`). Sono valori di **configurazione**, non letti dall'API. Listino verificato il **2026-07-28** su `platform.claude.com/docs/en/docs/about-claude/pricing`:
+
+  | Modello | Input / MTok | Output / MTok |
+  |---|---|---|
+  | **Claude Haiku 4.5** ← in uso (`claude-haiku-4-5-20251001`) | **$1** | **$5** |
+  | Claude Sonnet 5 | $2 (introduttivo fino al 31/08/2026, poi $3) | $10 (poi $15) |
+  | Claude Opus 5 | $5 | $25 |
+
+  I default in codice **coincidono** con Haiku 4.5, quindi non serve toccarli finché non si cambia modello. Ricontrollare il listino prima della consegna: il costo viene congelato su ogni riga al momento della chiamata, quindi correggere i prezzi **non** ricalcola lo storico. La stima non considera prompt caching né Batch API (non usati).
+  Ordine di grandezza utile: tradurre un tour completo (~20 campi × 4 lingue) costa circa **$0,30**.
 - [ ] **Soglia di spesa Claude** (facoltativa, dalla scheda Traduzioni dell'anagrafica azienda): al 90% parte un avviso in app e **una** email all'indirizzo principale dell'azienda — quindi serve un'email principale valorizzata e l'SMTP funzionante.
 - [ ] `appsettings.json` della macchina cliente: connection string, `WebMediaStorage:Bucket` = `tour-media` (non `tour-media-dev`), `Geoapify:ApiKey`. Ricorda che questi file sono **per-macchina** e non arrivano da git (vedi nota su `skip-worktree`).
 

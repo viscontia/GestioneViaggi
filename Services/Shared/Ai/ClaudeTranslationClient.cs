@@ -13,10 +13,14 @@ public sealed class ClaudeOptions
 
     /// <summary>
     /// Prezzo per MILIONE di token, usato per stimare il costo di ogni traduzione.
-    /// ⚠️ Sono valori di configurazione, non un dato letto dall'API: vanno allineati al listino
-    /// Anthropic del modello in uso (sezione "Claude" in appsettings) e cambiati se il listino cambia.
-    /// Il costo viene congelato sulla riga di consumo al momento della chiamata, quindi lo storico
-    /// resta corretto anche dopo un aggiornamento dei prezzi.
+    /// Default = listino <b>Claude Haiku 4.5</b> ($1 input / $5 output per MTok), il modello di
+    /// <see cref="Model"/>, verificato sulla pagina prezzi Anthropic il 2026-07-28.
+    /// ⚠️ Restano valori di CONFIGURAZIONE, non letti dall'API: se si cambia modello o il listino
+    /// cambia, vanno aggiornati qui o in appsettings (sezione "Claude"). Riferimento alla stessa data:
+    /// Sonnet 5 $2/$10 (introduttivo fino al 31/08/2026, poi $3/$15), Opus 5 $5/$25.
+    /// Il costo viene congelato sulla riga di consumo al momento della chiamata, quindi correggere i
+    /// prezzi non altera lo storico già registrato.
+    /// Nota: la stima non considera prompt caching né Batch API, che il progetto non usa.
     /// </summary>
     public decimal PrezzoInputPerMilione { get; set; } = 1.00m;
     public decimal PrezzoOutputPerMilione { get; set; } = 5.00m;
