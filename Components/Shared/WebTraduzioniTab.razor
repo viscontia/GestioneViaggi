@@ -100,8 +100,8 @@ else
     {
         <div class="d-flex align-center gap-3 mb-2">
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Translate"
-                       Disabled="@(_busy || !_hasKey || !Orchestrator.SecretKeyConfigurata)" OnClick="TraduciTutto">
-                Traduci tutto (@string.Join("/", WebTraduzioneOrchestratorService.Lingue))
+                       Disabled="@(_busy || !_hasKey || !Orchestrator.SecretKeyConfigurata || DaTradurre == 0)" OnClick="TraduciTutto">
+                Traduci mancanti (@string.Join("/", WebTraduzioneOrchestratorService.Lingue))
             </MudButton>
 
             @* Controllare a mano 80 traduzioni non è realistico: si verifica un campione e si approva
@@ -115,6 +115,10 @@ else
 
             <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Revisionate @CoppieRevisionate di @(_items.Count * WebTraduzioneOrchestratorService.Lingue.Length)
+                @if (DaTradurre > 0)
+                {
+                    <text> — @DaTradurre da tradurre</text>
+                }
             </MudText>
         </div>
 
@@ -215,6 +219,13 @@ else
             try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); } catch { }
         }
     }
+
+    /// <summary>
+    /// Coppie campo×lingua ancora da tradurre: mancanti o obsolete. Le altre non si toccano, perché
+    /// ritradurle azzererebbe il flag "revisionato" e butterebbe via la revisione già fatta.
+    /// </summary>
+    private int DaTradurre => _items.Sum(it => WebTraduzioneOrchestratorService.Lingue
+        .Count(l => Find(it, l) is not { } t || t.Obsoleto || string.IsNullOrWhiteSpace(t.Testo)));
 
     /// <summary>Coppie campo×lingua revisionate e non obsolete: è ciò che rende Completo il tab.</summary>
     private int CoppieRevisionate => _items.Sum(it => WebTraduzioneOrchestratorService.Lingue
@@ -326,12 +337,14 @@ else
         try
         {
             var progress = new Progress<string>(m => { _progressoTraduzione = m; StateHasChanged(); });
-            var (ok, err, markup) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
+            var (ok, err, markup, saltate) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
             // Al termine del blocco, non a ogni chiamata: la soglia si controlla una volta e
             // l'eventuale email parte una sola volta (decisione presa dal DB).
             await AlertService.VerificaEAvvisaAsync(AziendaId);
             await ReloadAsync();
-            var msg = $"Traduzioni completate: {ok} ok" + (err > 0 ? $", {err} errori" : "");
+            var msg = ok > 0 ? $"Tradotte {ok} voci" : "Nessuna voce da tradurre";
+            if (saltate > 0) msg += $", {saltate} già a posto (non ritradotte)";
+            if (err > 0) msg += $", {err} errori";
             if (markup > 0)
                 msg += $" — {markup} con formattazione alterata: aprile e ricontrollale.";
             Snackbar.Add(msg, err > 0 || markup > 0 ? Severity.Warning : Severity.Success);

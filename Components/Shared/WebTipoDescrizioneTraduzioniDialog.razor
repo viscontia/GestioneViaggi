@@ -87,7 +87,7 @@
         try
         {
             var item = new TranslatableItem(Entita, DescrizioneId, Campo, DescrizioneWeb, DescrizioneWeb);
-            var (ok, err, _) = await Orchestrator.TranslateAsync(AziendaId, new[] { item }, WebTraduzioneOrchestratorService.Lingue);
+            var (ok, err, _, _) = await Orchestrator.TranslateAsync(AziendaId, new[] { item }, WebTraduzioneOrchestratorService.Lingue);
             await ReloadAsync();
             Snackbar.Add($"Tradotte {ok} lingue" + (err > 0 ? $", {err} errori" : ""), err > 0 ? Severity.Warning : Severity.Success);
         }

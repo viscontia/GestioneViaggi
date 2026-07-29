@@ -158,11 +158,15 @@ public sealed class WebTraduzioneOrchestratorService
     // ---- Traduzione -----------------------------------------------------------
 
     /// <summary>Traduce gli item nelle lingue indicate e li salva (upsert). Ritorna (ok, errori).</summary>
+    /// <remarks>
+    /// Traduce solo le coppie campo×lingua <b>mancanti o obsolete</b>: quelle già presenti si saltano,
+    /// perché l'upsert azzera il flag "revisionato" e ritradurle butterebbe via la revisione fatta.
+    /// </remarks>
     /// <param name="progress">
     /// Riceve l'avanzamento ("12 di 80 — Descrizione (EN)"): l'operazione richiede una chiamata per
     /// ogni campo e per ogni lingua, quindi dura minuti, e senza riscontro sembra bloccata.
     /// </param>
-    public async Task<(int Ok, int Errori, int MarkupDaControllare)> TranslateAsync(
+    public async Task<(int Ok, int Errori, int MarkupDaControllare, int Saltate)> TranslateAsync(
         int aziendaId, IReadOnlyList<TranslatableItem> items, IReadOnlyList<string> lingue,
         IProgress<string>? progress = null, CancellationToken ct = default)
     {
@@ -177,12 +181,29 @@ public sealed class WebTraduzioneOrchestratorService
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("Chiave Claude non configurata per questa azienda.");
 
-        int ok = 0, err = 0, markupAlterato = 0;
-        var totale = items.Count * lingue.Count;
-        var fatte = 0;
+        // Si ritraduce SOLO ciò che manca o è obsoleto. Ritradurre tutto non sarebbe solo uno spreco
+        // di crediti: fn_web_traduzioni_upsert rimette revisionato=FALSE, quindi cancellerebbe il
+        // lavoro di revisione già fatto e costringerebbe a riapprovare l'intero tour.
+        var esistenti = await _traduzioni.ListByAziendaAsync(aziendaId);
+        var giaAPosto = esistenti
+            .Where(t => !t.Obsoleto && !string.IsNullOrWhiteSpace(t.Testo))
+            .Select(t => (t.Entita, t.EntitaId, t.Campo, t.Lingua))
+            .ToHashSet();
+
+        var daFare = new List<(TranslatableItem Item, string Lingua)>();
+        var saltate = 0;
         foreach (var it in items)
-        {
             foreach (var lang in lingue)
+            {
+                if (giaAPosto.Contains((it.Entita, it.EntitaId, it.Campo, lang))) saltate++;
+                else daFare.Add((it, lang));
+            }
+
+        int ok = 0, err = 0, markupAlterato = 0;
+        var totale = daFare.Count;
+        var fatte = 0;
+        {
+            foreach (var (it, lang) in daFare)
             {
                 progress?.Report($"{++fatte} di {totale} — {it.Label} ({lang})");
                 try
@@ -226,6 +247,6 @@ public sealed class WebTraduzioneOrchestratorService
                 }
             }
         }
-        return (ok, err, markupAlterato);
+        return (ok, err, markupAlterato, saltate);
     }
 }

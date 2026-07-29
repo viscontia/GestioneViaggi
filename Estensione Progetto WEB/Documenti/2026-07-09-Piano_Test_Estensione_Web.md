@@ -324,3 +324,13 @@ Il credito della chiave è precaricato e l'API **non** espone il residuo: il ges
 - ☐ **Traduzione**: dopo "Traduci tutto" e approvazione, il semaforo torna verde.
 - ☐ **Anteprima in lingua**: i titoli delle giornate compaiono tradotti; non c'è più l'avviso che restano in italiano.
 - ☐ **Obsolescenza**: modificando il titolo di una giornata già tradotta, le sue traduzioni diventano **obsolete** e il tour torna non pubblicabile (come per gli altri campi). Modificando solo l'ordine delle giornate, invece, le traduzioni **non** vengono invalidate.
+
+## 25. "Traduci mancanti" non distrugge la revisione (2026-07-29)
+
+Il caso che rendeva inutile il lavoro di revisione: rilanciare la traduzione ritraduceva tutto e l'upsert rimetteva `revisionato = FALSE`.
+
+- ☐ **Niente da fare**: con tutte le voci tradotte e non obsolete, il pulsante "Traduci mancanti" è **disabilitato** e accanto al contatore non compare "da tradurre".
+- ☐ **Solo il mancante**: aggiunta una giornata (o un campo) nuova, il contatore mostra le voci da tradurre e premendo il pulsante vengono tradotte **solo quelle**; il messaggio finale riporta "N già a posto (non ritradotte)".
+- ☐ **La revisione sopravvive**: dopo una traduzione parziale, le voci già approvate restano **revisionate** (il semaforo non torna indietro per quelle).
+- ☐ **Obsolete incluse**: modificato un testo italiano già tradotto, le sue traduzioni diventano obsolete e rientrano fra quelle da tradurre.
+- ☐ **Costo**: nel registro consumi la sessione registra solo le chiamate effettivamente fatte, non una per ogni campo.
