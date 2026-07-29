@@ -111,18 +111,9 @@
                 {
                     <MudDivider Class="my-3" />
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Itinerario</MudText>
-                    @if (_lingua != "IT")
-                    {
-                        @* I titoli delle giornate non sono fra i campi traducibili: restano in
-                           italiano anche in anteprima straniera. Meglio dirlo che far pensare a un
-                           errore o, peggio, non farlo notare affatto. *@
-                        <MudText Typo="Typo.caption" Color="Color.Warning" Class="d-block mb-2">
-                            I titoli delle giornate non sono fra i campi tradotti: restano in italiano.
-                        </MudText>
-                    }
                     @foreach (var g in _giornate)
                     {
-                        <MudText Typo="Typo.subtitle2">@g.TitoloGiornata</MudText>
+                        <MudText Typo="Typo.subtitle2">@TitoloGiornata(g)</MudText>
                         @if (_passi.TryGetValue(g.WebTourItinerarioId, out var passi))
                         {
                             foreach (var p in passi)
@@ -216,6 +207,9 @@
     private string? DurataTesto => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "durata_testo", _contenuto.DurataTesto);
     private string? LuoghiVisitati => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "luoghi_visitati", _contenuto.LuoghiVisitati);
     private string? DescrizioneHtml => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "descrizione_html", _contenuto.DescrizioneHtml);
+
+    private string? TitoloGiornata(WebTourItinerario g)
+        => Tradotto("web_tour_itinerario", g.WebTourItinerarioId, "titolo_giornata", g.TitoloGiornata);
 
     private string? TestoPasso(WebTourItinerarioPassaggio p)
         => Tradotto("web_tour_itinerario_passaggi", p.WebTourItinerarioPassaggioId, "testo_html", p.TestoHtml);

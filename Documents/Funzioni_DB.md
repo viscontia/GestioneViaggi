@@ -1365,6 +1365,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1655,7 +1656,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_web_tipi_viaggio_descrizioni_insert` | p_descrizione_web character varying, p_slug character varying, p_ordine integer DEFAULT 0 | bigint |  |
 | `fn_web_tipi_viaggio_descrizioni_list` |  | SETOF web_tipi_viaggio_descrizioni |  |
 | `fn_web_tipi_viaggio_descrizioni_update` | p_id bigint, p_descrizione_web character varying, p_slug character varying, p_ordine integer | integer |  |
-| `fn_web_tour_campi_traducibili` | p_contenuto_id bigint, p_azienda_id integer | TABLE(entita character varying, entita_id bigint, campo character varying) | Campi traducibili di una edizione (entita, entita_id, campo). Unica definizione: la usano fn_web_tour_stato_sezioni e fn_web_traduzioni_approva_contenuto. Va tenuta allineata a WebTraduzioneOrchestratorService.GetTranslatableItemsAsync. |
+| `fn_web_tour_campi_traducibili` | p_contenuto_id bigint, p_azienda_id integer | TABLE(entita character varying, entita_id bigint, campo character varying) | Campi traducibili di una edizione (entita, entita_id, campo), titoli delle giornate inclusi (503). Unica definizione: la usano fn_web_tour_stato_sezioni, fn_web_traduzioni_approva_contenuto e fn_web_traduzioni_per_contenuto. Va tenuta allineata a WebTraduzioneOrchestratorService.GetTranslatableItemsAsync. |
 | `fn_web_tour_contenuti_clona` | p_contenuto_sorgente bigint, p_data_viaggio_dest integer, p_azienda_id integer | bigint |  |
 | `fn_web_tour_contenuti_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_tour_contenuti_get` | p_id bigint, p_azienda_id integer | SETOF web_tour_contenuti |  |

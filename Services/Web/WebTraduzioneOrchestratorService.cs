@@ -140,6 +140,12 @@ public sealed class WebTraduzioneOrchestratorService
         var giornate = await _itinerario.ListByContenutoAsync(contenutoId, aziendaId);
         foreach (var g in giornate)
         {
+            // Il titolo della giornata compare nell'itinerario mostrato al cliente: senza tradurlo,
+            // una scheda in inglese avrebbe i testi tradotti e le intestazioni in italiano (503).
+            if (!string.IsNullOrWhiteSpace(g.TitoloGiornata))
+                items.Add(new TranslatableItem("web_tour_itinerario", g.WebTourItinerarioId,
+                    "titolo_giornata", $"Titolo Giorno {g.GiornoNumero}", g.TitoloGiornata));
+
             var passi = await _passi.ListByItinerarioAsync(g.WebTourItinerarioId, aziendaId);
             foreach (var p in passi)
                 if (!string.IsNullOrWhiteSpace(p.TestoHtml))

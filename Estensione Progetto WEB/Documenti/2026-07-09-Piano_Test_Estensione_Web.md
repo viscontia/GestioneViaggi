@@ -316,3 +316,11 @@ Il credito della chiave è precaricato e l'API **non** espone il residuo: il ges
 - ☐ **Ritorno a IT**: riportando la combo su "Italiano (originale)" si rivede il testo originale.
 - ☐ **Solo traduzioni approvate**: una lingua con traduzioni presenti ma **non revisionate** (o obsolete) **non** compare nella combo.
 - ☐ **Titoli giornate**: in anteprima straniera restano in italiano e l'avviso lo dichiara (limite noto: non sono fra i campi traducibili).
+
+## 24. Titoli delle giornate tradotti (script `503`)
+
+- ☐ **Nuovo campo**: il tab Traduzioni elenca una voce "Titolo Giorno N" per ogni giornata dell'itinerario.
+- ☐ **Regressione voluta**: un tour già tradotto e approvato torna **Parziale** (e non pubblicabile) finché i titoli non vengono tradotti — il denominatore è cresciuto.
+- ☐ **Traduzione**: dopo "Traduci tutto" e approvazione, il semaforo torna verde.
+- ☐ **Anteprima in lingua**: i titoli delle giornate compaiono tradotti; non c'è più l'avviso che restano in italiano.
+- ☐ **Obsolescenza**: modificando il titolo di una giornata già tradotta, le sue traduzioni diventano **obsolete** e il tour torna non pubblicabile (come per gli altri campi). Modificando solo l'ordine delle giornate, invece, le traduzioni **non** vengono invalidate.

@@ -17,9 +17,12 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
     protected override string IdColumnName => "web_tour_itinerario_id";
     protected override string? TenantColumnName => "azienda_id";
 
-    public WebTourItinerarioService(IDatabaseService databaseService, ILogger<WebTourItinerarioService> logger, ITenantContext? tenantContext = null)
+    private readonly WebTraduzioniService? _traduzioni;
+
+    public WebTourItinerarioService(IDatabaseService databaseService, ILogger<WebTourItinerarioService> logger, ITenantContext? tenantContext = null, WebTraduzioniService? traduzioni = null)
         : base(databaseService, logger, tenantContext)
     {
+        _traduzioni = traduzioni;
     }
 
     /// <summary>Giornate dell'itinerario di un contenuto (ordinate lato DB).</summary>
@@ -97,6 +100,9 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
     public override async Task<WebTourItinerario> UpdateAsync(WebTourItinerario entity)
     {
         NormalizeEntityBeforeSave(entity);
+        // Serve il valore precedente per capire se il titolo è davvero cambiato: marcare obsolete le
+        // traduzioni a ogni salvataggio le invaliderebbe anche quando si tocca solo l'ordine.
+        var old = _traduzioni != null ? await GetByIdAsync(entity.WebTourItinerarioId, entity.AziendaId) : null;
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
@@ -111,6 +117,9 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
                 throw new InvalidOperationException($"Giornata itinerario {entity.WebTourItinerarioId} non trovata per l'azienda {entity.AziendaId}.");
 
             _logger.LogInformation("Giornata itinerario {Id} aggiornata", entity.WebTourItinerarioId);
+            if (_traduzioni != null && old != null &&
+                !string.Equals(old.TitoloGiornata ?? "", entity.TitoloGiornata ?? "", StringComparison.Ordinal))
+                await _traduzioni.MarkObsoleteAsync(entity.AziendaId, "web_tour_itinerario", entity.WebTourItinerarioId, "titolo_giornata");
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

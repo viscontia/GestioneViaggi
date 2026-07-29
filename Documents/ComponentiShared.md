@@ -585,7 +585,7 @@ Scheda "Mappa" del viaggio: genera una **mappa statica** dal GPX, tutto lato ges
 ### Anteprima: partenze e lingua (2026-07-29)
 *   **Prossime partenze**: in testa all'anteprima, le date future del viaggio (`fn_web_tour_prossime_partenze`, solo `data_inizio >= oggi`), con l'edizione in lavorazione evidenziata; se non ce ne sono, avviso "Nessuna data in calendario". Le date non fanno parte del contenuto, ma accorgersi che il viaggio non ha partenze prenotabili mentre se ne cura la scheda è utile.
 *   **Lingua dell'anteprima**: combo con IT + le lingue **complete e approvate**. Una lingua compare solo se OGNI campo traducibile è tradotto, revisionato e non obsoleto: un'anteprima a metà in lingua straniera confonderebbe. Se nessuna lo è, la combo è disabilitata con tooltip che invita a completare le traduzioni. Il totale atteso viene da `n_traducibili` (`fn_web_tour_stato_sezioni`), **non** dalle traduzioni presenti: un campo mai tradotto sparirebbe dal denominatore e falserebbe il conteggio.
-*   ⚠️ **Limite noto**: `web_tour_itinerario.titolo_giornata` **non è fra i campi traducibili**, quindi i titoli delle giornate restano in italiano anche in anteprima straniera. L'anteprima lo dichiara esplicitamente.
+*   I **titoli delle giornate** sono tradotti dallo script `503`, quindi l'anteprima in lingua è completa.
 
 ### Revisione traduzioni: mai HTML a vista (2026-07-29)
 `WebTraduzioneReviewDialog` modificava i campi `*_html` in una textarea con i **tag in chiaro**. Da evitare: l'utente non deve sapere cosa sia uno `<strong>`, e un tag toccato per sbaglio rompe la pagina pubblica — con la colpa che ricade su chi ha consegnato il software.
