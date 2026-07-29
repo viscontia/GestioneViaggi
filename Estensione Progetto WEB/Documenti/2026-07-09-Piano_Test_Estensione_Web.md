@@ -296,3 +296,12 @@ Il credito della chiave è precaricato e l'API **non** espone il residuo: il ges
 - ☐ **Cambio soglia**: salvando una soglia diversa l'avviso si riarma (altrimenti alzando il tetto non si verrebbe più avvisati).
 - ☐ **Nessuna soglia**: con il campo vuoto non arrivano avvisi e il riquadro resta neutro.
 - ☐ **Prezzi**: modificando i prezzi in appsettings, le **nuove** traduzioni usano i nuovi valori mentre lo storico resta com'era (il costo è congelato alla chiamata).
+
+## 22. Revisione traduzioni senza HTML a vista (2026-07-29)
+
+- ☐ **Campo HTML** (Descrizione, Pernottamento, Passo…): aprendo una cella, la traduzione si modifica in un **editor visuale** con i pulsanti di formattazione — **nessun tag visibile**. Il sorgente italiano appare formattato, non come codice.
+- ☐ **Campo di testo puro** (Sottotitolo, Meta title, Durata): resta una casella di testo semplice, senza editor.
+- ☐ **La formattazione sopravvive**: modificata una parola e salvato, riaprendo la traduzione grassetti ed elenchi sono ancora al loro posto; l'anteprima del tour mostra il testo formattato.
+- ☐ **Non si può svuotare**: cancellato tutto il contenuto, il salvataggio viene rifiutato con un avviso (un editor vuoto produce `<p><br></p>`, che pubblicherebbe un paragrafo vuoto).
+- ☐ **Riparazione automatica**: su una traduzione con markup corrotto, aprirla e salvarla la normalizza (Quill ricostruisce i tag).
+- ☐ **Segnalazione a monte**: dopo un "Traduci tutto", se il modello ha alterato dei tag il messaggio finale lo dice ("N con formattazione alterata: aprile e ricontrollale"). Le voci segnalate vanno aperte e verificate.

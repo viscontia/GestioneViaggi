@@ -1,15 +1,17 @@
 @using GestioneViaggi.Models.Web
+@using Blazored.TextEditor
 @using MudBlazor
+@inject ISnackbar Snackbar
 
-@* Revisione di una traduzione (Blocco 10): mostra il sorgente IT (readonly) e la traduzione
-   editabile; toggle "revisionato". Ritorna la traduzione aggiornata al tab, che la persiste. *@
+@* Revisione di una traduzione (Blocco 10): sorgente IT a sinistra (sola lettura) e traduzione
+   editabile; toggle "revisionato".
 
-<style>
-    /* Il markup dell'editor arriva con margini propri: qui vanno compattati per non sprecare spazio. */
-    .rev-html p { margin: 0 0 .4rem 0; }
-    .rev-html p:last-child { margin-bottom: 0; }
-    .rev-html ul, .rev-html ol { margin: 0 0 .4rem 1.2rem; padding: 0; }
-</style>
+   I campi *_html contengono markup prodotto dall'editor RichText. Farli modificare come TESTO
+   con i tag a vista è da evitare: l'utente non deve sapere cosa sia un <strong>, e ogni tag
+   toccato per sbaglio rompe la pagina pubblica. Qui si usa quindi lo STESSO editor visuale con
+   cui si scrive l'italiano: si vede il grassetto, non il tag.
+   Effetto collaterale utile: Quill normalizza il markup al caricamento, quindi aprire e salvare
+   una traduzione con HTML corrotto (capita: il modello a volte sbaglia i tag) la ripara. *@
 
 <MudDialog>
     <TitleContent>
@@ -17,12 +19,9 @@
     </TitleContent>
     <DialogContent>
         <MudText Typo="Typo.caption" Color="Color.Secondary">Sorgente (italiano)</MudText>
-        <MudPaper Outlined="true" Class="pa-2 mb-3" Style="max-height:160px;overflow:auto;">
+        <MudPaper Outlined="true" Class="pa-2 mb-3" Style="max-height:180px;overflow:auto;">
             @if (CampoHtml)
             {
-                @* Campi scritti con l'editor RichText: mostrarli grezzi riempirebbe la finestra di
-                   tag e renderebbe illeggibile il testo da confrontare. Stesso trattamento
-                   dell'anteprima del tour. *@
                 <div class="rev-html">@((MarkupString)SourceText)</div>
             }
             else
@@ -31,19 +30,40 @@
             }
         </MudPaper>
 
-        <MudTextField @bind-Value="_testo" Label="@($"Traduzione ({LinguaLabel})")" Variant="Variant.Outlined"
-                      Lines="6" AutoGrow="true" AutoFocus="true" Immediate="@CampoHtml"
-                      HelperText="@(CampoHtml ? "Il testo contiene formattazione HTML: modifica solo le parole, lasciando i tag al loro posto." : null)" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Traduzione (@LinguaLabel)</MudText>
 
         @if (CampoHtml)
         {
-            @* La modifica resta sul testo con i tag (vanno conservati), ma l'anteprima mostra come
-               apparirà davvero sul sito, così si controlla il risultato invece del codice. *@
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Anteprima della traduzione</MudText>
-            <MudPaper Outlined="true" Class="pa-2" Style="max-height:160px;overflow:auto;">
-                <div class="rev-html">@((MarkupString)(_testo ?? string.Empty))</div>
-            </MudPaper>
+            <div style="border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column; min-height:220px;">
+                <BlazoredTextEditor @ref="_editor" Placeholder="Traduzione...">
+                    <ToolbarContent>
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-clean"></button>
+                        </span>
+                    </ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                Modifica il testo come in un documento: la formattazione si applica con i pulsanti qui sopra.
+            </MudText>
         }
+        else
+        {
+            <MudTextField @bind-Value="_testo" Variant="Variant.Outlined" Lines="4" AutoGrow="true" AutoFocus="true" />
+        }
+
         <MudCheckBox @bind-Value="_revisionato" Label="Revisionato (traduzione verificata)" Color="Color.Primary" Class="mt-2" />
         @if (Traduzione.Obsoleto)
         {
@@ -52,9 +72,16 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Salva">Salva</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@_salvando" OnClick="Salva">Salva</MudButton>
     </DialogActions>
 </MudDialog>
+
+<style>
+    /* Il markup dell'editor arriva con margini propri: qui vanno compattati per non sprecare spazio. */
+    .rev-html p { margin: 0 0 .4rem 0; }
+    .rev-html p:last-child { margin-bottom: 0; }
+    .rev-html ul, .rev-html ol { margin: 0 0 .4rem 1.2rem; padding: 0; }
+</style>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
@@ -66,10 +93,13 @@
 
     private string? _testo;
     private bool _revisionato;
+    private bool _salvando;
+    private BlazoredTextEditor? _editor;
+    private bool _htmlCaricato;
 
     /// <summary>
     /// I campi che finiscono per <c>_html</c> arrivano dall'editor RichText e contengono markup:
-    /// vanno mostrati resi, non come codice. Gli altri (sottotitolo, meta, durata...) sono testo puro.
+    /// si modificano visualmente. Gli altri (sottotitolo, meta, durata...) sono testo puro.
     /// </summary>
     private bool CampoHtml => Traduzione.Campo?.EndsWith("_html", StringComparison.OrdinalIgnoreCase) == true;
 
@@ -79,14 +109,74 @@
         _revisionato = Traduzione.Revisionato;
     }
 
-    private void Salva()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Traduzione.Testo = _testo ?? string.Empty;
-        Traduzione.Revisionato = _revisionato;
-        Traduzione.Obsoleto = false;        // una revisione risolve l'obsolescenza
-        Traduzione.TradottoAuto = false;    // toccata a mano
-        MudDialog.Close(DialogResult.Ok(Traduzione));
+        if (!CampoHtml || _htmlCaricato || _editor is null) return;
+        _htmlCaricato = true;
+
+        // Quill può non essere ancora pronto al primo render: stesso schema con ritentativi
+        // già usato in WebTourContenutiTab.
+        for (var tentativo = 0; tentativo < 3; tentativo++)
+        {
+            try
+            {
+                await Task.Delay(150);
+                if (!string.IsNullOrWhiteSpace(_testo))
+                    await _editor.LoadHTMLContent(_testo);
+                break;
+            }
+            catch when (tentativo < 2)
+            {
+                // riprova
+            }
+        }
     }
+
+    private async Task Salva()
+    {
+        _salvando = true;
+        try
+        {
+            if (CampoHtml && _editor is not null)
+            {
+                var html = await _editor.GetHTML();
+                // Un editor svuotato produce "<p><br></p>": salvarlo significherebbe pubblicare un
+                // paragrafo vuoto al posto della traduzione.
+                if (string.IsNullOrWhiteSpace(StripHtml(html)))
+                {
+                    Snackbar.Add("La traduzione non può restare vuota.", Severity.Warning);
+                    return;
+                }
+                _testo = html;
+            }
+            else if (string.IsNullOrWhiteSpace(_testo))
+            {
+                Snackbar.Add("La traduzione non può restare vuota.", Severity.Warning);
+                return;
+            }
+
+            Traduzione.Testo = _testo ?? string.Empty;
+            Traduzione.Revisionato = _revisionato;
+            Traduzione.Obsoleto = false;        // una revisione risolve l'obsolescenza
+            Traduzione.TradottoAuto = false;    // toccata a mano
+            MudDialog.Close(DialogResult.Ok(Traduzione));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore lettura editor: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _salvando = false;
+        }
+    }
+
+    /// <summary>Testo senza tag, per capire se il contenuto è realmente vuoto.</summary>
+    private static string StripHtml(string? html)
+        => string.IsNullOrEmpty(html)
+            ? string.Empty
+            : System.Text.RegularExpressions.Regex.Replace(html, "<.*?>", string.Empty)
+                .Replace("&nbsp;", " ").Trim();
 
     private void Cancel() => MudDialog.Cancel();
 }

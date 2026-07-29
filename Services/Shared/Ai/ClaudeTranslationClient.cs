@@ -72,6 +72,18 @@ public sealed class ClaudeTranslationClient
 
     public static string LanguageName(string code) => LangNames.TryGetValue(code, out var n) ? n : code;
 
+    private static readonly System.Text.RegularExpressions.Regex TagRx =
+        new("<[^>]+>", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// Sequenza dei tag di un testo, per confrontare sorgente e traduzione. Il modello a volte
+    /// riscrive il markup mentre traduce (visti tag troncati come <c>&lt;strong&gt;Arbataxong&gt;</c>):
+    /// il testo sembra a posto ma la pagina pubblica esce rotta, e nessuno se ne accorge finché non
+    /// è online. Confrontare la sequenza dei tag intercetta il danno subito.
+    /// </summary>
+    public static string FirmaTag(string? html)
+        => html is null ? string.Empty : string.Concat(TagRx.Matches(html).Select(m => m.Value.ToLowerInvariant()));
+
     /// <summary>
     /// Traduce il testo dall'italiano alla lingua target (codice a 2 lettere). Preserva l'HTML.
     /// Ritorna anche i token consumati, per il registro spese.
@@ -81,7 +93,9 @@ public sealed class ClaudeTranslationClient
         var lang = LanguageName(targetLangCode);
         var system =
             $"Sei un traduttore professionale per un sito di tour offroad. Traduci il testo dall'italiano al {lang}. " +
-            "Conserva ESATTAMENTE l'HTML (tag, attributi, entità) senza alterarlo. " +
+            "Il testo può contenere HTML. Copia i tag ESATTAMENTE come sono — stessa sequenza, stessi " +
+            "attributi, stesse entità (&nbsp; e simili) — traducendo solo il testo fra i tag. " +
+            "Non aggiungere, togliere, unire o riscrivere alcun tag. " +
             "NON tradurre i nomi propri: toponimi, nomi di tour, marchi, nomi di persone. " +
             "Rispondi SOLO con la traduzione, senza premesse, virgolette o commenti.";
 

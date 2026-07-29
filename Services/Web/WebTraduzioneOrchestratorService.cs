@@ -156,7 +156,7 @@ public sealed class WebTraduzioneOrchestratorService
     /// Riceve l'avanzamento ("12 di 80 — Descrizione (EN)"): l'operazione richiede una chiamata per
     /// ogni campo e per ogni lingua, quindi dura minuti, e senza riscontro sembra bloccata.
     /// </param>
-    public async Task<(int Ok, int Errori)> TranslateAsync(
+    public async Task<(int Ok, int Errori, int MarkupDaControllare)> TranslateAsync(
         int aziendaId, IReadOnlyList<TranslatableItem> items, IReadOnlyList<string> lingue,
         IProgress<string>? progress = null, CancellationToken ct = default)
     {
@@ -171,7 +171,7 @@ public sealed class WebTraduzioneOrchestratorService
         if (string.IsNullOrWhiteSpace(key))
             throw new InvalidOperationException("Chiave Claude non configurata per questa azienda.");
 
-        int ok = 0, err = 0;
+        int ok = 0, err = 0, markupAlterato = 0;
         var totale = items.Count * lingue.Count;
         var fatte = 0;
         foreach (var it in items)
@@ -182,6 +182,29 @@ public sealed class WebTraduzioneOrchestratorService
                 try
                 {
                     var tr = await _claude.TranslateAsync(key, it.SourceText, lang, ct);
+
+                    // Se il modello ha alterato i tag, un secondo tentativo di solito basta. Se anche
+                    // quello sbaglia si tiene comunque la traduzione (il testo è utile) ma la si
+                    // conta a parte: meglio dirlo all'utente che pubblicare markup rotto in silenzio.
+                    var firmaAttesa = ClaudeTranslationClient.FirmaTag(it.SourceText);
+                    if (ClaudeTranslationClient.FirmaTag(tr.Testo) != firmaAttesa)
+                    {
+                        var ritentativo = await _claude.TranslateAsync(key, it.SourceText, lang, ct);
+                        await _consumi.RegistraAsync(aziendaId, _claudeOptions.Model, $"{it.Label} ({lang}) [ritentativo]",
+                            ritentativo.InputTokens, ritentativo.OutputTokens,
+                            _claudeOptions.StimaCosto(ritentativo.InputTokens, ritentativo.OutputTokens), _claudeOptions.Valuta);
+
+                        if (ClaudeTranslationClient.FirmaTag(ritentativo.Testo) == firmaAttesa)
+                        {
+                            tr = ritentativo;
+                        }
+                        else
+                        {
+                            markupAlterato++;
+                            _logger.LogWarning("Markup alterato dalla traduzione {Campo}/{Lang}: da controllare a mano.", it.Campo, lang);
+                        }
+                    }
+
                     await _traduzioni.UpsertAsync(aziendaId, it.Entita, it.EntitaId, it.Campo, lang, tr.Testo);
 
                     // I token arrivano già nella risposta: registrarli non costa una chiamata in più.
@@ -197,6 +220,6 @@ public sealed class WebTraduzioneOrchestratorService
                 }
             }
         }
-        return (ok, err);
+        return (ok, err, markupAlterato);
     }
 }

@@ -326,12 +326,15 @@ else
         try
         {
             var progress = new Progress<string>(m => { _progressoTraduzione = m; StateHasChanged(); });
-            var (ok, err) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
+            var (ok, err, markup) = await Orchestrator.TranslateAsync(AziendaId, _items, WebTraduzioneOrchestratorService.Lingue, progress);
             // Al termine del blocco, non a ogni chiamata: la soglia si controlla una volta e
             // l'eventuale email parte una sola volta (decisione presa dal DB).
             await AlertService.VerificaEAvvisaAsync(AziendaId);
             await ReloadAsync();
-            Snackbar.Add($"Traduzioni completate: {ok} ok" + (err > 0 ? $", {err} errori" : ""), err > 0 ? Severity.Warning : Severity.Success);
+            var msg = $"Traduzioni completate: {ok} ok" + (err > 0 ? $", {err} errori" : "");
+            if (markup > 0)
+                msg += $" — {markup} con formattazione alterata: aprile e ricontrollale.";
+            Snackbar.Add(msg, err > 0 || markup > 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
