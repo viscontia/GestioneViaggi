@@ -2,6 +2,7 @@
 @using MudBlazor
 @inject WebTraduzioneOrchestratorService Orchestrator
 @inject WebAiConsumoService ConsumiService
+@inject GestioneViaggi.Services.Shared.Ai.ClaudeOptions ClaudeOpts
 @inject ISnackbar Snackbar
 
 @* Sotto-tab azienda "Traduzioni" (Blocco 10): gestisce la chiave API Claude per-azienda
@@ -63,6 +64,35 @@
             per il saldo reale consulta la console Anthropic.
         </MudAlert>
 
+        @* Promemoria di verifica del listino. Non si leggono i prezzi da internet: Anthropic non ha
+           un'API dei prezzi e interpretare la pagina di documentazione si romperebbe in silenzio,
+           col rischio di mostrare costi sbagliati con sicurezza. Si ricorda invece all'operatore
+           di ricontrollare, cosa che basta perché i listini cambiano qualche volta l'anno. *@
+        <MudAlert Severity="@(_prezziDaVerificare ? Severity.Warning : Severity.Normal)" Dense="true"
+                  Class="mb-3" Style="max-width:640px;">
+            <div class="d-flex align-center gap-2 flex-wrap">
+                <span>
+                    Prezzi in uso: <b>@ClaudeOpts.PrezzoInputPerMilione.ToString("N2")</b> input /
+                    <b>@ClaudeOpts.PrezzoOutputPerMilione.ToString("N2")</b> output per milione di token
+                    (@ClaudeOpts.Valuta, modello <code>@ClaudeOpts.Model</code>).
+                    Confermati il <b>@_dataRiferimentoPrezzi.ToString("dd/MM/yyyy")</b>.
+                </span>
+                @if (_prezziDaVerificare)
+                {
+                    <b>Sono passati più di @WebAiConfig.GiorniValiditaPrezzi giorni: ricontrolla il listino.</b>
+                }
+            </div>
+            <div class="d-flex align-center gap-2 mt-2">
+                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.OpenInNew"
+                           Href="https://platform.claude.com/docs/en/docs/about-claude/pricing" Target="_blank">
+                    Apri il listino Anthropic
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="@_busy" OnClick="ConfermaPrezzi">
+                    Ho verificato oggi
+                </MudButton>
+            </div>
+        </MudAlert>
+
         <div class="d-flex align-center gap-2 flex-wrap" style="max-width:640px;">
             <MudNumericField T="decimal?" @bind-Value="_soglia" Label="Soglia di spesa (avviso al 90%)"
                              Variant="Variant.Outlined" Min="0" HideSpinButtons="false" Style="max-width:260px;"
@@ -94,6 +124,8 @@
     private WebAiConfig? _config;
     private decimal _spesoPeriodo;
     private decimal? _soglia;
+    private bool _prezziDaVerificare;
+    private DateOnly _dataRiferimentoPrezzi;
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,6 +148,25 @@
         _spesoPeriodo = _config == null
             ? (_riepilogo?.Costo ?? 0)
             : (await ConsumiService.RiepilogoAsync(AziendaId, _config.ConteggioDa)).Costo;
+
+        var oggi = DateOnly.FromDateTime(DateTime.Today);
+        _dataRiferimentoPrezzi = WebAiConfig.DataRiferimentoPrezzi(_config?.PrezziVerificatiIl);
+        _prezziDaVerificare = WebAiConfig.PrezziDaVerificare(_config?.PrezziVerificatiIl, oggi);
+    }
+
+    /// <summary>Azzera il promemoria: l'operatore dichiara di aver confrontato i prezzi col listino.</summary>
+    private async Task ConfermaPrezzi()
+    {
+        _busy = true;
+        try
+        {
+            await ConsumiService.PrezziVerificatiAsync(AziendaId);
+            await CaricaConsumiAsync();
+            Snackbar.Add("Verifica registrata: il promemoria tornerà fra "
+                         + WebAiConfig.GiorniValiditaPrezzi + " giorni.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
     }
 
     private async Task SalvaSoglia()

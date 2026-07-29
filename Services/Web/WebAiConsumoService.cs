@@ -9,7 +9,35 @@ namespace GestioneViaggi.Services.Web;
 public record WebAiRiepilogo(int Chiamate, long TokenInput, long TokenOutput, decimal Costo, string Valuta, DateTime? UltimaChiamata);
 
 /// <summary>Soglia di spesa configurata per un'azienda (NULL = nessun avviso).</summary>
-public record WebAiConfig(decimal? SogliaSpesa, DateTime ConteggioDa, DateTime? AvvisatoIl);
+public record WebAiConfig(decimal? SogliaSpesa, DateTime ConteggioDa, DateTime? AvvisatoIl, DateOnly? PrezziVerificatiIl)
+{
+    /// <summary>
+    /// Ogni quanto ricordare di ricontrollare il listino Anthropic. I prezzi cambiano qualche volta
+    /// l'anno: tre mesi bastano ad accorgersene senza diventare un avviso da ignorare.
+    /// </summary>
+    public const int GiorniValiditaPrezzi = 90;
+
+    /// <summary>
+    /// true se la conferma più recente è più vecchia della soglia. Il riferimento è la data più
+    /// recente fra quella confermata dall'operatore e quella "di fabbrica"
+    /// (<see cref="Services.Shared.Ai.ClaudeOptions.DataVerificaPrezzi"/>): su un'installazione nuova,
+    /// dove nessuno ha ancora confermato nulla, il promemoria non deve scattare subito su prezzi
+    /// che sono stati verificati al momento del rilascio.
+    /// </summary>
+    public static bool PrezziDaVerificare(DateOnly? confermaOperatore, DateOnly oggi)
+    {
+        var codice = Services.Shared.Ai.ClaudeOptions.DataVerificaPrezzi;
+        var riferimento = confermaOperatore is { } d && d > codice ? d : codice;
+        return riferimento.AddDays(GiorniValiditaPrezzi) <= oggi;
+    }
+
+    /// <summary>Data della conferma valida (operatore o rilascio), usata nei messaggi.</summary>
+    public static DateOnly DataRiferimentoPrezzi(DateOnly? confermaOperatore)
+    {
+        var codice = Services.Shared.Ai.ClaudeOptions.DataVerificaPrezzi;
+        return confermaOperatore is { } d && d > codice ? d : codice;
+    }
+}
 
 /// <summary>
 /// Registro dei consumi Claude (DB-first, funzioni <c>fn_web_ai_*</c>).
@@ -97,16 +125,27 @@ public class WebAiConsumoService
 
             var sogliaOrd = reader.GetOrdinal("soglia_spesa");
             var avvisoOrd = reader.GetOrdinal("avvisato_il");
+            var verificaOrd = reader.GetOrdinal("prezzi_verificati_il");
             return new WebAiConfig(
                 reader.IsDBNull(sogliaOrd) ? null : reader.GetDecimal(sogliaOrd),
                 reader.GetDateTime(reader.GetOrdinal("conteggio_da")),
-                reader.IsDBNull(avvisoOrd) ? null : reader.GetDateTime(avvisoOrd));
+                reader.IsDBNull(avvisoOrd) ? null : reader.GetDateTime(avvisoOrd),
+                reader.IsDBNull(verificaOrd) ? null : DateOnly.FromDateTime(reader.GetDateTime(verificaOrd)));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lettura config AI fallita (azienda {AziendaId})", aziendaId);
             return null;
         }
+    }
+
+    /// <summary>Registra che oggi i prezzi sono stati confermati contro il listino Anthropic.</summary>
+    public async Task PrezziVerificatiAsync(int aziendaId)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT fn_web_ai_prezzi_verificati(@Az::integer)", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        await cmd.ExecuteScalarAsync();
     }
 
     /// <summary>Imposta la soglia. <paramref name="riparti"/> azzera il conteggio (nuova ricarica).</summary>

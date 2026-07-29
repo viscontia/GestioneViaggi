@@ -27,6 +27,13 @@ public sealed class ClaudeOptions
     /// <summary>Valuta dei prezzi sopra. Anthropic fattura in USD.</summary>
     public string Valuta { get; set; } = "USD";
 
+    /// <summary>
+    /// Data in cui i prezzi qui sopra sono stati confrontati con il listino Anthropic.
+    /// È il riferimento del promemoria di verifica finché l'operatore non conferma dalla UI.
+    /// <b>Aggiornarla insieme ai prezzi</b>, altrimenti il promemoria mente.
+    /// </summary>
+    public static readonly DateOnly DataVerificaPrezzi = new(2026, 7, 28);
+
     /// <summary>Costo stimato di una chiamata, con i prezzi attualmente configurati.</summary>
     public decimal StimaCosto(int inputTokens, int outputTokens)
         => inputTokens / 1_000_000m * PrezzoInputPerMilione
