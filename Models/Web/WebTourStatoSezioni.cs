@@ -18,3 +18,9 @@ public record WebTourStatoSezioni(
     /// <summary>Coppie campo×lingua revisionate a mano e non obsolete: è questo che rende Completo
     /// il tab Traduzioni. Le traduzioni automatiche mai lette non bastano per pubblicare.</summary>
     int CoppieRevisionate);
+
+/// <summary>Partenza in programma per il viaggio (usata dal promemoria in testa all'anteprima).</summary>
+public record PartenzaProgrammata(int DataViaggioId, DateTime DataInizio, DateTime DataFine, bool EQuestaEdizione);
+
+/// <summary>Traduzione di un campo, come arriva da fn_web_traduzioni_per_contenuto.</summary>
+public record TraduzioneCampo(string Entita, long EntitaId, string Campo, string Lingua, string Testo, bool Revisionato, bool Obsoleto);

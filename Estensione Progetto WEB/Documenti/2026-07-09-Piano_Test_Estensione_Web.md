@@ -305,3 +305,14 @@ Il credito della chiave è precaricato e l'API **non** espone il residuo: il ges
 - ☐ **Non si può svuotare**: cancellato tutto il contenuto, il salvataggio viene rifiutato con un avviso (un editor vuoto produce `<p><br></p>`, che pubblicherebbe un paragrafo vuoto).
 - ☐ **Riparazione automatica**: su una traduzione con markup corrotto, aprirla e salvarla la normalizza (Quill ricostruisce i tag).
 - ☐ **Segnalazione a monte**: dopo un "Traduci tutto", se il modello ha alterato dei tag il messaggio finale lo dice ("N con formattazione alterata: aprile e ricontrollale"). Le voci segnalate vanno aperte e verificate.
+
+## 23. Anteprima: prossime partenze e scelta lingua (script `502`)
+
+- ☐ **Con partenze future**: in testa all'anteprima compaiono le date `gg/mm/aaaa – gg/mm/aaaa` in ordine crescente; l'edizione su cui si sta lavorando è evidenziata.
+- ☐ **Senza partenze future**: compare "Nessuna data in calendario per le prossime partenze di questo viaggio" (avviso, non errore).
+- ☐ **Solo date future**: una partenza già passata **non** compare.
+- ☐ **Lingua — nessuna completa**: la combo è disabilitata e il tooltip invita a completare e confermare le traduzioni.
+- ☐ **Lingua — completa**: scelta una lingua, sottotitolo, durata, luoghi, descrizione, testi dei passi e descrizioni delle mappe passano nella lingua scelta; compare il chip "Traduzione approvata".
+- ☐ **Ritorno a IT**: riportando la combo su "Italiano (originale)" si rivede il testo originale.
+- ☐ **Solo traduzioni approvate**: una lingua con traduzioni presenti ma **non revisionate** (o obsolete) **non** compare nella combo.
+- ☐ **Titoli giornate**: in anteprima straniera restano in italiano e l'avviso lo dichiara (limite noto: non sono fra i campi traducibili).

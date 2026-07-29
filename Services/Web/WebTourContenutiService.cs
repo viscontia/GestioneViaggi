@@ -194,6 +194,34 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         }
     }
 
+    /// <summary>Partenze future del viaggio a cui appartiene il contenuto (data di inizio da oggi in avanti).</summary>
+    public async Task<List<PartenzaProgrammata>> GetProssimePartenzeAsync(long contenutoId, int aziendaId)
+    {
+        var list = new List<PartenzaProgrammata>();
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_tour_prossime_partenze(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new PartenzaProgrammata(
+                    reader.GetInt32(reader.GetOrdinal("data_viaggio_id")),
+                    reader.GetDateTime(reader.GetOrdinal("data_inizio")),
+                    reader.GetDateTime(reader.GetOrdinal("data_fine")),
+                    reader.GetBoolean(reader.GetOrdinal("e_questa_edizione"))));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero prossime partenze del contenuto {ContenutoId}", contenutoId);
+        }
+        return list;
+    }
+
     /// <summary>Clona un contenuto (con figlie e traduzioni) su una nuova data del medesimo viaggio. Ritorna l'id del nuovo contenuto.</summary>
     public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId)
     {

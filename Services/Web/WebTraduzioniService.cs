@@ -72,6 +72,40 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     }
 
     /// <summary>
+    /// Traduzioni (tutte le lingue) dei campi traducibili di una edizione. Usata dall'anteprima per
+    /// mostrare il contenuto in lingua e per capire quali lingue sono complete.
+    /// </summary>
+    public async Task<List<TraduzioneCampo>> ListByContenutoAsync(long contenutoId, int aziendaId)
+    {
+        var list = new List<TraduzioneCampo>();
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand("SELECT * FROM fn_web_traduzioni_per_contenuto(@ContenutoId::bigint, @AziendaId::integer)", conn);
+            cmd.Parameters.AddWithValue("ContenutoId", contenutoId);
+            cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new TraduzioneCampo(
+                    reader.GetString(reader.GetOrdinal("entita")),
+                    reader.GetInt64(reader.GetOrdinal("entita_id")),
+                    reader.GetString(reader.GetOrdinal("campo")),
+                    reader.GetString(reader.GetOrdinal("lingua")).Trim(),
+                    reader.GetString(reader.GetOrdinal("testo")),
+                    reader.GetBoolean(reader.GetOrdinal("revisionato")),
+                    reader.GetBoolean(reader.GetOrdinal("obsoleto"))));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero traduzioni del contenuto {ContenutoId}", contenutoId);
+        }
+        return list;
+    }
+
+    /// <summary>
     /// Approva in blocco le traduzioni di una edizione (revisionato=true, obsoleto=false).
     /// Ritorna quante righe sono cambiate: quelle già a posto non vengono toccate.
     /// La condizione "almeno una revisionata a mano per lingua" è imposta dalla UI, non da qui.

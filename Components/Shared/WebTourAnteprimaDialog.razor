@@ -6,8 +6,13 @@
 @inject WebTourItinerarioPassaggiService PassaggiService
 @inject WebTourImmaginiService ImmaginiService
 @inject WebTourMappaService MappaService
+@inject WebTraduzioniService TraduzioniService
+@inject GestioneViaggi.Services.Shared.Ai.ClaudeTranslationClient ClaudeClient
 
-@* Anteprima IT del contenuto web di un'edizione (Blocco 13): rende l'editoriale come apparirà sul sito. *@
+@* Anteprima del contenuto web di un'edizione (Blocco 13): rende l'editoriale come apparirà sul sito.
+   Di norma in italiano; si può passare a una lingua tradotta per una verifica d'insieme, ma solo se
+   quella lingua è completa e approvata — mostrare un'anteprima mezza tradotta ingannerebbe più che
+   aiutare. *@
 
 <MudDialog>
     <DialogContent>
@@ -22,14 +27,60 @@
         else
         {
             <div style="max-width:760px;">
-                @if (!string.IsNullOrWhiteSpace(_contenuto.Sottotitolo))
+                <div class="d-flex align-center gap-2 flex-wrap mb-3">
+                    <MudTooltip Text="@TooltipLingua" Disabled="@(_lingueComplete.Count > 0)">
+                        <MudSelect T="string" Value="@_lingua" ValueChanged="OnLinguaChanged" Label="Lingua anteprima"
+                                   Dense="true" Variant="Variant.Outlined" Style="min-width:200px;"
+                                   Disabled="@(_lingueComplete.Count == 0)">
+                            <MudSelectItem T="string" Value="@("IT")">Italiano (originale)</MudSelectItem>
+                            @foreach (var l in _lingueComplete)
+                            {
+                                <MudSelectItem T="string" Value="@l">@NomeLingua(l)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudTooltip>
+                    @if (_lingua != "IT")
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Translate">
+                            Traduzione approvata
+                        </MudChip>
+                    }
+                </div>
+
+                @* Le date non fanno parte del contenuto (si lavora sul viaggio, non sul calendario),
+                   ma vedere che non ci sono partenze in programma evita di curare la scheda di un
+                   viaggio che nessuno può prenotare. *@
+                <MudAlert Severity="@(_partenze.Count > 0 ? Severity.Normal : Severity.Warning)" Dense="true" Class="mb-3">
+                    @if (_partenze.Count == 0)
+                    {
+                        <span>Nessuna data in calendario per le prossime partenze di questo viaggio.</span>
+                    }
+                    else
+                    {
+                        <div>
+                            <b>Prossime partenze in programma per questo viaggio:</b>
+                            <div class="d-flex gap-2 flex-wrap mt-1">
+                                @foreach (var p in _partenze)
+                                {
+                                    <MudChip T="string" Size="Size.Small"
+                                             Color="@(p.EQuestaEdizione ? Color.Primary : Color.Default)"
+                                             Icon="@(p.EQuestaEdizione ? Icons.Material.Filled.Star : null)">
+                                        @($"{p.DataInizio:dd/MM/yyyy} – {p.DataFine:dd/MM/yyyy}")
+                                    </MudChip>
+                                }
+                            </div>
+                        </div>
+                    }
+                </MudAlert>
+
+                @if (!string.IsNullOrWhiteSpace(Sottotitolo))
                 {
-                    <MudText Typo="Typo.h6" Class="mb-1">@_contenuto.Sottotitolo</MudText>
+                    <MudText Typo="Typo.h6" Class="mb-1">@Sottotitolo</MudText>
                 }
                 <div class="d-flex gap-2 flex-wrap mb-2">
-                    @if (!string.IsNullOrWhiteSpace(_contenuto.DurataTesto))
+                    @if (!string.IsNullOrWhiteSpace(DurataTesto))
                     {
-                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Schedule">@_contenuto.DurataTesto</MudChip>
+                        <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Schedule">@DurataTesto</MudChip>
                     }
                     <MudChip T="string" Size="Size.Small" Color="@(_contenuto.StatoPubblicazione == "pubblicato" ? Color.Success : Color.Default)">@_contenuto.StatoPubblicazione</MudChip>
                 </div>
@@ -47,19 +98,28 @@
                     <MudImage Src="@_immaginePrincipale.Url" Alt="@_immaginePrincipale.AltText" Fluid="true" Class="rounded mb-3" Style="max-height:280px;" />
                 }
 
-                @if (!string.IsNullOrWhiteSpace(_contenuto.DescrizioneHtml))
+                @if (!string.IsNullOrWhiteSpace(DescrizioneHtml))
                 {
-                    <div class="mb-3">@((MarkupString)_contenuto.DescrizioneHtml!)</div>
+                    <div class="mb-3">@((MarkupString)DescrizioneHtml!)</div>
                 }
-                @if (!string.IsNullOrWhiteSpace(_contenuto.LuoghiVisitati))
+                @if (!string.IsNullOrWhiteSpace(LuoghiVisitati))
                 {
-                    <MudText Typo="Typo.body2" Class="mb-3"><strong>Luoghi:</strong> @_contenuto.LuoghiVisitati</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3"><strong>Luoghi:</strong> @LuoghiVisitati</MudText>
                 }
 
                 @if (_giornate.Count > 0)
                 {
                     <MudDivider Class="my-3" />
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Itinerario</MudText>
+                    @if (_lingua != "IT")
+                    {
+                        @* I titoli delle giornate non sono fra i campi traducibili: restano in
+                           italiano anche in anteprima straniera. Meglio dirlo che far pensare a un
+                           errore o, peggio, non farlo notare affatto. *@
+                        <MudText Typo="Typo.caption" Color="Color.Warning" Class="d-block mb-2">
+                            I titoli delle giornate non sono fra i campi tradotti: restano in italiano.
+                        </MudText>
+                    }
                     @foreach (var g in _giornate)
                     {
                         <MudText Typo="Typo.subtitle2">@g.TitoloGiornata</MudText>
@@ -68,7 +128,8 @@
                             foreach (var p in passi)
                             {
                                 <div class="ml-3 mb-2">
-                                    @if (!string.IsNullOrWhiteSpace(p.TestoHtml)) { <div>@((MarkupString)p.TestoHtml)</div> }
+                                    @{ var testoPasso = TestoPasso(p); }
+                                    @if (!string.IsNullOrWhiteSpace(testoPasso)) { <div>@((MarkupString)testoPasso!)</div> }
                                     @if (!string.IsNullOrWhiteSpace(p.ImmagineUrl))
                                     {
                                         <MudImage Src="@p.ImmagineUrl" Alt="@p.ImmagineDidascalia" Fluid="true" Class="rounded mt-1" Style="max-height:180px;" />
@@ -101,9 +162,10 @@
                     @foreach (var m in _mappe.Where(m => !string.IsNullOrWhiteSpace(m.ImmagineUrl)))
                     {
                         <div class="mb-3">
-                            @if (!string.IsNullOrWhiteSpace(m.Descrizione))
+                            @{ var descMappa = DescrizioneMappa(m); }
+                            @if (!string.IsNullOrWhiteSpace(descMappa))
                             {
-                                <MudText Typo="Typo.body2" Class="mb-1"><b>@m.Descrizione</b></MudText>
+                                <MudText Typo="Typo.body2" Class="mb-1"><b>@descMappa</b></MudText>
                             }
                             <MudImage Src="@m.ImmagineUrl" Alt="@(m.Descrizione ?? "Mappa del tour")" Fluid="true" Class="rounded" Style="max-height:320px;" />
                         </div>
@@ -132,6 +194,49 @@
     private List<WebTourImmagine> _galleria = new();
     private WebTourImmagine? _immaginePrincipale;
     private List<WebTourMappa> _mappe = new();
+    private List<PartenzaProgrammata> _partenze = new();
+    private List<TraduzioneCampo> _traduzioni = new();
+    private List<string> _lingueComplete = new();
+    private string _lingua = "IT";
+
+    /// <summary>Traduzioni approvate della lingua scelta, indicizzate per (entita, id, campo).</summary>
+    private Dictionary<(string, long, string), string> _testiLingua = new();
+
+    private static string NomeLingua(string codice)
+        => GestioneViaggi.Services.Shared.Ai.ClaudeTranslationClient.LanguageName(codice) is { } nome
+           ? char.ToUpperInvariant(nome[0]) + nome[1..]
+           : codice;
+
+    private string TooltipLingua => _lingueComplete.Count > 0
+        ? "Scegli la lingua in cui vedere l'anteprima."
+        : "Nessuna lingua disponibile: completa e conferma le traduzioni per poter vedere l'anteprima in un'altra lingua.";
+
+    // Campi mostrati: in italiano quelli originali, altrimenti la traduzione approvata.
+    private string? Sottotitolo => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "sottotitolo", _contenuto.Sottotitolo);
+    private string? DurataTesto => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "durata_testo", _contenuto.DurataTesto);
+    private string? LuoghiVisitati => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "luoghi_visitati", _contenuto.LuoghiVisitati);
+    private string? DescrizioneHtml => Tradotto("web_tour_contenuti", _contenuto!.WebTourContenutoId, "descrizione_html", _contenuto.DescrizioneHtml);
+
+    private string? TestoPasso(WebTourItinerarioPassaggio p)
+        => Tradotto("web_tour_itinerario_passaggi", p.WebTourItinerarioPassaggioId, "testo_html", p.TestoHtml);
+
+    private string? DescrizioneMappa(WebTourMappa m)
+        => Tradotto("web_tour_mappa", m.WebTourMappaId, "descrizione", m.Descrizione);
+
+    /// <summary>Testo nella lingua scelta; se manca (o si è in italiano) resta l'originale.</summary>
+    private string? Tradotto(string entita, long entitaId, string campo, string? originale)
+        => _lingua == "IT" ? originale
+         : _testiLingua.TryGetValue((entita, entitaId, campo), out var t) ? t
+         : originale;
+
+    private void OnLinguaChanged(string lingua)
+    {
+        _lingua = lingua;
+        _testiLingua = _lingua == "IT"
+            ? new()
+            : _traduzioni.Where(t => t.Lingua == _lingua && t.Revisionato && !t.Obsoleto)
+                         .ToDictionary(t => (t.Entita, t.EntitaId, t.Campo), t => t.Testo);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,6 +254,26 @@
             _galleria = immagini.Where(i => i.Tipo != "principale").ToList();
 
             _mappe = await MappaService.ListByContenutoAsync(ContenutoId, AziendaId);
+            _partenze = await ContenutiService.GetProssimePartenzeAsync(ContenutoId, AziendaId);
+
+            // Una lingua è selezionabile solo se OGNI campo traducibile è tradotto, revisionato e non
+            // obsoleto: un'anteprima a metà in lingua straniera confonderebbe invece di aiutare.
+            _traduzioni = await TraduzioniService.ListByContenutoAsync(ContenutoId, AziendaId);
+
+            // Il totale atteso viene dai campi TRADUCIBILI, non dalle traduzioni presenti: un campo
+            // mai tradotto in nessuna lingua non comparirebbe fra queste ultime e sparirebbe dal
+            // denominatore, facendo risultare "completa" una lingua a cui manca proprio quel campo.
+            var stato = await ContenutiService.GetStatoSezioniAsync(
+                ContenutoId, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+            var attesi = stato?.ItemTraducibili ?? 0;
+            _lingueComplete = attesi == 0
+                ? new()
+                : _traduzioni.Where(t => t.Revisionato && !t.Obsoleto)
+                             .GroupBy(t => t.Lingua)
+                             .Where(g => g.Select(t => (t.Entita, t.EntitaId, t.Campo)).Distinct().Count() >= attesi)
+                             .Select(g => g.Key)
+                             .OrderBy(l => l)
+                             .ToList();
         }
         catch { /* anteprima best-effort */ }
         finally { _loading = false; }
