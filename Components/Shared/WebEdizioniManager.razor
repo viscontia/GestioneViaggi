@@ -31,14 +31,29 @@ else
 
         @if (_selected != null)
         {
-            <MudChip T="string" Size="Size.Small" Icon="@(_selected.HaContenuto ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
-                     Color="@(_selected.HaContenuto ? Color.Success : Color.Default)">
-                @(_selected.HaContenuto ? $"Con contenuto ({_selected.StatoPubblicazione})" : "Senza contenuto")
-            </MudChip>
-            <MudChip T="string" Size="Size.Small" Icon="@(_selected.Effettuato ? Icons.Material.Filled.EventAvailable : Icons.Material.Filled.Schedule)"
-                     Color="@(_selected.Effettuato ? Color.Info : Color.Warning)">
-                @(_selected.Effettuato ? "Già effettuato" : "Da effettuare")
-            </MudChip>
+            <MudTooltip Text="@(_selected.HaContenuto
+                                ? $"Questa edizione ha una scheda web, in stato \"{_selected.StatoPubblicazione}\"."
+                                : "Questa edizione non ha ancora una scheda web: creala o clonala da un'altra data.")">
+                <MudChip T="string" Size="Size.Small" Icon="@(_selected.HaContenuto ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                         Color="@(_selected.HaContenuto ? Color.Success : Color.Default)">
+                    @(_selected.HaContenuto ? $"Con contenuto ({_selected.StatoPubblicazione})" : "Senza contenuto")
+                </MudChip>
+            </MudTooltip>
+
+            @* Stato della PARTENZA, non del contenuto: è la spunta "Viaggio Effettuato" della scheda
+               Date del viaggio (ana_date_viaggi.data_viaggio_effettuato_sino), la stessa che alimenta
+               le statistiche viaggi fatti/da fare. Serve qui perché curare la scheda web di una
+               partenza già avvenuta è quasi sempre lavoro sprecato.
+               I colori erano invertiti: "Da effettuare" è lo stato NORMALE di una partenza futura e
+               non deve allarmare; semmai è "Già effettuato" a meritare un richiamo in questo contesto. *@
+            <MudTooltip Text="@(_selected.Effettuato
+                                ? "Questa partenza risulta già effettuata (spunta \"Viaggio Effettuato\" nella scheda Date del viaggio): curarne la scheda web di solito non serve più."
+                                : "Questa partenza non è ancora stata effettuata: è lo stato normale di una data futura. Il flag si imposta nella scheda Date del viaggio.")">
+                <MudChip T="string" Size="Size.Small" Icon="@(_selected.Effettuato ? Icons.Material.Filled.EventAvailable : Icons.Material.Filled.Schedule)"
+                         Color="@(_selected.Effettuato ? Color.Warning : Color.Default)">
+                    @(_selected.Effettuato ? "Partenza già effettuata" : "Partenza da effettuare")
+                </MudChip>
+            </MudTooltip>
             @if (_selected.HaContenuto)
             {
                 @* Verifiche non bloccanti sempre visibili: se compaiono solo all'anteprima o alla
