@@ -18,10 +18,12 @@
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.ITravelPrintService TravelPrintService
 
+@* Il titolo NON si disegna qui con <TitleContent>: quel frammento viene reso una volta dal
+   contenitore del dialogo e non si aggiorna quando il componente ricarica i dati — per questo
+   restava "Caricamento..." anche a elenco caricato. Si usa invece SetTitleAsync, l'API prevista
+   da MudBlazor proprio per i titoli che dipendono da un valore interno al dialogo; nella sua
+   documentazione è scritto che non ha effetto se TitleContent è impostato. *@
 <MudDialog>
-    <TitleContent>
-        <MudText Typo="Typo.h6">@_headerTitle</MudText>
-    </TitleContent>
     <DialogContent>
         <MudContainer MaxWidth="MaxWidth.False" Class="pa-3" Style="height: 88vh; overflow-y: hidden;">
             <MudGrid Style="height: 100%;">
@@ -625,6 +627,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await MudDialog.SetTitleAsync("Caricamento...");
         await LoadListAsync(true);
     }
 
@@ -716,6 +719,11 @@
                 _tipoPartecipanti = _initData.TipoPartecipanti;
                 _tipoAlloggi = _initData.TipoAlloggi;
             }
+
+            // Il titolo va aggiornato esplicitamente: il contenitore del dialogo non lo rilegge da solo.
+            // Se il dato non arriva si lascia il titolo com'è, invece di svuotare l'intestazione.
+            if (!string.IsNullOrWhiteSpace(_headerTitle))
+                await MudDialog.SetTitleAsync(_headerTitle);
 
             _summaryTitle = _initData.SummaryTitle;
             _participants = _initData.Participants;
