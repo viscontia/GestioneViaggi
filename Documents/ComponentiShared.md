@@ -401,6 +401,9 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 
 ## Componenti Dialog
 
+### ⚠️ Titolo che dipende da dati caricati in async
+`<TitleContent>` viene reso **una volta** dal contenitore del dialogo e non si rilegge quando il componente carica i dati: un titolo valorizzato dopo un `await` non arriva mai a schermo (in `ViaggioPartecipantiManagerDialog` restava "Caricamento..." con l'elenco già visibile). Per questi casi si usa **`IMudDialogInstance.SetTitleAsync(...)`**, l'API prevista da MudBlazor proprio per i titoli che dipendono da un valore interno al dialogo. ⚠️ La sua documentazione avverte: *"Has no effect when TitleContent is set"* — quindi il blocco `<TitleContent>` va **rimosso**, non affiancato. Titoli assegnati da un parametro **prima** del primo `await`, o proprietà calcolate su dati già disponibili al primo render, non hanno il problema: `MovTransazioniEditDialog` e `ViaggioAlloggiAdvancedDialog` restano com'erano.
+
 ### SendEmailDialog
 Dialog riutilizzabile per l'invio email con Rich Text Editor (`Components/Shared/SendEmailDialog.razor`).
 *   **Dual-Mode**: Supporta due modalita operative selezionate automaticamente in base ai parametri:
