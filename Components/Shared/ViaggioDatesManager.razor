@@ -55,14 +55,11 @@
             CellStyle="width:70px; min-width:70px; max-width:70px; text-align:center; padding:0;" 
             HeaderStyle="width:70px; min-width:70px; max-width:70px; text-align:center;">
             <CellTemplate>
-                @if (context.Item.EffettuatoSino == "Y")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Circle" Color="Color.Error" Size="Size.Small" />
-                }
+                @* Stessa lettura usata nei contenuti web: il flag da solo non basta, va incrociato
+                   col calendario. Prima il rosso su "non effettuato" faceva sembrare un errore
+                   quella che per una partenza futura è la situazione normale. *@
+                <StatoPartenzaChip Effettuato="@(context.Item.EffettuatoSino == "Y")"
+                                   DataFine="@context.Item.DataFine" SoloIcona="true" />
             </CellTemplate>
         </TemplateColumn>
         

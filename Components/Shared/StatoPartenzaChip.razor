@@ -7,7 +7,16 @@
    la resa grafica. *@
 
 <MudTooltip Text="@Esito.Tooltip">
-    <MudChip T="string" Size="@Size" Icon="@Icona" Color="@Colore">@Esito.Etichetta</MudChip>
+    @if (SoloIcona)
+    {
+        @* Nelle griglie strette non c'è spazio per l'etichetta: resta l'icona, ma il significato
+           non si perde perché il tooltip è lo stesso. *@
+        <MudIcon Icon="@Icona" Color="@Colore" Size="@Size" />
+    }
+    else
+    {
+        <MudChip T="string" Size="@Size" Icon="@Icona" Color="@Colore">@Esito.Etichetta</MudChip>
+    }
 </MudTooltip>
 
 @code {
@@ -16,6 +25,8 @@
     /// <summary>Data di fine della partenza: senza, si può riportare solo il flag.</summary>
     [Parameter] public DateTime? DataFine { get; set; }
     [Parameter] public Size Size { get; set; } = Size.Small;
+    /// <summary>Solo icona, senza etichetta: per le colonne strette delle griglie.</summary>
+    [Parameter] public bool SoloIcona { get; set; }
 
     private EsitoStatoPartenza Esito => StatoPartenzaRules.Valuta(Effettuato, DataFine, DateTime.Today);
 
