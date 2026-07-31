@@ -347,3 +347,14 @@ Il chip accanto al selettore edizione non riporta solo la spunta "Viaggio Effett
 - ☐ **Anomalia inversa** (flag SI + data fine futura): chip giallo "Effettuata ma non ancora conclusa".
 - ☐ **Confine**: una partenza che termina **oggi** è ancora in corso, quindi non è "conclusa".
 - ☐ **Tooltip sempre presente** su entrambi i chip (contenuto e partenza), con indicazione di dove si imposta il valore.
+
+## 27. Pubblicabilità legata alle date della partenza (2026-07-31)
+
+Regola: si pubblica solo una partenza che **deve ancora iniziare** (data di inizio dal giorno successivo a oggi) e **non già effettuata**.
+
+- ☐ **Partenza futura, non effettuata**: la pubblicazione procede normalmente (restano gli altri controlli su contenuti e traduzioni).
+- ☐ **Partenza di oggi**: passando lo stato a "pubblicato" il salvataggio lo **riporta a bozza** con il messaggio che indica la data e la regola.
+- ☐ **Partenza già passata** (es. l'edizione 02/05/2026): stesso blocco.
+- ☐ **Partenza futura ma segnata effettuata**: bloccata con motivo "questa partenza risulta già effettuata".
+- ☐ **Ordine dei controlli**: con partenza non pubblicabile **e** contenuti incompleti, compare il messaggio sulla partenza — e **non** il dialogo "Prima di pubblicare".
+- ☐ **Chip riusabile**: lo stato della partenza accanto al selettore edizione è lo stesso componente (`StatoPartenzaChip`), con tooltip.

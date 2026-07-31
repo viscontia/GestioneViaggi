@@ -40,29 +40,9 @@ else
                 </MudChip>
             </MudTooltip>
 
-            @* Stato della PARTENZA, non del contenuto. Non basta il flag "Viaggio Effettuato"
-               (ana_date_viaggi.data_viaggio_effettuato_sino, lo stesso delle statistiche viaggi
-               fatti/da fare): va incrociato con la data di fine, perché le due informazioni possono
-               contraddirsi ed è la contraddizione che l'operatore deve vedere. Regole e testi stanno
-               in StatoPartenzaRules, un posto solo. *@
-            var statoPartenza = StatoPartenzaRules.Valuta(_selected.Effettuato, _selected.DataFine, DateTime.Today);
-            <MudTooltip Text="@statoPartenza.Tooltip">
-                <MudChip T="string" Size="Size.Small"
-                         Icon="@(statoPartenza.Livello switch
-                                 {
-                                     LivelloStatoPartenza.Anomalia => Icons.Material.Filled.ErrorOutline,
-                                     LivelloStatoPartenza.Conclusa => Icons.Material.Filled.EventAvailable,
-                                     _ => Icons.Material.Filled.Schedule
-                                 })"
-                         Color="@(statoPartenza.Livello switch
-                                  {
-                                      LivelloStatoPartenza.Anomalia => Color.Warning,
-                                      LivelloStatoPartenza.Conclusa => Color.Info,
-                                      _ => Color.Default
-                                  })">
-                    @statoPartenza.Etichetta
-                </MudChip>
-            </MudTooltip>
+            @* Stato della partenza (flag "Viaggio Effettuato" incrociato col calendario): componente
+               riusabile, così la stessa lettura vale ovunque si ragioni su una partenza. *@
+            <StatoPartenzaChip Effettuato="@_selected.Effettuato" DataFine="@_selected.DataFine" />
             @if (_selected.HaContenuto)
             {
                 @* Verifiche non bloccanti sempre visibili: se compaiono solo all'anteprima o alla
@@ -120,7 +100,8 @@ else
                                           HasUnsavedChangesChanged="OnContenutiDirtyChanged"
                                           StatoChanged="@(s => OnStatoChanged(TabContenuti, s))"
                                           GetTabNonCompletiAltri="@(() => (IReadOnlyList<string>)TabNonCompleti.Where(t => t != TabContenuti).ToList())"
-                                          GetVerifiche="@CalcolaVerificheAsync" />
+                                          GetVerifiche="@CalcolaVerificheAsync"
+                                          GetMotivoNonPubblicabile="@(() => StatoPartenzaRules.MotivoNonPubblicabile(_selected.Effettuato, _selected.DataInizio, DateTime.Today))" />
                 </MudTabPanel>
                 <MudTabPanel Text="Galleria" Icon="@Icons.Material.Filled.PhotoLibrary" IconColor="@GetTabColor(TabGalleria)">
                     <WebTourGalleriaTab ContenutoId="@_selected.ContenutoId!.Value" AziendaId="@AziendaId"

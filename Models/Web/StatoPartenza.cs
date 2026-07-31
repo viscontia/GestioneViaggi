@@ -29,6 +29,27 @@ public enum LivelloStatoPartenza
 /// </summary>
 public static class StatoPartenzaRules
 {
+    /// <summary>
+    /// Una partenza è pubblicabile sul sito solo se <b>deve ancora partire</b> e <b>non è già stata
+    /// effettuata</b>. La soglia è la data di <b>inizio</b>: dev'essere almeno il giorno successivo a
+    /// oggi, perché pubblicare una partenza che parte oggi (o è già partita) non serve a nessuno —
+    /// nessuno può più prenotarla.
+    /// Ritorna null se si può pubblicare, altrimenti il motivo del blocco, già scritto per l'utente.
+    /// </summary>
+    public static string? MotivoNonPubblicabile(bool effettuato, DateTime? dataInizio, DateTime oggi)
+    {
+        if (effettuato)
+            return "questa partenza risulta già effettuata";
+
+        // Senza data di inizio non si può giudicare: non si blocca, l'anomalia si vede altrove.
+        if (dataInizio is not { } inizio) return null;
+
+        if (inizio.Date <= oggi.Date)
+            return $"la partenza è prevista per il {inizio:dd/MM/yyyy}: si può pubblicare solo una partenza che deve ancora iniziare (dal giorno successivo a oggi in poi)";
+
+        return null;
+    }
+
     public static EsitoStatoPartenza Valuta(bool effettuato, DateTime? dataFine, DateTime oggi)
     {
         // Senza data di fine non si può incrociare nulla: si dice solo cosa riporta il flag.

@@ -1,0 +1,35 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Stato di una partenza (flag "Viaggio Effettuato" incrociato con il calendario) come chip con
+   tooltip. Componente a sé perché la stessa informazione serve ovunque si ragioni su una partenza:
+   contenuti web, elenco date, calendario. Regole e testi stanno in StatoPartenzaRules, qui c'è solo
+   la resa grafica. *@
+
+<MudTooltip Text="@Esito.Tooltip">
+    <MudChip T="string" Size="@Size" Icon="@Icona" Color="@Colore">@Esito.Etichetta</MudChip>
+</MudTooltip>
+
+@code {
+    /// <summary>Flag <c>ana_date_viaggi.data_viaggio_effettuato_sino</c> = 'Y'.</summary>
+    [Parameter, EditorRequired] public bool Effettuato { get; set; }
+    /// <summary>Data di fine della partenza: senza, si può riportare solo il flag.</summary>
+    [Parameter] public DateTime? DataFine { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private EsitoStatoPartenza Esito => StatoPartenzaRules.Valuta(Effettuato, DataFine, DateTime.Today);
+
+    private string Icona => Esito.Livello switch
+    {
+        LivelloStatoPartenza.Anomalia => Icons.Material.Filled.ErrorOutline,
+        LivelloStatoPartenza.Conclusa => Icons.Material.Filled.EventAvailable,
+        _ => Icons.Material.Filled.Schedule
+    };
+
+    private Color Colore => Esito.Livello switch
+    {
+        LivelloStatoPartenza.Anomalia => Color.Warning,
+        LivelloStatoPartenza.Conclusa => Color.Info,
+        _ => Color.Default
+    };
+}

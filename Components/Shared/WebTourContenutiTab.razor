@@ -187,6 +187,11 @@ else
     [Parameter] public Func<IReadOnlyList<string>>? GetTabNonCompletiAltri { get; set; }
     /// <summary>Verifiche non bloccanti, ricalcolate dal parent al momento della pubblicazione.</summary>
     [Parameter] public Func<Task<IReadOnlyList<Verifica>>>? GetVerifiche { get; set; }
+    /// <summary>
+    /// Motivo per cui questa partenza non è pubblicabile (già effettuata, o data ormai arrivata),
+    /// oppure null. Lo calcola il parent, che conosce le date dell'edizione (StatoPartenzaRules).
+    /// </summary>
+    [Parameter] public Func<string?>? GetMotivoNonPubblicabile { get; set; }
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
@@ -299,6 +304,15 @@ else
         {
             await editor.LoadHTMLContent(html);
         }
+    }
+
+    /// <summary>Tab non ancora completi che bloccano la pubblicazione (vuoto = si può pubblicare).</summary>
+    private List<string> Blocco()
+    {
+        var mancanti = new List<string>();
+        if (ComputeStato() != WebTabStato.Completo) mancanti.Add("Contenuti");
+        mancanti.AddRange(GetTabNonCompletiAltri?.Invoke() ?? Array.Empty<string>());
+        return mancanti;
     }
 
     /// <summary>Stato del tab secondo la regola condivisa (vedi WebTabStatoRules).</summary>
@@ -425,10 +439,14 @@ else
         // come difesa futura, non obbligatoria ora.
         if (_model.StatoPubblicazione == "pubblicato")
         {
-            var mancanti = new List<string>();
-            if (ComputeStato() != WebTabStato.Completo) mancanti.Add("Contenuti");
-            mancanti.AddRange(GetTabNonCompletiAltri?.Invoke() ?? Array.Empty<string>());
-            if (mancanti.Count > 0)
+            // Prima di guardare i contenuti: una partenza già passata o già effettuata non è
+            // pubblicabile comunque, perché nessuno potrebbe più prenotarla.
+            if (GetMotivoNonPubblicabile?.Invoke() is { } motivo)
+            {
+                _model.StatoPubblicazione = "bozza";
+                Snackbar.Add($"Pubblicazione non consentita: {motivo}. Salvato come bozza.", Severity.Warning);
+            }
+            else if (Blocco() is { Count: > 0 } mancanti)
             {
                 _model.StatoPubblicazione = "bozza";
                 Snackbar.Add($"Pubblicazione bloccata: completare prima {string.Join(", ", mancanti)}. Salvato come bozza.", Severity.Warning);
