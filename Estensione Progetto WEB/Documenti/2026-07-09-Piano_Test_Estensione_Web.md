@@ -336,3 +336,14 @@ Il caso che rendeva inutile il lavoro di revisione: rilanciare la traduzione rit
 - ☐ **La revisione sopravvive**: dopo una traduzione parziale, le voci già approvate restano **revisionate** (il semaforo non torna indietro per quelle).
 - ☐ **Obsolete incluse**: modificato un testo italiano già tradotto, le sue traduzioni diventano obsolete e rientrano fra quelle da tradurre.
 - ☐ **Costo**: nel registro consumi la sessione registra solo le chiamate effettivamente fatte, non una per ogni campo.
+
+## 26. Stato della partenza: flag incrociato col calendario (2026-07-31)
+
+Il chip accanto al selettore edizione non riporta solo la spunta "Viaggio Effettuato": la incrocia con la data di fine, perché le due possono contraddirsi.
+
+- ☐ **Coerente, conclusa** (flag SI + data fine passata): chip azzurro "Partenza effettuata"; il tooltip ricorda che curarne la scheda web di solito non serve più.
+- ☐ **Anomalia più comune** (flag NO + data fine passata): chip **giallo** "Conclusa ma non registrata"; il tooltip spiega le due cause possibili (flag non aggiornato / viaggio non realizzato) e dove correggere.
+- ☐ **Coerente, in programma** (flag NO + data fine futura): chip **neutro** "Partenza da effettuare" — è lo stato normale e non deve allarmare.
+- ☐ **Anomalia inversa** (flag SI + data fine futura): chip giallo "Effettuata ma non ancora conclusa".
+- ☐ **Confine**: una partenza che termina **oggi** è ancora in corso, quindi non è "conclusa".
+- ☐ **Tooltip sempre presente** su entrambi i chip (contenuto e partenza), con indicazione di dove si imposta il valore.

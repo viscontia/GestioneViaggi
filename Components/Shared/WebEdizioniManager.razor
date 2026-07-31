@@ -40,18 +40,27 @@ else
                 </MudChip>
             </MudTooltip>
 
-            @* Stato della PARTENZA, non del contenuto: è la spunta "Viaggio Effettuato" della scheda
-               Date del viaggio (ana_date_viaggi.data_viaggio_effettuato_sino), la stessa che alimenta
-               le statistiche viaggi fatti/da fare. Serve qui perché curare la scheda web di una
-               partenza già avvenuta è quasi sempre lavoro sprecato.
-               I colori erano invertiti: "Da effettuare" è lo stato NORMALE di una partenza futura e
-               non deve allarmare; semmai è "Già effettuato" a meritare un richiamo in questo contesto. *@
-            <MudTooltip Text="@(_selected.Effettuato
-                                ? "Questa partenza risulta già effettuata (spunta \"Viaggio Effettuato\" nella scheda Date del viaggio): curarne la scheda web di solito non serve più."
-                                : "Questa partenza non è ancora stata effettuata: è lo stato normale di una data futura. Il flag si imposta nella scheda Date del viaggio.")">
-                <MudChip T="string" Size="Size.Small" Icon="@(_selected.Effettuato ? Icons.Material.Filled.EventAvailable : Icons.Material.Filled.Schedule)"
-                         Color="@(_selected.Effettuato ? Color.Warning : Color.Default)">
-                    @(_selected.Effettuato ? "Partenza già effettuata" : "Partenza da effettuare")
+            @* Stato della PARTENZA, non del contenuto. Non basta il flag "Viaggio Effettuato"
+               (ana_date_viaggi.data_viaggio_effettuato_sino, lo stesso delle statistiche viaggi
+               fatti/da fare): va incrociato con la data di fine, perché le due informazioni possono
+               contraddirsi ed è la contraddizione che l'operatore deve vedere. Regole e testi stanno
+               in StatoPartenzaRules, un posto solo. *@
+            var statoPartenza = StatoPartenzaRules.Valuta(_selected.Effettuato, _selected.DataFine, DateTime.Today);
+            <MudTooltip Text="@statoPartenza.Tooltip">
+                <MudChip T="string" Size="Size.Small"
+                         Icon="@(statoPartenza.Livello switch
+                                 {
+                                     LivelloStatoPartenza.Anomalia => Icons.Material.Filled.ErrorOutline,
+                                     LivelloStatoPartenza.Conclusa => Icons.Material.Filled.EventAvailable,
+                                     _ => Icons.Material.Filled.Schedule
+                                 })"
+                         Color="@(statoPartenza.Livello switch
+                                  {
+                                      LivelloStatoPartenza.Anomalia => Color.Warning,
+                                      LivelloStatoPartenza.Conclusa => Color.Info,
+                                      _ => Color.Default
+                                  })">
+                    @statoPartenza.Etichetta
                 </MudChip>
             </MudTooltip>
             @if (_selected.HaContenuto)
