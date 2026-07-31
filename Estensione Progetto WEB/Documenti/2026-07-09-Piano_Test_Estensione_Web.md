@@ -300,7 +300,9 @@ Il credito della chiave è precaricato e l'API **non** espone il residuo: il ges
 ## 22. Revisione traduzioni senza HTML a vista (2026-07-29)
 
 - ☐ **Campo HTML** (Descrizione, Pernottamento, Passo…): aprendo una cella, la traduzione si modifica in un **editor visuale** con i pulsanti di formattazione — **nessun tag visibile**. Il sorgente italiano appare formattato, non come codice.
-- ☐ **Campo di testo puro** (Sottotitolo, Meta title, Durata): resta una casella di testo semplice, senza editor.
+- ☐ **Campo di testo puro** (Sottotitolo, Meta title, Durata, Titolo giornata, Descrizione mappa): resta una casella di testo semplice, senza editor.
+- ☐ **Incluso / Escluso**: pur non chiamandosi `*_html` contengono formattazione → devono aprirsi con l'**editor visuale**, non con i tag a vista (era il caso sfuggito alla prima versione).
+- ☐ **Rete di sicurezza**: qualunque traduzione il cui testo contenga tag si apre con l'editor visuale, anche se il campo non è nell'elenco.
 - ☐ **La formattazione sopravvive**: modificata una parola e salvato, riaprendo la traduzione grassetti ed elenchi sono ancora al loro posto; l'anteprima del tour mostra il testo formattato.
 - ☐ **Non si può svuotare**: cancellato tutto il contenuto, il salvataggio viene rifiutato con un avviso (un editor vuoto produce `<p><br></p>`, che pubblicherebbe un paragrafo vuoto).
 - ☐ **Riparazione automatica**: su una traduzione con markup corrotto, aprirla e salvarla la normalizza (Quill ricostruisce i tag).

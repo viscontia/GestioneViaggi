@@ -98,10 +98,30 @@
     private bool _htmlCaricato;
 
     /// <summary>
-    /// I campi che finiscono per <c>_html</c> arrivano dall'editor RichText e contengono markup:
-    /// si modificano visualmente. Gli altri (sottotitolo, meta, durata...) sono testo puro.
+    /// Campi scritti con l'editor RichText, quindi da modificare visualmente.
+    /// Il suffisso <c>_html</c> NON basta: <c>viaggio_incluso</c>/<c>viaggio_escluso</c> contengono
+    /// markup pur non chiamandosi così (verificato sui dati), e con la sola regola sul nome finivano
+    /// davanti all'utente come tag grezzi.
     /// </summary>
-    private bool CampoHtml => Traduzione.Campo?.EndsWith("_html", StringComparison.OrdinalIgnoreCase) == true;
+    private static readonly HashSet<string> CampiRichText = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "descrizione_html", "info_pernottamento_html", "info_pasti_html",
+        "info_equipaggiamento_html", "altre_info_html", "testo_html",
+        "viaggio_incluso", "viaggio_escluso"
+    };
+
+    /// <summary>
+    /// true se il campo va trattato come HTML. Oltre all'elenco esplicito si guarda il contenuto:
+    /// se il testo contiene tag va comunque mostrato reso, altrimenti un campo aggiunto in futuro e
+    /// dimenticato nell'elenco tornerebbe a mostrare markup all'utente.
+    /// </summary>
+    private bool CampoHtml =>
+        (Traduzione.Campo is { } c && (CampiRichText.Contains(c) || c.EndsWith("_html", StringComparison.OrdinalIgnoreCase)))
+        || ContieneTag(SourceText) || ContieneTag(Traduzione.Testo);
+
+    private static bool ContieneTag(string? testo)
+        => !string.IsNullOrEmpty(testo)
+           && System.Text.RegularExpressions.Regex.IsMatch(testo, "<[a-zA-Z/][^>]*>");
 
     protected override void OnInitialized()
     {

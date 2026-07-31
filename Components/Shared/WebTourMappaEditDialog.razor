@@ -11,10 +11,10 @@
     <TitleContent><MudText Typo="Typo.h6">Modifica mappa</MudText></TitleContent>
     <DialogContent>
         <MudTextField T="string" Value="@(Mappa.GpxFilename ?? "—")" Label="File GPX caricato" ReadOnly="true"
-                      Variant="Variant.Outlined" Dense="true" Class="mb-3"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3"
                       HelperText="Nome del file di origine: non modificabile, serve a sapere da cosa è stata generata la mappa." />
 
-        <MudTextField T="string" @bind-Value="_descrizione" Label="Descrizione" Variant="Variant.Outlined" Dense="true"
+        <MudTextField T="string" @bind-Value="_descrizione" Label="Descrizione" Variant="Variant.Outlined" Margin="Margin.Dense"
                       MaxLength="255" Immediate="true" AutoFocus="true" Class="mb-3" Required="true" RequiredError="La descrizione è obbligatoria"
                       HelperText="Il nome che vede il cliente sul sito (es. «Mappa Giorno 1»). Viene tradotto nelle lingue del sito." />
 
