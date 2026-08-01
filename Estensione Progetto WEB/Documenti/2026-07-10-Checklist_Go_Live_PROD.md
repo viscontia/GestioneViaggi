@@ -278,6 +278,45 @@ Argomenti che il capitolo deve coprire:
 
 ---
 
+## 3.5 — Verifica date su PROD (fatta il 2026-08-01, sola lettura)
+
+Controllo eseguito su Supabase dopo aver scoperto il refuso sull'anno (bug 9 delle note di rilascio).
+Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cercando anni fuori da 1900–2100.
+
+**Esito:**
+
+- ✅ **`ana_date_viaggi` è pulita**: 150 partenze, dalla più antica **09/02/2019** alla più lontana
+  **04/12/2026**, nessuna fuori da 2000–2100. Lo **script `509` si applica senza riparazioni**.
+- ✅ Nessuna data di nascita cliente implausibile, nessuna transazione o partenza collocata molto avanti
+  nel futuro.
+- ⚠️ **Una data sbagliata trovata**, in contabilità:
+
+  | tabella | id | campo | valore | valore corretto (evidente) |
+  |---|---|---|---|---|
+  | `mov_transazioni` | **72** | `transazione_data_pagamento` | **20/02/2202** | 20/02/2022 |
+
+  Sulla stessa riga `transazione_data` è **20/02/2022**: stesso giorno e stesso mese, quindi il pagamento
+  era certamente del 2022. Importo 110,00 — causale BENZINA — stato PAGATO — azienda 6.
+  **Stessa identica classe di errore** del bug 9: `2022` → `2202`, una cifra fuori posto. Conferma
+  indipendente del meccanismo, su un'altra form e per mano di un altro utente.
+
+- [ ] **Da correggere su PROD** (una riga, decisione dell'utente perché è un dato contabile):
+
+  ```sql
+  UPDATE mov_transazioni SET transazione_data_pagamento = DATE '2022-02-20'
+   WHERE transazione_id = 72 AND transazione_data_pagamento = DATE '2202-02-20';
+  ```
+
+- [ ] **Estendere la protezione alle altre form.** Il controllo di plausibilità e `DateFormat` sono stati
+  messi finora **solo** sul dialogo delle partenze. Restano **16 campi data senza `DateFormat`**, fra cui
+  proprio quelli da cui è arrivato il dato sbagliato:
+  `MovTransazioniEditDialog` (Data Transazione, Data Documento, Data Scadenza, Data Pagamento),
+  `PagaOraDialog`, `MovTransazioniPage` e i dialoghi di stampa (bilancio, scadenzario, registro IVA, movimenti).
+  Finché non sono allineati, su una macchina con lingua di sistema non italiana quei campi possono
+  **scambiare giorno e mese** senza segnalare nulla.
+
+---
+
 ## 4. Checklist finale di rilascio
 
 - [ ] Applicati in ordine gli script 406–509 su PROD (§1) senza errori.
@@ -289,6 +328,7 @@ Argomenti che il capitolo deve coprire:
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
+- [ ] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5).
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
 
