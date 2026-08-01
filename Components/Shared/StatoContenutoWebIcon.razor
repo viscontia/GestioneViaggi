@@ -1,0 +1,49 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Stato della scheda web di una partenza, come icona colorata con tooltip. Componente a sé perché la
+   stessa informazione serve nella griglia delle date e nel selettore edizione: regole e testi stanno
+   in ContenutoWebRules, qui c'è solo la resa grafica.
+   Quando non c'è scheda l'icona diventa un pulsante: è la scorciatoia per crearla o clonarla senza
+   passare dalla scheda Contenuti Web, dove il clone era di fatto invisibile finché non si capitava
+   su un'edizione vuota. *@
+
+<MudTooltip Text="@Esito.Tooltip">
+    @if (OnClick.HasDelegate)
+    {
+        <MudIconButton Icon="@Icona" Color="@Colore" Size="@Size" OnClick="OnClick" Disabled="@Disabled"
+                       aria-label="@Esito.Etichetta" />
+    }
+    else
+    {
+        <MudIcon Icon="@Icona" Color="@Colore" Size="@Size" />
+    }
+</MudTooltip>
+
+@code {
+    /// <summary>Valore di <c>web_tour_contenuti.stato_pubblicazione</c>, null se la partenza non ha scheda.</summary>
+    [Parameter] public string? StatoPubblicazione { get; set; }
+    /// <summary>Esiste un'altra partenza dello stesso viaggio da cui clonare: cambia solo il tooltip del caso "senza scheda".</summary>
+    [Parameter] public bool Clonabile { get; set; }
+    /// <summary>Se valorizzato, l'icona diventa cliccabile.</summary>
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private EsitoContenutoWeb Esito => ContenutoWebRules.Valuta(StatoPubblicazione, Clonabile);
+
+    private string Icona => Esito.Livello switch
+    {
+        LivelloContenutoWeb.Pubblicata => Icons.Material.Filled.Public,
+        LivelloContenutoWeb.Archiviata => Icons.Material.Filled.Inventory2,
+        LivelloContenutoWeb.Bozza => Icons.Material.Filled.Public,
+        _ => Icons.Material.Filled.PublicOff
+    };
+
+    private Color Colore => Esito.Livello switch
+    {
+        LivelloContenutoWeb.Pubblicata => Color.Success,
+        LivelloContenutoWeb.Bozza => Color.Warning,
+        _ => Color.Default
+    };
+}

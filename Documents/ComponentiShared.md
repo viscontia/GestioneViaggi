@@ -10,6 +10,22 @@ Stato di una partenza (`Components/Shared/StatoPartenzaChip.razor`), come chip o
 *   **Regole e testi** stanno in `Models/Web/StatoPartenza.cs` (`StatoPartenzaRules`): il componente fa solo la resa grafica, così la stessa lettura vale ovunque. Lì c'è anche `MotivoNonPubblicabile`, che decide se un'edizione è pubblicabile sul sito.
 *   **Usato da**: `ViaggioDatesManager` (colonna EFFETT.) e `WebEdizioniManager` (selettore edizione). Dettagli nella sezione contenuti web.
 
+### StatoContenutoWebIcon
+Stato della **scheda web** di una partenza (`Components/Shared/StatoContenutoWebIcon.razor`), come icona colorata con tooltip.
+*   **Quattro stati**: *senza scheda* (grigio, `PublicOff`) · *bozza* (giallo, `Public`) · *pubblicata* (verde, `Public`) · *archiviata* (grigio, `Inventory2`). Archiviata e bozza hanno colore simile perché **per il sito sono la stessa cosa**: la differenza è solo editoriale, e il tooltip lo dice.
+*   **Quando non c'è scheda l'icona diventa un pulsante** e apre `WebCreaContenutoDialog`. È la scorciatoia che rende visibile il clone: prima esisteva solo dentro il selettore edizione dei contenuti web e lo si scopriva per caso, capitando su un'edizione vuota.
+*   **Parametri**: `StatoPubblicazione` (null = nessuna scheda), `Clonabile` (cambia il solo tooltip del caso "senza scheda"), `OnClick` (se valorizzato l'icona è cliccabile), `Disabled`, `Size`.
+*   **Regole e testi** stanno in `Models/Web/StatoContenutoWeb.cs` (`ContenutoWebRules`), come per `StatoPartenzaChip`: il componente fa solo la resa grafica. Uno stato non previsto non viene nascosto, viene segnalato.
+*   **Usato da**: `ViaggioDatesManager` (colonna AZIONI) e — indirettamente, tramite le stesse regole — dal selettore edizione dei contenuti web.
+
+### WebCreaContenutoDialog
+Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoDialog.razor`): **da zero** oppure **clonando** da un'altra partenza dello stesso viaggio.
+*   **Unico proprietario dell'operazione**. Richiamato da due punti di ingresso — la griglia delle date e la scheda Contenuti Web — perché la logica del clone non è banale e duplicarla vorrebbe dire mantenerne due copie divergenti.
+*   **Contiene il controllo sulle durate diverse**: confronta le giornate di itinerario dell'origine con la durata della partenza di destinazione e, se non coincidono, chiede se rinunciare o clonare solo le prime N giornate (vedi `SqlScripts/505`).
+*   **Default ragionato**: se esiste almeno una sorgente, parte già su "Clona" — su uno stesso viaggio è quasi sempre ciò che si vuole, cambiano solo le date — e preseleziona l'unica sorgente quando è una sola. Resta una scelta esplicita, non un automatismo.
+*   **Parametri**: `ViaggioId`, `AziendaId`, `Destinazione` (l'`EdizioneViaggio` su cui creare), `Sorgenti` (edizioni con scheda), `DescrizioneBreve` (per costruire lo slug della scheda nuova). Chiude con `DialogResult.Ok(long)` = id della scheda creata.
+*   **Avvisa** che foto e mappe della copia restano **gli stessi file** dell'originale: eliminandoli dalla partenza di origine spariscono anche dalla copia.
+
 ### EnterpriseDataGrid
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
@@ -952,6 +968,8 @@ I contenuti web sono **per-edizione**: `web_tour_contenuti` è figlio di **(viag
 *   **WebEdizioniManager** (`Components/Shared/WebEdizioniManager.razor`): unico tab "Contenuti Web" nel dialog viaggio. **Selettore edizione** (`fn_web_edizioni_per_viaggio`): ogni data del viaggio con dal–al + chip "con/senza contenuto" e "effettuato/da effettuare" (`data_viaggio_effettuato_sino`). Data senza contenuto → **Crea** (nuovo bozza) o **Clona da** un'altra edizione; data con contenuto → 5 sotto-tab (Contenuti/Itinerario/Galleria/Mappa/Traduzioni) su `ContenutoId` + **Anteprima**.
 *   **WebTourAnteprimaDialog** (`Components/Shared/WebTourAnteprimaDialog.razor`): anteprima IT read-only del contenuto (sottotitolo, descrizione, itinerario+passi, galleria, mappa), speculare al sito.
 *   **Chip di stato del selettore edizione.** Due informazioni distinte, entrambe con tooltip: *"Con contenuto (stato)"* riguarda la **scheda web**; l'altro riguarda la **partenza**.
+*   **`StatoContenutoWebIcon`** (`Components/Shared/StatoContenutoWebIcon.razor`): icona con lo stato della scheda web di una partenza (senza scheda / bozza / pubblicata / archiviata) e relativo tooltip; quando la scheda manca è cliccabile e apre `WebCreaContenutoDialog`. Regole e testi in `ContenutoWebRules`.
+*   **`WebCreaContenutoDialog`** (`Components/Shared/WebCreaContenutoDialog.razor`): dialogo "crea da zero o clona", unico proprietario dell'operazione (compreso il controllo sulle durate diverse fra partenze). Usato dalla griglia delle date e dalla scheda Contenuti Web.
 *   **`StatoPartenzaChip`** (`Components/Shared/StatoPartenzaChip.razor`): chip riusabile con lo stato della partenza e il relativo tooltip. Parametri `Effettuato` (required), `DataFine`, `SoloIcona` (per le colonne strette delle griglie: resta l'icona, il significato non si perde perché il tooltip è lo stesso). Usato dal selettore edizione dei contenuti web e dalla colonna EFFETT. di `ViaggioDatesManager`. La sola resa grafica: regole e testi stanno in `StatoPartenzaRules`, così la stessa lettura vale ovunque si ragioni su una partenza (contenuti web, elenco date, calendario).
 *   **Pubblicabilità** (`StatoPartenzaRules.MotivoNonPubblicabile`): un'edizione si pubblica solo se **deve ancora partire** (data di inizio ≥ giorno successivo a oggi) e **non è già effettuata** — pubblicare una partenza già avviata non serve, nessuno può più prenotarla. Il gating in `WebTourContenutiTab.Salva` è una catena esclusiva: *partenza non pubblicabile* → *sotto-tab incompleti* → *verifiche non bloccanti*. Come il resto del gating, l'enforcement è **UI**; la difesa DB-first resta il passo previsto e non ancora fatto.
 *   **Stato della partenza** (`StatoPartenzaRules`, unica sede di regole e testi): non basta il flag `ana_date_viaggi.data_viaggio_effettuato_sino` (la spunta "Viaggio Effettuato" della scheda Date, la stessa delle statistiche viaggi fatti/da fare) — va **incrociato con la data di fine**, perché le due informazioni possono contraddirsi ed è la contraddizione che l'operatore deve vedere:

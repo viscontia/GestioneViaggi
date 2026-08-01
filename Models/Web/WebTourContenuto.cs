@@ -68,4 +68,16 @@ public sealed record EdizioneViaggio(
     /// numero di giorni viene cambiato dopo, le partenze già esistenti mantengono la loro durata.
     /// </summary>
     public int? Giorni => DataInizio is { } i && DataFine is { } f ? (f.Date - i.Date).Days + 1 : null;
+
+    /// <summary>Etichetta dell'edizione per selettori e messaggi. Nel modello perché serve in più punti (selettore, dialogo di creazione, conferme).</summary>
+    public string Etichetta
+    {
+        get
+        {
+            var range = $"{DataInizio?.ToString("dd/MM/yyyy") ?? "?"} – {DataFine?.ToString("dd/MM/yyyy") ?? "?"}";
+            var stato = HaContenuto ? $"• {StatoPubblicazione}" : "• senza contenuto";
+            var eff = Effettuato ? " • effettuato" : "";
+            return $"{range} {stato}{eff}";
+        }
+    }
 }

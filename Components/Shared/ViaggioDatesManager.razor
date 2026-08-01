@@ -3,6 +3,8 @@
 @using GestioneViaggi.Services.Printing
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 
 @inject IRoomingListPrintService RoomingListPrintService
 @inject IPdfOpenerService PdfOpenerService
@@ -20,7 +22,7 @@
             CellStyle="text-align:center; padding:4px;"
             HeaderStyle="text-align:center;" StickyLeft="true">
             <CellTemplate>
-                <div style="display: inline-flex; align-items: center; gap: 4px;">
+                <div style="display: inline-flex; align-items: center; gap: 0px;">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning"
                         OnClick="@(() => EditDate(context.Item))" title="Modifica" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -35,6 +37,20 @@
                             OnClick="@(() => OpenPrintDialog(context.Item))" title="Stampa Scheda Data Viaggio" />
                         <MudIconButton Icon="@Icons.Material.Filled.Hotel" Size="Size.Small" Color="Color.Primary"
                             OnClick="@(() => PrintRoomingList(context.Item))" title="Stampa Rooming List" />
+
+                        @* Stato della scheda web della partenza. Qui, e non solo nella scheda Contenuti Web,
+                           perché è da questo elenco che si ragiona sulle partenze: senza, per sapere quali
+                           hanno una scheda bisogna entrare e cambiare edizione una per una. Quando manca, è
+                           anche la scorciatoia per crearla o clonarla. *@
+                        @if (EdizioneDi(context.Item) is { HaContenuto: true } conScheda)
+                        {
+                            <StatoContenutoWebIcon StatoPubblicazione="@conScheda.StatoPubblicazione" />
+                        }
+                        else
+                        {
+                            <StatoContenutoWebIcon StatoPubblicazione="null" Clonabile="@_sorgentiClone.Any()"
+                                OnClick="@(() => CreaContenutoWeb(context.Item))" />
+                        }
                     }
                 </div>
             </CellTemplate>
@@ -94,6 +110,7 @@
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
     [Inject] AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+    [Inject] WebTourContenutiService ContenutiService { get; set; } = default!;
 
     [Parameter] public List<AnaDataViaggio> Dates { get; set; } = new();
 
@@ -107,6 +124,66 @@
 
     [Parameter] public EventCallback DatesChanged { get; set; } // To notify parent of changes (count/content)
     [Parameter] public EventCallback OnTripDeleted { get; set; } // To notify parent that trip was deleted (orphaned)
+
+    // Stato web delle partenze: una sola query per tutta la griglia, non una per riga.
+    private List<EdizioneViaggio> _edizioni = new();
+    private IEnumerable<EdizioneViaggio> _sorgentiClone => _edizioni.Where(e => e.HaContenuto);
+
+    protected override async Task OnInitializedAsync() => await CaricaEdizioniWebAsync();
+
+    /// <summary>
+    /// Stato web di una partenza. Null se non è ancora stato letto (griglia in modalità non-live o
+    /// data appena aggiunta): in quel caso la riga si comporta come "senza scheda", che è corretto.
+    /// </summary>
+    private EdizioneViaggio? EdizioneDi(AnaDataViaggio d) => _edizioni.FirstOrDefault(e => e.DataViaggioId == d.Id);
+
+    private async Task CaricaEdizioniWebAsync()
+    {
+        if (!IsLiveMode || TripId == 0 || AziendaId == 0) { _edizioni = new(); return; }
+        try { _edizioni = await ContenutiService.ListEdizioniAsync(TripId, AziendaId); }
+        catch { _edizioni = new(); } // lo stato web è un di più: se non si legge, la griglia deve restare usabile
+    }
+
+    /// <summary>
+    /// Scorciatoia dalla griglia delle date: crea la scheda web della partenza, da zero o clonandola.
+    /// L'operazione sta tutta nel dialogo condiviso, lo stesso usato dalla scheda Contenuti Web.
+    /// </summary>
+    private async Task CreaContenutoWeb(AnaDataViaggio d)
+    {
+        if (d.Id == 0)
+        {
+            Snackbar.Add("Salva prima la data, poi potrai crearne la scheda web.", Severity.Warning);
+            return;
+        }
+
+        // Riletto ora: fra l'apertura della griglia e questo clic possono essere nate altre schede,
+        // e l'elenco delle sorgenti del clone deve essere quello vero.
+        await CaricaEdizioniWebAsync();
+
+        var destinazione = EdizioneDi(d) ?? new EdizioneViaggio(d.Id, d.DataInizio, d.DataFine, false, null, null);
+        if (destinazione.HaContenuto)
+        {
+            Snackbar.Add("Questa partenza ha già una scheda web.", Severity.Info);
+            StateHasChanged();
+            return;
+        }
+
+        var parameters = new DialogParameters<WebCreaContenutoDialog>
+        {
+            { x => x.ViaggioId, TripId },
+            { x => x.AziendaId, AziendaId },
+            { x => x.Destinazione, destinazione },
+            { x => x.Sorgenti, _sorgentiClone.ToList() },
+            { x => x.DescrizioneBreve, Trip?.DescrizioneBreve }
+        };
+        var dialog = await DialogService.ShowAsync<WebCreaContenutoDialog>("Nuova scheda web", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
+
+        if ((await dialog.Result)!.Canceled) return;
+
+        await CaricaEdizioniWebAsync();
+        Snackbar.Add("Completa i contenuti nella scheda \"Contenuti Web\" del viaggio.", Severity.Info);
+    }
 
     public async Task AddDate()
     {

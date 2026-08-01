@@ -26,14 +26,14 @@ else
                    Variant="Variant.Outlined" Dense="true" Style="min-width:340px;">
             @foreach (var e in _edizioni)
             {
-                <MudSelectItem T="int" Value="e.DataViaggioId">@FormatEdizione(e)</MudSelectItem>
+                <MudSelectItem T="int" Value="e.DataViaggioId">@e.Etichetta</MudSelectItem>
             }
         </MudSelect>
 
         @if (_selected != null)
         {
             <MudTooltip Text="@(_selected.HaContenuto
-                                ? $"Questa edizione ha una scheda web, in stato \"{_selected.StatoPubblicazione}\"."
+                                ? $"Questa edizione ha una scheda web, in stato \"{_selected.StatoPubblicazione}\". Puoi riusarla su un'altra data: seleziona quella data e clonala, invece di rifare tutto."
                                 : "Questa edizione non ha ancora una scheda web: creala o clonala da un'altra data.")">
                 <MudChip T="string" Size="Size.Small" Icon="@(_selected.HaContenuto ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
                          Color="@(_selected.HaContenuto ? Color.Success : Color.Default)">
@@ -90,23 +90,19 @@ else
     else if (!_selected.HaContenuto)
     {
         <MudPaper Outlined="true" Class="pa-4">
-            <MudText Class="mb-3">Nessun contenuto web per questa data. Puoi crearne uno nuovo o clonarlo da un'altra edizione dello stesso viaggio.</MudText>
-            <div class="d-flex align-center gap-3 flex-wrap">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                           Disabled="@_busy" OnClick="Crea">Crea contenuto</MudButton>
+            <MudText Class="mb-3">
+                Nessun contenuto web per questa data.
                 @if (_edizioniConContenuto.Any())
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">oppure clona da:</MudText>
-                    <MudSelect T="long?" @bind-Value="_cloneSourceId" Label="Edizione sorgente" Variant="Variant.Outlined" Dense="true" Style="min-width:300px;">
-                        @foreach (var e in _edizioniConContenuto)
-                        {
-                            <MudSelectItem T="long?" Value="e.ContenutoId">@FormatEdizione(e)</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ContentCopy"
-                               Disabled="@(_busy || _cloneSourceId == null)" OnClick="Clona">Clona</MudButton>
+                    <text>Puoi crearne uno nuovo oppure <b>clonarlo</b> da un'altra partenza dello stesso viaggio, che copia anche itinerario, foto, mappe e traduzioni già approvate.</text>
                 }
-            </div>
+                else
+                {
+                    <text>Creane uno nuovo: quando un'altra partenza di questo viaggio avrà una scheda, potrai anche clonarla invece di rifare tutto.</text>
+                }
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       Disabled="@_busy" OnClick="CreaOppureClona">Crea contenuto</MudButton>
         </MudPaper>
     }
     else
@@ -156,7 +152,6 @@ else
     private List<EdizioneViaggio> _edizioni = new();
     private EdizioneViaggio? _selected;
     private int _selectedDataId;
-    private long? _cloneSourceId;
     private bool _loading = true;
     private bool _busy;
     private int _activeSubTabIndex;
@@ -279,7 +274,6 @@ else
 
         _selectedDataId = dataId;
         _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == dataId);
-        _cloneSourceId = null;
         await CaricaStatiAsync(); // il semaforo dell'edizione precedente non deve restare acceso
     }
 
@@ -336,121 +330,30 @@ else
         return true; // Scarta: procedi perdendo le modifiche
     }
 
-    private async Task Crea()
+    /// <summary>
+    /// Apre il dialogo che crea la scheda web di questa edizione, da zero o clonandola. L'operazione
+    /// vive tutta nel dialogo (compreso il controllo sulle durate diverse) perché lo stesso punto di
+    /// ingresso serve anche dalla griglia delle date: duplicarla qui vorrebbe dire mantenerne due copie.
+    /// </summary>
+    private async Task CreaOppureClona()
     {
         if (_selected == null) return;
-        _busy = true;
-        try
+
+        var parameters = new DialogParameters<WebCreaContenutoDialog>
         {
-            var nuovo = await ContenutiService.CreateAsync(new WebTourContenuto
-            {
-                ViaggioIdFk = ViaggioId,
-                DataViaggioIdFk = _selected.DataViaggioId,
-                AziendaId = AziendaId,
-                Slug = BuildSlug(_selected),
-                StatoPubblicazione = "bozza"
-            });
-            Snackbar.Add("Contenuto creato.", Severity.Success);
-            await ReloadAsync();
-            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
-        }
-        catch (Exception ex) { Snackbar.Add($"Errore creazione: {ex.Message}", Severity.Error); }
-        finally { _busy = false; }
-    }
+            { x => x.ViaggioId, ViaggioId },
+            { x => x.AziendaId, AziendaId },
+            { x => x.Destinazione, _selected },
+            { x => x.Sorgenti, _edizioniConContenuto.ToList() },
+            { x => x.DescrizioneBreve, DescrizioneBreve }
+        };
+        var dialog = await DialogService.ShowAsync<WebCreaContenutoDialog>("Nuova scheda web", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
 
-    /// <summary>
-    /// Confronta le giornate che verrebbero copiate con la durata della partenza di destinazione e,
-    /// se non coincidono, lascia decidere all'utente. Il caso è reale: il trigger sulle date valida la
-    /// durata solo quando la data viene inserita o modificata, quindi cambiando il numero di giorni in
-    /// anagrafica le partenze già esistenti mantengono la loro (verificato: stesso viaggio con una
-    /// partenza di 6 giorni e una di 4). Ci si arriva anche con un itinerario di origine incompleto.
-    /// Ritorna null se l'utente rinuncia, altrimenti il limite di giornate da passare al clone.
-    /// </summary>
-    private async Task<(bool Procedi, int? MaxGiornate)> ChiediGiornateDaClonareAsync(long sorgenteId)
-    {
-        var sorgente = _edizioni.FirstOrDefault(e => e.ContenutoId == sorgenteId);
-        var stato = await ContenutiService.GetStatoSezioniAsync(sorgenteId, AziendaId, WebTraduzioneOrchestratorService.Lingue);
-        var giornate = stato?.NumeroGiornate ?? 0;
-        var durataDest = _selected?.Giorni;
+        if ((await dialog.Result)!.Canceled) return;
 
-        // Senza itinerario da copiare o senza date sulla destinazione non c'è nulla da confrontare.
-        if (giornate == 0 || durataDest is not { } giorniDest || giornate == giorniDest) return (true, null);
-
-        var righeOrigine = sorgente == null ? "" : $" (dal {sorgente.DataInizio:dd/MM/yyyy} al {sorgente.DataFine:dd/MM/yyyy})";
-        var righeDest = $" (dal {_selected!.DataInizio:dd/MM/yyyy} al {_selected.DataFine:dd/MM/yyyy})";
-
-        string messaggio;
-        string testoConferma;
-        int? max;
-
-        if (giornate > giorniDest)
-        {
-            // Destinazione più corta: si copiano solo le giornate che ci stanno. L'ultima va rivista a
-            // mano perché accorciare il viaggio cambia il finale, e non è una decisione automatizzabile.
-            var scartate = giornate - giorniDest;
-            // Testi montati fuori dall'interpolazione: il parser Razor si perde sulle stringhe
-            // interpolate annidate dentro un'altra interpolata.
-            var frasePerse = scartate == 1
-                ? "l'ultima giornata non verrà copiata"
-                : $"le ultime {scartate} giornate non verranno copiate";
-            messaggio =
-                $"L'edizione di origine{righeOrigine} ha <b>{giornate} giornate</b> di itinerario, " +
-                $"ma la partenza di destinazione{righeDest} dura <b>{giorniDest} giorni</b>.<br/><br/>" +
-                $"Clonando, verrebbero copiate solo le prime <b>{giorniDest} giornate</b>: " +
-                $"{frasePerse}, " +
-                "insieme alle mappe abbinate.<br/><br/>" +
-                $"<b>Serve poi una verifica manuale</b>: la giornata {giorniDest} dell'itinerario clonato descrive una tappa intermedia, " +
-                "non una conclusione. In un viaggio più corto il finale cambia (si rientra al punto di partenza? ci si ferma dove si è arrivati?) " +
-                "e va riscritto a mano.";
-            testoConferma = $"Clona le prime {giorniDest} giornate";
-            max = giorniDest;
-        }
-        else
-        {
-            // Destinazione più lunga: si copia tutto, ma resteranno giornate scoperte.
-            var mancanti = giorniDest - giornate;
-            var fraseMancanti = mancanti == 1
-                ? "resterà 1 giornata da scrivere a mano"
-                : $"resteranno {mancanti} giornate da scrivere a mano";
-            messaggio =
-                $"L'edizione di origine{righeOrigine} ha <b>{giornate} giornate</b> di itinerario, " +
-                $"ma la partenza di destinazione{righeDest} dura <b>{giorniDest} giorni</b>.<br/><br/>" +
-                $"Verranno clonate tutte le {giornate} giornate disponibili: {fraseMancanti}.";
-            testoConferma = "Clona comunque";
-            max = null;
-        }
-
-        var conferma = await DialogService.ShowMessageBox(new MessageBoxOptions
-        {
-            Title = "Le giornate non coincidono",
-            MarkupMessage = new MarkupString(messaggio),
-            YesText = testoConferma,
-            CancelText = "Non clonare"
-        });
-
-        return conferma == true ? (true, max) : (false, null);
-    }
-
-    private async Task Clona()
-    {
-        if (_selected == null || _cloneSourceId == null) return;
-
-        var (procedi, maxGiornate) = await ChiediGiornateDaClonareAsync(_cloneSourceId.Value);
-        if (!procedi) return;
-
-        _busy = true;
-        try
-        {
-            await ContenutiService.ClonaAsync(_cloneSourceId.Value, _selected.DataViaggioId, AziendaId, maxGiornate);
-            Snackbar.Add(maxGiornate is { } n
-                ? $"Contenuto clonato con le prime {n} giornate: rivedi la giornata {n}, era una tappa intermedia."
-                : "Contenuto clonato.", Severity.Success);
-            _cloneSourceId = null;
-            await ReloadAsync();
-            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
-        }
-        catch (Exception ex) { Snackbar.Add($"Errore clone: {ex.Message}", Severity.Error); }
-        finally { _busy = false; }
+        await ReloadAsync();
+        _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
     }
 
     /// <summary>
@@ -484,7 +387,7 @@ else
         {
             Title = "Eliminare la scheda web?",
             MarkupMessage = new MarkupString(
-                $"Stai per eliminare la scheda di contenuti web dell'edizione <b>{FormatEdizione(_selected)}</b>.<br/><br/>" +
+                $"Stai per eliminare la scheda di contenuti web dell'edizione <b>{_selected.Etichetta}</b>.<br/><br/>" +
                 elenco +
                 "<br/><b>L'operazione non è reversibile</b> e non esiste un cestino da cui recuperarla.<br/><br/>" +
                 "I file di foto e mappe restano in archivio (possono essere condivisi con una scheda clonata), " +
@@ -522,32 +425,4 @@ else
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true, Position = DialogPosition.Center });
     }
 
-    private string FormatEdizione(EdizioneViaggio e)
-    {
-        var range = $"{e.DataInizio?.ToString("dd/MM/yyyy") ?? "?"} – {e.DataFine?.ToString("dd/MM/yyyy") ?? "?"}";
-        var stato = e.HaContenuto ? $"• {e.StatoPubblicazione}" : "• senza contenuto";
-        var eff = e.Effettuato ? " • effettuato" : "";
-        return $"{range} {stato}{eff}";
-    }
-
-    private string BuildSlug(EdizioneViaggio e)
-    {
-        var baseSlug = Slugify(DescrizioneBreve);
-        var suffix = e.DataInizio?.ToString("yyyy-MM-dd") ?? _selectedDataId.ToString();
-        return string.IsNullOrEmpty(baseSlug) ? $"tour-{suffix}" : $"{baseSlug}-{suffix}";
-    }
-
-    private static string Slugify(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
-        var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
-        var sb = new StringBuilder(normalized.Length);
-        foreach (var c in normalized)
-        {
-            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark) continue;
-            sb.Append(char.IsLetterOrDigit(c) ? c : '-');
-        }
-        var slug = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-{2,}", "-").Trim('-');
-        return slug.Length > 140 ? slug[..140].Trim('-') : slug;
-    }
 }

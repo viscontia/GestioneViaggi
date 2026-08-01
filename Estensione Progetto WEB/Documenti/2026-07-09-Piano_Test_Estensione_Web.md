@@ -484,3 +484,31 @@ la cancellazione di una partenza futura (sezione 31), che i contenuti web tengon
 - ☐ **Attenzione ai file condivisi**: dopo aver eliminato una scheda clonata, aprire la scheda di origine e
   controllare che **foto e mappe si vedano ancora**. I file su Storage non vengono cancellati proprio
   perché possono essere condivisi fra originale e copia.
+
+## 33. Stato web nella griglia delle date e scorciatoia "crea o clona"
+
+Nasce da una difficoltà reale emersa in collaudo: il clone esisteva solo dentro il selettore edizione
+dei contenuti web, e compariva **solo** selezionando un'edizione priva di contenuti. Chi non ci capitava
+per caso non sapeva che il clone esistesse.
+
+Scheda **Date e Costi** del viaggio, colonna AZIONI (ultima icona):
+
+- ☐ **L'icona riflette lo stato** della scheda web di quella partenza: grigia barrata *senza scheda*,
+  gialla *bozza*, verde *pubblicata*, grigia con scatola *archiviata*.
+- ☐ **Tooltip sempre presente**, diverso per ogni stato. Su *pubblicata* ricorda che la scheda sparisce
+  dal sito da sola quando la partenza inizia; su *archiviata* che per il sito è come una bozza.
+- ☐ **Cliccabile solo quando manca la scheda**: sulle partenze che ce l'hanno l'icona è informativa e
+  non risponde al clic.
+- ☐ **Clic su "senza scheda"** → si apre "Nuova scheda web" con le due opzioni.
+- ☐ **Con almeno una sorgente disponibile**, il dialogo parte già su *Clona*, e con una sola sorgente la
+  preseleziona. Con nessuna sorgente l'opzione *Clona* è disabilitata e spiega perché.
+- ☐ **Crea da zero** → l'icona diventa gialla (bozza) senza ricaricare la form.
+- ☐ **Clona** → stessa cosa, e la scheda risulta già compilata aprendo Contenuti Web.
+- ☐ **Durate diverse**: clonando su una partenza di durata diversa compare il dialogo della sezione 29
+  anche da qui — è lo stesso codice, non una seconda copia.
+- ☐ **Coerenza con la scheda Contenuti Web**: il pulsante "Crea contenuto" del selettore edizione apre
+  **lo stesso** dialogo. Le due strade devono comportarsi in modo identico.
+- ☐ **Modalità non-live** (viaggio nuovo, non ancora salvato): l'icona web non compare, come le altre
+  azioni che richiedono una data salvata.
+- ☐ **Spaziatura**: le icone della colonna AZIONI sono più ravvicinate e la colonna resta leggibile con
+  tutte e sette le icone.
