@@ -3,6 +3,13 @@
 ## Libreria Componenti (Shared)
 È stata avviata la creazione di una libreria di componenti personalizzati per garantire riutilizzabilità e coerenza grafica.
 
+### StatoPartenzaChip
+Stato di una partenza (`Components/Shared/StatoPartenzaChip.razor`), come chip o sola icona, con tooltip esplicativo.
+*   **Non è un semplice "sì/no"**: incrocia il flag *Viaggio Effettuato* (`ana_date_viaggi.data_viaggio_effettuato_sino`) con la **data di fine**, perché le due informazioni possono contraddirsi ed è la contraddizione che l'operatore deve vedere. Quattro casi: conclusa e registrata · **conclusa ma non registrata** (anomalia) · in programma (normale) · **spuntata ma non ancora conclusa** (anomalia).
+*   **Parametri**: `Effettuato` (required), `DataFine`, `Size`, `SoloIcona` (colonne strette: resta l'icona, il significato non si perde perché il tooltip è lo stesso).
+*   **Regole e testi** stanno in `Models/Web/StatoPartenza.cs` (`StatoPartenzaRules`): il componente fa solo la resa grafica, così la stessa lettura vale ovunque. Lì c'è anche `MotivoNonPubblicabile`, che decide se un'edizione è pubblicabile sul sito.
+*   **Usato da**: `ViaggioDatesManager` (colonna EFFETT.) e `WebEdizioniManager` (selettore edizione). Dettagli nella sezione contenuti web.
+
 ### EnterpriseDataGrid
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
