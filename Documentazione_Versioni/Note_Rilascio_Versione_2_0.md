@@ -28,6 +28,9 @@ Il gestionale diventa l'**unico motore di contenuti** per il nuovo sito pubblico
 Implementate ma da collaudare prima di promuoverle sopra. Le voci qui sotto **non sono state esercitate** nel ciclo di test 2026-07-25 → 08-01: per alcune manca il dato di prova, per altre serve il sito pubblico (Fase 3).
 
 - [ ] **Clonazione** di una scheda web su un'altra edizione (creazione e anteprima già verificate)
+- [ ] **Clonazione fra partenze di durata diversa**: se l'edizione di destinazione dura meno di quella di origine, il programma se ne accorge e chiede se rinunciare o clonare solo le prime giornate, avvertendo che l'ultima va rivista a mano
+- [ ] **Eliminazione di una scheda web** (solo bozza o archiviata), con conferma che elenca giornate, foto, mappe e traduzioni che spariscono. Serve anche a sbloccare la cancellazione di una partenza futura
+- [ ] **Il sito non mostra partenze già iniziate**: filtro sulla data di inizio in lettura — verificabile solo con il frontend pubblico (Fase 3)
 - [ ] Capienza e "posti rimasti" per tour — la capienza si imposta dal gestionale, ma *posti rimasti* è un dato che espone il **sito pubblico**: verificabile solo con il frontend (Fase 3)
 - [ ] Tour brevi / giornalieri — nessun tipo viaggio ancora marcato come breve
 - [ ] Newsletter multilingua (invio, iscrizione/disiscrizione, destinatari) — nessun invio né iscritto sul database di prova
