@@ -1,4 +1,5 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Semantic
 @using MudBlazor
 @using Microsoft.JSInterop
 @using GestioneViaggi.Validation.Business
@@ -103,7 +104,7 @@
 
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_dataNascitaField" @bind-Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
-                                        Label="Data di Nascita" Variant="Variant.Outlined" Editable="true"
+                                        Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         HelperText="Es: 15/03/1990" />
                                 </MudItem>
@@ -239,13 +240,13 @@
 
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_docRilDataField" @bind-Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
-                                        Label="Data Rilascio" Variant="Variant.Outlined" Editable="true"
+                                        Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_docScadenzaField" @bind-Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
-                                        Label="Data Scadenza" Variant="Variant.Outlined" Editable="true"
+                                        Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataScadenza(d))" />
                                 </MudItem>

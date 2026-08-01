@@ -289,6 +289,9 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
   **04/12/2026**, nessuna fuori da 2000–2100. Lo **script `509` si applica senza riparazioni**.
 - ✅ Nessuna data di nascita cliente implausibile, nessuna transazione o partenza collocata molto avanti
   nel futuro.
+- ✅ **Verifica estesa a clienti e aziende (2026-08-01)**: nessuna data di nascita futura o precedente al 1900,
+  nessun documento con rilascio futuro o scadenza fuori scala, nessuna azienda con costituzione, inizio
+  attività o iscrizione REA futura o precedente al 1900. **Zero righe da correggere.**
 - ⚠️ **Una data sbagliata trovata**, in contabilità:
 
   | tabella | id | campo | valore | valore corretto (evidente) |

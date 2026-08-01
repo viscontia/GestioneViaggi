@@ -189,7 +189,10 @@ public static class ClienteValidator
             return ValidationResult.Failure("Inserisci una data di nascita valida", "data_nascita_required");
         }
 
-        var minBirthDate = DateTime.Now.AddYears(-90);
+        // Il limite era DateTime.Now.AddYears(-90): rifiutava un cliente di 91 anni, cioè un dato vero.
+        // Ora il pavimento è assoluto (1900) e resta comunque stretto abbastanza da fermare i refusi
+        // sull'anno, che è il caso realmente frequente. Vedi Documents/Digitazione_Date.md.
+        var minBirthDate = Semantic.DateValidator.DataMinimaStorica;
         var maxBirthDate = DateTime.Now.AddDays(-1); // Ieri
 
         if (dataNascita.Value < minBirthDate)
@@ -359,6 +362,15 @@ public static class ClienteValidator
             return ValidationResult.Failure("La data di rilascio non può essere nel futuro", "data_rilascio_future");
         }
 
+        // Pavimento assoluto: senza, un anno assurdo nel passato passava ogni volta che la data di
+        // nascita non era compilata (l'unico controllo che lo intercettava era il confronto con quella).
+        var annoRilascio = Semantic.DateValidator.CheckAnnoPlausibile(
+            dataRilascio, "La data di rilascio", Semantic.DateValidator.AnnoMinimoStorico);
+        if (!annoRilascio.IsValid)
+        {
+            return ValidationResult.Failure(annoRilascio.ErrorMessage, "data_rilascio_anno");
+        }
+
         // Deve essere successiva alla data di nascita
         if (dataNascita.HasValue && dataRilascio.Value <= dataNascita.Value)
         {
@@ -393,6 +405,14 @@ public static class ClienteValidator
         if (dataScadenza.Value < DateTime.Now.Date)
         {
             return ValidationResult.Failure("Il documento risulta scaduto", "documento_scaduto");
+        }
+
+        // Un documento che scade nel 2202 passava: il controllo sopra guarda solo il passato.
+        var annoScadenza = Semantic.DateValidator.CheckAnnoPlausibile(
+            dataScadenza, "La data di scadenza", Semantic.DateValidator.AnnoMinimoStorico);
+        if (!annoScadenza.IsValid)
+        {
+            return ValidationResult.Failure(annoScadenza.ErrorMessage, "data_scadenza_anno");
         }
 
         // Deve essere successiva alla data di rilascio

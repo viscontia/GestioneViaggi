@@ -246,15 +246,31 @@ L'anno passato non pesa uguale ovunque, quindi `MotivoDaConfermare` prende `anni
 | **Viaggi** (`ViaggioDateDialog`) | `0` (default) | una partenza non si programma nell'anno scorso: si conferma **sempre** |
 | **Contabilità** (`MovTransazioniEditDialog`, `PagaOraDialog`) | `DateValidator.AnniIndietroContabilita` = `1` | a inizio anno si chiude legittimamente l'esercizio precedente: chiedere conferma su ogni registrazione sarebbe solo un fastidio |
 
-In entrambi i casi si conferma da **due** anni indietro in su, e oltre **5** anni nel futuro. Il blocco
-2000–2100 invece vale uguale dappertutto.
+In entrambi i casi si conferma da **due** anni indietro in su, e oltre **5** anni nel futuro.
+
+### Due pavimenti, non uno solo
+
+⚠️ **Il pavimento 2000 vale solo per le date operative.** Applicarlo a una data di nascita o alla
+costituzione di una società sarebbe sbagliato: chi è nato nel 1960 o un'azienda fondata nel 1975 sono
+dati del tutto normali.
+
+| tipo di data | pavimento | metodo |
+|---|---|---|
+| **operative** — partenze, transazioni, pagamenti | `AnnoMinimo` = **2000** | `CheckAnnoPlausibile(...)` |
+| **storiche** — nascita, costituzione, inizio attività, REA, rilascio documento | `AnnoMinimoStorico` = **1900** | `CheckDataStorica(...)` |
+
+`CheckDataStorica` fa i due controlli assoluti che servono sempre insieme — anno entro 1900–2100 **e**
+data non futura — con `ammetteFutura: true` per i casi che possono legittimamente stare avanti (la
+scadenza di un documento). Per le storiche la conferma non è "l'anno è passato" (sarebbe la norma) ma
+`MotivoDaConfermareStorica`: oltre **100 anni** indietro.
 
 ### Stato dei campi data nell'applicazione
 
 Tutti i `MudDatePicker` hanno `DateFormat="dd/MM/yyyy"` (allineamento del 2026-08-01: ne mancava in
-**16** campi). La validazione di plausibilità è nelle form che **registrano** dati — partenze,
-transazioni, pagamento immediato — mentre i dialoghi di stampa hanno solo il formato, perché i loro
-campi sono filtri e non finiscono su nessuna tabella.
+**16** campi) e i limiti di calendario `MinDate`/`MaxDate`. La validazione di plausibilità è nelle form
+che **registrano** dati — partenze, transazioni, pagamento immediato, clienti, aziende — mentre i
+dialoghi di stampa hanno solo il formato, perché i loro campi sono filtri e non finiscono su nessuna
+tabella.
 
 ---
 

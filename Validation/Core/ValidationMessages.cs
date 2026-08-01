@@ -35,6 +35,7 @@ public static class ValidationMessages
     public const string AnnoNonPlausibile = "L'anno indicato non è plausibile. Sono ammesse date comprese tra il {0} e il {1}: controlla di aver digitato l'anno per intero (es. 2026).";
     public const string DataAnnoPassato = "La data è dell'anno {0}, precedente all'anno in corso.";
     public const string DataTroppoLontana = "La data è a più di {0} anni da oggi.";
+    public const string DataTroppoIndietro = "La data è a più di {0} anni fa.";
     public const string ConfermaDataInsolita = "Confermi di voler usare questa data?";
 
     // SMTP Server Validation

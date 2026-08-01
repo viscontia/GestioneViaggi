@@ -22,6 +22,18 @@ public static class DateValidator
     /// </summary>
     public const int AnniIndietroContabilita = 1;
 
+    /// <summary>
+    /// Primo anno ammesso per le date che guardano indietro <b>per natura</b>: nascita, costituzione di
+    /// una società, rilascio di un documento. Qui il pavimento operativo (2000) sarebbe sbagliato — una
+    /// persona nata nel 1960 o un'azienda costituita nel 1975 sono del tutto normali.
+    /// </summary>
+    public const int AnnoMinimoStorico = 1900;
+
+    /// <summary>Oltre questi anni indietro la data storica è insolita e va confermata (non vietata).</summary>
+    public const int AnniIndietroMassimiStorici = 100;
+
+    public static DateTime DataMinimaStorica => new(AnnoMinimoStorico, 1, 1);
+
     public static DateTime DataMinima => new(AnnoMinimo, 1, 1);
     public static DateTime DataMassima => new(AnnoMassimo, 12, 31);
 
@@ -30,18 +42,57 @@ public static class DateValidator
     /// date sono relative (fine dopo inizio, durata da anagrafica) e restano soddisfatte anche con un
     /// anno assurdo, perché un refuso sposta entrambe le date insieme.
     /// </summary>
-    public static ValidationResult CheckAnnoPlausibile(DateTime? date, string fieldName = "Data")
+    /// <param name="annoMinimo">
+    /// Pavimento da usare: <see cref="AnnoMinimo"/> (2000) per le date operative, <see cref="AnnoMinimoStorico"/>
+    /// (1900) per quelle che guardano indietro per natura.
+    /// </param>
+    public static ValidationResult CheckAnnoPlausibile(DateTime? date, string fieldName = "Data", int? annoMinimo = null)
     {
         if (!date.HasValue) return ValidationResult.Success();
 
-        if (date.Value.Year < AnnoMinimo || date.Value.Year > AnnoMassimo)
+        var minimo = annoMinimo ?? AnnoMinimo;
+        if (date.Value.Year < minimo || date.Value.Year > AnnoMassimo)
         {
             return ValidationResult.Failure(
-                $"{fieldName}: " + string.Format(ValidationMessages.AnnoNonPlausibile, AnnoMinimo, AnnoMassimo),
+                $"{fieldName}: " + string.Format(ValidationMessages.AnnoNonPlausibile, minimo, AnnoMassimo),
                 "CHK_DATE_ANNO_001");
         }
 
         return ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Controlli assoluti per una data <b>storica</b> (nascita, costituzione, rilascio documento): anno entro
+    /// 1900-2100 e, salvo eccezioni, non futura. Raggruppati qui perché sono sempre gli stessi due e ripeterli
+    /// in ogni form è il modo migliore per dimenticarne uno.
+    /// </summary>
+    /// <param name="ammetteFutura">true per le date che possono legittimamente stare avanti (es. scadenza di un documento).</param>
+    public static ValidationResult CheckDataStorica(DateTime? date, string fieldName = "Data", bool ammetteFutura = false)
+    {
+        if (!date.HasValue) return ValidationResult.Success();
+
+        var anno = CheckAnnoPlausibile(date, fieldName, AnnoMinimoStorico);
+        if (!anno.IsValid) return anno;
+
+        if (!ammetteFutura && date.Value.Date > DateTime.Today)
+            return ValidationResult.Failure($"{fieldName} non può essere futura", "CHK_DATE_STORICA_001");
+
+        return ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Motivo per confermare una data storica, o null. Qui "l'anno è passato" non significa nulla — è la norma —
+    /// quindi si guarda il salto indietro: oltre un secolo è possibile ma merita una seconda occhiata.
+    /// </summary>
+    public static string? MotivoDaConfermareStorica(DateTime? date, DateTime? oggi = null)
+    {
+        if (!date.HasValue) return null;
+
+        var riferimento = (oggi ?? DateTime.Today).Date;
+        if (date.Value.Date < riferimento.AddYears(-AnniIndietroMassimiStorici))
+            return string.Format(ValidationMessages.DataTroppoIndietro, AnniIndietroMassimiStorici);
+
+        return null;
     }
 
     /// <summary>

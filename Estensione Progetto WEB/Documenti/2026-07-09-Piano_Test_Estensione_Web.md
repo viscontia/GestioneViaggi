@@ -557,6 +557,32 @@ dialogo **Paga Ora**, con una tolleranza diversa: in contabilità l'anno precede
 - ☐ **Dialoghi di stampa** (bilancio, scadenzario, registro IVA, movimenti): i campi data mostrano e
   interpretano `gg/mm/aaaa`. Qui non c'è validazione di plausibilità perché sono filtri, non dati salvati.
 
+### Stesse verifiche in anagrafica clienti e aziende
+
+Qui il pavimento è **1900**, non 2000: chi è nato nel 1960 o un'azienda costituita nel 1975 sono dati
+normali e non devono essere rifiutati.
+
+**Anagrafica Azienda** (Data Costituzione, Inizio Attività, Iscrizione REA):
+
+- ☐ **Anno assurdo bloccato**: `01011875` sulla costituzione viene rifiutato; `01011975` viene accettato.
+- ☐ **Data futura bloccata**: una costituzione o un inizio attività con data di domani è rifiutata.
+  *(Prima non c'era: `DataCostituzioneFutura` esisteva fra i messaggi ma non era usata da nessuna parte.)*
+- ☐ **Costituzione ora validata**: prima quel campo non aveva **alcun** controllo. Provare a metterci un
+  anno sbagliato e verificare che il messaggio compaia sotto il campo.
+- ☐ **I confronti esistenti reggono ancora**: inizio attività o REA precedenti alla costituzione restano
+  segnalati come prima.
+- ☐ **Oltre 100 anni indietro**: compare l'avviso di verifica, ma **si può salvare** — un'azienda del 1910 esiste.
+
+**Anagrafica Cliente** (Data Nascita, Rilascio e Scadenza documento):
+
+- ☐ **Cliente di 91 anni accettato**: prima veniva **rifiutato** da un limite relativo di 90 anni.
+  Data di nascita 1935 → si salva.
+- ☐ **Nascita prima del 1900 o futura**: rifiutata.
+- ☐ **Rilascio documento con anno assurdo nel passato**: rifiutato **anche lasciando vuota la data di
+  nascita**. *(Prima passava: l'unico controllo era il confronto con la nascita.)*
+- ☐ **Scadenza documento nel 2202**: rifiutata. *(Prima passava: si controllava solo che non fosse già scaduto.)*
+- ☐ **Scadenza documento nel 2035**: accettata, è una scadenza legittima nel futuro.
+
 > ⚠️ **Da rifare sulla partizione Windows 11**: senza `DateFormat` il campo seguiva la lingua del sistema
 > operativo. Sul Mac italiano non si notava; su un Windows configurato in inglese giorno e mese si sarebbero
 > scambiati in silenzio. Il test della digitazione rapida va ripetuto **sulla macchina del cliente**, e vale
