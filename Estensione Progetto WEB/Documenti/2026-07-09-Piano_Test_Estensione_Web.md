@@ -358,3 +358,16 @@ Regola: si pubblica solo una partenza che **deve ancora iniziare** (data di iniz
 - ☐ **Partenza futura ma segnata effettuata**: bloccata con motivo "questa partenza risulta già effettuata".
 - ☐ **Ordine dei controlli**: con partenza non pubblicabile **e** contenuti incompleti, compare il messaggio sulla partenza — e **non** il dialogo "Prima di pubblicare".
 - ☐ **Chip riusabile**: lo stato della partenza accanto al selettore edizione è lo stesso componente (`StatoPartenzaChip`), con tooltip.
+
+## 28. Clonazione della scheda web su un'altra partenza (script `504`)
+
+Il modo normale di riproporre un viaggio che si ripete: si clona e, se serve, si ritocca.
+
+- ☐ **Clone riuscito**: da un'edizione con contenuti, immagini, itinerario, **mappe** e traduzioni, la copia si crea senza errori. *(Prima del 504 falliva con "null value in column descrizione".)*
+- ☐ **Copia in bozza**: la nuova scheda nasce sempre **Bozza** con "Prima pubblicazione" vuota, anche clonando da un'edizione pubblicata.
+- ☐ **Completezza**: giornate, passi, immagini e mappe della copia coincidono per numero con l'originale.
+- ☐ **Mappe di giornata**: ogni mappa della copia è abbinata a una **giornata della copia**, non a quella dell'originale.
+- ☐ **Traduzioni**: la copia risulta **già tradotta e approvata** (semaforo Traduzioni verde) — il testo è identico, non va rivisto da capo. Verificare che compaiano anche i **titoli delle giornate** e le **descrizioni delle mappe**.
+- ☐ **Pubblicabilità**: se la data di destinazione è futura, la copia può essere portata a "Pubblicato" senza ulteriori traduzioni.
+- ☐ **Vincoli**: clonare su una data che ha già un contenuto viene rifiutato con messaggio chiaro; clonare su una data di un altro viaggio è rifiutato.
+- ☐ **Nota**: immagini e mappe della copia puntano agli **stessi file** dell'originale. Eliminando un media dall'edizione sorgente si rompe anche quello della copia (comportamento preesistente).
