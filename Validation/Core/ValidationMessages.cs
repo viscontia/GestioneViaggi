@@ -28,6 +28,15 @@ public static class ValidationMessages
     public const string CognomeTooLong = "Il cognome non può superare i 100 caratteri.";
     public const string RuoloTooLong = "Il ruolo non può superare i 100 caratteri.";
 
+    // Plausibilità delle date (anno)
+    // Nate da un caso reale: una partenza salvata con anno 262 invece di 2026. La maschera dd/MM/yyyy
+    // accetta un anno che comincia per zero, quindi "0262" è formalmente valido e basta un tasto fuori
+    // posto per produrlo. Nessun controllo guardava l'anno: si confrontavano solo le date fra loro.
+    public const string AnnoNonPlausibile = "L'anno indicato non è plausibile. Sono ammesse date comprese tra il {0} e il {1}: controlla di aver digitato l'anno per intero (es. 2026).";
+    public const string DataAnnoPassato = "La data è dell'anno {0}, precedente all'anno in corso.";
+    public const string DataTroppoLontana = "La data è a più di {0} anni da oggi.";
+    public const string ConfermaDataInsolita = "Confermi di voler usare questa data?";
+
     // SMTP Server Validation
     public const string SmtpHostRequired = "L'hostname del server SMTP è obbligatorio.";
     public const string SmtpHostTooLong = "L'hostname non può superare i 253 caratteri.";

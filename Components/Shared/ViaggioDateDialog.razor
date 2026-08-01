@@ -1,4 +1,6 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Core
+@using GestioneViaggi.Validation.Semantic
 @using MudBlazor
 
 <style>
@@ -14,17 +16,23 @@
         <MudForm @ref="_form" Model="@Entity" @bind-IsValid="@_isValid">
             <MudGrid Spacing="2">
                 <!-- Date -->
+                @* DateFormat e Placeholder mancavano, contro la convenzione di Documents/Digitazione_Date.md:
+                   senza DateFormat il campo interpreta il testo con il formato della lingua del sistema
+                   operativo, che sulla macchina del cliente può essere MM/dd/yyyy e scambiare giorno e mese.
+                   MinDate/MaxDate limitano il calendario; il testo digitato lo controlla Submit(). *@
                 <MudItem xs="6">
                     <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" Date="Entity.DataInizio" DateChanged="OnStartDateChanged"
                         Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Mask="@(new DateMask("dd/MM/yyyy"))"
+                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Fine" Date="Entity.DataFine" DateChanged="OnEndDateChanged" Required="true"
                         RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Mask="@(new DateMask("dd/MM/yyyy"))"
-                        Margin="Margin.Dense" 
+                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
+                        Margin="Margin.Dense"
                         HelperText="@GetDurationHelperText()"
                         Error="@IsDurationInvalid()"
                         ErrorText="@($"Durata errata: deve essere {DurationDays} gg")" />
@@ -93,6 +101,7 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] IJSRuntime JS { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
 
     [Parameter] public AnaDataViaggio Entity { get; set; } = new();
 
@@ -160,7 +169,30 @@
         await _form.Validate();
         if (_form.IsValid)
         {
-            // Validate Date Logic
+            // Plausibilità dell'anno: controllo ASSOLUTO, l'unico che intercetta un refuso sull'anno.
+            // Tutti gli altri sono relativi (fine dopo inizio, durata da anagrafica) e restano
+            // soddisfatti anche con un anno assurdo, perché il refuso sposta entrambe le date insieme.
+            foreach (var (data, etichetta) in new[] { (Entity.DataInizio, "Data Inizio"), (Entity.DataFine, "Data Fine") })
+            {
+                var esito = DateValidator.CheckAnnoPlausibile(data, etichetta);
+                if (!esito.IsValid)
+                {
+                    Snackbar.Add(esito.ErrorMessage, Severity.Error);
+                    return;
+                }
+            }
+
+            // Date insolite ma legittime: si chiede conferma invece di vietarle. Copre i refusi che
+            // restano dentro l'intervallo plausibile, dove nessun limite largo può arrivare.
+            if (DateValidator.MotivoDaConfermare(Entity.DataInizio) is { } motivo)
+            {
+                var conferma = await DialogService.ShowMessageBox(
+                    "Data insolita",
+                    $"{motivo} {ValidationMessages.ConfermaDataInsolita}",
+                    yesText: "Sì, è corretta", cancelText: "Correggo");
+                if (conferma != true) return;
+            }
+
             // Validate Date Logic
             if (Entity.DataInizio.HasValue && Entity.DataFine.HasValue)
             {

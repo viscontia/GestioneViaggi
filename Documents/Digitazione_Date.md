@@ -4,6 +4,10 @@
 
 Questo documento descrive la configurazione corretta dei componenti `MudDatePicker` per consentire la **digitazione rapida da tastiera** nelle form gestionali.
 
+> ⚠️ **Leggere prima la sezione "Un anno sbagliato passa senza avvisi"** in fondo. La maschera da sola
+> **non** protegge dai refusi sull'anno: un solo tasto fuori posto produce una data assurda che nessun
+> controllo formale intercetta. Ogni campo data operativo deve avere anche una validazione di plausibilità.
+
 ---
 
 ## Configurazione Standard
@@ -37,8 +41,15 @@ Applica la maschera di input che formatta automaticamente la data durante la dig
 - Utilizzare `DateMask` con il formato `"dd/MM/yyyy"` (NON usare pattern numerici come `"00/00/0000"`)
 - La sintassi corretta è: `new DateMask("dd/MM/yyyy")`
 
-### 3. **DateFormat="dd/MM/yyyy"**
-Deve corrispondere al formato della maschera per garantire coerenza.
+### 3. **DateFormat="dd/MM/yyyy"** — obbligatorio, non cosmetico
+Deve corrispondere al formato della maschera.
+
+⚠️ **Se manca**, il campo non usa `dd/MM/yyyy`: usa il formato breve della **lingua del sistema operativo**
+(`CultureInfo.CurrentCulture.ShortDatePattern`). L'applicazione **non imposta** la cultura da nessuna parte,
+quindi eredita quella del PC. Su una macchina configurata in inglese lo short pattern è `M/d/yyyy`: la
+maschera scrive `01/12/2026` (1° dicembre) e il campo lo rilegge come **12 gennaio**. Giorno e mese si
+scambiano in silenzio, senza errori. Sul Mac di sviluppo non si vede perché la regione è italiana — è
+esattamente il tipo di guasto che compare solo sulla macchina del cliente.
 
 ### 4. **Placeholder="gg/mm/aaaa"**
 Fornisce un suggerimento visivo all'utente sul formato atteso.
@@ -157,7 +168,14 @@ Questa configurazione funziona perfettamente in **MAUI Blazor Hybrid** perché:
 - Nessuna latenza che causa problemi di cursore
 
 ### Differenze con Blazor Server
-⚠️ **Attenzione:** In Blazor Server con alta latenza, la combinazione `Editable="true"` + `Mask` può causare problemi di cursore (bug MudBlazor #6796). Questo NON si applica a MAUI Blazor Hybrid.
+In Blazor Server con alta latenza, la combinazione `Editable="true"` + `Mask` può causare problemi di cursore
+(bug MudBlazor #6796).
+
+⚠️ **Questa nota diceva che il problema "NON si applica a MAUI Blazor Hybrid": è un'assunzione troppo
+ottimistica.** Nel 2026-08 è stata salvata una data con anno **262** da un operatore certo di aver digitato
+2026, e il valore osservato (`0262`) è esattamente quello che si ottiene se **una sola** battuta finisce in
+posizione sbagliata. Non è stato possibile provare il meccanismo dentro la WebView, ma l'assunzione va
+considerata non verificata. La difesa non è sperare che il cursore si comporti bene: è **validare il valore**.
 
 ### Model Binding
 Il campo del modello deve essere di tipo `DateTime?` (nullable):
@@ -170,6 +188,54 @@ public class Cliente : BaseEntity
     public DateTime? DocumentoRilasciatoScadenza { get; set; }
 }
 ```
+
+---
+
+## Un anno sbagliato passa senza avvisi
+
+Caso reale (2026-08): partenza salvata con date **01/12/0262 – 06/12/0262**. Nessun messaggio, nessun
+campo in errore. Riproducendo la maschera fuori dall'applicazione (`DateMask` + `DefaultConverter<DateTime?>`,
+MudBlazor 8.15.0) è emerso questo:
+
+| digitazione | testo prodotto dalla maschera | valore interpretato |
+|---|---|---|
+| `0 1 1 2 2 0 2 6` (corretta) | `01/12/2026` | 2026-12-01 ✔ |
+| `0 1 1 2 0 2 2 6` (**una sola inversione**) | `01/12/0226` | **0226-12-01** |
+| `0 1 1 2 0 2 6 2` | `01/12/0262` | **0262-12-01** ← il caso osservato |
+| `0 1 1 2 0 2 6` (una battuta persa) | `01/12/026` | *rifiutato*, campo vuoto |
+
+Due fatti da tenere a mente quando si fa un campo data:
+
+1. **Il blocco anno accetta uno zero iniziale.** `0262` è un anno di 4 cifre formalmente valido: la maschera
+   lo accetta e il converter lo interpreta senza obiezioni. Solo un anno **incompleto** (meno di 4 cifre)
+   viene rifiutato — ed è il caso *fortunato*, perché almeno si vede.
+2. **Un anno assurdo supera tutti i controlli relativi.** Su `ana_date_viaggi` esistevano già "fine ≥ inizio"
+   e "durata = numero giorni dell'anagrafica": un refuso sull'anno sposta **entrambe** le date insieme, quindi
+   ordine e durata restano perfetti. Serve un controllo **assoluto** sull'anno, che prima non esisteva da
+   nessuna parte — né nella form, né nel database.
+
+### Cosa usare
+
+Controlli centralizzati in `Validation/Semantic/DateValidator.cs`, messaggi in `Validation/Core/ValidationMessages.cs`:
+
+```csharp
+// Blocca: anno fuori da 2000-2100 (pavimento di plausibilità, non regola commerciale)
+var esito = DateValidator.CheckAnnoPlausibile(Entity.DataInizio, "Data Inizio");
+if (!esito.IsValid) { Snackbar.Add(esito.ErrorMessage, Severity.Error); return; }
+
+// Chiede conferma (non vieta): anno precedente a quello in corso, oppure oltre 5 anni nel futuro
+if (DateValidator.MotivoDaConfermare(Entity.DataInizio) is { } motivo) { /* MessageBox */ }
+```
+
+Più `MinDate="@DateValidator.DataMinima"` / `MaxDate="@DateValidator.DataMassima"` sul picker — che però
+limitano **solo il calendario**, non il testo digitato: la validazione in `Submit()` resta indispensabile.
+
+Sul database la stessa soglia è il vincolo `chk_data_viaggio_anno_plausibile` (`SqlScripts/509`). Le due
+soglie vanno tenute allineate.
+
+**Perché la conferma sull'anno passato e non un divieto:** una partenza non si programma nell'anno scorso,
+ma una data storica può servire per registrare l'esistente. E soprattutto: nessun intervallo, per quanto
+stretto, intercetta il refuso realistico (2027 invece di 2026). La conferma sì.
 
 ---
 
@@ -187,6 +253,10 @@ Quando si implementa un nuovo campo data, verificare:
 - [ ] `For="@(() => Entity.Property)"` configurato per validazione
 - [ ] Testato: digitare 8 cifre senza slash funziona
 - [ ] Testato: calendario alternativo funziona
+- [ ] **`DateFormat` presente** (senza, il campo segue la lingua del PC e può scambiare giorno e mese)
+- [ ] **Validazione di plausibilità dell'anno** con `DateValidator.CheckAnnoPlausibile` nel salvataggio
+- [ ] **Conferma sulle date insolite** con `DateValidator.MotivoDaConfermare`, se il campo è operativo
+- [ ] Testato: digitare un anno che inizia per zero (es. `01120262`) viene rifiutato
 
 ---
 
@@ -199,6 +269,6 @@ Quando si implementa un nuovo campo data, verificare:
 
 ---
 
-**Ultima modifica:** 2026-01-02
+**Ultima modifica:** 2026-08-01
 **Autore:** Adriano Visconti
-**Versione:** 1.0
+**Versione:** 1.1

@@ -136,6 +136,13 @@ Verificano la **logica** del dato in contesto.
 - Capitale sociale > 0
 - Età >= 18 anni
 - Coordinate geografiche valide
+- **Plausibilità dell'anno** (`DateValidator.CheckAnnoPlausibile`, soglie `AnnoMinimo`/`AnnoMassimo`)
+
+> ⚠️ **Relativo non basta.** Un controllo che confronta due date fra loro non intercetta un refuso
+> sull'anno, perché il refuso sposta entrambe le date insieme e ordine e durata restano corretti.
+> Serve almeno un controllo **assoluto**. Caso reale: partenza salvata con anno 262 (vedi
+> `Documents/Digitazione_Date.md`). Da qui anche `DateValidator.MotivoDaConfermare`, che non vieta ma
+> chiede conferma sulle date insolite — l'unico modo di cogliere un refuso *dentro* l'intervallo lecito.
 
 ### 3. **Business Validators** (Validatori di Business)
 Verificano **regole di dominio complesse**.

@@ -512,3 +512,35 @@ Scheda **Date e Costi** del viaggio, colonna AZIONI (ultima icona):
   azioni che richiedono una data salvata.
 - ☐ **Spaziatura**: le icone della colonna AZIONI sono più ravvicinate e la colonna resta leggibile con
   tutte e sette le icone.
+
+## 34. Date di partenza: anno plausibile e conferme (script `509`)
+
+Nasce dal caso reale della partenza salvata con anno **262** invece di 2026, passata senza un avviso.
+Dettaglio tecnico dell'indagine in `Documents/Digitazione_Date.md`.
+
+Scheda **Date e Costi** → *Aggiungi Data* / matita:
+
+- ☐ **Anno assurdo bloccato**: digitando `01120262` (che la maschera accetta come 01/12/**0262**) la conferma
+  è rifiutata con un messaggio che invita a controllare l'anno. Stessa cosa per la data di fine.
+- ☐ **Limiti**: 2000 e 2100 sono ammessi; 1999 e 2101 no.
+- ☐ **Anno precedente a quello in corso**: si può salvare, ma **solo dopo conferma esplicita** ("Sì, è corretta"
+  / "Correggo"). Rispondendo *Correggo* si resta nella form con i dati intatti.
+- ☐ **Oltre 5 anni nel futuro**: stessa conferma.
+- ☐ **Date ordinarie**: dentro l'anno in corso o nei prossimi 5 anni si salvano **senza** alcuna domanda —
+  la conferma non deve diventare un fastidio quotidiano.
+- ☐ **Calendario**: la navigazione non permette di uscire da 2000–2100.
+- ☐ **Digitazione rapida**: digitando le 8 cifre `01122026` senza separatori il campo mostra `01/12/2026` e
+  salva il **1° dicembre 2026** (non il 12 gennaio). Verifica che `DateFormat` sia efficace.
+- ☐ **Rete del database**: il vincolo vale anche fuori dalla form.
+
+  ```sql
+  -- deve fallire con violates check constraint "chk_data_viaggio_anno_plausibile"
+  INSERT INTO ana_date_viaggi (viaggio_id_fk, data_viaggio_data_inizio, data_viaggio_data_fine,
+         data_viaggio_costo_pilota, data_viaggio_costo_passeggero, created_by, azienda_id)
+  VALUES (<viaggio>, DATE '0262-12-01', DATE '0262-12-06', 100, 100, 'test', <azienda>);
+  ```
+
+> ⚠️ **Da rifare sulla partizione Windows 11**: senza `DateFormat` il campo seguiva la lingua del sistema
+> operativo. Sul Mac italiano non si notava; su un Windows configurato in inglese giorno e mese si sarebbero
+> scambiati in silenzio. Il test della digitazione rapida va ripetuto **sulla macchina del cliente**, e vale
+> la pena provarlo anche con la lingua di sistema impostata su inglese.
