@@ -14,25 +14,26 @@ Il gestionale diventa l'**unico motore di contenuti** per il nuovo sito pubblico
 ### Funzionalità verificate
 
 - **Lingua del cliente (anagrafica)** — nuovo campo *lingua preferita* in anagrafica cliente, usato dalla newsletter per l'invio multilingua. Il campo non è mai vuoto: se l'operatore non lo specifica, la lingua viene **auto-derivata dalla nazione di residenza** (fallback italiano) e memorizzata; la newsletter la legge senza dover ragionare. *(Verificato a runtime: 2026-07-19.)*
+- **Tipi viaggio globali + descrizioni web** — lookup condivisa fra le aziende, con mappatura tipo → descrizione web e relative traduzioni. *(Verificato a runtime: 2026-07-25.)*
+- **Schede web dei tour per edizione (viaggio + data)** — un contenuto per singola partenza, con creazione dalla scheda viaggio e **anteprima** di come apparirà sul sito; l'anteprima riporta le **prossime partenze in programma** e può essere visualizzata **in lingua** quando le traduzioni sono complete e approvate. *(Verificato a runtime: 2026-07-31.)*
+- **Itinerario giorno per giorno** — giornate e passi con riordino; ogni giornata mostra la **data reale derivata dalla partenza**, che si aggiorna da sola se la giornata viene spostata. *(Verificato a runtime: 2026-07-31.)*
+- **Galleria immagini del tour** — caricamento con conversione WebP e archiviazione su Supabase Storage, copertina, riordino, protezione delle foto usate nell'itinerario. *(Verificato a runtime: 2026-07-31.)*
+- **Mappe statiche da traccia GPX** — **più mappe per edizione**: una dell'intero viaggio e una per giornata dell'itinerario, con descrizione tradotta, blocco dei file duplicati e tracciato volutamente generalizzato perché non sia replicabile. *(Verificato a runtime: 2026-07-29.)*
+- **Traduzioni assistite multilingua (Claude)** — traduzione di ciò che manca o è obsoleto, revisione con editor visuale (mai HTML a vista), **approvazione in blocco** dopo un controllo a campione per lingua, e **gating**: non si pubblica finché le traduzioni non sono revisionate. Include il **registro dei consumi** con soglia di spesa facoltativa e avviso. *(Verificato a runtime: 2026-07-31.)*
+- **Incluso / Escluso per tour** — campi a livello viaggio, condivisi fra le edizioni e tradotti insieme al resto della scheda. *(Verificato a runtime: 2026-07-31.)*
+- **Cifratura dei segreti (`pgcrypto`)** — chiavi salvate cifrate e rilette in chiaro solo con la master key d'ambiente. *(Verificato a runtime sulla chiave Claude: 2026-07-28. Il percorso SMTP usa lo stesso meccanismo ma non è stato riesercitato in questo ciclo.)*
 
 ### In attesa di verifica runtime (non ancora documentate come rilasciate)
 
-Implementate ma da collaudare prima di promuoverle sopra:
+Implementate ma da collaudare prima di promuoverle sopra. Le voci qui sotto **non sono state esercitate** nel ciclo di test 2026-07-25 → 08-01: per alcune manca il dato di prova, per altre serve il sito pubblico (Fase 3).
 
-- [ ] Schede web dei tour per edizione (viaggio + data): crea / clona / anteprima
-- [ ] Incluso / Escluso per tour (tradotti)
-- [ ] Capienza e "posti rimasti" per tour
-- [ ] Tour brevi / giornalieri
-- [ ] Itinerario giorno-per-giorno (drag&drop)
-- [ ] Galleria immagini tour (WebP + Supabase Storage)
-- [ ] Mappe statiche da traccia GPX (Geoapify)
-- [ ] Traduzioni assistite multilingua (Claude)
-- [ ] Newsletter multilingua (invio, iscrizione/disiscrizione, destinatari)
-- [ ] Tipi viaggio globali + descrizioni / categorie
-- [ ] Configurazione funzioni web per azienda
-- [ ] Recensioni Google / TripAdvisor
+- [ ] **Clonazione** di una scheda web su un'altra edizione (creazione e anteprima già verificate)
+- [ ] Capienza e "posti rimasti" per tour — la capienza si imposta dal gestionale, ma *posti rimasti* è un dato che espone il **sito pubblico**: verificabile solo con il frontend (Fase 3)
+- [ ] Tour brevi / giornalieri — nessun tipo viaggio ancora marcato come breve
+- [ ] Newsletter multilingua (invio, iscrizione/disiscrizione, destinatari) — nessun invio né iscritto sul database di prova
+- [ ] Configurazione funzioni web per azienda — nessuna funzione ancora configurata
+- [ ] Recensioni Google / TripAdvisor — dipende dalla configurazione funzioni web, non ancora impostata
 - [ ] SMTP: test connessione con diagnostica (firewall/VPN, DNS, TLS…), messaggi errore centralizzati, mostra/nascondi password
-- [ ] Cifratura segreti (SMTP / ESP / Claude) via `pgcrypto`
 
 > Nota architetturale: logica dati **DB-first** (funzioni PostgreSQL), componenti UI **condivisi**, contenuti web **per-azienda** (silos multi-tenant); solo tipi-viaggio e relative descrizioni sono globali.
 
