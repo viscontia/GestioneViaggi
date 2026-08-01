@@ -518,8 +518,8 @@ Dialog per la selezione del conto bancario da stampare sulla fattura attiva (`Co
 ### FieldHelp
 Icona "?" di aiuto contestuale riutilizzabile accanto a un campo form — Blocco 5 Task 1 (`Components/Shared/FieldHelp.razor`).
 *   **Funzionalità**: `MudMenu` con `MudIconButton` (`HelpOutline`, `Size.Small`, `Color.Info`) come activator; il click apre un `MudPaper` con `Title` (subtitle2) + `Text` (body2) o, in alternativa, `ChildContent` per contenuti formattati (es. esempi). Apertura/chiusura gestite da `MudMenu` (click fuori chiude automaticamente).
-*   **Parametri**: `Title` (string, required), `Text` (string?), `ChildContent` (RenderFragment?).
-*   **Contesto**: usato in `WebTourContenutiTab` accanto ai campi SEO/tecnici (slug, meta title/description, ordine, prima pubblicazione) per spiegare in linguaggio semplice il significato di ciascun campo a utenti non tecnici.
+*   **Parametri**: `Title` (string, required), `Text` (string?), `ChildContent` (RenderFragment?), `MaxWidthPx` (int, default `320`) — si allarga solo per gli aiuti articolati, che a 320px diventerebbero una colonna troppo alta (es. lo **stato di pubblicazione**, che usa `440`).
+*   **Contesto**: usato in `WebTourContenutiTab` accanto ai campi SEO/tecnici (slug, meta title/description, ordine, prima pubblicazione) e allo **stato di pubblicazione** per spiegare in linguaggio semplice il significato di ciascun campo a utenti non tecnici. L'aiuto sullo stato è il più esteso perché deve chiarire tre cose che senza spiegazione sembrano difetti: il controllo scatta al **salvataggio** e non alla scelta della voce; **archiviato** per il sito è identico a **bozza**; e il tour esce dal sito **da solo** quando la partenza inizia, senza che lo stato cambi.
 
 ### WebTourContenutiTab
 Scheda "Contenuti Web" del viaggio — estensione web, Blocco 5 (`Components/Shared/WebTourContenutiTab.razor`).

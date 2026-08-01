@@ -32,11 +32,51 @@ else
             <MudText Typo="Typo.subtitle1">Pubblicazione</MudText>
         </MudItem>
         <MudItem xs="12" sm="4">
-            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" @bind-Value:after="MarkDirty" Label="Stato" Variant="Variant.Outlined">
-                <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
-                <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
-                <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
-            </MudSelect>
+            <div class="d-flex align-center">
+                <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" @bind-Value:after="MarkDirty" Label="Stato"
+                           Variant="Variant.Outlined" Class="flex-grow-1">
+                    <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
+                </MudSelect>
+                @* Aiuto esteso: qui non basta dire cosa fa il campo. Il controllo scatta al SALVATAGGIO,
+                   non alla scelta, e "archiviato" per il sito è identico a "bozza" — due comportamenti
+                   che senza spiegazione sembrano difetti. *@
+                <FieldHelp Title="Stato di pubblicazione" MaxWidthPx="440">
+                    <MudText Typo="Typo.body2" Class="mt-1">
+                        <b>Bozza</b> — Il tour <b>non</b> è visibile sul sito. È lo stato normale mentre lo prepari:
+                        puoi modificare tutto senza conseguenze.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        <b>Pubblicato</b> — Il tour è online e visibile a chi visita il sito.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        <b>Archiviato</b> — Non è visibile sul sito, <b>esattamente come una bozza</b>. Il programma
+                        tratta i due stati allo stesso modo: serve a te per distinguere ciò che è finito e non va più
+                        toccato da ciò che è ancora in lavorazione.
+                    </MudText>
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.body2">
+                        <b>Quando puoi mettere "Pubblicato"</b> — Il controllo avviene al <b>salvataggio</b>, non quando
+                        scegli la voce. Se qualcosa manca, il programma riporta lo stato a Bozza e ti dice cosa. Servono
+                        due condizioni: tutte le sezioni complete (icone verdi in alto, traduzioni revisionate comprese),
+                        e una partenza che <b>deve ancora iniziare</b> e non è segnata come effettuata.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Tornare a Bozza o Archiviato è <b>sempre</b> possibile e toglie subito il tour dal sito.
+                    </MudText>
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.body2">
+                        <b>Da sapere</b> — Il giorno in cui la partenza inizia, il tour <b>sparisce dal sito da solo</b>,
+                        anche se resta "Pubblicato": nessuno può più prenotare una partenza già cominciata. Lo stato che
+                        vedi qui non cambia.
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        La scheda si può <b>eliminare</b> solo da Bozza o Archiviato: una scheda pubblicata va prima
+                        tolta dal sito.
+                    </MudText>
+                </FieldHelp>
+            </div>
         </MudItem>
         <MudItem xs="6" sm="4">
             <div class="d-flex align-center mb-1">

@@ -11,7 +11,7 @@
                        aria-label="Aiuto" />
     </ActivatorContent>
     <ChildContent>
-        <MudPaper Class="pa-3" Style="max-width:320px" Elevation="0">
+        <MudPaper Class="pa-3" Style="@($"max-width:{MaxWidthPx}px")" Elevation="0">
             <MudText Typo="Typo.subtitle2">@Title</MudText>
             @if (ChildContent is not null)
             {
@@ -29,4 +29,6 @@
     [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
     [Parameter] public string? Text { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Larghezza massima del popover. Si allarga solo per gli aiuti articolati (es. lo stato di pubblicazione), che a 320px diventerebbero una colonna troppo alta.</summary>
+    [Parameter] public int MaxWidthPx { get; set; } = 320;
 }
