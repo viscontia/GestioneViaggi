@@ -1,5 +1,8 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Validation.Core
+@using GestioneViaggi.Validation.Semantic
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudDialog>
     <DialogContent>
@@ -31,7 +34,7 @@
                                Variant="Variant.Outlined"
                                Required="true"
                                Editable="true"
-                               Mask="@(new DateMask("dd/MM/yyyy"))"
+                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                MaxDate="@DateTime.Today"
                                AnchorOrigin="Origin.BottomCenter" />
             </MudItem>
@@ -87,7 +90,7 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Submit()
+    private async Task Submit()
     {
         if (_importoPagamento <= 0)
         {
@@ -105,6 +108,24 @@
         {
             Snackbar.Add("Specificare la data del pagamento", Severity.Warning);
             return;
+        }
+
+        // MaxDate blocca solo il calendario, non il testo digitato: la plausibilità dell'anno va
+        // verificata comunque. Vedi Documents/Digitazione_Date.md.
+        var esitoAnno = DateValidator.CheckAnnoPlausibile(_dataPagamento, "Data Pagamento");
+        if (!esitoAnno.IsValid)
+        {
+            Snackbar.Add(esitoAnno.ErrorMessage, Severity.Error);
+            return;
+        }
+
+        // Tolleranza contabile: l'anno precedente è lavoro ordinario, più indietro si conferma.
+        if (DateValidator.MotivoDaConfermare(_dataPagamento, null, DateValidator.AnniIndietroContabilita) is { } motivo)
+        {
+            var conferma = await DialogService.ShowMessageBox(
+                "Data insolita", $"{motivo} {ValidationMessages.ConfermaDataInsolita}",
+                yesText: "Sì, è corretta", cancelText: "Correggo");
+            if (conferma != true) return;
         }
 
         var result = new PagaOraDialogResult

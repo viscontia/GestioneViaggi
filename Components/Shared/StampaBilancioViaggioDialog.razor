@@ -88,12 +88,12 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento Da (Opzionale)" @bind-Date="_dataDa"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Documento A (Opzionale)" @bind-Date="_dataA"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" />
+                                   Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
 
             </MudGrid>

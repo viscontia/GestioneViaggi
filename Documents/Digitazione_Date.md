@@ -237,6 +237,25 @@ soglie vanno tenute allineate.
 ma una data storica può servire per registrare l'esistente. E soprattutto: nessun intervallo, per quanto
 stretto, intercetta il refuso realistico (2027 invece di 2026). La conferma sì.
 
+### Due tolleranze diverse, non una sola
+
+L'anno passato non pesa uguale ovunque, quindi `MotivoDaConfermare` prende `anniIndietroAmmessi`:
+
+| ambito | valore | perché |
+|---|---|---|
+| **Viaggi** (`ViaggioDateDialog`) | `0` (default) | una partenza non si programma nell'anno scorso: si conferma **sempre** |
+| **Contabilità** (`MovTransazioniEditDialog`, `PagaOraDialog`) | `DateValidator.AnniIndietroContabilita` = `1` | a inizio anno si chiude legittimamente l'esercizio precedente: chiedere conferma su ogni registrazione sarebbe solo un fastidio |
+
+In entrambi i casi si conferma da **due** anni indietro in su, e oltre **5** anni nel futuro. Il blocco
+2000–2100 invece vale uguale dappertutto.
+
+### Stato dei campi data nell'applicazione
+
+Tutti i `MudDatePicker` hanno `DateFormat="dd/MM/yyyy"` (allineamento del 2026-08-01: ne mancava in
+**16** campi). La validazione di plausibilità è nelle form che **registrano** dati — partenze,
+transazioni, pagamento immediato — mentre i dialoghi di stampa hanno solo il formato, perché i loro
+campi sono filtri e non finiscono su nessuna tabella.
+
 ---
 
 ## Checklist Implementazione

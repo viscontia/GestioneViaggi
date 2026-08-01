@@ -4,6 +4,8 @@
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Components.Shared
 @using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Validation.Core
+@using GestioneViaggi.Validation.Semantic
 @using Microsoft.Extensions.Logging
 @inject MovTransazioniService TransazioniService
 @inject AnaTipiCausaliService CausaliService
@@ -45,7 +47,7 @@
                                    RequiredError="Data obbligatoria"
                                    Variant="Variant.Outlined"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
@@ -217,7 +219,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataDocumentoError"
                                    ErrorText="@_dataDocumentoErrorText" />
@@ -240,7 +242,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Required="@_scadenzaObbligatoria"
                                    Error="@_dataScadenzaError"
@@ -252,7 +254,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))"
+                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataPagamentoError"
                                    ErrorText="@_dataPagamentoErrorText" />
@@ -554,10 +556,46 @@
             hasValidationErrors = true;
         }
 
+        // Plausibilità dell'anno: controllo ASSOLUTO. Tutti gli altri controlli sulle date di questa form
+        // sono relativi (pagamento >= documento, pagamento >= scadenza) e un refuso sull'anno li supera
+        // indenne. Non è teoria: in produzione è stata trovata una transazione del 20/02/2022 con data
+        // pagamento 20/02/2202 — una cifra fuori posto, mai segnalata.
+        foreach (var (data, etichetta) in new[]
+        {
+            (_dataTransazione, "Data Transazione"), (_dataDocumento, "Data Documento"),
+            (_dataScadenza, "Data Scadenza"), (_dataPagamento, "Data Pagamento")
+        })
+        {
+            var esitoAnno = DateValidator.CheckAnnoPlausibile(data, etichetta);
+            if (!esitoAnno.IsValid)
+            {
+                Snackbar.Add(esitoAnno.ErrorMessage, Severity.Error);
+                hasValidationErrors = true;
+            }
+        }
+
         if (hasValidationErrors)
         {
             StateHasChanged();
             return;
+        }
+
+        // Date insolite ma legittime: si chiede conferma, non si vieta. Qui la tolleranza è quella
+        // contabile (l'anno precedente è lavoro ordinario), diversa da quella dei viaggi.
+        foreach (var (data, etichetta) in new[]
+        {
+            (_dataTransazione, "Data Transazione"), (_dataDocumento, "Data Documento"),
+            (_dataScadenza, "Data Scadenza"), (_dataPagamento, "Data Pagamento")
+        })
+        {
+            if (DateValidator.MotivoDaConfermare(data, null, DateValidator.AnniIndietroContabilita) is { } motivo)
+            {
+                var conferma = await DialogService.ShowMessageBox(
+                    "Data insolita",
+                    $"{etichetta}: {motivo} {ValidationMessages.ConfermaDataInsolita}",
+                    yesText: "Sì, è corretta", cancelText: "Correggo");
+                if (conferma != true) return;
+            }
         }
 
         if (_form.IsValid)

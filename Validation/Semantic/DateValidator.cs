@@ -15,6 +15,13 @@ public static class DateValidator
     /// <summary>Oltre questi anni nel futuro la data è insolita e va confermata (non vietata).</summary>
     public const int AnniAvantiSenzaConferma = 5;
 
+    /// <summary>
+    /// Anni indietro che in contabilità sono lavoro ordinario e non vanno confermati: a inizio anno si
+    /// chiude legittimamente l'esercizio precedente. Sui viaggi invece si usa 0 (conferma sempre), perché
+    /// una partenza non si programma nell'anno scorso.
+    /// </summary>
+    public const int AnniIndietroContabilita = 1;
+
     public static DateTime DataMinima => new(AnnoMinimo, 1, 1);
     public static DateTime DataMassima => new(AnnoMassimo, 12, 31);
 
@@ -42,15 +49,18 @@ public static class DateValidator
     /// Non blocca: serve a intercettare i refusi che restano dentro l'intervallo plausibile, dove un
     /// limite largo non arriva (2027 al posto di 2026 sarebbe accettato da qualunque range).
     /// </summary>
-    public static string? MotivoDaConfermare(DateTime? date, DateTime? oggi = null)
+    /// <param name="anniIndietroAmmessi">
+    /// Quanti anni indietro sono lavoro ordinario e non vanno confermati. <b>0</b> (default) per i viaggi:
+    /// una partenza non si programma nell'anno scorso, quindi si chiede conferma sempre. <b>1</b> per la
+    /// contabilità, dove a inizio anno si lavora legittimamente sull'esercizio precedente.
+    /// </param>
+    public static string? MotivoDaConfermare(DateTime? date, DateTime? oggi = null, int anniIndietroAmmessi = 0)
     {
         if (!date.HasValue) return null;
 
         var riferimento = (oggi ?? DateTime.Today).Date;
 
-        // Anno precedente a quello in corso: su un viaggio è sempre da confermare. In contabilità può
-        // avere senso per un periodo limitato, ma una partenza non si programma nell'anno scorso.
-        if (date.Value.Year < riferimento.Year)
+        if (date.Value.Year < riferimento.Year - anniIndietroAmmessi)
             return string.Format(ValidationMessages.DataAnnoPassato, date.Value.Year);
 
         if (date.Value.Date > riferimento.AddYears(AnniAvantiSenzaConferma))

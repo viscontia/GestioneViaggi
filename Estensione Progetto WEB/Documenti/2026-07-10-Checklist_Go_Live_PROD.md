@@ -300,20 +300,18 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
   **Stessa identica classe di errore** del bug 9: `2022` → `2202`, una cifra fuori posto. Conferma
   indipendente del meccanismo, su un'altra form e per mano di un altro utente.
 
-- [ ] **Da correggere su PROD** (una riga, decisione dell'utente perché è un dato contabile):
+- [x] **Corretta su PROD il 2026-08-01** (una riga, `UPDATE` condizionato al valore sbagliato, verificato prima e dopo):
 
   ```sql
   UPDATE mov_transazioni SET transazione_data_pagamento = DATE '2022-02-20'
    WHERE transazione_id = 72 AND transazione_data_pagamento = DATE '2202-02-20';
   ```
 
-- [ ] **Estendere la protezione alle altre form.** Il controllo di plausibilità e `DateFormat` sono stati
-  messi finora **solo** sul dialogo delle partenze. Restano **16 campi data senza `DateFormat`**, fra cui
-  proprio quelli da cui è arrivato il dato sbagliato:
+- [x] **Protezione estesa alle altre form il 2026-08-01.** `DateFormat` aggiunto a tutti i **16** campi che ne erano privi, e validazione di plausibilità aggiunta alle form che registrano dati. Erano coinvolti:
   `MovTransazioniEditDialog` (Data Transazione, Data Documento, Data Scadenza, Data Pagamento),
   `PagaOraDialog`, `MovTransazioniPage` e i dialoghi di stampa (bilancio, scadenzario, registro IVA, movimenti).
-  Finché non sono allineati, su una macchina con lingua di sistema non italiana quei campi possono
-  **scambiare giorno e mese** senza segnalare nulla.
+  Senza `DateFormat`, su una macchina con lingua di sistema non italiana quei campi avrebbero
+  **scambiato giorno e mese** senza segnalare nulla.
 
 ---
 
@@ -328,7 +326,7 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
-- [ ] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5).
+- [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
 

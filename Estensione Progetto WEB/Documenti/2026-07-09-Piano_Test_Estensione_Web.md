@@ -540,6 +540,23 @@ Scheda **Date e Costi** → *Aggiungi Data* / matita:
   VALUES (<viaggio>, DATE '0262-12-01', DATE '0262-12-06', 100, 100, 'test', <azienda>);
   ```
 
+### Stesse verifiche in contabilità
+
+I controlli sono stati estesi a **Transazioni** (Data Transazione, Documento, Scadenza, Pagamento) e al
+dialogo **Paga Ora**, con una tolleranza diversa: in contabilità l'anno precedente è lavoro ordinario.
+
+- ☐ **Anno assurdo bloccato** anche qui: una data pagamento nel 2202 viene rifiutata con il campo indicato
+  nel messaggio. *(È il caso realmente trovato in produzione: transazione 72, pagamento 20/02/2202 su un
+  movimento del 20/02/2022.)*
+- ☐ **Anno precedente senza conferma**: a inizio anno, registrare un movimento datato l'anno scorso **non**
+  deve chiedere nulla — è la chiusura dell'esercizio. *(A differenza dei viaggi, dove la conferma c'è sempre.)*
+- ☐ **Due anni indietro**: la conferma compare.
+- ☐ **Oltre 5 anni nel futuro**: la conferma compare.
+- ☐ **Il campo indicato è quello giusto**: il messaggio dice quale delle quattro date è fuori scala.
+- ☐ **"Correggo"** riporta nella form senza salvare e senza perdere gli altri dati inseriti.
+- ☐ **Dialoghi di stampa** (bilancio, scadenzario, registro IVA, movimenti): i campi data mostrano e
+  interpretano `gg/mm/aaaa`. Qui non c'è validazione di plausibilità perché sono filtri, non dati salvati.
+
 > ⚠️ **Da rifare sulla partizione Windows 11**: senza `DateFormat` il campo seguiva la lingua del sistema
 > operativo. Sul Mac italiano non si notava; su un Windows configurato in inglese giorno e mese si sarebbero
 > scambiati in silenzio. Il test della digitazione rapida va ripetuto **sulla macchina del cliente**, e vale
