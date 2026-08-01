@@ -79,12 +79,14 @@ else
             </div>
         </MudItem>
         <MudItem xs="6" sm="4">
-            <div class="d-flex align-center mb-1">
-                <MudText Typo="Typo.subtitle2">Ordine sul sito</MudText>
+            @* Etichetta INTERNA al campo, come Stato e Prima pubblicazione: con il titolo sopra il
+               controllo partiva più in basso degli altri due e la riga risultava disallineata. *@
+            <div class="d-flex align-center">
+                <MudNumericField T="int" @bind-Value="_model.Ordine" @bind-Value:after="MarkDirty" Label="Ordine sul sito"
+                                 Variant="Variant.Outlined" Min="0" Class="flex-grow-1" />
                 <FieldHelp Title="Ordine sul sito"
                            Text="Decide in che ordine appaiono i tour nell'elenco del sito. Numeri più bassi vanno prima. Lascia 0 se non ti interessa; usa 1, 2, 3… per mettere alcuni tour in cima." />
             </div>
-            <MudNumericField T="int" @bind-Value="_model.Ordine" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" Min="0" HelperText="Più basso = più in alto nell'elenco." />
         </MudItem>
         <MudItem xs="6" sm="4">
             <div class="d-flex align-center">
