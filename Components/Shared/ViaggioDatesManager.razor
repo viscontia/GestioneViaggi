@@ -228,6 +228,13 @@
                 // 3. Notify Parent to Close
                 await OnTripDeleted.InvokeAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                // Rifiuto previsto dalle guardie di sp_ana_date_viaggi_delete (storico, contenuti web,
+                // prenotazioni): è un avviso, non un guasto. Il viaggio resta al suo posto, quindi il
+                // prefisso "Errore eliminazione viaggio" sarebbe fuorviante.
+                Snackbar.Add(ex.Message, Severity.Warning);
+            }
             catch (Exception ex)
             {
                 Snackbar.Add($"Errore eliminazione viaggio: {ex.Message}", Severity.Error);

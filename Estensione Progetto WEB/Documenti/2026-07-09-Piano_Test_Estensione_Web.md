@@ -420,3 +420,36 @@ SELECT fn_web_ha_tour_brevi_pubblicati(<azienda>);
   del sito non compare vuota per via di partenze ormai passate.
 - ☐ **Da comunicare al cliente prima del go-live**: al primo deploy in PROD, le schede pubblicate con partenza
   già iniziata spariranno dal sito. È l'effetto voluto.
+
+## 31. Guardie sulla cancellazione di una partenza (script `507`)
+
+Si elimina **solo** una partenza che deve ancora iniziare, non segnata come effettuata, senza scheda web
+e senza prenotazioni. Ogni rifiuto è un avviso **giallo** con il motivo, non un errore rosso.
+
+Dalla scheda **Date del viaggio**, icona cestino:
+
+- ☐ **Partenza effettuata**: rifiutata con "è segnata come effettuata e fa parte dello storico aziendale",
+  anche se non ha né prenotazioni né scheda web.
+- ☐ **Partenza già iniziata** (flag non spuntato, data di inizio passata): rifiutata con "è già iniziata
+  e fa parte dello storico".
+- ☐ **Partenza che inizia oggi**: rifiutata anch'essa — coerente con il gating di pubblicazione, che
+  considera pubblicabile solo ciò che deve ancora iniziare.
+- ☐ **Partenza futura con scheda web in bozza**: rifiutata indicando lo stato della scheda.
+- ☐ **Partenza futura con scheda web pubblicata**: rifiutata con il messaggio dedicato ("PUBBLICATA:
+  riportala a bozza ed elimina la scheda").
+- ☐ **Partenza futura con prenotazioni**: rifiutata come prima (messaggio clienti/alloggi, invariato).
+- ☐ **Partenza futura e pulita**: si elimina regolarmente e sparisce dall'elenco.
+- ☐ **Colore dell'avviso**: tutti i rifiuti sopra compaiono in **giallo**. Prima quello sui contenuti web
+  compariva in rosso, perché arrivava dal vincolo del database invece che dal controllo.
+- ☐ **Ultima data rimasta**: se è l'unica data del viaggio, la conferma avverte che verrà eliminato anche
+  il viaggio. Con una guardia attiva, il rifiuto è giallo e **il viaggio resta al suo posto**.
+- ☐ **Correzione di una data sbagliata**: inserita per errore una data nel passato, la si sposta nel futuro
+  e allora si può eliminare. È voluto che siano due passaggi.
+
+> ⚠️ **Conseguenza da conoscere**: un viaggio le cui date sono tutte passate non è più eliminabile dal
+> programma. È la contropartita della protezione dello storico.
+
+> ⚠️ **Manca il comando per eliminare una scheda web.** La funzione `fn_web_tour_contenuti_delete` e il
+> metodo `WebTourContenutiService.DeleteAsync` esistono, ma **nessuna schermata li richiama**. Finché è
+> così, il messaggio "elimina prima la scheda" indica un'azione che dall'interfaccia non è possibile:
+> una partenza futura con contenuti web non è eliminabile in alcun modo.
