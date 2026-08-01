@@ -61,4 +61,11 @@ public sealed record EdizioneViaggio(
     string? StatoPubblicazione)
 {
     public bool HaContenuto => ContenutoId.HasValue;
+
+    /// <summary>
+    /// Durata in giorni di QUESTA partenza. Non coincide per forza con ana_viaggi.viaggio_numero_giorni:
+    /// il trigger sulle date valida la durata al momento dell'inserimento, quindi se in anagrafica il
+    /// numero di giorni viene cambiato dopo, le partenze già esistenti mantengono la loro durata.
+    /// </summary>
+    public int? Giorni => DataInizio is { } i && DataFine is { } f ? (f.Date - i.Date).Days + 1 : null;
 }

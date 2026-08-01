@@ -340,14 +340,93 @@ else
         finally { _busy = false; }
     }
 
+    /// <summary>
+    /// Confronta le giornate che verrebbero copiate con la durata della partenza di destinazione e,
+    /// se non coincidono, lascia decidere all'utente. Il caso è reale: il trigger sulle date valida la
+    /// durata solo quando la data viene inserita o modificata, quindi cambiando il numero di giorni in
+    /// anagrafica le partenze già esistenti mantengono la loro (verificato: stesso viaggio con una
+    /// partenza di 6 giorni e una di 4). Ci si arriva anche con un itinerario di origine incompleto.
+    /// Ritorna null se l'utente rinuncia, altrimenti il limite di giornate da passare al clone.
+    /// </summary>
+    private async Task<(bool Procedi, int? MaxGiornate)> ChiediGiornateDaClonareAsync(long sorgenteId)
+    {
+        var sorgente = _edizioni.FirstOrDefault(e => e.ContenutoId == sorgenteId);
+        var stato = await ContenutiService.GetStatoSezioniAsync(sorgenteId, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+        var giornate = stato?.NumeroGiornate ?? 0;
+        var durataDest = _selected?.Giorni;
+
+        // Senza itinerario da copiare o senza date sulla destinazione non c'è nulla da confrontare.
+        if (giornate == 0 || durataDest is not { } giorniDest || giornate == giorniDest) return (true, null);
+
+        var righeOrigine = sorgente == null ? "" : $" (dal {sorgente.DataInizio:dd/MM/yyyy} al {sorgente.DataFine:dd/MM/yyyy})";
+        var righeDest = $" (dal {_selected!.DataInizio:dd/MM/yyyy} al {_selected.DataFine:dd/MM/yyyy})";
+
+        string messaggio;
+        string testoConferma;
+        int? max;
+
+        if (giornate > giorniDest)
+        {
+            // Destinazione più corta: si copiano solo le giornate che ci stanno. L'ultima va rivista a
+            // mano perché accorciare il viaggio cambia il finale, e non è una decisione automatizzabile.
+            var scartate = giornate - giorniDest;
+            // Testi montati fuori dall'interpolazione: il parser Razor si perde sulle stringhe
+            // interpolate annidate dentro un'altra interpolata.
+            var frasePerse = scartate == 1
+                ? "l'ultima giornata non verrà copiata"
+                : $"le ultime {scartate} giornate non verranno copiate";
+            messaggio =
+                $"L'edizione di origine{righeOrigine} ha <b>{giornate} giornate</b> di itinerario, " +
+                $"ma la partenza di destinazione{righeDest} dura <b>{giorniDest} giorni</b>.<br/><br/>" +
+                $"Clonando, verrebbero copiate solo le prime <b>{giorniDest} giornate</b>: " +
+                $"{frasePerse}, " +
+                "insieme alle mappe abbinate.<br/><br/>" +
+                $"<b>Serve poi una verifica manuale</b>: la giornata {giorniDest} dell'itinerario clonato descrive una tappa intermedia, " +
+                "non una conclusione. In un viaggio più corto il finale cambia (si rientra al punto di partenza? ci si ferma dove si è arrivati?) " +
+                "e va riscritto a mano.";
+            testoConferma = $"Clona le prime {giorniDest} giornate";
+            max = giorniDest;
+        }
+        else
+        {
+            // Destinazione più lunga: si copia tutto, ma resteranno giornate scoperte.
+            var mancanti = giorniDest - giornate;
+            var fraseMancanti = mancanti == 1
+                ? "resterà 1 giornata da scrivere a mano"
+                : $"resteranno {mancanti} giornate da scrivere a mano";
+            messaggio =
+                $"L'edizione di origine{righeOrigine} ha <b>{giornate} giornate</b> di itinerario, " +
+                $"ma la partenza di destinazione{righeDest} dura <b>{giorniDest} giorni</b>.<br/><br/>" +
+                $"Verranno clonate tutte le {giornate} giornate disponibili: {fraseMancanti}.";
+            testoConferma = "Clona comunque";
+            max = null;
+        }
+
+        var conferma = await DialogService.ShowMessageBox(new MessageBoxOptions
+        {
+            Title = "Le giornate non coincidono",
+            MarkupMessage = new MarkupString(messaggio),
+            YesText = testoConferma,
+            CancelText = "Non clonare"
+        });
+
+        return conferma == true ? (true, max) : (false, null);
+    }
+
     private async Task Clona()
     {
         if (_selected == null || _cloneSourceId == null) return;
+
+        var (procedi, maxGiornate) = await ChiediGiornateDaClonareAsync(_cloneSourceId.Value);
+        if (!procedi) return;
+
         _busy = true;
         try
         {
-            await ContenutiService.ClonaAsync(_cloneSourceId.Value, _selected.DataViaggioId, AziendaId);
-            Snackbar.Add("Contenuto clonato.", Severity.Success);
+            await ContenutiService.ClonaAsync(_cloneSourceId.Value, _selected.DataViaggioId, AziendaId, maxGiornate);
+            Snackbar.Add(maxGiornate is { } n
+                ? $"Contenuto clonato con le prime {n} giornate: rivedi la giornata {n}, era una tappa intermedia."
+                : "Contenuto clonato.", Severity.Success);
             _cloneSourceId = null;
             await ReloadAsync();
             _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);

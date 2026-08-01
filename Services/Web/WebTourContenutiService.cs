@@ -223,15 +223,17 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
     }
 
     /// <summary>Clona un contenuto (con figlie e traduzioni) su una nuova data del medesimo viaggio. Ritorna l'id del nuovo contenuto.</summary>
-    public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId)
+    /// <param name="maxGiornate">Se valorizzato, clona solo le prime N giornate: serve quando la partenza di destinazione dura meno di quella di origine.</param>
+    public async Task<long> ClonaAsync(long contenutoSorgenteId, int dataViaggioDestId, int aziendaId, int? maxGiornate = null)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
-            await using var cmd = new NpgsqlCommand("SELECT fn_web_tour_contenuti_clona(@Src::bigint, @Dest::integer, @AziendaId::integer)", conn);
+            await using var cmd = new NpgsqlCommand("SELECT fn_web_tour_contenuti_clona(@Src::bigint, @Dest::integer, @AziendaId::integer, @MaxGiornate::integer)", conn);
             cmd.Parameters.AddWithValue("Src", contenutoSorgenteId);
             cmd.Parameters.AddWithValue("Dest", dataViaggioDestId);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+            cmd.Parameters.AddWithValue("MaxGiornate", (object?)maxGiornate ?? DBNull.Value);
             return Convert.ToInt64(await cmd.ExecuteScalarAsync());
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

@@ -371,3 +371,52 @@ Il modo normale di riproporre un viaggio che si ripete: si clona e, se serve, si
 - ☐ **Pubblicabilità**: se la data di destinazione è futura, la copia può essere portata a "Pubblicato" senza ulteriori traduzioni.
 - ☐ **Vincoli**: clonare su una data che ha già un contenuto viene rifiutato con messaggio chiaro; clonare su una data di un altro viaggio è rifiutato.
 - ☐ **Nota**: immagini e mappe della copia puntano agli **stessi file** dell'originale. Eliminando un media dall'edizione sorgente si rompe anche quello della copia (comportamento preesistente).
+
+## 29. Clonazione fra partenze di durata diversa (script `505`)
+
+Due partenze dello stesso viaggio possono avere durate diverse. Non si crea a mano: il trigger
+`trg_validate_date_viaggio_duration` rifiuta una data che non rispetti `ana_viaggi.viaggio_numero_giorni`.
+Ma quel controllo scatta solo sull'inserimento/modifica della data: cambiando il numero di giorni in
+anagrafica, le partenze già esistenti restano com'erano. *(Verificato in locale: stesso viaggio con una
+partenza di 6 giorni e una di 4.)* Ci si arriva anche più banalmente, con un itinerario di origine incompleto.
+
+**Come preparare il caso**: su un viaggio con contenuti già pronti, cambiare `viaggio_numero_giorni`
+in anagrafica (es. da 6 a 4) e aggiungere una nuova data coerente con la nuova durata.
+
+- ☐ **Rilevazione**: scegliendo l'edizione di origine e premendo *Clona*, compare il dialogo
+  "Le giornate non coincidono" con i numeri corretti (giornate di itinerario dell'origine, giorni della destinazione)
+  e le date delle due partenze.
+- ☐ **Rinuncia**: "Non clonare" e la X chiudono senza creare nulla; l'edizione di destinazione resta *Senza contenuto*.
+- ☐ **Clone parziale**: "Clona le prime N giornate" crea la copia con **solo N giornate**. Le mappe abbinate alle
+  giornate escluse **non** vengono copiate (verificato: clonando 1 giornata su 6, la mappa del GIORNO 2 sparisce).
+- ☐ **Nessuna mappa orfana**: nel tab Mappa della copia non compaiono mappe "intero viaggio" inattese —
+  una mappa di giornata scartata non deve trasformarsi in mappa generale.
+- ☐ **Avvertimento**: dopo il clone parziale lo snackbar ricorda di rivedere l'ultima giornata clonata.
+  Aprendo l'Itinerario, la giornata N descrive ancora una **tappa intermedia**: va riscritta come conclusione
+  (si rientra al punto di partenza? ci si ferma dove si è arrivati?). È una scelta logistica, non automatizzabile.
+- ☐ **Caso inverso** (destinazione più lunga dell'origine): il dialogo avvisa che resteranno giornate da scrivere
+  a mano; "Clona comunque" copia tutte le giornate disponibili e il semaforo Itinerario resta giallo.
+- ☐ **Nessuna regressione**: quando le durate coincidono il dialogo **non** compare e il clone si comporta
+  come nella sezione 28.
+
+## 30. Il sito non mostra partenze già iniziate (script `506`)
+
+Prima del `506` la lettura pubblica filtrava solo su azienda e `stato_pubblicazione='pubblicato'`: una scheda
+pubblicata restava visibile anche a viaggio concluso. Non è risolvibile con un trigger — il tempo che passa non
+produce nessun evento sul database — quindi il taglio è in lettura. Confine scelto: la **data di inizio**, lo
+stesso della regola di scrittura (si pubblica solo una partenza che deve ancora iniziare).
+
+Test lato database (il sito pubblico non è ancora collegato):
+
+```sql
+SELECT contenuto_id, titolo, data_inizio FROM fn_web_tour_pubblicati(<azienda>);
+SELECT fn_web_ha_tour_brevi_pubblicati(<azienda>);
+```
+
+- ☐ **Partenza passata**: una scheda pubblicata la cui partenza è già iniziata **non** compare nell'elenco.
+- ☐ **Partenza di oggi**: nemmeno quella che inizia oggi compare (coerente con il gating in scrittura).
+- ☐ **Partenza da domani**: compare regolarmente, con tutti i campi valorizzati.
+- ☐ **Tour brevi**: `fn_web_ha_tour_brevi_pubblicati` segue lo stesso taglio, così la sezione "Tour giornalieri"
+  del sito non compare vuota per via di partenze ormai passate.
+- ☐ **Da comunicare al cliente prima del go-live**: al primo deploy in PROD, le schede pubblicate con partenza
+  già iniziata spariranno dal sito. È l'effetto voluto.
