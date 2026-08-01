@@ -23,6 +23,44 @@
 else
 {
     <MudGrid Spacing="2">
+        <!-- PUBBLICAZIONE -->
+        @* Sezione tenuta IN TESTA e non in fondo: lo stato di pubblicazione è l'informazione che si
+           consulta e si cambia più spesso, e in coda a una form lunga costringeva a scorrere tutto
+           per sapere se un tour è online. Sta subito sotto i chip di stato del selettore edizione,
+           che raccontano la stessa cosa. *@
+        <MudItem xs="12">
+            <MudText Typo="Typo.subtitle1">Pubblicazione</MudText>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" @bind-Value:after="MarkDirty" Label="Stato" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
+                <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
+                <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <div class="d-flex align-center mb-1">
+                <MudText Typo="Typo.subtitle2">Ordine sul sito</MudText>
+                <FieldHelp Title="Ordine sul sito"
+                           Text="Decide in che ordine appaiono i tour nell'elenco del sito. Numeri più bassi vanno prima. Lascia 0 se non ti interessa; usa 1, 2, 3… per mettere alcuni tour in cima." />
+            </div>
+            <MudNumericField T="int" @bind-Value="_model.Ordine" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" Min="0" HelperText="Più basso = più in alto nell'elenco." />
+        </MudItem>
+        <MudItem xs="6" sm="4">
+            <div class="d-flex align-center">
+                <MudField Label="Prima pubblicazione" Variant="Variant.Text" Class="flex-grow-1"
+                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock">
+                    <span class="mud-input-text mud-text-secondary">@(_model.DataPubblicazione?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</span>
+                </MudField>
+                <FieldHelp Title="Prima pubblicazione"
+                           Text="Data in cui il tour è stato pubblicato la prima volta. La imposta il sistema automaticamente, non serve toccarla." />
+            </div>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudDivider Class="my-2" />
+        </MudItem>
+
         <!-- CAMPI EDITORIALI -->
         <MudItem xs="12">
             <MudTextField @bind-Value="_model.Sottotitolo" @bind-Value:after="MarkDirty" Label="Sottotitolo" Variant="Variant.Outlined"
@@ -129,37 +167,6 @@ else
                           Lines="2" AutoGrow="true" MaxLines="6" MaxLength="320" Counter="320" HelperText="~150 caratteri."
                           Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
                           OnAdornmentClick="SuggerisciMetaDescription" AdornmentAriaLabel="Suggerisci meta description" />
-        </MudItem>
-
-        <!-- PUBBLICAZIONE -->
-        <MudItem xs="12">
-            <MudDivider Class="my-1" />
-            <MudText Typo="Typo.subtitle1">Pubblicazione</MudText>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="string" @bind-Value="_model.StatoPubblicazione" @bind-Value:after="MarkDirty" Label="Stato" Variant="Variant.Outlined">
-                <MudSelectItem T="string" Value="@("bozza")">Bozza</MudSelectItem>
-                <MudSelectItem T="string" Value="@("pubblicato")">Pubblicato</MudSelectItem>
-                <MudSelectItem T="string" Value="@("archiviato")">Archiviato</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="6" sm="4">
-            <div class="d-flex align-center mb-1">
-                <MudText Typo="Typo.subtitle2">Ordine sul sito</MudText>
-                <FieldHelp Title="Ordine sul sito"
-                           Text="Decide in che ordine appaiono i tour nell'elenco del sito. Numeri più bassi vanno prima. Lascia 0 se non ti interessa; usa 1, 2, 3… per mettere alcuni tour in cima." />
-            </div>
-            <MudNumericField T="int" @bind-Value="_model.Ordine" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" Min="0" HelperText="Più basso = più in alto nell'elenco." />
-        </MudItem>
-        <MudItem xs="6" sm="4">
-            <div class="d-flex align-center">
-                <MudField Label="Prima pubblicazione" Variant="Variant.Text" Class="flex-grow-1"
-                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock">
-                    <span class="mud-input-text mud-text-secondary">@(_model.DataPubblicazione?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</span>
-                </MudField>
-                <FieldHelp Title="Prima pubblicazione"
-                           Text="Data in cui il tour è stato pubblicato la prima volta. La imposta il sistema automaticamente, non serve toccarla." />
-            </div>
         </MudItem>
 
         <!-- AZIONI -->
