@@ -449,7 +449,38 @@ Dalla scheda **Date del viaggio**, icona cestino:
 > ⚠️ **Conseguenza da conoscere**: un viaggio le cui date sono tutte passate non è più eliminabile dal
 > programma. È la contropartita della protezione dello storico.
 
-> ⚠️ **Manca il comando per eliminare una scheda web.** La funzione `fn_web_tour_contenuti_delete` e il
-> metodo `WebTourContenutiService.DeleteAsync` esistono, ma **nessuna schermata li richiama**. Finché è
-> così, il messaggio "elimina prima la scheda" indica un'azione che dall'interfaccia non è possibile:
-> una partenza futura con contenuti web non è eliminabile in alcun modo.
+> Il comando per eliminare una scheda web — che all'inizio non esisteva in nessuna schermata, pur essendo
+> già pronto nel database e nel servizio — è stato aggiunto: vedi **sezione 32**.
+
+## 32. Eliminare una scheda di contenuti web (script `508`)
+
+Pulsante **Elimina scheda** nella barra dell'edizione, accanto ad *Anteprima*. Serve anche a sbloccare
+la cancellazione di una partenza futura (sezione 31), che i contenuti web tengono ferma.
+
+- ☐ **Solo su bozza/archiviato**: con la scheda in **bozza** il pulsante è attivo e rosso; portandola a
+  **pubblicato** diventa **disabilitato**, con tooltip che dice di riportarla a bozza. Togliere una pagina
+  dal sito resta un atto in due mosse, non un clic solo.
+- ☐ **La conferma dice cosa si perde**: il dialogo elenca giornate, immagini, mappe e traduzioni con i
+  **numeri reali** di quella scheda, e avverte che l'operazione non è reversibile.
+- ☐ **Annulla non tocca nulla**: la scheda resta intatta, semaforo compreso.
+- ☐ **Eliminazione**: confermando, l'edizione torna **Senza contenuto**, ricompaiono i pulsanti
+  *Crea contenuto* / *Clona* e i semafori dei sotto-tab si spengono.
+- ☐ **Nessuna traduzione orfana** — il motivo per cui esiste lo script `508`. Da verificare in SQL:
+
+  ```sql
+  SELECT entita, COUNT(*) FROM web_traduzioni t
+   WHERE (entita='web_tour_contenuti'  AND NOT EXISTS (SELECT 1 FROM web_tour_contenuti  x WHERE x.web_tour_contenuti_id  = t.entita_id))
+      OR (entita='web_tour_itinerario' AND NOT EXISTS (SELECT 1 FROM web_tour_itinerario x WHERE x.web_tour_itinerario_id = t.entita_id))
+      OR (entita='web_tour_itinerario_passaggi' AND NOT EXISTS (SELECT 1 FROM web_tour_itinerario_passaggi x WHERE x.web_tour_itinerario_passaggi_id = t.entita_id))
+      OR (entita='web_tour_mappa'      AND NOT EXISTS (SELECT 1 FROM web_tour_mappa x WHERE x.web_tour_mappa_id = t.entita_id))
+   GROUP BY 1;
+  ```
+
+  Deve restituire **zero righe**. *(Prima del `508` ne restavano 96 dopo una sola eliminazione.)*
+- ☐ **Le altre schede non si toccano**: eliminando una scheda **clonata**, quella di origine conserva
+  giornate, mappe e traduzioni. E viceversa.
+- ☐ **Sblocco della partenza**: eliminata la scheda, la partenza futura si elimina (sezione 31) — sempre
+  che non abbia prenotazioni.
+- ☐ **Attenzione ai file condivisi**: dopo aver eliminato una scheda clonata, aprire la scheda di origine e
+  controllare che **foto e mappe si vedano ancora**. I file su Storage non vengono cancellati proprio
+  perché possono essere condivisi fra originale e copia.

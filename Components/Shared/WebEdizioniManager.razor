@@ -6,6 +6,7 @@
 @inject WebTourContenutiService ContenutiService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject WebTourMappaService MappaService
 
 @* Gestione contenuti web PER EDIZIONE (Blocco 13): il contenuto è figlio di (viaggio + data_viaggio).
    Selettore edizione (date del viaggio) con stato contenuto ed effettuazione; Crea/Clona; 5 sotto-tab. *@
@@ -61,6 +62,23 @@ else
                     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" OnClick="Anteprima"
                                Disabled="@(_stati[TabGalleria] != WebTabStato.Completo)">Anteprima</MudButton>
                 </MudTooltip>
+
+                @* Eliminazione della scheda: solo su bozza/archiviato. Su una scheda pubblicata il
+                   pulsante non compare affatto, così togliere una pagina dal sito resta un atto in due
+                   mosse (prima spubblicare, poi eliminare) e non un clic solo. *@
+                @if (_selected.StatoPubblicazione != "pubblicato")
+                {
+                    <MudTooltip Text="Elimina la scheda web di questa edizione (giornate, foto, mappe e traduzioni)">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever"
+                                   Disabled="@_busy" OnClick="EliminaScheda">Elimina scheda</MudButton>
+                    </MudTooltip>
+                }
+                else
+                {
+                    <MudTooltip Text="La scheda è pubblicata: riportala a bozza per poterla eliminare">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.DeleteForever" Disabled="true">Elimina scheda</MudButton>
+                    </MudTooltip>
+                }
             }
         }
     </div>
@@ -432,6 +450,62 @@ else
             _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
         }
         catch (Exception ex) { Snackbar.Add($"Errore clone: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Elimina la scheda web dell'edizione selezionata. La conferma elenca cosa si sta perdendo:
+    /// l'eliminazione è irreversibile e porta via anche giornate, foto, mappe e traduzioni revisionate,
+    /// cioè il lavoro editoriale più costoso da rifare.
+    /// </summary>
+    private async Task EliminaScheda()
+    {
+        if (_selected?.ContenutoId is not { } contenutoId) return;
+        if (_selected.StatoPubblicazione == "pubblicato")
+        {
+            Snackbar.Add("La scheda è pubblicata: riportala a bozza prima di eliminarla.", Severity.Warning);
+            return;
+        }
+
+        var stato = await ContenutiService.GetStatoSezioniAsync(contenutoId, AziendaId, WebTraduzioneOrchestratorService.Lingue);
+        var mappe = (await MappaService.ListByContenutoAsync(contenutoId, AziendaId)).Count;
+
+        var voci = new List<string>();
+        if (stato is { NumeroGiornate: > 0 }) voci.Add($"{stato.NumeroGiornate} giornate di itinerario, con i loro passaggi");
+        if (stato is { NumeroImmagini: > 0 }) voci.Add($"{stato.NumeroImmagini} immagini in galleria");
+        if (mappe > 0) voci.Add($"{mappe} mappe caricate da GPX");
+        if (stato is { CoppieTradotte: > 0 }) voci.Add($"{stato.CoppieTradotte} traduzioni, comprese quelle già revisionate");
+
+        var elenco = voci.Count == 0
+            ? "La scheda è ancora vuota: non c'è nulla di compilato da perdere."
+            : "Insieme alla scheda spariscono:<ul><li>" + string.Join("</li><li>", voci) + "</li></ul>";
+
+        var conferma = await DialogService.ShowMessageBox(new MessageBoxOptions
+        {
+            Title = "Eliminare la scheda web?",
+            MarkupMessage = new MarkupString(
+                $"Stai per eliminare la scheda di contenuti web dell'edizione <b>{FormatEdizione(_selected)}</b>.<br/><br/>" +
+                elenco +
+                "<br/><b>L'operazione non è reversibile</b> e non esiste un cestino da cui recuperarla.<br/><br/>" +
+                "I file di foto e mappe restano in archivio (possono essere condivisi con una scheda clonata), " +
+                "ma testi, ordinamento e revisioni delle traduzioni vanno rifatti da capo."),
+            YesText = "Elimina definitivamente",
+            CancelText = "Annulla"
+        });
+        if (conferma != true) return;
+
+        _busy = true;
+        try
+        {
+            await ContenutiService.DeleteAsync(contenutoId, AziendaId);
+            Snackbar.Add("Scheda web eliminata.", Severity.Success);
+            _activeSubTabIndex = 0;
+            await OnContenutiDirtyChanged(false); // la scheda non c'è più: nessuna modifica da salvare
+            await ReloadAsync();
+            _selected = _edizioni.FirstOrDefault(e => e.DataViaggioId == _selectedDataId);
+        }
+        catch (InvalidOperationException ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+        catch (Exception ex) { Snackbar.Add($"Errore eliminazione: {ex.Message}", Severity.Error); }
         finally { _busy = false; }
     }
 
