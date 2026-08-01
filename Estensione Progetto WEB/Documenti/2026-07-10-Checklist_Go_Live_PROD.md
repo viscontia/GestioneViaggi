@@ -228,6 +228,56 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 
 ---
 
+## 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
+
+Durante i test è emerso che il comportamento dei contenuti web è **corretto ma non ovvio**: diverse regole,
+prese singolarmente, sembrano difetti del programma finché non si conosce il motivo. Vanno raccolte e
+spiegate **in linguaggio semplice** nel manuale, non lasciate ai soli messaggi dell'interfaccia.
+
+Argomenti che il capitolo deve coprire:
+
+- [ ] **I tre stati di una scheda** — *bozza*, *pubblicato*, *archiviato*. In particolare: **archiviato,
+      per il sito, è identico a bozza**; la differenza è solo editoriale (finito e da non toccare, contro
+      in lavorazione). Chi si aspetta che "archiviato" faccia qualcosa di diverso resta spiazzato.
+- [ ] **Il controllo scatta al salvataggio, non alla scelta della voce.** Si seleziona "Pubblicato", si
+      salva, e se manca qualcosa il programma riporta a "Bozza" spiegando cosa. Senza saperlo sembra che
+      il campo non funzioni.
+- [ ] **Cosa serve per pubblicare**: tutte le sezioni complete (icone verdi), **traduzioni revisionate**
+      — non basta che siano tradotte — e una partenza che **deve ancora iniziare** e non è segnata come
+      effettuata.
+- [ ] **Il tour sparisce dal sito da solo** quando la partenza inizia, pur restando "Pubblicato". Va detto
+      chiaramente, insieme al perché non esiste un automatismo che cambi lo stato: il tempo che passa non
+      produce nessun evento sul database, quindi il filtro è in lettura.
+- [ ] **Lo stato della partenza** (chip con il flag "effettuato" incrociato col calendario) e i suoi
+      **quattro casi**, comprese le due anomalie: conclusa ma non spuntata, spuntata ma non ancora conclusa.
+      Spiegare dove si corregge.
+- [ ] **Clonazione** da un'altra partenza: cosa viene copiato (compresi itinerario, mappe e traduzioni già
+      approvate), che la copia nasce sempre in **bozza**, e che **foto e mappe restano gli stessi file**
+      dell'originale — eliminare un media dalla scheda di origine lo toglie anche alla copia.
+- [ ] **Clonazione fra partenze di durata diversa**: quando succede (il numero di giorni del viaggio è stato
+      cambiato in anagrafica dopo), cosa chiede il programma, e perché **l'ultima giornata clonata va
+      riscritta a mano** — in un viaggio più corto il finale cambia e non è una decisione automatizzabile.
+- [ ] **Eliminare una scheda web**: possibile solo da bozza o archiviato, **irreversibile**, e porta via
+      giornate, foto, mappe e traduzioni revisionate. I file restano in archivio perché possono essere
+      condivisi con una copia.
+- [ ] **Eliminare una partenza**: **non si cancella lo storico**. Una partenza effettuata o già iniziata è
+      rifiutata; lo sono anche quelle con una scheda web o con prenotazioni. Spiegare l'ordine dei
+      controlli e che una data inserita per sbaglio nel passato si corregge e poi si elimina.
+- [ ] **Le verifiche non bloccanti** (giornate senza foto o senza mappa, incluso/escluso vuoti…): sono
+      promemoria, non errori, e non impediscono di pubblicare.
+- [ ] **Traduzioni**: perché la revisione è obbligatoria per pubblicare, cosa fa "traduci mancanti" rispetto
+      a "traduci tutto", e che ogni traduzione ha un **costo** (registro consumi e soglia di spesa).
+
+**Materiale già pronto da cui attingere** — il testo semplice esiste già, va raccolto:
+- i popover "?" nella scheda Contenuti (in particolare quello sullo **stato di pubblicazione**, il più esteso);
+- `Documentazione_Versioni/Note_Rilascio_Versione_2_0.md`, Sezione 1 (funzionalità) e Sezione 2 (bug risolti,
+  righe 6 e 8: stato della partenza e cancellazione);
+- `2026-07-09-Piano_Test_Estensione_Web.md`, sezioni **26–32**: ogni caso di prova è di fatto una regola
+  raccontata a parole;
+- le testate dei relativi script SQL (`505`–`508`), che contengono il *perché* di ogni scelta.
+
+---
+
 ## 4. Checklist finale di rilascio
 
 - [ ] Applicati in ordine gli script 406–508 su PROD (§1) senza errori.
@@ -239,6 +289,7 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
+- [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
 
 ---
@@ -248,4 +299,5 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 466) o un nuovo requisito di configurazione:
 1. aggiungere la riga in §1 (con eventuale ⚠️ e rimando a §2 se serve azione manuale);
 2. se comporta backfill/segreti/config, aggiungere la voce in §2/§3 e la spunta in §4;
+2bis. se introduce o cambia una **regola di comportamento** visibile all'utente (stati, pubblicabilità, cancellazioni, automatismi), aggiungere la voce da spiegare in §3.4: il manuale si scrive alla fine, ma l'elenco di cosa spiegare si costruisce strada facendo;
 3. aggiornare la data in testa.
