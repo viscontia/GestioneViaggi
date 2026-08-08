@@ -1,7 +1,7 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-07-14 (Blocchi 5–13 + cifratura segreti + aggiunte CMS §A: Incluso/Escluso §13, Capienza/posti rimasti §14, Tour brevi §15, Recensioni §16; CRUD DB-first Tipologie Viaggio §17).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-08-07 (contenuti web §2/§10/§19/§32 collaudati ✅; §8 Newsletter riscritta come piano eseguibile A–L con dati di test preparati).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
@@ -21,16 +21,32 @@
 
 ## 1. Anagrafica cliente — campo `cliente_lingua` (Blocco 11-B)
 
+> **Lacuna colmata il 2026-08-08 (script `510`).** Del Blocco 11-B era implementata solo la metà
+> "lingua": `consenso_marketing` (+ `_data`/`_fonte`, creati dal `428`) esisteva solo a schema e
+> poteva essere scritto unicamente via SQL. Ora ha `fn_ana_clienti_get_consenso` /
+> `fn_ana_clienti_set_consenso` → `ClienteConsensoService` → checkbox nella scheda cliente,
+> accanto alla lingua. Le verifiche del consenso sono le ultime quattro righe qui sotto.
+
+**Lingua newsletter:**
 - ☐ Apri una scheda cliente esistente → la **Lingua newsletter** è precompilata (backfill geo: IT per residenti Italia, DE/EN per esteri).
 - ☐ Cambia la lingua (override, es. ticinese/rumeno italofono → **IT**) → salva → riapri → il valore è persistito.
 - ☐ Svuota il campo ("auto") → salva → la newsletter userà poi la lingua derivata dalla nazione di residenza.
 - ☐ Nuovo cliente: crea uno con lingua "auto" e uno con lingua esplicita → verifica coerenza.
 
+**Consenso marketing (script `510`):**
+- ☐ La scheda cliente mostra la checkbox **"Consenso newsletter/marketing"** accanto alla lingua;
+  su un cliente mai toccato è **spenta** e senza scritta sotto.
+- ☐ Attivala → salva → riapri: è accesa e sotto compare **"Concesso il gg/mm/aaaa hh:mm (gestionale)"**.
+- ☐ **Risalva la scheda senza toccare la checkbox** (cambia solo il telefono) → riapri: la data del
+  consenso **non deve cambiare**. È la garanzia che il registro dei consensi resti attendibile.
+- ☐ Spegnila → salva → riapri: la scritta diventa **"Revocato il … (revoca_gestionale)"** e il cliente
+  sparisce dal conteggio destinatari della newsletter (§8 C4).
+
 ## 2. Blocco 5 — Contenuti Web del tour
 
-- ☐ Salva/rilegge i contenuti (chiudi/riapri il dialog).
-- ☐ Slug/"indirizzo web" duplicato su due edizioni → messaggio d'errore chiaro ("Esiste già un tour con questo indirizzo web…").
-- ☐ Resa dei 5 editor Quill (altezze/scroll, HTML ricaricato).
+- ✅ Salva/rilegge i contenuti (chiudi/riapri il dialog).
+- ✅ Slug/"indirizzo web" duplicato su due edizioni → messaggio d'errore chiaro ("Esiste già un tour con questo indirizzo web…").
+- ✅ Resa dei 5 editor Quill (altezze/scroll, HTML ricaricato).
 
 > Nota Blocco 13: i contenuti sono ora **per edizione** (viaggio+data). Vedi §10 per crea/clona/anteprima.
 
@@ -69,17 +85,159 @@
 
 ## 8. Blocco 11 — Newsletter *(pagina `/newsletter`, menu "Estensione Web")*
 
-- ☐ **Conteggio destinatari** in tab Campagna corretto (dedup clienti-con-consenso + iscritti − soppressioni, per email).
-- ☐ **Invio di prova** a un indirizzo (oggetto con prefisso `[TEST]`, solo IT).
-- ☐ **Invia a tutti**: dialog di conferma con conteggio → invio → snackbar con inviate/errori.
-- ☐ **Canale = SMTP del cliente**: l'invio parte dallo SMTP aziendale configurato (fallback Resend se assente); il tab Storico mostra il canale usato.
-- ☐ **Multilingua**: iscritto nella sua lingua; cliente estero nella lingua della nazione (CH→DE, non coperti→EN); residenti IT in italiano.
-- ☐ **Template brandizzato**: l'email usa `CompanyEmailTemplate` (logo azienda, nome, sito/telefono nel footer).
-- ☐ **Senza chiave Claude** sull'azienda: i destinatari non-IT ricevono la versione **italiana** e lo snackbar segnala "alcune lingue inviate in IT".
-- ☐ **Link di disiscrizione** presente in coda al corpo e firmato (HMAC su `token_iscrizione` azienda).
-- ☐ Tab **Storico**: invii elencati (oggetto/stato/data/n.destinatari/canale) + azione **Log** → dialog con esito per-destinatario.
-- ☐ Tab **Iscritti**: elenco read-only (email/nome/lingua/stato/consenso).
-- ☐ Tab **Soppressioni**: aggiungi email+motivo, rimuovi → un indirizzo soppresso è escluso dal conteggio e dall'invio.
+> **Dati di test preparati (2026-08-07).** Seed applicato al DB locale — destinatari attesi:
+>
+> | azienda | email | lingua | fonte |
+> |---|---|---|---|
+> | 2 (SFT, **con** chiave Claude) | info@sardegnafuoritraccia.it | IT | cliente |
+> | 2 | mirania008@gmail.com | EN | cliente |
+> | 2 | visconti.adriano+de@gmail.com | DE | iscritto |
+> | 2 | visconti.adriano@gmail.com | EN | **entrambi** (cliente *e* iscritto → prova la dedup) |
+> | 6 (**senza** chiave Claude) | mirania008@gmail.com | EN | cliente |
+> | 6 | visconti.adriano@gmail.com | EN | cliente |
+>
+> `visconti.adriano+de@` è plus-addressing Gmail: consegna nella stessa inbox ma vale come
+> iscritto tedesco. L'azienda 6 non ha chiave Claude → è lo scenario di fallback IT.
+>
+> ⚠️ **Spegnere la VPN prima di ogni invio**: il server di posta blocca i range VPN/datacenter
+> sulle porte 465/587 e `Connect` va in timeout (sembra un bug SMTP, è routing).
+> ⚠️ "Invia a tutti" sull'azienda 2 manda una mail **vera ad Antonio**.
+
+**Ordine consigliato:** A → B → C → D → E → F → G → H → I → J → K → L.
+I gruppi E/F/G inviano posta vera: falli in una sessione sola, a VPN spenta.
+
+---
+
+### A. Accesso e gating
+
+- ☐ **A1** — Menu "Estensione Web > Newsletter" presente; `/newsletter` si apre senza errori e la
+  status bar mostra la tabella corrente `web_newsletter_invii`.
+- ☐ **A2** — La pagina carica 4 blocchi senza eccezioni: conteggio, storico, iscritti, soppressioni.
+  *(Se una delle 4 query fallisce compare una snackbar rossa "Errore caricamento: …" e la pagina resta
+  su valori vuoti anziché rompersi.)*
+- ☐ **A3** — Azienda con `newsletter` disattivata (§9) → la pagina mostra "non attiva" e **non**
+  esegue nessuna query. Ri-attivando, torna operativa.
+
+### B. Composizione e validazioni (nessuna mail parte)
+
+- ☐ **B1** — Oggetto vuoto + *Invia prova* → snackbar **warning** "Inserisci l'oggetto." e nient'altro.
+- ☐ **B2** — Oggetto valorizzato ma corpo Quill vuoto → warning "Il corpo è vuoto.".
+- ☐ **B3** — Corpo con **solo un a-capo** (Quill produce `<p><br></p>`) → deve contare come **vuoto**
+  e dare lo stesso warning: è il caso che sfugge più facilmente.
+- ☐ **B4** — *Invia prova* con oggetto e corpo validi ma **email di prova vuota** → warning
+  "Inserisci un'email di prova.".
+- ☐ **B5** — L'oggetto viene **trimmato** prima dell'invio (spazi iniziali/finali non finiscono in mail).
+- ☐ **B6** — Durante un invio i pulsanti sono disabilitati (`_busy`): niente doppio invio a doppio clic.
+
+### C. Destinatari e deduplicazione
+
+- ☐ **C1** — Azienda 2: il conteggio in tab Campagna dice **4** (non 5). Sono 3 clienti con consenso
+  + 2 iscritti, ma `visconti.adriano@gmail.com` è **entrambi** e va contato una volta sola.
+- ☐ **C2** — Azienda 6: il conteggio dice **2**.
+- ☐ **C3** — Cliente **senza email** o con email vuota → non compare mai nel conteggio.
+- ☐ **C4** — Togli il consenso a un cliente dall'anagrafica → riapri `/newsletter` → il conteggio cala.
+  Rimettilo → risale. *(Il conteggio si ricarica a `OnInitializedAsync` e dopo invio/soppressioni,
+  non in tempo reale: se cambi il consenso con la pagina già aperta, devi rientrare.)*
+- ☐ **C5** — Iscritto con `stato='disiscritto'` o `consenso=false` → escluso.
+
+### D. Soppressioni
+
+- ☐ **D1** — Tab Soppressioni → aggiungi `mirania008@gmail.com` con motivo → snackbar "Soppressione
+  aggiunta." → il conteggio scende a **3**.
+- ☐ **D2** — Aggiungi una soppressione **senza motivo** → viene salvata con motivo `manuale`.
+- ☐ **D3** — Email vuota → warning "Inserisci un'email.", niente inserimento.
+- ☐ **D4** — Con la soppressione attiva fai un invio → quell'indirizzo **non riceve** e **non compare**
+  nel log dei destinatari.
+- ☐ **D5** — Rimuovi la soppressione → snackbar "Soppressione rimossa." → conteggio di nuovo **4**.
+- ☐ **D6** — Doppia soppressione della stessa email → non deve creare doppioni né rompere il conteggio.
+
+### E. Invio di prova *(mail vera — VPN spenta)*
+
+- ☐ **E1** — Prova a `visconti.adriano@gmail.com` → snackbar verde "Email di prova inviata."
+- ☐ **E2** — L'email arriva con oggetto **`[TEST] <oggetto>`**.
+- ☐ **E3** — È in **italiano** anche se il destinatario è EN: la prova non traduce mai.
+- ☐ **E4** — L'invio di prova **non** compare nel tab Storico (non registra la campagna).
+- ☐ **E5** — L'invio di prova ignora consensi e soppressioni: funziona anche verso un indirizzo
+  soppresso o sconosciuto. *(È voluto: serve a provare la configurazione.)*
+- ☐ **E6** — Con SMTP mal configurato → snackbar rossa "Invio di prova fallito (verifica config email)."
+
+### F. Campagna multilingua — azienda 2 (con chiave Claude) *(mail vere)*
+
+- ☐ **F1** — *Invia a tutti* → dialogo di conferma "Inviare la newsletter a **4** destinatari?" con
+  pulsante **Invia**. *Annulla* non manda nulla.
+- ☐ **F2** — Esito: snackbar verde "Inviate 4/4", senza la coda sulle lingue.
+- ☐ **F3** — Arrivano **4 email**, e nella tua inbox ne arrivano **2** (la tua EN + quella `+de`),
+  non 3: se ne arrivano 3 la dedup è rotta.
+- ☐ **F4** — Lingue: Antonio in **IT** (testo originale), Anna in **EN**, `+de` in **DE**.
+  Oggetto **e** corpo tradotti, non solo il corpo.
+- ☐ **F5** — L'HTML del corpo sopravvive alla traduzione (grassetti, liste, link non si sfaldano).
+- ☐ **F6** — Il consumo Claude della newsletter finisce nel **registro consumi** con causale
+  "Newsletter (EN)" / "Newsletter (DE)" — 2 chiamate per lingua (oggetto + corpo).
+- ☐ **F7** — Tab Storico: nuova riga con canale **`smtp`**, stato `inviato`, n. destinatari **4**.
+
+### G. Fallback senza chiave Claude — azienda 6 *(mail vere)*
+
+- ☐ **G1** — Cambia azienda in **Offroad Adventures** → conteggio **2**.
+- ☐ **G2** — *Invia a tutti* → snackbar **arancione**: "Inviate 2/2 (alcune lingue inviate in IT:
+  chiave Claude mancante/errore)".
+- ☐ **G3** — Tu e Anna, entrambi `EN`, ricevete la versione **italiana**. Nessun errore, nessuna
+  mail mancata: il fallback degrada, non blocca.
+- ☐ **G4** — Nel log per-destinatario la lingua registrata è **`IT`**, non `EN`: deve riflettere
+  la lingua *realmente inviata*.
+
+### H. Template brandizzato e link di disiscrizione
+
+- ☐ **H1** — L'email usa `CompanyEmailTemplate`: logo azienda in testa, ragione sociale, e in footer
+  sito e telefono.
+- ☐ **H2** — Azienda **senza logo** → l'email parte comunque, solo senza immagine (il logo è
+  non-critical: viene loggato un warning e si prosegue).
+- ☐ **H3** — In coda al corpo c'è il separatore e "Non desideri più ricevere la nostra newsletter?
+  **Disiscriviti**".
+- ☐ **H4** — Il link punta a `<sito_web>/unsubscribe?email=…&sig=…`, con l'email URL-encoded.
+- ☐ **H5** — **Firma reale**: la stessa email inviata da azienda 2 e da azienda 6 deve produrre
+  `sig` **diversi**. Se sono identici, `token_iscrizione` è tornato NULL e l'HMAC sta usando chiave
+  vuota (link forgiabile e uguale per tutti i tenant).
+- ☐ **H6** — Azienda senza `sito_web` → il link cade sul placeholder `https://www.example.com`
+  anziché generare un URL rotto. *(Comportamento accettato: il click lo gestirà il sito in Fase 3.)*
+
+### I. Storico e log
+
+- ☐ **I1** — Tab Storico elenca gli invii con oggetto, stato, data, n. destinatari, canale.
+- ☐ **I2** — Azione **Log** → dialogo con una riga per destinatario: email, lingua, stato consegna.
+- ☐ **I3** — I destinatari nel log sono **esattamente** quelli attesi (soppressi esclusi, dedup applicata).
+- ☐ **I4** — Il log di un invio dell'azienda 2 non è apribile né visibile dall'azienda 6.
+
+### J. Iscritti
+
+- ☐ **J1** — Tab Iscritti mostra i 2 iscritti seed con email, nome, lingua, stato, consenso.
+- ☐ **J2** — L'elenco è **read-only**: nessun pulsante di modifica/inserimento (gli iscritti arrivano
+  dal sito pubblico, Fase 3).
+
+### K. Multi-tenant (silos)
+
+- ☐ **K1** — Storico, iscritti e soppressioni dell'azienda 2 **non** compaiono sull'azienda 6 e viceversa.
+- ☐ **K2** — Una soppressione inserita su un'azienda **non** filtra i destinatari dell'altra, anche a
+  parità di indirizzo email.
+
+### L. Errori e casi limite
+
+- ☐ **L1** — Azienda **senza destinatari** (togli tutti i consensi) → *Invia a tutti* → snackbar rossa
+  "Errore invio: Nessun destinatario (verifica consensi clienti / iscritti / soppressioni)." e
+  **nessuna riga** creata nello storico.
+- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → tutti gli invii falliscono →
+  snackbar "Inviate 0/4, 4 errori", log con tutti `errore`.
+  ⚠️ **Da verificare:** la riga di storico risulta comunque in stato **`inviato`**, perché lo stato
+  è impostato a fine ciclo senza guardare gli esiti. Se lo confermi, è una segnalazione da aprire:
+  una campagna interamente fallita non dovrebbe archiviarsi come inviata.
+- ☐ **L3** — **Errore prima del ciclo** (es. configurazione email assente e il factory lancia) → la
+  riga di storico può restare bloccata in **`in_invio`** senza che nulla la chiuda. Verifica se
+  succede e se resta appesa nell'elenco.
+- ☐ **L4** — Stato della campagna in corso: durante un invio lungo la riga è visibile come `in_invio`.
+- ☐ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter` in una sessione,
+  aggiungi una soppressione da un'altra, poi invia dalla prima → il dialogo annuncia il vecchio
+  numero mentre l'invio parte su quello aggiornato. Verifica quanto è fastidioso in pratica.
+- ☐ **L6** — Traduzione fallita su **una sola** lingua (es. chiave Claude revocata a metà) → quella
+  lingua degrada a IT, le altre restano tradotte, snackbar con l'avviso.
 
 ## 9. Blocco 12 — Config per-azienda (tab "Funzioni Web")
 
@@ -95,21 +253,21 @@
 ## 10. Blocco 13 — Contenuti web per edizione (viaggio+data)
 
 **Anagrafica viaggio — campo Difficoltà (`ana_viaggi.viaggio_difficolta`):**
-- ☐ Apri un viaggio esistente → il dialog mostra la select **Difficoltà** (turistica/media/medio_alta/alta); vuota se mai impostata.
-- ☐ Imposta / cambia / svuota (Clearable) la difficoltà → salva → riapri: valore coerente (NULL ammesso).
-- ☐ Nuovo viaggio con date: crea con difficoltà impostata → salvata (path create-con-date).
-- ☐ La difficoltà è **solo** in anagrafica viaggio: non è editabile nei contenuti web (letta live dalla pagina/anteprima).
+- ✅ Apri un viaggio esistente → il dialog mostra la select **Difficoltà** (turistica/media/medio_alta/alta); vuota se mai impostata.
+- ✅ Imposta / cambia / svuota (Clearable) la difficoltà → salva → riapri: valore coerente (NULL ammesso).
+- ✅ Nuovo viaggio con date: crea con difficoltà impostata → salvata (path create-con-date).
+- ✅ La difficoltà è **solo** in anagrafica viaggio: non è editabile nei contenuti web (letta live dalla pagina/anteprima).
 
 **Contenuti per edizione (dialog viaggio → tab "Contenuti Web"):**
-- ☐ **Selettore edizione**: elenca le date del viaggio con **dal–al**, chip **con/senza contenuto** e chip **effettuato/da effettuare** (da `data_viaggio_effettuato_sino`).
-- ☐ Data **senza contenuto** → **Crea contenuto**: crea una bozza per quella data → compaiono i 5 sotto-tab (Contenuti/Itinerario/Galleria/Mappa/Traduzioni).
-- ☐ Data senza contenuto → **Clona da** un'altra edizione (con contenuto) → copia contenuti+itinerario+galleria+mappa+traduzioni sulla nuova data.
-- ☐ **Vincoli clone**: consentito solo tra date dello **stesso viaggio**; una data già con contenuto non è selezionabile come destinazione.
-- ☐ **Indipendenza edizioni**: crea 2 edizioni dello stesso viaggio e verifica che modificare una **non** tocchi l'altra.
-- ☐ Nel tab Contenuti **non** c'è più la difficoltà; prezzi/date **non** editabili qui (vengono dall'anagrafica).
-- ☐ **Anteprima**: mostra il contenuto assemblato (sottotitolo, descrizione, itinerario+passi, galleria, mappa) in IT.
-- ☐ **Pubblicazione**: porta lo **Stato** del contenuto a "pubblicato" → lo strato pubblico (`fn_web_tour_pubblicati`) espone **una riga per edizione** con prezzo/date della singola data e difficoltà dall'anagrafica (verifica via query DB o Fase 3).
-- ☐ **Multi-tenant**: un'azienda non vede le edizioni/contenuti di un'altra.
+- ✅ **Selettore edizione**: elenca le date del viaggio con **dal–al**, chip **con/senza contenuto** e chip **effettuato/da effettuare** (da `data_viaggio_effettuato_sino`).
+- ✅ Data **senza contenuto** → **Crea contenuto**: crea una bozza per quella data → compaiono i 5 sotto-tab (Contenuti/Itinerario/Galleria/Mappa/Traduzioni).
+- ✅ Data senza contenuto → **Clona da** un'altra edizione (con contenuto) → copia contenuti+itinerario+galleria+mappa+traduzioni sulla nuova data.
+- ✅ **Vincoli clone**: consentito solo tra date dello **stesso viaggio**; una data già con contenuto non è selezionabile come destinazione.
+- ✅ **Indipendenza edizioni**: crea 2 edizioni dello stesso viaggio e verifica che modificare una **non** tocchi l'altra.
+- ✅ Nel tab Contenuti **non** c'è più la difficoltà; prezzi/date **non** editabili qui (vengono dall'anagrafica).
+- ✅ **Anteprima**: mostra il contenuto assemblato (sottotitolo, descrizione, itinerario+passi, galleria, mappa) in IT.
+- ✅ **Pubblicazione**: porta lo **Stato** del contenuto a "pubblicato" → lo strato pubblico (`fn_web_tour_pubblicati`) espone **una riga per edizione** con prezzo/date della singola data e difficoltà dall'anagrafica (verifica via query DB o Fase 3).
+- ✅ **Multi-tenant**: un'azienda non vede le edizioni/contenuti di un'altra.
 
 ## 11. Cifratura segreti (pgcrypto + `GV_SECRET_KEY`)
 
@@ -261,15 +419,15 @@ Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giorn
 
 Controlli che nessun vincolo può fare, perché non sono dati incoerenti ma **dimenticanze** (5 giornate e 4 con foto). Non impediscono mai la pubblicazione: obbligano solo a vederle.
 
-- ☐ **Chip nel selettore edizione**: mostra il numero di voci; giallo se c'è almeno una segnalazione, azzurro se solo suggerimenti; cliccandolo si apre l'elenco.
-- ☐ **Anteprima**: in cima compare il pannello "Verifica contenuti" con le stesse voci.
-- ☐ **Pubblicazione**: passando lo stato a "pubblicato" con contenuti completi ma segnalazioni aperte, compare il dialogo "Prima di pubblicare".
-  - ☐ *"Pubblica lo stesso"* → il salvataggio prosegue e lo stato resta "pubblicato".
-  - ☐ *"Torna e correggi"* → il salvataggio si annulla, **nulla va perso** e si resta nella form.
-- ☐ **Gating obbligatorio prima delle verifiche**: se manca un campo obbligatorio, resta il blocco esistente (salva come bozza) e il dialogo delle verifiche **non** compare.
-- ☐ **Le voci si aggiornano**: aggiungi la foto alla giornata che ne era priva → la segnalazione sparisce alla successiva apertura/pubblicazione (sono ricalcolate, non memorizzate).
-- ☐ **Concordanza dei messaggi**: "1 giornata su 5 non ha foto" al singolare, "3 giornate su 5 non hanno" al plurale.
-- ☐ **Tour completo**: nessuna voce → il chip non compare e l'anteprima non mostra il pannello.
+- ✅ **Chip nel selettore edizione**: mostra il numero di voci; giallo se c'è almeno una segnalazione, azzurro se solo suggerimenti; cliccandolo si apre l'elenco.
+- ✅ **Anteprima**: in cima compare il pannello "Verifica contenuti" con le stesse voci.
+- ✅ **Pubblicazione**: passando lo stato a "pubblicato" con contenuti completi ma segnalazioni aperte, compare il dialogo "Prima di pubblicare".
+  - ✅ *"Pubblica lo stesso"* → il salvataggio prosegue e lo stato resta "pubblicato".
+  - ✅ *"Torna e correggi"* → il salvataggio si annulla, **nulla va perso** e si resta nella form.
+- ✅ **Gating obbligatorio prima delle verifiche**: se manca un campo obbligatorio, resta il blocco esistente (salva come bozza) e il dialogo delle verifiche **non** compare.
+- ✅ **Le voci si aggiornano**: aggiungi la foto alla giornata che ne era priva → la segnalazione sparisce alla successiva apertura/pubblicazione (sono ricalcolate, non memorizzate).
+- ✅ **Concordanza dei messaggi**: "1 giornata su 5 non ha foto" al singolare, "3 giornate su 5 non hanno" al plurale.
+- ✅ **Tour completo**: nessuna voce → il chip non compare e l'anteprima non mostra il pannello.
 
 ## 20. Traduzioni — attesa, revisione e gating (script `498`/`499`)
 
@@ -457,15 +615,15 @@ Dalla scheda **Date del viaggio**, icona cestino:
 Pulsante **Elimina scheda** nella barra dell'edizione, accanto ad *Anteprima*. Serve anche a sbloccare
 la cancellazione di una partenza futura (sezione 31), che i contenuti web tengono ferma.
 
-- ☐ **Solo su bozza/archiviato**: con la scheda in **bozza** il pulsante è attivo e rosso; portandola a
+- ✅ **Solo su bozza/archiviato**: con la scheda in **bozza** il pulsante è attivo e rosso; portandola a
   **pubblicato** diventa **disabilitato**, con tooltip che dice di riportarla a bozza. Togliere una pagina
   dal sito resta un atto in due mosse, non un clic solo.
-- ☐ **La conferma dice cosa si perde**: il dialogo elenca giornate, immagini, mappe e traduzioni con i
+- ✅ **La conferma dice cosa si perde**: il dialogo elenca giornate, immagini, mappe e traduzioni con i
   **numeri reali** di quella scheda, e avverte che l'operazione non è reversibile.
-- ☐ **Annulla non tocca nulla**: la scheda resta intatta, semaforo compreso.
-- ☐ **Eliminazione**: confermando, l'edizione torna **Senza contenuto**, ricompaiono i pulsanti
+- ✅ **Annulla non tocca nulla**: la scheda resta intatta, semaforo compreso.
+- ✅ **Eliminazione**: confermando, l'edizione torna **Senza contenuto**, ricompaiono i pulsanti
   *Crea contenuto* / *Clona* e i semafori dei sotto-tab si spengono.
-- ☐ **Nessuna traduzione orfana** — il motivo per cui esiste lo script `508`. Da verificare in SQL:
+- ✅ **Nessuna traduzione orfana** — il motivo per cui esiste lo script `508`. Da verificare in SQL:
 
   ```sql
   SELECT entita, COUNT(*) FROM web_traduzioni t
@@ -477,11 +635,11 @@ la cancellazione di una partenza futura (sezione 31), che i contenuti web tengon
   ```
 
   Deve restituire **zero righe**. *(Prima del `508` ne restavano 96 dopo una sola eliminazione.)*
-- ☐ **Le altre schede non si toccano**: eliminando una scheda **clonata**, quella di origine conserva
+- ✅ **Le altre schede non si toccano**: eliminando una scheda **clonata**, quella di origine conserva
   giornate, mappe e traduzioni. E viceversa.
-- ☐ **Sblocco della partenza**: eliminata la scheda, la partenza futura si elimina (sezione 31) — sempre
+- ✅ **Sblocco della partenza**: eliminata la scheda, la partenza futura si elimina (sezione 31) — sempre
   che non abbia prenotazioni.
-- ☐ **Attenzione ai file condivisi**: dopo aver eliminato una scheda clonata, aprire la scheda di origine e
+- ✅ **Attenzione ai file condivisi**: dopo aver eliminato una scheda clonata, aprire la scheda di origine e
   controllare che **foto e mappe si vedano ancora**. I file su Storage non vengono cancellati proprio
   perché possono essere condivisi fra originale e copia.
 

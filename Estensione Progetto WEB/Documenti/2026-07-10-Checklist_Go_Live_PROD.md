@@ -2,13 +2,13 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-07-28 (§3 per la consegna su Windows; script 496–500: verifiche non bloccanti, gating traduzioni, registro consumi Claude). **Stato:** NON ancora rilasciato.
+> **Ultimo aggiornamento:** 2026-08-08 (§1: completato l'elenco script `467`–`510` in tabella — prima erano solo prosa; comando di deploy corretto per **escludere il rollback**; nuovo script `510` consenso marketing). **Stato:** NON ancora rilasciato.
 
 ---
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `509`** (i numeri 445–449 non esistono; `475` = cifratura segreti; `476–481` = aggiunte CMS post-Blocco 13; `482` = CRUD DB-first `ana_tipo_viaggi`; `483` = lettura password SMTP decifrate via pgcrypto; `484` = fix troncamento `cliente_lingua`; `485` = `cliente_lingua` auto-deriva da nazione + `NOT NULL`; `486` = `fn_web_tour_pubblicati` espone `meta_title`/`meta_description` con fallback, Blocco 5 Fase 2; `487` = `nome_file` su `web_tour_immagini` (dedup galleria per nome file); `488` = `fn_web_immagini_in_uso` (foto usate nell'itinerario, per proteggerle in cancellazione); `489` = `sys_utente_preferenze` + `fn_sys_utente_pref_get`/`set` (preferenze UI per-utente, es. dimensione miniature galleria); `490` = **UNIQUE** su `web_tipi_viaggio_descrizioni.ordine` con normalizzazione ordini a `1..N` — protezione DB contro ordini duplicati, idempotente; `491` = **CHECK** su `web_tipi_viaggio_descrizioni` (descrizione ≥ 3 caratteri dopo trim, ordine ≥ 1) — regole di integrità DB-first, idempotente; `492` = `fn_web_tour_stato_sezioni` (fatti per il semaforo dei sotto-tab contenuti web: sola lettura, `CREATE OR REPLACE`, nessun impatto su dati/`anon`); `493` = **mappe multiple** su `web_tour_mappa` (rimuove lo `UNIQUE` sul contenuto, aggiunge abbinamento giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita; ⚠️ contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli — è nello script, ma su PROD verificare l'esito); `494` = CRUD mappe multiple (`insert`/`update` con firma nuova — le precedenti sono droppate esplicitamente — più `list_by_contenuto` e `get_by_giornata`); `495` = `fn_web_tour_stato_sezioni` conta anche le descrizioni delle mappe fra i campi tradotti; `496` = `fn_web_tour_verifiche` (verifiche NON bloccanti sui contenuti: giornate senza foto/mappa, ecc. — sola lettura); `497` = `web_tour_mappa.descrizione` **obbligatoria** (backfill + `NOT NULL` + CHECK non-vuoto); `498`+`499` = **gating traduzioni**: il semaforo distingue `n_tradotte` da `n_revisionate` (revisionato AND NOT obsoleto) e solo le revisionate rendono pubblicabile il tour, più `fn_web_traduzioni_approva_contenuto` per l'approvazione in blocco e `fn_web_tour_campi_traducibili` come unica definizione dei campi traducibili. ⚠️ `498`/`499` fanno `DROP FUNCTION` su `fn_web_tour_stato_sezioni` perché ne cambia il tipo di ritorno: applicarli **in ordine**; `500` = registro consumi Claude (`web_ai_consumi`, `web_ai_config` + funzioni): due tabelle nuove, nessun impatto sui dati esistenti né su `anon`; `501` = data di verifica del listino prezzi + promemoria; `502` = supporto anteprima (prossime partenze e traduzioni per contenuto): sole funzioni di lettura, nessun impatto su dati o `anon`; `503` = i **titoli delle giornate** entrano fra i campi traducibili; `504` = allineamento di `fn_web_tour_contenuti_clona` (⚠️ **senza il 504 la clonazione di un contenuto con mappe FALLISCE**, perché il 497 ha reso obbligatoria la descrizione della mappa: applicarli entrambi); `505` = clone consapevole della **durata** (`p_max_giornate`: clona solo le prime N giornate quando la partenza di destinazione è più corta, saltando le mappe delle giornate escluse — la firma cambia, quindi lo script droppa esplicitamente la precedente); `506` = **filtro sulle date in lettura** su `fn_web_tour_pubblicati` e `fn_web_ha_tour_brevi_pubblicati` (solo partenze con `data_inizio > CURRENT_DATE`). ⚠️ Il `506` cambia ciò che il sito pubblico vede: su PROD, schede pubblicate con partenza già iniziata spariranno dal sito al primo deploy — è l'effetto voluto, ma va comunicato prima. `507` = **guardie sulla cancellazione di una partenza**: si elimina solo una partenza che deve ancora iniziare, non effettuata, senza scheda web e senza prenotazioni. ⚠️ Cambia il comportamento su dati PROD esistenti: partenze storiche finora cancellabili (quando prive di prenotazioni) non lo saranno più — è la protezione voluta. `508` = `fn_web_tour_contenuti_delete` **pulisce anche le traduzioni**: `web_traduzioni` è polimorfica (`entita`+`entita_id`) e nessuna CASCADE la raggiungeva, quindi ogni eliminazione avrebbe lasciato righe orfane (verificato: 96 su una scheda clonata). Nessuna bonifica retroattiva: su PROD non possono esistere orfani, perché fino a oggi non c'era alcun percorso di eliminazione. `509` = **vincolo di plausibilità sull'anno** delle date di partenza (2000–2100), nato da una data salvata con anno 262. ⚠️ Prima di applicarlo su PROD eseguire la query di verifica riportata in coda allo script: se esistono date fuori intervallo vanno corrette, altrimenti l'`ALTER TABLE` fallisce. In locale erano 0 su 146. ⚠️ Su un DB con tour già tradotti il denominatore del semaforo cresce di una voce per giornata, quindi quei tour tornano **non pubblicabili** finché non si traducono anche i titoli: previsto, prima quei titoli sarebbero finiti sul sito in italiano senza segnalazione). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale** (vedi §2).
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `510`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–510). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -19,14 +19,25 @@ L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `509`
 Comando (adattare host/credenziali PROD — NON usare il container Docker locale):
 
 ```bash
-for f in $(ls SqlScripts/*.sql | awk -F_ '$1>=406 && $1<=509' | sort -t_ -k1 -n); do
-  echo "==> $f"; psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
-done
+# ⛔️ Il grep -v esclude 499_Rollback_EstensioneWeb.sql: è un DROP COLUMN, non una migrazione.
+#    Senza quel filtro il loop distrugge le colonne di ana_clienti/ana_viaggi/ana_aziende.
+ls SqlScripts/*.sql \
+  | grep -vi 'Rollback' \
+  | sed -E 's#.*/([0-9]+)_#\1 &#' \
+  | awk '$1>=406 && $1<=510 {print $2}' \
+  | sort -n -t/ -k2 \
+  | while read -r f; do
+      echo "==> $f"
+      psql "$PROD_CONN" -v ON_ERROR_STOP=1 -f "$f" || break
+    done
 ```
+
+> Verificare **a occhio** l'elenco stampato prima di lanciarlo davvero (sostituendo `psql …` con `echo`):
+> gli script con ⚠️ nelle tabelle sotto vanno applicati **a mano, uno alla volta**, non dentro il loop.
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; quelli `467`–`509` (Blocco 13, aggiunte CMS §A, integrità DB, semaforo sotto-tab, mappe multiple, gating traduzioni) sono descritti nei riquadri sopra. Il loop applica comunque **tutti** gli script 406–509 in ordine numerico.
+> Nota: questa tabella dettaglia i primi script; per `467`–`510` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -86,6 +97,65 @@ done
 | 464 | Create_FnWebTraduzioniMarcaObsoleteGlobal | |
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
+
+### Elenco ordinato (467–510)
+
+> ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
+> da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
+> rollback completo dell'estensione (fa `DROP COLUMN` su `ana_clienti`, `ana_viaggi`, `ana_aziende`)
+> ed esiste solo per ripulire l'ambiente locale. Un `for f in SqlScripts/*.sql` cieco distrugge i dati.
+
+| # | Script | Note |
+|---|--------|------|
+| 467 | Blocco13_AnaViaggi_Difficolta | `ana_viaggi.viaggio_difficolta` + propagazione a create/update/get. Grant colonnare anon → §2.1 |
+| 468 | Blocco13_Contenuti_Edizioni | **Re-model:** `web_tour_contenuti` diventa figlio di (viaggio + data_viaggio). Aggiunge FK + `NOT NULL` + UNIQUE su `data_viaggio_id_fk`. ⚠️ Presuppone la tabella **vuota** o migrabile: su PROD verificare prima che `web_tour_contenuti` non abbia righe senza edizione |
+| 469 | Blocco13_WebTourImmagini_Contenuto | Ri-ancora `web_tour_immagini` dal viaggio al contenuto (FK → `web_tour_contenuti`, ON DELETE CASCADE) |
+| 470 | Blocco13_WebTourItinerario_Contenuto | Idem per `web_tour_itinerario` |
+| 471 | Blocco13_WebTourMappa_Contenuto | Idem per `web_tour_mappa`. Forward migration: il file dichiara la figlia **vuota** |
+| 472 | Blocco13_Public_PerEdizione | `fn_web_tour_pubblicati` emette una riga per edizione; prezzo e date dalla singola partenza |
+| 473 | Blocco13_Rls_PerContenuto | ⚠️ **RLS + GRANT colonnari anon** ricablati sul contenuto — §2.1 |
+| 474 | Blocco13_FnClonaContenuto | Clonazione contenuto + figlie + traduzioni su una nuova edizione |
+| 475 | Cifratura_Segreti_Pgcrypto | ⚠️ **SEGRETI** — pgcrypto reale. Richiede `GV_SECRET_KEY` impostata **prima**, e il re-inserimento dei segreti — §2.2 e §3.1 |
+| 476 | AnaViaggi_InclusoEscluso | Campi HTML Incluso/Escluso sul viaggio. Grant colonnare anon → §2.1 |
+| 477 | Public_InclusoEscluso | Espone Incluso/Escluso tradotti nello strato pubblico |
+| 478 | AnaViaggi_Capienza_Trigger | Capienza max/alert + trigger `pg_notify` di revalidation. Grant colonnare anon → §2.1 |
+| 479 | Public_PostiRimasti | `posti_rimasti` calcolato live in `fn_web_tour_pubblicati` |
+| 480 | TipoViaggio_Breve | Flag "esperienza breve 1–3 gg" su `ana_tipo_viaggi` |
+| 481 | Public_RecensioniConfig | Config recensioni Google/TripAdvisor nel JSONB `web_aziende_funzioni.parametri` |
+| 482 | TipoViaggio_Crud_Functions | CRUD DB-first dei tipi viaggio (sostituisce SQL inline) |
+| 483 | Smtp_Secrets_Get | Lettura password SMTP decifrate. **Dipende dal 475**: applicare dopo, e con `GV_SECRET_KEY` attiva |
+| 484 | Fix_Cliente_Lingua_Troncata | ⚠️ **BACKFILL DATI** — ripara `cliente_lingua` troncata a 1 carattere dal vecchio bug del cast `::char`. Idempotente, agisce solo sui valori di lunghezza 1. Su PROD serve solo se il bug ha toccato i dati reali: verificare con `SELECT count(*) FROM ana_clienti WHERE length(btrim(cliente_lingua))=1` |
+| 485 | ClienteLingua_AutoDeriva_NotNull | ⚠️ **BACKFILL + VINCOLO** — auto-deriva la lingua dalla nazione, riempie i NULL residui, poi mette `DEFAULT 'IT'` + `NOT NULL`. Va dopo il backfill del `465` — §2.5 |
+| 486 | FnWebTourPubblicati_Meta | meta_title / meta_description con fallback DB-side (SEO) |
+| 487 | WebTourImmagini_NomeFile | `nome_file` per il dedup upload. Colonna nullable, **nessun backfill** |
+| 488 | WebImmaginiInUso | Impedisce di eliminare una foto usata in un passaggio d'itinerario (legame debole per `storage_path`) |
+| 489 | SysUtentePreferenze | Tabella preferenze utente key-value (nessuna UI CRUD) |
+| 490 | WebTipiViaggioDescrizioni_OrdineUnique | UNIQUE su `ordine`. Contiene già l'UPDATE che ri-numera i duplicati prima di creare il vincolo |
+| 491 | WebTipiViaggioDescrizioni_Checks | ⚠️ **CHECK senza riparazione**: `length(btrim(descrizione_web)) >= 3` e `ordine >= 1`. Se una riga PROD viola, l'`ALTER` **fallisce**. Verificare prima: `SELECT * FROM web_tipi_viaggio_descrizioni WHERE length(btrim(descrizione_web))<3 OR ordine<1` |
+| 492 | FnWebTourStatoSezioni | Semaforo di completamento dei sotto-tab dei contenuti web |
+| 493 | WebTourMappa_Multiple | **Re-model:** da 1 mappa per edizione a N con abbinamento dichiarato. Rimuove lo UNIQUE sul contenuto, aggiunge giornata/descrizione/`gpx_bytes` + 4 vincoli + FK composita. ⚠️ Contiene un **backfill** delle mappe esistenti che deve girare *prima* dei vincoli: è nello script, ma su PROD verificarne l'esito |
+| 494 | FnWebTourMappa_Crud_Multiple | CRUD di `web_tour_mappa` adeguata alle mappe multiple |
+| 495 | FnWebTourStatoSezioni_Mappe | Le descrizioni delle mappe entrano fra i campi traducibili |
+| 496 | FnWebTourVerifiche | Verifiche non bloccanti sui contenuti (dimenticanze, non incoerenze) |
+| 497 | WebTourMappa_DescrizioneObbligatoria | Descrizione mappa `NOT NULL`. Contiene già l'UPDATE che riempie le righe esistenti prima del vincolo |
+| 498 | FnWebTourStatoSezioni_Revisionate | Il semaforo distingue `n_tradotte` da `n_revisionate`: solo le revisionate rendono pubblicabile il tour. ⚠️ Fa `DROP FUNCTION` su `fn_web_tour_stato_sezioni` (cambia il tipo di ritorno) → applicare **in ordine** con il 499 |
+| 499 | FnWebTraduzioniApprovaContenuto | Approvazione in blocco delle traduzioni + `fn_web_tour_campi_traducibili` come unica definizione dei campi traducibili. Stesso `DROP FUNCTION` del 498. **⛔️ Non confondere con `499_Rollback_EstensioneWeb.sql` — vedi avviso sopra** |
+| 500 | WebAiConsumi | Registro consumi Claude + soglia di spesa per azienda |
+| 501 | WebAiPrezziVerifica | Promemoria di verifica del listino Anthropic (i prezzi non sono esposti via API) |
+| 502 | FnAnteprimaPartenzeTraduzioni | Prossime partenze e scelta lingua nell'anteprima |
+| 503 | CampiTraducibili_TitoloGiornata | Il titolo della giornata entra fra i campi traducibili. ⚠️ **Su un DB con tour già tradotti** il denominatore del semaforo cresce di una voce per giornata: quei tour tornano **non pubblicabili** finché non si traducono anche i titoli. È voluto (prima finivano sul sito in italiano senza segnalazione), ma va comunicato |
+| 504 | FnWebTourContenutiClona_Allineata | Allinea il clone a mappe multiple e nuovi campi tradotti. ⚠️ **Senza il 504 la clonazione di un contenuto con mappe FALLISCE**, perché il 497 ha reso obbligatoria la descrizione della mappa: applicarli entrambi |
+| 505 | FnWebTourContenutiClona_DurataDiversa | Clonazione fra partenze di durata diversa |
+| 506 | FnWebPubblicati_FiltroDate | Solo partenze con `data_inizio > CURRENT_DATE`. ⚠️ **Cambia ciò che il sito pubblico mostra**: schede pubblicate con partenza già iniziata spariranno dal sito al primo deploy. È l'effetto voluto, ma va comunicato prima |
+| 507 | SpAnaDateViaggiDelete_Guardie | Si elimina solo una partenza che deve ancora iniziare, non effettuata, senza scheda web e senza prenotazioni. ⚠️ **Cambia il comportamento su dati PROD esistenti**: partenze storiche finora cancellabili non lo saranno più — è la protezione voluta |
+| 508 | FnWebTourContenutiDelete_Pulizia | Pulisce anche `web_traduzioni`, polimorfica (`entita`+`entita_id`) e non raggiunta da alcuna CASCADE (verificato: 96 righe orfane su una scheda clonata). Nessuna bonifica retroattiva: su PROD non possono esistere orfani, perché finora non c'era alcun percorso di eliminazione |
+| 509 | AnaDateViaggi_AnnoPlausibile | ⚠️ **CHECK su dati esistenti**: anni fra 2000 e 2100. In locale 146 righe tutte valide; **su PROD eseguire prima la query di verifica in coda allo script** (deve dare zero righe), altrimenti l'`ALTER` fallisce |
+| 510 | Create_FnAnaClientiConsenso | get/set del consenso marketing del cliente (Blocco 11-B). Nessun backfill: le colonne esistono dal `428`, cambia solo chi le scrive |
+
+**Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
+`473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
+`468` e `493` re-model con migrazione dati · `491` e `509` vincoli che falliscono su dati sporchi ·
+`499_Rollback` da non eseguire mai.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
 
@@ -318,9 +388,58 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
 
 ---
 
+## 3.6 — Domini, brand e deliverability email (verificato il 2026-08-06)
+
+> Nessuno script SQL coinvolto, ma tocca **due voci di configurazione già in §3.2** (`sito_web` azienda,
+> SMTP per-azienda) e può invalidare newsletter **già spedite**. Va deciso **prima** del go-live, non dopo.
+
+### Stato reale dei domini (WHOIS, 2026-08-06)
+
+| Dominio | Stato |
+|---|---|
+| `sardegnafuoritraccia.it` | **Registrato dal 14/03/2016**, scadenza **04/05/2027**, registrar **Netsons**, intestato a *Sardegna Fuori Traccia* (l'azienda, non l'agenzia). Sito live, **e ci gira la posta aziendale** (`mail.sardegnafuoritraccia.it`) |
+| `sardegnafuoritraccia.com` | **Mai registrato da nessuno.** In corso di acquisto dal cliente su Aruba (2026-08-05) |
+| `sardegnafuoritraccia.net` / `.eu` | Mai registrati |
+
+### Rebrand in valutazione
+
+Il cliente sta valutando di **abbandonare "Sardegna" dal nome** per non restare legato a una sola
+destinazione. La decisione non è ancora presa, ma **condiziona il go-live**: finché il dominio
+definitivo non è deciso, le voci qui sotto non sono chiudibili.
+
+Stato della scelta al 2026-08-06: il candidato preferito (**OFFTRACE**) è bloccato sul costo del
+dominio — `offtrace.com` è sul mercato secondario a **$7.888** (offerta minima accettata **$4.999**).
+Anche il semplice **"Fuori Traccia"** senza "Sardegna" **non è disponibile**: `fuoritraccia.com` è
+occupato dal 2005 e `fuoritraccia.it` dal 2022 (privato, dominio parcheggiato). La scelta reale è
+fra pagare un dominio premium a quattro cifre o adottare un nome composto/coniato con il `.com`
+libero.
+
+### Cosa comporta per il rilascio
+
+- [ ] **`sito_web` dell'azienda (§3.2) deve puntare al dominio DEFINITIVO prima del primo invio newsletter.**
+      È la base URL con cui si costruisce il link di disiscrizione (`{sito_web}/unsubscribe?...`). Le email
+      già spedite conservano il link com'era: se il dominio cambia dopo, quei link puntano nel vuoto e
+      l'iscritto non può più disiscriversi — che è un problema di conformità, non solo di cortesia.
+- [ ] **Il dominio `.it` non va MAI lasciato scadere**, nemmeno dopo un eventuale rebrand: ci gira la posta
+      aziendale e l'SMTP usato dal motore newsletter (§3.2). Perderlo significa perdere la posta, non solo
+      il sito. Scadenza attuale: **04/05/2027** — a calendario, con rinnovo automatico attivo.
+- [ ] **Registrar frammentati**: `.it` su Netsons, `.com` in acquisto su Aruba. Due pannelli e due scadenze
+      distinte sono il modo classico in cui un dominio si perde per un rinnovo non visto. **Consolidare su
+      un unico registrar** o quantomeno verificare il rinnovo automatico su entrambi.
+- [ ] **Se cambia il dominio mittente delle email**: SPF, DKIM e DMARC vanno rifatti sul dominio nuovo, e la
+      **reputazione di invio riparte da zero**. Una newsletter sparata a tutta la lista da un dominio appena
+      registrato finisce in spam. Serve un *warm-up*: primi invii a volumi bassi, crescendo nei giorni
+      successivi. Da pianificare **prima** del primo invio massivo, non quando ci si accorge del problema.
+- [ ] **Redirect 301 dal dominio storico** verso quello nuovo, da mantenere per anni: il `.it` ha 10 anni di
+      posizionamento e di link esterni. È lavoro di Fase 3 (sito pubblico), ma la decisione sul nome è
+      un prerequisito.
+
+---
+
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli script 406–509 su PROD (§1) senza errori.
+- [ ] Applicati in ordine i **100** script 406–510 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
 - [ ] `token_iscrizione` valorizzato per ogni azienda (§2.3).
@@ -328,6 +447,7 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
 - [ ] Backfill `cliente_lingua` eseguito e verificato (§2.5).
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
+- [ ] **Dominio definitivo deciso** (rebrand sì/no) e `sito_web` azienda valorizzato di conseguenza **prima del primo invio newsletter**; SPF/DKIM/DMARC + warm-up pianificati se il dominio mittente cambia (§3.6). ← condiziona i link di disiscrizione già spediti
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
@@ -337,7 +457,7 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
 
 ## 5. Manutenzione di questo documento
 
-Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 466) o un nuovo requisito di configurazione:
+Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 510) o un nuovo requisito di configurazione:
 1. aggiungere la riga in §1 (con eventuale ⚠️ e rimando a §2 se serve azione manuale);
 2. se comporta backfill/segreti/config, aggiungere la voce in §2/§3 e la spunta in §4;
 2bis. se introduce o cambia una **regola di comportamento** visibile all'utente (stati, pubblicabilità, cancellazioni, automatismi), aggiungere la voce da spiegare in §3.4: il manuale si scrive alla fine, ma l'elenco di cosa spiegare si costruisce strada facendo;
