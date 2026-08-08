@@ -196,7 +196,10 @@ public sealed class NewsletterSenderService
             catch (Exception ex) { _logger.LogWarning(ex, "Log destinatario {Email} fallito", rec.Email); }
         }
 
-        invio.Stato = "inviato";
+        // "inviata" (femminile): e' il valore ammesso da chk_web_newsletter_invii_stato
+        // ('bozza','in_invio','inviata'). Con "inviato" l'UPDATE finale falliva sempre (23514),
+        // lasciando la campagna in 'in_invio' con data_invio e numero_destinatari NULL.
+        invio.Stato = "inviata";
         invio.NumeroDestinatari = recipients.Count;
         invio.DataInvio = DateTime.UtcNow;
         await _inviiService.UpdateAsync(invio);

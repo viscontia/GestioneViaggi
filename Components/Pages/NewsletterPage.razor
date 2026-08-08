@@ -74,7 +74,7 @@ else
                 {
                     <tr>
                         <td>@i.Oggetto</td>
-                        <td><MudChip T="string" Size="Size.Small" Color="@(i.Stato == "inviato" ? Color.Success : Color.Default)">@i.Stato</MudChip></td>
+                        <td><MudChip T="string" Size="Size.Small" Color="@(i.Stato == "inviata" ? Color.Success : Color.Default)">@i.Stato</MudChip></td>
                         <td>@(i.DataInvio?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
                         <td style="text-align:center;">@(i.NumeroDestinatari?.ToString() ?? "—")</td>
                         <td>@(i.Canale ?? "—")</td>
