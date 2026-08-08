@@ -163,6 +163,15 @@ I gruppi E/F/G inviano posta vera: falli in una sessione sola, a VPN spenta.
   nel log dei destinatari.
 - ☐ **D5** — Rimuovi la soppressione → snackbar "Soppressione rimossa." → conteggio di nuovo **4**.
 - ☐ **D6** — Doppia soppressione della stessa email → non deve creare doppioni né rompere il conteggio.
+  *(Verificato a DB il 2026-08-08: esiste `uq_web_newsletter_soppressioni_email` UNIQUE su
+  `(azienda_id, email)` con `email` in `citext`, quindi l'unicità regge ed è anche
+  case-insensitive — `dup@x.com` e `DUP@X.COM` collidono. Lo scoping per azienda è corretto:
+  la stessa email può essere soppressa su un'azienda e non sull'altra → conferma K2.)*
+  **Da guardare è il messaggio, non i dati.** Atteso in snackbar: **"Questo indirizzo è già soppresso
+  per questa azienda."** Prima del 2026-08-08 il vincolo non era fra quelli noti a
+  `DatabaseExceptionHelper` e usciva il fallback col nome tecnico della tabella
+  (*"Esiste già un record per web_newsletter_soppressioni"*). Se rivedi quel testo, la voce nel
+  dizionario è stata persa.
 
 ### E. Invio di prova *(mail vera — VPN spenta)*
 

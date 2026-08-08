@@ -169,7 +169,8 @@ public static class DatabaseExceptionHelper
             { "uq_web_tipi_viaggio_descrizioni_slug", "Esiste già una descrizione web con questo slug. Scegline uno diverso." },
             { "uq_web_tour_mappa_giornata", "Questa giornata ha già una mappa. Elimina quella esistente prima di caricarne un'altra." },
             { "uq_web_tour_mappa_insieme", "Questa edizione ha già una mappa dell'intero viaggio. Elimina quella esistente prima di caricarne un'altra." },
-            { "uq_web_tour_mappa_gpx_dedup", "Questo file GPX è già stato caricato per questa edizione (stesso nome e stessa dimensione)." }
+            { "uq_web_tour_mappa_gpx_dedup", "Questo file GPX è già stato caricato per questa edizione (stesso nome e stessa dimensione)." },
+            { "uq_web_newsletter_soppressioni_email", "Questo indirizzo è già soppresso per questa azienda." }
         };
 
         foreach (var mapping in uniqueMessages)
