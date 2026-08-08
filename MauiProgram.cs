@@ -117,6 +117,7 @@ public static class MauiProgram
         // ==========================================================
         builder.Services.AddScoped<IClienteService, ClienteService>();
         builder.Services.AddScoped<Services.CRUD.ClienteLinguaService>();
+        builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<CountryService>();
         builder.Services.AddScoped<CountryRegionService>();
         builder.Services.AddScoped<CountrySubRegionService>();

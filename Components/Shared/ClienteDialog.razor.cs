@@ -22,6 +22,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     [Inject] public ISnackbar Snackbar { get; set; } = default!;
     [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
     [Inject] public ClienteLinguaService ClienteLinguaService { get; set; } = default!;
+    [Inject] public ClienteConsensoService ClienteConsensoService { get; set; } = default!;
 
     [Parameter] public Cliente Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
@@ -29,6 +30,12 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     /// <summary>Lingua preferita del cliente per la newsletter (side-field, Blocco 11). null = auto dalla nazione.</summary>
     private string? _lingua;
+
+    /// <summary>Consenso marketing (side-field, Blocco 11-B): è il flag che filtra i destinatari newsletter.</summary>
+    private bool _consenso;
+    /// <summary>Data e provenienza dell'ultimo cambio di consenso, mostrate in sola lettura.</summary>
+    private DateTime? _consensoData;
+    private string? _consensoFonte;
 
     private bool IsSuperAdmin => AziendaFk == 0;
 
@@ -122,6 +129,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                     Entity.ComuneResidenza = _initData.ComuneResidenza;
 
                 _lingua = await ClienteLinguaService.GetAsync(Entity.ClienteId);
+
+                var consenso = await ClienteConsensoService.GetAsync(Entity.ClienteId);
+                _consenso = consenso.Consenso;
+                _consensoData = consenso.Data;
+                _consensoFonte = consenso.Fonte;
             }
         }
         catch (Exception ex)
@@ -194,6 +206,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 {
                     var updated = await ClienteService.UpdateAsync(Entity);
                     await ClienteLinguaService.SetAsync(Entity.ClienteId, _lingua);
+                    await ClienteConsensoService.SetAsync(Entity.ClienteId, _consenso);
                     Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(updated));
                 }
@@ -201,6 +214,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 {
                     var created = await ClienteService.CreateAsync(Entity);
                     await ClienteLinguaService.SetAsync(created.ClienteId, _lingua);
+                    await ClienteConsensoService.SetAsync(created.ClienteId, _consenso);
                     Snackbar.Add("Cliente creato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(created));
                 }

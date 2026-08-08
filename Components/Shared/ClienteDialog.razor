@@ -204,6 +204,19 @@
                                         <MudSelectItem T="string" Value="@("ES")">Spagnolo</MudSelectItem>
                                     </MudSelect>
                                 </MudItem>
+                                <MudItem xs="12" sm="6">
+                                    <MudCheckBox @bind-Value="_consenso"
+                                                 Label="Consenso newsletter/marketing"
+                                                 Color="Color.Primary"
+                                                 Class="mt-3" />
+                                    @if (_consensoData.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="d-block mud-text-secondary" Style="margin-left:12px;">
+                                            @(_consenso ? "Concesso il " : "Revocato il ")@_consensoData.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            @(string.IsNullOrWhiteSpace(_consensoFonte) ? "" : $" ({_consensoFonte})")
+                                        </MudText>
+                                    }
+                                </MudItem>
                                 <MudItem xs="4" sm="3">
                                     <MudTextField @ref="_prefTelField" @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
                                         Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39" />
