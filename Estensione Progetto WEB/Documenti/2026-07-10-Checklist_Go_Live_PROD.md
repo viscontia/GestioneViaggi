@@ -185,6 +185,20 @@ Cifratura reale implementata con **pgcrypto** (`pgp_sym_encrypt/decrypt`), maste
 ### 2.3 — `token_iscrizione` per azienda (429)
 Serve come **segreto HMAC** per il link di disiscrizione newsletter (`NewsletterUnsubscribe`). Ogni azienda in PROD deve avere un `token_iscrizione` valorizzato (random, per-azienda). Verificare che il backfill/valore non sia NULL prima di inviare newsletter.
 
+⚠️ **Con `token_iscrizione` NULL l'app non si accorge di nulla:** `NewsletterUnsubscribe.BuildUrl` passa `token ?? ""` a `Sign`, quindi l'HMAC viene calcolato **con chiave vuota**. Il link esiste ed è ben formato, ma la firma è **identica fra tutti i tenant** a parità di email e ricalcolabile da chiunque. Nessun errore, nessun log: si scopre solo confrontando due firme. Prova rapida: stessa email da due aziende diverse → i `sig` devono essere **diversi**.
+
+⚠️ **Da chiarire prima di scriverlo:** lo script `429` dice che il valore va *allineato al segreto dell'app Flask su Hetzner* (`AZIENDA_ID`/`FLASK_SECRET_KEY`), mentre qui sopra si dice *random per-azienda*. La stessa colonna sta servendo a due scopi (token del link "Iscriviti" di Flask **e** segreto HMAC della disiscrizione): un valore random rompe Flask, tenere quello di Flask significa condividere il segreto HMAC con un'app esterna. **Decidere prima del go-live**, eventualmente separando le due cose in due colonne.
+
+#### Requisito per la Fase 3 — l'endpoint `/unsubscribe` deve creare una SOPPRESSIONE
+Non basta mettere `stato='disiscritto'` sull'iscritto. **Verificato in locale il 2026-08-08** (Piano di Test §8 C5-bis): se la stessa email è anche un **cliente con `consenso_marketing=true`**, la riga del cliente sopravvive alla `FULL JOIN` di `fn_web_destinatari_newsletter` e **la persona continua a ricevere le newsletter**; `fonte` scivola da `entrambi` a `cliente` senza alcun segnale che una revoca è stata ignorata.
+
+L'implementazione corretta dell'unsubscribe, in ordine:
+1. verificare la firma HMAC (`sig`) con il `token_iscrizione` dell'azienda;
+2. **inserire la riga in `web_newsletter_soppressioni`** (motivo `unsubscribe`) — è l'unico filtro che blocca *qualunque* fonte;
+3. opzionalmente marcare anche `stato='disiscritto'` sull'iscritto, ma **come conseguenza, non come sostituto** del passo 2.
+
+Chi implementa solo il passo 3 produce un "Disiscriviti" che non disiscrive: nessun errore visibile, e la persona continua a ricevere posta.
+
 ### 2.4 — Supabase Storage (immagini WebP, mappe GPX)
 Blocco 7 (immagini tour, WebP) e Blocco 9 (mappe da GPX) salvano su **Supabase Storage**. In PROD devono esistere i **bucket** corrispondenti con le policy corrette. La `Service Key` Supabase va configurata lato app (NON committata). Verificare bucket + permessi prima di caricare media.
 

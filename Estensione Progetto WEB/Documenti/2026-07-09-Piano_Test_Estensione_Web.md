@@ -138,7 +138,20 @@ I gruppi E/F/G inviano posta vera: falli in una sessione sola, a VPN spenta.
 - ☐ **C4** — Togli il consenso a un cliente dall'anagrafica → riapri `/newsletter` → il conteggio cala.
   Rimettilo → risale. *(Il conteggio si ricarica a `OnInitializedAsync` e dopo invio/soppressioni,
   non in tempo reale: se cambi il consenso con la pagina già aperta, devi rientrare.)*
-- ☐ **C5** — Iscritto con `stato='disiscritto'` o `consenso=false` → escluso.
+- ✅ **C5** — Iscritto con `stato='disiscritto'` o `consenso=false` → escluso. *(Verificato il 2026-08-08
+  su `visconti.adriano+de@gmail.com`, iscritto puro dell'azienda 2: 4 → 3 in entrambi i casi, 4 al
+  ripristino. Non c'è UI per gli iscritti — il tab è read-only — quindi si prova via SQL:
+  `UPDATE web_newsletter_iscritti SET stato='disiscritto' WHERE azienda_id=… AND email='…';`)*
+- ⚠️ **C5-bis — la disiscrizione NON basta se la persona è anche cliente con consenso.**
+  Verificato il 2026-08-08 sull'azienda 6: creato l'iscritto per un indirizzo che lì è già cliente
+  con consenso (`fonte` diventa `entrambi`), poi messo `stato='disiscritto'` → **resta destinatario**,
+  `fonte` torna `cliente`. La `FULL JOIN` di `fn_web_destinatari_newsletter` toglie la riga
+  dell'iscritto ma quella del cliente sopravvive, senza alcun segnale che una revoca è stata ignorata.
+  **Oggi non è un difetto attivo**, perché il flusso reale di disiscrizione passa da
+  `NewsletterUnsubscribe` → **soppressione**, che blocca qualunque fonte.
+  **Lo diventa in Fase 3** se chi implementa `/unsubscribe` si limita a mettere
+  `stato='disiscritto'`: la persona continuerebbe a ricevere dopo aver cliccato "Disiscriviti".
+  → requisito registrato nella Checklist Go-Live §2.3.
 
 ### D. Soppressioni
 
