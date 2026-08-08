@@ -23,6 +23,15 @@
 
 <MudText Typo="Typo.h5" Class="mb-3">Newsletter</MudText>
 
+@* SuperAdmin: la pagina e' per-azienda, quindi senza una scelta esplicita non c'e' nulla da mostrare. *@
+@if (_isSuperAdmin)
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-3">
+        <AziendaSelect Value="@_aziendaId" ValueChanged="OnAziendaChanged"
+                       Label="Azienda" Class="mt-0" Style="max-width:420px;" />
+    </MudPaper>
+}
+
 @if (_aziendaId == 0)
 {
     <MudAlert Severity="Severity.Warning">Seleziona un'azienda per gestire la newsletter.</MudAlert>
@@ -53,14 +62,42 @@ else
 
         <MudPaper Outlined="true" Class="pa-3 mt-3">
             <div class="d-flex align-center flex-wrap gap-3">
-                <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group">Destinatari: @_count</MudChip>
+                @* Cliccabile: mostra CHI ricevera', non solo quanti sono. *@
+                <MudTooltip Text="Vedi l'elenco dei destinatari">
+                    <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group"
+                             OnClick="VediDestinatari" Disabled="@(_busy || _count == 0)">Destinatari: @_count</MudChip>
+                </MudTooltip>
                 <MudTextField @bind-Value="_testEmail" Label="Email di prova" Variant="Variant.Outlined" Style="max-width:280px;" Margin="Margin.Dense" />
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Send" Disabled="@_busy" OnClick="InviaProva">Invia prova</MudButton>
                 <MudSpacer />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
                            Disabled="@(_busy || _count == 0)" OnClick="InviaTutti">Invia a tutti (@_count)</MudButton>
-                @if (_busy) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
             </div>
+
+            @* Avanzamento: con 4 destinatari e' superfluo, con 400 e' l'unica cosa che dice
+               all'utente che il programma non si e' piantato. *@
+            @if (_busy)
+            {
+                <div class="d-flex align-center gap-3 mt-3">
+                    <MudProgressCircular Indeterminate="@(_invioTotale == 0)"
+                                         Value="@_invioPercentuale" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2">
+                        @if (_invioTotale > 0)
+                        {
+                            @($"Invio in corso: {_invioFatti} di {_invioTotale}")
+                        }
+                        else
+                        {
+                            @("Preparazione dell'invio (traduzione dei testi)…")
+                        }
+                    </MudText>
+                </div>
+                @if (_invioTotale > 0)
+                {
+                    <MudProgressLinear Color="Color.Primary" Value="@_invioPercentuale" Class="mt-2" />
+                }
+            }
+
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">Senza chiave Claude sull'azienda, i destinatari non-IT ricevono la versione italiana.</MudText>
         </MudPaper>
     </MudTabPanel>
@@ -78,7 +115,10 @@ else
                         <td>@(i.DataInvio?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
                         <td style="text-align:center;">@(i.NumeroDestinatari?.ToString() ?? "—")</td>
                         <td>@(i.Canale ?? "—")</td>
-                        <td style="text-align:right;"><MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => VediLog(i))">Log</MudButton></td>
+                        <td style="text-align:right;">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.ListAlt" OnClick="@(() => VediLog(i))">Log</MudButton>
+                        </td>
                     </tr>
                 }
                 @if (_storico.Count == 0) { <tr><td colspan="6"><MudText Color="Color.Secondary">Nessun invio.</MudText></td></tr> }
@@ -134,9 +174,15 @@ else
 
 @code {
     private int _aziendaId;
+    private bool _isSuperAdmin;
     private bool _enabled = true;
     private bool _busy;
     private int _count;
+
+    // Avanzamento dell'invio (0/0 = ancora in traduzione, prima che il ciclo parta).
+    private int _invioFatti;
+    private int _invioTotale;
+    private int _invioPercentuale => _invioTotale == 0 ? 0 : (int)(100.0 * _invioFatti / _invioTotale);
     private string? _oggetto;
     private string? _testEmail;
     private string? _sopEmail;
@@ -150,12 +196,40 @@ else
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("web_newsletter_invii");
-        _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+        try
+        {
+            _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+            _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+            if (_aziendaId != 0)
+            {
+                _enabled = await FunzioniService.IsNewsletterEnabledAsync(_aziendaId);
+                if (_enabled) await ReloadAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore apertura Newsletter: {ex.Message}", Severity.Error);
+        }
+    }
+
+    /// <summary>SuperAdmin: cambio azienda dal selettore. Ricarica tutto, gating compreso.</summary>
+    private async Task OnAziendaChanged(int aziendaId)
+    {
+        _aziendaId = aziendaId;
+        _storico.Clear(); _iscritti.Clear(); _soppressioni.Clear();
+        _count = 0;
+        _enabled = true;
+
         if (_aziendaId != 0)
         {
-            _enabled = await FunzioniService.IsNewsletterEnabledAsync(_aziendaId);
-            if (_enabled) await ReloadAsync();
+            try
+            {
+                _enabled = await FunzioniService.IsNewsletterEnabledAsync(_aziendaId);
+                if (_enabled) await ReloadAsync();
+            }
+            catch (Exception ex) { Snackbar.Add($"Errore cambio azienda: {ex.Message}", Severity.Error); }
         }
+        StateHasChanged();
     }
 
     public void Dispose() => StatusBarService.SetCurrentTable(null);
@@ -181,11 +255,64 @@ else
         return (_oggetto!.Trim(), corpo!);
     }
 
+    /// <summary>Elenco in sola lettura di chi ricevera' la campagna.</summary>
+    private async Task VediDestinatari()
+    {
+        try
+        {
+            var destinatari = await Sender.GetRecipientsAsync(_aziendaId);
+            var parameters = new DialogParameters<NewsletterDestinatariDialog>
+            {
+                { x => x.Destinatari, destinatari }
+            };
+            await DialogService.ShowAsync<NewsletterDestinatariDialog>("Destinatari della newsletter", parameters,
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true });
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura destinatari: {ex.Message}", Severity.Error); }
+    }
+
+    /// <summary>
+    /// Controlli sul branding prima di spedire. Sito mancante = STOP (il link di disiscrizione
+    /// sarebbe rotto); logo mancante = conferma esplicita, perche' impedire l'invio per un logo
+    /// lascerebbe l'azienda muta verso i propri clienti.
+    /// Restituisce false se si deve interrompere.
+    /// </summary>
+    private async Task<bool> PreflightOkAsync()
+    {
+        NewsletterPreflight pf;
+        try { pf = await Sender.GetPreflightAsync(_aziendaId); }
+        catch (Exception ex) { Snackbar.Add($"Errore controlli preliminari: {ex.Message}", Severity.Error); return false; }
+
+        if (pf.SitoMancante)
+        {
+            Snackbar.Add("Questa azienda non ha un sito web: il link di disiscrizione sarebbe rotto. " +
+                         "Compila 'Sito web' in Anagrafica Aziende prima di inviare.", Severity.Error);
+            return false;
+        }
+
+        if (pf.LogoMancante)
+        {
+            var parameters = new DialogParameters<DeleteConfirmationDialog>
+            {
+                { x => x.Title, "Logo mancante" },
+                { x => x.ContentText, "Questa azienda non ha un logo: la mail partira' senza intestazione. Continuare?" },
+                { x => x.ButtonText, "Invia comunque" },
+                { x => x.Color, Color.Warning }
+            };
+            var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Logo mancante", parameters,
+                new DialogOptions { BackdropClick = false });
+            if ((await dlg.Result)!.Canceled) return false;
+        }
+
+        return true;
+    }
+
     private async Task InviaProva()
     {
         var c = await ReadComposeAsync();
         if (c is null) return;
         if (string.IsNullOrWhiteSpace(_testEmail)) { Snackbar.Add("Inserisci un'email di prova.", Severity.Warning); return; }
+        if (!await PreflightOkAsync()) return;
         _busy = true;
         try
         {
@@ -200,6 +327,7 @@ else
     {
         var c = await ReadComposeAsync();
         if (c is null) return;
+        if (!await PreflightOkAsync()) return;
         var parameters = new DialogParameters<DeleteConfirmationDialog>
         {
             { x => x.Title, "Conferma invio" },
@@ -211,16 +339,23 @@ else
         if ((await dlg.Result)!.Canceled) return;
 
         _busy = true;
+        _invioFatti = 0; _invioTotale = 0;
         try
         {
-            var res = await Sender.SendCampaignAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo);
+            var progress = new Progress<(int Fatti, int Totale)>(p =>
+            {
+                _invioFatti = p.Fatti; _invioTotale = p.Totale;
+                InvokeAsync(StateHasChanged);
+            });
+
+            var res = await Sender.SendCampaignAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo, progress);
             var msg = $"Inviate {res.Inviate}/{res.Totale}" + (res.Errori > 0 ? $", {res.Errori} errori" : "")
                     + (res.TradottoIncompleto ? " (alcune lingue inviate in IT: chiave Claude mancante/errore)" : "");
             Snackbar.Add(msg, res.Errori > 0 || res.TradottoIncompleto ? Severity.Warning : Severity.Success);
             await ReloadAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore invio: {ex.Message}", Severity.Error); }
-        finally { _busy = false; }
+        finally { _busy = false; _invioFatti = 0; _invioTotale = 0; }
     }
 
     private async Task VediLog(WebNewsletterInvio invio)

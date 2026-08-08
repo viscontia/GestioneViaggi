@@ -1,0 +1,60 @@
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+
+@* Elenco in sola lettura dei destinatari risolti della campagna (Blocco 11).
+   Si apre dal chip "Destinatari: N" della pagina Newsletter: prima di spedire
+   l'operatore vuole vedere CHI ricevera', non solo quanti sono. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            @Destinatari.Count destinatari, dedotti da clienti con consenso e iscritti, al netto delle soppressioni.
+            La colonna <strong>Lingua</strong> e' quella con cui partira' davvero la mail.
+        </MudText>
+
+        <MudSimpleTable Dense="true" Bordered="true" Striped="true" Style="max-height:60vh;overflow:auto;">
+            <thead>
+                <tr>
+                    <th>Cognome</th>
+                    <th>Nome</th>
+                    <th>Mail</th>
+                    <th>Telefono</th>
+                    <th style="text-align:center;">Lingua</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Destinatari.OrderBy(x => x.Cognome).ThenBy(x => x.Nome))
+                {
+                    <tr>
+                        <td>@(string.IsNullOrWhiteSpace(d.Cognome) ? "—" : d.Cognome)</td>
+                        <td>@(string.IsNullOrWhiteSpace(d.Nome) ? "—" : d.Nome)</td>
+                        <td>@d.Email</td>
+                        <td>@(string.IsNullOrWhiteSpace(d.Telefono) ? "—" : d.Telefono)</td>
+                        <td style="text-align:center;">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@d.Lingua</MudChip>
+                        </td>
+                    </tr>
+                }
+                @if (Destinatari.Count == 0)
+                {
+                    <tr><td colspan="5"><MudText Color="Color.Secondary">Nessun destinatario.</MudText></td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+            Il telefono e' disponibile solo per i destinatari che sono anche clienti: chi si iscrive dal sito lascia la sola email.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Chiudi">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public List<NewsletterRecipient> Destinatari { get; set; } = new();
+
+    private void Chiudi() => MudDialog?.Close();
+}

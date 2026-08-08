@@ -1,7 +1,7 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-08-07 (contenuti web §2/§10/§19/§32 collaudati ✅; §8 Newsletter riscritta come piano eseguibile A–L con dati di test preparati).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-08-08 (§8 Newsletter: esito del **primo giro** e piano del **secondo** — bug dello stato campagna corretto, selettore azienda SuperAdmin, elenco destinatari con telefono, sito web bloccante, logo con conferma, bottone Log e avanzamento invio).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
@@ -108,158 +108,185 @@ I gruppi E/F/G inviano posta vera: falli in una sessione sola, a VPN spenta.
 
 ---
 
+### Esito del primo giro (2026-08-08) e cosa è cambiato
+
+Il primo collaudo ha trovato **un bug che bloccava metà delle verifiche** e ha prodotto sette
+richieste di modifica. Tutto è stato corretto: questo è il piano del **secondo giro**.
+
+| Cosa | Esito primo giro | Ora |
+|---|---|---|
+| Stato campagna | `SendCampaignAsync` scriveva `"inviato"` ma il CHECK ammette `"inviata"` → l'UPDATE finale falliva **sempre** (23514), campagne ferme in `in_invio`, Storico senza data e destinatari | corretto (`70cd5d4`) |
+| SMTP azienda 6 | password mai salvata (`password_enc` NULL) → nessuna mail | **da sistemare a mano**: Gmail vuole una *app password* |
+| Selettore azienda SuperAdmin | assente | aggiunto (`AziendaSelect`, solo se SuperAdmin) |
+| Elenco destinatari | solo il numero | chip cliccabile → dialog con Cognome, Nome, Mail, Telefono, Lingua (script `511`) |
+| Sito web mancante | mail inviata con link di disiscrizione rotto | **bloccante**, in UI e nel servizio |
+| Logo mancante | mail inviata senza logo, in silenzio | conferma esplicita "Invia comunque" |
+| Bottone Log | sembrava una label | bottone con bordo e icona |
+| Avanzamento invio | nessun feedback | "Invio in corso: N di M" + barra |
+
+**Già verificate nel primo giro, non ripetere:** C1, C2, C5 (e C5-bis), D1–D5, E1–E5, F3, F4, F5.
+Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
+
+---
+
 ### A. Accesso e gating
 
 - ☐ **A1** — Menu "Estensione Web > Newsletter" presente; `/newsletter` si apre senza errori e la
-  status bar mostra la tabella corrente `web_newsletter_invii`.
-- ☐ **A2** — La pagina carica 4 blocchi senza eccezioni: conteggio, storico, iscritti, soppressioni.
-  *(Se una delle 4 query fallisce compare una snackbar rossa "Errore caricamento: …" e la pagina resta
-  su valori vuoti anziché rompersi.)*
-- ☐ **A3** — Azienda con `newsletter` disattivata (§9) → la pagina mostra "non attiva" e **non**
-  esegue nessuna query. Ri-attivando, torna operativa.
+  status bar mostra `web_newsletter_invii`.
+- ☐ **A2** — La pagina carica conteggio, storico, iscritti e soppressioni senza eccezioni.
+- ☐ **A3** — Azienda con `newsletter` disattivata (§9) → "non attiva", nessuna query.
+
+**SuperAdmin (nuovo):**
+- ☐ **A4** — Da SuperAdmin la pagina mostra in alto il **selettore azienda**; da utente normale
+  **non compare**.
+- ☐ **A5** — Senza azienda scelta resta l'avviso "Seleziona un'azienda" e **nessun tab** è operativo.
+- ☐ **A6** — Scelta un'azienda → conteggio, storico, iscritti e soppressioni si popolano.
+- ☐ **A7** — **Cambio azienda** → tutto si ricarica e **non resta niente della precedente** (è il
+  punto che rompe l'invariante silos se sbagliato: guarda soprattutto lo Storico).
+- ☐ **A8** — Scelta un'azienda con newsletter **disattivata** → compare "non attiva" anche
+  cambiando dal selettore, non solo all'apertura della pagina.
 
 ### B. Composizione e validazioni (nessuna mail parte)
 
-- ☐ **B1** — Oggetto vuoto + *Invia prova* → snackbar **warning** "Inserisci l'oggetto." e nient'altro.
-- ☐ **B2** — Oggetto valorizzato ma corpo Quill vuoto → warning "Il corpo è vuoto.".
-- ☐ **B3** — Corpo con **solo un a-capo** (Quill produce `<p><br></p>`) → deve contare come **vuoto**
-  e dare lo stesso warning: è il caso che sfugge più facilmente.
-- ☐ **B4** — *Invia prova* con oggetto e corpo validi ma **email di prova vuota** → warning
-  "Inserisci un'email di prova.".
-- ☐ **B5** — L'oggetto viene **trimmato** prima dell'invio (spazi iniziali/finali non finiscono in mail).
-- ☐ **B6** — Durante un invio i pulsanti sono disabilitati (`_busy`): niente doppio invio a doppio clic.
+- ☐ **B1** — Oggetto vuoto + *Invia prova* → warning "Inserisci l'oggetto.".
+- ☐ **B2** — Corpo Quill vuoto → warning "Il corpo è vuoto.".
+- ☐ **B3** — Corpo con **solo un a-capo** (`<p><br></p>`) → deve contare come vuoto.
+- ☐ **B4** — *Invia prova* senza email di prova → warning.
+- ☐ **B5** — L'oggetto viene trimmato prima dell'invio.
+- ☐ **B6** — Durante l'invio i pulsanti sono disabilitati: niente doppio invio a doppio clic.
 
-### C. Destinatari e deduplicazione
+### C. Destinatari, dedup ed elenco
 
-- ☐ **C1** — Azienda 2: il conteggio in tab Campagna dice **4** (non 5). Sono 3 clienti con consenso
-  + 2 iscritti, ma `visconti.adriano@gmail.com` è **entrambi** e va contato una volta sola.
-- ☐ **C2** — Azienda 6: il conteggio dice **2**.
-- ☐ **C3** — Cliente **senza email** o con email vuota → non compare mai nel conteggio.
-- ☐ **C4** — Togli il consenso a un cliente dall'anagrafica → riapri `/newsletter` → il conteggio cala.
-  Rimettilo → risale. *(Il conteggio si ricarica a `OnInitializedAsync` e dopo invio/soppressioni,
-  non in tempo reale: se cambi il consenso con la pagina già aperta, devi rientrare.)*
-- ✅ **C5** — Iscritto con `stato='disiscritto'` o `consenso=false` → escluso. *(Verificato il 2026-08-08
-  su `visconti.adriano+de@gmail.com`, iscritto puro dell'azienda 2: 4 → 3 in entrambi i casi, 4 al
-  ripristino. Non c'è UI per gli iscritti — il tab è read-only — quindi si prova via SQL:
-  `UPDATE web_newsletter_iscritti SET stato='disiscritto' WHERE azienda_id=… AND email='…';`)*
-- ⚠️ **C5-bis — la disiscrizione NON basta se la persona è anche cliente con consenso.**
-  Verificato il 2026-08-08 sull'azienda 6: creato l'iscritto per un indirizzo che lì è già cliente
-  con consenso (`fonte` diventa `entrambi`), poi messo `stato='disiscritto'` → **resta destinatario**,
-  `fonte` torna `cliente`. La `FULL JOIN` di `fn_web_destinatari_newsletter` toglie la riga
-  dell'iscritto ma quella del cliente sopravvive, senza alcun segnale che una revoca è stata ignorata.
-  **Oggi non è un difetto attivo**, perché il flusso reale di disiscrizione passa da
-  `NewsletterUnsubscribe` → **soppressione**, che blocca qualunque fonte.
-  **Lo diventa in Fase 3** se chi implementa `/unsubscribe` si limita a mettere
-  `stato='disiscritto'`: la persona continuerebbe a ricevere dopo aver cliccato "Disiscriviti".
-  → requisito registrato nella Checklist Go-Live §2.3.
+- ✅ **C1** — Conteggio azienda 2 = **4**, non 5: la dedup regge (`entrambi` contato una volta).
+- ✅ **C2** — Conteggio azienda 6 = **2**.
+- ✅ **C5** — Iscritto `disiscritto` o `consenso=false` → escluso (4 → 3, ripristino a 4).
+- ✅ **C6 (già C5-bis)** — La disiscrizione **non basta** se la persona è anche cliente con consenso:
+  resta destinataria e `fonte` scivola da `entrambi` a `cliente`. Non è un difetto oggi (il flusso
+  reale passa dalle soppressioni), ma è un requisito per la Fase 3 → Checklist Go-Live §2.3.
+- ☐ **C3** — Cliente senza email → mai nel conteggio.
+- ☐ **C4** — Togli il consenso dall'anagrafica → riapri `/newsletter` → il conteggio cala; rimettilo
+  → risale. *(Ricorda: gli **iscritti** non dipendono dal consenso cliente — vedi C6.)*
+
+**Elenco destinatari (nuovo):**
+- ☐ **C7** — Il chip "Destinatari: N" è **cliccabile** (cursore e tooltip "Vedi l'elenco dei
+  destinatari"); con 0 destinatari è disabilitato.
+- ☐ **C8** — Si apre un elenco **in sola lettura** con le colonne, da sinistra:
+  **Cognome, Nome, Mail, Telefono, Lingua**.
+- ☐ **C9** — Le righe sono **le stesse** del conteggio: stesso numero, nessun duplicato.
+  Su azienda 2 devono essere 4, con `visconti.adriano@gmail.com` **una volta sola**.
+- ☐ **C10** — Il **telefono** compare per chi è cliente e **è vuoto (—) per `visconti.adriano+de@`**,
+  che è solo un iscritto: è il comportamento voluto, non un dato mancante.
+- ☐ **C11** — La **lingua** in elenco coincide con quella con cui la mail arriverà davvero
+  (verificabile dopo F).
+- ☐ **C12** — L'elenco è ordinato per Cognome e non è modificabile (nessun campo editabile).
 
 ### D. Soppressioni
 
-- ☐ **D1** — Tab Soppressioni → aggiungi `mirania008@gmail.com` con motivo → snackbar "Soppressione
-  aggiunta." → il conteggio scende a **3**.
-- ☐ **D2** — Aggiungi una soppressione **senza motivo** → viene salvata con motivo `manuale`.
-- ☐ **D3** — Email vuota → warning "Inserisci un'email.", niente inserimento.
-- ☐ **D4** — Con la soppressione attiva fai un invio → quell'indirizzo **non riceve** e **non compare**
-  nel log dei destinatari.
-- ☐ **D5** — Rimuovi la soppressione → snackbar "Soppressione rimossa." → conteggio di nuovo **4**.
-- ☐ **D6** — Doppia soppressione della stessa email → non deve creare doppioni né rompere il conteggio.
-  *(Verificato a DB il 2026-08-08: esiste `uq_web_newsletter_soppressioni_email` UNIQUE su
-  `(azienda_id, email)` con `email` in `citext`, quindi l'unicità regge ed è anche
-  case-insensitive — `dup@x.com` e `DUP@X.COM` collidono. Lo scoping per azienda è corretto:
-  la stessa email può essere soppressa su un'azienda e non sull'altra → conferma K2.)*
-  **Da guardare è il messaggio, non i dati.** Atteso in snackbar: **"Questo indirizzo è già soppresso
-  per questa azienda."** Prima del 2026-08-08 il vincolo non era fra quelli noti a
-  `DatabaseExceptionHelper` e usciva il fallback col nome tecnico della tabella
-  (*"Esiste già un record per web_newsletter_soppressioni"*). Se rivedi quel testo, la voce nel
-  dizionario è stata persa.
+- ✅ **D1–D3, D5** — Aggiunta con e senza motivo (default `manuale`), email vuota rifiutata,
+  rimozione: conteggio 4 → 3 → 4.
+- ✅ **D4** — L'indirizzo soppresso **non riceve**: le campagne 2/3/4 avevano esattamente
+  `info@`, `mirania008@` e `visconti.adriano+de@`, senza `visconti.adriano@`. La mail arrivata in
+  quella casella era quella all'alias `+de`, che Gmail consegna nella stessa inbox.
+- ☐ **D6** — Doppia soppressione della stessa email → atteso in snackbar:
+  **"Questo indirizzo è già soppresso per questa azienda."** *(Se rivedi
+  "Esiste già un record per web_newsletter_soppressioni", la voce nel dizionario dei vincoli è
+  andata persa.)*
+- ☐ **D7** — Dopo aver soppresso un indirizzo, l'**elenco destinatari (C7)** non lo mostra più:
+  conteggio ed elenco devono raccontare la stessa cosa.
 
 ### E. Invio di prova *(mail vera — VPN spenta)*
 
-- ☐ **E1** — Prova a `visconti.adriano@gmail.com` → snackbar verde "Email di prova inviata."
-- ☐ **E2** — L'email arriva con oggetto **`[TEST] <oggetto>`**.
-- ☐ **E3** — È in **italiano** anche se il destinatario è EN: la prova non traduce mai.
-- ☐ **E4** — L'invio di prova **non** compare nel tab Storico (non registra la campagna).
-- ☐ **E5** — L'invio di prova ignora consensi e soppressioni: funziona anche verso un indirizzo
-  soppresso o sconosciuto. *(È voluto: serve a provare la configurazione.)*
+- ✅ **E1–E5** — Prova inviata, oggetto con `[TEST]`, sempre in italiano, non registrata nello
+  Storico, indipendente da consensi e soppressioni.
 - ☐ **E6** — Con SMTP mal configurato → snackbar rossa "Invio di prova fallito (verifica config email)."
 
 ### F. Campagna multilingua — azienda 2 (con chiave Claude) *(mail vere)*
 
-- ☐ **F1** — *Invia a tutti* → dialogo di conferma "Inviare la newsletter a **4** destinatari?" con
-  pulsante **Invia**. *Annulla* non manda nulla.
-- ☐ **F2** — Esito: snackbar verde "Inviate 4/4", senza la coda sulle lingue.
-- ☐ **F3** — Arrivano **4 email**, e nella tua inbox ne arrivano **2** (la tua EN + quella `+de`),
-  non 3: se ne arrivano 3 la dedup è rotta.
-- ☐ **F4** — Lingue: Antonio in **IT** (testo originale), Anna in **EN**, `+de` in **DE**.
-  Oggetto **e** corpo tradotti, non solo il corpo.
-- ☐ **F5** — L'HTML del corpo sopravvive alla traduzione (grassetti, liste, link non si sfaldano).
-- ☐ **F6** — Il consumo Claude della newsletter finisce nel **registro consumi** con causale
-  "Newsletter (EN)" / "Newsletter (DE)" — 2 chiamate per lingua (oggetto + corpo).
-- ☐ **F7** — Tab Storico: nuova riga con canale **`smtp`**, stato `inviato`, n. destinatari **4**.
+- ✅ **F3** — Nella inbox arrivano **2** mail (la tua `EN` e quella `+de` in `DE`), non 3: dedup ok.
+- ✅ **F4** — Lingue corrette: Antonio in `IT`, Anna in `EN`, `+de` in `DE`, oggetto e corpo tradotti.
+- ✅ **F5** — L'HTML del corpo sopravvive alla traduzione.
+- ☐ **F1** — *Invia a tutti* → conferma "Inviare la newsletter a **4** destinatari?"; *Annulla* non manda nulla.
+- ☐ **F2** — **La verifica chiave del secondo giro:** esito **snackbar VERDE "Inviate 4/4"**, senza
+  errori. Se ricompare "Un valore inserito per web_newsletter_invii non rispetta le regole di
+  validità", la correzione dello stato è stata persa.
+- ☐ **F6** — Il consumo Claude finisce nel registro con causale "Newsletter (EN)" / "Newsletter (DE)".
+- ☐ **F7** — Tab Storico: riga con stato **`inviata`** (chip **verde**), **Data invio valorizzata**,
+  **Destinatari = 4**, canale `smtp`. Erano le due colonne vuote del primo giro.
+- ☐ **F8** — **Avanzamento (nuovo)**: durante l'invio compare prima "Preparazione dell'invio
+  (traduzione dei testi)…" e poi **"Invio in corso: N di 4"** con la barra che avanza. A fine invio
+  sparisce tutto.
 
 ### G. Fallback senza chiave Claude — azienda 6 *(mail vere)*
 
-- ☐ **G1** — Cambia azienda in **Offroad Adventures** → conteggio **2**.
+> **Prerequisito:** salvare la **password SMTP** dell'azienda 6 (Gmail → *app password*).
+> Senza, G2–G4 falliscono per configurazione, non per codice.
+
+- ☐ **G1** — Conteggio azienda 6 = **2**.
 - ☐ **G2** — *Invia a tutti* → snackbar **arancione**: "Inviate 2/2 (alcune lingue inviate in IT:
   chiave Claude mancante/errore)".
-- ☐ **G3** — Tu e Anna, entrambi `EN`, ricevete la versione **italiana**. Nessun errore, nessuna
-  mail mancata: il fallback degrada, non blocca.
-- ☐ **G4** — Nel log per-destinatario la lingua registrata è **`IT`**, non `EN`: deve riflettere
-  la lingua *realmente inviata*.
+- ☐ **G3** — Tu e Anna, entrambi `EN`, ricevete la versione **italiana**.
+- ☐ **G4** — Nel log per-destinatario la lingua registrata è **`IT`**, non `EN`.
+  *(Nel primo giro questo funzionava già: il log c'era, era lo Storico a non mostrarlo.)*
 
-### H. Template brandizzato e link di disiscrizione
+### H. Template, logo e link di disiscrizione
 
-- ☐ **H1** — L'email usa `CompanyEmailTemplate`: logo azienda in testa, ragione sociale, e in footer
-  sito e telefono.
-- ☐ **H2** — Azienda **senza logo** → l'email parte comunque, solo senza immagine (il logo è
-  non-critical: viene loggato un warning e si prosegue).
-- ☐ **H3** — In coda al corpo c'è il separatore e "Non desideri più ricevere la nostra newsletter?
-  **Disiscriviti**".
+- ☐ **H1** — L'email usa `CompanyEmailTemplate`: logo, ragione sociale, sito e telefono nel footer.
+- ☐ **H2** — **(cambiato)** Azienda **senza logo** → prima di inviare compare il dialogo
+  **"Logo mancante"**: *Invia comunque* prosegue, *Annulla* interrompe senza spedire nulla.
+  *(Deciso di non bloccare: impedire l'invio per un logo lascerebbe l'azienda muta verso i clienti.)*
+- ☐ **H3** — In coda al corpo c'è "Non desideri più ricevere la nostra newsletter? **Disiscriviti**".
 - ☐ **H4** — Il link punta a `<sito_web>/unsubscribe?email=…&sig=…`, con l'email URL-encoded.
-- ☐ **H5** — **Firma reale**: la stessa email inviata da azienda 2 e da azienda 6 deve produrre
-  `sig` **diversi**. Se sono identici, `token_iscrizione` è tornato NULL e l'HMAC sta usando chiave
-  vuota (link forgiabile e uguale per tutti i tenant).
-- ☐ **H6** — Azienda senza `sito_web` → il link cade sul placeholder `https://www.example.com`
-  anziché generare un URL rotto. *(Comportamento accettato: il click lo gestirà il sito in Fase 3.)*
+- ☐ **H5** — **Firma reale**: stessa email inviata da azienda 2 e da azienda 6 → i `sig` devono
+  essere **diversi**. Se sono identici, `token_iscrizione` è NULL e l'HMAC gira a chiave vuota.
+  *(Ora verificabile: nel primo giro le mail non partivano.)*
+- ☐ **H6** — **(cambiato: ora bloccante)** Azienda **senza `sito_web`** → l'invio **non parte** e
+  compare "Questa azienda non ha un sito web: il link di disiscrizione sarebbe rotto…".
+  Vale sia per *Invia prova* sia per *Invia a tutti*.
+- ☐ **H7** — Il blocco è **autoritativo**: sta anche nel servizio, non solo nella UI. Non c'è
+  percorso che spedisca con un link a `example.com`.
 
 ### I. Storico e log
 
-- ☐ **I1** — Tab Storico elenca gli invii con oggetto, stato, data, n. destinatari, canale.
-- ☐ **I2** — Azione **Log** → dialogo con una riga per destinatario: email, lingua, stato consegna.
-- ☐ **I3** — I destinatari nel log sono **esattamente** quelli attesi (soppressi esclusi, dedup applicata).
-- ☐ **I4** — Il log di un invio dell'azienda 2 non è apribile né visibile dall'azienda 6.
+- ☐ **I1** — Storico con oggetto, stato, data, n. destinatari, canale — **tutte valorizzate**.
+- ☐ **I2** — **(cambiato)** Il pulsante **Log** si vede che è un pulsante (bordo, colore, icona) e
+  apre il dialogo con una riga per destinatario: email, lingua, stato consegna.
+- ☐ **I3** — I destinatari nel log sono esattamente quelli attesi (soppressi esclusi, dedup applicata).
+- ☐ **I4** — Il log di un invio dell'azienda 2 non è visibile dall'azienda 6.
 
 ### J. Iscritti
 
-- ☐ **J1** — Tab Iscritti mostra i 2 iscritti seed con email, nome, lingua, stato, consenso.
-- ☐ **J2** — L'elenco è **read-only**: nessun pulsante di modifica/inserimento (gli iscritti arrivano
-  dal sito pubblico, Fase 3).
+- ☐ **J1** — Tab Iscritti mostra i 2 iscritti con email, nome, lingua, stato, consenso.
+- ☐ **J2** — Elenco **read-only**: nessun pulsante di modifica o inserimento.
 
 ### K. Multi-tenant (silos)
 
-- ☐ **K1** — Storico, iscritti e soppressioni dell'azienda 2 **non** compaiono sull'azienda 6 e viceversa.
-- ☐ **K2** — Una soppressione inserita su un'azienda **non** filtra i destinatari dell'altra, anche a
-  parità di indirizzo email.
+- ☐ **K1** — Storico, iscritti e soppressioni dell'azienda 2 non compaiono sull'azienda 6 e viceversa.
+- ☐ **K2** — Una soppressione su un'azienda non filtra i destinatari dell'altra, a parità di email.
+  *(Già confermato a DB: il vincolo unico è su `(azienda_id, email)`.)*
+- ☐ **K3** — **(nuovo, SuperAdmin)** Passando da azienda 2 a azienda 6 col selettore e tornando
+  indietro, i dati mostrati sono sempre quelli dell'azienda selezionata. Nessun residuo.
 
 ### L. Errori e casi limite
 
-- ☐ **L1** — Azienda **senza destinatari** (togli tutti i consensi) → *Invia a tutti* → snackbar rossa
-  "Errore invio: Nessun destinatario (verifica consensi clienti / iscritti / soppressioni)." e
-  **nessuna riga** creata nello storico.
-- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → tutti gli invii falliscono →
-  snackbar "Inviate 0/4, 4 errori", log con tutti `errore`.
-  ⚠️ **Da verificare:** la riga di storico risulta comunque in stato **`inviato`**, perché lo stato
-  è impostato a fine ciclo senza guardare gli esiti. Se lo confermi, è una segnalazione da aprire:
-  una campagna interamente fallita non dovrebbe archiviarsi come inviata.
-- ☐ **L3** — **Errore prima del ciclo** (es. configurazione email assente e il factory lancia) → la
-  riga di storico può restare bloccata in **`in_invio`** senza che nulla la chiuda. Verifica se
-  succede e se resta appesa nell'elenco.
-- ☐ **L4** — Stato della campagna in corso: durante un invio lungo la riga è visibile come `in_invio`.
-- ☐ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter` in una sessione,
-  aggiungi una soppressione da un'altra, poi invia dalla prima → il dialogo annuncia il vecchio
-  numero mentre l'invio parte su quello aggiornato. Verifica quanto è fastidioso in pratica.
-- ☐ **L6** — Traduzione fallita su **una sola** lingua (es. chiave Claude revocata a metà) → quella
-  lingua degrada a IT, le altre restano tradotte, snackbar con l'avviso.
+- ☐ **L1** — Azienda **senza destinatari** → *Invia a tutti* → snackbar rossa "Errore invio: Nessun
+  destinatario…" e **nessuna riga** nello Storico.
+  ⚠️ Per arrivare davvero a zero sull'azienda 2 non basta togliere il consenso ai clienti: vanno
+  disattivati anche i **due iscritti**, che non hanno UI. Via SQL:
+  `UPDATE web_newsletter_iscritti SET stato='disiscritto' WHERE azienda_id=2;`
+  *(Nel primo giro erano loro i 2 destinatari che restavano.)*
+- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → "Inviate 0/4, 4 errori", log con
+  tutti `errore`.
+  ⚠️ **Ora verificabile davvero** (prima era mascherato dal bug dello stato): controlla se la riga
+  di Storico risulta comunque **`inviata`**. Lo stato è messo a fine ciclo **senza guardare gli
+  esiti**, quindi una campagna interamente fallita si archivia come inviata. Se confermato, è da
+  correggere — il CHECK non prevede un valore `errore`, quindi serve uno script.
+- ☐ **L3** — **Errore prima del ciclo** → la riga di Storico può restare appesa in **`in_invio`**.
+  Riproducibile togliendo il `sito_web`: ora però il blocco scatta **prima** che la riga venga
+  creata, quindi lo Storico deve restare pulito. Verifica che sia così.
+- ☐ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter`, aggiungi una
+  soppressione da un'altra sessione, poi invia → il dialogo annuncia il vecchio numero.
+- ☐ **L6** — Traduzione fallita su **una sola** lingua → quella degrada a IT, le altre restano
+  tradotte, snackbar con l'avviso.
 
 ## 9. Blocco 12 — Config per-azienda (tab "Funzioni Web")
 

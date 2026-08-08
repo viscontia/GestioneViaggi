@@ -9,11 +9,20 @@ using Npgsql;
 
 namespace GestioneViaggi.Services.Web;
 
-/// <summary>Destinatario risolto (da fn_web_destinatari_newsletter).</summary>
-public sealed record NewsletterRecipient(string Email, string? Nome, string? Cognome, string Lingua);
+/// <summary>Destinatario risolto (da fn_web_destinatari_newsletter). Telefono solo per i clienti.</summary>
+public sealed record NewsletterRecipient(string Email, string? Nome, string? Cognome, string Lingua, string? Telefono = null);
 
 /// <summary>Esito invio campagna.</summary>
 public sealed record NewsletterSendResult(int Totale, int Inviate, int Errori, bool TradottoIncompleto);
+
+/// <summary>
+/// Esito dei controlli preliminari sul branding dell'azienda, letti PRIMA di spedire.
+/// <paramref name="SitoMancante"/> e' bloccante: senza <c>sito_web</c> il link di disiscrizione
+/// diventa <c>https://www.example.com/unsubscribe?…</c>, cioe' si spedisce a tutti un
+/// "Disiscriviti" che non porta da nessuna parte. <paramref name="LogoMancante"/> e' solo un
+/// avviso: la mail parte lo stesso, ma senza intestazione.
+/// </summary>
+public sealed record NewsletterPreflight(bool SitoMancante, bool LogoMancante);
 
 /// <summary>
 /// Motore invio newsletter (Blocco 11, per-azienda): risolve i destinatari (clienti+iscritti−soppressioni),
@@ -57,7 +66,7 @@ public sealed class NewsletterSenderService
     {
         var list = new List<NewsletterRecipient>();
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT email, nome, cognome, lingua FROM fn_web_destinatari_newsletter(@Az::integer)", conn);
+        await using var cmd = new NpgsqlCommand("SELECT email, nome, cognome, lingua, telefono FROM fn_web_destinatari_newsletter(@Az::integer)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
         await using var r = await cmd.ExecuteReaderAsync();
         while (await r.ReadAsync())
@@ -67,7 +76,8 @@ public sealed class NewsletterSenderService
             var cognome = r.IsDBNull(2) ? null : r.GetString(2);
             var lingua = (r.IsDBNull(3) ? "IT" : r.GetString(3)).Trim().ToUpperInvariant();
             if (string.IsNullOrEmpty(lingua)) lingua = "IT";
-            list.Add(new NewsletterRecipient(email, nome, cognome, lingua));
+            var telefono = r.IsDBNull(4) ? null : r.GetString(4);
+            list.Add(new NewsletterRecipient(email, nome, cognome, lingua, telefono));
         }
         return list;
     }
@@ -108,6 +118,18 @@ public sealed class NewsletterSenderService
         catch (Exception ex) { _logger.LogWarning(ex, "Logo azienda {Az} non disponibile per newsletter", aziendaId); }
 
         return new NlBranding(nome, sito, token, tel, logoBase64, logoMime);
+    }
+
+    /// <summary>
+    /// Controlli preliminari sul branding, da chiamare PRIMA di comporre l'invio: la UI blocca sul
+    /// sito mancante e chiede conferma sul logo mancante. Qui nessuna decisione, solo i fatti.
+    /// </summary>
+    public async Task<NewsletterPreflight> GetPreflightAsync(int aziendaId)
+    {
+        var b = await GetBrandingAsync(aziendaId);
+        return new NewsletterPreflight(
+            SitoMancante: string.IsNullOrWhiteSpace(b.Sito),
+            LogoMancante: string.IsNullOrWhiteSpace(b.LogoBase64));
     }
 
     /// <summary>Traduce (oggetto, corpo) per ogni lingua richiesta ≠ IT. Senza chiave Claude → tutti IT.</summary>
@@ -156,13 +178,22 @@ public sealed class NewsletterSenderService
             corpo + UnsubFooter(unsubUrl), DateTime.Now, b.Sito, b.Telefono);
 
     /// <summary>Invia la campagna a tutti i destinatari (multilingua) e registra invio + log.</summary>
-    public async Task<NewsletterSendResult> SendCampaignAsync(int aziendaId, string oggetto, string corpoHtml)
+    public async Task<NewsletterSendResult> SendCampaignAsync(
+        int aziendaId, string oggetto, string corpoHtml, IProgress<(int Fatti, int Totale)>? progress = null)
     {
         var recipients = await GetRecipientsAsync(aziendaId);
         if (recipients.Count == 0)
             throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
 
         var branding = await GetBrandingAsync(aziendaId);
+
+        // Guardia autoritativa: senza sito_web il link di disiscrizione punta a example.com.
+        // La UI avvisa prima, ma il blocco deve stare anche qui: una newsletter con un
+        // "Disiscriviti" rotto non si puo' richiamare indietro.
+        if (string.IsNullOrWhiteSpace(branding.Sito))
+            throw new InvalidOperationException(
+                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
+                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
         var (bodies, incompleto) = await BuildBodiesAsync(aziendaId, oggetto, corpoHtml, recipients.Select(r => r.Lingua).ToList());
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
         var canale = sender is SmtpEmailSender ? "smtp" : "resend";
@@ -173,6 +204,7 @@ public sealed class NewsletterSenderService
         });
 
         int ok = 0, err = 0;
+        progress?.Report((0, recipients.Count));
         foreach (var rec in recipients)
         {
             var lang = bodies.ContainsKey(rec.Lingua) ? rec.Lingua : "IT";
@@ -194,6 +226,8 @@ public sealed class NewsletterSenderService
                 });
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Log destinatario {Email} fallito", rec.Email); }
+
+            progress?.Report((ok + err, recipients.Count));
         }
 
         // "inviata" (femminile): e' il valore ammesso da chk_web_newsletter_invii_stato
@@ -211,6 +245,11 @@ public sealed class NewsletterSenderService
     public async Task<bool> SendTestAsync(int aziendaId, string oggetto, string corpoHtml, string testEmail)
     {
         var branding = await GetBrandingAsync(aziendaId);
+        if (string.IsNullOrWhiteSpace(branding.Sito))
+            throw new InvalidOperationException(
+                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
+                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
+
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
         var unsub = NewsletterUnsubscribe.BuildUrl(branding.Sito, testEmail, branding.Token);
         var html = BuildHtml(branding, corpoHtml, unsub);

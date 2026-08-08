@@ -151,6 +151,7 @@ ls SqlScripts/*.sql \
 | 508 | FnWebTourContenutiDelete_Pulizia | Pulisce anche `web_traduzioni`, polimorfica (`entita`+`entita_id`) e non raggiunta da alcuna CASCADE (verificato: 96 righe orfane su una scheda clonata). Nessuna bonifica retroattiva: su PROD non possono esistere orfani, perché finora non c'era alcun percorso di eliminazione |
 | 509 | AnaDateViaggi_AnnoPlausibile | ⚠️ **CHECK su dati esistenti**: anni fra 2000 e 2100. In locale 146 righe tutte valide; **su PROD eseguire prima la query di verifica in coda allo script** (deve dare zero righe), altrimenti l'`ALTER` fallisce |
 | 510 | Create_FnAnaClientiConsenso | get/set del consenso marketing del cliente (Blocco 11-B). Nessun backfill: le colonne esistono dal `428`, cambia solo chi le scrive |
+| 511 | FnWebDestinatariNewsletter_Telefono | `fn_web_destinatari_newsletter` espone anche `telefono` (in coda al `RETURNS TABLE`). Fa `DROP FUNCTION` prima del `CREATE` perché cambia il tipo di ritorno → applicarlo **dopo** il `465`. Nessun grant da ripristinare: **verificato che la function non è concessa ad `anon`** (`proacl` vuoto) e non deve esserlo — restituisce email e telefoni di tutti i clienti |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
