@@ -35,6 +35,40 @@ public static class WebImageProcessor
         await image.SaveAsWebpAsync(ms, new WebpEncoder { Quality = Quality }, ct);
         return new ProcessedImage(ms.ToArray(), image.Width, image.Height, Mime);
     }
+
+    // --- Email -------------------------------------------------------------
+    // Le immagini delle newsletter NON possono essere WebP: Outlook per Windows usa il motore di
+    // rendering di Word, che non lo supporta, e mostrerebbe un riquadro vuoto. Servono JPEG (o PNG)
+    // e una larghezza contenuta, perche' il riquadro di lettura sicuro e' 600px.
+
+    public const int MaxEdgeEmail = 1200;
+    public const int QualityEmail = 82;
+    public const string MimeEmail = "image/jpeg";
+
+    /// <summary>
+    /// Deriva la versione da email di un'immagine: JPEG, lato lungo max <see cref="MaxEdgeEmail"/>px.
+    /// Il JPEG non ha canale alfa: le trasparenze vengono appiattite su bianco, che e' lo sfondo
+    /// del corpo della newsletter (senza, diventerebbero nere).
+    /// </summary>
+    public static async Task<ProcessedImage> ToEmailJpegAsync(Stream input, CancellationToken ct = default)
+    {
+        using var image = await Image.LoadAsync(input, ct);
+
+        if (Math.Max(image.Width, image.Height) > MaxEdgeEmail)
+        {
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,
+                Size = new Size(MaxEdgeEmail, MaxEdgeEmail)
+            }));
+        }
+
+        image.Mutate(x => x.BackgroundColor(SixLabors.ImageSharp.Color.White));
+
+        using var ms = new MemoryStream();
+        await image.SaveAsJpegAsync(ms, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder { Quality = QualityEmail }, ct);
+        return new ProcessedImage(ms.ToArray(), image.Width, image.Height, MimeEmail);
+    }
 }
 
 /// <summary>Risultato dell'ottimizzazione: bytes WebP + dimensioni finali + mime.</summary>

@@ -119,12 +119,42 @@ meno token, e soprattutto le immagini e la struttura non possono più tornare in
 | Fase | Contenuto | Dipendenze |
 |---|---|---|
 | **1. DB** ✅ | `web_newsletter_blocchi` + CRUD + reorder + `fn_web_newsletter_clona`; bozza — **FATTA** (script `512`, 2026-08-09) | — |
-| **2. Rendering** | `NewsletterHtmlRenderer` (blocchi → HTML tabellare); resa JPEG; logo via URL | 1 |
+| **2. Rendering** ✅ | `NewsletterHtmlRenderer` (blocchi → HTML tabellare); resa JPEG; logo via URL — **FATTA** (2026-08-09) | 1 |
 | **3. UI** | elenco newsletter, composizione a blocchi, anteprima, duplica | 1, 2 |
 | **4. Traduzioni** | per campo invece che sul blob | 1, 3 |
 | **5. Invio** | "invia a me" reale, invio campagna sul rendering | 2, 3 |
 
 Ogni fase si chiude con build verde e le righe di test corrispondenti nel Piano di Test §8.
+
+### Nota sulla Fase 2 — come è stata verificata
+
+`NewsletterHtmlRenderer` è deliberatamente una classe **pura**: nessuna dipendenza, nessun I/O,
+riceve record semplici e restituisce una stringa. Non è solo pulizia — è ciò che l'ha resa
+**verificabile**, visto che i test unitari non girano da riga di comando in questo progetto
+(`ProjectReference` al progetto principale, solo maccatalyst → NU1201).
+
+Il renderer è stato compilato in un progetto console a parte e fatto girare su una newsletter di
+esempio ricalcata su quella reale di SFT (testata, testo, un tour con immagine a sinistra, due tour
+affiancati, separatore, pulsante, footer). Controlli automatici sull'HTML prodotto:
+
+| Verifica | Esito |
+|---|---|
+| `display:flex` / `display:grid` assenti | ok |
+| nessuna URI `data:` | ok |
+| nessun `.webp` | ok |
+| nessun `<style>` nell'head | ok |
+| tutte le `<img>` hanno l'attributo `width` | 5 su 5 |
+| link di disiscrizione presente | ok |
+| larghezza colonne affiancate | 268+268 = 536, esatta dentro i 600px con i margini |
+
+Campione dell'HTML prodotto: `scratchpad/anteprima_newsletter_esempio.html`.
+
+**Scelta di resa da conoscere:** nel blocco `testata` il titolo va **sotto** l'immagine, non
+sovrapposto. Il testo sopra un'immagine richiede `background-image`, che in Outlook funziona solo
+con VML: si è preferita una resa uguale ovunque a una che si rompe su un client.
+
+I pulsanti sono **a tabella** e non `<a>` stilizzati: Outlook ignora `padding` e `background` su un
+link e il risultato sarebbe testo blu sottolineato al posto del bottone.
 
 ---
 
