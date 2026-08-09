@@ -63,6 +63,35 @@ public sealed class NewsletterMediaService
     }
 
     /// <summary>
+    /// Scarica un'immagine dal suo URL pubblico e ne restituisce la versione email (JPEG).
+    /// E' la strada usata quando si compila un riquadro tour: la copertina e' gia' su Storage in
+    /// WebP, e va derivata in JPEG perche' Outlook non mostra il WebP.
+    /// Torna l'URL originale se la conversione fallisce: meglio un'immagine che non si vede su
+    /// Outlook che un riquadro senza immagine su tutti i client.
+    /// </summary>
+    public async Task<string?> ConvertiDaUrlAsync(string? url, string? storagePath, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (string.IsNullOrWhiteSpace(storagePath)) return url;
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            await using var origine = await http.GetStreamAsync(url, ct);
+            using var buffer = new MemoryStream();
+            await origine.CopyToAsync(buffer, ct);
+            buffer.Position = 0;
+
+            return await GetImmagineEmailUrlAsync(storagePath!, buffer, ct) ?? url;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Conversione email non riuscita per {Url}: uso l'originale", url);
+            return url;
+        }
+    }
+
+    /// <summary>
     /// Deriva la versione email (JPEG) di un'immagine gia' in Storage e ne restituisce l'URL
     /// pubblico. <paramref name="storagePathOrigine"/> e' il percorso dell'originale (WebP della
     /// galleria); il derivato finisce in <c>newsletter/img/{nome}.jpg</c>.

@@ -12,6 +12,16 @@ public partial class TravelDataSelectorDialog
     [Parameter] public bool IsSuperAdmin { get; set; }
     [Parameter] public PrintType PrintType { get; set; } = PrintType.TravelDataSheet;
 
+    /// <summary>
+    /// Titolo del dialogo. Se valorizzato prevale su quello ricavato da <see cref="PrintType"/>.
+    /// Serve a riusare il selettore fuori dal contesto stampa (es. scelta dell'edizione per un
+    /// riquadro tour della newsletter) senza doverlo duplicare.
+    /// </summary>
+    [Parameter] public string? TitoloPersonalizzato { get; set; }
+
+    /// <summary>Etichetta del pulsante di conferma. Se valorizzata prevale su quella da PrintType.</summary>
+    [Parameter] public string? EtichettaConferma { get; set; }
+
     // State Variables
     private int _selectedAziendaId;
     private int? _selectedTripId;
@@ -286,11 +296,15 @@ public partial class TravelDataSelectorDialog
 
     private string GetDialogTitle()
     {
-        return PrintType.GetDisplayName();
+        return string.IsNullOrWhiteSpace(TitoloPersonalizzato)
+            ? PrintType.GetDisplayName()
+            : TitoloPersonalizzato!;
     }
 
     private string GetActionButtonText()
     {
+        if (!string.IsNullOrWhiteSpace(EtichettaConferma)) return EtichettaConferma!;
+
         return PrintType switch
         {
             PrintType.TravelDataSheet => "Stampa Scheda",

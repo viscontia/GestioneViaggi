@@ -1007,9 +1007,25 @@ Tre dialoghi della pagina Newsletter.
 *   **`NewsletterBloccoDialog`** — modifica di un singolo blocco. I campi mostrati **dipendono dal
     tipo**: far comparire "collegamento" su un separatore confonderebbe e basta. Su intestazione e
     footer non mostra campi ma spiega che si compilano dai dati dell'azienda.
+    Sul blocco **tour** offre *Scegli il tour*, che apre `TravelDataSelectorDialog` e compila da solo
+    titolo, periodo, copertina (convertita in JPEG) e collegamento. Avvisa se la scheda web è ancora
+    in **bozza** (il link porterebbe a una pagina inesistente) o se manca il sito aziendale.
+    **Non sovrascrive** un testo già scritto dall'utente.
 *   **`NewsletterAnteprimaDialog`** — l'HTML reale dentro un **iframe**. L'iframe non è un vezzo:
     isola gli stili della newsletter da quelli di MudBlazor. Inserito nella pagina, l'HTML della
     mail erediterebbe il CSS dell'applicazione e mostrerebbe qualcosa di **diverso** da ciò che
     arriva al destinatario — cioè l'errore che un'anteprima deve evitare.
 *   **`NewsletterDestinatariDialog`** — elenco in sola lettura di chi riceverà (Cognome, Nome, Mail,
     Telefono, Lingua). Il telefono è vuoto per gli iscritti dal sito, che lasciano la sola email.
+
+## TravelDataSelectorDialog — riuso fuori dalle stampe
+
+Selettore **viaggio + data di partenza**, nato per le stampe: restituisce l'`id` della data scelta.
+Dal 2026-08-09 è riusabile anche fuori da quel contesto grazie a due parametri opzionali:
+
+*   `TitoloPersonalizzato` — titolo del dialogo; se assente si usa quello derivato da `PrintType`.
+*   `EtichettaConferma` — testo del pulsante; se assente si usa quello derivato da `PrintType`.
+
+I chiamanti esistenti (NavMenu, dashboard) non sono stati toccati: senza i due parametri il
+comportamento è identico a prima. Primo riuso: la scelta dell'edizione per il riquadro tour della
+newsletter — dove duplicare la logica di selezione sarebbe stato l'errore da manuale.

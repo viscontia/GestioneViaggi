@@ -1,6 +1,9 @@
 @using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NewsletterRenderService RenderService
 
 @* Modifica di un singolo blocco della newsletter. I campi mostrati dipendono dal tipo:
    far vedere "link" su un separatore confonderebbe e basta. *@
@@ -8,6 +11,44 @@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.subtitle2" Class="mb-3">@Etichetta</MudText>
+
+        @if (Blocco.Tipo == "tour")
+        {
+            @* Il senso del blocco tour: scegli l'edizione e i campi si compilano da soli.
+               Restano modificabili a mano dopo. *@
+            <MudPaper Outlined="true" Class="pa-3 mb-4">
+                <div class="d-flex align-center gap-3 flex-wrap">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_caricando"
+                               StartIcon="@Icons.Material.Filled.TravelExplore" OnClick="ScegliEdizione">
+                        @(Blocco.DataViaggioIdFk.HasValue ? "Cambia tour" : "Scegli il tour")
+                    </MudButton>
+                    @if (_caricando)
+                    {
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">Lettura del tour e conversione della copertina…</MudText>
+                    }
+                    else if (Blocco.DataViaggioIdFk.HasValue)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                 Icon="@Icons.Material.Filled.Check">Compilato dal tour</MudChip>
+                    }
+                </div>
+
+                @if (_avvisoBozza)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                        La scheda web di questo tour è ancora in <strong>bozza</strong>: il collegamento
+                        porterebbe a una pagina che sul sito non esiste. Pubblicala prima di inviare.
+                    </MudAlert>
+                }
+                @if (_avvisoSenzaSito)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
+                        L'azienda non ha un sito web configurato: il collegamento non è stato compilato.
+                    </MudAlert>
+                }
+            </MudPaper>
+        }
 
         @if (Mostra("titolo"))
         {
@@ -88,8 +129,65 @@
 
     [Parameter] public WebNewsletterBlocco Blocco { get; set; } = new();
     [Parameter] public string Etichetta { get; set; } = "Blocco";
+    [Parameter] public bool IsSuperAdmin { get; set; }
 
     private MudTextField<string>? _primoCampo;
+    private bool _caricando;
+    private bool _avvisoBozza;
+    private bool _avvisoSenzaSito;
+
+    /// <summary>
+    /// Sceglie l'edizione e compila il riquadro: titolo, periodo, testo, copertina (convertita in
+    /// JPEG per l'email) e collegamento. Riusa il selettore condiviso TravelDataSelectorDialog
+    /// invece di duplicarne la logica di scelta viaggio + data.
+    /// </summary>
+    private async Task ScegliEdizione()
+    {
+        var parameters = new DialogParameters<TravelDataSelectorDialog>
+        {
+            { x => x.AziendaId, Blocco.AziendaId },
+            { x => x.IsSuperAdmin, IsSuperAdmin },
+            { x => x.TitoloPersonalizzato, "Scegli il tour da inserire" },
+            { x => x.EtichettaConferma, "Usa questo tour" }
+        };
+        var dlg = await DialogService.ShowAsync<TravelDataSelectorDialog>("Scegli il tour", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled || res.Data is not int dataViaggioId) return;
+
+        _caricando = true; _avvisoBozza = false; _avvisoSenzaSito = false;
+        StateHasChanged();
+        try
+        {
+            var dati = await RenderService.GetDatiTourAsync(dataViaggioId, Blocco.AziendaId);
+            if (dati is null)
+            {
+                Snackbar.Add("Questa partenza non ha una scheda di contenuti web: creala prima di inserirla in newsletter.", Severity.Warning);
+                return;
+            }
+
+            Blocco.DataViaggioIdFk = dataViaggioId;
+            Blocco.Titolo = dati.Titolo;
+            Blocco.Sottotitolo = dati.Periodo;
+            Blocco.ImmagineUrl = dati.ImmagineUrl;
+            Blocco.ImmagineStoragePath = dati.ImmagineStoragePath;
+            Blocco.ImmagineAlt = dati.Titolo;
+            Blocco.LinkUrl = dati.LinkCompleto;
+
+            // Non sovrascrivo un testo gia' scritto dall'utente: la compilazione automatica
+            // aiuta, non cancella il lavoro fatto.
+            if (string.IsNullOrWhiteSpace(Blocco.CorpoHtml) && !string.IsNullOrWhiteSpace(dati.Testo))
+                Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+
+            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
+                Blocco.LinkEtichetta = "Vai alla pagina del Tour";
+
+            _avvisoBozza = !dati.Pubblicato;
+            _avvisoSenzaSito = string.IsNullOrWhiteSpace(dati.LinkCompleto);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura tour: {ex.Message}", Severity.Error); }
+        finally { _caricando = false; }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

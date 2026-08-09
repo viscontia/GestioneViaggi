@@ -523,7 +523,8 @@ else
         var parameters = new DialogParameters<NewsletterBloccoDialog>
         {
             { x => x.Blocco, copia },
-            { x => x.Etichetta, _catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Etichetta ?? b.Tipo }
+            { x => x.Etichetta, _catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Etichetta ?? b.Tipo },
+            { x => x.IsSuperAdmin, _isSuperAdmin }
         };
         var dlg = await DialogService.ShowAsync<NewsletterBloccoDialog>("Modifica blocco", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });

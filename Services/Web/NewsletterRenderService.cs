@@ -31,6 +31,57 @@ public sealed class NewsletterRenderService
         _db = db; _blocchi = blocchi; _funzioni = funzioni; _media = media; _logger = logger;
     }
 
+    /// <summary>
+    /// Contenuto di un riquadro tour ricavato da un'edizione. <c>Pubblicato</c> false significa
+    /// che la scheda e' ancora in bozza e il link porterebbe a una pagina inesistente.
+    /// </summary>
+    public sealed record DatiTour(
+        string Titolo, string? Periodo, string? Testo, string Slug, bool Pubblicato,
+        string? ImmagineUrl, string? ImmagineStoragePath, string? LinkCompleto);
+
+    /// <summary>
+    /// Compila un riquadro tour dall'edizione scelta: titolo, periodo, testo, copertina (gia'
+    /// convertita in JPEG per l'email) e link costruito da sito web + slug.
+    /// </summary>
+    public async Task<DatiTour?> GetDatiTourAsync(int dataViaggioId, int aziendaId, bool convertiImmagine = true)
+    {
+        DatiTour? dati = null;
+
+        await using (var conn = await _db.GetConnectionAsync())
+        await using (var cmd = new NpgsqlCommand(
+            "SELECT titolo, periodo, testo, slug, pubblicato, immagine_url, immagine_storage_path FROM fn_web_newsletter_dati_tour(@Data::integer, @Az::integer)", conn))
+        {
+            cmd.Parameters.AddWithValue("Data", dataViaggioId);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            await using var r = await cmd.ExecuteReaderAsync();
+            if (await r.ReadAsync())
+            {
+                dati = new DatiTour(
+                    Titolo: r.GetString(0),
+                    Periodo: Str(r, 1),
+                    Testo: Str(r, 2),
+                    Slug: r.GetString(3),
+                    Pubblicato: r.GetBoolean(4),
+                    ImmagineUrl: Str(r, 5),
+                    ImmagineStoragePath: Str(r, 6),
+                    LinkCompleto: null);
+            }
+        }
+
+        if (dati is null) return null;
+
+        var azienda = await GetDatiAziendaAsync(aziendaId);
+        var baseUrl = (azienda.SitoWeb ?? "").TrimEnd('/');
+        var link = string.IsNullOrWhiteSpace(baseUrl) ? null : $"{baseUrl}/tour/{dati.Slug}";
+
+        // La copertina della galleria e' WebP: per l'email serve il derivato JPEG.
+        var immagine = convertiImmagine
+            ? await _media.ConvertiDaUrlAsync(dati.ImmagineUrl, dati.ImmagineStoragePath)
+            : dati.ImmagineUrl;
+
+        return dati with { ImmagineUrl = immagine, LinkCompleto = link };
+    }
+
     /// <summary>Dati aziendali per intestazione e footer (fn_web_newsletter_dati_azienda).</summary>
     public async Task<NewsletterRenderAzienda> GetDatiAziendaAsync(int aziendaId, string? logoUrl = null)
     {

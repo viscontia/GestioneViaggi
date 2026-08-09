@@ -120,7 +120,7 @@ meno token, e soprattutto le immagini e la struttura non possono più tornare in
 |---|---|---|
 | **1. DB** ✅ | `web_newsletter_blocchi` + CRUD + reorder + `fn_web_newsletter_clona`; bozza — **FATTA** (script `512`, 2026-08-09) | — |
 | **2. Rendering** ✅ | `NewsletterHtmlRenderer` (blocchi → HTML tabellare); resa JPEG; logo via URL — **FATTA** (2026-08-09) | 1 |
-| **3. UI** 🔶 | elenco newsletter, composizione a blocchi, anteprima, duplica — **FATTA in parte** (2026-08-09). ⚠️ **Manca il selettore edizione del blocco `tour`** (§2.3): oggi immagine, titolo e link si scrivono a mano invece di compilarsi dai dati del tour. È la parte che fa risparmiare più tempo e va completata | 1, 2 |
+| **3. UI** ✅ | elenco newsletter, composizione a blocchi, anteprima, duplica, **selettore edizione del blocco `tour`** — **FATTA** (2026-08-09). Il selettore riusa il componente condiviso `TravelDataSelectorDialog`, reso generico con `TitoloPersonalizzato`/`EtichettaConferma` invece di duplicarlo | 1, 2 |
 | **4. Traduzioni** | per campo invece che sul blob | 1, 3 |
 | **5. Invio** | "invia a me" reale, invio campagna sul rendering | 2, 3 |
 
