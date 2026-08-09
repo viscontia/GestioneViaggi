@@ -20,6 +20,21 @@
     }
 </div>
 
+@* Filtro per viaggio: permette di restare sulle foto di UN tour - piu' coerente con la
+   scheda del sito - oppure di pescare da tutto il repertorio aziendale. *@
+@if (MostraFiltroContesto && Contesti.Count > 1)
+{
+    <MudSelect T="string" Value="@_filtroContesto" ValueChanged="OnFiltroChanged"
+               Label="Mostra le foto di" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2"
+               HelperText="Scegliendo un viaggio resti coerente con le foto della sua scheda sul sito.">
+        <MudSelectItem T="string" Value="@("")">Tutti i viaggi (@Immagini.Count foto)</MudSelectItem>
+        @foreach (var c in Contesti)
+        {
+            <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
+        }
+    </MudSelect>
+}
+
 @* Foto attuale: si aggiorna in tempo reale scegliendone un'altra sotto. *@
 <div class="d-flex align-center gap-3 mb-2 pa-2"
      style="border:1px solid var(--mud-palette-lines-default); border-radius:4px; background:var(--mud-palette-background-grey);">
@@ -35,9 +50,9 @@
     }
 </div>
 
-@if (Immagini.Count == 0)
+@if (Visibili.Count == 0)
 {
-    <MudText Typo="Typo.body2" Color="Color.Secondary">@TestoGalleriaVuota</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@(Immagini.Count == 0 ? TestoGalleriaVuota : "Nessuna foto per il viaggio scelto.")</MudText>
 }
 else
 {
@@ -52,7 +67,7 @@ else
                 <MudText Typo="Typo.caption" Class="mt-1">Nessuna</MudText>
             </MudPaper>
         }
-        @foreach (var img in Immagini)
+        @foreach (var img in Visibili)
         {
             <MudPaper Elevation="@(SelectedStoragePath == img.StoragePath ? 4 : 0)" Class="pa-0"
                       Style="@ThumbStyle(img.StoragePath)" @onclick="@(() => Scegli(img))">
@@ -74,6 +89,9 @@ else
     [Parameter] public string TestoGalleriaVuota { get; set; } = "Nessuna immagine disponibile.";
     [Parameter] public bool ConsentiNessuna { get; set; } = true;
 
+    /// <summary>Mostra il filtro per viaggio quando le foto vengono da piu' tour.</summary>
+    [Parameter] public bool MostraFiltroContesto { get; set; }
+
     [Parameter] public string? SelectedStoragePath { get; set; }
     [Parameter] public EventCallback<string?> SelectedStoragePathChanged { get; set; }
     [Parameter] public string? SelectedUrl { get; set; }
@@ -81,6 +99,22 @@ else
 
     /// <summary>Notifica la scelta completa (utile quando serve anche l'alt).</summary>
     [Parameter] public EventCallback<Voce?> OnScelta { get; set; }
+
+    private string _filtroContesto = "";
+
+    private List<string> Contesti => Immagini
+        .Select(i => i.Contesto)
+        .Where(c => !string.IsNullOrWhiteSpace(c))
+        .Distinct()
+        .OrderBy(c => c)
+        .Select(c => c!)
+        .ToList();
+
+    private List<Voce> Visibili => string.IsNullOrEmpty(_filtroContesto)
+        ? Immagini
+        : Immagini.Where(i => i.Contesto == _filtroContesto).ToList();
+
+    private void OnFiltroChanged(string valore) => _filtroContesto = valore ?? "";
 
     // Preferenza "nascosta" per-utente, CONDIVISA con la galleria e col picker dell'itinerario:
     // chi allarga le miniature in un posto se le ritrova allargate ovunque.

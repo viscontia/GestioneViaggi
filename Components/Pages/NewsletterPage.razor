@@ -122,11 +122,19 @@ else
                                                        Color="Color.Primary" Disabled="@_busy"
                                                        OnClick="@(() => ApriComposizione(n))" />
                                     </MudTooltip>
+                                    <MudTooltip Text="Elimina definitivamente">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                       Color="Color.Error" Disabled="@_busy"
+                                                       OnClick="@(() => Elimina(n))" />
+                                    </MudTooltip>
                                 }
                                 else
                                 {
                                     <MudTooltip Text="Una newsletter già inviata non si modifica: duplicala.">
                                         <span><MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="true" /></span>
+                                    </MudTooltip>
+                                    <MudTooltip Text="Una newsletter già inviata non si elimina: è la prova di cosa è stato spedito.">
+                                        <span><MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Disabled="true" /></span>
                                     </MudTooltip>
                                 }
                             </td>
@@ -561,6 +569,42 @@ else
             Snackbar.Add("Copia creata fra le bozze.", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add($"Errore duplicazione: {MessaggioErrore(ex)}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>
+    /// Elimina definitivamente una newsletter non inviata. I blocchi vanno via in CASCADE.
+    /// Una gia' inviata non si tocca: e' la prova documentale di cosa e' stato spedito e a chi,
+    /// e il suo log dei destinatari serve anche a rispondere a una contestazione.
+    /// </summary>
+    private async Task Elimina(WebNewsletterElencoVoce n)
+    {
+        if (!n.IsBozza)
+        {
+            Snackbar.Add("Una newsletter già inviata non può essere eliminata.", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, n.IsModello ? "Elimina modello" : "Elimina newsletter" },
+            { x => x.ContentText, $"Eliminare definitivamente «{n.Oggetto}» con i suoi {n.NumeroBlocchi} blocchi? L'operazione non si può annullare." },
+            { x => x.ButtonText, "Elimina" },
+            { x => x.Color, Color.Error }
+        };
+        var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina", parameters,
+            new DialogOptions { BackdropClick = false });
+        if ((await dlg.Result)!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            await InviiService.DeleteAsync(n.Id, _aziendaId);
+            if (_invioCorrente?.Id == n.Id) ChiudiComposizione();
+            await ReloadAsync();
+            Snackbar.Add("Eliminata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
         finally { _busy = false; }
     }
 

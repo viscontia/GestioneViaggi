@@ -363,10 +363,16 @@ public static class NewsletterHtmlRenderer
         </td></tr>";
     }
 
+    /// <summary>
+    /// Su testo, pulsante e immagine il campo <c>layout</c> significa <b>allineamento</b>
+    /// (su tour e' invece la posizione dell'immagine). <c>pieno</c> resta a sinistra: e' il
+    /// default storico e su un paragrafo "piena larghezza" equivale a testo allineato a sinistra.
+    /// </summary>
     private static string AllineaDaLayout(string? layout) => layout switch
     {
         "sinistra" => "left",
         "destra"   => "right",
+        "centro"   => "center",
         _          => "left"
     };
 

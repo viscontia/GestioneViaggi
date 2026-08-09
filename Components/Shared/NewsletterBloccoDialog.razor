@@ -60,13 +60,19 @@
         @if (Mostra("titolo"))
         {
             <MudTextField @bind-Value="Blocco.Titolo" Label="Titolo" Variant="Variant.Outlined"
-                          MaxLength="255" Class="mb-3" @ref="_primoCampo" />
+                          MaxLength="255" Class="mb-3" @ref="_primoCampo"
+                          HelperText="@(Blocco.Tipo == "tour"
+                                        ? "Nome del tour come apparirà nella newsletter: modificabile, non tocca la scheda del viaggio."
+                                        : "Titolo grande in cima al blocco.")" />
         }
 
         @if (Mostra("sottotitolo"))
         {
             <MudTextField @bind-Value="Blocco.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
-                          MaxLength="255" Class="mb-3" />
+                          MaxLength="255" Class="mb-3"
+                          HelperText="@(Blocco.Tipo == "tour"
+                                        ? "Periodo della partenza, compilato dal tour (es. \"Dal 2 al 7 maggio 2026\")."
+                                        : "Riga più piccola sotto il titolo.")" />
         }
 
         @if (Mostra("corpo"))
@@ -94,6 +100,7 @@
                 <ImmaginePicker Immagini="@Galleria"
                                 Titolo="Immagine (dalla galleria dell'azienda)"
                                 TestoGalleriaVuota="Nessuna foto in galleria. Caricane dalla scheda Contenuti Web di un tour."
+                                MostraFiltroContesto="true"
                                 SelectedStoragePath="@Blocco.ImmagineStoragePath"
                                 SelectedUrl="@Blocco.ImmagineUrl"
                                 OnScelta="OnImmagineScelta" />
@@ -105,20 +112,62 @@
 
         @if (Mostra("link"))
         {
-            <MudTextField @bind-Value="Blocco.LinkUrl" Label="Indirizzo del collegamento" Variant="Variant.Outlined"
-                          MaxLength="500" Class="mb-3" />
+            @* Chiedere un URL a mano non funziona: l'utente non sa cosa sia ne' dove prenderlo.
+               Si sceglie una destinazione fra quelle che l'azienda ha davvero. *@
+            @if (Blocco.Tipo != "tour")
+            {
+                <MudSelect T="string" Value="@_destinazione" ValueChanged="OnDestinazioneChanged"
+                           Label="Dove porta il collegamento" Variant="Variant.Outlined" Class="mb-3">
+                    <MudSelectItem T="string" Value="@("home")">Home page del sito</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("tour")">Pagina di un tour…</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("manuale")">Un altro indirizzo (lo scrivo io)</MudSelectItem>
+                </MudSelect>
+            }
+
+            @if (Blocco.Tipo == "tour" || _destinazione == "manuale")
+            {
+                <MudTextField @bind-Value="Blocco.LinkUrl" Label="Indirizzo del collegamento"
+                              Variant="Variant.Outlined" MaxLength="500" Class="mb-3"
+                              ReadOnly="@(Blocco.Tipo == "tour")"
+                              HelperText="@(Blocco.Tipo == "tour"
+                                            ? "Compilato dal tour scelto: punta alla sua pagina sul sito."
+                                            : "Deve iniziare con https:// — è l'indirizzo che si apre cliccando.")" />
+            }
+            else if (!string.IsNullOrWhiteSpace(Blocco.LinkUrl))
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    Porta a: <strong>@Blocco.LinkUrl</strong>
+                </MudAlert>
+            }
+
             <MudTextField @bind-Value="Blocco.LinkEtichetta" Label="Testo del pulsante" Variant="Variant.Outlined"
-                          MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour" />
+                          MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour"
+                          HelperText="Le parole scritte dentro il pulsante." />
         }
 
         @if (Mostra("layout"))
         {
             <div class="d-flex gap-3">
-                <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Disposizione" Variant="Variant.Outlined" Class="mb-3">
-                    <MudSelectItem T="string" Value="@("pieno")">Piena larghezza</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("sinistra")">Immagine a sinistra</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("destra")">Immagine a destra</MudSelectItem>
-                </MudSelect>
+                @if (Blocco.Tipo is "tour" or "immagine")
+                {
+                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Posizione dell'immagine"
+                               Variant="Variant.Outlined" Class="mb-3"
+                               HelperText="Dove sta la foto rispetto al testo del riquadro.">
+                        <MudSelectItem T="string" Value="@("pieno")">Sopra, a piena larghezza</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra, testo a destra</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("destra")">A destra, testo a sinistra</MudSelectItem>
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Allineamento"
+                               Variant="Variant.Outlined" Class="mb-3"
+                               HelperText="Come viene allineato il contenuto nella colonna della newsletter.">
+                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
+                    </MudSelect>
+                }
 
                 @if (Blocco.Tipo == "tour")
                 {
@@ -138,7 +187,14 @@
         {
             <MudAlert Severity="Severity.Info" Dense="true">
                 Questo blocco si compila da sé con i dati dell'azienda: logo, ragione sociale, indirizzo e recapiti.
-                La composizione del footer si cambia in <strong>Anagrafica Aziende → Funzioni Web</strong>.
+                @if (Blocco.Tipo == "footer")
+                {
+                    <span>Quali campi mostrare e in che ordine si decide nel tab <strong>Impostazioni</strong> di questa stessa pagina.</span>
+                }
+                else
+                {
+                    <span>Il logo è quello caricato in <strong>Anagrafica Aziende</strong>.</span>
+                }
             </MudAlert>
         }
     </DialogContent>
@@ -160,6 +216,8 @@
 
     private MudTextField<string>? _primoCampo;
     private BlazoredTextEditor? _editor;
+    private string _destinazione = "manuale";
+    private string? _sitoWeb;
     private bool _editorCaricato;
 
     /// <summary>
@@ -284,6 +342,69 @@
         }
         catch (Exception ex) { Snackbar.Add($"Errore lettura tour: {ex.Message}", Severity.Error); }
         finally { _caricando = false; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var az = await RenderService.GetDatiAziendaAsync(Blocco.AziendaId);
+            _sitoWeb = az.SitoWeb;
+        }
+        catch { _sitoWeb = null; }
+
+        // Riconosce la destinazione gia' impostata, cosi' riaprendo il blocco la tendina
+        // mostra la scelta fatta invece di ripartire da "lo scrivo io".
+        var url = (Blocco.LinkUrl ?? "").TrimEnd('/');
+        var home = (_sitoWeb ?? "").TrimEnd('/');
+        _destinazione = string.IsNullOrWhiteSpace(url) ? "home"
+                      : (!string.IsNullOrWhiteSpace(home) && url == home) ? "home"
+                      : url.Contains("/tour/") ? "tour"
+                      : "manuale";
+    }
+
+    /// <summary>Cambio della destinazione del collegamento.</summary>
+    private async Task OnDestinazioneChanged(string valore)
+    {
+        _destinazione = valore;
+
+        if (valore == "home")
+        {
+            if (string.IsNullOrWhiteSpace(_sitoWeb))
+            {
+                Snackbar.Add("L'azienda non ha un sito web configurato: non posso comporre il collegamento.", Severity.Warning);
+                _destinazione = "manuale";
+                return;
+            }
+            Blocco.LinkUrl = _sitoWeb!.TrimEnd('/');
+            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = "Visita il sito";
+        }
+        else if (valore == "tour")
+        {
+            var parameters = new DialogParameters<TravelDataSelectorDialog>
+            {
+                { x => x.AziendaId, Blocco.AziendaId },
+                { x => x.IsSuperAdmin, IsSuperAdmin },
+                { x => x.TitoloPersonalizzato, "Scegli il tour a cui puntare" },
+                { x => x.EtichettaConferma, "Usa questo tour" }
+            };
+            var dlg = await DialogService.ShowAsync<TravelDataSelectorDialog>("Scegli il tour", parameters,
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
+            var res = await dlg.Result;
+            if (res!.Canceled || res.Data is not int dataViaggioId) { _destinazione = "manuale"; return; }
+
+            var dati = await RenderService.GetDatiTourAsync(dataViaggioId, Blocco.AziendaId, convertiImmagine: false);
+            if (dati?.LinkCompleto is null)
+            {
+                Snackbar.Add("Non è stato possibile comporre il collegamento a quel tour (scheda web assente o sito non configurato).", Severity.Warning);
+                _destinazione = "manuale";
+                return;
+            }
+            Blocco.LinkUrl = dati.LinkCompleto;
+            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = "Vai alla pagina del Tour";
+            if (!dati.Pubblicato)
+                Snackbar.Add("Attenzione: la scheda di quel tour è in bozza, il collegamento non funzionerà finché non la pubblichi.", Severity.Warning);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

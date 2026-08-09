@@ -16,6 +16,14 @@
 --   * pubblicato dice se la scheda e' visibile sul sito. Un link a una scheda in bozza porta a una
 --     pagina che non esiste: avvisare e' compito della UI, non di questa function.
 
+-- I mesi in italiano: TO_CHAR li darebbe in inglese (o dipendenti dal lc_time del server,
+-- che e' peggio perche' cambia da macchina a macchina).
+CREATE OR REPLACE FUNCTION fn_mese_italiano(p_mese INTEGER)
+RETURNS VARCHAR LANGUAGE sql IMMUTABLE AS $$
+    SELECT (ARRAY['gennaio','febbraio','marzo','aprile','maggio','giugno',
+                  'luglio','agosto','settembre','ottobre','novembre','dicembre'])[p_mese]::VARCHAR;
+$$;
+
 CREATE OR REPLACE FUNCTION fn_web_newsletter_dati_tour(
     p_data_viaggio_id INTEGER,
     p_azienda_id      INTEGER)
@@ -31,11 +39,37 @@ LANGUAGE sql STABLE AS $$
     SELECT
         v.viaggio_descrizione_breve::VARCHAR AS titolo,
 
+        -- Periodo in forma LEGGIBILE, non tecnica: in una newsletter "Dal 12 al 15 ottobre 2026"
+        -- si legge, "12/10/2026 - 15/10/2026" si decifra. Mese e anno non si ripetono quando
+        -- coincidono, che e' come lo scriverebbe una persona.
         (CASE
             WHEN d.data_viaggio_data_fine = d.data_viaggio_data_inizio
-                THEN TO_CHAR(d.data_viaggio_data_inizio, 'DD/MM/YYYY')
-            ELSE TO_CHAR(d.data_viaggio_data_inizio, 'DD/MM/YYYY') || ' - ' ||
-                 TO_CHAR(d.data_viaggio_data_fine,   'DD/MM/YYYY')
+                THEN 'Il ' || TO_CHAR(d.data_viaggio_data_inizio, 'FMDD') || ' ' ||
+                     fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_inizio)::INTEGER) || ' ' ||
+                     TO_CHAR(d.data_viaggio_data_inizio, 'YYYY')
+
+            -- stesso mese e stesso anno: "Dal 12 al 15 ottobre 2026"
+            WHEN date_trunc('month', d.data_viaggio_data_inizio) = date_trunc('month', d.data_viaggio_data_fine)
+                THEN 'Dal ' || TO_CHAR(d.data_viaggio_data_inizio, 'FMDD') || ' al ' ||
+                     TO_CHAR(d.data_viaggio_data_fine, 'FMDD') || ' ' ||
+                     fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_fine)::INTEGER) || ' ' ||
+                     TO_CHAR(d.data_viaggio_data_fine, 'YYYY')
+
+            -- stesso anno, mesi diversi: "Dal 28 ottobre al 2 novembre 2026"
+            WHEN EXTRACT(YEAR FROM d.data_viaggio_data_inizio) = EXTRACT(YEAR FROM d.data_viaggio_data_fine)
+                THEN 'Dal ' || TO_CHAR(d.data_viaggio_data_inizio, 'FMDD') || ' ' ||
+                     fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_inizio)::INTEGER) || ' al ' ||
+                     TO_CHAR(d.data_viaggio_data_fine, 'FMDD') || ' ' ||
+                     fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_fine)::INTEGER) || ' ' ||
+                     TO_CHAR(d.data_viaggio_data_fine, 'YYYY')
+
+            -- a cavallo d'anno (Capodanno): l'anno serve due volte
+            ELSE 'Dal ' || TO_CHAR(d.data_viaggio_data_inizio, 'FMDD') || ' ' ||
+                 fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_inizio)::INTEGER) || ' ' ||
+                 TO_CHAR(d.data_viaggio_data_inizio, 'YYYY') || ' al ' ||
+                 TO_CHAR(d.data_viaggio_data_fine, 'FMDD') || ' ' ||
+                 fn_mese_italiano(EXTRACT(MONTH FROM d.data_viaggio_data_fine)::INTEGER) || ' ' ||
+                 TO_CHAR(d.data_viaggio_data_fine, 'YYYY')
          END)::VARCHAR AS periodo,
 
         NULLIF(BTRIM(c.sottotitolo), '')::VARCHAR AS testo,

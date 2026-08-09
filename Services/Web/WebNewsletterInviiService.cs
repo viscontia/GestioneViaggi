@@ -261,7 +261,11 @@ public class WebNewsletterInviiService : BaseCrudService<WebNewsletterInvio>
             WebNewsletterInvioId = reader.GetInt64(reader.GetOrdinal("web_newsletter_invii_id")),
             AziendaId = ReadInt(reader, "azienda_id"),
             Oggetto = reader.GetString(reader.GetOrdinal("oggetto")),
-            CorpoHtml = reader.GetString(reader.GetOrdinal("corpo_html")),
+            // corpo_html e' NULL su bozze e modelli dallo script 512 (e' l'istantanea di cio' che
+            // e' stato inviato, quindi non esiste finche' non si invia). Con GetString ogni
+            // lettura di una bozza sollevava un'eccezione: bastava avere una bozza in elenco per
+            // far fallire lo Storico, il salvataggio dell'oggetto e l'invio.
+            CorpoHtml = ReadNullableString(reader, "corpo_html") ?? string.Empty,
             Stato = reader.GetString(reader.GetOrdinal("stato")),
             DataInvio = ReadNullableDateTime(reader, "data_invio"),
             NumeroDestinatari = ReadNullableInt(reader, "numero_destinatari"),
