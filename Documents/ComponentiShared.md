@@ -985,3 +985,31 @@ I contenuti web sono **per-edizione**: `web_tour_contenuti` è figlio di **(viag
 *   **Data reale delle giornate.** L'itinerario non memorizza date: `Helpers/GiornataHelper` le **deriva** da `data_viaggio_data_inizio + (giorno_numero − 1)`. La corrispondenza è esatta perché il trigger `trg_validate_date_viaggio_duration` rifiuta ogni edizione la cui durata non coincida con `ana_viaggi.viaggio_numero_giorni`. `WebTourItinerarioTab` mostra la data **per esteso** ("Sabato 2 Maggio 2026") come informazione **non editabile** accanto al titolo, che resta libero e descrittivo; deriva da `GiornoNumero`, che i tre percorsi di riordino riscrivono, quindi segue lo spostamento da sola. Le giornate oltre la durata prevista mostrano "oltre la durata prevista". Derivare invece di memorizzare evita date rimaste indietro dopo uno spostamento della partenza e date sbagliate dopo un clone su un'altra edizione (`fn_web_tour_contenuti_clona`).
 *   **Semaforo dei sotto-tab.** L'icona di ogni sotto-tab è colorata da `WebTabStato` (🟢 Completo · 🔴 Parziale · 🟡 Vuoto) e alimenta anche il pulsante **Anteprima** (serve la copertina) e il **gating di pubblicazione**. `MudTabs` non tiene vivi i pannelli, quindi i sotto-tab non visitati non esistono e non possono notificare il proprio stato: il manager lo **precarica** all'apertura e a ogni cambio edizione con `WebTourContenutiService.GetStatoSezioniAsync` → `fn_web_tour_stato_sezioni` (una query, `SqlScripts/492`). Mentre si edita restano i sotto-tab a notificare via `StatoChanged`. Le soglie stanno **in un solo posto**, `WebTabStatoRules` (`Models/Web/WebTabStato.cs`), usate sia dal prefetch sia dai tab: non duplicarle nei componenti.
 *   I 5 tab (`WebTourContenutiTab`/`WebTourItinerarioTab`/`WebTourGalleriaTab`/`WebTourMappaTab`/`WebTraduzioniTab`) ricevono ora `ContenutoId` (long) e i service espongono `*ByContenutoAsync`. `WebTourContenutiService`: `GetByDataViaggioAsync`, `ListEdizioniAsync`, `ClonaAsync` (→ `fn_web_tour_contenuti_clona`). Difficoltà editabile ora **solo** in `AnaViaggiDialog` (anagrafica viaggio).
+
+## InputTextDialog
+
+Dialogo condiviso per chiedere **una riga di testo** (un nome, un oggetto, un titolo). Nato con la
+newsletter a blocchi (2026-08-09): prima esistevano solo dialoghi di **conferma**, e ogni schermata
+che avesse bisogno di un nome se lo sarebbe inventato per conto proprio.
+
+Parametri: `Title`, `Label`, `Testo` (spiegazione opzionale sopra il campo), `Value` (valore
+iniziale), `ButtonText`, `MaxLength` (default 255).
+
+Comportamento: focus automatico sul campo all'apertura (regola UI del progetto), **Invio conferma**
+— con un campo solo, obbligare al clic sarebbe una scortesia — e pulsante di conferma disabilitato
+finché il campo è vuoto. Restituisce la stringa **già trimmata** via `DialogResult.Ok`, oppure
+`Canceled`.
+
+## NewsletterBloccoDialog / NewsletterAnteprimaDialog / NewsletterDestinatariDialog
+
+Tre dialoghi della pagina Newsletter.
+
+*   **`NewsletterBloccoDialog`** — modifica di un singolo blocco. I campi mostrati **dipendono dal
+    tipo**: far comparire "collegamento" su un separatore confonderebbe e basta. Su intestazione e
+    footer non mostra campi ma spiega che si compilano dai dati dell'azienda.
+*   **`NewsletterAnteprimaDialog`** — l'HTML reale dentro un **iframe**. L'iframe non è un vezzo:
+    isola gli stili della newsletter da quelli di MudBlazor. Inserito nella pagina, l'HTML della
+    mail erediterebbe il CSS dell'applicazione e mostrerebbe qualcosa di **diverso** da ciò che
+    arriva al destinatario — cioè l'errore che un'anteprima deve evitare.
+*   **`NewsletterDestinatariDialog`** — elenco in sola lettura di chi riceverà (Cognome, Nome, Mail,
+    Telefono, Lingua). Il telefono è vuoto per gli iscritti dal sito, che lasciano la sola email.

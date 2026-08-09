@@ -1,0 +1,41 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+
+@* Anteprima della newsletter: l'HTML vero, dentro un iframe.
+   L'iframe non e' un vezzo — serve a ISOLARE gli stili della newsletter da quelli
+   dell'applicazione. Inserito nella pagina, l'HTML della mail erediterebbe il CSS di MudBlazor
+   e mostrerebbe qualcosa di diverso da cio' che arrivera' al destinatario, cioe' esattamente
+   l'errore che un'anteprima deve evitare. *@
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex align-center gap-2 mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" />
+            <MudText Typo="Typo.body2">
+                È il rendering reale, lo stesso che verrà spedito. Le immagini si vedono solo se
+                l'indirizzo è pubblicamente raggiungibile.
+            </MudText>
+        </div>
+
+        <div style="border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
+            <iframe srcdoc="@Html" sandbox="" title="Anteprima newsletter"
+                    style="width:100%;height:65vh;border:0;display:block;"></iframe>
+        </div>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+            Il browser non è un client di posta: Outlook per Windows resta il caso più severo.
+            Per una verifica reale usa <strong>Invia prova</strong> verso una casella vera.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Chiudi">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public string Html { get; set; } = string.Empty;
+
+    private void Chiudi() => MudDialog?.Close();
+}

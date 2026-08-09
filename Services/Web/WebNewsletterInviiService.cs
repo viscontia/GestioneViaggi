@@ -24,6 +24,68 @@ public class WebNewsletterInviiService : BaseCrudService<WebNewsletterInvio>
     {
     }
 
+    /// <summary>
+    /// Elenco per la pagina Newsletter: bozze e inviate (<paramref name="modelli"/> = false) oppure
+    /// i soli modelli riutilizzabili (= true). Include il conteggio dei blocchi.
+    /// </summary>
+    public async Task<List<WebNewsletterElencoVoce>> ElencoAsync(int aziendaId, bool modelli = false)
+    {
+        var results = new List<WebNewsletterElencoVoce>();
+        await using var conn = await _databaseService.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT * FROM fn_web_newsletter_elenco(@Az::integer, @Modelli::boolean)", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Modelli", modelli);
+
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+        {
+            results.Add(new WebNewsletterElencoVoce(
+                r.GetInt64(r.GetOrdinal("web_newsletter_invii_id")),
+                r.GetString(r.GetOrdinal("oggetto")),
+                r.GetString(r.GetOrdinal("stato")),
+                r.IsDBNull(r.GetOrdinal("data_invio")) ? null : r.GetDateTime(r.GetOrdinal("data_invio")),
+                r.IsDBNull(r.GetOrdinal("numero_destinatari")) ? null : r.GetInt32(r.GetOrdinal("numero_destinatari")),
+                r.IsDBNull(r.GetOrdinal("canale")) ? null : r.GetString(r.GetOrdinal("canale")),
+                r.GetBoolean(r.GetOrdinal("is_modello")),
+                r.GetInt32(r.GetOrdinal("n_blocchi")),
+                r.GetDateTime(r.GetOrdinal("created"))));
+        }
+        return results;
+    }
+
+    /// <summary>Crea una bozza (o un modello) gia' con dentro i blocchi obbligatori.</summary>
+    public async Task<long> CreaBozzaAsync(int aziendaId, string oggetto, bool isModello = false)
+    {
+        await using var conn = await _databaseService.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT fn_web_newsletter_crea_bozza(@Az::integer, @Oggetto::varchar, @Modello::boolean)", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Oggetto", oggetto);
+        cmd.Parameters.AddWithValue("Modello", isModello);
+        return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+    }
+
+    /// <summary>Duplica una newsletter (o un modello): la copia nasce sempre come bozza.</summary>
+    public async Task<long> ClonaAsync(long invioId, int aziendaId, string? nuovoOggetto = null, bool comeModello = false)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_web_newsletter_clona(@Id::bigint, @Az::integer, @Oggetto::varchar, @Modello::boolean)", conn);
+            cmd.Parameters.AddWithValue("Id", invioId);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            cmd.Parameters.AddWithValue("Oggetto", (object?)nuovoOggetto ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Modello", comeModello);
+            return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+        }
+        catch (PostgresException pex) when (pex.SqlState == "P0001")
+        {
+            throw new InvalidOperationException(pex.MessageText);
+        }
+    }
+
     /// <summary>Elenco degli invii newsletter di un'azienda (storico).</summary>
     public async Task<List<WebNewsletterInvio>> ListByAziendaAsync(int aziendaId)
     {

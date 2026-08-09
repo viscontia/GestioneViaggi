@@ -1,0 +1,117 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+@* Modifica di un singolo blocco della newsletter. I campi mostrati dipendono dal tipo:
+   far vedere "link" su un separatore confonderebbe e basta. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-3">@Etichetta</MudText>
+
+        @if (Mostra("titolo"))
+        {
+            <MudTextField @bind-Value="Blocco.Titolo" Label="Titolo" Variant="Variant.Outlined"
+                          MaxLength="255" Class="mb-3" @ref="_primoCampo" />
+        }
+
+        @if (Mostra("sottotitolo"))
+        {
+            <MudTextField @bind-Value="Blocco.Sottotitolo" Label="Sottotitolo" Variant="Variant.Outlined"
+                          MaxLength="255" Class="mb-3" />
+        }
+
+        @if (Mostra("corpo"))
+        {
+            <MudTextField @bind-Value="Blocco.CorpoHtml" Label="Testo" Variant="Variant.Outlined"
+                          Lines="6" Class="mb-3"
+                          HelperText="Accetta HTML semplice: <p>, <b>, <i>, <ul>/<li>, <a>." />
+        }
+
+        @if (Mostra("immagine"))
+        {
+            <MudTextField @bind-Value="Blocco.ImmagineUrl" Label="Indirizzo immagine (URL)" Variant="Variant.Outlined"
+                          MaxLength="500" Class="mb-1"
+                          HelperText="Deve essere un URL pubblico https in JPEG o PNG. Mai WebP: Outlook non lo mostra." />
+            <MudTextField @bind-Value="Blocco.ImmagineAlt" Label="Testo alternativo" Variant="Variant.Outlined"
+                          MaxLength="255" Class="mb-3"
+                          HelperText="Compare al posto della foto finché il destinatario non la scarica." />
+        }
+
+        @if (Mostra("link"))
+        {
+            <MudTextField @bind-Value="Blocco.LinkUrl" Label="Indirizzo del collegamento" Variant="Variant.Outlined"
+                          MaxLength="500" Class="mb-3" />
+            <MudTextField @bind-Value="Blocco.LinkEtichetta" Label="Testo del pulsante" Variant="Variant.Outlined"
+                          MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour" />
+        }
+
+        @if (Mostra("layout"))
+        {
+            <div class="d-flex gap-3">
+                <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Disposizione" Variant="Variant.Outlined" Class="mb-3">
+                    <MudSelectItem T="string" Value="@("pieno")">Piena larghezza</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("sinistra")">Immagine a sinistra</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("destra")">Immagine a destra</MudSelectItem>
+                </MudSelect>
+
+                @if (Blocco.Tipo == "tour")
+                {
+                    <MudSelect T="short" @bind-Value="Blocco.Colonne" Label="Affiancamento" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem T="short" Value="@((short)1)">Da solo</MudSelectItem>
+                        <MudSelectItem T="short" Value="@((short)2)">Affiancato al tour seguente</MudSelectItem>
+                    </MudSelect>
+                }
+            </div>
+        }
+
+        @if (Blocco.Tipo == "separatore")
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">Il separatore non ha contenuto: disegna solo una linea.</MudAlert>
+        }
+        @if (Blocco.Tipo is "intestazione" or "footer")
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Questo blocco si compila da sé con i dati dell'azienda: logo, ragione sociale, indirizzo e recapiti.
+                La composizione del footer si cambia in <strong>Anagrafica Aziende → Funzioni Web</strong>.
+            </MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Annulla">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Conferma">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public WebNewsletterBlocco Blocco { get; set; } = new();
+    [Parameter] public string Etichetta { get; set; } = "Blocco";
+
+    private MudTextField<string>? _primoCampo;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Regola UI del progetto: focus sul primo campo all'apertura della form.
+        if (firstRender && _primoCampo != null)
+        {
+            await Task.Delay(150);
+            await _primoCampo.FocusAsync();
+        }
+    }
+
+    /// <summary>Quali gruppi di campi hanno senso per il tipo di blocco corrente.</summary>
+    private bool Mostra(string gruppo) => Blocco.Tipo switch
+    {
+        "testata"   => gruppo is "titolo" or "sottotitolo" or "immagine",
+        "testo"     => gruppo is "corpo" or "layout",
+        "tour"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "link" or "layout",
+        "immagine"  => gruppo is "immagine" or "link" or "layout",
+        "pulsante"  => gruppo is "link" or "layout",
+        _           => false
+    };
+
+    private void Conferma() => MudDialog?.Close(DialogResult.Ok(Blocco));
+    private void Annulla() => MudDialog?.Cancel();
+}

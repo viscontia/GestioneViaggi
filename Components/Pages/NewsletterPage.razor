@@ -16,6 +16,8 @@
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
 @inject WebAziendeFunzioniService FunzioniService
+@inject WebNewsletterBlocchiService BlocchiService
+@inject NewsletterRenderService RenderService
 @attribute [Authorize]
 @implements IDisposable
 
@@ -64,37 +66,177 @@ else
 <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
 
     <!-- CAMPAGNA -->
-    <MudTabPanel Text="Campagna" Icon="@Icons.Material.Filled.Campaign">
-        <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined" MaxLength="255" Class="mb-3" />
-        <MudText Typo="Typo.subtitle2" Class="mb-1">Corpo (in italiano — sarà tradotto per lingua dei destinatari)</MudText>
-        <div style="height:300px;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;display:flex;flex-direction:column;">
-            <BlazoredTextEditor @ref="_editor" Placeholder="Scrivi la newsletter...">
-                <ToolbarContent>
-                    <select class="ql-header"><option selected=""></option><option value="2"></option><option value="3"></option></select>
-                    <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button></span>
-                    <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>
-                    <span class="ql-formats"><button class="ql-link"></button></span>
-                    <span class="ql-formats"><button class="ql-clean"></button></span>
-                </ToolbarContent>
-            </BlazoredTextEditor>
-        </div>
+    <!-- NEWSLETTER: elenco oppure composizione a blocchi -->
+    <MudTabPanel Text="Newsletter" Icon="@Icons.Material.Filled.Campaign">
 
-        <MudPaper Outlined="true" Class="pa-3 mt-3">
-            <div class="d-flex align-center flex-wrap gap-3">
-                @* Cliccabile: mostra CHI ricevera', non solo quanti sono. *@
-                <MudTooltip Text="Vedi l'elenco dei destinatari">
-                    <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group"
-                             OnClick="VediDestinatari" Disabled="@(_busy || _count == 0)">Destinatari: @_count</MudChip>
-                </MudTooltip>
-                <MudTextField @bind-Value="_testEmail" Label="Email di prova" Variant="Variant.Outlined" Style="max-width:280px;" Margin="Margin.Dense" />
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Send" Disabled="@_busy" OnClick="InviaProva">Invia prova</MudButton>
+        @if (_invioCorrente is null)
+        {
+            @* ---------- ELENCO ---------- *@
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           Disabled="@_busy" OnClick="@(() => NuovaNewsletter(false))">Nuova newsletter</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Bookmarks"
+                           Disabled="@_busy" OnClick="@(() => NuovaNewsletter(true))">Nuovo modello</MudButton>
                 <MudSpacer />
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
-                           Disabled="@(_busy || _count == 0)" OnClick="InviaTutti">Invia a tutti (@_count)</MudButton>
+                <MudSwitch T="bool" @bind-Value="_mostraModelli" Color="Color.Primary"
+                           Label="Mostra i modelli" LabelPlacement="Placement.Start" />
             </div>
 
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">Senza chiave Claude sull'azienda, i destinatari non-IT ricevono la versione italiana.</MudText>
-        </MudPaper>
+            <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+                <thead>
+                    <tr>
+                        <th>@(_mostraModelli ? "Modello" : "Oggetto")</th>
+                        <th>Stato</th>
+                        <th style="text-align:center;">Blocchi</th>
+                        <th>Ultima modifica</th>
+                        <th style="text-align:right;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var n in Elenco)
+                    {
+                        <tr>
+                            <td>@n.Oggetto</td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@(n.Stato == "inviata" ? Color.Success : n.IsBozza ? Color.Warning : Color.Default)">@n.Stato</MudChip>
+                            </td>
+                            <td style="text-align:center;">@n.NumeroBlocchi</td>
+                            <td>@((n.DataInvio ?? n.Created).ToLocalTime().ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td style="text-align:right;white-space:nowrap;">
+                                <MudTooltip Text="Anteprima">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small"
+                                                   Color="Color.Primary" Disabled="@_busy"
+                                                   OnClick="@(() => Anteprima(n.Id))" />
+                                </MudTooltip>
+                                <MudTooltip Text="Duplica">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                                   Disabled="@_busy" OnClick="@(() => Duplica(n))" />
+                                </MudTooltip>
+                                @if (n.IsBozza)
+                                {
+                                    <MudTooltip Text="Componi">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                       Color="Color.Primary" Disabled="@_busy"
+                                                       OnClick="@(() => ApriComposizione(n))" />
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="Una newsletter già inviata non si modifica: duplicala.">
+                                        <span><MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="true" /></span>
+                                    </MudTooltip>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (Elenco.Count == 0)
+                    {
+                        <tr><td colspan="5">
+                            <MudText Color="Color.Secondary">
+                                @(_mostraModelli
+                                    ? "Nessun modello. Creane uno per riusare una struttura ricorrente."
+                                    : "Nessuna newsletter. Creane una nuova, oppure duplica un modello.")
+                            </MudText>
+                        </td></tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else
+        {
+            @* ---------- COMPOSIZIONE A BLOCCHI ---------- *@
+            <div class="d-flex align-center gap-2 mb-3">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default"
+                               OnClick="ChiudiComposizione" Title="Torna all'elenco" />
+                <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined"
+                              MaxLength="255" Margin="Margin.Dense" Style="max-width:420px;" />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="@_busy" OnClick="SalvaOggetto">Salva oggetto</MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility"
+                           Disabled="@_busy" OnClick="@(() => Anteprima(_invioCorrente!.Id))">Anteprima</MudButton>
+            </div>
+
+            <div class="d-flex gap-2 mb-3 flex-wrap">
+                @foreach (var t in _catalogo.Where(c => !c.Obbligatorio))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@_busy" OnClick="@(() => AggiungiBlocco(t))">@t.Etichetta</MudButton>
+                }
+            </div>
+
+            <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+                <thead>
+                    <tr>
+                        <th style="width:40px;"></th>
+                        <th>Blocco</th>
+                        <th>Contenuto</th>
+                        <th style="text-align:right;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < _blocchi.Count; i++)
+                    {
+                        var b = _blocchi[i];
+                        var idx = i;
+                        var obbligatorio = _catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Obbligatorio == true;
+                        <tr>
+                            <td style="white-space:nowrap;">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                               Disabled="@(_busy || idx == 0 || obbligatorio)"
+                                               OnClick="@(() => Sposta(idx, -1))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                               Disabled="@(_busy || idx == _blocchi.Count - 1 || obbligatorio)"
+                                               OnClick="@(() => Sposta(idx, 1))" />
+                            </td>
+                            <td>
+                                <strong>@(_catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Etichetta ?? b.Tipo)</strong>
+                                @if (obbligatorio)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Class="ml-2">obbligatorio</MudChip>
+                                }
+                                @if (b.Tipo == "tour" && b.Colonne == 2)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2">affiancato</MudChip>
+                                }
+                            </td>
+                            <td><MudText Typo="Typo.body2" Color="Color.Secondary">@Riassunto(b)</MudText></td>
+                            <td style="text-align:right;white-space:nowrap;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                               Disabled="@_busy" OnClick="@(() => ModificaBlocco(b))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               Disabled="@(_busy || obbligatorio)" OnClick="@(() => EliminaBlocco(b))" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            <MudPaper Outlined="true" Class="pa-3 mt-3">
+                <div class="d-flex align-center flex-wrap gap-3">
+                    <MudTooltip Text="Vedi l'elenco dei destinatari">
+                        <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group"
+                                 OnClick="VediDestinatari" Disabled="@(_busy || _count == 0)">Destinatari: @_count</MudChip>
+                    </MudTooltip>
+                    <MudTextField @bind-Value="_testEmail" Label="Invia una prova a" Variant="Variant.Outlined"
+                                  Style="max-width:280px;" Margin="Margin.Dense"
+                                  HelperText="Indirizzo qualsiasi: riceve la newsletter vera, non una versione ridotta." />
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Send"
+                               Disabled="@_busy" OnClick="InviaProva">Invia prova</MudButton>
+                    <MudSpacer />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
+                               Disabled="@(_busy || _count == 0 || _invioCorrente!.IsModello)" OnClick="InviaTutti">Invia a tutti (@_count)</MudButton>
+                </div>
+                @if (_invioCorrente!.IsModello)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                        Questo è un <strong>modello</strong>: si duplica, non si invia.
+                    </MudAlert>
+                }
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">Senza chiave Claude sull'azienda, i destinatari non-IT ricevono la versione italiana.</MudText>
+            </MudPaper>
+        }
     </MudTabPanel>
 
     <!-- STORICO -->
@@ -188,6 +330,18 @@ else
     private List<WebNewsletterIscritto> _iscritti = new();
     private List<WebNewsletterSoppressione> _soppressioni = new();
 
+    // --- Newsletter a blocchi ---------------------------------------------
+    private List<WebNewsletterElencoVoce> _newsletter = new();
+    private List<WebNewsletterElencoVoce> _modelli = new();
+    private List<WebNewsletterTipoBlocco> _catalogo = new();
+    private List<WebNewsletterBlocco> _blocchi = new();
+    private bool _mostraModelli;
+
+    /// <summary>Newsletter aperta in composizione; null = si sta guardando l'elenco.</summary>
+    private WebNewsletterElencoVoce? _invioCorrente;
+
+    private List<WebNewsletterElencoVoce> Elenco => _mostraModelli ? _modelli : _newsletter;
+
     protected override async Task OnInitializedAsync()
     {
         StatusBarService.SetCurrentTable("web_newsletter_invii");
@@ -237,6 +391,9 @@ else
             _storico = await InviiService.ListByAziendaAsync(_aziendaId);
             _iscritti = await IscrittiService.ListByAziendaAsync(_aziendaId);
             _soppressioni = await SoppressioniService.ListByAziendaAsync(_aziendaId);
+            _newsletter = await InviiService.ElencoAsync(_aziendaId, modelli: false);
+            _modelli = await InviiService.ElencoAsync(_aziendaId, modelli: true);
+            if (_catalogo.Count == 0) _catalogo = await BlocchiService.GetCatalogoAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore caricamento: {ex.Message}", Severity.Error); }
         StateHasChanged();
@@ -248,6 +405,222 @@ else
         var corpo = NormalizeHtml(await _editor.GetHTML());
         if (string.IsNullOrWhiteSpace(corpo)) { Snackbar.Add("Il corpo è vuoto.", Severity.Warning); return null; }
         return (_oggetto!.Trim(), corpo!);
+    }
+
+    // =====================================================================
+    // Newsletter a blocchi: elenco, composizione, anteprima, duplicazione
+    // =====================================================================
+
+    private async Task NuovaNewsletter(bool comeModello)
+    {
+        var titolo = comeModello ? "Nuovo modello" : "Nuova newsletter";
+        var etichetta = comeModello ? "Nome del modello" : "Oggetto della newsletter";
+        var oggetto = await ChiediTestoAsync(titolo, etichetta);
+        if (string.IsNullOrWhiteSpace(oggetto)) return;
+
+        _busy = true;
+        try
+        {
+            var id = await InviiService.CreaBozzaAsync(_aziendaId, oggetto!.Trim(), comeModello);
+            await ReloadAsync();
+            _mostraModelli = comeModello;
+            var voce = Elenco.FirstOrDefault(x => x.Id == id);
+            if (voce != null) await ApriComposizione(voce);
+            Snackbar.Add(comeModello ? "Modello creato." : "Bozza creata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Duplica(WebNewsletterElencoVoce n)
+    {
+        var oggetto = await ChiediTestoAsync("Duplica", "Oggetto della copia", $"{n.Oggetto} (copia)");
+        if (string.IsNullOrWhiteSpace(oggetto)) return;
+
+        _busy = true;
+        try
+        {
+            // La copia nasce sempre come bozza, anche da una gia' inviata o da un modello.
+            await InviiService.ClonaAsync(n.Id, _aziendaId, oggetto!.Trim(), comeModello: false);
+            _mostraModelli = false;
+            await ReloadAsync();
+            Snackbar.Add("Copia creata fra le bozze.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore duplicazione: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task ApriComposizione(WebNewsletterElencoVoce n)
+    {
+        _invioCorrente = n;
+        _oggetto = n.Oggetto;
+        await CaricaBlocchiAsync();
+    }
+
+    private void ChiudiComposizione()
+    {
+        _invioCorrente = null;
+        _blocchi.Clear();
+    }
+
+    private async Task CaricaBlocchiAsync()
+    {
+        if (_invioCorrente is null) return;
+        try { _blocchi = await BlocchiService.ListAsync(_invioCorrente.Id, _aziendaId); }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura blocchi: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task SalvaOggetto()
+    {
+        if (_invioCorrente is null || string.IsNullOrWhiteSpace(_oggetto)) return;
+        _busy = true;
+        try
+        {
+            var invio = await InviiService.GetByIdAsync(_invioCorrente.Id, _aziendaId);
+            if (invio != null)
+            {
+                invio.Oggetto = _oggetto!.Trim();
+                await InviiService.UpdateAsync(invio);
+                await ReloadAsync();
+                _invioCorrente = Elenco.FirstOrDefault(x => x.Id == _invioCorrente.Id) ?? _invioCorrente;
+                Snackbar.Add("Oggetto aggiornato.", Severity.Success);
+            }
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task AggiungiBlocco(WebNewsletterTipoBlocco tipo)
+    {
+        if (_invioCorrente is null) return;
+        _busy = true;
+        try
+        {
+            var b = new WebNewsletterBlocco
+            {
+                AziendaId = _aziendaId, InvioIdFk = _invioCorrente.Id, Tipo = tipo.Tipo
+            };
+            await BlocchiService.CreateAsync(b);
+            await CaricaBlocchiAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+        finally { _busy = false; }
+    }
+
+    private async Task ModificaBlocco(WebNewsletterBlocco b)
+    {
+        // Copia di lavoro: se l'utente annulla, la riga in elenco non deve risultare modificata.
+        var copia = new WebNewsletterBlocco
+        {
+            WebNewsletterBloccoId = b.WebNewsletterBloccoId, InvioIdFk = b.InvioIdFk, Tipo = b.Tipo,
+            Ordine = b.Ordine, Layout = b.Layout, Colonne = b.Colonne,
+            Titolo = b.Titolo, Sottotitolo = b.Sottotitolo, CorpoHtml = b.CorpoHtml,
+            ImmagineUrl = b.ImmagineUrl, ImmagineStoragePath = b.ImmagineStoragePath, ImmagineAlt = b.ImmagineAlt,
+            LinkUrl = b.LinkUrl, LinkEtichetta = b.LinkEtichetta,
+            DataViaggioIdFk = b.DataViaggioIdFk, AziendaId = b.AziendaId
+        };
+
+        var parameters = new DialogParameters<NewsletterBloccoDialog>
+        {
+            { x => x.Blocco, copia },
+            { x => x.Etichetta, _catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Etichetta ?? b.Tipo }
+        };
+        var dlg = await DialogService.ShowAsync<NewsletterBloccoDialog>("Modifica blocco", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            await BlocchiService.UpdateAsync(copia);
+            await CaricaBlocchiAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio blocco: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task EliminaBlocco(WebNewsletterBlocco b)
+    {
+        _busy = true;
+        try
+        {
+            await BlocchiService.DeleteAsync(b.WebNewsletterBloccoId, _aziendaId);
+            await CaricaBlocchiAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Sposta un blocco di una posizione. I blocchi obbligatori non si spostano.</summary>
+    private async Task Sposta(int indice, int delta)
+    {
+        var destinazione = indice + delta;
+        if (destinazione < 0 || destinazione >= _blocchi.Count || _invioCorrente is null) return;
+
+        (_blocchi[indice], _blocchi[destinazione]) = (_blocchi[destinazione], _blocchi[indice]);
+
+        _busy = true;
+        try
+        {
+            // La function rimette comunque intestazione prima e footer ultimo: qui non serve
+            // difendersi, basta mandare l'ordine visibile.
+            await BlocchiService.ReorderAsync(_aziendaId, _invioCorrente.Id,
+                _blocchi.Select(x => x.WebNewsletterBloccoId).ToList());
+            await CaricaBlocchiAsync();
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Anteprima(long invioId)
+    {
+        _busy = true;
+        try
+        {
+            // Indirizzo di esempio: serve solo a firmare il link di disiscrizione.
+            var html = await RenderService.RenderAsync(invioId, _aziendaId, "anteprima@esempio.it");
+            var parameters = new DialogParameters<NewsletterAnteprimaDialog> { { x => x.Html, html } };
+            await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
+        }
+        catch (Exception ex) { Snackbar.Add($"Errore anteprima: {ex.Message}", Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Riga di riepilogo del contenuto di un blocco, per l'elenco di composizione.</summary>
+    private static string Riassunto(WebNewsletterBlocco b)
+    {
+        if (b.Tipo is "intestazione" or "footer") return "dati dell'azienda";
+        if (b.Tipo == "separatore") return "linea";
+
+        var parti = new List<string>();
+        if (!string.IsNullOrWhiteSpace(b.Titolo)) parti.Add(b.Titolo!);
+        if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
+        {
+            var testo = System.Text.RegularExpressions.Regex.Replace(b.CorpoHtml!, "<.*?>", " ").Trim();
+            if (testo.Length > 60) testo = testo[..60] + "…";
+            if (testo.Length > 0) parti.Add(testo);
+        }
+        if (!string.IsNullOrWhiteSpace(b.ImmagineUrl)) parti.Add("[immagine]");
+        if (!string.IsNullOrWhiteSpace(b.LinkUrl)) parti.Add($"[{b.LinkEtichetta ?? "collegamento"}]");
+
+        return parti.Count == 0 ? "(vuoto)" : string.Join(" · ", parti);
+    }
+
+    /// <summary>Richiesta di una riga di testo tramite dialogo condiviso.</summary>
+    private async Task<string?> ChiediTestoAsync(string titolo, string etichetta, string? valoreIniziale = null)
+    {
+        var parameters = new DialogParameters<InputTextDialog>
+        {
+            { x => x.Title, titolo },
+            { x => x.Label, etichetta },
+            { x => x.Value, valoreIniziale ?? string.Empty }
+        };
+        var dlg = await DialogService.ShowAsync<InputTextDialog>(titolo, parameters,
+            new DialogOptions { BackdropClick = false });
+        var res = await dlg.Result;
+        return res!.Canceled ? null : res.Data as string;
     }
 
     /// <summary>Elenco in sola lettura di chi ricevera' la campagna.</summary>

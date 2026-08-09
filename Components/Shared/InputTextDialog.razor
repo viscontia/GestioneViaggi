@@ -1,0 +1,53 @@
+@using MudBlazor
+
+@* Dialogo condiviso per chiedere UNA riga di testo (nome, oggetto, titolo...).
+   Nato per la newsletter a blocchi, ma volutamente generico: prima esistevano solo
+   dialoghi di conferma, e ogni schermata che aveva bisogno di un nome se lo inventava. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (!string.IsNullOrWhiteSpace(Testo))
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">@Testo</MudText>
+        }
+        <MudTextField @ref="_campo" @bind-Value="Value" Label="@Label" Variant="Variant.Outlined"
+                      MaxLength="@MaxLength" Immediate="true" OnKeyDown="OnKeyDown" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Annulla">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@string.IsNullOrWhiteSpace(Value)" OnClick="Conferma">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "Testo";
+    [Parameter] public string? Testo { get; set; }
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string ButtonText { get; set; } = "Conferma";
+    [Parameter] public int MaxLength { get; set; } = 255;
+
+    private MudTextField<string>? _campo;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Regola UI del progetto: focus sul primo campo all'apertura.
+        if (firstRender && _campo != null)
+        {
+            await Task.Delay(150);
+            await _campo.FocusAsync();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        // Invio conferma: e' un campo solo, chiedere un clic sarebbe una scortesia.
+        if (e.Key is "Enter" or "NumpadEnter" && !string.IsNullOrWhiteSpace(Value)) Conferma();
+    }
+
+    private void Conferma() => MudDialog?.Close(DialogResult.Ok(Value.Trim()));
+    private void Annulla() => MudDialog?.Cancel();
+}

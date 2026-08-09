@@ -42,3 +42,11 @@ public sealed class WebNewsletterBlocco
 /// <summary>Voce del catalogo dei tipi di blocco (fn_web_newsletter_tipi_blocco).</summary>
 public sealed record WebNewsletterTipoBlocco(
     string Tipo, string Etichetta, bool Obbligatorio, int? MaxOccorrenze, int OrdineCatalogo);
+
+/// <summary>Riga dell'elenco newsletter (fn_web_newsletter_elenco): bozze, inviate o modelli.</summary>
+public sealed record WebNewsletterElencoVoce(
+    long Id, string Oggetto, string Stato, DateTime? DataInvio, int? NumeroDestinatari,
+    string? Canale, bool IsModello, int NumeroBlocchi, DateTime Created)
+{
+    public bool IsBozza => Stato == "bozza";
+}
