@@ -2,13 +2,13 @@
 
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
-> **Ultimo aggiornamento:** 2026-08-08 (§1: completato l'elenco script `467`–`510` in tabella — prima erano solo prosa; comando di deploy corretto per **escludere il rollback**; nuovo script `510` consenso marketing). **Stato:** NON ancora rilasciato.
+> **Ultimo aggiornamento:** 2026-08-09 (nuovi script `511` telefono destinatari e `512` newsletter a blocchi Fase 1; intervallo esteso a 406–512). **Stato:** NON ancora rilasciato.
 
 ---
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `510`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–510). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `512`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–512). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -24,7 +24,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=510 {print $2}' \
+  | awk '$1>=406 && $1<=512 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -37,7 +37,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`510` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`512` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -98,7 +98,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–510)
+### Elenco ordinato (467–512)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -152,6 +152,7 @@ ls SqlScripts/*.sql \
 | 509 | AnaDateViaggi_AnnoPlausibile | ⚠️ **CHECK su dati esistenti**: anni fra 2000 e 2100. In locale 146 righe tutte valide; **su PROD eseguire prima la query di verifica in coda allo script** (deve dare zero righe), altrimenti l'`ALTER` fallisce |
 | 510 | Create_FnAnaClientiConsenso | get/set del consenso marketing del cliente (Blocco 11-B). Nessun backfill: le colonne esistono dal `428`, cambia solo chi le scrive |
 | 511 | FnWebDestinatariNewsletter_Telefono | `fn_web_destinatari_newsletter` espone anche `telefono` (in coda al `RETURNS TABLE`). Fa `DROP FUNCTION` prima del `CREATE` perché cambia il tipo di ritorno → applicarlo **dopo** il `465`. Nessun grant da ripristinare: **verificato che la function non è concessa ad `anon`** (`proacl` vuoto) e non deve esserlo — restituisce email e telefoni di tutti i clienti |
+| 512 | Newsletter_Blocchi_Bozze | Newsletter a blocchi Fase 1: tabella `web_newsletter_blocchi` + CRUD/reorder/clona/bozze. ⚠️ Fa `ALTER TABLE web_newsletter_invii ALTER COLUMN corpo_html DROP NOT NULL` e aggiunge `is_modello`: su PROD nessun dato esistente da migrare (la newsletter non è mai stata usata in produzione) |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
@@ -453,7 +454,7 @@ libero.
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine i **100** script 406–510 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Applicati in ordine i **102** script 406–512 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante

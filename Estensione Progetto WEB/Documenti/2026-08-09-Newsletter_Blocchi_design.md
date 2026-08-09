@@ -118,7 +118,7 @@ meno token, e soprattutto le immagini e la struttura non possono più tornare in
 
 | Fase | Contenuto | Dipendenze |
 |---|---|---|
-| **1. DB** | `web_newsletter_blocchi` + CRUD + reorder + `fn_web_newsletter_clona`; bozza | — |
+| **1. DB** ✅ | `web_newsletter_blocchi` + CRUD + reorder + `fn_web_newsletter_clona`; bozza — **FATTA** (script `512`, 2026-08-09) | — |
 | **2. Rendering** | `NewsletterHtmlRenderer` (blocchi → HTML tabellare); resa JPEG; logo via URL | 1 |
 | **3. UI** | elenco newsletter, composizione a blocchi, anteprima, duplica | 1, 2 |
 | **4. Traduzioni** | per campo invece che sul blob | 1, 3 |
