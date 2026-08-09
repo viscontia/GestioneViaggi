@@ -71,9 +71,18 @@ Derivati **dalla newsletter reale**, non inventati:
 
 ### 2.3 — Il blocco `tour` si compila da solo
 
-L'operatore sceglie un'**edizione** (viaggio + data) fra quelle pubblicate; il sistema prende
-copertina, titolo e costruisce il link dallo slug. L'operatore può sovrascrivere il testo, non i
-dati strutturali. È il blocco che fa risparmiare più tempo e che oggi non esiste.
+L'operatore sceglie un'**edizione** (viaggio + data); il sistema prende copertina e titolo e
+costruisce il link dallo slug. È il blocco che fa risparmiare più tempo.
+
+**Tutti i testi restano modificabili** (titolo, periodo, testo introduttivo): quelli del tour sono
+un **punto di partenza**, non un vincolo — una newsletter ha un tono diverso da una scheda prodotto,
+e il titolo che funziona sul sito non è detto funzioni in una email. Le modifiche vivono nella
+newsletter e **non toccano la scheda del viaggio**.
+
+Conseguenza sul comportamento (2026-08-09): se si ri-sceglie il tour su un riquadro che contiene
+già dei testi, il sistema **chiede** se sostituirli. Rispondendo *No* aggiorna solo immagine e
+collegamento. Sostituire in silenzio il titolo appena riscritto dall'operatore è una perdita che
+non lascia tracce e che si scopre a newsletter spedita.
 
 ### 2.4 — Immagini compatibili con l'email
 

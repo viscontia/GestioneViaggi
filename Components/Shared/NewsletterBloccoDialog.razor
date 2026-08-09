@@ -33,6 +33,11 @@
                                  Icon="@Icons.Material.Filled.Check">Compilato dal tour</MudChip>
                     }
                 </div>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
+                    Titolo, periodo e testo sono <strong>modificabili qui sotto</strong>: quelli del tour
+                    servono da punto di partenza. Le modifiche restano nella newsletter e non toccano la
+                    scheda del viaggio.
+                </MudText>
 
                 @if (_avvisoBozza)
                 {
@@ -166,18 +171,53 @@
                 return;
             }
 
+            // I testi restano sempre modificabili a mano: la compilazione automatica precompila,
+            // non blocca. Percio' se il riquadro contiene gia' dei testi non li si sostituisce
+            // di nascosto - si chiede. Sostituire in silenzio il titolo che l'operatore ha appena
+            // riscritto e' il tipo di perdita che fa arrabbiare e che non lascia tracce.
+            var haTesti = !string.IsNullOrWhiteSpace(Blocco.Titolo)
+                       || !string.IsNullOrWhiteSpace(Blocco.Sottotitolo)
+                       || !string.IsNullOrWhiteSpace(Blocco.CorpoHtml);
+
+            var sostituisciTesti = true;
+            if (haTesti)
+            {
+                var conferma = new DialogParameters<DeleteConfirmationDialog>
+                {
+                    { x => x.Title, "Testi già presenti" },
+                    { x => x.ContentText, "Questo riquadro contiene già dei testi. Vuoi sostituirli con quelli del tour scelto? " +
+                                          "Rispondendo No si aggiornano solo immagine e collegamento." },
+                    { x => x.ButtonText, "Sostituisci i testi" },
+                    { x => x.Color, Color.Warning }
+                };
+                var cdlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Testi già presenti", conferma,
+                    new DialogOptions { BackdropClick = false });
+                sostituisciTesti = !(await cdlg.Result)!.Canceled;
+            }
+
+            // Dati strutturali: si aggiornano sempre, perche' sono il legame col tour scelto.
             Blocco.DataViaggioIdFk = dataViaggioId;
-            Blocco.Titolo = dati.Titolo;
-            Blocco.Sottotitolo = dati.Periodo;
             Blocco.ImmagineUrl = dati.ImmagineUrl;
             Blocco.ImmagineStoragePath = dati.ImmagineStoragePath;
-            Blocco.ImmagineAlt = dati.Titolo;
             Blocco.LinkUrl = dati.LinkCompleto;
 
-            // Non sovrascrivo un testo gia' scritto dall'utente: la compilazione automatica
-            // aiuta, non cancella il lavoro fatto.
-            if (string.IsNullOrWhiteSpace(Blocco.CorpoHtml) && !string.IsNullOrWhiteSpace(dati.Testo))
-                Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+            if (sostituisciTesti)
+            {
+                Blocco.Titolo = dati.Titolo;
+                Blocco.Sottotitolo = dati.Periodo;
+                Blocco.ImmagineAlt = dati.Titolo;
+                if (!string.IsNullOrWhiteSpace(dati.Testo))
+                    Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+            }
+            else
+            {
+                // Riempio solo cio' che era vuoto: aiutare senza cancellare.
+                if (string.IsNullOrWhiteSpace(Blocco.Titolo)) Blocco.Titolo = dati.Titolo;
+                if (string.IsNullOrWhiteSpace(Blocco.Sottotitolo)) Blocco.Sottotitolo = dati.Periodo;
+                if (string.IsNullOrWhiteSpace(Blocco.ImmagineAlt)) Blocco.ImmagineAlt = dati.Titolo;
+                if (string.IsNullOrWhiteSpace(Blocco.CorpoHtml) && !string.IsNullOrWhiteSpace(dati.Testo))
+                    Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+            }
 
             if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
                 Blocco.LinkEtichetta = "Vai alla pagina del Tour";
