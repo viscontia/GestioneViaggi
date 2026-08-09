@@ -139,20 +139,33 @@ public sealed class NewsletterRenderService
     }
 
     /// <summary>
-    /// HTML completo di una newsletter. <paramref name="emailDestinatario"/> serve solo a firmare
-    /// il link di disiscrizione: in anteprima si passa un indirizzo di esempio.
+    /// Tutto cio' che serve a rendere una newsletter, letto UNA volta sola. Il link di
+    /// disiscrizione e' firmato per destinatario, quindi l'HTML va ricomposto per ognuno: senza
+    /// questo contesto, una campagna da 400 destinatari rileggerebbe blocchi, azienda, logo e
+    /// configurazione footer 400 volte.
     /// </summary>
-    public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario)
+    public sealed record ContestoRender(
+        List<Models.Web.WebNewsletterBlocco> Blocchi,
+        NewsletterRenderAzienda Azienda,
+        NewsletterFooterConfig Footer,
+        string? Token);
+
+    public async Task<ContestoRender> PreparaAsync(long invioId, int aziendaId)
     {
         var blocchi = await _blocchi.ListAsync(invioId, aziendaId);
         var logoUrl = await _media.GetLogoUrlAsync(aziendaId);
         var azienda = await GetDatiAziendaAsync(aziendaId, logoUrl);
         var footer = await GetFooterConfigAsync(aziendaId);
-
         var token = await GetTokenIscrizioneAsync(aziendaId);
-        var unsub = NewsletterUnsubscribe.BuildUrl(azienda.SitoWeb, emailDestinatario, token);
+        return new ContestoRender(blocchi, azienda, footer, token);
+    }
 
-        var render = blocchi.Select(b => new NewsletterRenderBlocco(
+    /// <summary>HTML per un singolo destinatario, dal contesto gia' preparato.</summary>
+    public static string Render(ContestoRender ctx, string emailDestinatario)
+    {
+        var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Token);
+
+        var render = ctx.Blocchi.Select(b => new NewsletterRenderBlocco(
             Tipo: b.Tipo,
             Layout: b.Layout,
             Colonne: b.Colonne,
@@ -164,8 +177,15 @@ public sealed class NewsletterRenderService
             LinkUrl: b.LinkUrl,
             LinkEtichetta: b.LinkEtichetta));
 
-        return NewsletterHtmlRenderer.Render(render, azienda, footer, unsub);
+        return NewsletterHtmlRenderer.Render(render, ctx.Azienda, ctx.Footer, unsub);
     }
+
+    /// <summary>
+    /// HTML completo di una newsletter. <paramref name="emailDestinatario"/> serve solo a firmare
+    /// il link di disiscrizione: in anteprima si passa un indirizzo di esempio.
+    /// </summary>
+    public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario)
+        => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario);
 
     private async Task<string?> GetTokenIscrizioneAsync(int aziendaId)
     {

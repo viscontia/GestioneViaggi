@@ -1,5 +1,6 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
+@inject IJSRuntime JS
 
 @* Anteprima della newsletter: l'HTML vero, dentro un iframe.
    L'iframe non e' un vezzo — serve a ISOLARE gli stili della newsletter da quelli
@@ -18,8 +19,10 @@
         </div>
 
         <div style="border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
-            <iframe srcdoc="@Html" sandbox="" title="Anteprima newsletter"
-                    style="width:100%;height:65vh;border:0;display:block;"></iframe>
+            @* Il contenuto lo scrive JS nel documento dell'iframe: vedi newsletterPreview.js
+               per il motivo per cui srcdoc non va bene. *@
+            <iframe @ref="_iframe" title="Anteprima newsletter"
+                    style="width:100%;height:65vh;border:0;display:block;background:#fff;"></iframe>
         </div>
 
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
@@ -36,6 +39,28 @@
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
     [Parameter] public string Html { get; set; } = string.Empty;
+
+    private ElementReference _iframe;
+    private bool _scritto;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Al primo render l'iframe esiste ma il suo documento puo' non essere ancora pronto:
+        // un piccolo ritardo evita l'anteprima vuota al primo colpo.
+        if (firstRender && !_scritto && !string.IsNullOrEmpty(Html))
+        {
+            await Task.Delay(80);
+            try
+            {
+                _scritto = await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, Html);
+            }
+            catch (Exception)
+            {
+                _scritto = false;
+            }
+            StateHasChanged();
+        }
+    }
 
     private void Chiudi() => MudDialog?.Close();
 }

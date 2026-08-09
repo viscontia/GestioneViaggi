@@ -241,6 +241,96 @@ public sealed class NewsletterSenderService
         return new NewsletterSendResult(recipients.Count, ok, err, incompleto);
     }
 
+    /// <summary>
+    /// Invia una newsletter <b>a blocchi</b>: l'HTML e' composto dai blocchi salvati e ricomposto
+    /// per ogni destinatario, perche' il link di disiscrizione e' firmato sul suo indirizzo.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ In questa fase l'invio e' <b>monolingua (IT)</b>: la traduzione per campo dei blocchi e'
+    /// la Fase 4. Il vecchio percorso traduceva l'intero blob HTML, cosa che con i blocchi non ha
+    /// piu' senso — la struttura non deve passare dentro Claude.
+    /// </remarks>
+    public async Task<NewsletterSendResult> SendCampaignBlocchiAsync(
+        int aziendaId, long invioId, string oggetto,
+        NewsletterRenderService render,
+        IProgress<(int Fatti, int Totale)>? progress = null)
+    {
+        var recipients = await GetRecipientsAsync(aziendaId);
+        if (recipients.Count == 0)
+            throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
+
+        var ctx = await render.PreparaAsync(invioId, aziendaId);
+
+        if (string.IsNullOrWhiteSpace(ctx.Azienda.SitoWeb))
+            throw new InvalidOperationException(
+                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
+                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
+
+        var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
+        var canale = sender is SmtpEmailSender ? "smtp" : "resend";
+
+        var invio = await _inviiService.GetByIdAsync(invioId, aziendaId)
+                    ?? throw new InvalidOperationException("Newsletter non trovata.");
+        invio.Stato = "in_invio";
+        invio.Canale = canale;
+        await _inviiService.UpdateAsync(invio);
+
+        int ok = 0, err = 0;
+        progress?.Report((0, recipients.Count));
+
+        foreach (var rec in recipients)
+        {
+            var html = NewsletterRenderService.Render(ctx, rec.Email);
+
+            bool sent;
+            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggetto, html, ctx.Azienda.RagioneSociale); }
+            catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
+            if (sent) ok++; else err++;
+
+            try
+            {
+                await _destinatariService.CreateAsync(new WebNewsletterInvioDestinatario
+                {
+                    AziendaId = aziendaId, InvioIdFk = invioId, Email = rec.Email,
+                    Lingua = "IT", StatoConsegna = sent ? "inviato" : "errore", Data = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Log destinatario {Email} fallito", rec.Email); }
+
+            progress?.Report((ok + err, recipients.Count));
+        }
+
+        // corpo_html conserva l'istantanea di cio' che e' partito (con un indirizzo generico nel
+        // link di disiscrizione: le firme per-destinatario non hanno senso nello storico).
+        invio.Stato = "inviata";
+        invio.CorpoHtml = NewsletterRenderService.Render(ctx, "archivio@storico");
+        invio.NumeroDestinatari = recipients.Count;
+        invio.DataInvio = DateTime.UtcNow;
+        await _inviiService.UpdateAsync(invio);
+
+        return new NewsletterSendResult(recipients.Count, ok, err, TradottoIncompleto: false);
+    }
+
+    /// <summary>Invio di prova di una newsletter a blocchi: il rendering REALE a un solo indirizzo.</summary>
+    /// <remarks>
+    /// Niente prefisso <c>[TEST]</c> e nessuna versione ridotta: serve proprio a vedere cosa
+    /// arrivera' ai destinatari. Non registra la campagna nello storico.
+    /// </remarks>
+    public async Task<bool> SendProvaBlocchiAsync(
+        int aziendaId, long invioId, string oggetto, string emailProva, NewsletterRenderService render)
+    {
+        var ctx = await render.PreparaAsync(invioId, aziendaId);
+
+        if (string.IsNullOrWhiteSpace(ctx.Azienda.SitoWeb))
+            throw new InvalidOperationException(
+                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
+                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
+
+        var html = NewsletterRenderService.Render(ctx, emailProva);
+        var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
+        return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggetto, html, ctx.Azienda.RagioneSociale);
+    }
+
     /// <summary>Invio di prova a un solo indirizzo (in IT, senza registrare la campagna).</summary>
     public async Task<bool> SendTestAsync(int aziendaId, string oggetto, string corpoHtml, string testEmail)
     {

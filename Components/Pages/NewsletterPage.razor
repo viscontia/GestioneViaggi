@@ -5,7 +5,7 @@
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Services.UI
 @using GestioneViaggi.Components.Shared
-@using Blazored.TextEditor
+@using Microsoft.Extensions.Logging
 @using MudBlazor
 @inject NewsletterSenderService Sender
 @inject WebNewsletterInviiService InviiService
@@ -18,6 +18,7 @@
 @inject WebAziendeFunzioniService FunzioniService
 @inject WebNewsletterBlocchiService BlocchiService
 @inject NewsletterRenderService RenderService
+@inject ILogger<NewsletterPage> Logger
 @attribute [Authorize]
 @implements IDisposable
 
@@ -147,8 +148,10 @@ else
         {
             @* ---------- COMPOSIZIONE A BLOCCHI ---------- *@
             <div class="d-flex align-center gap-2 mb-3">
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default"
-                               OnClick="ChiudiComposizione" Title="Torna all'elenco" />
+                <MudTooltip Text="Torna all'elenco">
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default"
+                                   OnClick="ChiudiComposizione" />
+                </MudTooltip>
                 <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined"
                               MaxLength="255" Margin="Margin.Dense" Style="max-width:420px;" />
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save"
@@ -324,7 +327,6 @@ else
     private string? _testEmail;
     private string? _sopEmail;
     private string? _sopMotivo;
-    private BlazoredTextEditor _editor = default!;
 
     private List<WebNewsletterInvio> _storico = new();
     private List<WebNewsletterIscritto> _iscritti = new();
@@ -357,7 +359,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Errore apertura Newsletter: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Errore apertura Newsletter: {MessaggioErrore(ex)}", Severity.Error);
         }
     }
 
@@ -376,7 +378,7 @@ else
                 _enabled = await FunzioniService.IsNewsletterEnabledAsync(_aziendaId);
                 if (_enabled) await ReloadAsync();
             }
-            catch (Exception ex) { Snackbar.Add($"Errore cambio azienda: {ex.Message}", Severity.Error); }
+            catch (Exception ex) { Snackbar.Add($"Errore cambio azienda: {MessaggioErrore(ex)}", Severity.Error); }
         }
         StateHasChanged();
     }
@@ -395,16 +397,38 @@ else
             _modelli = await InviiService.ElencoAsync(_aziendaId, modelli: true);
             if (_catalogo.Count == 0) _catalogo = await BlocchiService.GetCatalogoAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore caricamento: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore caricamento: {MessaggioErrore(ex)}", Severity.Error); }
         StateHasChanged();
     }
 
-    private async Task<(string Oggetto, string Corpo)?> ReadComposeAsync()
+    /// <summary>
+    /// Controlli comuni a prova e invio: oggetto presente, almeno un blocco di contenuto, e
+    /// nessun blocco incompleto. Restituisce false se si deve interrompere.
+    /// </summary>
+    private bool ComposizioneValida()
     {
-        if (string.IsNullOrWhiteSpace(_oggetto)) { Snackbar.Add("Inserisci l'oggetto.", Severity.Warning); return null; }
-        var corpo = NormalizeHtml(await _editor.GetHTML());
-        if (string.IsNullOrWhiteSpace(corpo)) { Snackbar.Add("Il corpo è vuoto.", Severity.Warning); return null; }
-        return (_oggetto!.Trim(), corpo!);
+        if (_invioCorrente is null) { Snackbar.Add("Apri una newsletter prima di inviare.", Severity.Warning); return false; }
+        if (string.IsNullOrWhiteSpace(_oggetto)) { Snackbar.Add("Inserisci l'oggetto.", Severity.Warning); return false; }
+
+        // Intestazione e footer ci sono sempre: da soli non fanno una newsletter.
+        var conContenuto = _blocchi.Count(b => b.Tipo is not ("intestazione" or "footer"));
+        if (conContenuto == 0)
+        {
+            Snackbar.Add("La newsletter non ha contenuti: aggiungi almeno un blocco.", Severity.Warning);
+            return false;
+        }
+
+        var problemi = GestioneViaggi.Validation.Business.NewsletterBloccoValidator.ValidaTutti(_blocchi);
+        if (problemi.Count > 0)
+        {
+            // Un messaggio per problema: dire "ci sono errori" senza dire dove costringerebbe
+            // l'utente a cercarli a mano.
+            foreach (var p in problemi.Take(4)) Snackbar.Add(p, Severity.Warning);
+            if (problemi.Count > 4) Snackbar.Add($"…e altri {problemi.Count - 4} blocchi incompleti.", Severity.Warning);
+            return false;
+        }
+
+        return true;
     }
 
     // =====================================================================
@@ -428,7 +452,7 @@ else
             if (voce != null) await ApriComposizione(voce);
             Snackbar.Add(comeModello ? "Modello creato." : "Bozza creata.", Severity.Success);
         }
-        catch (Exception ex) { Snackbar.Add($"Errore creazione: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore creazione: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -446,7 +470,7 @@ else
             await ReloadAsync();
             Snackbar.Add("Copia creata fra le bozze.", Severity.Success);
         }
-        catch (Exception ex) { Snackbar.Add($"Errore duplicazione: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore duplicazione: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -467,7 +491,7 @@ else
     {
         if (_invioCorrente is null) return;
         try { _blocchi = await BlocchiService.ListAsync(_invioCorrente.Id, _aziendaId); }
-        catch (Exception ex) { Snackbar.Add($"Errore lettura blocchi: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura blocchi: {MessaggioErrore(ex)}", Severity.Error); }
     }
 
     private async Task SalvaOggetto()
@@ -486,7 +510,7 @@ else
                 Snackbar.Add("Oggetto aggiornato.", Severity.Success);
             }
         }
-        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -503,7 +527,7 @@ else
             await BlocchiService.CreateAsync(b);
             await CaricaBlocchiAsync();
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Warning); }
         finally { _busy = false; }
     }
 
@@ -537,7 +561,7 @@ else
             await BlocchiService.UpdateAsync(copia);
             await CaricaBlocchiAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore salvataggio blocco: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio blocco: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -549,7 +573,7 @@ else
             await BlocchiService.DeleteAsync(b.WebNewsletterBloccoId, _aziendaId);
             await CaricaBlocchiAsync();
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Warning); }
         finally { _busy = false; }
     }
 
@@ -570,7 +594,7 @@ else
                 _blocchi.Select(x => x.WebNewsletterBloccoId).ToList());
             await CaricaBlocchiAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore riordino: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore riordino: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -585,7 +609,7 @@ else
             await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
                 new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
         }
-        catch (Exception ex) { Snackbar.Add($"Errore anteprima: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore anteprima: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -624,6 +648,34 @@ else
         return res!.Canceled ? null : res.Data as string;
     }
 
+    /// <summary>
+    /// Traduce un'eccezione in un messaggio per l'utente, passando sempre dal dizionario centrale.
+    /// </summary>
+    /// <remarks>
+    /// Le eccezioni gia' "parlanti" (le guardie di business che le function DB sollevano come
+    /// P0001, e gli InvalidOperationException dei servizi) hanno un messaggio scritto per l'utente
+    /// e si usano cosi'. Tutto il resto passa da <c>DatabaseExceptionHelper</c>, che conosce i
+    /// codici Postgres e i nomi dei vincoli. L'ultima spiaggia non e' mai il messaggio tecnico:
+    /// un "Object reference not set to an instance of an object" in faccia all'utente non e'
+    /// un'informazione, e' un difetto che si vede.
+    /// </remarks>
+    private string MessaggioErrore(Exception ex)
+    {
+        switch (ex)
+        {
+            case InvalidOperationException or GestioneViaggi.Models.Exceptions.GestioneViaggiException:
+                return ex.Message;
+
+            case Npgsql.PostgresException pex:
+                return Helpers.DatabaseExceptionHelper.WrapException(pex, "web_newsletter_invii").Message;
+
+            default:
+                Logger.LogError(ex, "Errore non gestito nella pagina Newsletter");
+                return "Si è verificato un errore imprevisto. L'operazione non è stata completata; " +
+                       "il dettaglio tecnico è nel log dell'applicazione.";
+        }
+    }
+
     /// <summary>Elenco in sola lettura di chi ricevera' la campagna.</summary>
     private async Task VediDestinatari()
     {
@@ -637,7 +689,7 @@ else
             await DialogService.ShowAsync<NewsletterDestinatariDialog>("Destinatari della newsletter", parameters,
                 new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true });
         }
-        catch (Exception ex) { Snackbar.Add($"Errore lettura destinatari: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura destinatari: {MessaggioErrore(ex)}", Severity.Error); }
     }
 
     /// <summary>
@@ -650,7 +702,7 @@ else
     {
         NewsletterPreflight pf;
         try { pf = await Sender.GetPreflightAsync(_aziendaId); }
-        catch (Exception ex) { Snackbar.Add($"Errore controlli preliminari: {ex.Message}", Severity.Error); return false; }
+        catch (Exception ex) { Snackbar.Add($"Errore controlli preliminari: {MessaggioErrore(ex)}", Severity.Error); return false; }
 
         if (pf.SitoMancante)
         {
@@ -678,8 +730,7 @@ else
 
     private async Task InviaProva()
     {
-        var c = await ReadComposeAsync();
-        if (c is null) return;
+        if (!ComposizioneValida()) return;
         if (string.IsNullOrWhiteSpace(_testEmail)) { Snackbar.Add("Inserisci un'email di prova.", Severity.Warning); return; }
 
         // Stesso validatore della scheda cliente: senza, si poteva scrivere qualsiasi cosa e
@@ -691,17 +742,20 @@ else
         _busy = true;
         try
         {
-            var ok = await Sender.SendTestAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo, _testEmail!.Trim());
-            Snackbar.Add(ok ? "Email di prova inviata." : "Invio di prova fallito (verifica config email).", ok ? Severity.Success : Severity.Error);
+            // Rendering REALE dei blocchi: nessun prefisso [TEST], nessuna versione ridotta.
+            // Serve proprio a vedere cosa arrivera' ai destinatari.
+            var ok = await Sender.SendProvaBlocchiAsync(
+                _aziendaId, _invioCorrente!.Id, _oggetto!.Trim(), _testEmail!.Trim(), RenderService);
+            Snackbar.Add(ok ? "Prova inviata: controlla la casella." : "Invio di prova fallito (verifica la configurazione email).",
+                         ok ? Severity.Success : Severity.Error);
         }
-        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
         finally { _busy = false; }
     }
 
     private async Task InviaTutti()
     {
-        var c = await ReadComposeAsync();
-        if (c is null) return;
+        if (!ComposizioneValida()) return;
         if (!await PreflightOkAsync()) return;
         var parameters = new DialogParameters<DeleteConfirmationDialog>
         {
@@ -723,13 +777,14 @@ else
                 InvokeAsync(StateHasChanged);
             });
 
-            var res = await Sender.SendCampaignAsync(_aziendaId, c.Value.Oggetto, c.Value.Corpo, progress);
-            var msg = $"Inviate {res.Inviate}/{res.Totale}" + (res.Errori > 0 ? $", {res.Errori} errori" : "")
-                    + (res.TradottoIncompleto ? " (alcune lingue inviate in IT: chiave Claude mancante/errore)" : "");
-            Snackbar.Add(msg, res.Errori > 0 || res.TradottoIncompleto ? Severity.Warning : Severity.Success);
+            var res = await Sender.SendCampaignBlocchiAsync(
+                _aziendaId, _invioCorrente!.Id, _oggetto!.Trim(), RenderService, progress);
+            var msg = $"Inviate {res.Inviate}/{res.Totale}" + (res.Errori > 0 ? $", {res.Errori} errori" : "");
+            Snackbar.Add(msg, res.Errori > 0 ? Severity.Warning : Severity.Success);
+            ChiudiComposizione();
             await ReloadAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore invio: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
         finally { _busy = false; _invioFatti = 0; _invioTotale = 0; }
     }
 
@@ -759,7 +814,7 @@ else
             Snackbar.Add("Soppressione aggiunta.", Severity.Success);
             await ReloadAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -771,13 +826,7 @@ else
             Snackbar.Add("Soppressione rimossa.", Severity.Success);
             await ReloadAsync();
         }
-        catch (Exception ex) { Snackbar.Add($"Errore: {ex.Message}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore: {MessaggioErrore(ex)}", Severity.Error); }
     }
 
-    private static string? NormalizeHtml(string? html)
-    {
-        if (string.IsNullOrWhiteSpace(html)) return null;
-        var stripped = html.Replace("<p><br></p>", string.Empty).Replace("<p></p>", string.Empty).Trim();
-        return stripped.Length == 0 ? null : html;
-    }
 }

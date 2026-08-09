@@ -250,6 +250,20 @@
         _           => false
     };
 
-    private void Conferma() => MudDialog?.Close(DialogResult.Ok(Blocco));
+    /// <summary>
+    /// Un blocco incompleto non si salva: sarebbe uno spazio bianco nella newsletter spedita,
+    /// e nessuno se ne accorgerebbe fino a quel momento. Stessa regola usata prima dell'invio.
+    /// </summary>
+    private void Conferma()
+    {
+        var errore = GestioneViaggi.Validation.Business.NewsletterBloccoValidator.Valida(Blocco);
+        if (errore != null)
+        {
+            Snackbar.Add(errore, Severity.Warning);
+            return;
+        }
+        MudDialog?.Close(DialogResult.Ok(Blocco));
+    }
+
     private void Annulla() => MudDialog?.Cancel();
 }
