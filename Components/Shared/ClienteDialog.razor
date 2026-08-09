@@ -219,7 +219,8 @@
                                 </MudItem>
                                 <MudItem xs="4" sm="3">
                                     <MudTextField @ref="_prefTelField" @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
-                                        Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39" />
+                                        Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39"
+                                        Immediate="true" Validation="@((string val) => ValidatePrefisso(val))" />
                                 </MudItem>
                                 <MudItem xs="8" sm="9">
                                     <MudTextField @ref="_telefonoField" @bind-Value="Entity.Telefono" For="@(() => Entity.Telefono)" Label="Telefono"

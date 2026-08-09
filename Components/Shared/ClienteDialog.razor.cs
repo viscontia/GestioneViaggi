@@ -341,6 +341,21 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Il prefisso internazionale e' obbligatorio SE c'e' un numero di telefono: senza, il numero
+    /// e' inutilizzabile per un destinatario estero (e la newsletter lo mostra monco).
+    /// Un cliente senza telefono non deve essere bloccato da un campo che non lo riguarda.
+    /// </summary>
+    private IEnumerable<string> ValidatePrefisso(string value)
+    {
+        if (string.IsNullOrWhiteSpace(Entity.Telefono))
+            yield break;
+
+        var result = ClienteValidator.ValidatePrefissoTelefono(value);
+        if (!result.IsValid)
+            yield return result.Message;
+    }
+
     private static IEnumerable<string> ValidateTelefono(string value)
     {
         if (string.IsNullOrWhiteSpace(value))

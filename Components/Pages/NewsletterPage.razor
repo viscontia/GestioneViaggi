@@ -21,6 +21,25 @@
 
 @* Pagina Newsletter (Blocco 11), per-azienda. Compose+invio multilingua, storico, iscritti, soppressioni. *@
 
+@* Overlay bloccante durante l'invio: stesso pattern di Galleria e generazione mappa.
+   Uno spinner in linea non si nota e non impedisce di continuare a cliccare. *@
+<MudOverlay Visible="@_busy" DarkBackground="true" Absolute="false" ZIndex="9999">
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="8" Style="min-width:320px;">
+        <MudProgressCircular Indeterminate="@(_invioTotale == 0)" Value="@_invioPercentuale"
+                             Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h6" Class="mt-4">
+            @(_invioTotale > 0 ? $"Invio in corso: {_invioFatti} di {_invioTotale}" : "Preparazione dell'invio…")
+        </MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+            @(_invioTotale > 0 ? "Non chiudere la finestra." : "Traduzione dei testi per le lingue dei destinatari.")
+        </MudText>
+        @if (_invioTotale > 0)
+        {
+            <MudProgressLinear Color="Color.Primary" Value="@_invioPercentuale" Class="mt-4" Style="width:100%;" />
+        }
+    </MudPaper>
+</MudOverlay>
+
 <MudText Typo="Typo.h5" Class="mb-3">Newsletter</MudText>
 
 @* SuperAdmin: la pagina e' per-azienda, quindi senza una scelta esplicita non c'e' nulla da mostrare. *@
@@ -73,30 +92,6 @@ else
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Campaign"
                            Disabled="@(_busy || _count == 0)" OnClick="InviaTutti">Invia a tutti (@_count)</MudButton>
             </div>
-
-            @* Avanzamento: con 4 destinatari e' superfluo, con 400 e' l'unica cosa che dice
-               all'utente che il programma non si e' piantato. *@
-            @if (_busy)
-            {
-                <div class="d-flex align-center gap-3 mt-3">
-                    <MudProgressCircular Indeterminate="@(_invioTotale == 0)"
-                                         Value="@_invioPercentuale" Size="Size.Small" Color="Color.Primary" />
-                    <MudText Typo="Typo.body2">
-                        @if (_invioTotale > 0)
-                        {
-                            @($"Invio in corso: {_invioFatti} di {_invioTotale}")
-                        }
-                        else
-                        {
-                            @("Preparazione dell'invio (traduzione dei testi)…")
-                        }
-                    </MudText>
-                </div>
-                @if (_invioTotale > 0)
-                {
-                    <MudProgressLinear Color="Color.Primary" Value="@_invioPercentuale" Class="mt-2" />
-                }
-            }
 
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">Senza chiave Claude sull'azienda, i destinatari non-IT ricevono la versione italiana.</MudText>
         </MudPaper>
@@ -312,6 +307,12 @@ else
         var c = await ReadComposeAsync();
         if (c is null) return;
         if (string.IsNullOrWhiteSpace(_testEmail)) { Snackbar.Add("Inserisci un'email di prova.", Severity.Warning); return; }
+
+        // Stesso validatore della scheda cliente: senza, si poteva scrivere qualsiasi cosa e
+        // l'errore arrivava solo dal server SMTP, con un messaggio incomprensibile.
+        var formato = GestioneViaggi.Validation.Business.ClienteValidator.ValidateEmail(_testEmail!.Trim());
+        if (!formato.IsValid) { Snackbar.Add(formato.Message, Severity.Warning); return; }
+
         if (!await PreflightOkAsync()) return;
         _busy = true;
         try
