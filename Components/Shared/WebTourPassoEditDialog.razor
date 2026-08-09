@@ -4,7 +4,6 @@
 @using Blazored.TextEditor
 @using MudBlazor
 @inject WebTourImmaginiService ImmaginiService
-@inject UserPreferenzeService Prefs
 
 @* Editor di un passo dell'itinerario (Blocco 6, + picker immagine Blocco 7). Quill on-demand.
    ECCEZIONE UI: testo e didascalia NON in maiuscolo forzato (destinati al sito). *@
@@ -40,59 +39,16 @@
             </BlazoredTextEditor>
         </div>
 
-        <!-- Immagine dalla galleria (Blocco 7) -->
-        <div class="d-flex justify-space-between align-center flex-wrap mt-4 mb-1">
-            <MudText Typo="Typo.subtitle2">Immagine (dalla galleria del viaggio)</MudText>
-            @if (_galleria.Count > 0)
-            {
-                <div class="d-flex align-center gap-2" style="min-width:220px; max-width:300px;">
-                    <MudText Typo="Typo.caption" Style="white-space:nowrap;">Dimensione miniature</MudText>
-                    <MudSlider T="int" Min="96" Max="400" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
-                </div>
-            }
+        <!-- Immagine dalla galleria (Blocco 7) — componente condiviso ImmaginePicker -->
+        <div class="mt-4">
+            <ImmaginePicker Immagini="@_voci"
+                            Titolo="Immagine (dalla galleria del viaggio)"
+                            TestoGalleriaVuota='Nessuna immagine in galleria. Caricane dal tab "Galleria".'
+                            SelectedStoragePath="@_selectedStoragePath"
+                            SelectedUrl="@_selectedUrl"
+                            SelectedStoragePathChanged="@(v => _selectedStoragePath = v)"
+                            SelectedUrlChanged="@(v => _selectedUrl = v)" />
         </div>
-
-        <!-- Foto attualmente abbinata (si aggiorna in tempo reale se ne scegli un'altra sotto) -->
-        <div class="d-flex align-center gap-3 mb-2 pa-2"
-             style="border:1px solid var(--mud-palette-lines-default); border-radius:4px; background:var(--mud-palette-background-grey);">
-            <MudText Typo="Typo.caption" Style="min-width:88px; white-space:nowrap;">Foto attuale</MudText>
-            @if (!string.IsNullOrEmpty(_selectedUrl))
-            {
-                <img src="@_selectedUrl" alt="Foto abbinata"
-                     style="height:90px; max-width:160px; object-fit:contain; border-radius:4px; background:#fff;" />
-                @if (!string.IsNullOrWhiteSpace(_didascalia))
-                {
-                    <MudText Typo="Typo.body2" Style="font-style:italic;">@_didascalia</MudText>
-                }
-            }
-            else
-            {
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna foto abbinata</MudText>
-            }
-        </div>
-
-        @if (_galleria.Count == 0)
-        {
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna immagine in galleria. Caricane dal tab "Galleria".</MudText>
-        }
-        else
-        {
-            <div class="d-flex flex-wrap gap-2" style="max-height:@(MaxPickerHeight)px; overflow-y:auto;">
-                <MudPaper Elevation="0" Class="pa-1 d-flex flex-column align-center justify-center"
-                          Style="@($"{ThumbStyle(null)}border-style:dashed;background:var(--mud-palette-background-grey);")" @onclick="@(() => Select(null))">
-                    <MudIcon Icon="@Icons.Material.Outlined.HideImage" Size="Size.Small"
-                             Color="@(_selectedStoragePath is null ? Color.Primary : Color.Default)" />
-                    <MudText Typo="Typo.caption" Class="mt-1">Nessuna</MudText>
-                </MudPaper>
-                @foreach (var img in _galleria)
-                {
-                    <MudPaper Elevation="@(_selectedStoragePath == img.StoragePath ? 4 : 0)" Class="pa-0"
-                              Style="@ThumbStyle(img.StoragePath)" @onclick="@(() => Select(img))">
-                        <img src="@img.Url" alt="@img.AltText" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" />
-                    </MudPaper>
-                }
-            </div>
-        }
 
         <MudTextField @bind-Value="_didascalia" Label="Didascalia immagine (opzionale)" Variant="Variant.Outlined"
                       MaxLength="255" Class="mt-3" />
@@ -135,10 +91,8 @@
     private string? _selectedStoragePath;
     private string? _selectedUrl;
 
-    /// <summary>Chiave preferenza utente "nascosta" (sys_utente_preferenze), condivisa con WebTourGalleriaTab.</summary>
-    private const string ThumbSizePrefKey = "galleria.thumb_size";
-    private int _thumbSize = 120;
-    private int MaxPickerHeight => _thumbSize + 60;
+    /// <summary>Voci per il picker condiviso (dimensione miniature e preferenza utente le gestisce lui).</summary>
+    private List<ImmaginePicker.Voce> _voci = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,17 +103,9 @@
         try { _galleria = await ImmaginiService.ListByContenutoAsync(ContenutoId, AziendaId); }
         catch { _galleria = new(); }
 
-        var pref = await Prefs.GetAsync(ThumbSizePrefKey);
-        if (int.TryParse(pref, out var savedThumbSize))
-        {
-            _thumbSize = Math.Clamp(savedThumbSize, 96, 400);
-        }
-    }
-
-    private async Task OnThumbSizeChanged(int value)
-    {
-        _thumbSize = value;
-        await Prefs.SetAsync(ThumbSizePrefKey, value.ToString());
+        _voci = _galleria
+            .Select(i => new ImmaginePicker.Voce(i.Url, i.StoragePath, i.AltText, i.Titolo))
+            .ToList();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -179,20 +125,6 @@
                 catch when (attempt < 2) { /* riprova */ }
             }
         }
-    }
-
-    private void Select(WebTourImmagine? img)
-    {
-        _selectedStoragePath = img?.StoragePath;
-        _selectedUrl = img?.Url;
-    }
-
-    private string ThumbStyle(string? storagePath)
-    {
-        var selected = _selectedStoragePath == storagePath;
-        var border = selected ? "2px solid var(--mud-palette-primary)" : "1px solid var(--mud-palette-lines-default)";
-        var height = (int)Math.Round(_thumbSize * 0.75);
-        return $"width:{_thumbSize}px;height:{height}px;overflow:hidden;cursor:pointer;border:{border};border-radius:4px;";
     }
 
     private async Task Salva()

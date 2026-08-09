@@ -1029,3 +1029,26 @@ Dal 2026-08-09 è riusabile anche fuori da quel contesto grazie a due parametri 
 I chiamanti esistenti (NavMenu, dashboard) non sono stati toccati: senza i due parametri il
 comportamento è identico a prima. Primo riuso: la scelta dell'edizione per il riquadro tour della
 newsletter — dove duplicare la logica di selezione sarebbe stato l'errore da manuale.
+
+## ImmaginePicker
+
+Scelta di un'immagine da una galleria, come strip di miniature. **Estratto** nel 2026-08-09 da
+`WebTourPassoEditDialog`, dove la logica era già scritta e collaudata (Blocco 7): serviva anche ai
+blocchi della newsletter, e duplicarla sarebbe stato l'errore che questo documento esiste per evitare.
+
+Il componente **non sa da dove arrivano le immagini**: gliele passa il chiamante come
+`List<ImmaginePicker.Voce>` (`Url`, `StoragePath`, `Alt`, `Contesto`). Così serve sia la galleria di
+un singolo tour (`ListByContenutoAsync`) sia tutte le foto dell'azienda
+(`fn_web_immagini_azienda`, script `515`) senza saperne nulla.
+
+Parametri: `Immagini`, `Titolo`, `TestoGalleriaVuota`, `ConsentiNessuna` (default true),
+`SelectedStoragePath`/`SelectedUrl` con i rispettivi `Changed`, e `OnScelta` che notifica la voce
+completa — utile quando serve anche l'alt o il contesto.
+
+Mantiene lo **slider dimensione miniature** con la preferenza per-utente `galleria.thumb_size`,
+**condivisa** con `WebTourGalleriaTab`: chi allarga le miniature in un posto se le ritrova allargate
+ovunque. Il `Contesto` finisce in tooltip: senza, una parete di miniature è indistinguibile.
+
+**Usato da:** `WebTourPassoEditDialog` (foto del passo d'itinerario) e `NewsletterBloccoDialog`
+(blocchi testata / immagine / tour). Nella newsletter la scelta passa poi da
+`NewsletterMediaService.ConvertiDaUrlAsync`, perché la galleria produce WebP e Outlook non lo mostra.

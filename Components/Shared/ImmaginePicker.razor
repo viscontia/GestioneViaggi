@@ -1,0 +1,123 @@
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject UserPreferenzeService Prefs
+
+@* Scelta di un'immagine da una galleria, come strip di miniature.
+   Estratto da WebTourPassoEditDialog (Blocco 7) per essere riusato anche dai blocchi della
+   newsletter: la logica era gia' scritta e collaudata, duplicarla sarebbe stato l'errore.
+
+   Il componente NON sa da dove arrivano le immagini: gliele passa il chiamante. Cosi' serve
+   sia la galleria di un singolo tour sia tutte le foto dell'azienda, senza saperne nulla. *@
+
+<div class="d-flex justify-space-between align-center flex-wrap mb-1">
+    <MudText Typo="Typo.subtitle2">@Titolo</MudText>
+    @if (Immagini.Count > 0)
+    {
+        <div class="d-flex align-center gap-2" style="min-width:220px; max-width:300px;">
+            <MudText Typo="Typo.caption" Style="white-space:nowrap;">Dimensione miniature</MudText>
+            <MudSlider T="int" Min="96" Max="400" Step="8" Value="_thumbSize" ValueChanged="OnThumbSizeChanged" />
+        </div>
+    }
+</div>
+
+@* Foto attuale: si aggiorna in tempo reale scegliendone un'altra sotto. *@
+<div class="d-flex align-center gap-3 mb-2 pa-2"
+     style="border:1px solid var(--mud-palette-lines-default); border-radius:4px; background:var(--mud-palette-background-grey);">
+    <MudText Typo="Typo.caption" Style="min-width:88px; white-space:nowrap;">Foto attuale</MudText>
+    @if (!string.IsNullOrEmpty(SelectedUrl))
+    {
+        <img src="@SelectedUrl" alt="Foto scelta"
+             style="height:90px; max-width:160px; object-fit:contain; border-radius:4px; background:#fff;" />
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna foto scelta</MudText>
+    }
+</div>
+
+@if (Immagini.Count == 0)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary">@TestoGalleriaVuota</MudText>
+}
+else
+{
+    <div class="d-flex flex-wrap gap-2" style="max-height:@(MaxPickerHeight)px; overflow-y:auto;">
+        @if (ConsentiNessuna)
+        {
+            <MudPaper Elevation="0" Class="pa-1 d-flex flex-column align-center justify-center"
+                      Style="@($"{ThumbStyle(null)}border-style:dashed;background:var(--mud-palette-background-grey);")"
+                      @onclick="@(() => Scegli(null))">
+                <MudIcon Icon="@Icons.Material.Outlined.HideImage" Size="Size.Small"
+                         Color="@(SelectedStoragePath is null ? Color.Primary : Color.Default)" />
+                <MudText Typo="Typo.caption" Class="mt-1">Nessuna</MudText>
+            </MudPaper>
+        }
+        @foreach (var img in Immagini)
+        {
+            <MudPaper Elevation="@(SelectedStoragePath == img.StoragePath ? 4 : 0)" Class="pa-0"
+                      Style="@ThumbStyle(img.StoragePath)" @onclick="@(() => Scegli(img))">
+                <MudTooltip Text="@(img.Contesto ?? img.Alt ?? "")">
+                    <img src="@img.Url" alt="@img.Alt"
+                         style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" />
+                </MudTooltip>
+            </MudPaper>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Voce della galleria. Record apposta, per non legare il picker a un modello specifico.</summary>
+    public sealed record Voce(string Url, string StoragePath, string? Alt = null, string? Contesto = null);
+
+    [Parameter] public List<Voce> Immagini { get; set; } = new();
+    [Parameter] public string Titolo { get; set; } = "Immagine (dalla galleria)";
+    [Parameter] public string TestoGalleriaVuota { get; set; } = "Nessuna immagine disponibile.";
+    [Parameter] public bool ConsentiNessuna { get; set; } = true;
+
+    [Parameter] public string? SelectedStoragePath { get; set; }
+    [Parameter] public EventCallback<string?> SelectedStoragePathChanged { get; set; }
+    [Parameter] public string? SelectedUrl { get; set; }
+    [Parameter] public EventCallback<string?> SelectedUrlChanged { get; set; }
+
+    /// <summary>Notifica la scelta completa (utile quando serve anche l'alt).</summary>
+    [Parameter] public EventCallback<Voce?> OnScelta { get; set; }
+
+    // Preferenza "nascosta" per-utente, CONDIVISA con la galleria e col picker dell'itinerario:
+    // chi allarga le miniature in un posto se le ritrova allargate ovunque.
+    private const string ThumbSizePrefKey = "galleria.thumb_size";
+    private int _thumbSize = 120;
+    private int MaxPickerHeight => _thumbSize + 60;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var pref = await Prefs.GetAsync(ThumbSizePrefKey);
+            if (int.TryParse(pref, out var salvata)) _thumbSize = Math.Clamp(salvata, 96, 400);
+        }
+        catch { /* preferenza non leggibile: si resta al default, non e' un errore da mostrare */ }
+    }
+
+    private async Task OnThumbSizeChanged(int value)
+    {
+        _thumbSize = value;
+        try { await Prefs.SetAsync(ThumbSizePrefKey, value.ToString()); } catch { }
+    }
+
+    private async Task Scegli(Voce? v)
+    {
+        SelectedStoragePath = v?.StoragePath;
+        SelectedUrl = v?.Url;
+        await SelectedStoragePathChanged.InvokeAsync(SelectedStoragePath);
+        await SelectedUrlChanged.InvokeAsync(SelectedUrl);
+        await OnScelta.InvokeAsync(v);
+    }
+
+    private string ThumbStyle(string? storagePath)
+    {
+        var selezionata = SelectedStoragePath == storagePath;
+        var border = selezionata ? "2px solid var(--mud-palette-primary)" : "1px solid var(--mud-palette-lines-default)";
+        var height = (int)Math.Round(_thumbSize * 0.75);
+        return $"width:{_thumbSize}px;height:{height}px;overflow:hidden;cursor:pointer;border:{border};border-radius:4px;";
+    }
+}

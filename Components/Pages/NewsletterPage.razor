@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.Email
 @using GestioneViaggi.Services.Session
 @using GestioneViaggi.Services.UI
 @using GestioneViaggi.Components.Shared
@@ -309,6 +310,79 @@ else
             </tbody>
         </MudSimpleTable>
     </MudTabPanel>
+
+    <!-- IMPOSTAZIONI -->
+    <MudTabPanel Text="Impostazioni" Icon="@Icons.Material.Filled.Settings">
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Composizione del footer</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            Cosa compare in fondo a ogni newsletter di questa azienda. Vale per tutte: è
+            l'intestazione legale del mittente, non un contenuto della singola campagna.
+        </MudText>
+
+        <div class="d-flex gap-4 flex-wrap">
+            <MudPaper Outlined="true" Class="pa-3" Style="min-width:360px;flex:1 1 360px;">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Campi e ordine</MudText>
+                <MudSimpleTable Dense="true" Bordered="false">
+                    <tbody>
+                        @for (int i = 0; i < _footerCampi.Count; i++)
+                        {
+                            var idx = i;
+                            var campo = _footerCampi[idx];
+                            <tr>
+                                <td style="width:40px;">
+                                    <MudCheckBox T="bool" Value="@campo.Attivo" Color="Color.Primary"
+                                                 ValueChanged="@(v => CampoFooterAttivo(idx, v))" />
+                                </td>
+                                <td>@campo.Etichetta</td>
+                                <td style="text-align:right;white-space:nowrap;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                   Disabled="@(idx == 0)" OnClick="@(() => SpostaCampoFooter(idx, -1))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                   Disabled="@(idx == _footerCampi.Count - 1)" OnClick="@(() => SpostaCampoFooter(idx, 1))" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+
+                <div class="d-flex gap-3 mt-3">
+                    <MudSelect T="int" @bind-Value="_footerColonne" Label="Colonne" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="int" Value="1">Una colonna</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">Due colonne</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect T="string" @bind-Value="_footerAllineamento" Label="Allineamento" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="string" Value="@("centro")">Centrato</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
+                    </MudSelect>
+                </div>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
+                           StartIcon="@Icons.Material.Filled.Save" Disabled="@_busy"
+                           OnClick="SalvaFooter">Salva composizione</MudButton>
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-3" Style="min-width:320px;flex:1 1 320px;">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Come apparirà</MudText>
+                <div style="border:1px solid var(--mud-palette-lines-default);border-radius:4px;padding:16px;background:#fff;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#888;
+                                text-align:@(_footerAllineamento == "sinistra" ? "left" : _footerAllineamento == "destra" ? "right" : "center");">
+                        @foreach (var riga in AnteprimaFooter())
+                        {
+                            @riga<br />
+                        }
+                        <div style="margin-top:10px;">
+                            Non desideri più ricevere la nostra newsletter? <u>Disiscriviti</u>
+                        </div>
+                    </div>
+                </div>
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                    Il link di <strong>disiscrizione</strong> è sempre presente e non si può togliere:
+                    è obbligatorio per legge ed è l'unico modo che ha il destinatario per cancellarsi.
+                </MudAlert>
+            </MudPaper>
+        </div>
+    </MudTabPanel>
 </MudTabs>
 }
 
@@ -337,6 +411,20 @@ else
     private List<WebNewsletterElencoVoce> _modelli = new();
     private List<WebNewsletterTipoBlocco> _catalogo = new();
     private List<WebNewsletterBlocco> _blocchi = new();
+    private List<ImmaginePicker.Voce> _galleria = new();
+
+    // --- Impostazioni: composizione del footer ----------------------------
+    private sealed class CampoFooter
+    {
+        public string Campo { get; init; } = "";
+        public string Etichetta { get; init; } = "";
+        public bool Attivo { get; set; }
+    }
+
+    private List<CampoFooter> _footerCampi = new();
+    private int _footerColonne = 1;
+    private string _footerAllineamento = "centro";
+    private NewsletterRenderAzienda? _datiAzienda;
     private bool _mostraModelli;
 
     /// <summary>Newsletter aperta in composizione; null = si sta guardando l'elenco.</summary>
@@ -396,6 +484,8 @@ else
             _newsletter = await InviiService.ElencoAsync(_aziendaId, modelli: false);
             _modelli = await InviiService.ElencoAsync(_aziendaId, modelli: true);
             if (_catalogo.Count == 0) _catalogo = await BlocchiService.GetCatalogoAsync();
+            _galleria = await BlocchiService.GetGalleriaAziendaAsync(_aziendaId);
+            await CaricaFooterConfigAsync();
         }
         catch (Exception ex) { Snackbar.Add($"Errore caricamento: {MessaggioErrore(ex)}", Severity.Error); }
         StateHasChanged();
@@ -548,7 +638,8 @@ else
         {
             { x => x.Blocco, copia },
             { x => x.Etichetta, _catalogo.FirstOrDefault(c => c.Tipo == b.Tipo)?.Etichetta ?? b.Tipo },
-            { x => x.IsSuperAdmin, _isSuperAdmin }
+            { x => x.IsSuperAdmin, _isSuperAdmin },
+            { x => x.Galleria, _galleria }
         };
         var dlg = await DialogService.ShowAsync<NewsletterBloccoDialog>("Modifica blocco", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
@@ -646,6 +737,91 @@ else
             new DialogOptions { BackdropClick = false });
         var res = await dlg.Result;
         return res!.Canceled ? null : res.Data as string;
+    }
+
+    // =====================================================================
+    // Impostazioni: composizione del footer
+    // =====================================================================
+
+    private async Task CaricaFooterConfigAsync()
+    {
+        try
+        {
+            var cfg = await RenderService.GetFooterConfigAsync(_aziendaId);
+            _footerColonne = cfg.Colonne;
+            _footerAllineamento = cfg.Allineamento;
+
+            // I campi attivi nell'ordine configurato, poi gli altri spenti in coda: cosi'
+            // l'elenco mostra sempre tutto e l'ordine e' quello vero.
+            var attivi = cfg.Campi.ToList();
+            _footerCampi = attivi
+                .Where(c => NewsletterRenderService.CampiFooter.Any(x => x.Campo == c))
+                .Select(c => new CampoFooter
+                {
+                    Campo = c,
+                    Etichetta = NewsletterRenderService.CampiFooter.First(x => x.Campo == c).Etichetta,
+                    Attivo = true
+                })
+                .Concat(NewsletterRenderService.CampiFooter
+                    .Where(x => !attivi.Contains(x.Campo))
+                    .Select(x => new CampoFooter { Campo = x.Campo, Etichetta = x.Etichetta, Attivo = false }))
+                .ToList();
+
+            _datiAzienda = await RenderService.GetDatiAziendaAsync(_aziendaId);
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+    }
+
+    private void CampoFooterAttivo(int indice, bool attivo) => _footerCampi[indice].Attivo = attivo;
+
+    private void SpostaCampoFooter(int indice, int delta)
+    {
+        var destinazione = indice + delta;
+        if (destinazione < 0 || destinazione >= _footerCampi.Count) return;
+        (_footerCampi[indice], _footerCampi[destinazione]) = (_footerCampi[destinazione], _footerCampi[indice]);
+    }
+
+    /// <summary>Righe del footer come appariranno, con i dati veri dell'azienda.</summary>
+    private List<string> AnteprimaFooter()
+    {
+        var righe = new List<string>();
+        if (_datiAzienda is null) return righe;
+
+        foreach (var c in _footerCampi.Where(x => x.Attivo))
+        {
+            var v = c.Campo switch
+            {
+                "ragione_sociale" => _datiAzienda.RagioneSociale,
+                "indirizzo"       => _datiAzienda.Indirizzo,
+                "partita_iva"     => string.IsNullOrWhiteSpace(_datiAzienda.PartitaIva) ? null : $"P. IVA {_datiAzienda.PartitaIva}",
+                "email"           => _datiAzienda.Email,
+                "telefono"        => _datiAzienda.Telefono,
+                "sito_web"        => _datiAzienda.SitoWeb,
+                _                 => null
+            };
+            if (!string.IsNullOrWhiteSpace(v)) righe.Add(v!);
+        }
+        return righe;
+    }
+
+    private async Task SalvaFooter()
+    {
+        var scelti = _footerCampi.Where(x => x.Attivo).Select(x => x.Campo).ToList();
+        if (scelti.Count == 0)
+        {
+            Snackbar.Add("Scegli almeno un campo: un footer completamente vuoto non è ammesso.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await RenderService.SalvaFooterConfigAsync(_aziendaId,
+                new NewsletterFooterConfig(scelti, _footerColonne, _footerAllineamento));
+            Snackbar.Add("Composizione del footer salvata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+        finally { _busy = false; }
     }
 
     /// <summary>

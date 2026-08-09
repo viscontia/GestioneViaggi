@@ -138,6 +138,65 @@ public sealed class NewsletterRenderService
         }
     }
 
+    /// <summary>Campi disponibili nel footer, nell'ordine in cui vengono proposti.</summary>
+    public static readonly (string Campo, string Etichetta)[] CampiFooter =
+    {
+        ("ragione_sociale", "Ragione sociale"),
+        ("indirizzo",       "Indirizzo della sede"),
+        ("partita_iva",     "Partita IVA"),
+        ("email",           "Email"),
+        ("telefono",        "Telefono"),
+        ("sito_web",        "Sito web"),
+    };
+
+    /// <summary>
+    /// Salva la composizione del footer nel JSONB della funzione "newsletter" dell'azienda,
+    /// preservando le altre chiavi eventualmente presenti nei parametri.
+    /// </summary>
+    public async Task SalvaFooterConfigAsync(int aziendaId, NewsletterFooterConfig config)
+    {
+        var f = await _funzioni.GetByFunzioneAsync(aziendaId, WebAziendeFunzioniService.FunzioneNewsletter);
+
+        // Si riscrive solo la chiave "footer": i parametri possono contenere altro (oggi no, ma
+        // e' lo stesso JSONB usato da altre funzioni web) e sovrascriverlo tutto sarebbe distruttivo.
+        var radice = new Dictionary<string, object?>();
+        if (!string.IsNullOrWhiteSpace(f?.Parametri))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(f!.Parametri!);
+                foreach (var p in doc.RootElement.EnumerateObject())
+                    if (p.Name != "footer") radice[p.Name] = JsonSerializer.Deserialize<object>(p.Value.GetRawText());
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Parametri azienda {Az} illeggibili: li riscrivo", aziendaId); }
+        }
+
+        radice["footer"] = new
+        {
+            campi = config.Campi,
+            colonne = config.Colonne,
+            allineamento = config.Allineamento
+        };
+
+        var json = JsonSerializer.Serialize(radice);
+
+        if (f is null)
+        {
+            await _funzioni.CreateAsync(new Models.Web.WebAziendaFunzione
+            {
+                AziendaId = aziendaId,
+                Funzione = WebAziendeFunzioniService.FunzioneNewsletter,
+                Attiva = true,
+                Parametri = json
+            });
+        }
+        else
+        {
+            f.Parametri = json;
+            await _funzioni.UpdateAsync(f);
+        }
+    }
+
     /// <summary>
     /// Tutto cio' che serve a rendere una newsletter, letto UNA volta sola. Il link di
     /// disiscrizione e' firmato per destinatario, quindi l'HTML va ricomposto per ognuno: senza

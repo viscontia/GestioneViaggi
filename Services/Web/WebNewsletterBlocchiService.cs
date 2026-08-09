@@ -37,6 +37,29 @@ public sealed class WebNewsletterBlocchiService
         return list;
     }
 
+    /// <summary>
+    /// Tutte le foto della galleria dell'azienda, per il picker della newsletter. A differenza
+    /// dell'itinerario — che pesca dal singolo tour — qui si compone da tutto il repertorio.
+    /// </summary>
+    public async Task<List<Components.Shared.ImmaginePicker.Voce>> GetGalleriaAziendaAsync(int aziendaId)
+    {
+        var list = new List<Components.Shared.ImmaginePicker.Voce>();
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT url, storage_path, alt_text, contesto FROM fn_web_immagini_azienda(@Az::integer)", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+        {
+            list.Add(new Components.Shared.ImmaginePicker.Voce(
+                Url: r.GetString(0),
+                StoragePath: r.GetString(1),
+                Alt: r.IsDBNull(2) ? null : r.GetString(2),
+                Contesto: r.IsDBNull(3) ? null : r.GetString(3)));
+        }
+        return list;
+    }
+
     public async Task<List<WebNewsletterBlocco>> ListAsync(long invioId, int aziendaId)
     {
         var list = new List<WebNewsletterBlocco>();

@@ -1,9 +1,11 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
+@using Blazored.TextEditor
 @using MudBlazor
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NewsletterRenderService RenderService
+@inject NewsletterMediaService MediaService
 
 @* Modifica di un singolo blocco della newsletter. I campi mostrati dipendono dal tipo:
    far vedere "link" su un separatore confonderebbe e basta. *@
@@ -69,16 +71,33 @@
 
         @if (Mostra("corpo"))
         {
-            <MudTextField @bind-Value="Blocco.CorpoHtml" Label="Testo" Variant="Variant.Outlined"
-                          Lines="6" Class="mb-3"
-                          HelperText="Accetta HTML semplice: <p>, <b>, <i>, <ul>/<li>, <a>." />
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Testo</MudText>
+            <div style="height:220px;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;display:flex;flex-direction:column;"
+                 class="mb-3">
+                <BlazoredTextEditor @ref="_editor" Placeholder="Scrivi il testo del blocco...">
+                    <ToolbarContent>
+                        <select class="ql-header"><option selected=""></option><option value="2"></option><option value="3"></option></select>
+                        <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button></span>
+                        <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>
+                        <span class="ql-formats"><button class="ql-link"></button></span>
+                        <span class="ql-formats"><button class="ql-clean"></button></span>
+                    </ToolbarContent>
+                </BlazoredTextEditor>
+            </div>
         }
 
         @if (Mostra("immagine"))
         {
-            <MudTextField @bind-Value="Blocco.ImmagineUrl" Label="Indirizzo immagine (URL)" Variant="Variant.Outlined"
-                          MaxLength="500" Class="mb-1"
-                          HelperText="Deve essere un URL pubblico https in JPEG o PNG. Mai WebP: Outlook non lo mostra." />
+            @* Scelta dalla galleria, non un URL scritto a mano: l'utente non sa cosa sia un URL,
+               ne' dove prenderlo. La conversione in JPEG per l'email la fa il codice. *@
+            <div class="mb-3">
+                <ImmaginePicker Immagini="@Galleria"
+                                Titolo="Immagine (dalla galleria dell'azienda)"
+                                TestoGalleriaVuota="Nessuna foto in galleria. Caricane dalla scheda Contenuti Web di un tour."
+                                SelectedStoragePath="@Blocco.ImmagineStoragePath"
+                                SelectedUrl="@Blocco.ImmagineUrl"
+                                OnScelta="OnImmagineScelta" />
+            </div>
             <MudTextField @bind-Value="Blocco.ImmagineAlt" Label="Testo alternativo" Variant="Variant.Outlined"
                           MaxLength="255" Class="mb-3"
                           HelperText="Compare al posto della foto finché il destinatario non la scarica." />
@@ -136,7 +155,42 @@
     [Parameter] public string Etichetta { get; set; } = "Blocco";
     [Parameter] public bool IsSuperAdmin { get; set; }
 
+    /// <summary>Galleria dell'azienda, caricata dalla pagina e passata qui gia' pronta.</summary>
+    [Parameter] public List<ImmaginePicker.Voce> Galleria { get; set; } = new();
+
     private MudTextField<string>? _primoCampo;
+    private BlazoredTextEditor? _editor;
+    private bool _editorCaricato;
+
+    /// <summary>
+    /// Scelta dell'immagine dalla galleria: converte subito in JPEG per l'email.
+    /// La galleria produce WebP, che Outlook non mostra - farlo qui significa che il problema
+    /// e' risolto prima ancora dell'anteprima, invece di scoprirlo a newsletter spedita.
+    /// </summary>
+    private async Task OnImmagineScelta(ImmaginePicker.Voce? v)
+    {
+        if (v is null)
+        {
+            Blocco.ImmagineUrl = null;
+            Blocco.ImmagineStoragePath = null;
+            return;
+        }
+
+        Blocco.ImmagineStoragePath = v.StoragePath;
+        if (string.IsNullOrWhiteSpace(Blocco.ImmagineAlt)) Blocco.ImmagineAlt = v.Alt ?? v.Contesto;
+
+        _caricando = true;
+        StateHasChanged();
+        try
+        {
+            Blocco.ImmagineUrl = await MediaService.ConvertiDaUrlAsync(v.Url, v.StoragePath) ?? v.Url;
+        }
+        catch
+        {
+            Blocco.ImmagineUrl = v.Url;
+        }
+        finally { _caricando = false; }
+    }
     private bool _caricando;
     private bool _avvisoBozza;
     private bool _avvisoSenzaSito;
@@ -207,7 +261,10 @@
                 Blocco.Sottotitolo = dati.Periodo;
                 Blocco.ImmagineAlt = dati.Titolo;
                 if (!string.IsNullOrWhiteSpace(dati.Testo))
+                {
                     Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+                    if (_editor != null) { try { await _editor.LoadHTMLContent(Blocco.CorpoHtml); } catch { } }
+                }
             }
             else
             {
@@ -231,12 +288,43 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Regola UI del progetto: focus sul primo campo all'apertura della form.
-        if (firstRender && _primoCampo != null)
+        if (firstRender)
         {
-            await Task.Delay(150);
-            await _primoCampo.FocusAsync();
+            // Regola UI del progetto: focus sul primo campo all'apertura della form.
+            if (_primoCampo != null)
+            {
+                await Task.Delay(150);
+                await _primoCampo.FocusAsync();
+            }
         }
+
+        // Quill si popola DOPO il render: caricarlo prima non avrebbe effetto.
+        if (!_editorCaricato && _editor != null && Mostra("corpo"))
+        {
+            _editorCaricato = true;
+            try
+            {
+                await Task.Delay(120);
+                if (!string.IsNullOrWhiteSpace(Blocco.CorpoHtml))
+                    await _editor.LoadHTMLContent(Blocco.CorpoHtml);
+            }
+            catch (Exception ex) { Snackbar.Add($"Editor non inizializzato: {ex.Message}", Severity.Warning); }
+        }
+    }
+
+    /// <summary>Legge il contenuto dell'editor nel blocco. Vuoto = null, non stringa vuota.</summary>
+    private async Task LeggiEditorAsync()
+    {
+        if (_editor is null || !Mostra("corpo")) return;
+        try
+        {
+            var html = await _editor.GetHTML();
+            // Quill produce <p><br></p> per un documento vuoto: e' vuoto a tutti gli effetti,
+            // e salvarlo cosi' farebbe passare la validazione su un blocco che non ha contenuto.
+            var senzaTag = System.Text.RegularExpressions.Regex.Replace(html ?? "", "<.*?>", "").Trim();
+            Blocco.CorpoHtml = string.IsNullOrWhiteSpace(System.Net.WebUtility.HtmlDecode(senzaTag)) ? null : html;
+        }
+        catch (Exception ex) { Snackbar.Add($"Testo non letto: {ex.Message}", Severity.Warning); }
     }
 
     /// <summary>Quali gruppi di campi hanno senso per il tipo di blocco corrente.</summary>
@@ -254,8 +342,10 @@
     /// Un blocco incompleto non si salva: sarebbe uno spazio bianco nella newsletter spedita,
     /// e nessuno se ne accorgerebbe fino a quel momento. Stessa regola usata prima dell'invio.
     /// </summary>
-    private void Conferma()
+    private async Task Conferma()
     {
+        await LeggiEditorAsync();
+
         var errore = GestioneViaggi.Validation.Business.NewsletterBloccoValidator.Valida(Blocco);
         if (errore != null)
         {
