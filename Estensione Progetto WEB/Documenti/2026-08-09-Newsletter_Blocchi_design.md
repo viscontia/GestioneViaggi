@@ -1,6 +1,6 @@
 # Newsletter a blocchi — design
 
-**Creato:** 2026-08-09 · **Stato:** proposta, da approvare prima di implementare
+**Creato:** 2026-08-09 · **Aggiornato:** 2026-08-09 (decisioni prese, §6) · **Stato:** APPROVATO
 **Origine:** collaudo newsletter del 2026-08-09 (`RISULTATI TEST NEWSLETTER 9 Agosto 2026.pdf`)
 
 ---
@@ -64,8 +64,10 @@ Derivati **dalla newsletter reale**, non inventati:
 | `pulsante` | etichetta + URL | etichetta |
 | `separatore` | spazio o linea | — |
 
-**Il footer societario NON è un blocco.** È parte del template, come l'intestazione col logo:
-deve esserci sempre e non deve essere cancellabile per errore — sono i dati di legge del mittente.
+> **Rivisto il 2026-08-09 (§6.3, §6.5):** intestazione e footer **sono blocchi**, ma di tipo
+> **obbligatorio** — non eliminabili. Il footer è inoltre **componibile per azienda** (quali campi,
+> ordine, colonne), con il link di disiscrizione iniettato dal sistema e non rimovibile.
+> Ogni blocco ha inoltre proprietà di **layout** (`sinistra|destra|pieno`, `colonne 1|2`).
 
 ### 2.3 — Il blocco `tour` si compila da solo
 
@@ -126,11 +128,91 @@ Ogni fase si chiude con build verde e le righe di test corrispondenti nel Piano 
 
 ---
 
-## 5. Punti da confermare prima di partire
+## 5. Punti confermati (2026-08-09)
 
-1. **I sei tipi di blocco** di §2.2 coprono ciò che serve? Ne manca qualcuno che usava Drupal?
-2. **Il footer come parte fissa del template** (non cancellabile) va bene?
-3. **Anteprima solo nell'applicazione**, o serve anche il "vedi nel browser" che molte newsletter
-   mettono in cima? *(Il secondo richiede una pagina pubblica → Fase 3 del sito.)*
-4. Le newsletter vecchie di Drupal vanno **importate**, o si riparte da zero clonando la prima
-   fatta a mano?
+1. **Anteprima solo nell'applicazione.** Niente "vedi nel browser": richiederebbe una pagina
+   pubblica, quindi la Fase 3 del sito. In più c'è l'invio di prova a un indirizzo scelto.
+2. **Nessuna importazione da Drupal.** Si riparte da zero: si compone la prima a mano e da lì si
+   clona. Questo rende la clonazione e i modelli (§6.2) non un comodo ma il meccanismo principale.
+3. **"Invia a me" diventa "invia di prova a un indirizzo scelto"**: l'utente scrive l'indirizzo, non
+   si prende automaticamente quello aziendale. Antonio può volerla su una casella personale, o
+   mandarla al grafico.
+
+---
+
+## 6. Decisioni sulla componibilità (2026-08-09)
+
+Discussione su quanto debba essere "lego" il sistema. Sintesi di cosa si fa e cosa no.
+
+### 6.1 — Comporre l'ordine: già previsto
+
+I blocchi stanno in tabella con `ordine`: qualsiasi sequenza, qualsiasi numero, qualsiasi
+ripetizione (tre tour, testo, altri due tour, immagine). Non era una limitazione da rimuovere.
+
+### 6.2 — Modelli con nome: SÌ
+
+Una struttura riutilizzabile è una newsletter con `is_modello = true`: non compare nello storico,
+si duplica invece di inviarsi. Costa un booleano e un filtro, **perché la clonazione fa già il
+lavoro vero**. Con l'importazione da Drupal esclusa, è la via con cui si costruisce il patrimonio
+di partenza.
+
+### 6.3 — Blocchi obbligatori e facoltativi: SÌ
+
+Proprietà del **tipo** di blocco, non della singola istanza: intestazione e footer sono
+obbligatori e non eliminabili, gli altri liberi. Serve a impedire che spariscano per un clic
+distratto.
+
+### 6.4 — Varianti di disposizione: SÌ, come proprietà
+
+Il bisogno di "posizione fisica uno rispetto all'altro" si copre con proprietà del blocco
+(`layout = sinistra | destra | pieno`, `colonne = 1 | 2`), non con tipi nuovi: immagine a sinistra
+col testo a destra, invertiti, a piena larghezza, due tour affiancati invece che impilati.
+
+### 6.5 — Footer componibile per azienda: SÌ, con un vincolo
+
+Quali campi (ragione sociale, indirizzo, P.IVA, email, telefono, sito, social), in quale ordine,
+su quante colonne, con quale allineamento. La configurazione vive in
+`web_aziende_funzioni.parametri` (JSONB), che è già usato così per la config recensioni (script `481`).
+
+⛔️ **Il link di disiscrizione non è componibile.** Viene iniettato dal sistema e non è rimovibile.
+È un obbligo di legge per la posta commerciale ed è l'unico meccanismo che rende possibile la
+disiscrizione. Un'azienda che se lo togliesse per una scelta grafica manderebbe newsletter non
+conformi a tutta la lista.
+
+### 6.6 — Tipi di blocco definibili dall'utente: NO
+
+Valutata e **scartata**. Non per l'effort in sé, ma per tre conseguenze:
+
+- **Le traduzioni perdono l'ancoraggio.** `web_traduzioni` indirizza `(entita, entita_id, campo,
+  lingua)`. Con campi definibili dall'utente, `campo` diventa una stringa che si può rinominare o
+  cancellare: il giorno che si modifica un tipo, le traduzioni delle newsletter che lo usano
+  puntano al vuoto, in silenzio e in quattro lingue.
+- **Il tipo è mutabile, la newsletter inviata no.** Cambiare un tipo dopo dieci invii obbliga o a
+  versionare i tipi, o ad accettare che l'anteprima di una newsletter vecchia mostri qualcosa di
+  diverso da ciò che è partito.
+- **Riporta il problema di partenza.** Definire la resa di un blocco significa scrivere HTML per
+  email, con le regole di Outlook che nessun utente conosce: è esattamente ciò da cui la strada a
+  blocchi doveva proteggere.
+
+In più i tipi sarebbero globali (violando l'invariante silos) o per-azienda (moltiplicando la
+manutenzione per il numero di clienti).
+
+### 6.7 — Blocco `html` libero: NO
+
+Era stato proposto come valvola di sfogo. **Escluso a priori** su indicazione del committente, con
+una motivazione più forte di quella tecnica: nessun utente normale saprebbe usarlo, e un HTML
+malformato non peggiora solo la resa — può **far fallire l'invio**. Se in futuro arriverà una
+richiesta concreta che le varianti di layout non coprono, sarà una valutazione a sé.
+
+### 6.8 — Effort
+
+| Aggiunta | Impatto sul piano di §4 |
+|---|---|
+| Modelli con nome | trascurabile |
+| Obbligatorio / facoltativo | trascurabile |
+| Varianti di layout | piccolo (rami nel renderer) |
+| Footer componibile per azienda | **medio** (schermata di configurazione + renderer) |
+
+Nel complesso il lavoro cresce di circa **metà** rispetto al piano iniziale. I tipi definibili
+dall'utente, se fossero stati accolti, non si sarebbero sommati ma **moltiplicati**: da
+"finiamo la newsletter" a "costruiamo un page-builder per email".
