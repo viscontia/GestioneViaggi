@@ -1,6 +1,8 @@
 @using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject NewsletterMediaService MediaService
 
 @* Un indirizzo della rubrica web. Volutamente minimo: nome, indirizzo, note. *@
 
@@ -17,6 +19,50 @@
         <MudTextField @bind-Value="Indirizzo.Note" Label="Note (facoltative)" Variant="Variant.Outlined"
                       Lines="2" Class="mb-3"
                       HelperText="A cosa serve, o un promemoria: «da aggiornare col sito nuovo»." />
+
+        @* I social sono una categoria a parte: il pulsante prende il colore del marchio e,
+           se c'e', l'icona. *@
+        <MudSelect T="string" @bind-Value="Indirizzo.Social" Label="È un social?" Variant="Variant.Outlined"
+                   Clearable="true" Class="mb-3"
+                   HelperText="Scegliendo un social, il pulsante nella newsletter userà il colore del marchio.">
+            <MudSelectItem T="string" Value="@((string?)null)">No, è un collegamento normale</MudSelectItem>
+            <MudSelectItem T="string" Value="@("facebook")">Facebook</MudSelectItem>
+            <MudSelectItem T="string" Value="@("instagram")">Instagram</MudSelectItem>
+            <MudSelectItem T="string" Value="@("tiktok")">TikTok</MudSelectItem>
+            <MudSelectItem T="string" Value="@("youtube")">YouTube</MudSelectItem>
+        </MudSelect>
+
+        @if (!string.IsNullOrWhiteSpace(Indirizzo.Social))
+        {
+            <MudPaper Outlined="true" Class="pa-3 mb-3">
+                <div class="d-flex align-center gap-3">
+                    @if (!string.IsNullOrWhiteSpace(Indirizzo.IconaUrl))
+                    {
+                        <img src="@Indirizzo.IconaUrl" alt="icona"
+                             style="width:36px;height:36px;object-fit:contain;background:#eee;border-radius:4px;" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.HideImage" Color="Color.Default" />
+                    }
+
+                    <MudFileUpload T="IBrowserFile" Accept="image/*" FilesChanged="CaricaIcona" Class="ma-0">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload"
+                                       Disabled="@_caricando">
+                                @(string.IsNullOrWhiteSpace(Indirizzo.IconaUrl) ? "Carica icona" : "Sostituisci icona")
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+
+                    @if (_caricando) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
+                </div>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
+                    Facoltativa. Senza icona il pulsante resta comunque riconoscibile dal colore del
+                    marchio. Usa un'immagine quadrata e semplice: nella mail viene mostrata a 18 pixel.
+                </MudText>
+            </MudPaper>
+        }
 
         <MudCheckBox @bind-Value="Indirizzo.Attivo" Label="Attivo" Color="Color.Primary" />
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
@@ -35,6 +81,28 @@
     [Parameter] public WebIndirizzo Indirizzo { get; set; } = new();
 
     private MudTextField<string>? _primoCampo;
+    private bool _caricando;
+
+    private async Task CaricaIcona(IBrowserFile? file)
+    {
+        if (file is null || string.IsNullOrWhiteSpace(Indirizzo.Social)) return;
+
+        _caricando = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            var (url, path) = await MediaService.CaricaIconaSocialAsync(
+                Indirizzo.AziendaId, Indirizzo.Social!, stream);
+
+            if (url is null) { Snackbar.Add("Icona non caricata: riprova.", Severity.Warning); return; }
+
+            Indirizzo.IconaUrl = url;
+            Indirizzo.IconaStoragePath = path;
+            Snackbar.Add("Icona caricata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Icona non caricata: {ex.Message}", Severity.Error); }
+        finally { _caricando = false; }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

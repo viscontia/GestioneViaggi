@@ -39,7 +39,7 @@ public sealed class WebIndirizziService
         {
             await using var conn = await _db.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_indirizzi_insert(@Az::integer, @Descr::varchar, @Url::varchar, @Note::text, NULL::integer, @Attivo::boolean)", conn);
+                "SELECT fn_web_indirizzi_insert(@Az::integer, @Descr::varchar, @Url::varchar, @Note::text, NULL::integer, @Attivo::boolean, @Social::varchar, @IconaUrl::varchar, @IconaPath::varchar)", conn);
             Bind(cmd, e);
             return Convert.ToInt64(await cmd.ExecuteScalarAsync());
         }
@@ -56,7 +56,7 @@ public sealed class WebIndirizziService
         {
             await using var conn = await _db.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_indirizzi_update(@Id::bigint, @Az::integer, @Descr::varchar, @Url::varchar, @Note::text, @Ordine::integer, @Attivo::boolean)", conn);
+                "SELECT fn_web_indirizzi_update(@Id::bigint, @Az::integer, @Descr::varchar, @Url::varchar, @Note::text, @Ordine::integer, @Attivo::boolean, @Social::varchar, @IconaUrl::varchar, @IconaPath::varchar)", conn);
             cmd.Parameters.AddWithValue("Id", e.WebIndirizzoId);
             cmd.Parameters.AddWithValue("Ordine", e.Ordine);
             Bind(cmd, e);
@@ -86,6 +86,9 @@ public sealed class WebIndirizziService
         cmd.Parameters.AddWithValue("Url", (object?)e.Url ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Note", (object?)e.Note ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Attivo", e.Attivo);
+        cmd.Parameters.AddWithValue("Social", (object?)e.Social ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("IconaUrl", (object?)e.IconaUrl ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("IconaPath", (object?)e.IconaStoragePath ?? DBNull.Value);
     }
 
     private static WebIndirizzo Map(NpgsqlDataReader r) => new()
@@ -97,5 +100,8 @@ public sealed class WebIndirizziService
         Ordine         = r.GetInt32(r.GetOrdinal("ordine")),
         Attivo         = r.GetBoolean(r.GetOrdinal("attivo")),
         AziendaId      = r.GetInt32(r.GetOrdinal("azienda_id")),
+        Social           = r.IsDBNull(r.GetOrdinal("social")) ? null : r.GetString(r.GetOrdinal("social")),
+        IconaUrl         = r.IsDBNull(r.GetOrdinal("icona_url")) ? null : r.GetString(r.GetOrdinal("icona_url")),
+        IconaStoragePath = r.IsDBNull(r.GetOrdinal("icona_storage_path")) ? null : r.GetString(r.GetOrdinal("icona_storage_path")),
     };
 }

@@ -17,4 +17,11 @@ public sealed class WebIndirizzo
     public int Ordine { get; set; }
     public bool Attivo { get; set; } = true;
     public int AziendaId { get; set; }
+
+    /// <summary>facebook | instagram | tiktok | youtube. NULL = collegamento normale.</summary>
+    public string? Social { get; set; }
+
+    /// <summary>URL pubblico dell'icona. Facoltativo: senza, resta il solo colore del marchio.</summary>
+    public string? IconaUrl { get; set; }
+    public string? IconaStoragePath { get; set; }
 }

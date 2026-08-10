@@ -255,7 +255,9 @@ public sealed class NewsletterRenderService
             ImmagineUrl: b.ImmagineUrl,
             ImmagineAlt: b.ImmagineAlt,
             LinkUrl: b.LinkUrl,
-            LinkEtichetta: b.LinkEtichetta));
+            LinkEtichetta: b.LinkEtichetta,
+            Social: b.Social,
+            IconaUrl: b.IconaUrl));
 
         return NewsletterHtmlRenderer.Render(render, ctx.Azienda, ctx.Footer, unsub);
     }

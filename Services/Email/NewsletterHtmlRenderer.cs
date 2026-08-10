@@ -14,7 +14,9 @@ public sealed record NewsletterRenderBlocco(
     string? ImmagineUrl = null,
     string? ImmagineAlt = null,
     string? LinkUrl = null,
-    string? LinkEtichetta = null);
+    string? LinkEtichetta = null,
+    string? Social = null,
+    string? IconaUrl = null);
 
 /// <summary>Dati dell'azienda usati da intestazione e footer.</summary>
 public sealed record NewsletterRenderAzienda(
@@ -307,20 +309,50 @@ public static class NewsletterHtmlRenderer
 
         return $@"
         <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:8px 32px 16px 32px;"">
-          {BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false)}
+          {BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl)}
         </td></tr>";
     }
+
+    /// <summary>
+    /// Colore del marchio di ciascun social. Serve a rendere il pulsante riconoscibile <b>anche
+    /// senza icona</b>: un'icona e' un file che qualcuno deve caricare, un colore no.
+    /// </summary>
+    private static string ColoreSocial(string? social) => social switch
+    {
+        "facebook"  => "#1877F2",
+        "instagram" => "#C13584",
+        "tiktok"    => "#010101",
+        "youtube"   => "#FF0000",
+        _           => ColoreAccento
+    };
 
     /// <summary>
     /// Pulsante a tabella e non &lt;a&gt; stilizzato: Outlook ignora padding e background su un
     /// link, e il risultato sarebbe testo blu sottolineato al posto del bottone.
     /// </summary>
-    private static string BottoneBulletproof(string url, string etichetta, bool allineaSinistra)
+    /// <remarks>
+    /// Su un pulsante social il colore e' quello del marchio e, se c'e' un'icona, compare a
+    /// sinistra del testo. L'icona e' un <c>&lt;img&gt;</c> con URL pubblico: nelle email non
+    /// esistono alternative — i font di icone non vengono caricati, l'SVG non e' renderizzato da
+    /// Outlook e le URI <c>data:</c> nemmeno. Se l'icona manca resta il solo colore, che gia'
+    /// distingue il pulsante.
+    /// </remarks>
+    private static string BottoneBulletproof(
+        string url, string etichetta, bool allineaSinistra,
+        string? social = null, string? iconaUrl = null)
     {
         var margine = allineaSinistra ? "margin-top:10px;" : "";
+        var colore = ColoreSocial(social);
+
+        // vertical-align:middle e non default: senza, l'icona spinge in basso la riga di testo.
+        var icona = string.IsNullOrWhiteSpace(iconaUrl) ? "" :
+            $@"<img src=""{Esc(iconaUrl)}"" alt="""" width=""18"" height=""18"" style=""width:18px;height:18px;display:inline-block;vertical-align:middle;border:0;margin-right:8px;"" />";
+
+        var testo = $@"<span style=""vertical-align:middle;"">{Esc(etichetta)}</span>";
+
         return $@"<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" border=""0"" style=""{margine}"">
-            <tr><td align=""center"" bgcolor=""{ColoreAccento}"" style=""background-color:{ColoreAccento};border-radius:4px;"">
-              <a href=""{Esc(url)}"" target=""_blank"" style=""display:inline-block;padding:11px 22px;font-family:{FontFamily};font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;"">{Esc(etichetta)}</a>
+            <tr><td align=""center"" bgcolor=""{colore}"" style=""background-color:{colore};border-radius:4px;"">
+              <a href=""{Esc(url)}"" target=""_blank"" style=""display:inline-block;padding:11px 22px;font-family:{FontFamily};font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;"">{icona}{testo}</a>
             </td></tr>
           </table>";
     }
@@ -346,7 +378,7 @@ public static class NewsletterHtmlRenderer
             var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
             var contenuto = string.IsNullOrWhiteSpace(b.LinkUrl)
                 ? ""
-                : BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false);
+                : BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl);
 
             celle.Append($@"<td width=""{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%"" align=""center"" valign=""middle"" style=""width:{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;padding:0 4px;"">{contenuto}</td>");
         }

@@ -44,6 +44,13 @@ public sealed class WebNewsletterBlocco
     /// </summary>
     public long? IndirizzoIdFk { get; set; }
 
+    /// <summary>
+    /// Social del pulsante e relativa icona, COPIATI dalla rubrica alla scelta (script 519/520):
+    /// una newsletter già inviata non deve cambiare aspetto se in rubrica si sostituisce l'icona.
+    /// </summary>
+    public string? Social { get; set; }
+    public string? IconaUrl { get; set; }
+
     public int AziendaId { get; set; }
 }
 

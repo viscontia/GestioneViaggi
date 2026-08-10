@@ -152,6 +152,16 @@
                 }
             }
 
+            @if (!string.IsNullOrWhiteSpace(Blocco.Social))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Pulsante <strong>@Blocco.Social</strong>: userà il colore del marchio
+                    @(string.IsNullOrWhiteSpace(Blocco.IconaUrl)
+                        ? " (nessuna icona caricata per questo indirizzo: si può aggiungere dalla rubrica)."
+                        : " e l'icona caricata in rubrica.")
+                </MudAlert>
+            }
+
             @if (Blocco.Tipo == "tour" || _destinazione == "manuale")
             {
                 <MudTextField @bind-Value="Blocco.LinkUrl" Label="Indirizzo del collegamento"
@@ -461,6 +471,12 @@
             // collegamento si riallinea da solo se l'indirizzo cambia in rubrica.
             Blocco.IndirizzoIdFk = ind.WebIndirizzoId;
             Blocco.LinkUrl = ind.Url;
+
+            // Social e icona si COPIANO, non si risolvono al rendering: una newsletter gia'
+            // inviata non deve cambiare aspetto se in rubrica si sostituisce l'icona.
+            Blocco.Social = ind.Social;
+            Blocco.IconaUrl = ind.IconaUrl;
+
             if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = ind.Descrizione;
             return;
         }
@@ -468,6 +484,8 @@
         // Ogni altra destinazione non viene dalla rubrica: il legame va sciolto, altrimenti il
         // rendering continuerebbe a risolvere dall'indirizzo vecchio.
         Blocco.IndirizzoIdFk = null;
+        Blocco.Social = null;
+        Blocco.IconaUrl = null;
 
         if (valore == "home")
         {

@@ -63,6 +63,29 @@ public sealed class NewsletterMediaService
     }
 
     /// <summary>
+    /// Carica l'icona di un social e ne restituisce URL pubblico e percorso.
+    /// Convertita in JPEG come tutto il resto: nelle email il PNG con trasparenza e il WebP danno
+    /// problemi, e un'icona su fondo colorato non ha bisogno di canale alfa.
+    /// </summary>
+    public async Task<(string? Url, string? Path)> CaricaIconaSocialAsync(
+        int aziendaId, string social, Stream contenuto, CancellationToken ct = default)
+    {
+        try
+        {
+            var path = $"newsletter/social/{aziendaId}_{social}.jpg";
+            var jpeg = await WebImageProcessor.ToEmailJpegAsync(contenuto, ct);
+            await using var upload = new MemoryStream(jpeg.Bytes);
+            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeEmail, ct);
+            return (_storage.BuildPublicUrl(path), path);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Icona social {Social} non caricata per azienda {Az}", social, aziendaId);
+            return (null, null);
+        }
+    }
+
+    /// <summary>
     /// Scarica un'immagine dal suo URL pubblico e ne restituisce la versione email (JPEG).
     /// E' la strada usata quando si compila un riquadro tour: la copertina e' gia' su Storage in
     /// WebP, e va derivata in JPEG perche' Outlook non mostra il WebP.
