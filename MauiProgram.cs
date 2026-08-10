@@ -227,6 +227,7 @@ public static class MauiProgram
         // Printing Services
         builder.Services.AddScoped<ITravelPrintService, TravelPrintService>();
         builder.Services.AddScoped<IRoomingListPrintService, RoomingListPrintService>();
+        builder.Services.AddScoped<RoomingListStampaService>();
         builder.Services.AddSingleton<MovTransazioniPrintService>();
         builder.Services.AddSingleton<ScadenzarioPrintService>();
         builder.Services.AddSingleton<BilancioViaggioPrintService>();

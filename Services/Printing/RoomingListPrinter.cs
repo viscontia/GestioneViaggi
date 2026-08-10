@@ -46,6 +46,23 @@ public class RoomingListPrinter
     {
         container.Column(column =>
         {
+            // AVVISO ABBINAMENTI MANCANTI (solo prima pagina)
+            // Chi riceve il prospetto stampato non ha visto il messaggio a video: senza questa
+            // riga leggerebbe un elenco camere apparentemente completo, e i clienti mancanti
+            // sarebbero invisibili proprio sul documento che si porta in viaggio.
+            if (data.ClientiNonAbbinati > 0)
+            {
+                var testo = data.ClientiNonAbbinati == 1
+                    ? "ATTENZIONE: 1 cliente non è abbinato ad alcuna camera."
+                    : $"ATTENZIONE: {data.ClientiNonAbbinati} clienti non sono abbinati ad alcuna camera.";
+
+                column.Item().ShowOnce().PaddingTop(10)
+                    .Background(Colors.Amber.Lighten4)
+                    .Border(1).BorderColor(Colors.Amber.Darken2)
+                    .Padding(8)
+                    .Text(testo).FontSize(11).Bold().FontColor(Colors.Amber.Darken4);
+            }
+
             // VIAGGIO INFO (only on first page)
             column.Item().ShowOnce().PaddingTop(15).Border(2).BorderColor(ReportHeaderHelper.BrandColors.Text).Padding(8).Column(viaggioCol =>
             {

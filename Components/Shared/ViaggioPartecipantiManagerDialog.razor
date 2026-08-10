@@ -17,6 +17,7 @@
 @inject IPdfOpenerService PdfOpenerService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.ITravelPrintService TravelPrintService
+@inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 
 @* Il titolo NON si disegna qui con <TitleContent>: quel frammento viene reso una volta dal
    contenitore del dialogo e non si aggiorna quando il componente ricarica i dati — per questo
@@ -678,31 +679,10 @@
             return;
         }
 
-        try
-        {
-            var data = await RoomingListPrintService.GetRoomingListDataAsync(DataViaggioId);
-
-            // Save to Downloads
-            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-
-            // Create descriptive filename
-            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
-            var filePath = Path.Combine(targetFolder, fileName);
-
-            // Overwrite check
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
-
-            await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
-
-            await PdfOpenerService.OpenPdfAsync(filePath, "Stampa Completata");
-        }
-        catch(Exception ex)
-        {
-            Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
-        }
+        // Flusso unico in RoomingListStampaService: controlli sugli abbinamenti, generazione
+        // e apertura. Era ripetuto in cinque schermate, e i controlli sarebbero mancati in
+        // quelle dimenticate.
+        await RoomingListStampaService.StampaAsync(DataViaggioId);
     }
 
     private async Task LoadListAsync(bool isFullInit = false)

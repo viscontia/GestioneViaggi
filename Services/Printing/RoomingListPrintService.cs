@@ -125,6 +125,10 @@ public class RoomingListPrintService : IRoomingListPrintService
             data.TotalParticipants = participants.Count;
             data.TotalRooms = participants.Where(p => p.RoomId > 0).Select(p => p.RoomId).Distinct().Count();
 
+            // RoomId = 0 significa "nessuna camera assegnata": il dato arrivava gia' cosi' dal DB,
+            // mancava solo chi lo contasse.
+            data.ClientiNonAbbinati = participants.Count(p => p.RoomId <= 0);
+
             return data;
         }
         catch (Exception ex)

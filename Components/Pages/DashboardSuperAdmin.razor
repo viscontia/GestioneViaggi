@@ -24,6 +24,7 @@
 @inject Services.Printing.IPdfOpenerService PdfOpenerService
 @inject Services.Shared.IBrowserLauncherService BrowserLauncher
 @inject Services.CRUD.AnaViaggiService ViaggiService
+@inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 
 @if (!_isLoaded)
 {
@@ -1463,49 +1464,10 @@ else
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
         {
-            try
-            {
-                var data = await RoomingListPrintService.GetRoomingListDataAsync(dataViaggioId);
-
-                // STANDARD: Save to Downloads (usa metodo centralizzato per macOS sandboxato)
-                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-
-                // Create descriptive filename
-                var fileName = Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
-                var filePath = Path.Combine(targetFolder, fileName);
-
-                // STANDARD: Overwrite check
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-
-                await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
-
-                // STANDARD: Confirmation and Open
-                bool? confirm = await DialogService.ShowMessageBox(
-                    "Stampa Completata",
-                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?",
-                    yesText: "Sì, Apri", cancelText: "No");
-
-                if (confirm == true)
-                {
-                    // STANDARD: Cross-Platform Open
-#if MACCATALYST
-                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
-#else
-                    await Launcher.Default.OpenAsync(new OpenFileRequest
-                    {
-                        Title = "Rooming List",
-                        File = new ReadOnlyFile(filePath)
-                    });
-#endif
-                }
-            }
-            catch(Exception ex)
-            {
-                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
-            }
+            // Flusso unico in RoomingListStampaService: controlli sugli abbinamenti, generazione
+            // e apertura. Era ripetuto in cinque schermate, e i controlli sarebbero mancati in
+            // quelle dimenticate.
+            await RoomingListStampaService.StampaAsync(dataViaggioId);
         }
     }
 }

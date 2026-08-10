@@ -6,7 +6,7 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
 
-@inject IRoomingListPrintService RoomingListPrintService
+@inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 @inject IPdfOpenerService PdfOpenerService
 
 <MudDataGrid T="AnaDataViaggio" Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true">
@@ -426,30 +426,9 @@
 
     private async Task PrintRoomingList(AnaDataViaggio date)
     {
-        try
-        {
-            var data = await RoomingListPrintService.GetRoomingListDataAsync(date.Id);
-
-            // Save to Downloads
-            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-
-            // Create descriptive filename
-            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetRoomingListFileName(data.Header);
-            var filePath = Path.Combine(targetFolder, fileName);
-
-            // Overwrite check
-            if (System.IO.File.Exists(filePath))
-            {
-                System.IO.File.Delete(filePath);
-            }
-
-            await GestioneViaggi.Services.Printing.RoomingListPrinter.GeneratePdfAsync(data, filePath);
-
-            await PdfOpenerService.OpenPdfAsync(filePath, "Stampa Rooming List Completata");
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Errore stampa Rooming List: {ex.Message}", Severity.Error);
-        }
+        // Flusso unico in RoomingListStampaService: controlli sugli abbinamenti, generazione
+        // e apertura. Era ripetuto in cinque schermate, e i controlli sarebbero mancati in
+        // quelle dimenticate.
+        await RoomingListStampaService.StampaAsync(date.Id);
     }
 }

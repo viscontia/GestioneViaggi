@@ -267,6 +267,23 @@ public class RoomingListPrintDTO
     public List<RoomTypeGroup> RoomGroups { get; set; } = new();
     public int TotalRooms { get; set; }
     public int TotalParticipants { get; set; }
+
+    /// <summary>
+    /// Partecipanti senza camera assegnata (<c>RoomId = 0</c>).
+    /// </summary>
+    /// <remarks>
+    /// Il dato esisteva già nei partecipanti ma non lo guardava nessuno: una rooming list senza
+    /// alcun abbinamento veniva stampata lo stesso, con l'elenco dei nominativi e nessuna camera.
+    /// Averlo qui permette di decidere <b>prima</b> se ha senso stampare, e di dirlo <b>dentro</b>
+    /// il prospetto quando si stampa comunque.
+    /// </remarks>
+    public int ClientiNonAbbinati { get; set; }
+
+    /// <summary>Nessun cliente è abbinato a una camera: il prospetto non avrebbe contenuto.</summary>
+    public bool NessunAbbinamento => TotalParticipants > 0 && ClientiNonAbbinati == TotalParticipants;
+
+    /// <summary>Alcuni abbinati e altri no: si può stampare, ma va detto.</summary>
+    public bool AbbinamentiParziali => ClientiNonAbbinati > 0 && ClientiNonAbbinati < TotalParticipants;
 }
 
 public class RoomTypeGroup
