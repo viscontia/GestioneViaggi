@@ -120,12 +120,26 @@
                 <MudSelect T="string" Value="@_destinazione" ValueChanged="OnDestinazioneChanged"
                            ToStringFunc="@EtichettaDestinazione"
                            Label="Dove porta il collegamento" Variant="Variant.Outlined" Class="mb-3">
-                    <MudSelectItem T="string" Value="@("home")">Home page del sito</MudSelectItem>
+                    @* Destinazioni CALCOLATE dal programma: non stanno in rubrica perche' non
+                       sono indirizzi fissi. "Pagina di un tour" cambia a ogni tour scelto. *@
                     <MudSelectItem T="string" Value="@("tour")">Pagina di un tour…</MudSelectItem>
-                    @foreach (var ind in _rubrica)
+
+                    @* La home compare solo se NON e' gia' in rubrica: averla in due posti, con lo
+                       stesso indirizzo e due nomi diversi, e' solo un modo per confondere. *@
+                    @if (!_homeGiaInRubrica && !string.IsNullOrWhiteSpace(_sitoWeb))
                     {
-                        <MudSelectItem T="string" Value="@($"rubrica:{ind.WebIndirizzoId}")">@ind.Descrizione</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("home")">Home page del sito</MudSelectItem>
                     }
+
+                    @if (_rubrica.Count > 0)
+                    {
+                        <MudSelectItem T="string" Value="@("__hdr")" Disabled="true">— Indirizzi in rubrica —</MudSelectItem>
+                        @foreach (var ind in _rubrica)
+                        {
+                            <MudSelectItem T="string" Value="@($"rubrica:{ind.WebIndirizzoId}")">@ind.Descrizione</MudSelectItem>
+                        }
+                    }
+
                     <MudSelectItem T="string" Value="@("manuale")">Un altro indirizzo (lo scrivo io)</MudSelectItem>
                 </MudSelect>
 
@@ -233,6 +247,10 @@
     private string _destinazione = "manuale";
     private string? _sitoWeb;
     private List<WebIndirizzo> _rubrica = new();
+
+    /// <summary>La home del sito e' gia' fra gli indirizzi in rubrica: non va proposta due volte.</summary>
+    private bool _homeGiaInRubrica => !string.IsNullOrWhiteSpace(_sitoWeb)
+        && _rubrica.Any(x => x.Url.TrimEnd('/') == _sitoWeb!.TrimEnd('/'));
     private bool _editorCaricato;
 
     /// <summary>
@@ -399,6 +417,7 @@
         if (valore == "home") return "Home page del sito";
         if (valore == "tour") return "Pagina di un tour…";
         if (valore == "manuale") return "Un altro indirizzo (lo scrivo io)";
+        if (valore == "__hdr") return "";
 
         if (valore.StartsWith("rubrica:") && long.TryParse(valore["rubrica:".Length..], out var id))
         {
@@ -413,6 +432,7 @@
     /// <summary>Cambio della destinazione del collegamento.</summary>
     private async Task OnDestinazioneChanged(string valore)
     {
+        if (valore == "__hdr") return;   // riga di intestazione, non selezionabile
         _destinazione = valore;
 
         if (valore.StartsWith("rubrica:"))
