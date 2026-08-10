@@ -27,7 +27,10 @@
 
 @* Overlay bloccante durante l'invio: stesso pattern di Galleria e generazione mappa.
    Uno spinner in linea non si nota e non impedisce di continuare a cliccare. *@
-<MudOverlay Visible="@_busy" DarkBackground="true" Absolute="false" ZIndex="9999">
+@* ZIndex sotto quello dei dialoghi MudBlazor (1400): un overlay che copre una form
+   aperta la rende incliccabile e sembra un blocco dell'applicazione. Durante l'invio non ci
+   sono dialoghi aperti, quindi non perde nulla del suo scopo. *@
+<MudOverlay Visible="@_busy" DarkBackground="true" Absolute="false" ZIndex="1300">
     <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="8" Style="min-width:320px;">
         <MudProgressCircular Indeterminate="@(_invioTotale == 0)" Value="@_invioPercentuale"
                              Size="Size.Large" Color="Color.Primary" />
@@ -35,7 +38,7 @@
             @(_invioTotale > 0 ? $"Invio in corso: {_invioFatti} di {_invioTotale}" : "Preparazione dell'invio…")
         </MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
-            @(_invioTotale > 0 ? "Non chiudere la finestra." : "Traduzione dei testi per le lingue dei destinatari.")
+            @(_invioTotale > 0 ? "Non chiudere la finestra." : "Composizione della newsletter e preparazione delle immagini.")
         </MudText>
         @if (_invioTotale > 0)
         {
@@ -672,6 +675,12 @@ else
         catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Warning); return; }
         finally { _busy = false; }
 
+        // Render ESPLICITO prima di aprire il dialogo. Senza, Blazor non ridisegna fra il
+        // finally e l'apertura — il render successivo arriva solo a gestore concluso, cioe' a
+        // dialogo gia' chiuso — e l'overlay di attesa resterebbe visibile SOPRA la form,
+        // bloccando i clic: l'applicazione sembra congelata.
+        await InvokeAsync(StateHasChanged);
+
         var creato = _blocchi.FirstOrDefault(x => x.WebNewsletterBloccoId == nuovoId);
         if (creato is null) return;
 
@@ -765,17 +774,23 @@ else
 
     private async Task Anteprima(long invioId)
     {
+        string html;
         _busy = true;
         try
         {
             // Indirizzo di esempio: serve solo a firmare il link di disiscrizione.
-            var html = await RenderService.RenderAsync(invioId, _aziendaId, "anteprima@esempio.it");
-            var parameters = new DialogParameters<NewsletterAnteprimaDialog> { { x => x.Html, html } };
-            await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
-                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
+            html = await RenderService.RenderAsync(invioId, _aziendaId, "anteprima@esempio.it");
         }
-        catch (Exception ex) { Snackbar.Add($"Errore anteprima: {MessaggioErrore(ex)}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore anteprima: {MessaggioErrore(ex)}", Severity.Error); return; }
         finally { _busy = false; }
+
+        // L'attesa copre la SOLA composizione dell'HTML. Il dialogo si apre a overlay spento,
+        // altrimenti resterebbe un velo di attesa dietro l'anteprima.
+        await InvokeAsync(StateHasChanged);
+
+        var parameters = new DialogParameters<NewsletterAnteprimaDialog> { { x => x.Html, html } };
+        await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
     }
 
     /// <summary>Riga di riepilogo del contenuto di un blocco, per l'elenco di composizione.</summary>
