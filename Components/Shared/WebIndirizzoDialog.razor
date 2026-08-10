@@ -26,10 +26,11 @@
                    Clearable="true" Class="mb-3"
                    HelperText="Scegliendo un social, il pulsante nella newsletter userà il colore del marchio.">
             <MudSelectItem T="string" Value="@((string?)null)">No, è un collegamento normale</MudSelectItem>
-            <MudSelectItem T="string" Value="@("facebook")">Facebook</MudSelectItem>
-            <MudSelectItem T="string" Value="@("instagram")">Instagram</MudSelectItem>
-            <MudSelectItem T="string" Value="@("tiktok")">TikTok</MudSelectItem>
-            <MudSelectItem T="string" Value="@("youtube")">YouTube</MudSelectItem>
+            @* Generata dal catalogo: aggiungendo un social non va toccata questa tendina. *@
+            @foreach (var s in SocialCatalogo.Tutti)
+            {
+                <MudSelectItem T="string" Value="@s.Codice">@s.Etichetta</MudSelectItem>
+            }
         </MudSelect>
 
         @if (!string.IsNullOrWhiteSpace(Indirizzo.Social))

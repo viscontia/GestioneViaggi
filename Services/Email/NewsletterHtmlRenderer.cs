@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using GestioneViaggi.Models.Web;
 
 namespace GestioneViaggi.Services.Email;
 
@@ -65,7 +66,7 @@ public static class NewsletterHtmlRenderer
     private const string FontFamily = "Arial, Helvetica, sans-serif";
     private const string ColoreTesto = "#333333";
     private const string ColoreTenue = "#888888";
-    private const string ColoreAccento = "#2171A5";
+    private const string ColoreAccento = SocialCatalogo.ColoreDefault;
     private const string ColoreSfondo = "#f4f4f4";
 
     public static string Render(
@@ -116,7 +117,7 @@ public static class NewsletterHtmlRenderer
                 // quarto pulsante non avrebbe una posizione da dichiarare, quindi apre una
                 // nuova fila invece di stringere tutti.
                 while (i < lista.Count && lista[i].Tipo == "pulsante" && lista[i].Colonne == 2
-                       && fila.Count < MaxPulsantiInFila)
+                       && fila.Count < NewsletterLayout.MaxPulsantiInFila)
                 {
                     fila.Add(lista[i]);
                     i++;
@@ -318,19 +319,6 @@ public static class NewsletterHtmlRenderer
     }
 
     /// <summary>
-    /// Colore del marchio di ciascun social. Serve a rendere il pulsante riconoscibile <b>anche
-    /// senza icona</b>: un'icona e' un file che qualcuno deve caricare, un colore no.
-    /// </summary>
-    private static string ColoreSocial(string? social) => social switch
-    {
-        "facebook"  => "#1877F2",
-        "instagram" => "#C13584",
-        "tiktok"    => "#010101",
-        "youtube"   => "#FF0000",
-        _           => ColoreAccento
-    };
-
-    /// <summary>
     /// Pulsante a tabella e non &lt;a&gt; stilizzato: Outlook ignora padding e background su un
     /// link, e il risultato sarebbe testo blu sottolineato al posto del bottone.
     /// </summary>
@@ -346,7 +334,7 @@ public static class NewsletterHtmlRenderer
         string? social = null, string? iconaUrl = null)
     {
         var margine = allineaSinistra ? "margin-top:10px;" : "";
-        var colore = ColoreSocial(social);
+        var colore = SocialCatalogo.Colore(social);
 
         // vertical-align:middle e non default: senza, l'icona spinge in basso la riga di testo.
         var icona = string.IsNullOrWhiteSpace(iconaUrl) ? "" :
@@ -360,9 +348,6 @@ public static class NewsletterHtmlRenderer
             </td></tr>
           </table>";
     }
-
-    /// <summary>Quante caselle ha una fila di pulsanti: sinistra, centro, destra.</summary>
-    public const int MaxPulsantiInFila = 3;
 
     /// <summary>
     /// Piu' pulsanti su una sola riga. La riga e' sempre divisa in <b>tre caselle uguali</b> e
@@ -379,9 +364,9 @@ public static class NewsletterHtmlRenderer
     private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila)
     {
         // Tre caselle fisse: 0 = sinistra, 1 = centro, 2 = destra.
-        var caselle = new NewsletterRenderBlocco?[MaxPulsantiInFila];
+        var caselle = new NewsletterRenderBlocco?[NewsletterLayout.MaxPulsantiInFila];
 
-        foreach (var b in fila.Take(MaxPulsantiInFila))
+        foreach (var b in fila.Take(NewsletterLayout.MaxPulsantiInFila))
         {
             var voluta = b.Layout switch { "sinistra" => 0, "centro" => 1, "destra" => 2, _ => -1 };
 
@@ -396,7 +381,7 @@ public static class NewsletterHtmlRenderer
         var allineamenti = new[] { "left", "center", "right" };
         var celle = new StringBuilder();
 
-        for (int c = 0; c < MaxPulsantiInFila; c++)
+        for (int c = 0; c < NewsletterLayout.MaxPulsantiInFila; c++)
         {
             var b = caselle[c];
             var contenuto = "&nbsp;";

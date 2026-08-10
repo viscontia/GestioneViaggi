@@ -51,9 +51,6 @@ public static class NewsletterBloccoValidator
         };
     }
 
-    /// <summary>Quante caselle ha una fila di pulsanti: sinistra, centro, destra.</summary>
-    public const int MaxPulsantiInFila = 3;
-
     /// <summary>
     /// Problemi sulle FILE di pulsanti: una fila ha tre caselle e ogni pulsante ne dichiara una,
     /// quindi non si puo' andare oltre tre ne' occupare due volte la stessa casella.
@@ -83,9 +80,9 @@ public static class NewsletterBloccoValidator
 
             var nomi = string.Join(", ", fila.Select(b => $"«{b.LinkEtichetta ?? "senza testo"}»"));
 
-            if (fila.Count > MaxPulsantiInFila)
+            if (fila.Count > NewsletterLayout.MaxPulsantiInFila)
             {
-                problemi.Add($"Fila di {fila.Count} pulsanti ({nomi}): il massimo è {MaxPulsantiInFila}, " +
+                problemi.Add($"Fila di {fila.Count} pulsanti ({nomi}): il massimo è {NewsletterLayout.MaxPulsantiInFila}, " +
                              "una fila ha tre posizioni (sinistra, centro, destra). Togli l'affiancamento a qualcuno.");
             }
 
