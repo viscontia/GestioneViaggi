@@ -198,12 +198,16 @@
                 }
                 else if (Blocco.Tipo == "pulsante" && Blocco.Colonne == 2)
                 {
-                    @* In fila i pulsanti si distribuiscono uniformemente: l'allineamento del
-                       singolo non ha piu' effetto, quindi non va nemmeno mostrato. *@
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
-                        In fila i pulsanti vengono distribuiti in parti uguali: l'allineamento del
-                        singolo pulsante non si applica.
-                    </MudAlert>
+                    @* In fila la posizione va DICHIARATA: la riga ha tre caselle e questa dice
+                       quale occupare. Senza, la posizione dipenderebbe dall'ordine dei blocchi
+                       nell'elenco, che in verticale non si legge come sinistra-centro-destra. *@
+                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Posizione nella fila"
+                               Variant="Variant.Outlined" Class="mb-3"
+                               HelperText="La fila ha tre posizioni e ognuna ospita un solo pulsante. Lasciarne una libera è lecito.">
+                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
+                    </MudSelect>
                 }
                 else
                 {

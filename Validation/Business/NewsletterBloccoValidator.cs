@@ -51,6 +51,64 @@ public static class NewsletterBloccoValidator
         };
     }
 
+    /// <summary>Quante caselle ha una fila di pulsanti: sinistra, centro, destra.</summary>
+    public const int MaxPulsantiInFila = 3;
+
+    /// <summary>
+    /// Problemi sulle FILE di pulsanti: una fila ha tre caselle e ogni pulsante ne dichiara una,
+    /// quindi non si puo' andare oltre tre ne' occupare due volte la stessa casella.
+    /// </summary>
+    /// <remarks>
+    /// Il controllo guarda l'INSIEME e non il singolo blocco: un pulsante e' valido da solo e
+    /// diventa un problema per via dei vicini. Per questo non sta in <see cref="Valida"/>.
+    /// </remarks>
+    public static List<string> ValidaFilePulsanti(IEnumerable<WebNewsletterBlocco> blocchi)
+    {
+        var problemi = new List<string>();
+        var ordinati = blocchi.OrderBy(b => b.Ordine).ToList();
+
+        var i = 0;
+        while (i < ordinati.Count)
+        {
+            if (ordinati[i].Tipo != "pulsante" || ordinati[i].Colonne != 2) { i++; continue; }
+
+            var fila = new List<WebNewsletterBlocco>();
+            while (i < ordinati.Count && ordinati[i].Tipo == "pulsante" && ordinati[i].Colonne == 2)
+            {
+                fila.Add(ordinati[i]);
+                i++;
+            }
+
+            if (fila.Count < 2) continue;   // un pulsante solo non forma una fila
+
+            var nomi = string.Join(", ", fila.Select(b => $"«{b.LinkEtichetta ?? "senza testo"}»"));
+
+            if (fila.Count > MaxPulsantiInFila)
+            {
+                problemi.Add($"Fila di {fila.Count} pulsanti ({nomi}): il massimo è {MaxPulsantiInFila}, " +
+                             "una fila ha tre posizioni (sinistra, centro, destra). Togli l'affiancamento a qualcuno.");
+            }
+
+            var doppie = fila.GroupBy(b => b.Layout).Where(g => g.Count() > 1).ToList();
+            foreach (var g in doppie)
+            {
+                var quali = string.Join(" e ", g.Select(b => $"«{b.LinkEtichetta ?? "senza testo"}»"));
+                problemi.Add($"Nella stessa fila {quali} occupano entrambi la posizione «{Posizione(g.Key)}»: " +
+                             "ogni posizione può ospitare un solo pulsante.");
+            }
+        }
+
+        return problemi;
+    }
+
+    private static string Posizione(string? layout) => layout switch
+    {
+        "sinistra" => "sinistra",
+        "centro"   => "centro",
+        "destra"   => "destra",
+        _          => layout ?? "non dichiarata"
+    };
+
     /// <summary>
     /// Elenco dei problemi su tutti i blocchi, nell'ordine in cui compaiono nella newsletter.
     /// Usato per bloccare invio e anteprima con un messaggio che dice <i>quale</i> blocco manca.
@@ -65,6 +123,8 @@ public static class NewsletterBloccoValidator
             var errore = Valida(b);
             if (errore != null) problemi.Add($"Blocco {n} — {errore}");
         }
+
+        problemi.AddRange(ValidaFilePulsanti(blocchi));
         return problemi;
     }
 }

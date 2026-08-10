@@ -724,6 +724,19 @@ else
         var res = await dlg.Result;
         if (res!.Canceled) return false;
 
+        // Il conflitto fra pulsanti in fila si controlla QUI e non solo prima dell'invio: un
+        // blocco e' valido da solo e diventa un problema per via dei vicini, quindi la verifica
+        // va fatta sull'insieme risultante. Meglio impedire lo stato sbagliato che segnalarlo poi.
+        var proposta = _blocchi
+            .Select(x => x.WebNewsletterBloccoId == copia.WebNewsletterBloccoId ? copia : x)
+            .ToList();
+        var conflitti = GestioneViaggi.Validation.Business.NewsletterBloccoValidator.ValidaFilePulsanti(proposta);
+        if (conflitti.Count > 0)
+        {
+            foreach (var c in conflitti.Take(3)) Snackbar.Add(c, Severity.Warning);
+            return false;
+        }
+
         _busy = true;
         try
         {

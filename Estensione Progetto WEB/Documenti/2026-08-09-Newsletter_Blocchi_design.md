@@ -231,13 +231,30 @@ social è una cosa che ogni newsletter ha. Da qui `colonne = 2` sui pulsanti, ch
 la sequenza** di pulsanti consecutivi così marcati in un'unica riga divisa in celle uguali (tre
 pulsanti → tre celle da 33,33%), non solo una coppia come per i tour.
 
-In fila i pulsanti sono **centrati ciascuno nella propria cella** e l'allineamento del singolo è
-**ignorato**: farlo valere per cella — come nella prima versione — sposta ogni pulsante in un punto
-diverso del suo spazio e la fila esce sbilanciata. Chi mette dei pulsanti in fila li vuole
-distribuiti uniformemente, non allineati uno per uno; il selettore di allineamento viene quindi
-nascosto quando il pulsante è in fila, perché un comando che non ha effetto è peggio che assente.
-Larghezze in **percentuale** e non in pixel: con tre celle la divisione in pixel lascia un resto e
-l'ultima colonna risulta più stretta.
+**La fila è fatta di tre caselle: sinistra, centro, destra** (rivisto il 2026-08-10). Ogni pulsante
+**dichiara quale occupare** tramite il proprio `layout`, e ogni casella ospita un solo pulsante.
+
+Le due versioni precedenti erano entrambe sbagliate, in modi opposti:
+1. l'allineamento valeva *dentro* la cella → ogni pulsante finiva in un punto diverso del suo terzo
+   e la fila usciva sbilanciata;
+2. l'allineamento veniva *ignorato* e i pulsanti si disponevano nell'ordine dei blocchi → la
+   posizione risultava decisa dall'ordine in elenco, che in una lista **verticale** nessuno legge
+   come "sinistra-centro-destra". Per l'utente era una disposizione arbitraria.
+
+Da qui il **massimo di tre**: le posizioni dichiarabili sono tre. Con più pulsanti servirebbe
+esprimere *chi sta a destra di chi*, che è un modello diverso e molto più oneroso. Un quarto
+pulsante consecutivo apre una **nuova fila** invece di stringere gli altri.
+
+Le caselle vuote **restano vuote**: sinistra + destra senza il centro è una disposizione legittima,
+e riempire il buco spostando i pulsanti tradirebbe la scelta fatta.
+
+Il conflitto (due pulsanti sulla stessa posizione, o più di tre in fila) è impedito **al
+salvataggio del blocco** e non solo prima dell'invio: un pulsante è valido da solo e diventa un
+problema per via dei vicini, quindi la verifica guarda l'insieme risultante
+(`NewsletterBloccoValidator.ValidaFilePulsanti`).
+
+Larghezze in **percentuale** (33,33%) e non in pixel: con tre celle la divisione in pixel lascia un
+resto e l'ultima colonna risulta più stretta.
 
 ### 6.5 — Footer componibile per azienda: SÌ, con un vincolo
 

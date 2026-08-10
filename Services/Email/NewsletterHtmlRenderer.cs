@@ -112,7 +112,11 @@ public static class NewsletterHtmlRenderer
                 && i + 1 < lista.Count && lista[i + 1].Tipo == "pulsante" && lista[i + 1].Colonne == 2)
             {
                 var fila = new List<NewsletterRenderBlocco>();
-                while (i < lista.Count && lista[i].Tipo == "pulsante" && lista[i].Colonne == 2)
+                // Massimo tre per fila: le caselle sono tre (sinistra, centro, destra). Un
+                // quarto pulsante non avrebbe una posizione da dichiarare, quindi apre una
+                // nuova fila invece di stringere tutti.
+                while (i < lista.Count && lista[i].Tipo == "pulsante" && lista[i].Colonne == 2
+                       && fila.Count < MaxPulsantiInFila)
                 {
                     fila.Add(lista[i]);
                     i++;
@@ -357,30 +361,52 @@ public static class NewsletterHtmlRenderer
           </table>";
     }
 
+    /// <summary>Quante caselle ha una fila di pulsanti: sinistra, centro, destra.</summary>
+    public const int MaxPulsantiInFila = 3;
+
     /// <summary>
-    /// Piu' pulsanti su una sola riga, in celle di uguale larghezza.
+    /// Piu' pulsanti su una sola riga. La riga e' sempre divisa in <b>tre caselle uguali</b> e
+    /// ogni pulsante occupa quella dichiarata nel proprio <c>layout</c>.
     /// </summary>
     /// <remarks>
-    /// Ogni pulsante e' <b>centrato nella propria cella</b> e l'allineamento del singolo blocco
-    /// viene volutamente ignorato. Farlo valere per cella - come nella prima versione - sposta
-    /// ciascun pulsante in un punto diverso del proprio spazio e la fila esce sbilanciata: chi
-    /// mette dei pulsanti in fila li vuole distribuiti in modo uniforme, non allineati uno per uno.
-    /// Larghezze in <b>percentuale</b> e non in pixel: con tre celle la divisione in pixel lascia
-    /// un resto e l'ultima colonna risulta piu' stretta.
+    /// Nella prima versione l'allineamento del singolo veniva ignorato e i pulsanti si
+    /// disponevano nell'ordine dei blocchi: la posizione risultava quindi decisa dall'ordine in
+    /// elenco, che in una lista verticale non si legge come "sinistra-centro-destra". Ora la
+    /// posizione e' dichiarata.
+    /// <para>Le caselle vuote restano vuote di proposito: sinistra + destra senza il centro e' una
+    /// disposizione legittima, e riempire il buco spostando i pulsanti tradirebbe la scelta.</para>
     /// </remarks>
     private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila)
     {
-        var celle = new StringBuilder();
-        var percentuale = Math.Round(100.0 / Math.Max(fila.Count, 1), 2);
+        // Tre caselle fisse: 0 = sinistra, 1 = centro, 2 = destra.
+        var caselle = new NewsletterRenderBlocco?[MaxPulsantiInFila];
 
-        foreach (var b in fila)
+        foreach (var b in fila.Take(MaxPulsantiInFila))
         {
-            var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
-            var contenuto = string.IsNullOrWhiteSpace(b.LinkUrl)
-                ? ""
-                : BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl);
+            var voluta = b.Layout switch { "sinistra" => 0, "centro" => 1, "destra" => 2, _ => -1 };
 
-            celle.Append($@"<td width=""{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%"" align=""center"" valign=""middle"" style=""width:{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;padding:0 4px;"">{contenuto}</td>");
+            // Casella non dichiarata o gia' occupata: si prende la prima libera, cosi' un
+            // pulsante non sparisce mai per un conflitto (che la UI comunque impedisce).
+            if (voluta < 0 || caselle[voluta] != null)
+                voluta = Array.FindIndex(caselle, c => c == null);
+
+            if (voluta >= 0) caselle[voluta] = b;
+        }
+
+        var allineamenti = new[] { "left", "center", "right" };
+        var celle = new StringBuilder();
+
+        for (int c = 0; c < MaxPulsantiInFila; c++)
+        {
+            var b = caselle[c];
+            var contenuto = "&nbsp;";
+            if (b != null && !string.IsNullOrWhiteSpace(b.LinkUrl))
+            {
+                var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
+                contenuto = BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl);
+            }
+
+            celle.Append($@"<td width=""33.33%"" align=""{allineamenti[c]}"" valign=""middle"" style=""width:33.33%;padding:0 4px;"">{contenuto}</td>");
         }
 
         return $@"
