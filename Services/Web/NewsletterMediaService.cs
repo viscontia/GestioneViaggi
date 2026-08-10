@@ -23,6 +23,20 @@ public sealed class NewsletterMediaService
     private readonly AziendaLogoService _logoService;
     private readonly ILogger<NewsletterMediaService> _logger;
 
+    /// <summary>
+    /// URL del logo gia' preparato, per azienda. La chiave comprende l'identita' del logo e la
+    /// sua data di modifica: se il logo cambia, la voce non viene riusata.
+    /// </summary>
+    /// <remarks>
+    /// Senza questa cache il logo veniva riletto dal database (oltre 100 kB per SFT),
+    /// riconvertito e <b>ricaricato su Storage a ogni anteprima e a ogni invio</b>, anche di
+    /// prova. Il percorso e' deterministico, quindi il caricamento riscriveva sempre lo stesso
+    /// file: lavoro e attesa per ottenere un risultato identico.
+    /// Il servizio e' Scoped, quindi la cache vive quanto la sessione: nessun rischio di servire
+    /// il logo di un'azienda a un'altra, perche' la chiave e' l'azienda.
+    /// </remarks>
+    private readonly Dictionary<int, (string Chiave, string? Url)> _cacheLogo = new();
+
     public NewsletterMediaService(
         IWebMediaStorage storage, AziendaLogoService logoService, ILogger<NewsletterMediaService> logger)
     {
@@ -42,6 +56,12 @@ public sealed class NewsletterMediaService
                     ?? logos.Where(l => l.IsActive).OrderBy(l => l.Priority).FirstOrDefault();
             if (logo == null) return null;
 
+            // Chiave di validita': identita' del logo + data di modifica. Se non cambia nulla,
+            // si riusa l'URL senza rileggere il binario ne' ricaricarlo.
+            var chiave = $"{logo.Id}|{(logo.UpdatedAt ?? logo.CreatedAt):O}";
+            if (_cacheLogo.TryGetValue(aziendaId, out var inCache) && inCache.Chiave == chiave)
+                return inCache.Url;
+
             var bin = await _logoService.GetBinaryDataAsync(logo.Id);
             if (bin == null || bin.Length == 0) return null;
 
@@ -52,7 +72,9 @@ public sealed class NewsletterMediaService
             await using var upload = new MemoryStream(jpeg.Bytes);
             await _storage.UploadAsync(path, upload, WebImageProcessor.MimeEmail, ct);
 
-            return _storage.BuildPublicUrl(path);
+            var url = _storage.BuildPublicUrl(path);
+            _cacheLogo[aziendaId] = (chiave, url);
+            return url;
         }
         catch (Exception ex)
         {

@@ -38,7 +38,7 @@
             @(_invioTotale > 0 ? $"Invio in corso: {_invioFatti} di {_invioTotale}" : "Preparazione dell'invio…")
         </MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
-            @(_invioTotale > 0 ? "Non chiudere la finestra." : "Composizione della newsletter e preparazione delle immagini.")
+            @(_invioTotale > 0 ? "Non chiudere la finestra." : "Composizione della newsletter e collegamento al server di posta.")
         </MudText>
         @if (_invioTotale > 0)
         {
@@ -532,6 +532,23 @@ else
         return true;
     }
 
+    /// <summary>
+    /// Accende l'attesa e FORZA il ridisegno.
+    /// </summary>
+    /// <remarks>
+    /// Il solo <c>_busy = true</c> non basta: Blazor ridisegna quando il gestore cede il
+    /// controllo la prima volta e quando termina, non a ogni assegnazione. Se prima
+    /// dell'attesa c'e' gia' stato un <c>await</c> — una validazione, un dialogo di conferma —
+    /// il render e' gia' avvenuto con <c>_busy</c> a false, e l'overlay non compare per tutta la
+    /// durata dell'operazione: l'utente vede solo un ritardo senza spiegazione.
+    /// Esiste come metodo unico proprio per non doverlo ricordare in ogni punto.
+    /// </remarks>
+    private async Task AccendiAttesa()
+    {
+        _busy = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
     // =====================================================================
     // Newsletter a blocchi: elenco, composizione, anteprima, duplicazione
     // =====================================================================
@@ -543,7 +560,7 @@ else
         var oggetto = await ChiediTestoAsync(titolo, etichetta);
         if (string.IsNullOrWhiteSpace(oggetto)) return;
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             var id = await InviiService.CreaBozzaAsync(_aziendaId, oggetto!.Trim(), comeModello);
@@ -562,7 +579,7 @@ else
         var oggetto = await ChiediTestoAsync("Duplica", "Oggetto della copia", $"{n.Oggetto} (copia)");
         if (string.IsNullOrWhiteSpace(oggetto)) return;
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             // La copia nasce sempre come bozza, anche da una gia' inviata o da un modello.
@@ -599,7 +616,7 @@ else
             new DialogOptions { BackdropClick = false });
         if ((await dlg.Result)!.Canceled) return;
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             await InviiService.DeleteAsync(n.Id, _aziendaId);
@@ -634,7 +651,7 @@ else
     private async Task SalvaOggetto()
     {
         if (_invioCorrente is null || string.IsNullOrWhiteSpace(_oggetto)) return;
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             var invio = await InviiService.GetByIdAsync(_invioCorrente.Id, _aziendaId);
@@ -662,7 +679,7 @@ else
         if (_invioCorrente is null) return;
 
         long nuovoId;
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             var b = new WebNewsletterBlocco
@@ -688,7 +705,7 @@ else
         if (!salvato)
         {
             // Annullato: si torna allo stato precedente all'aggiunta.
-            _busy = true;
+            await AccendiAttesa();
             try
             {
                 await BlocchiService.DeleteAsync(nuovoId, _aziendaId);
@@ -737,7 +754,7 @@ else
             return false;
         }
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             await BlocchiService.UpdateAsync(copia);
@@ -754,7 +771,7 @@ else
 
     private async Task EliminaBlocco(WebNewsletterBlocco b)
     {
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             await BlocchiService.DeleteAsync(b.WebNewsletterBloccoId, _aziendaId);
@@ -772,7 +789,7 @@ else
 
         (_blocchi[indice], _blocchi[destinazione]) = (_blocchi[destinazione], _blocchi[indice]);
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             // La function rimette comunque intestazione prima e footer ultimo: qui non serve
@@ -788,7 +805,7 @@ else
     private async Task Anteprima(long invioId)
     {
         string html;
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             // Indirizzo di esempio: serve solo a firmare il link di disiscrizione.
@@ -915,7 +932,7 @@ else
             return;
         }
 
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             await RenderService.SalvaFooterConfigAsync(_aziendaId,
@@ -1017,7 +1034,7 @@ else
         if (!formato.IsValid) { Snackbar.Add(formato.Message, Severity.Warning); return; }
 
         if (!await PreflightOkAsync()) return;
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             // Rendering REALE dei blocchi: nessun prefisso [TEST], nessuna versione ridotta.
@@ -1045,7 +1062,7 @@ else
         var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma invio", parameters, new DialogOptions { BackdropClick = false });
         if ((await dlg.Result)!.Canceled) return;
 
-        _busy = true;
+        await AccendiAttesa();
         _invioFatti = 0; _invioTotale = 0;
         try
         {
@@ -1080,7 +1097,7 @@ else
     private async Task AggiungiSoppressione()
     {
         if (string.IsNullOrWhiteSpace(_sopEmail)) { Snackbar.Add("Inserisci un'email.", Severity.Warning); return; }
-        _busy = true;
+        await AccendiAttesa();
         try
         {
             await SoppressioniService.CreateAsync(new WebNewsletterSoppressione
