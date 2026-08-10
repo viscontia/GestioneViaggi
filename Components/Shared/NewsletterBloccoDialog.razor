@@ -186,6 +186,15 @@
                         <MudSelectItem T="string" Value="@("destra")">A destra, testo a sinistra</MudSelectItem>
                     </MudSelect>
                 }
+                else if (Blocco.Tipo == "pulsante" && Blocco.Colonne == 2)
+                {
+                    @* In fila i pulsanti si distribuiscono uniformemente: l'allineamento del
+                       singolo non ha piu' effetto, quindi non va nemmeno mostrato. *@
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                        In fila i pulsanti vengono distribuiti in parti uguali: l'allineamento del
+                        singolo pulsante non si applica.
+                    </MudAlert>
+                }
                 else
                 {
                     <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Allineamento"

@@ -213,14 +213,22 @@ piena larghezza, due tour affiancati invece che impilati.
 |---|---|---|
 | `tour`, `immagine` | posizione dell'immagine (sinistra/destra/pieno) | due tour affiancati |
 | `testo` | allineamento (sinistra/centro/destra) | — |
-| `pulsante` | allineamento **dentro la sua cella** | **in fila** coi pulsanti vicini |
+| `pulsante` | allineamento nella riga — **ignorato quando è in fila** | **in fila** coi pulsanti vicini |
 
 Il caso che l'ha reso evidente: tre pulsanti allineati sinistra/centro/destra apparivano **a
 scaletta**, non in fila. Era corretto — ogni blocco occupa una riga a piena larghezza e
 l'allineamento lo posiziona dentro quella riga — ma nessuno se lo aspetta: una fila di pulsanti
 social è una cosa che ogni newsletter ha. Da qui `colonne = 2` sui pulsanti, che raccoglie **tutta
 la sequenza** di pulsanti consecutivi così marcati in un'unica riga divisa in celle uguali (tre
-pulsanti → tre celle da 178px dentro i 536 utili), non solo una coppia come per i tour.
+pulsanti → tre celle da 33,33%), non solo una coppia come per i tour.
+
+In fila i pulsanti sono **centrati ciascuno nella propria cella** e l'allineamento del singolo è
+**ignorato**: farlo valere per cella — come nella prima versione — sposta ogni pulsante in un punto
+diverso del suo spazio e la fila esce sbilanciata. Chi mette dei pulsanti in fila li vuole
+distribuiti uniformemente, non allineati uno per uno; il selettore di allineamento viene quindi
+nascosto quando il pulsante è in fila, perché un comando che non ha effetto è peggio che assente.
+Larghezze in **percentuale** e non in pixel: con tre celle la divisione in pixel lascia un resto e
+l'ultima colonna risulta più stretta.
 
 ### 6.5 — Footer componibile per azienda: SÌ, con un vincolo
 

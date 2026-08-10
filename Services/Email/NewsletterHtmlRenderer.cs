@@ -326,13 +326,20 @@ public static class NewsletterHtmlRenderer
     }
 
     /// <summary>
-    /// Piu' pulsanti su una sola riga, in celle di uguale larghezza. L'allineamento del singolo
-    /// blocco vale dentro la sua cella, cosi' resta possibile stringere o allargare la fila.
+    /// Piu' pulsanti su una sola riga, in celle di uguale larghezza.
     /// </summary>
+    /// <remarks>
+    /// Ogni pulsante e' <b>centrato nella propria cella</b> e l'allineamento del singolo blocco
+    /// viene volutamente ignorato. Farlo valere per cella - come nella prima versione - sposta
+    /// ciascun pulsante in un punto diverso del proprio spazio e la fila esce sbilanciata: chi
+    /// mette dei pulsanti in fila li vuole distribuiti in modo uniforme, non allineati uno per uno.
+    /// Larghezze in <b>percentuale</b> e non in pixel: con tre celle la divisione in pixel lascia
+    /// un resto e l'ultima colonna risulta piu' stretta.
+    /// </remarks>
     private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila)
     {
         var celle = new StringBuilder();
-        var larghezza = (int)Math.Floor(536.0 / Math.Max(fila.Count, 1));
+        var percentuale = Math.Round(100.0 / Math.Max(fila.Count, 1), 2);
 
         foreach (var b in fila)
         {
@@ -341,7 +348,7 @@ public static class NewsletterHtmlRenderer
                 ? ""
                 : BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false);
 
-            celle.Append($@"<td width=""{larghezza}"" align=""{AllineaDaLayout(b.Layout)}"" valign=""top"" style=""width:{larghezza}px;padding:0 4px;"">{contenuto}</td>");
+            celle.Append($@"<td width=""{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%"" align=""center"" valign=""middle"" style=""width:{percentuale.ToString(System.Globalization.CultureInfo.InvariantCulture)}%;padding:0 4px;"">{contenuto}</td>");
         }
 
         return $@"
