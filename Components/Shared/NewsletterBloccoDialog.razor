@@ -118,6 +118,7 @@
             @if (Blocco.Tipo != "tour")
             {
                 <MudSelect T="string" Value="@_destinazione" ValueChanged="OnDestinazioneChanged"
+                           ToStringFunc="@EtichettaDestinazione"
                            Label="Dove porta il collegamento" Variant="Variant.Outlined" Class="mb-3">
                     <MudSelectItem T="string" Value="@("home")">Home page del sito</MudSelectItem>
                     <MudSelectItem T="string" Value="@("tour")">Pagina di un tour…</MudSelectItem>
@@ -374,12 +375,39 @@
         // mostra la scelta fatta invece di ripartire da "lo scrivo io".
         var url = (Blocco.LinkUrl ?? "").TrimEnd('/');
         var home = (_sitoWeb ?? "").TrimEnd('/');
+        // Blocchi creati prima dello script 518: hanno l'URL ma non il legame. Se l'indirizzo
+        // corrisponde a una voce di rubrica lo si ristabilisce, cosi' al primo salvataggio il
+        // blocco entra nel meccanismo di aggiornamento automatico invece di restarne fuori.
         var inRubrica = _rubrica.FirstOrDefault(x => x.Url.TrimEnd('/') == url);
+        if (inRubrica != null && Blocco.IndirizzoIdFk is null && Blocco.Tipo != "tour")
+            Blocco.IndirizzoIdFk = inRubrica.WebIndirizzoId;
+
         _destinazione = string.IsNullOrWhiteSpace(url) ? "home"
                       : inRubrica != null ? $"rubrica:{inRubrica.WebIndirizzoId}"
                       : (!string.IsNullOrWhiteSpace(home) && url == home) ? "home"
                       : url.Contains("/tour/") ? "tour"
                       : "manuale";
+    }
+
+    /// <summary>
+    /// Testo mostrato nella tendina. Serve perche' MudSelect&lt;string&gt; visualizza il VALORE,
+    /// non il contenuto della voce: senza, al posto del nome dell'indirizzo si legge "rubrica:6".
+    /// </summary>
+    private string EtichettaDestinazione(string? valore)
+    {
+        if (string.IsNullOrEmpty(valore)) return "";
+        if (valore == "home") return "Home page del sito";
+        if (valore == "tour") return "Pagina di un tour…";
+        if (valore == "manuale") return "Un altro indirizzo (lo scrivo io)";
+
+        if (valore.StartsWith("rubrica:") && long.TryParse(valore["rubrica:".Length..], out var id))
+        {
+            var ind = _rubrica.FirstOrDefault(x => x.WebIndirizzoId == id);
+            // Voce non piu' in rubrica (cancellata o disattivata): meglio dirlo che mostrare un codice.
+            return ind?.Descrizione ?? "Indirizzo non più in rubrica";
+        }
+
+        return valore;
     }
 
     /// <summary>Cambio della destinazione del collegamento.</summary>
