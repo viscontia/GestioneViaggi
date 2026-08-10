@@ -45,6 +45,14 @@
 
     <MudNavGroup Title="Tabelle" Icon="@Icons.Material.Filled.TableChart" Expanded="false">
 
+        <!-- Tabelle web -->
+        <MudNavGroup Title="Tabelle web" Icon="@Icons.Material.Filled.Language" Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Filled.Link"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/web-indirizzi", "Indirizzi web", "table"))">
+                <MudText Typo="Typo.body1">Indirizzi web</MudText>
+            </MudNavLink>
+        </MudNavGroup>
+
         <!-- Tabelle Geografiche -->
         <MudNavGroup Title="Tabelle Geografiche" Icon="@Icons.Material.Filled.Public" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Public"

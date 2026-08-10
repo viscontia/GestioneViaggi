@@ -1052,3 +1052,12 @@ ovunque. Il `Contesto` finisce in tooltip: senza, una parete di miniature è ind
 **Usato da:** `WebTourPassoEditDialog` (foto del passo d'itinerario) e `NewsletterBloccoDialog`
 (blocchi testata / immagine / tour). Nella newsletter la scelta passa poi da
 `NewsletterMediaService.ConvertiDaUrlAsync`, perché la galleria produce WebP e Outlook non lo mostra.
+
+## WebIndirizzoDialog
+
+Modifica di una voce della rubrica indirizzi web (`Tabelle → Tabelle web → Indirizzi web`, script
+`517`). Nome, indirizzo, note, attivo.
+
+Valida **prima** di salvare (nome ≥ 2 caratteri, URL con protocollo) pur avendo gli stessi vincoli
+sulla tabella: dire subito cosa manca è meglio che far tornare l'errore dal database a salvataggio
+avvenuto. I messaggi dei vincoli sono comunque nel dizionario centrale, per i casi che sfuggono.

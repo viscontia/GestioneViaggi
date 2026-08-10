@@ -6,6 +6,7 @@
 @inject IDialogService DialogService
 @inject NewsletterRenderService RenderService
 @inject NewsletterMediaService MediaService
+@inject WebIndirizziService IndirizziService
 
 @* Modifica di un singolo blocco della newsletter. I campi mostrati dipendono dal tipo:
    far vedere "link" su un separatore confonderebbe e basta. *@
@@ -120,8 +121,20 @@
                            Label="Dove porta il collegamento" Variant="Variant.Outlined" Class="mb-3">
                     <MudSelectItem T="string" Value="@("home")">Home page del sito</MudSelectItem>
                     <MudSelectItem T="string" Value="@("tour")">Pagina di un tour…</MudSelectItem>
+                    @foreach (var ind in _rubrica)
+                    {
+                        <MudSelectItem T="string" Value="@($"rubrica:{ind.WebIndirizzoId}")">@ind.Descrizione</MudSelectItem>
+                    }
                     <MudSelectItem T="string" Value="@("manuale")">Un altro indirizzo (lo scrivo io)</MudSelectItem>
                 </MudSelect>
+
+                @if (_rubrica.Count == 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+                        Gli indirizzi che usi spesso si registrano in <strong>Tabelle → Tabelle web → Indirizzi web</strong>:
+                        da lì compaiono in questo elenco e non vanno più ricordati a memoria.
+                    </MudText>
+                }
             }
 
             @if (Blocco.Tipo == "tour" || _destinazione == "manuale")
@@ -218,6 +231,7 @@
     private BlazoredTextEditor? _editor;
     private string _destinazione = "manuale";
     private string? _sitoWeb;
+    private List<WebIndirizzo> _rubrica = new();
     private bool _editorCaricato;
 
     /// <summary>
@@ -353,11 +367,16 @@
         }
         catch { _sitoWeb = null; }
 
+        try { _rubrica = await IndirizziService.ListAsync(Blocco.AziendaId, soloAttivi: true); }
+        catch { _rubrica = new(); }
+
         // Riconosce la destinazione gia' impostata, cosi' riaprendo il blocco la tendina
         // mostra la scelta fatta invece di ripartire da "lo scrivo io".
         var url = (Blocco.LinkUrl ?? "").TrimEnd('/');
         var home = (_sitoWeb ?? "").TrimEnd('/');
+        var inRubrica = _rubrica.FirstOrDefault(x => x.Url.TrimEnd('/') == url);
         _destinazione = string.IsNullOrWhiteSpace(url) ? "home"
+                      : inRubrica != null ? $"rubrica:{inRubrica.WebIndirizzoId}"
                       : (!string.IsNullOrWhiteSpace(home) && url == home) ? "home"
                       : url.Contains("/tour/") ? "tour"
                       : "manuale";
@@ -367,6 +386,16 @@
     private async Task OnDestinazioneChanged(string valore)
     {
         _destinazione = valore;
+
+        if (valore.StartsWith("rubrica:"))
+        {
+            var id = long.Parse(valore["rubrica:".Length..]);
+            var ind = _rubrica.FirstOrDefault(x => x.WebIndirizzoId == id);
+            if (ind is null) { _destinazione = "manuale"; return; }
+            Blocco.LinkUrl = ind.Url;
+            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = ind.Descrizione;
+            return;
+        }
 
         if (valore == "home")
         {

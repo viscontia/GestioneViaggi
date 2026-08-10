@@ -246,8 +246,14 @@ public class WebNewsletterInviiService : BaseCrudService<WebNewsletterInvio>
     private static void BindWritableParams(NpgsqlCommand cmd, WebNewsletterInvio e)
     {
         cmd.Parameters.AddWithValue("AziendaId", e.AziendaId);
-        cmd.Parameters.AddWithValue("Oggetto", e.Oggetto);
-        cmd.Parameters.AddWithValue("CorpoHtml", e.CorpoHtml);
+
+        // NormalizeEntityBeforeSave (EntityNormalizer.NormalizeNullableStrings) trasforma le
+        // stringhe vuote in NULL. Su corpo_html accade sempre nelle bozze — dallo script 512 la
+        // colonna e' nullable proprio perche' il corpo non esiste finche' non si invia — e
+        // AddWithValue con un null C# solleva "Parameter must have either its NpgsqlDbType or its
+        // DataTypeName or its Value set". Serve DBNull esplicito, non il null.
+        cmd.Parameters.AddWithValue("Oggetto", (object?)e.Oggetto ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("CorpoHtml", (object?)e.CorpoHtml ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Stato", string.IsNullOrWhiteSpace(e.Stato) ? "bozza" : e.Stato);
         cmd.Parameters.AddWithValue("DataInvio", (object?)e.DataInvio ?? DBNull.Value);
         cmd.Parameters.AddWithValue("NumeroDestinatari", (object?)e.NumeroDestinatari ?? DBNull.Value);

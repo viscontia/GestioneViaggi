@@ -1,0 +1,196 @@
+@page "/tabelle/web-indirizzi"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using Microsoft.Extensions.Logging
+@using MudBlazor
+@inject WebIndirizziService Service
+@inject ITenantContext TenantContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@inject ILogger<WebIndirizziPage> Logger
+@attribute [Authorize]
+@implements IDisposable
+
+@* Rubrica degli indirizzi web dell'azienda (script 517).
+   Serve ai pulsanti della newsletter: gli indirizzi si scrivono una volta qui e si scelgono
+   per nome quando servono. Quando il sito cambia, si correggono in un posto solo. *@
+
+<MudText Typo="Typo.h5" Class="mb-1">Indirizzi web</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Gli indirizzi che l'azienda riusa: il sito, le sue pagine, i collegamenti esterni.
+    I pulsanti della newsletter li scelgono da qui, per nome, senza che nessuno debba ricordarli.
+</MudText>
+
+@if (_isSuperAdmin)
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-3">
+        <AziendaSelect Value="@_aziendaId" ValueChanged="OnAziendaChanged" Label="Azienda"
+                       Class="mt-0" Style="max-width:420px;" />
+    </MudPaper>
+}
+
+@if (_aziendaId == 0)
+{
+    <MudAlert Severity="Severity.Warning">Seleziona un'azienda.</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center gap-2 mb-3">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   Disabled="@_busy" OnClick="@(() => Modifica(null))">Nuovo indirizzo</MudButton>
+    </div>
+
+    <MudSimpleTable Dense="true" Bordered="true" Style="overflow-x:auto;">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Indirizzo</th>
+                <th>Note</th>
+                <th style="text-align:center;">Attivo</th>
+                <th style="text-align:right;">Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in _indirizzi)
+            {
+                <tr>
+                    <td>@i.Descrizione</td>
+                    <td style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        <MudLink Href="@i.Url" Target="_blank">@i.Url</MudLink>
+                    </td>
+                    <td>@i.Note</td>
+                    <td style="text-align:center;">
+                        <MudIcon Icon="@(i.Attivo ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                 Color="@(i.Attivo ? Color.Success : Color.Default)" Size="Size.Small" />
+                    </td>
+                    <td style="text-align:right;white-space:nowrap;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
+                                       Disabled="@_busy" OnClick="@(() => Modifica(i))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@_busy" OnClick="@(() => Elimina(i))" />
+                    </td>
+                </tr>
+            }
+            @if (_indirizzi.Count == 0)
+            {
+                <tr><td colspan="5">
+                    <MudText Color="Color.Secondary">
+                        Nessun indirizzo. Aggiungi almeno la home del sito: sarà la destinazione più usata.
+                    </MudText>
+                </td></tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">
+        Un indirizzo <strong>disattivato</strong> non compare più fra le scelte, ma le newsletter già
+        composte continuano a funzionare: il pulsante conserva l'indirizzo scelto, non un riferimento
+        a questa tabella.
+    </MudAlert>
+}
+
+@code {
+    private int _aziendaId;
+    private bool _isSuperAdmin;
+    private bool _busy;
+    private List<WebIndirizzo> _indirizzi = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("web_indirizzi");
+        try
+        {
+            _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+            _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+            if (_aziendaId != 0) await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task OnAziendaChanged(int aziendaId)
+    {
+        _aziendaId = aziendaId;
+        _indirizzi.Clear();
+        if (_aziendaId != 0) await RicaricaAsync();
+        StateHasChanged();
+    }
+
+    private async Task RicaricaAsync()
+    {
+        try { _indirizzi = await Service.ListAsync(_aziendaId); }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+    }
+
+    private async Task Modifica(WebIndirizzo? esistente)
+    {
+        var lavoro = esistente is null
+            ? new WebIndirizzo { AziendaId = _aziendaId }
+            : new WebIndirizzo
+            {
+                WebIndirizzoId = esistente.WebIndirizzoId, Descrizione = esistente.Descrizione,
+                Url = esistente.Url, Note = esistente.Note, Ordine = esistente.Ordine,
+                Attivo = esistente.Attivo, AziendaId = esistente.AziendaId
+            };
+
+        var parameters = new DialogParameters<WebIndirizzoDialog> { { x => x.Indirizzo, lavoro } };
+        var dlg = await DialogService.ShowAsync<WebIndirizzoDialog>(
+            esistente is null ? "Nuovo indirizzo" : "Modifica indirizzo", parameters,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false });
+        if ((await dlg.Result)!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            if (esistente is null) await Service.CreateAsync(lavoro);
+            else await Service.UpdateAsync(lavoro);
+            await RicaricaAsync();
+            Snackbar.Add("Indirizzo salvato.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Elimina(WebIndirizzo i)
+    {
+        var parameters = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, "Elimina indirizzo" },
+            { x => x.ContentText, $"Eliminare «{i.Descrizione}»? Le newsletter già composte non ne risentono." },
+            { x => x.ButtonText, "Elimina" },
+            { x => x.Color, Color.Error }
+        };
+        var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina", parameters,
+            new DialogOptions { BackdropClick = false });
+        if ((await dlg.Result)!.Canceled) return;
+
+        _busy = true;
+        try
+        {
+            await Service.DeleteAsync(i.WebIndirizzoId, _aziendaId);
+            await RicaricaAsync();
+            Snackbar.Add("Indirizzo eliminato.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private string MessaggioErrore(Exception ex) => ex switch
+    {
+        InvalidOperationException or GestioneViaggi.Models.Exceptions.GestioneViaggiException => ex.Message,
+        Npgsql.PostgresException pex => Helpers.DatabaseExceptionHelper.WrapException(pex, "web_indirizzi").Message,
+        _ => Log(ex)
+    };
+
+    private string Log(Exception ex)
+    {
+        Logger.LogError(ex, "Errore non gestito in Indirizzi web");
+        return "Si è verificato un errore imprevisto. Il dettaglio tecnico è nel log dell'applicazione.";
+    }
+}

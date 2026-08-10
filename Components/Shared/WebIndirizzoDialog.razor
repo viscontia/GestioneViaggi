@@ -1,0 +1,74 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+@* Un indirizzo della rubrica web. Volutamente minimo: nome, indirizzo, note. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @ref="_primoCampo" @bind-Value="Indirizzo.Descrizione" Label="Nome" Variant="Variant.Outlined"
+                      MaxLength="150" Class="mb-3"
+                      HelperText="Come lo riconoscerai nell'elenco: «Home sito», «Pagina contatti», «Facebook»." />
+
+        <MudTextField @bind-Value="Indirizzo.Url" Label="Indirizzo (URL)" Variant="Variant.Outlined"
+                      MaxLength="500" Class="mb-3" Placeholder="https://..."
+                      HelperText="Copialo dalla barra del browser. Deve iniziare con https:// o http://." />
+
+        <MudTextField @bind-Value="Indirizzo.Note" Label="Note (facoltative)" Variant="Variant.Outlined"
+                      Lines="2" Class="mb-3"
+                      HelperText="A cosa serve, o un promemoria: «da aggiornare col sito nuovo»." />
+
+        <MudCheckBox @bind-Value="Indirizzo.Attivo" Label="Attivo" Color="Color.Primary" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">
+            Se lo disattivi non comparirà più fra le scelte, ma le newsletter già composte restano intatte.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Annulla">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Conferma">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public WebIndirizzo Indirizzo { get; set; } = new();
+
+    private MudTextField<string>? _primoCampo;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _primoCampo != null)
+        {
+            await Task.Delay(150);
+            await _primoCampo.FocusAsync();
+        }
+    }
+
+    /// <summary>
+    /// Controlli qui oltre che sui vincoli della tabella: dire subito cosa manca è meglio che
+    /// far arrivare l'errore dal database dopo il salvataggio.
+    /// </summary>
+    private void Conferma()
+    {
+        if (string.IsNullOrWhiteSpace(Indirizzo.Descrizione) || Indirizzo.Descrizione.Trim().Length < 2)
+        {
+            Snackbar.Add("Dai un nome all'indirizzo: serve a riconoscerlo quando lo scegli.", Severity.Warning);
+            return;
+        }
+
+        var url = (Indirizzo.Url ?? "").Trim();
+        if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Add("L'indirizzo deve iniziare con https:// (o http://). Copialo dalla barra del browser.", Severity.Warning);
+            return;
+        }
+
+        Indirizzo.Descrizione = Indirizzo.Descrizione.Trim();
+        Indirizzo.Url = url;
+        MudDialog?.Close(DialogResult.Ok(Indirizzo));
+    }
+
+    private void Annulla() => MudDialog?.Cancel();
+}

@@ -170,7 +170,8 @@ public static class DatabaseExceptionHelper
             { "uq_web_tour_mappa_giornata", "Questa giornata ha già una mappa. Elimina quella esistente prima di caricarne un'altra." },
             { "uq_web_tour_mappa_insieme", "Questa edizione ha già una mappa dell'intero viaggio. Elimina quella esistente prima di caricarne un'altra." },
             { "uq_web_tour_mappa_gpx_dedup", "Questo file GPX è già stato caricato per questa edizione (stesso nome e stessa dimensione)." },
-            { "uq_web_newsletter_soppressioni_email", "Questo indirizzo è già soppresso per questa azienda." }
+            { "uq_web_newsletter_soppressioni_email", "Questo indirizzo è già soppresso per questa azienda." },
+            { "uq_web_indirizzi_descrizione", "Esiste già un indirizzo web con questo nome. Scegline uno diverso: il nome serve a riconoscerlo nell'elenco." }
         };
 
         foreach (var mapping in uniqueMessages)
@@ -193,7 +194,9 @@ public static class DatabaseExceptionHelper
         {
             { "ck_web_tipi_viaggio_descrizioni_descrizione_min", "La descrizione deve avere almeno 3 caratteri." },
             { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." },
-            { "ck_web_tour_mappa_descrizione_insieme", "La mappa dell'intero viaggio richiede una descrizione." }
+            { "ck_web_tour_mappa_descrizione_insieme", "La mappa dell'intero viaggio richiede una descrizione." },
+            { "chk_web_indirizzi_url", "L'indirizzo deve iniziare con https:// (o http://). Copialo dalla barra del browser." },
+            { "chk_web_indirizzi_descrizione", "Il nome dell'indirizzo deve avere almeno 2 caratteri." }
         };
 
         foreach (var mapping in checkMessages)
