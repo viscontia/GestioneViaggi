@@ -227,9 +227,19 @@ public sealed class NewsletterRenderService
             if (conLegame.Count > 0)
             {
                 var rubrica = (await _indirizzi.ListAsync(aziendaId))
-                    .ToDictionary(x => x.WebIndirizzoId, x => x.Url);
+                    .ToDictionary(x => x.WebIndirizzoId, x => x);
+
                 foreach (var b in conLegame)
-                    if (rubrica.TryGetValue(b.IndirizzoIdFk!.Value, out var url)) b.LinkUrl = url;
+                {
+                    if (!rubrica.TryGetValue(b.IndirizzoIdFk!.Value, out var voce)) continue;
+
+                    // Non solo l'URL: anche social e icona. Senza, un pulsante creato prima che
+                    // la rubrica avesse il social resterebbe grigio per sempre, pur essendo
+                    // legato a una voce marcata come social.
+                    b.LinkUrl  = voce.Url;
+                    b.Social   = voce.Social;
+                    b.IconaUrl = voce.IconaUrl;
+                }
             }
         }
 

@@ -49,6 +49,7 @@ else
         <thead>
             <tr>
                 <th>Nome</th>
+                <th>Tipo</th>
                 <th>Indirizzo</th>
                 <th>Note</th>
                 <th style="text-align:center;">Attivo</th>
@@ -60,6 +61,33 @@ else
             {
                 <tr>
                     <td>@i.Descrizione</td>
+                    <td style="white-space:nowrap;">
+                        @if (string.IsNullOrWhiteSpace(i.Social))
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Collegamento</MudText>
+                        }
+                        else
+                        {
+                            <div class="d-flex align-center gap-2">
+                                @* Il pallino col colore del marchio: e' lo stesso che avra' il
+                                   pulsante nella newsletter, quindi l'elenco anticipa il risultato. *@
+                                <span style="@($"display:inline-block;width:12px;height:12px;border-radius:50%;background:{ColoreSocial(i.Social)};")"></span>
+                                <span>@EtichettaSocial(i.Social)</span>
+                                @if (!string.IsNullOrWhiteSpace(i.IconaUrl))
+                                {
+                                    <MudTooltip Text="Icona caricata">
+                                        <img src="@i.IconaUrl" alt="" style="width:18px;height:18px;object-fit:contain;" />
+                                    </MudTooltip>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="Nessuna icona: il pulsante userà solo il colore del marchio.">
+                                        <MudIcon Icon="@Icons.Material.Outlined.HideImage" Size="Size.Small" Color="Color.Default" />
+                                    </MudTooltip>
+                                }
+                            </div>
+                        }
+                    </td>
                     <td style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                         <MudLink Href="@i.Url" Target="_blank">@i.Url</MudLink>
                     </td>
@@ -78,7 +106,7 @@ else
             }
             @if (_indirizzi.Count == 0)
             {
-                <tr><td colspan="5">
+                <tr><td colspan="6">
                     <MudText Color="Color.Secondary">
                         Nessun indirizzo. Aggiungi almeno la home del sito: sarà la destinazione più usata.
                     </MudText>
@@ -95,6 +123,25 @@ else
 }
 
 @code {
+    /// <summary>Colori di marca, gli stessi usati dal renderer: l'elenco mostra cosa si otterrà.</summary>
+    private static string ColoreSocial(string? s) => s switch
+    {
+        "facebook"  => "#1877F2",
+        "instagram" => "#C13584",
+        "tiktok"    => "#010101",
+        "youtube"   => "#FF0000",
+        _           => "#9e9e9e"
+    };
+
+    private static string EtichettaSocial(string? s) => s switch
+    {
+        "facebook"  => "Facebook",
+        "instagram" => "Instagram",
+        "tiktok"    => "TikTok",
+        "youtube"   => "YouTube",
+        _           => s ?? ""
+    };
+
     private int _aziendaId;
     private bool _isSuperAdmin;
     private bool _busy;
@@ -136,7 +183,10 @@ else
             {
                 WebIndirizzoId = esistente.WebIndirizzoId, Descrizione = esistente.Descrizione,
                 Url = esistente.Url, Note = esistente.Note, Ordine = esistente.Ordine,
-                Attivo = esistente.Attivo, AziendaId = esistente.AziendaId
+                Attivo = esistente.Attivo, AziendaId = esistente.AziendaId,
+                // Senza questi tre, riaprire un indirizzo ne azzererebbe social e icona.
+                Social = esistente.Social, IconaUrl = esistente.IconaUrl,
+                IconaStoragePath = esistente.IconaStoragePath
             };
 
         var parameters = new DialogParameters<WebIndirizzoDialog> { { x => x.Indirizzo, lavoro } };

@@ -424,8 +424,14 @@
         // corrisponde a una voce di rubrica lo si ristabilisce, cosi' al primo salvataggio il
         // blocco entra nel meccanismo di aggiornamento automatico invece di restarne fuori.
         var inRubrica = _rubrica.FirstOrDefault(x => x.Url.TrimEnd('/') == url);
-        if (inRubrica != null && Blocco.IndirizzoIdFk is null && Blocco.Tipo != "tour")
-            Blocco.IndirizzoIdFk = inRubrica.WebIndirizzoId;
+        if (inRubrica != null && Blocco.Tipo != "tour")
+        {
+            Blocco.IndirizzoIdFk ??= inRubrica.WebIndirizzoId;
+
+            // Blocchi creati prima che la rubrica avesse il social: si allineano alla voce.
+            Blocco.Social ??= inRubrica.Social;
+            Blocco.IconaUrl ??= inRubrica.IconaUrl;
+        }
 
         _destinazione = string.IsNullOrWhiteSpace(url) ? "home"
                       : inRubrica != null ? $"rubrica:{inRubrica.WebIndirizzoId}"

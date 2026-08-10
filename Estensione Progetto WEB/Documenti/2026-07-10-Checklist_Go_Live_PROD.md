@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `520`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–520). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `521`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–521). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -24,7 +24,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=520 {print $2}' \
+  | awk '$1>=406 && $1<=521 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -37,7 +37,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`520` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`521` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -98,7 +98,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–520)
+### Elenco ordinato (467–521)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -161,6 +161,7 @@ ls SqlScripts/*.sql \
 | 518 | NewsletterBlocchi_IndirizzoFk | `web_newsletter_blocchi.indirizzo_id_fk` → `web_indirizzi` (ON DELETE SET NULL) + congelamento all'invio. Nessuna migrazione: colonna nuova, i blocchi esistenti restano con l'URL copiato |
 | 519 | WebIndirizzi_Social | `social` + `icona_url` su `web_indirizzi` e sui blocchi. Colonne nuove, nessuna migrazione |
 | 520 | NewsletterBlocchi_Social | CRUD blocchi e clonazione trasportano social e icona |
+| 521 | CongelaIndirizzi_Social | Il congelamento all'invio fissa anche social e icona, non solo l'URL |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
@@ -224,6 +225,17 @@ Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_
 **`cliente_lingua` mai NULL (script 485):** `fn_ana_clienti_set_lingua` auto-deriva dalla nazione di residenza quando il campo è vuoto (`fn_lingua_da_comune`, fallback `IT`); backfilla i NULL residui; imposta colonna `DEFAULT 'IT'` + `NOT NULL`. La newsletter legge `cliente_lingua` senza ragionare (il `COALESCE` in `fn_web_destinatari_newsletter` resta solo come fallback difensivo). Applicare 485 su PROD **dopo** 484.
 
 ### 2.6 — Dati di tabelle "tecniche" da MIGRARE (contenuto, non solo schema)
+
+⚠️ **`web_indirizzi` (script `517`/`519`) — CONTENUTO da riportare in PROD, non solo lo schema.**
+È la rubrica degli indirizzi web dell'azienda (sito, pagine, social) da cui i pulsanti della
+newsletter pescano le destinazioni. Lo script crea la tabella **vuota**: senza i record, i pulsanti
+non hanno nulla fra cui scegliere e l'operatore si ritrova a dover riscrivere gli URL a mano —
+cioè proprio la cosa che la tabella evita.
+Da riportare per ogni azienda: `descrizione`, `url`, `note`, `ordine`, `attivo`, `social`.
+Le **icone** (`icona_url` / `icona_storage_path`) puntano a file su Supabase Storage: vanno
+ricaricate dalla scheda dell'indirizzo in PROD, oppure i file vanno copiati nel bucket di produzione
+e gli URL riscritti. Un `icona_url` che punta al bucket di sviluppo produrrebbe un'icona rotta in
+tutte le newsletter.
 
 Alcune tabelle sono troppo tecniche per gli utenti finali: vengono **compilate a mano in TEST** con i dati corretti e poi il **contenuto** (non solo lo schema creato dagli script §1) va copiato sul DB Supabase di PROD. Riguarda:
 
@@ -462,7 +474,7 @@ libero.
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine i **110** script 406–520 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Applicati in ordine i **111** script 406–521 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
