@@ -103,6 +103,23 @@ public static class NewsletterHtmlRenderer
                 continue;
             }
 
+            // Pulsanti "in fila": una sequenza di pulsanti marcati come affiancati finisce in
+            // UNA riga sola, divisa in celle uguali. Senza, ogni pulsante prende una riga a
+            // piena larghezza e l'allineamento li dispone a scaletta invece che in fila.
+            if (b.Tipo == "pulsante" && b.Colonne == 2
+                && i + 1 < lista.Count && lista[i + 1].Tipo == "pulsante" && lista[i + 1].Colonne == 2)
+            {
+                var fila = new List<NewsletterRenderBlocco>();
+                while (i < lista.Count && lista[i].Tipo == "pulsante" && lista[i].Colonne == 2)
+                {
+                    fila.Add(lista[i]);
+                    i++;
+                }
+                i--; // il for incrementa di nuovo
+                sb.Append(RenderPulsantiInFila(fila));
+                continue;
+            }
+
             sb.Append(RenderBlocco(b, azienda, cfg, unsubscribeUrl));
         }
 
@@ -306,6 +323,33 @@ public static class NewsletterHtmlRenderer
               <a href=""{Esc(url)}"" target=""_blank"" style=""display:inline-block;padding:11px 22px;font-family:{FontFamily};font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;"">{Esc(etichetta)}</a>
             </td></tr>
           </table>";
+    }
+
+    /// <summary>
+    /// Piu' pulsanti su una sola riga, in celle di uguale larghezza. L'allineamento del singolo
+    /// blocco vale dentro la sua cella, cosi' resta possibile stringere o allargare la fila.
+    /// </summary>
+    private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila)
+    {
+        var celle = new StringBuilder();
+        var larghezza = (int)Math.Floor(536.0 / Math.Max(fila.Count, 1));
+
+        foreach (var b in fila)
+        {
+            var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
+            var contenuto = string.IsNullOrWhiteSpace(b.LinkUrl)
+                ? ""
+                : BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false);
+
+            celle.Append($@"<td width=""{larghezza}"" align=""{AllineaDaLayout(b.Layout)}"" valign=""top"" style=""width:{larghezza}px;padding:0 4px;"">{contenuto}</td>");
+        }
+
+        return $@"
+        <tr><td style=""padding:8px 32px 16px 32px;"">
+          <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
+            <tr>{celle}</tr>
+          </table>
+        </td></tr>";
     }
 
     private static string RenderSeparatore() => $@"

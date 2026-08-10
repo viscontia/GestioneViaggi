@@ -204,6 +204,14 @@
                         <MudSelectItem T="short" Value="@((short)2)">Affiancato al tour seguente</MudSelectItem>
                     </MudSelect>
                 }
+                else if (Blocco.Tipo == "pulsante")
+                {
+                    <MudSelect T="short" @bind-Value="Blocco.Colonne" Label="Disposizione" Variant="Variant.Outlined" Class="mb-3"
+                               HelperText="In fila: i pulsanti vicini così marcati finiscono sulla stessa riga.">
+                        <MudSelectItem T="short" Value="@((short)1)">Su una riga tutta sua</MudSelectItem>
+                        <MudSelectItem T="short" Value="@((short)2)">In fila con i pulsanti vicini</MudSelectItem>
+                    </MudSelect>
+                }
             </div>
         }
 

@@ -204,8 +204,23 @@ distratto.
 ### 6.4 — Varianti di disposizione: SÌ, come proprietà
 
 Il bisogno di "posizione fisica uno rispetto all'altro" si copre con proprietà del blocco
-(`layout = sinistra | destra | pieno`, `colonne = 1 | 2`), non con tipi nuovi: immagine a sinistra
-col testo a destra, invertiti, a piena larghezza, due tour affiancati invece che impilati.
+(`layout`, `colonne`), non con tipi nuovi: immagine a sinistra col testo a destra, invertiti, a
+piena larghezza, due tour affiancati invece che impilati.
+
+**Attenzione al significato, che dipende dal tipo di blocco** (emerso in collaudo il 2026-08-10):
+
+| Blocco | `layout` | `colonne = 2` |
+|---|---|---|
+| `tour`, `immagine` | posizione dell'immagine (sinistra/destra/pieno) | due tour affiancati |
+| `testo` | allineamento (sinistra/centro/destra) | — |
+| `pulsante` | allineamento **dentro la sua cella** | **in fila** coi pulsanti vicini |
+
+Il caso che l'ha reso evidente: tre pulsanti allineati sinistra/centro/destra apparivano **a
+scaletta**, non in fila. Era corretto — ogni blocco occupa una riga a piena larghezza e
+l'allineamento lo posiziona dentro quella riga — ma nessuno se lo aspetta: una fila di pulsanti
+social è una cosa che ogni newsletter ha. Da qui `colonne = 2` sui pulsanti, che raccoglie **tutta
+la sequenza** di pulsanti consecutivi così marcati in un'unica riga divisa in celle uguali (tre
+pulsanti → tre celle da 178px dentro i 536 utili), non solo una coppia come per i tour.
 
 ### 6.5 — Footer componibile per azienda: SÌ, con un vincolo
 
