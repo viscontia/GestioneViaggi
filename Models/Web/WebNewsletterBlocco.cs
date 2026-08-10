@@ -36,6 +36,14 @@ public sealed class WebNewsletterBlocco
     /// <summary>Solo per Tipo='tour': l'edizione da cui si ricavano copertina, titolo e link.</summary>
     public int? DataViaggioIdFk { get; set; }
 
+    /// <summary>
+    /// Voce della rubrica indirizzi da cui viene il collegamento (script 518). NULL = URL scritto
+    /// a mano o dedotto dal tour. Finché la newsletter è bozza o modello il rendering risolve da
+    /// qui, così correggere un indirizzo in rubrica allinea tutte le bozze; all'invio l'URL viene
+    /// congelato in <see cref="LinkUrl"/> e la newsletter inviata non cambia più.
+    /// </summary>
+    public long? IndirizzoIdFk { get; set; }
+
     public int AziendaId { get; set; }
 }
 

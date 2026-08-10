@@ -22,13 +22,16 @@ public sealed class NewsletterRenderService
     private readonly WebNewsletterBlocchiService _blocchi;
     private readonly WebAziendeFunzioniService _funzioni;
     private readonly NewsletterMediaService _media;
+    private readonly WebIndirizziService _indirizzi;
     private readonly ILogger<NewsletterRenderService> _logger;
 
     public NewsletterRenderService(
         IDatabaseService db, WebNewsletterBlocchiService blocchi, WebAziendeFunzioniService funzioni,
-        NewsletterMediaService media, ILogger<NewsletterRenderService> logger)
+        NewsletterMediaService media, WebIndirizziService indirizzi,
+        ILogger<NewsletterRenderService> logger)
     {
-        _db = db; _blocchi = blocchi; _funzioni = funzioni; _media = media; _logger = logger;
+        _db = db; _blocchi = blocchi; _funzioni = funzioni; _media = media;
+        _indirizzi = indirizzi; _logger = logger;
     }
 
     /// <summary>
@@ -212,6 +215,24 @@ public sealed class NewsletterRenderService
     public async Task<ContestoRender> PreparaAsync(long invioId, int aziendaId)
     {
         var blocchi = await _blocchi.ListAsync(invioId, aziendaId);
+
+        // Collegamenti presi dalla rubrica: si risolvono al rendering finche' la newsletter NON
+        // e' stata inviata. Cosi' correggere un indirizzo in rubrica allinea da solo tutte le
+        // bozze e i modelli - che e' il motivo per cui la rubrica esiste.
+        // Su una newsletter gia' inviata non si tocca nulla: e' un documento storico, e mostrare
+        // un indirizzo diverso da quello spedito sarebbe una bugia.
+        if (!await IsInviataAsync(invioId, aziendaId))
+        {
+            var conLegame = blocchi.Where(b => b.IndirizzoIdFk.HasValue).ToList();
+            if (conLegame.Count > 0)
+            {
+                var rubrica = (await _indirizzi.ListAsync(aziendaId))
+                    .ToDictionary(x => x.WebIndirizzoId, x => x.Url);
+                foreach (var b in conLegame)
+                    if (rubrica.TryGetValue(b.IndirizzoIdFk!.Value, out var url)) b.LinkUrl = url;
+            }
+        }
+
         var logoUrl = await _media.GetLogoUrlAsync(aziendaId);
         var azienda = await GetDatiAziendaAsync(aziendaId, logoUrl);
         var footer = await GetFooterConfigAsync(aziendaId);
@@ -245,6 +266,32 @@ public sealed class NewsletterRenderService
     /// </summary>
     public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario)
         => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario);
+
+    /// <summary>Una newsletter inviata e' immutabile: nessuna risoluzione dalla rubrica.</summary>
+    private async Task<bool> IsInviataAsync(long invioId, int aziendaId)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT stato FROM web_newsletter_invii WHERE web_newsletter_invii_id=@Id AND azienda_id=@Az", conn);
+        cmd.Parameters.AddWithValue("Id", invioId);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        var v = await cmd.ExecuteScalarAsync();
+        return v is string stato && stato == "inviata";
+    }
+
+    /// <summary>
+    /// Scrive nei blocchi l'URL corrente della rubrica. Va chiamata PRIMA di comporre l'HTML
+    /// dell'invio: da quel momento la newsletter e' un documento storico.
+    /// </summary>
+    public async Task<int> CongelaIndirizziAsync(long invioId, int aziendaId)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT fn_web_newsletter_congela_indirizzi(@Id::bigint, @Az::integer)", conn);
+        cmd.Parameters.AddWithValue("Id", invioId);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
 
     private async Task<string?> GetTokenIscrizioneAsync(int aziendaId)
     {

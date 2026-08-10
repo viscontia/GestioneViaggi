@@ -84,7 +84,7 @@ public sealed class WebNewsletterBlocchiService
                     @Layout::varchar, @Colonne::smallint,
                     @Titolo::varchar, @Sottotitolo::varchar, @Corpo::text,
                     @ImgUrl::varchar, @ImgPath::varchar, @ImgAlt::varchar,
-                    @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer)", conn);
+                    @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint)", conn);
 
             cmd.Parameters.AddWithValue("Az", b.AziendaId);
             cmd.Parameters.AddWithValue("Invio", b.InvioIdFk);
@@ -100,6 +100,7 @@ public sealed class WebNewsletterBlocchiService
             AddNullable(cmd, "LinkUrl", b.LinkUrl);
             AddNullable(cmd, "LinkEtichetta", b.LinkEtichetta);
             cmd.Parameters.AddWithValue("DataViaggio", (object?)b.DataViaggioIdFk ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("Indirizzo", (object?)b.IndirizzoIdFk ?? DBNull.Value);
 
             return Convert.ToInt64(await cmd.ExecuteScalarAsync());
         }
@@ -118,7 +119,7 @@ public sealed class WebNewsletterBlocchiService
                 @Id::bigint, @Az::integer, @Layout::varchar, @Colonne::smallint,
                 @Titolo::varchar, @Sottotitolo::varchar, @Corpo::text,
                 @ImgUrl::varchar, @ImgPath::varchar, @ImgAlt::varchar,
-                @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer)", conn);
+                @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint)", conn);
 
         cmd.Parameters.AddWithValue("Id", b.WebNewsletterBloccoId);
         cmd.Parameters.AddWithValue("Az", b.AziendaId);
@@ -133,6 +134,7 @@ public sealed class WebNewsletterBlocchiService
         AddNullable(cmd, "LinkUrl", b.LinkUrl);
         AddNullable(cmd, "LinkEtichetta", b.LinkEtichetta);
         cmd.Parameters.AddWithValue("DataViaggio", (object?)b.DataViaggioIdFk ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("Indirizzo", (object?)b.IndirizzoIdFk ?? DBNull.Value);
 
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
@@ -185,6 +187,7 @@ public sealed class WebNewsletterBlocchiService
         LinkUrl               = Str(r, "link_url"),
         LinkEtichetta         = Str(r, "link_etichetta"),
         DataViaggioIdFk       = r.IsDBNull(r.GetOrdinal("data_viaggio_id_fk")) ? null : r.GetInt32(r.GetOrdinal("data_viaggio_id_fk")),
+        IndirizzoIdFk         = r.IsDBNull(r.GetOrdinal("indirizzo_id_fk")) ? null : r.GetInt64(r.GetOrdinal("indirizzo_id_fk")),
         AziendaId             = r.GetInt32(r.GetOrdinal("azienda_id")),
     };
 

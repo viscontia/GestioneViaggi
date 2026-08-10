@@ -259,6 +259,11 @@ public sealed class NewsletterSenderService
         if (recipients.Count == 0)
             throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
 
+        // Congela gli indirizzi presi dalla rubrica PRIMA di comporre: da qui in avanti la
+        // newsletter e' un documento storico e non deve piu' cambiare se qualcuno corregge un
+        // indirizzo. Dopo il congelamento la risoluzione al rendering diventa un non-evento.
+        await render.CongelaIndirizziAsync(invioId, aziendaId);
+
         var ctx = await render.PreparaAsync(invioId, aziendaId);
 
         if (string.IsNullOrWhiteSpace(ctx.Azienda.SitoWeb))

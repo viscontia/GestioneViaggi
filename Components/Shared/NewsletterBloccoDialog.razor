@@ -392,10 +392,17 @@
             var id = long.Parse(valore["rubrica:".Length..]);
             var ind = _rubrica.FirstOrDefault(x => x.WebIndirizzoId == id);
             if (ind is null) { _destinazione = "manuale"; return; }
+            // Si registra il LEGAME, non solo l'URL: finche' la newsletter e' bozza o modello il
+            // collegamento si riallinea da solo se l'indirizzo cambia in rubrica.
+            Blocco.IndirizzoIdFk = ind.WebIndirizzoId;
             Blocco.LinkUrl = ind.Url;
             if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = ind.Descrizione;
             return;
         }
+
+        // Ogni altra destinazione non viene dalla rubrica: il legame va sciolto, altrimenti il
+        // rendering continuerebbe a risolvere dall'indirizzo vecchio.
+        Blocco.IndirizzoIdFk = null;
 
         if (valore == "home")
         {
