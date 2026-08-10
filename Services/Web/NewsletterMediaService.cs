@@ -64,18 +64,22 @@ public sealed class NewsletterMediaService
 
     /// <summary>
     /// Carica l'icona di un social e ne restituisce URL pubblico e percorso.
-    /// Convertita in JPEG come tutto il resto: nelle email il PNG con trasparenza e il WebP danno
-    /// problemi, e un'icona su fondo colorato non ha bisogno di canale alfa.
     /// </summary>
+    /// <remarks>
+    /// Resta <b>PNG</b> e non diventa JPEG come le altre immagini: il JPEG non ha canale alfa e la
+    /// trasparenza verrebbe appiattita su bianco, lasciando un riquadro bianco attorno al logo sul
+    /// pulsante colorato. Verificato: un PNG trasparente passato per la conversione JPEG esce con
+    /// gli angoli a <c>#FFFFFF</c> opachi.
+    /// </remarks>
     public async Task<(string? Url, string? Path)> CaricaIconaSocialAsync(
         int aziendaId, string social, Stream contenuto, CancellationToken ct = default)
     {
         try
         {
-            var path = $"newsletter/social/{aziendaId}_{social}.jpg";
-            var jpeg = await WebImageProcessor.ToEmailJpegAsync(contenuto, ct);
-            await using var upload = new MemoryStream(jpeg.Bytes);
-            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeEmail, ct);
+            var path = $"newsletter/social/{aziendaId}_{social}.png";
+            var icona = await WebImageProcessor.ToEmailIconPngAsync(contenuto, ct);
+            await using var upload = new MemoryStream(icona.Bytes);
+            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeIcona, ct);
             return (_storage.BuildPublicUrl(path), path);
         }
         catch (Exception ex)

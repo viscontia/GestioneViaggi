@@ -99,6 +99,15 @@ Conseguenze:
 - l'HTML generato è **tabellare, larghezza fissa 600px, stili inline**. Niente flex, niente grid,
   niente `<style>` in `<head>`: sono le regole che Outlook impone.
 
+**Eccezione: le icone restano PNG** (2026-08-10). La regola "tutto in JPEG" vale per le fotografie,
+non per le icone: il JPEG non ha canale alfa e appiattisce la trasparenza su bianco. Verificato
+generando un PNG trasparente e passandolo nella pipeline — gli angoli uscivano `#FFFFFF` opachi,
+che su un pulsante social colorato significa un **riquadro bianco attorno al logo**. Il PNG è
+supportato da tutti i client di posta, Outlook compreso, quindi non c'è nulla da guadagnare a
+convertirlo. `ToEmailIconPngAsync` ridimensiona a 128px e conserva l'alfa; il caricamento accetta
+**solo PNG**, con il controllo lato applicazione e non solo nell'attributo `Accept` del browser,
+che è un suggerimento aggirabile.
+
 ### 2.5 — Bozza: si finisce ciò che è già previsto
 
 La riga di `web_newsletter_invii` viene creata **quando si crea la newsletter**, con

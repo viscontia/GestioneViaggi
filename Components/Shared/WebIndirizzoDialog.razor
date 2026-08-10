@@ -46,7 +46,7 @@
                         <MudIcon Icon="@Icons.Material.Filled.HideImage" Color="Color.Default" />
                     }
 
-                    <MudFileUpload T="IBrowserFile" Accept="image/*" FilesChanged="CaricaIcona" Class="ma-0">
+                    <MudFileUpload T="IBrowserFile" Accept=".png,image/png" FilesChanged="CaricaIcona" Class="ma-0">
                         <ActivatorContent>
                             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload"
                                        Disabled="@_caricando">
@@ -58,8 +58,10 @@
                     @if (_caricando) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
                 </div>
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
-                    Facoltativa. Senza icona il pulsante resta comunque riconoscibile dal colore del
-                    marchio. Usa un'immagine quadrata e semplice: nella mail viene mostrata a 18 pixel.
+                    Facoltativa: senza icona il pulsante resta riconoscibile dal colore del marchio.
+                    <strong>Solo PNG</strong>, quadrata e con sfondo trasparente — è la trasparenza che
+                    fa apparire il logo <em>sopra</em> il colore del pulsante invece che dentro un
+                    riquadro bianco. Nella mail viene mostrata a 18 pixel.
                 </MudText>
             </MudPaper>
         }
@@ -83,14 +85,38 @@
     private MudTextField<string>? _primoCampo;
     private bool _caricando;
 
+    /// <summary>Un'icona deve essere PNG: il formato e' un requisito, non una preferenza.</summary>
+    private const long MaxIconaByte = 2 * 1024 * 1024;
+
     private async Task CaricaIcona(IBrowserFile? file)
     {
         if (file is null || string.IsNullOrWhiteSpace(Indirizzo.Social)) return;
 
+        // L'attributo Accept e' solo un suggerimento del browser e si aggira: il controllo vero
+        // sta qui. Il PNG non e' una preferenza estetica - e' l'unico formato diffuso che porta
+        // la trasparenza, e senza trasparenza il logo finisce in un riquadro bianco sopra il
+        // colore del pulsante.
+        var nome = file.Name ?? "";
+        var isPng = nome.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(file.ContentType, "image/png", StringComparison.OrdinalIgnoreCase);
+        if (!isPng)
+        {
+            Snackbar.Add("L'icona deve essere un file PNG: è l'unico formato che conserva lo sfondo " +
+                         "trasparente. Con JPEG il logo apparirebbe dentro un riquadro bianco.", Severity.Warning);
+            return;
+        }
+
+        if (file.Size > MaxIconaByte)
+        {
+            Snackbar.Add($"L'icona supera i 2 MB ({file.Size / 1024 / 1024} MB). Serve un'immagine piccola: " +
+                         "nella mail viene mostrata a 18 pixel.", Severity.Warning);
+            return;
+        }
+
         _caricando = true;
         try
         {
-            await using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            await using var stream = file.OpenReadStream(MaxIconaByte);
             var (url, path) = await MediaService.CaricaIconaSocialAsync(
                 Indirizzo.AziendaId, Indirizzo.Social!, stream);
 

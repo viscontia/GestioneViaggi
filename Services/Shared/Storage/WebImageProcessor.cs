@@ -69,6 +69,41 @@ public static class WebImageProcessor
         await image.SaveAsJpegAsync(ms, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder { Quality = QualityEmail }, ct);
         return new ProcessedImage(ms.ToArray(), image.Width, image.Height, MimeEmail);
     }
+
+    // --- Icone -------------------------------------------------------------
+
+    public const int MaxEdgeIcona = 128;
+    public const string MimeIcona = "image/png";
+
+    /// <summary>
+    /// Versione da email di un'<b>icona</b>: PNG, lato lungo max <see cref="MaxEdgeIcona"/>px,
+    /// con la <b>trasparenza conservata</b>.
+    /// </summary>
+    /// <remarks>
+    /// Non usa <see cref="ToEmailJpegAsync"/> di proposito: il JPEG non ha canale alfa e
+    /// appiattirebbe il fondo su bianco. Su un pulsante colorato — un social, per esempio — il
+    /// risultato sarebbe un riquadro bianco attorno al logo. Il PNG e' supportato da tutti i
+    /// client di posta, Outlook compreso, quindi non c'e' motivo di convertire.
+    /// Le icone restano piccole, quindi il PNG non pesa: 128px e' gia' il doppio di quanto serve
+    /// per una resa a 18px su schermi ad alta densita'.
+    /// </remarks>
+    public static async Task<ProcessedImage> ToEmailIconPngAsync(Stream input, CancellationToken ct = default)
+    {
+        using var image = await Image.LoadAsync(input, ct);
+
+        if (Math.Max(image.Width, image.Height) > MaxEdgeIcona)
+        {
+            image.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,
+                Size = new Size(MaxEdgeIcona, MaxEdgeIcona)
+            }));
+        }
+
+        using var ms = new MemoryStream();
+        await image.SaveAsPngAsync(ms, ct);
+        return new ProcessedImage(ms.ToArray(), image.Width, image.Height, MimeIcona);
+    }
 }
 
 /// <summary>Risultato dell'ottimizzazione: bytes WebP + dimensioni finali + mime.</summary>
