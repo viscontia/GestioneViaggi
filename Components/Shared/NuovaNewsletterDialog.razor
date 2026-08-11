@@ -1,0 +1,124 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+
+@* Creazione di una newsletter: nome e punto di partenza, in un colpo solo.
+
+   Prima la bozza nasceva sempre vuota, e per partire da un modello bisognava sapere che esisteva
+   l'interruttore "Mostra i modelli", girarlo, trovare il modello e duplicarlo. Il meccanismo
+   c'era ma il percorso lo nascondeva, quindi non lo usava nessuno. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_oggetto" Label="@EtichettaNome" Variant="Variant.Outlined"
+                      MaxLength="255" Class="mb-4" @ref="_campoNome" Immediate="true"
+                      HelperText="@HelperNome" />
+
+        @if (!ComeModello)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Da dove si parte</MudText>
+
+            <MudRadioGroup T="string" @bind-Value="_origine">
+                <MudRadio T="string" Value="@("vuota")" Color="Color.Primary" Dense="true">
+                    <strong>Vuota</strong> — solo intestazione e piè di pagina
+                </MudRadio>
+
+                <MudRadio T="string" Value="@("modello")" Color="Color.Primary" Dense="true"
+                          Disabled="@(Modelli.Count == 0)">
+                    <strong>Da un modello</strong>
+                    @if (Modelli.Count == 0)
+                    {
+                        <span> — non ne hai ancora salvati</span>
+                    }
+                </MudRadio>
+
+                <MudRadio T="string" Value="@("copia")" Color="Color.Primary" Dense="true"
+                          Disabled="@(Esistenti.Count == 0)">
+                    <strong>Copiando una newsletter esistente</strong>
+                    @if (Esistenti.Count == 0)
+                    {
+                        <span> — non ce ne sono</span>
+                    }
+                </MudRadio>
+            </MudRadioGroup>
+
+            @if (_origine is "modello" or "copia")
+            {
+                <MudSelect T="long" @bind-Value="_origineId" Label="@(_origine == "modello" ? "Modello" : "Newsletter")"
+                           Variant="Variant.Outlined" Class="mt-3" Margin="Margin.Dense">
+                    @foreach (var v in (_origine == "modello" ? Modelli : Esistenti))
+                    {
+                        <MudSelectItem T="long" Value="@v.Id">@v.Oggetto (@v.NumeroBlocchi blocchi)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-3">
+                    Struttura, testi e immagini vengono copiati. Se ci sono blocchi agganciati a una
+                    partenza, subito dopo ti verrà chiesto <strong>a quale tour agganciarli</strong>:
+                    così non ti porti dietro la partenza dell'anno scorso.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!Valido)"
+                   OnClick="Conferma">Crea</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Si sta creando un modello e non una newsletter: un modello nasce sempre vuoto.</summary>
+    [Parameter] public bool ComeModello { get; set; }
+
+    [Parameter] public List<WebNewsletterElencoVoce> Modelli { get; set; } = new();
+    [Parameter] public List<WebNewsletterElencoVoce> Esistenti { get; set; } = new();
+
+    /// <summary>Nome scelto e, se si parte da qualcosa, da cosa copiare.</summary>
+    public sealed record Scelta(string Oggetto, long? OrigineId);
+
+    private string _oggetto = string.Empty;
+    private string _origine = "vuota";
+    private long _origineId;
+    private MudTextField<string>? _campoNome;
+
+    private string EtichettaNome => ComeModello ? "Nome del modello" : "Oggetto della newsletter";
+
+    private string HelperNome => ComeModello
+        ? "Un nome che ti ricordi a cosa serve: «Ponte di Pasqua», «Ferie estive»…"
+        : "È la riga che il destinatario legge nella posta in arrivo.";
+
+    private bool Valido =>
+        !string.IsNullOrWhiteSpace(_oggetto)
+        && (ComeModello || _origine == "vuota" || _origineId != 0);
+
+    protected override void OnInitialized()
+    {
+        // Se c'e' almeno un modello si parte da li': e' il caso piu' frequente, ed e' anche il
+        // modo di far vedere che i modelli esistono.
+        if (!ComeModello && Modelli.Count > 0)
+        {
+            _origine = "modello";
+            _origineId = Modelli[0].Id;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _campoNome != null)
+        {
+            try { await _campoNome.FocusAsync(); } catch { }
+        }
+    }
+
+    private void Conferma()
+    {
+        long? origine = (!ComeModello && _origine is "modello" or "copia" && _origineId != 0)
+            ? _origineId
+            : null;
+
+        MudDialog?.Close(DialogResult.Ok(new Scelta(_oggetto.Trim(), origine)));
+    }
+}

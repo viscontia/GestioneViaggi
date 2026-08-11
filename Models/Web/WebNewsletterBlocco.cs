@@ -64,6 +64,19 @@ public sealed class WebNewsletterBlocco
     public string? ColoreSottotitolo { get; set; }
 
     public int AziendaId { get; set; }
+
+    /// <summary>
+    /// Copia di lavoro del blocco, campo per campo.
+    /// </summary>
+    /// <remarks>
+    /// Esiste perché la copia va fatta <b>tutta</b>. Era scritta a mano elencando i campi, e
+    /// quell'elenco non veniva aggiornato: sono rimasti fuori il legame con la rubrica, il social,
+    /// l'icona, la posizione del pulsante e i colori. Aprire un blocco in modifica e salvare li
+    /// cancellava, senza alcun errore — si notava solo guardando la mail arrivata.
+    /// <para><c>MemberwiseClone</c> copia i campi che ci sono, non quelli che qualcuno si è
+    /// ricordato di elencare: aggiungendo una colonna non c'è più niente da aggiornare qui.</para>
+    /// </remarks>
+    public WebNewsletterBlocco Copia() => (WebNewsletterBlocco)MemberwiseClone();
 }
 
 /// <summary>Voce del catalogo dei tipi di blocco (fn_web_newsletter_tipi_blocco).</summary>

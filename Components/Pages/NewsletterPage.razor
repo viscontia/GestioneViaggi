@@ -19,6 +19,7 @@
 @inject WebAziendeFunzioniService FunzioniService
 @inject WebNewsletterBlocchiService BlocchiService
 @inject NewsletterRenderService RenderService
+@inject NewsletterTourApplicatore TourApplicatore
 @inject ILogger<NewsletterPage> Logger
 @attribute [Authorize]
 @implements IDisposable
@@ -118,6 +119,15 @@ else
                                     <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
                                                    Disabled="@_busy" OnClick="@(() => Duplica(n))" />
                                 </MudTooltip>
+                                @* I modelli nascono quasi sempre cosi': da una newsletter venuta
+                                   bene. Partire da un modello vuoto e' l'eccezione, non la regola. *@
+                                @if (!n.IsModello)
+                                {
+                                    <MudTooltip Text="Salva come modello riutilizzabile">
+                                        <MudIconButton Icon="@Icons.Material.Filled.BookmarkAdd" Size="Size.Small"
+                                                       Disabled="@_busy" OnClick="@(() => SalvaComeModello(n))" />
+                                    </MudTooltip>
+                                }
                                 @if (n.IsBozza)
                                 {
                                     <MudTooltip Text="Componi">
@@ -552,22 +562,134 @@ else
 
     private async Task NuovaNewsletter(bool comeModello)
     {
-        var titolo = comeModello ? "Nuovo modello" : "Nuova newsletter";
-        var etichetta = comeModello ? "Nome del modello" : "Oggetto della newsletter";
-        var oggetto = await ChiediTestoAsync(titolo, etichetta);
-        if (string.IsNullOrWhiteSpace(oggetto)) return;
+        var parametri = new DialogParameters<NuovaNewsletterDialog>
+        {
+            { x => x.ComeModello, comeModello },
+            { x => x.Modelli, _modelli },
+            { x => x.Esistenti, _newsletter }
+        };
+        var dlg = await DialogService.ShowAsync<NuovaNewsletterDialog>(
+            comeModello ? "Nuovo modello" : "Nuova newsletter", parametri,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled || res.Data is not NuovaNewsletterDialog.Scelta scelta) return;
+
+        await AccendiAttesa();
+        long id;
+        try
+        {
+            // Partire da qualcosa e' una clonazione: la copia nasce sempre come bozza, anche
+            // quando viene da un modello.
+            id = scelta.OrigineId is long origine
+                ? await InviiService.ClonaAsync(origine, _aziendaId, scelta.Oggetto, comeModello: false)
+                : await InviiService.CreaBozzaAsync(_aziendaId, scelta.Oggetto, comeModello);
+
+            await ReloadAsync();
+            _mostraModelli = comeModello;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore creazione: {MessaggioErrore(ex)}", Severity.Error);
+            _busy = false;
+            return;
+        }
+        finally { _busy = false; }
+
+        // Il riaggancio va fatto PRIMA di aprire la composizione: aprire e poi interrompere con
+        // una sequenza di dialoghi darebbe l'impressione di un errore.
+        if (scelta.OrigineId is not null) await RiagganciaTourAsync(id);
+
+        var voce = Elenco.FirstOrDefault(x => x.Id == id);
+        if (voce != null) await ApriComposizione(voce);
+
+        Snackbar.Add(comeModello ? "Modello creato." : "Newsletter creata.", Severity.Success);
+    }
+
+    /// <summary>
+    /// Chiede a quale partenza agganciare i blocchi che ne avevano una nell'originale.
+    /// </summary>
+    /// <remarks>
+    /// La clonazione copia anche il legame con la partenza. Su una copia fatta a distanza di
+    /// giorni non e' un problema; su un modello riusato l'anno dopo lo e' eccome: la newsletter
+    /// sembrerebbe giusta e punterebbe al viaggio dell'anno prima, con le date vecchie nel
+    /// sottotitolo. Non e' un errore che qualcuno noterebbe prima dell'invio.
+    /// <para>Si chiede, non si indovina: quale sia la partenza giusta lo sa solo chi scrive.</para>
+    /// </remarks>
+    private async Task RiagganciaTourAsync(long invioId)
+    {
+        List<WebNewsletterBlocco> blocchi;
+        try { blocchi = await BlocchiService.ListAsync(invioId, _aziendaId); }
+        catch (Exception ex) { Snackbar.Add($"Errore lettura blocchi: {MessaggioErrore(ex)}", Severity.Error); return; }
+
+        var daRiagganciare = blocchi.Where(b => b.DataViaggioIdFk.HasValue).OrderBy(b => b.Ordine).ToList();
+        if (daRiagganciare.Count == 0) return;
+
+        var riagganciati = 0;
+        var saltati = 0;
+
+        foreach (var b in daRiagganciare)
+        {
+            var quale = b.Tipo == "pulsante"
+                ? $"il pulsante «{b.LinkEtichetta ?? "senza testo"}»"
+                : $"il riquadro «{b.Titolo ?? "senza titolo"}»";
+
+            var parametri = new DialogParameters<TravelDataSelectorDialog>
+            {
+                { x => x.AziendaId, _aziendaId },
+                { x => x.IsSuperAdmin, _isSuperAdmin },
+                { x => x.TitoloPersonalizzato, $"A quale partenza aggancio {quale}?" },
+                { x => x.EtichettaConferma, "Usa questo tour" }
+            };
+            var dlg = await DialogService.ShowAsync<TravelDataSelectorDialog>("Aggancia il tour", parametri,
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
+            var res = await dlg.Result;
+
+            // Saltare e' lecito: il blocco resta agganciato a com'era, e lo si sistema componendo.
+            if (res!.Canceled || res.Data is not int dataViaggioId) { saltati++; continue; }
+
+            try
+            {
+                // I testi vengono sostituiti: sono quelli della partenza vecchia, e le date nel
+                // sottotitolo sarebbero proprio la cosa sbagliata da tenere.
+                var esito = await TourApplicatore.ApplicaAsync(
+                    b, dataViaggioId, Services.Web.NewsletterTourApplicatore.ModoTesti.Sostituisci);
+
+                if (!esito.Applicato) { Snackbar.Add(esito.Errore!, Severity.Warning); saltati++; continue; }
+
+                await BlocchiService.UpdateAsync(b);
+                riagganciati++;
+
+                if (esito.InBozza)
+                    Snackbar.Add($"La scheda web di quel tour è in bozza: il collegamento di {quale} non funzionerà finché non la pubblichi.", Severity.Warning);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Non ho potuto agganciare {quale}: {MessaggioErrore(ex)}", Severity.Warning);
+                saltati++;
+            }
+        }
+
+        if (riagganciati > 0)
+            Snackbar.Add($"{riagganciati} blocco/i agganciato/i alla partenza scelta.", Severity.Success);
+        if (saltati > 0)
+            Snackbar.Add($"{saltati} blocco/i non riagganciato/i: punta/no ancora alla partenza dell'originale. Sistemali componendo.", Severity.Info);
+    }
+
+    /// <summary>Promuove una newsletter a modello riutilizzabile: la copia, non la sposta.</summary>
+    private async Task SalvaComeModello(WebNewsletterElencoVoce n)
+    {
+        var nome = await ChiediTestoAsync("Salva come modello", "Nome del modello", n.Oggetto);
+        if (string.IsNullOrWhiteSpace(nome)) return;
 
         await AccendiAttesa();
         try
         {
-            var id = await InviiService.CreaBozzaAsync(_aziendaId, oggetto!.Trim(), comeModello);
+            await InviiService.ClonaAsync(n.Id, _aziendaId, nome!.Trim(), comeModello: true);
+            _mostraModelli = true;
             await ReloadAsync();
-            _mostraModelli = comeModello;
-            var voce = Elenco.FirstOrDefault(x => x.Id == id);
-            if (voce != null) await ApriComposizione(voce);
-            Snackbar.Add(comeModello ? "Modello creato." : "Bozza creata.", Severity.Success);
+            Snackbar.Add($"Modello «{nome!.Trim()}» salvato: lo ritrovi fra i modelli.", Severity.Success);
         }
-        catch (Exception ex) { Snackbar.Add($"Errore creazione: {MessaggioErrore(ex)}", Severity.Error); }
+        catch (Exception ex) { Snackbar.Add($"Errore salvataggio modello: {MessaggioErrore(ex)}", Severity.Error); }
         finally { _busy = false; }
     }
 
@@ -577,16 +699,26 @@ else
         if (string.IsNullOrWhiteSpace(oggetto)) return;
 
         await AccendiAttesa();
+        long nuovoId;
         try
         {
             // La copia nasce sempre come bozza, anche da una gia' inviata o da un modello.
-            await InviiService.ClonaAsync(n.Id, _aziendaId, oggetto!.Trim(), comeModello: false);
+            nuovoId = await InviiService.ClonaAsync(n.Id, _aziendaId, oggetto!.Trim(), comeModello: false);
             _mostraModelli = false;
             await ReloadAsync();
-            Snackbar.Add("Copia creata fra le bozze.", Severity.Success);
         }
-        catch (Exception ex) { Snackbar.Add($"Errore duplicazione: {MessaggioErrore(ex)}", Severity.Error); }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore duplicazione: {MessaggioErrore(ex)}", Severity.Error);
+            _busy = false;
+            return;
+        }
         finally { _busy = false; }
+
+        // Stessa domanda della creazione da modello: duplicare una newsletter dell'anno scorso
+        // per la stagione nuova ha lo stesso identico problema delle partenze vecchie.
+        await RiagganciaTourAsync(nuovoId);
+        Snackbar.Add("Copia creata fra le bozze.", Severity.Success);
     }
 
     /// <summary>
@@ -716,15 +848,7 @@ else
     private async Task<bool> ModificaBlocco(WebNewsletterBlocco b)
     {
         // Copia di lavoro: se l'utente annulla, la riga in elenco non deve risultare modificata.
-        var copia = new WebNewsletterBlocco
-        {
-            WebNewsletterBloccoId = b.WebNewsletterBloccoId, InvioIdFk = b.InvioIdFk, Tipo = b.Tipo,
-            Ordine = b.Ordine, Layout = b.Layout, Colonne = b.Colonne,
-            Titolo = b.Titolo, Sottotitolo = b.Sottotitolo, CorpoHtml = b.CorpoHtml,
-            ImmagineUrl = b.ImmagineUrl, ImmagineStoragePath = b.ImmagineStoragePath, ImmagineAlt = b.ImmagineAlt,
-            LinkUrl = b.LinkUrl, LinkEtichetta = b.LinkEtichetta,
-            DataViaggioIdFk = b.DataViaggioIdFk, AziendaId = b.AziendaId
-        };
+        var copia = b.Copia();
 
         var parameters = new DialogParameters<NewsletterBloccoDialog>
         {

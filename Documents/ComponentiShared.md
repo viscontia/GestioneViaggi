@@ -1193,3 +1193,34 @@ la tendina non corrisponderebbe a nessuna voce e sembrerebbe perso.
 `NewsletterColori.Normalizza` riduce qualsiasi forma a `#RRGGBB` (taglia la trasparenza, aggiunge
 il cancelletto, rifiuta ciò che colore non è) e va usata **sia prima di salvare sia in fase di
 rendering**: nell'HTML di una mail un colore malformato non dà errore, dà testo nero.
+
+## NuovaNewsletterDialog e NewsletterTourApplicatore
+
+`Components/Shared/NuovaNewsletterDialog.razor` chiede, in un colpo solo, il nome della newsletter
+e **da dove partire**: vuota, da un modello, o copiando una newsletter esistente.
+
+Il meccanismo dei modelli (`web_newsletter_invii.is_modello`) esisteva già da tempo, ma era
+raggiungibile solo girando l'interruttore «Mostra i modelli», trovando il modello e duplicandolo:
+il percorso lo nascondeva e non lo usava nessuno. Se ci sono modelli, la voce «Da un modello» è
+quella preselezionata — è anche il modo di far sapere che esistono.
+
+`Services/Web/NewsletterTourApplicatore.cs` aggancia un blocco a una partenza e lo riempie con i
+dati di quel tour. Serve in **tre** momenti che devono comportarsi allo stesso modo:
+
+1. scelta del tour di un riquadro (`NewsletterBloccoDialog`);
+2. scelta del tour a cui punta un pulsante (stesso dialogo, percorso diverso);
+3. riaggancio dei blocchi dopo una creazione da modello o una duplicazione (`NewsletterPage`).
+
+I primi due erano due copie della stessa sequenza; il terzo avrebbe fatto tre. `ModoTesti` decide
+cosa fare dei testi già presenti: `Sostituisci` oppure `SoloSeVuoti` — aiutare senza cancellare
+quello che l'operatore ha scritto.
+
+**Perché il riaggancio esiste.** La clonazione copia anche `data_viaggio_id_fk`. Su una copia fatta
+a distanza di giorni non è un problema; su un modello riusato l'anno dopo lo è eccome: la
+newsletter sembrerebbe giusta e punterebbe al viaggio dell'anno prima, con le date vecchie nel
+sottotitolo. Non è un errore che qualcuno noterebbe prima dell'invio. Si **chiede** a quale
+partenza agganciare, blocco per blocco: qual è quella giusta lo sa solo chi scrive. Saltare è
+lecito e il blocco resta com'era.
+
+> Nota: un pulsante che punta a un tour ora registra anche l'aggancio alla partenza, non solo
+> l'indirizzo. Prima teneva solo l'URL, quindi dopo una clonazione era invisibile al riaggancio.

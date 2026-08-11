@@ -5,6 +5,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject NewsletterRenderService RenderService
+@inject NewsletterTourApplicatore TourApplicatore
 @inject NewsletterMediaService MediaService
 @inject WebIndirizziService IndirizziService
 
@@ -383,13 +384,6 @@
         StateHasChanged();
         try
         {
-            var dati = await RenderService.GetDatiTourAsync(dataViaggioId, Blocco.AziendaId);
-            if (dati is null)
-            {
-                Snackbar.Add("Questa partenza non ha una scheda di contenuti web: creala prima di inserirla in newsletter.", Severity.Warning);
-                return;
-            }
-
             // I testi restano sempre modificabili a mano: la compilazione automatica precompila,
             // non blocca. Percio' se il riquadro contiene gia' dei testi non li si sostituisce
             // di nascosto - si chiede. Sostituire in silenzio il titolo che l'operatore ha appena
@@ -398,7 +392,7 @@
                        || !string.IsNullOrWhiteSpace(Blocco.Sottotitolo)
                        || !string.IsNullOrWhiteSpace(Blocco.CorpoHtml);
 
-            var sostituisciTesti = true;
+            var modo = NewsletterTourApplicatore.ModoTesti.Sostituisci;
             if (haTesti)
             {
                 var conferma = new DialogParameters<DeleteConfirmationDialog>
@@ -411,41 +405,24 @@
                 };
                 var cdlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Testi già presenti", conferma,
                     new DialogOptions { BackdropClick = false });
-                sostituisciTesti = !(await cdlg.Result)!.Canceled;
+                if ((await cdlg.Result)!.Canceled) modo = NewsletterTourApplicatore.ModoTesti.SoloSeVuoti;
             }
 
-            // Dati strutturali: si aggiornano sempre, perche' sono il legame col tour scelto.
-            Blocco.DataViaggioIdFk = dataViaggioId;
-            Blocco.ImmagineUrl = dati.ImmagineUrl;
-            Blocco.ImmagineStoragePath = dati.ImmagineStoragePath;
-            Blocco.LinkUrl = dati.LinkCompleto;
-
-            if (sostituisciTesti)
+            var esito = await TourApplicatore.ApplicaAsync(Blocco, dataViaggioId, modo);
+            if (!esito.Applicato)
             {
-                Blocco.Titolo = dati.Titolo;
-                Blocco.Sottotitolo = dati.Periodo;
-                Blocco.ImmagineAlt = dati.Titolo;
-                if (!string.IsNullOrWhiteSpace(dati.Testo))
-                {
-                    Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
-                    if (_editor != null) { try { await _editor.LoadHTMLContent(Blocco.CorpoHtml); } catch { } }
-                }
+                Snackbar.Add(esito.Errore!, Severity.Warning);
+                return;
             }
-            else
+
+            // L'editor non si accorge da solo che il corpo e' cambiato sotto di lui.
+            if (_editor != null && !string.IsNullOrWhiteSpace(Blocco.CorpoHtml))
             {
-                // Riempio solo cio' che era vuoto: aiutare senza cancellare.
-                if (string.IsNullOrWhiteSpace(Blocco.Titolo)) Blocco.Titolo = dati.Titolo;
-                if (string.IsNullOrWhiteSpace(Blocco.Sottotitolo)) Blocco.Sottotitolo = dati.Periodo;
-                if (string.IsNullOrWhiteSpace(Blocco.ImmagineAlt)) Blocco.ImmagineAlt = dati.Titolo;
-                if (string.IsNullOrWhiteSpace(Blocco.CorpoHtml) && !string.IsNullOrWhiteSpace(dati.Testo))
-                    Blocco.CorpoHtml = $"<p>{dati.Testo}</p>";
+                try { await _editor.LoadHTMLContent(Blocco.CorpoHtml); } catch { }
             }
 
-            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
-                Blocco.LinkEtichetta = "Vai alla pagina del Tour";
-
-            _avvisoBozza = !dati.Pubblicato;
-            _avvisoSenzaSito = string.IsNullOrWhiteSpace(dati.LinkCompleto);
+            _avvisoBozza = esito.InBozza;
+            _avvisoSenzaSito = esito.SenzaSito;
         }
         catch (Exception ex) { Snackbar.Add($"Errore lettura tour: {ex.Message}", Severity.Error); }
         finally { _caricando = false; }
@@ -586,16 +563,17 @@
             var res = await dlg.Result;
             if (res!.Canceled || res.Data is not int dataViaggioId) { _destinazione = "manuale"; return; }
 
-            var dati = await RenderService.GetDatiTourAsync(dataViaggioId, Blocco.AziendaId, convertiImmagine: false);
-            if (dati?.LinkCompleto is null)
+            // Registra anche l'aggancio alla partenza, non solo l'indirizzo: e' cosi' che una
+            // newsletter creata da un modello sa quali pulsanti chiedere di riagganciare.
+            var esitoPulsante = await TourApplicatore.ApplicaAsync(
+                Blocco, dataViaggioId, NewsletterTourApplicatore.ModoTesti.SoloSeVuoti);
+            if (!esitoPulsante.Applicato)
             {
-                Snackbar.Add("Non è stato possibile comporre il collegamento a quel tour (scheda web assente o sito non configurato).", Severity.Warning);
+                Snackbar.Add(esitoPulsante.Errore!, Severity.Warning);
                 _destinazione = "manuale";
                 return;
             }
-            Blocco.LinkUrl = dati.LinkCompleto;
-            if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = "Vai alla pagina del Tour";
-            if (!dati.Pubblicato)
+            if (esitoPulsante.InBozza)
                 Snackbar.Add("Attenzione: la scheda di quel tour è in bozza, il collegamento non funzionerà finché non la pubblichi.", Severity.Warning);
 
             // Scelto il tour il pulsante e' completo - indirizzo ed etichetta - quindi si salva e

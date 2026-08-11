@@ -844,3 +844,21 @@ glielo mette l'editor.
 > (`#2171A5` titolo, `#888888` sottotitolo, `#333333` sottotitolo di testata); un valore non valido
 > come `rosso` ricade sul predefinito invece di finire nella mail; `#C0392B80` perde la trasparenza
 > e diventa `#C0392B`, l'unica forma che il vincolo sul database accetta.
+
+---
+
+## 37. Modelli di newsletter e riaggancio della partenza
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 37.1 | **Nuova newsletter** | Si apre una form che chiede l'oggetto **e da dove partire**: vuota / da un modello / copiando una esistente |
+| 37.2 | Nessun modello salvato | La voce «Da un modello» è disabilitata e dice «non ne hai ancora salvati» |
+| 37.3 | Su una newsletter riuscita → icona **segnalibro** → dai un nome | Nasce un modello. Con «Mostra i modelli» lo ritrovi; l'originale resta dov'era |
+| 37.4 | **Nuova newsletter → da un modello** | Con almeno un modello, è la scelta già selezionata |
+| 37.5 | Crea da un modello che ha blocchi agganciati a una partenza | Per **ogni** blocco viene chiesto a quale partenza agganciarlo, dicendo di quale blocco si tratta |
+| 37.6 | Scegli una partenza | Titolo, sottotitolo (date nuove), immagine e collegamento si aggiornano da quel tour |
+| 37.7 | **Annulla** su uno dei riquadri | Quel blocco resta agganciato all'originale; un messaggio dice quanti sono rimasti da sistemare |
+| 37.8 | Crea da un modello **senza** blocchi agganciati | Nessuna domanda: si apre direttamente la composizione |
+| 37.9 | **Duplica** una newsletter con blocchi agganciati | Stessa domanda della creazione da modello: anche una copia dell'anno scorso ha le partenze vecchie |
+| 37.10 | Un modello nella lista | Il pulsante Invia resta bloccato: un modello si duplica, non si invia |
+| 37.11 | Apri un blocco con **social, icona, posizione del pulsante o colori**, salva senza cambiare niente, guarda l'anteprima | Resta tutto. *Prima quei campi venivano azzerati dalla copia di lavoro* |
