@@ -1134,3 +1134,24 @@ l'icona del riquadro informativo ammette solo sinistra e destra (a piena larghez
 disposizione possibile), e l'immagine di tour e riquadri aggiunge `pieno` con etichette che
 descrivono anche dove finisce il testo. Sono scelte diverse, non tre posizioni: vanno lasciate
 com'è. Il catalogo copre la posizione orizzontale, non ogni menù che le somiglia.
+
+## Scelta della destinazione di un collegamento — deliberatamente NON condivisa
+
+La tendina "Dove porta il collegamento" (nessuno / pagina di un tour / home / indirizzo in rubrica
+/ scritto a mano) vive **dentro** `Components/Shared/NewsletterBloccoDialog.razor` e non è un
+componente a sé. È una scelta, non una dimenticanza: **ha un solo chiamante**, e la regola 2 del
+progetto scoraggia le astrazioni a uso singolo. La rubrica indirizzi la usano anche
+`WebIndirizziPage` e `WebIndirizzoDialog`, ma per il CRUD della tabella, non per scegliere una
+destinazione.
+
+Se nasce un secondo punto che sceglie una destinazione, allora estrarre — e ricordarsi che la
+scelta è fatta di **quattro pezzi che devono restare d'accordo**, non solo del `MudSelect`:
+
+1. le voci della tendina;
+2. `EtichettaDestinazione` — cosa si legge (senza, compare `rubrica:6`);
+3. `OnDestinazioneChanged` — cosa scrivere nel blocco per ogni scelta, incluso **sciogliere** il
+   legame con la rubrica quando si passa a una destinazione che non ne viene;
+4. il riconoscimento all'apertura — dall'URL salvato risalire alla voce da mostrare.
+
+Il quarto è quello che è già divergiato una volta: mostrava «Home page del sito» su un blocco che
+non aveva alcun collegamento. Estraendo, vanno spostati **tutti e quattro insieme**.
