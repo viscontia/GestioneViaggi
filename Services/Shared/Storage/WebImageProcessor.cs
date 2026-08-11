@@ -87,16 +87,20 @@ public static class WebImageProcessor
     /// Le icone restano piccole, quindi il PNG non pesa: 128px e' gia' il doppio di quanto serve
     /// per una resa a 18px su schermi ad alta densita'.
     /// </remarks>
-    public static async Task<ProcessedImage> ToEmailIconPngAsync(Stream input, CancellationToken ct = default)
+    public static Task<ProcessedImage> ToEmailIconPngAsync(Stream input, CancellationToken ct = default)
+        => ToEmailPngAsync(input, MaxEdgeIcona, ct);
+
+    /// <summary>PNG ridimensionato, con la trasparenza conservata.</summary>
+    public static async Task<ProcessedImage> ToEmailPngAsync(Stream input, int maxEdge, CancellationToken ct = default)
     {
         using var image = await Image.LoadAsync(input, ct);
 
-        if (Math.Max(image.Width, image.Height) > MaxEdgeIcona)
+        if (Math.Max(image.Width, image.Height) > maxEdge)
         {
             image.Mutate(x => x.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Max,
-                Size = new Size(MaxEdgeIcona, MaxEdgeIcona)
+                Size = new Size(maxEdge, maxEdge)
             }));
         }
 
@@ -104,6 +108,21 @@ public static class WebImageProcessor
         await image.SaveAsPngAsync(ms, ct);
         return new ProcessedImage(ms.ToArray(), image.Width, image.Height, MimeIcona);
     }
+
+    /// <summary>
+    /// Versione da email di un'immagine di libreria: <b>PNG se l'originale è PNG</b>, altrimenti
+    /// JPEG.
+    /// </summary>
+    /// <remarks>
+    /// La libreria contiene due cose diverse: icone, che vivono di trasparenza e vanno lasciate in
+    /// PNG, e immagini generiche, per cui il JPEG pesa meno. Convertire tutto in JPEG
+    /// appiattirebbe le trasparenze su bianco — è l'errore già commesso con le icone social — e
+    /// tenere tutto in PNG farebbe pesare inutilmente le fotografie.
+    /// </remarks>
+    public static Task<ProcessedImage> ToEmailLibreriaAsync(Stream input, bool originalePng, CancellationToken ct = default)
+        => originalePng
+            ? ToEmailPngAsync(input, MaxEdgeEmail, ct)
+            : ToEmailJpegAsync(input, ct);
 }
 
 /// <summary>Risultato dell'ottimizzazione: bytes WebP + dimensioni finali + mime.</summary>

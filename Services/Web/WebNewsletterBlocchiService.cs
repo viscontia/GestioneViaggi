@@ -44,6 +44,26 @@ public sealed class WebNewsletterBlocchiService
     public async Task<List<Components.Shared.ImmaginePicker.Voce>> GetGalleriaAziendaAsync(int aziendaId)
     {
         var list = new List<Components.Shared.ImmaginePicker.Voce>();
+
+        // La LIBRERIA per prima: icone e immagini generiche sono la scelta piu' probabile per una
+        // newsletter, e tenerle in un contesto separato evita di scorrere le foto dei tour per
+        // trovare un'icona.
+        await using (var connLib = await _db.GetConnectionAsync())
+        await using (var cmdLib = new NpgsqlCommand(
+            "SELECT url, storage_path, descrizione FROM fn_web_immagini_libreria_list(@Az::integer)", connLib))
+        {
+            cmdLib.Parameters.AddWithValue("Az", aziendaId);
+            await using var rl = await cmdLib.ExecuteReaderAsync();
+            while (await rl.ReadAsync())
+            {
+                list.Add(new Components.Shared.ImmaginePicker.Voce(
+                    Url: rl.GetString(0),
+                    StoragePath: rl.GetString(1),
+                    Alt: rl.IsDBNull(2) ? null : rl.GetString(2),
+                    Contesto: "Libreria immagini"));
+            }
+        }
+
         await using var conn = await _db.GetConnectionAsync();
         await using var cmd = new NpgsqlCommand(
             "SELECT url, storage_path, alt_text, contesto FROM fn_web_immagini_azienda(@Az::integer)", conn);

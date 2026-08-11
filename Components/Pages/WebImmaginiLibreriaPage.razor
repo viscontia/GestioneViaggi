@@ -1,0 +1,280 @@
+@page "/tabelle/web-immagini"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using Microsoft.Extensions.Logging
+@using MudBlazor
+@inject WebImmaginiLibreriaService Service
+@inject UserPreferenzeService Prefs
+@inject ITenantContext TenantContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@inject ILogger<WebImmaginiLibreriaPage> Logger
+@attribute [Authorize]
+@implements IDisposable
+
+@* Libreria immagini dell'azienda (script 523): icone e immagini generiche non legate a un viaggio.
+   Tenerle separate dalle gallerie dei tour non è pignoleria: mescolate, la scelta diventa via via
+   più difficile man mano che l'archivio cresce. *@
+
+<MudOverlay Visible="@_busy" DarkBackground="true" ZIndex="1300">
+    <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="8">
+        <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h6" Class="mt-4">@_messaggioAttesa</MudText>
+    </MudPaper>
+</MudOverlay>
+
+<MudText Typo="Typo.h5" Class="mb-1">Libreria immagini</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Icone e immagini generiche dell'azienda, non legate a un viaggio: si usano nei blocchi della
+    newsletter. Le foto dei tour restano nella galleria della loro scheda web.
+</MudText>
+
+@if (_isSuperAdmin)
+{
+    <MudPaper Outlined="true" Class="pa-3 mb-3">
+        <AziendaSelect Value="@_aziendaId" ValueChanged="OnAziendaChanged" Label="Azienda"
+                       Class="mt-0" Style="max-width:420px;" />
+    </MudPaper>
+}
+
+@if (_aziendaId == 0)
+{
+    <MudAlert Severity="Severity.Warning">Seleziona un'azienda.</MudAlert>
+}
+else
+{
+    <div class="d-flex align-center gap-3 mb-3 flex-wrap">
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept="image/*" FilesChanged="Carica" Class="ma-0">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Upload" Disabled="@_busy">
+                    Carica immagini
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Si possono caricare più file insieme. I <strong>PNG restano PNG</strong>, per non perdere
+            la trasparenza delle icone; gli altri formati diventano JPEG.
+        </MudText>
+
+        <MudSpacer />
+
+        @if (_immagini.Count > 0)
+        {
+            <div class="d-flex align-center gap-2" style="min-width:220px;max-width:300px;">
+                <MudText Typo="Typo.caption" Style="white-space:nowrap;">Dimensione miniature</MudText>
+                <MudSlider T="int" Min="96" Max="400" Step="8" Value="_thumbSize" ValueChanged="OnThumbSize" />
+            </div>
+        }
+    </div>
+
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+        Evita immagini <strong>con del testo dentro</strong>: non viene tradotto e resterebbe in
+        italiano nelle newsletter agli stranieri.
+    </MudAlert>
+
+    @if (_immagini.Count == 0)
+    {
+        <MudText Color="Color.Secondary">
+            Nessuna immagine in libreria. Carica qui le icone e le immagini che riusi nelle newsletter.
+        </MudText>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var img in _immagini)
+            {
+                <MudPaper Outlined="true" Class="pa-2" Style="@($"width:{_thumbSize + 24}px;")">
+                    <div style="@($"width:{_thumbSize}px;height:{(int)(_thumbSize * 0.75)}px;display:flex;align-items:center;justify-content:center;background:var(--mud-palette-background-grey);border-radius:4px;overflow:hidden;")">
+                        <img src="@img.Url" alt="@img.Descrizione"
+                             style="max-width:100%;max-height:100%;object-fit:contain;" loading="lazy" />
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mt-1"
+                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@img.Descrizione</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(img.Larghezza)×@(img.Altezza) · @(img.Mime?.Replace("image/", "").ToUpperInvariant())
+                    </MudText>
+                    <div class="d-flex justify-end">
+                        <MudTooltip Text="Rinomina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           Disabled="@_busy" OnClick="@(() => Rinomina(img))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           Disabled="@_busy" OnClick="@(() => Elimina(img))" />
+                        </MudTooltip>
+                    </div>
+                </MudPaper>
+            }
+        </div>
+    }
+}
+
+@code {
+    private const string ThumbSizePrefKey = "galleria.thumb_size";
+
+    private int _aziendaId;
+    private bool _isSuperAdmin;
+    private bool _busy;
+    private string _messaggioAttesa = "Attendere…";
+    private int _thumbSize = 120;
+    private List<WebImmagineLibreria> _immagini = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("web_immagini_libreria");
+        try
+        {
+            _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+            _aziendaId = await TenantContext.GetCurrentAziendaIdAsync() ?? 0;
+
+            // Stessa preferenza della galleria e dei picker: la dimensione scelta vale ovunque.
+            var pref = await Prefs.GetAsync(ThumbSizePrefKey);
+            if (int.TryParse(pref, out var v)) _thumbSize = Math.Clamp(v, 96, 400);
+
+            if (_aziendaId != 0) await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(Messaggio(ex), Severity.Error); }
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task OnThumbSize(int v)
+    {
+        _thumbSize = v;
+        try { await Prefs.SetAsync(ThumbSizePrefKey, v.ToString()); } catch { }
+    }
+
+    private async Task OnAziendaChanged(int aziendaId)
+    {
+        _aziendaId = aziendaId;
+        _immagini.Clear();
+        if (_aziendaId != 0) await RicaricaAsync();
+        StateHasChanged();
+    }
+
+    private async Task RicaricaAsync()
+    {
+        try { _immagini = await Service.ListAsync(_aziendaId); }
+        catch (Exception ex) { Snackbar.Add(Messaggio(ex), Severity.Error); }
+    }
+
+    private async Task Carica(IReadOnlyList<IBrowserFile>? files)
+    {
+        if (files is null || files.Count == 0) return;
+
+        var totale = files.Count;
+        var fatti = 0;
+        var errori = 0;
+
+        _busy = true;
+        _messaggioAttesa = $"Caricamento di {totale} immagini…";
+        await InvokeAsync(StateHasChanged);
+
+        foreach (var f in files)
+        {
+            _messaggioAttesa = $"Caricamento {fatti + errori + 1} di {totale}: {f.Name}";
+            await InvokeAsync(StateHasChanged);
+            try
+            {
+                await using var stream = f.OpenReadStream(10 * 1024 * 1024);
+                await Service.CaricaAsync(_aziendaId, f.Name, null, stream);
+                fatti++;
+            }
+            catch (Exception ex)
+            {
+                errori++;
+                Logger.LogError(ex, "Libreria: caricamento fallito per {File}", f.Name);
+                Snackbar.Add($"«{f.Name}» non caricata: {Messaggio(ex)}", Severity.Warning);
+            }
+        }
+
+        _busy = false;
+        await RicaricaAsync();
+        Snackbar.Add(errori == 0 ? $"{fatti} immagini caricate." : $"{fatti} caricate, {errori} non riuscite.",
+                     errori == 0 ? Severity.Success : Severity.Warning);
+    }
+
+    private async Task Rinomina(WebImmagineLibreria img)
+    {
+        var parametri = new DialogParameters<InputTextDialog>
+        {
+            { x => x.Title, "Rinomina immagine" },
+            { x => x.Label, "Nome" },
+            { x => x.Value, img.Descrizione }
+        };
+        var dlg = await DialogService.ShowAsync<InputTextDialog>("Rinomina immagine", parametri,
+            new DialogOptions { BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled || res.Data is not string nuovo) return;
+
+        _busy = true; _messaggioAttesa = "Salvataggio…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Service.RinominaAsync(img.WebImmagineLibreriaId, _aziendaId, nuovo);
+            await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(Messaggio(ex), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task Elimina(WebImmagineLibreria img)
+    {
+        // Prima si guarda dove è usata: dire "non si può" senza dire dove costringerebbe a
+        // cercarla a mano in tutte le newsletter.
+        List<ImmagineInUso> usi;
+        try { usi = await Service.UsiAsync(img.WebImmagineLibreriaId, _aziendaId); }
+        catch (Exception ex) { Snackbar.Add(Messaggio(ex), Severity.Error); return; }
+
+        if (usi.Count > 0)
+        {
+            var elenco = string.Join(", ", usi.Select(u => $"«{u.Oggetto}» ({u.Stato})"));
+            Snackbar.Add($"«{img.Descrizione}» è usata in: {elenco}. Rimuovila prima da quelle newsletter.",
+                         Severity.Warning);
+            return;
+        }
+
+        var parametri = new DialogParameters<DeleteConfirmationDialog>
+        {
+            { x => x.Title, "Elimina immagine" },
+            { x => x.ContentText, $"Eliminare «{img.Descrizione}»? Il file viene rimosso definitivamente." },
+            { x => x.ButtonText, "Elimina" },
+            { x => x.Color, Color.Error }
+        };
+        var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Elimina immagine", parametri,
+            new DialogOptions { BackdropClick = false });
+        if ((await dlg.Result)!.Canceled) return;
+
+        _busy = true; _messaggioAttesa = "Eliminazione…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Service.EliminaAsync(img);
+            await RicaricaAsync();
+            Snackbar.Add("Immagine eliminata.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(Messaggio(ex), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private string Messaggio(Exception ex) => ex switch
+    {
+        InvalidOperationException or GestioneViaggi.Models.Exceptions.GestioneViaggiException => ex.Message,
+        Npgsql.PostgresException pex => Helpers.DatabaseExceptionHelper.WrapException(pex, "web_immagini_libreria").Message,
+        _ => Log(ex)
+    };
+
+    private string Log(Exception ex)
+    {
+        Logger.LogError(ex, "Errore non gestito in Libreria immagini");
+        return "Si è verificato un errore imprevisto. Il dettaglio tecnico è nel log dell'applicazione.";
+    }
+}

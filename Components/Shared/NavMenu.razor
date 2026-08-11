@@ -51,6 +51,11 @@
                         OnClick="@(() => OpenTabAndNotify("/tabelle/web-indirizzi", "Indirizzi web", "table"))">
                 <MudText Typo="Typo.body1">Indirizzi web</MudText>
             </MudNavLink>
+
+            <MudNavLink Icon="@Icons.Material.Filled.PhotoLibrary"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/web-immagini", "Libreria immagini", "table"))">
+                <MudText Typo="Typo.body1">Libreria immagini</MudText>
+            </MudNavLink>
         </MudNavGroup>
 
         <!-- Tabelle Geografiche -->

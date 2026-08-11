@@ -122,6 +122,7 @@ public static class MauiProgram
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();
         builder.Services.AddScoped<Services.Web.NewsletterRenderService>();
         builder.Services.AddScoped<Services.Web.WebIndirizziService>();
+        builder.Services.AddScoped<Services.Web.WebImmaginiLibreriaService>();
         builder.Services.AddScoped<CountryService>();
         builder.Services.AddScoped<CountryRegionService>();
         builder.Services.AddScoped<CountrySubRegionService>();
