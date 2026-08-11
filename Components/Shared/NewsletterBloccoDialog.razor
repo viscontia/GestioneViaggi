@@ -558,6 +558,13 @@
             if (string.IsNullOrWhiteSpace(Blocco.LinkEtichetta)) Blocco.LinkEtichetta = "Vai alla pagina del Tour";
             if (!dati.Pubblicato)
                 Snackbar.Add("Attenzione: la scheda di quel tour è in bozza, il collegamento non funzionerà finché non la pubblichi.", Severity.Warning);
+
+            // Scelto il tour il pulsante e' completo - indirizzo ed etichetta - quindi si salva e
+            // si chiude qui. Tornare alla form del blocco costringeva a premere Salva una seconda
+            // volta, e siccome per un pulsante quella form mostra pochissimo sembrava una form
+            // nuova e vuota: si usciva convinti di aver salvato, e il blocco non c'era.
+            // Per cambiare l'etichetta si riapre il blocco, che e' una modifica come le altre.
+            await Conferma();
         }
     }
 
