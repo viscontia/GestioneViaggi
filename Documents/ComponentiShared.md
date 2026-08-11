@@ -1092,3 +1092,45 @@ suggerimento del browser e si aggira trascinando un file.
 **Usato da:** `WebImmaginiLibreriaPage` (multiplo) e `WebIndirizzoDialog` (icona social, solo PNG).
 **Da migrare:** `WebTourGalleriaTab`, `WebTourMappaTab`, `AziendaLogoDialog`, `ClienteDialog`,
 `OracleImport` — funzionano, ma quattro di questi non hanno un limite di dimensione.
+
+## PosizioneSelect
+
+`Components/Shared/PosizioneSelect.razor` — scelta di una posizione orizzontale
+(sinistra / centro / destra).
+
+Le voci **non sono scritte nel componente**: arrivano da `NewsletterLayout.Posizioni`
+(`Models/Web/NewsletterDefinizioni.cs`), che è il catalogo unico di questo concetto. Ogni
+posizione vi porta con sé le tre forme in cui serve:
+
+| Campo | A cosa serve | Chi lo usa |
+|---|---|---|
+| `Codice` | valore salvato a database (`sinistra` \| `centro` \| `destra`) | il vincolo CHECK su `web_newsletter_blocchi.layout` e `layout_pulsante` |
+| `Etichetta` | testo mostrato all'utente | `PosizioneSelect` |
+| `Css` | allineamento HTML (`left` \| `center` \| `right`) | `NewsletterHtmlRenderer`, l'anteprima del piè di pagina |
+| `Casella` | colonna nella fila di pulsanti (0, 1, 2) | `RenderPulsantiInFila` |
+
+Prima la stessa corrispondenza era **riscritta quattro volte** in forme scollegate: due `switch`
+nel renderer, un array `{ "left", "center", "right" }` e un ternario nell'anteprima — più i tre
+elenchi di voci nelle form. Un codice nuovo, o un refuso in uno solo di quei punti, dava un
+valore che nessuna mappatura riconosceva: il contenuto finiva a sinistra senza alcun errore.
+
+```razor
+<PosizioneSelect @bind-Value="Blocco.Layout" Label="Allineamento"
+                 HelperText="Come viene allineato il contenuto." />
+
+@* Clearable dove "nessuna scelta" ha un senso suo: sul pulsante significa
+   "segui la posizione dell'immagine". *@
+<PosizioneSelect @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
+                 Clearable="true" HelperText="Vuoto = segue la posizione dell'immagine." />
+```
+
+Per l'allineamento CSS usare sempre `NewsletterLayout.Css(codice, cssDiRiserva)`. Il valore di
+riserva è un parametro perché **non è lo stesso ovunque**: un blocco nasce a sinistra, il piè di
+pagina nasce centrato. Appiattirlo su un unico default cambierebbe di nascosto le newsletter già
+composte.
+
+**Quando NON usarlo.** Dove il vocabolario è diverso, e nel dialogo dei blocchi lo è in due punti:
+l'icona del riquadro informativo ammette solo sinistra e destra (a piena larghezza non è una
+disposizione possibile), e l'immagine di tour e riquadri aggiunge `pieno` con etichette che
+descrivono anche dove finisce il testo. Sono scelte diverse, non tre posizioni: vanno lasciate
+com'è. Il catalogo copre la posizione orizzontale, non ogni menù che le somiglia.

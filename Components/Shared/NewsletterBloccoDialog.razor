@@ -194,13 +194,9 @@
                un pulsante c'e' davvero, cioe' quando l'etichetta e' compilata. *@
             @if (!string.IsNullOrWhiteSpace(Blocco.LinkEtichetta) && Blocco.Tipo != "pulsante")
             {
-                <MudSelect T="string" @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
-                           Variant="Variant.Outlined" Clearable="true" Class="mb-3"
-                           HelperText="Vuoto = segue la posizione dell'immagine.">
-                    <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
-                </MudSelect>
+                <PosizioneSelect @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
+                                 Clearable="true"
+                                 HelperText="Vuoto = segue la posizione dell'immagine." />
             }
         }
 
@@ -233,23 +229,13 @@
                     @* In fila la posizione va DICHIARATA: la riga ha tre caselle e questa dice
                        quale occupare. Senza, la posizione dipenderebbe dall'ordine dei blocchi
                        nell'elenco, che in verticale non si legge come sinistra-centro-destra. *@
-                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Posizione nella fila"
-                               Variant="Variant.Outlined" Class="mb-3"
-                               HelperText="La fila ha tre posizioni e ognuna ospita un solo pulsante. Lasciarne una libera è lecito.">
-                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
-                    </MudSelect>
+                    <PosizioneSelect @bind-Value="Blocco.Layout" Label="Posizione nella fila"
+                                     HelperText="La fila ha tre posizioni e ognuna ospita un solo pulsante. Lasciarne una libera è lecito." />
                 }
                 else
                 {
-                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Allineamento"
-                               Variant="Variant.Outlined" Class="mb-3"
-                               HelperText="Come viene allineato il contenuto nella colonna della newsletter.">
-                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
-                    </MudSelect>
+                    <PosizioneSelect @bind-Value="Blocco.Layout" Label="Allineamento"
+                                     HelperText="Come viene allineato il contenuto nella colonna della newsletter." />
                 }
 
                 @if (Blocco.Tipo == "tour")

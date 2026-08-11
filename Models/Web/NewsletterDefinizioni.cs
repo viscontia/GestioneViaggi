@@ -61,4 +61,34 @@ public static class NewsletterLayout
 
     /// <summary>Larghezza utile del corpo, dentro i 600px del riquadro meno i margini.</summary>
     public const int LarghezzaUtile = 536;
+
+    /// <summary>
+    /// Le posizioni orizzontali, in un posto solo. <paramref name="Casella"/> e' l'indice della
+    /// colonna nella fila di pulsanti: sinistra 0, centro 1, destra 2.
+    /// </summary>
+    public sealed record Posizione(string Codice, string Etichetta, string Css, int Casella);
+
+    /// <summary>
+    /// Catalogo delle posizioni, nell'ordine in cui vanno mostrate. I <c>Codice</c> sono quelli
+    /// ammessi dal CHECK su <c>web_newsletter_blocchi.layout</c> e <c>layout_pulsante</c>:
+    /// aggiungerne uno qui senza aggiornare il vincolo produce righe rifiutate dal database.
+    /// </summary>
+    public static IReadOnlyList<Posizione> Posizioni { get; } = new[]
+    {
+        new Posizione("sinistra", "A sinistra", "left",   0),
+        new Posizione("centro",   "Al centro",  "center", 1),
+        new Posizione("destra",   "A destra",   "right",  2),
+    };
+
+    /// <summary>
+    /// Allineamento CSS di un codice di posizione. Quello che non e' una posizione — <c>pieno</c>,
+    /// vuoto, valori sconosciuti — prende <paramref name="cssDiRiserva"/>, che non e' lo stesso
+    /// dappertutto: un blocco nasce a sinistra, il pie' di pagina nasce centrato.
+    /// </summary>
+    public static string Css(string? codice, string cssDiRiserva = "left") =>
+        Posizioni.FirstOrDefault(p => p.Codice == codice)?.Css ?? cssDiRiserva;
+
+    /// <summary>Colonna della fila di pulsanti, oppure -1 se la posizione non e' dichiarata.</summary>
+    public static int Casella(string? codice) =>
+        Posizioni.FirstOrDefault(p => p.Codice == codice)?.Casella ?? -1;
 }

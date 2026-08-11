@@ -361,11 +361,8 @@ else
                         <MudSelectItem T="int" Value="1">Una colonna</MudSelectItem>
                         <MudSelectItem T="int" Value="2">Due colonne</MudSelectItem>
                     </MudSelect>
-                    <MudSelect T="string" @bind-Value="_footerAllineamento" Label="Allineamento" Variant="Variant.Outlined" Margin="Margin.Dense">
-                        <MudSelectItem T="string" Value="@("centro")">Centrato</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
-                    </MudSelect>
+                    <PosizioneSelect @bind-Value="_footerAllineamento" Label="Allineamento"
+                                     Margin="Margin.Dense" Class="" />
                 </div>
 
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-3"
@@ -377,7 +374,7 @@ else
                 <MudText Typo="Typo.subtitle2" Class="mb-2">Come apparirà</MudText>
                 <div style="border:1px solid var(--mud-palette-lines-default);border-radius:4px;padding:16px;background:#fff;">
                     <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#888;
-                                text-align:@(_footerAllineamento == "sinistra" ? "left" : _footerAllineamento == "destra" ? "right" : "center");">
+                                text-align:@(NewsletterLayout.Css(_footerAllineamento, "center"));">
                         @foreach (var riga in AnteprimaFooter())
                         {
                             @riga<br />

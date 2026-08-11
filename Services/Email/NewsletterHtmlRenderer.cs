@@ -248,8 +248,7 @@ public static class NewsletterHtmlRenderer
         if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
             testo.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
-        if (!string.IsNullOrWhiteSpace(b.LinkUrl) && !string.IsNullOrWhiteSpace(b.LinkEtichetta))
-            testo.Append(BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: true, b.Social, b.IconaUrl));
+        testo.Append(PulsanteDelBlocco(b, allineaSinistra: true));
 
         var icona = string.IsNullOrWhiteSpace(b.ImmagineUrl)
             ? "&nbsp;"
@@ -349,7 +348,7 @@ public static class NewsletterHtmlRenderer
             sb.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
         if (!string.IsNullOrWhiteSpace(b.LinkUrl))
-            sb.Append(BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta ?? "Vai alla pagina del Tour", allineaSinistra: true));
+            sb.Append(PulsanteDelBlocco(b, "Vai alla pagina del Tour", allineaSinistra: true));
 
         return sb.ToString();
     }
@@ -364,26 +363,20 @@ public static class NewsletterHtmlRenderer
         // Il pulsante ha una RIGA sua, con un allineamento proprio: dentro la cella
         // dell'immagine erediterebbe quello dell'immagine, e con l'immagine a piena larghezza
         // finirebbe sempre a sinistra senza modo di spostarlo.
-        var pulsante = (string.IsNullOrWhiteSpace(b.LinkUrl) || string.IsNullOrWhiteSpace(b.LinkEtichetta))
-            ? ""
-            : $@"
-        <tr><td align=""{AllineaDaLayout(b.LayoutPulsante ?? b.Layout)}"" style=""padding:0 32px 16px 32px;"">
-          {BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: false, b.Social, b.IconaUrl)}
-        </td></tr>";
+        var pulsante = PulsanteDelBlocco(b);
+        var rigaPulsante = pulsante.Length == 0
+            ? string.Empty
+            : RigaAllineata(b.LayoutPulsante ?? b.Layout, "0 32px 16px 32px", pulsante);
 
-        return $@"
-        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px 8px 32px;"">{img}</td></tr>{pulsante}";
+        return RigaAllineata(b.Layout, "16px 32px 8px 32px", img) + rigaPulsante;
     }
 
     private static string RenderPulsante(NewsletterRenderBlocco b)
     {
-        if (string.IsNullOrWhiteSpace(b.LinkUrl)) return string.Empty;
-        var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
-
-        return $@"
-        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:8px 32px 16px 32px;"">
-          {BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl)}
-        </td></tr>";
+        var pulsante = PulsanteDelBlocco(b, EtichettaDiRiserva);
+        return pulsante.Length == 0
+            ? string.Empty
+            : RigaAllineata(b.Layout, "8px 32px 16px 32px", pulsante);
     }
 
     /// <summary>
@@ -436,7 +429,7 @@ public static class NewsletterHtmlRenderer
 
         foreach (var b in fila.Take(NewsletterLayout.MaxPulsantiInFila))
         {
-            var voluta = b.Layout switch { "sinistra" => 0, "centro" => 1, "destra" => 2, _ => -1 };
+            var voluta = NewsletterLayout.Casella(b.Layout);
 
             // Casella non dichiarata o gia' occupata: si prende la prima libera, cosi' un
             // pulsante non sparisce mai per un conflitto (che la UI comunque impedisce).
@@ -446,20 +439,15 @@ public static class NewsletterHtmlRenderer
             if (voluta >= 0) caselle[voluta] = b;
         }
 
-        var allineamenti = new[] { "left", "center", "right" };
         var celle = new StringBuilder();
 
         for (int c = 0; c < NewsletterLayout.MaxPulsantiInFila; c++)
         {
             var b = caselle[c];
-            var contenuto = "&nbsp;";
-            if (b != null && !string.IsNullOrWhiteSpace(b.LinkUrl))
-            {
-                var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? "Scopri di piu'" : b.LinkEtichetta!;
-                contenuto = BottoneBulletproof(b.LinkUrl!, etichetta, allineaSinistra: false, b.Social, b.IconaUrl);
-            }
+            var contenuto = b == null ? string.Empty : PulsanteDelBlocco(b, EtichettaDiRiserva);
+            if (contenuto.Length == 0) contenuto = "&nbsp;";
 
-            celle.Append($@"<td width=""33.33%"" align=""{allineamenti[c]}"" valign=""middle"" style=""width:33.33%;padding:0 4px;"">{contenuto}</td>");
+            celle.Append($@"<td width=""33.33%"" align=""{NewsletterLayout.Posizioni[c].Css}"" valign=""middle"" style=""width:33.33%;padding:0 4px;"">{contenuto}</td>");
         }
 
         return $@"
@@ -491,7 +479,7 @@ public static class NewsletterHtmlRenderer
             if (!string.IsNullOrWhiteSpace(v)) valori.Add(Esc(v!));
         }
 
-        var align = cfg.Allineamento switch { "sinistra" => "left", "destra" => "right", _ => "center" };
+        var align = NewsletterLayout.Css(cfg.Allineamento, "center");
         string corpo;
 
         if (cfg.Colonne == 2 && valori.Count > 1)
@@ -530,13 +518,34 @@ public static class NewsletterHtmlRenderer
     /// (su tour e' invece la posizione dell'immagine). <c>pieno</c> resta a sinistra: e' il
     /// default storico e su un paragrafo "piena larghezza" equivale a testo allineato a sinistra.
     /// </summary>
-    private static string AllineaDaLayout(string? layout) => layout switch
+    private static string AllineaDaLayout(string? layout) => NewsletterLayout.Css(layout);
+
+    /// <summary>
+    /// Una riga della tabella esterna, allineata secondo un codice di posizione. L'allineamento
+    /// sta su <c>align</c> e non su <c>text-align</c> perche' Outlook segue il primo e ignora il
+    /// secondo su un elemento a tabella come il pulsante.
+    /// </summary>
+    /// <summary>Testo del pulsante quando l'utente non l'ha scritto.</summary>
+    private const string EtichettaDiRiserva = "Scopri di piu'";
+
+    private static string RigaAllineata(string? layout, string padding, string contenuto) => $@"
+        <tr><td align=""{AllineaDaLayout(layout)}"" style=""padding:{padding};"">{contenuto}</td></tr>";
+
+    /// <summary>
+    /// Il pulsante di un blocco, vuoto se il blocco non ne ha uno. Raccoglie in un punto solo
+    /// i quattro campi che lo compongono: prima ogni chiamante li rileggeva per conto suo, e
+    /// bastava dimenticarne uno perche' quel pulsante perdesse colore o icona.
+    /// </summary>
+    private static string PulsanteDelBlocco(
+        NewsletterRenderBlocco b, string? etichettaDiRiserva = null, bool allineaSinistra = false)
     {
-        "sinistra" => "left",
-        "destra"   => "right",
-        "centro"   => "center",
-        _          => "left"
-    };
+        if (string.IsNullOrWhiteSpace(b.LinkUrl)) return string.Empty;
+
+        var etichetta = string.IsNullOrWhiteSpace(b.LinkEtichetta) ? etichettaDiRiserva : b.LinkEtichetta;
+        if (string.IsNullOrWhiteSpace(etichetta)) return string.Empty;
+
+        return BottoneBulletproof(b.LinkUrl!, etichetta!, allineaSinistra, b.Social, b.IconaUrl);
+    }
 
     private static string Esc(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
 }
