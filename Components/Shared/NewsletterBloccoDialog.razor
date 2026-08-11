@@ -106,6 +106,11 @@
                                 SelectedUrl="@Blocco.ImmagineUrl"
                                 OnScelta="OnImmagineScelta" />
             </div>
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                Evita immagini <strong>con del testo dentro</strong>: quel testo non viene tradotto e
+                resterebbe in italiano anche nelle newsletter inviate agli stranieri. Se proprio serve,
+                scrivilo in inglese.
+            </MudAlert>
             <MudTextField @bind-Value="Blocco.ImmagineAlt" Label="Testo alternativo" Variant="Variant.Outlined"
                           MaxLength="255" Class="mb-3"
                           HelperText="Compare al posto della foto finché il destinatario non la scarica." />
@@ -186,7 +191,18 @@
         @if (Mostra("layout"))
         {
             <div class="d-flex gap-3">
-                @if (Blocco.Tipo is "tour" or "immagine")
+                @if (Blocco.Tipo == "info")
+                {
+                    @* Nel riquadro informativo l'immagine e' un'icona a fianco: "piena larghezza"
+                       non e' una disposizione possibile, quindi non va offerta. *@
+                    <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Posizione dell'icona"
+                               Variant="Variant.Outlined" Class="mb-3"
+                               HelperText="Da che lato sta l'icona rispetto al testo.">
+                        <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
+                    </MudSelect>
+                }
+                else if (Blocco.Tipo is "tour" or "immagine")
                 {
                     <MudSelect T="string" @bind-Value="Blocco.Layout" Label="Posizione dell'immagine"
                                Variant="Variant.Outlined" Class="mb-3"
@@ -408,6 +424,14 @@
         finally { _caricando = false; }
     }
 
+    protected override void OnParametersSet()
+    {
+        // Il riquadro informativo nasce con l'icona a fianco: "pieno" e' il default della colonna
+        // sul database, ma per questo tipo non e' una disposizione valida.
+        if (Blocco.Tipo == "info" && Blocco.Layout is not ("sinistra" or "destra"))
+            Blocco.Layout = "sinistra";
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -582,6 +606,7 @@
     {
         "testata"   => gruppo is "titolo" or "sottotitolo" or "immagine",
         "testo"     => gruppo is "corpo" or "layout",
+        "info"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "layout",
         "tour"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "link" or "layout",
         "immagine"  => gruppo is "immagine" or "link" or "layout",
         "pulsante"  => gruppo is "link" or "layout",

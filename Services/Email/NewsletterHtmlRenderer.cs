@@ -148,6 +148,7 @@ public static class NewsletterHtmlRenderer
             "intestazione" => RenderIntestazione(azienda),
             "testata"      => RenderTestata(b),
             "testo"        => RenderTesto(b),
+            "info"         => RenderInfo(b),
             "tour"         => RenderTour(b),
             "immagine"     => RenderImmagine(b),
             "pulsante"     => RenderPulsante(b),
@@ -209,6 +210,47 @@ public static class NewsletterHtmlRenderer
         return $@"
         <tr><td align=""{align}"" style=""padding:12px 32px;font-family:{FontFamily};font-size:15px;line-height:22px;color:{ColoreTesto};"">
           {b.CorpoHtml}
+        </td></tr>";
+    }
+
+    /// <summary>
+    /// Riquadro informativo: icona a fianco, titolo e testo di seguito.
+    /// </summary>
+    /// <remarks>
+    /// Ricalcato sulla newsletter reale (CHI PUO' PARTECIPARE, COSTI, ADESIONI). L'immagine e'
+    /// un'icona di accompagnamento, non una copertina: colonna stretta e fissa, cosi' il testo
+    /// resta il protagonista e i riquadri incolonnati appaiono allineati fra loro.
+    /// La colonna dell'icona resta larga uguale anche quando l'immagine manca, altrimenti un
+    /// riquadro senza icona sfalserebbe i titoli rispetto agli altri.
+    /// </remarks>
+    private static string RenderInfo(NewsletterRenderBlocco b)
+    {
+        const int LarghezzaIcona = 130;
+
+        var testo = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(b.Titolo))
+            testo.Append($@"<h3 style=""margin:0 0 8px 0;font-family:{FontFamily};font-size:15px;line-height:20px;color:{ColoreAccento};text-transform:uppercase;"">{Esc(b.Titolo)}</h3>");
+        if (!string.IsNullOrWhiteSpace(b.Sottotitolo))
+            testo.Append($@"<p style=""margin:0 0 6px 0;font-family:{FontFamily};font-size:13px;color:{ColoreTenue};"">{Esc(b.Sottotitolo)}</p>");
+        if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
+            testo.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
+
+        var icona = string.IsNullOrWhiteSpace(b.ImmagineUrl)
+            ? "&nbsp;"
+            : $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""110"" style=""width:110px;max-width:110px;height:auto;display:block;border:0;"" />";
+
+        var cellaIcona = $@"<td width=""{LarghezzaIcona}"" valign=""top"" align=""center"" style=""width:{LarghezzaIcona}px;padding:0;"">{icona}</td>";
+        var cellaTesto = b.Layout == "destra"
+            ? $@"<td valign=""top"" style=""padding:0 16px 0 0;"">{testo}</td>"
+            : $@"<td valign=""top"" style=""padding:0 0 0 16px;"">{testo}</td>";
+
+        var righe = b.Layout == "destra" ? cellaTesto + cellaIcona : cellaIcona + cellaTesto;
+
+        return $@"
+        <tr><td style=""padding:14px 32px;border-bottom:1px solid #ececec;"">
+          <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
+            <tr>{righe}</tr>
+          </table>
         </td></tr>";
     }
 

@@ -59,10 +59,22 @@ Derivati **dalla newsletter reale**, non inventati:
 |---|---|---|
 | `testata` | immagine di sfondo + titolo + sottotitolo | titolo, sottotitolo |
 | `testo` | HTML ricco (Quill senza immagini) | corpo |
+| `info` | icona a fianco + titolo + testo | titolo, sottotitolo, corpo |
 | `tour` | riferimento a un'edizione → copertina, titolo, testo, link | testo introduttivo, etichetta pulsante |
 | `immagine` | immagine + testo alternativo + link opzionale | alt |
 | `pulsante` | etichetta + URL | etichetta |
 | `separatore` | spazio o linea | — |
+
+> **Aggiunto il 2026-08-11: `info`.** Emerso confrontando la newsletter reale, dove ricorre tre
+> volte (CHI PUÒ PARTECIPARE, COSTI, ADESIONI). Non era coperto: il riquadro `tour` è legato a
+> un'edizione e porta un pulsante, `immagine` occupa tutta la larghezza e il testo finirebbe sotto
+> invece che a fianco. Qui l'immagine è un'**icona di accompagnamento** (~110px), non una
+> copertina, e non c'è collegamento. La colonna dell'icona resta larga uguale anche quando l'icona
+> manca: altrimenti un riquadro senza icona sfalserebbe i titoli rispetto agli altri incolonnati.
+>
+> ⚠️ **Le immagini non devono contenere testo.** Il testo dentro un'immagine non viene tradotto e
+> resterebbe in italiano nelle newsletter agli stranieri. L'avviso è nel dialogo, accanto alla
+> scelta dell'immagine, e vale per tutti i blocchi con immagine — non solo per `info`.
 
 > **Rivisto il 2026-08-09 (§6.3, §6.5):** intestazione e footer **sono blocchi**, ma di tipo
 > **obbligatorio** — non eliminabili. Il footer è inoltre **componibile per azienda** (quali campi,

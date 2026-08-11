@@ -38,6 +38,9 @@ public static class NewsletterBloccoValidator
             "testo" when TestoVuoto(b.CorpoHtml)
                 => "Il blocco di testo è vuoto: scrivi qualcosa o eliminalo.",
 
+            "info" when TestoVuoto(b.CorpoHtml) && Vuoto(b.Titolo)
+                => "Il riquadro informativo è vuoto: serve almeno un titolo o un testo.",
+
             "tour" when Vuoto(b.Titolo) && Vuoto(b.ImmagineUrl)
                 => "Il riquadro tour è vuoto: scegli un tour, oppure compila almeno titolo e immagine.",
 
