@@ -757,8 +757,17 @@ else
         await AccendiAttesa();
         try
         {
-            await BlocchiService.UpdateAsync(copia);
+            // L'esito veniva ignorato: se la UPDATE non trovava la riga il dialogo si chiudeva
+            // come se fosse andato tutto bene e la modifica spariva al ricaricamento, senza che
+            // all'utente arrivasse alcun messaggio.
+            var salvato = await BlocchiService.UpdateAsync(copia);
             await CaricaBlocchiAsync();
+            if (!salvato)
+            {
+                Snackbar.Add("Il blocco non è stato salvato: la riga non è più disponibile. " +
+                             "Riapri la newsletter e riprova.", Severity.Error);
+                return false;
+            }
             return true;
         }
         catch (Exception ex)

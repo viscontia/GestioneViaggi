@@ -18,7 +18,18 @@
             </MudText>
         </div>
 
-        <div style="border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
+        <div style="position:relative;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
+            @* Velo di attesa: copre l'anteprima finche' le immagini non sono caricate e
+               impedisce i clic. Senza, l'utente vede per qualche secondo una newsletter a
+               pezzi e pensa di averla composta male. *@
+            @if (!_pronta)
+            {
+                <div style="position:absolute;inset:0;z-index:2;background:rgba(255,255,255,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                    <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.body1" Class="mt-3">Caricamento delle immagini…</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">L'anteprima si apre appena sono tutte pronte.</MudText>
+                </div>
+            }
             @* Il contenuto lo scrive JS nel documento dell'iframe: vedi newsletterPreview.js
                per il motivo per cui srcdoc non va bene. *@
             <iframe @ref="_iframe" title="Anteprima newsletter"
@@ -42,6 +53,7 @@
 
     private ElementReference _iframe;
     private bool _scritto;
+    private bool _pronta;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -52,11 +64,17 @@
             await Task.Delay(80);
             try
             {
-                _scritto = await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, Html);
+                // La chiamata torna solo quando le immagini sono caricate (o dopo il timeout
+                // di sicurezza): e' quello che tiene su il velo di attesa.
+                _scritto = await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, Html, 10000);
             }
             catch (Exception)
             {
                 _scritto = false;
+            }
+            finally
+            {
+                _pronta = true;
             }
             StateHasChanged();
         }
