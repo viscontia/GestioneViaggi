@@ -8,6 +8,25 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
+> ## ⚠️ L'azienda dell'Estensione Web è la **2**
+>
+> Tutti i dati che questa checklist dice di portare in PROD — modelli di newsletter, indirizzi web,
+> schede di contenuti, iscritti — appartengono all'**azienda 2, «Sardegna Fuori Traccia di Antonio
+> Tolu»**. È l'unica azienda che ha dati web: la 6 («Offroad Adventures di Mironova Anna») ne ha
+> zero, e ha solo un'anagrafica clienti più grande — motivo per cui è facile scambiarla.
+>
+> ```sql
+> -- verifica al volo, prima di copiare qualunque cosa
+> SELECT a.azienda_id, a.ragione_sociale,
+>        (SELECT count(*) FROM web_newsletter_invii i WHERE i.azienda_id = a.azienda_id) AS newsletter,
+>        (SELECT count(*) FROM web_tour_contenuti  t WHERE t.azienda_id = a.azienda_id) AS schede_web,
+>        (SELECT count(*) FROM web_indirizzi       w WHERE w.azienda_id = a.azienda_id) AS indirizzi
+>   FROM ana_aziende a ORDER BY 1;
+> ```
+>
+> *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
+> più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
+
 L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `529`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
@@ -515,14 +534,14 @@ Oltre agli script, vanno **copiati i dati**: i modelli di newsletter composti qu
 servono ad Antonio come base di partenza, invece di farlo ricominciare da una pagina bianca.
 
 **Cosa copiare:** le righe di `web_newsletter_invii` con `is_modello = true` e **tutti** i loro
-blocchi in `web_newsletter_blocchi`, per l'**azienda 6** (la stessa numerazione di adesso).
+blocchi in `web_newsletter_blocchi`, per l'**azienda 2 — Sardegna Fuori Traccia di Antonio Tolu**.
 
 ```sql
 -- ricognizione in locale: cosa c'è da portare
 SELECT i.web_newsletter_invii_id, i.oggetto, count(b.*) AS blocchi
   FROM web_newsletter_invii i
   LEFT JOIN web_newsletter_blocchi b ON b.invio_id_fk = i.web_newsletter_invii_id
- WHERE i.is_modello = true AND i.azienda_id = 6
+ WHERE i.is_modello = true AND i.azienda_id = 2   -- Sardegna Fuori Traccia
  GROUP BY 1, 2 ORDER BY 1;
 ```
 
@@ -548,7 +567,7 @@ pulsanti abbiano il colore e l'icona del social.
 `web_newsletter_iscritti` in PROD nasce **vuota**. Chi si è iscritto alla newsletter dal vecchio
 sito non è in `ana_clienti` — non ha mai comprato un viaggio — e quindi oggi non riceverebbe nulla.
 
-**Da fare al go-live:** recuperare la lista degli iscritti esistente e caricarla per l'azienda 6,
+**Da fare al go-live:** recuperare la lista degli iscritti esistente e caricarla per l'**azienda 2**,
 con `stato = 'attivo'`, `consenso = true` e un `token_disiscrizione` generato per ciascuno (il
 token serve al link di disiscrizione: senza, quella persona non può cancellarsi).
 
