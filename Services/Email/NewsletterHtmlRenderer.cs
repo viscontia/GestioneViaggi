@@ -17,7 +17,8 @@ public sealed record NewsletterRenderBlocco(
     string? LinkUrl = null,
     string? LinkEtichetta = null,
     string? Social = null,
-    string? IconaUrl = null);
+    string? IconaUrl = null,
+    string? LayoutPulsante = null);
 
 /// <summary>Dati dell'azienda usati da intestazione e footer.</summary>
 public sealed record NewsletterRenderAzienda(
@@ -360,14 +361,18 @@ public static class NewsletterHtmlRenderer
         var img = ConCollegamento(b.LinkUrl,
             $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""536"" style=""width:536px;max-width:100%;height:auto;display:block;border:0;"" />");
 
-        // Se c'e' anche un'etichetta, sotto l'immagine compare il pulsante: il campo esisteva
-        // gia' nella form ma non veniva reso, quindi si compilava senza alcun effetto.
+        // Il pulsante ha una RIGA sua, con un allineamento proprio: dentro la cella
+        // dell'immagine erediterebbe quello dell'immagine, e con l'immagine a piena larghezza
+        // finirebbe sempre a sinistra senza modo di spostarlo.
         var pulsante = (string.IsNullOrWhiteSpace(b.LinkUrl) || string.IsNullOrWhiteSpace(b.LinkEtichetta))
             ? ""
-            : $@"<div style=""margin-top:12px;"">{BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: false, b.Social, b.IconaUrl)}</div>";
+            : $@"
+        <tr><td align=""{AllineaDaLayout(b.LayoutPulsante ?? b.Layout)}"" style=""padding:0 32px 16px 32px;"">
+          {BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: false, b.Social, b.IconaUrl)}
+        </td></tr>";
 
         return $@"
-        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px;"">{img}{pulsante}</td></tr>";
+        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px 8px 32px;"">{img}</td></tr>{pulsante}";
     }
 
     private static string RenderPulsante(NewsletterRenderBlocco b)

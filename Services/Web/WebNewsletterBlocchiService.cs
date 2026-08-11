@@ -104,7 +104,7 @@ public sealed class WebNewsletterBlocchiService
                     @Layout::varchar, @Colonne::smallint,
                     @Titolo::varchar, @Sottotitolo::varchar, @Corpo::text,
                     @ImgUrl::varchar, @ImgPath::varchar, @ImgAlt::varchar,
-                    @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint, @Social::varchar, @IconaUrl::varchar)", conn);
+                    @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint, @Social::varchar, @IconaUrl::varchar, @LayoutPuls::varchar)", conn);
 
             cmd.Parameters.AddWithValue("Az", b.AziendaId);
             cmd.Parameters.AddWithValue("Invio", b.InvioIdFk);
@@ -123,6 +123,7 @@ public sealed class WebNewsletterBlocchiService
         cmd.Parameters.AddWithValue("Indirizzo", (object?)b.IndirizzoIdFk ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Social", (object?)b.Social ?? DBNull.Value);
         cmd.Parameters.AddWithValue("IconaUrl", (object?)b.IconaUrl ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("LayoutPuls", (object?)b.LayoutPulsante ?? DBNull.Value);
 
             return Convert.ToInt64(await cmd.ExecuteScalarAsync());
         }
@@ -141,7 +142,7 @@ public sealed class WebNewsletterBlocchiService
                 @Id::bigint, @Az::integer, @Layout::varchar, @Colonne::smallint,
                 @Titolo::varchar, @Sottotitolo::varchar, @Corpo::text,
                 @ImgUrl::varchar, @ImgPath::varchar, @ImgAlt::varchar,
-                @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint, @Social::varchar, @IconaUrl::varchar)", conn);
+                @LinkUrl::varchar, @LinkEtichetta::varchar, @DataViaggio::integer, @Indirizzo::bigint, @Social::varchar, @IconaUrl::varchar, @LayoutPuls::varchar)", conn);
 
         cmd.Parameters.AddWithValue("Id", b.WebNewsletterBloccoId);
         cmd.Parameters.AddWithValue("Az", b.AziendaId);
@@ -159,6 +160,7 @@ public sealed class WebNewsletterBlocchiService
         cmd.Parameters.AddWithValue("Indirizzo", (object?)b.IndirizzoIdFk ?? DBNull.Value);
         cmd.Parameters.AddWithValue("Social", (object?)b.Social ?? DBNull.Value);
         cmd.Parameters.AddWithValue("IconaUrl", (object?)b.IconaUrl ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("LayoutPuls", (object?)b.LayoutPulsante ?? DBNull.Value);
 
         return Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
     }
@@ -214,6 +216,7 @@ public sealed class WebNewsletterBlocchiService
         IndirizzoIdFk         = r.IsDBNull(r.GetOrdinal("indirizzo_id_fk")) ? null : r.GetInt64(r.GetOrdinal("indirizzo_id_fk")),
         Social                = r.IsDBNull(r.GetOrdinal("social")) ? null : r.GetString(r.GetOrdinal("social")),
         IconaUrl              = r.IsDBNull(r.GetOrdinal("icona_url")) ? null : r.GetString(r.GetOrdinal("icona_url")),
+        LayoutPulsante        = r.IsDBNull(r.GetOrdinal("layout_pulsante")) ? null : r.GetString(r.GetOrdinal("layout_pulsante")),
         AziendaId             = r.GetInt32(r.GetOrdinal("azienda_id")),
     };
 

@@ -51,6 +51,12 @@ public sealed class WebNewsletterBlocco
     public string? Social { get; set; }
     public string? IconaUrl { get; set; }
 
+    /// <summary>
+    /// Allineamento del pulsante, indipendente da quello dell'immagine (script 525).
+    /// NULL = segue il layout del blocco.
+    /// </summary>
+    public string? LayoutPulsante { get; set; }
+
     public int AziendaId { get; set; }
 }
 

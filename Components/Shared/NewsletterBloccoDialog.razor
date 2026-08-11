@@ -188,6 +188,20 @@
             <MudTextField @bind-Value="Blocco.LinkEtichetta" Label="Testo del pulsante" Variant="Variant.Outlined"
                           MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour"
                           HelperText="Le parole scritte dentro il pulsante." />
+
+            @* Il pulsante ha una posizione propria: ereditare quella dell'immagine lo inchiodava
+               a sinistra ogni volta che l'immagine era a piena larghezza. Si mostra solo quando
+               un pulsante c'e' davvero, cioe' quando l'etichetta e' compilata. *@
+            @if (!string.IsNullOrWhiteSpace(Blocco.LinkEtichetta) && Blocco.Tipo != "pulsante")
+            {
+                <MudSelect T="string" @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
+                           Variant="Variant.Outlined" Clearable="true" Class="mb-3"
+                           HelperText="Vuoto = segue la posizione dell'immagine.">
+                    <MudSelectItem T="string" Value="@("sinistra")">A sinistra</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("centro")">Al centro</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("destra")">A destra</MudSelectItem>
+                </MudSelect>
+            }
         }
 
         @if (Mostra("layout"))

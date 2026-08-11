@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `524`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `525`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -24,7 +24,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=524 {print $2}' \
+  | awk '$1>=406 && $1<=525 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -37,7 +37,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`524` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`525` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -98,7 +98,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–524)
+### Elenco ordinato (467–525)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -165,6 +165,7 @@ ls SqlScripts/*.sql \
 | 522 | NewsletterBlocco_Info | Nuovo tipo di blocco `info` (icona + testo): CHECK esteso e catalogo tipi aggiornato. Nessuna migrazione |
 | 523 | WebImmaginiLibreria | Nuova tabella `web_immagini_libreria` (icone e immagini generiche per-azienda) + CRUD + guardia d'uso. ⚠️ **Contenuto da riportare in PROD** come per `web_indirizzi`: la tabella nasce vuota e **i file vivono su Storage** sotto `libreria/{azienda}/` — vanno copiati nel bucket di produzione e gli URL riscritti, altrimenti le newsletter mostrerebbero immagini rotte |
 | 524 | Pulizia_Firme_Obsolete | ⚠️ **Da applicare DOPO tutti gli altri.** `CREATE OR REPLACE` non sostituisce una function se cambia il numero di parametri: gli script `512→518→520` e `517→519` lasciano dietro **sette firme superate**, che rendono ambigua ogni chiamata che non elenchi tutti i parametri (`function is not unique`). Lo script le rimuove e verifica che ne resti una sola per nome |
+| 525 | NewsletterBlocchi_LayoutPulsante | Aggiunge `web_newsletter_blocchi.layout_pulsante` (posizione del pulsante indipendente da quella dell'immagine; NULL = segue il blocco). **Ordine sicuro dopo il 524**: lo script fa da sé il `DROP` delle due firme che sostituisce (insert a 18 e update a 16 parametri) invece di lasciarle accumulare, quindi non riapre il problema che il 524 ha chiuso |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
