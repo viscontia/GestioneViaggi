@@ -829,11 +829,12 @@ glielo mette l'editor.
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| 36.1 | Apri un **riquadro informativo** già esistente | Titolo e sottotitolo mostrano «Colore predefinito»; l'anteprima è identica a prima |
-| 36.2 | Titolo → scegli un colore dalla tavolozza → Salva → Anteprima | Il titolo del riquadro ha quel colore. Il sottotitolo resta grigio |
+| 36.1 | Apri un **riquadro informativo** già esistente | Titolo e sottotitolo mostrano «Predefinito» con il pallino del colore. **Nessun codice esadecimale a vista** |
+| 36.2 | Titolo → scegli «Rosso» dalla tendina → Salva → Anteprima | Le voci sono nomi con il colore accanto. Il titolo del riquadro diventa rosso, il sottotitolo resta grigio |
 | 36.3 | Sottotitolo → colore diverso → Salva → Anteprima | I due colori sono indipendenti |
-| 36.4 | Premi l'icona **azzera colore** accanto al titolo → Salva → riapri | Torna «Colore predefinito», il titolo è di nuovo blu |
-| 36.5 | Scegli a mano il blu `#2171A5` (non "predefinito") | Aspetto identico, ma il blocco ha ora un colore **dichiarato**: non seguirà più il modello se il modello cambia |
+| 36.4 | Torna a **«Predefinito»** sul titolo → Salva → riapri | Il titolo è di nuovo blu e la tendina legge «Predefinito» |
+| 36.5 | Scegli a mano «Blu del modello» (non «Predefinito») | Aspetto identico, ma il blocco ha ora un colore **dichiarato**: non seguirà più il modello se il modello cambia |
+| 36.5b | **«Altro colore…»** → prendi un colore qualsiasi → conferma | È l'unico punto in cui compare un codice colore. Tornato nella form, la voce legge «Colore personalizzato» e resta selezionata riaprendo il blocco |
 | 36.6 | Stessa prova su **testata** e **riquadro tour** | Funziona uguale. Nella testata il predefinito del sottotitolo è più scuro (`#333333`) che negli altri blocchi (`#888888`): il pallino deve mostrare quello giusto |
 | 36.7 | **Invio di prova** di una newsletter con i colori | I colori arrivano nella mail, non solo nell'anteprima |
 | 36.8 | **Clona** una newsletter con i colori | La copia ha gli stessi colori |

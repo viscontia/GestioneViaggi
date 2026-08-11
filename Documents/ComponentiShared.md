@@ -1161,10 +1161,17 @@ non aveva alcun collegamento. Estraendo, vanno spostati **tutti e quattro insiem
 `Components/Shared/ColoreTestoSelect.razor` — scelta del colore di un testo della newsletter.
 Usato per il titolo e per il sottotitolo dei blocchi (testata, riquadro informativo, riquadro tour).
 
+**Si sceglie per nome, con il colore accanto.** «Blu del modello», «Grigio tenue», «Rosso»: chi
+compone una newsletter non sa cosa sia `#2171A5` e non deve saperlo. Il codice esadecimale resta
+il valore vero — è ciò che finisce nel database e nell'HTML della mail — ma compare in un solo
+posto, dietro la voce **«Altro colore…»**, dove si sta deliberatamente scegliendo un colore fuori
+tavolozza (il colore esatto di un marchio, tipicamente). Quella voce apre
+`ColorePersonalizzatoDialog`, che è l'unico punto dell'applicazione in cui un codice colore è al
+suo posto.
+
 I colori proposti vengono da `NewsletterColori.Tavolozza` (`Models/Web/NewsletterDefinizioni.cs`),
 lo stesso posto da cui il renderer prende i valori predefiniti: tavolozza e modello grafico non
-possono divergere. Non è un vincolo — dal selettore si prende comunque qualsiasi colore — sono i
-valori che stanno bene sul fondo bianco, messi davanti per non cercarli ogni volta.
+possono divergere.
 
 ```razor
 <ColoreTestoSelect @bind-Value="Blocco.ColoreTitolo" Label="Colore del titolo"
@@ -1172,14 +1179,16 @@ valori che stanno bene sul fondo bianco, messi davanti per non cercarli ogni vol
 ```
 
 **`Predefinito` va passato quello vero.** Il predefinito del sottotitolo non è lo stesso ovunque:
-nella testata è il grigio del testo corrente, negli altri blocchi il grigio tenue. Passandone uno
-sbagliato il pallino mostrerebbe un colore diverso da quello che si vedrà nella mail — cioè
-l'unica cosa che questo controllo deve evitare.
+nella testata è il grigio del testo corrente (`#333333`), negli altri blocchi il grigio tenue
+(`#888888`). Passandone uno sbagliato il pallino mostrerebbe un colore diverso da quello che si
+vedrà nella mail — cioè l'unica cosa che questo controllo deve evitare.
 
-**Nessuna scelta è uno stato a sé**, e non equivale a scegliere a mano il colore predefinito: un
-blocco che non dichiara nulla segue il modello anche se il modello cambia, uno che dichiara
-`#2171A5` resta blu per sempre. Il pulsante con l'icona *format color reset* riporta a "nessuna
-scelta" ed è l'unico modo per tornarci.
+**«Predefinito» è uno stato a sé**, ed è la prima voce: non equivale a scegliere a mano il colore
+predefinito. Un blocco che non dichiara nulla segue il modello anche se il modello cambia, uno che
+dichiara `#2171A5` resta blu per sempre.
+
+Un colore scelto fuori tavolozza resta selezionabile come «Colore personalizzato»: senza, riaprendo
+la tendina non corrisponderebbe a nessuna voce e sembrerebbe perso.
 
 `NewsletterColori.Normalizza` riduce qualsiasi forma a `#RRGGBB` (taglia la trasparenza, aggiunge
 il cancelletto, rifiuta ciò che colore non è) e va usata **sia prima di salvare sia in fase di

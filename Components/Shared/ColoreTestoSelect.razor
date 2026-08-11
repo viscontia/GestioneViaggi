@@ -1,31 +1,57 @@
 @using GestioneViaggi.Models.Web
 @using MudBlazor
-@using MudBlazor.Utilities
+@inject IDialogService DialogService
 
 @* Scelta del colore di un testo della newsletter.
 
-   I colori proposti vengono da NewsletterColori.Tavolozza, che e' lo stesso posto da cui il
-   renderer prende i valori predefiniti: la tavolozza e il modello grafico non possono divergere.
+   Si sceglie per NOME, con il colore accanto: chi compone una newsletter non sa cosa sia #2171A5,
+   e non deve saperlo. Il codice esadecimale esiste ancora — e' cio' che finisce nel database e
+   nell'HTML — ma compare solo dietro "Altro colore…", dove si sta scegliendo apposta un colore
+   fuori tavolozza.
 
-   "Nessuna scelta" e' uno stato a se' e vale predefinito — non e' la stessa cosa che scegliere a
-   mano il colore predefinito. Un blocco che non dichiara nulla segue il modello anche se il
-   modello cambia; uno che dichiara #2171A5 resta blu per sempre. *@
+   I colori proposti vengono da NewsletterColori.Tavolozza, lo stesso posto da cui il renderer
+   prende i valori predefiniti: tavolozza e modello grafico non possono divergere. *@
 
-<div class="d-flex align-center gap-1 @Class">
-    <MudColorPicker Label="@Label" Value="@Corrente" ValueChanged="OnColore"
-                    ShowAlpha="false" PickerVariant="PickerVariant.Dialog"
-                    Palette="@Tavolozza" Style="max-width:190px;"
-                    Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Palette"
-                    Disabled="@Disabled" />
+<div class="d-flex align-center gap-2 @Class">
+    <span style="@Pallino(Value ?? Predefinito)"></span>
 
-    <MudTooltip Text="Torna al colore predefinito">
-        <MudIconButton Icon="@Icons.Material.Filled.FormatColorReset" Size="Size.Small"
-                       Disabled="@(Disabled || Value is null)" OnClick="Ripristina" />
-    </MudTooltip>
+    <MudSelect T="string" Value="@Selezione" ValueChanged="OnSelezione" Label="@Label"
+               Variant="Variant.Outlined" Margin="Margin.Dense" ToStringFunc="@Nome"
+               Disabled="@Disabled" Style="max-width:260px;">
 
-    <MudText Typo="Typo.caption" Color="Color.Secondary">
-        @(Value is null ? "Colore predefinito" : Value)
-    </MudText>
+        @* "Predefinito" e' uno stato a se' e sta per primo: un blocco che non dichiara nulla
+           segue il modello grafico anche se il modello cambia. *@
+        <MudSelectItem T="string" Value="@Nessuno">
+            <div class="d-flex align-center gap-2">
+                <span style="@Pallino(Predefinito)"></span>
+                <span>Predefinito</span>
+            </div>
+        </MudSelectItem>
+
+        @foreach (var c in NewsletterColori.Tavolozza)
+        {
+            <MudSelectItem T="string" Value="@c.Hex">
+                <div class="d-flex align-center gap-2">
+                    <span style="@Pallino(c.Hex)"></span>
+                    <span>@c.Nome</span>
+                </div>
+            </MudSelectItem>
+        }
+
+        @* Un colore scelto fuori tavolozza deve restare selezionabile, altrimenti riaprendo la
+           tendina non corrisponderebbe a nessuna voce e sembrerebbe perso. *@
+        @if (FuoriTavolozza is not null)
+        {
+            <MudSelectItem T="string" Value="@FuoriTavolozza">
+                <div class="d-flex align-center gap-2">
+                    <span style="@Pallino(FuoriTavolozza)"></span>
+                    <span>Colore personalizzato</span>
+                </div>
+            </MudSelectItem>
+        }
+
+        <MudSelectItem T="string" Value="@Altro">Altro colore…</MudSelectItem>
+    </MudSelect>
 </div>
 
 @code {
@@ -36,28 +62,61 @@
 
     [Parameter] public string Label { get; set; } = "Colore";
 
-    /// <summary>Colore usato quando l'utente non sceglie: quello che il renderer applicherebbe.</summary>
+    /// <summary>
+    /// Colore applicato quando l'utente non sceglie. Va passato <b>quello vero</b>: il predefinito
+    /// del sottotitolo non è lo stesso in tutti i blocchi, e un valore sbagliato qui mostrerebbe
+    /// un colore diverso da quello che si vedrà nella mail.
+    /// </summary>
     [Parameter] public string Predefinito { get; set; } = NewsletterColori.Testo;
 
     [Parameter] public bool Disabled { get; set; }
     [Parameter] public string? Class { get; set; } = "mb-3";
 
-    private static readonly List<MudColor> Tavolozza =
-        NewsletterColori.Tavolozza.Select(c => new MudColor(c.Hex)).ToList();
+    // Valori sentinella: MudSelect<string> lavora su stringhe, e null non è selezionabile.
+    private const string Nessuno = "";
+    private const string Altro = "__altro";
 
-    private MudColor Corrente => new MudColor(Value ?? Predefinito);
+    private string Selezione => Value ?? Nessuno;
 
-    private Task OnColore(MudColor c)
+    /// <summary>Il colore scelto, se non è uno di quelli proposti.</summary>
+    private string? FuoriTavolozza =>
+        Value is not null && !NewsletterColori.Tavolozza.Any(c => c.Hex == Value) ? Value : null;
+
+    private string Nome(string? valore)
     {
-        // Il selettore puo' restituire una forma con la trasparenza: Normalizza la riduce a
-        // #RRGGBB, l'unica accettata dal vincolo sul database.
-        Value = NewsletterColori.Normalizza(c.ToString(MudColorOutputFormats.Hex));
-        return ValueChanged.InvokeAsync(Value);
+        if (string.IsNullOrEmpty(valore)) return "Predefinito";
+        if (valore == Altro) return "Altro colore…";
+        return NewsletterColori.Tavolozza.FirstOrDefault(c => c.Hex == valore)?.Nome
+               ?? "Colore personalizzato";
     }
 
-    private Task Ripristina()
+    /// <summary>Pallino di anteprima. Il bordo serve ai colori chiari, che sul bianco sparirebbero.</summary>
+    private static string Pallino(string colore) =>
+        $"display:inline-block;width:18px;height:18px;border-radius:50%;flex:0 0 auto;" +
+        $"background:{colore};border:1px solid rgba(0,0,0,.25);";
+
+    private async Task OnSelezione(string valore)
     {
-        Value = null;
-        return ValueChanged.InvokeAsync(null);
+        if (valore == Altro)
+        {
+            var parametri = new DialogParameters<ColorePersonalizzatoDialog>
+            {
+                { x => x.Iniziale, Value ?? Predefinito }
+            };
+            var dlg = await DialogService.ShowAsync<ColorePersonalizzatoDialog>(
+                "Scegli un colore", parametri, new DialogOptions { BackdropClick = false });
+            var res = await dlg.Result;
+
+            // Annullato: si resta su quello di prima, senza toccare nulla.
+            if (res!.Canceled || res.Data is not string scelto) return;
+
+            Value = scelto;
+        }
+        else
+        {
+            Value = string.IsNullOrEmpty(valore) ? null : valore;
+        }
+
+        await ValueChanged.InvokeAsync(Value);
     }
 }

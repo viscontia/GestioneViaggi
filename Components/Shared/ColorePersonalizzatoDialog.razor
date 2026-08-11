@@ -1,0 +1,38 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+@using MudBlazor.Utilities
+
+@* Scelta libera di un colore, per il caso raro in cui la tavolozza non basta — il colore esatto
+   di un marchio, tipicamente. Sta dietro una voce apposita e non nella form principale: e' qui,
+   e solo qui, che ha senso vedere un codice colore. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudColorPicker PickerVariant="PickerVariant.Static" @bind-Value="_colore"
+                        ShowAlpha="false" ShowPreview="true" DisableToolbar="false" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Conferma">Usa questo colore</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>Colore da cui partire, in #RRGGBB.</summary>
+    [Parameter] public string? Iniziale { get; set; }
+
+    private MudColor _colore = new("#000000");
+
+    protected override void OnInitialized() =>
+        _colore = new MudColor(NewsletterColori.Normalizza(Iniziale) ?? NewsletterColori.Testo);
+
+    private void Conferma()
+    {
+        // La trasparenza in una mail non si usa e il vincolo sul database non la accetta:
+        // Normalizza riduce comunque a #RRGGBB.
+        var hex = NewsletterColori.Normalizza(_colore.ToString(MudColorOutputFormats.Hex));
+        MudDialog?.Close(DialogResult.Ok(hex));
+    }
+}
