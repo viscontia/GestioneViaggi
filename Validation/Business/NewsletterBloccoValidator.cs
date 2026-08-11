@@ -101,13 +101,17 @@ public static class NewsletterBloccoValidator
         return problemi;
     }
 
-    private static string Posizione(string? layout) => layout switch
-    {
-        "sinistra" => "sinistra",
-        "centro"   => "centro",
-        "destra"   => "destra",
-        _          => layout ?? "non dichiarata"
-    };
+    /// <summary>
+    /// Nome leggibile di una posizione, per i messaggi.
+    /// </summary>
+    /// <remarks>
+    /// Era uno <c>switch</c> che mappava ogni codice su se' stesso: non traduceva nulla e, davanti
+    /// a un codice inventato, lo ripeteva all'utente come se fosse una posizione vera. Ora il nome
+    /// viene dal catalogo, che e' anche l'unico posto dove sta scritto quali codici esistono.
+    /// </remarks>
+    private static string Posizione(string? layout) =>
+        NewsletterLayout.Posizioni.FirstOrDefault(p => p.Codice == layout)?.Etichetta
+        ?? "non dichiarata";
 
     /// <summary>
     /// Elenco dei problemi su tutti i blocchi, nell'ordine in cui compaiono nella newsletter.
