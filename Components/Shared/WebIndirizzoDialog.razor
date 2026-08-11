@@ -109,7 +109,9 @@
 
             Indirizzo.IconaUrl = url;
             Indirizzo.IconaStoragePath = path;
-            Snackbar.Add("Icona caricata.", Severity.Success);
+            // "Caricata" suonava come "salvata": il file e' su Storage, ma la riga non e'
+            // aggiornata finche' non si preme Salva. Chiudendo qui, l'icona sparirebbe.
+            Snackbar.Add("Icona pronta: premi Salva per associarla a questo indirizzo.", Severity.Info);
         }
         finally { _caricando = false; }
     }
