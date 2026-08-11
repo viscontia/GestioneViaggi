@@ -127,6 +127,15 @@
                 <MudSelect T="string" Value="@_destinazione" ValueChanged="OnDestinazioneChanged"
                            ToStringFunc="@EtichettaDestinazione"
                            Label="Dove porta il collegamento" Variant="Variant.Outlined" Class="mb-3">
+                    @* Il collegamento e' FACOLTATIVO: un'immagine puo' benissimo essere solo
+                       un'immagine. Va detto per primo, altrimenti la tendina obbliga a scegliere
+                       una destinazione e non offre alcun modo di tornare indietro. Fa eccezione il
+                       pulsante, che senza indirizzo non e' un pulsante. *@
+                    @if (Blocco.Tipo != "pulsante")
+                    {
+                        <MudSelectItem T="string" Value="@("nessuno")">Nessun collegamento</MudSelectItem>
+                    }
+
                     @* Destinazioni CALCOLATE dal programma: non stanno in rubrica perche' non
                        sono indirizzi fissi. "Pagina di un tour" cambia a ogni tour scelto. *@
                     <MudSelectItem T="string" Value="@("tour")">Pagina di un tour…</MudSelectItem>
@@ -185,14 +194,20 @@
                 </MudAlert>
             }
 
-            <MudTextField @bind-Value="Blocco.LinkEtichetta" Label="Testo del pulsante" Variant="Variant.Outlined"
-                          MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour"
-                          HelperText="Le parole scritte dentro il pulsante." />
+            @* Niente collegamento, niente pulsante. E nella testata il pulsante non viene mai
+               disegnato: e' l'immagine stessa a essere cliccabile. *@
+            @if (_destinazione != "nessuno" && Blocco.Tipo != "testata")
+            {
+                <MudTextField @bind-Value="Blocco.LinkEtichetta" Label="Testo del pulsante" Variant="Variant.Outlined"
+                              MaxLength="100" Class="mb-3" Placeholder="Vai alla pagina del Tour"
+                              HelperText="Le parole scritte dentro il pulsante." />
+            }
 
             @* Il pulsante ha una posizione propria: ereditare quella dell'immagine lo inchiodava
-               a sinistra ogni volta che l'immagine era a piena larghezza. Si mostra solo quando
-               un pulsante c'e' davvero, cioe' quando l'etichetta e' compilata. *@
-            @if (!string.IsNullOrWhiteSpace(Blocco.LinkEtichetta) && Blocco.Tipo != "pulsante")
+               a sinistra ogni volta che l'immagine era a piena larghezza. Vale SOLO per il blocco
+               immagine: nel riquadro informativo e nel tour il pulsante sta dentro la colonna del
+               testo e la segue, quindi offrire li' questa scelta prometterebbe un effetto che non c'e'. *@
+            @if (Blocco.Tipo == "immagine" && !string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
             {
                 <PosizioneSelect @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
                                  Clearable="true"
@@ -463,7 +478,9 @@
             Blocco.IconaUrl ??= inRubrica.IconaUrl;
         }
 
-        _destinazione = string.IsNullOrWhiteSpace(url) ? "home"
+        // Senza URL la destinazione e' "nessuno" e non "home": mostrare "Home page del sito" su un
+        // blocco che non ha alcun collegamento faceva credere che ne avesse uno.
+        _destinazione = string.IsNullOrWhiteSpace(url) ? (Blocco.Tipo == "pulsante" ? "manuale" : "nessuno")
                       : inRubrica != null ? $"rubrica:{inRubrica.WebIndirizzoId}"
                       : (!string.IsNullOrWhiteSpace(home) && url == home) ? "home"
                       : url.Contains("/tour/") ? "tour"
@@ -477,6 +494,7 @@
     private string EtichettaDestinazione(string? valore)
     {
         if (string.IsNullOrEmpty(valore)) return "";
+        if (valore == "nessuno") return "Nessun collegamento";
         if (valore == "home") return "Home page del sito";
         if (valore == "tour") return "Pagina di un tour…";
         if (valore == "manuale") return "Un altro indirizzo (lo scrivo io)";
@@ -522,6 +540,16 @@
         Blocco.IndirizzoIdFk = null;
         Blocco.Social = null;
         Blocco.IconaUrl = null;
+
+        if (valore == "nessuno")
+        {
+            // Si toglie tutto cio' che compone il collegamento, etichetta compresa: un testo del
+            // pulsante rimasto li' farebbe ricomparire il pulsante al primo indirizzo reimpostato.
+            Blocco.LinkUrl = null;
+            Blocco.LinkEtichetta = null;
+            Blocco.LayoutPulsante = null;
+            return;
+        }
 
         if (valore == "home")
         {

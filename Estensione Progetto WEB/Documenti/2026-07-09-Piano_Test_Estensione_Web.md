@@ -794,3 +794,27 @@ normali e non devono essere rifiutati.
 > operativo. Sul Mac italiano non si notava; su un Windows configurato in inglese giorno e mese si sarebbero
 > scambiati in silenzio. Il test della digitazione rapida va ripetuto **sulla macchina del cliente**, e vale
 > la pena provarlo anche con la lingua di sistema impostata su inglese.
+
+---
+
+## 35. Collegamento facoltativo e posizione del pulsante (script `525`)
+
+Il collegamento di un blocco **non è obbligatorio**: un'immagine può essere solo un'immagine.
+Fa eccezione il pulsante, che senza indirizzo non esiste.
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 35.1 | Blocco **immagine**, apri "Dove porta il collegamento" | La prima voce è **«Nessun collegamento»** |
+| 35.2 | Blocco immagine appena creato, senza collegamento: riaprilo | La tendina legge «Nessun collegamento». *Prima leggeva «Home page del sito» pur non avendone uno* |
+| 35.3 | Scegli «Nessun collegamento» | Spariscono "Testo del pulsante" e "Posizione del pulsante": senza collegamento non c'è pulsante |
+| 35.4 | Anteprima del blocco al punto 35.3 | L'immagine si vede e **non è cliccabile**; nessun pulsante sotto |
+| 35.5 | Blocco con collegamento in rubrica → passa a «Nessun collegamento» → Salva → riapri | Resta «Nessun collegamento». Il legame con la rubrica è sciolto: cambiando quell'indirizzo in rubrica il blocco non torna a puntarci |
+| 35.6 | Blocco **pulsante**, apri la stessa tendina | «Nessun collegamento» **non** compare; senza indirizzo il salvataggio è rifiutato |
+| 35.7 | Blocco immagine con pulsante, immagine "Sopra, a piena larghezza", posizione pulsante **Al centro** | Nell'anteprima e nella mail il pulsante è centrato, con l'immagine a piena larghezza |
+| 35.8 | Stesso blocco, posizione pulsante **vuota** | Il pulsante segue la posizione dell'immagine (comportamento dei blocchi già composti) |
+| 35.9 | Blocchi **riquadro informativo** e **tour** con pulsante | "Posizione del pulsante" **non** compare: lì il pulsante sta nella colonna del testo e la segue |
+| 35.10 | Clona una newsletter che usa le posizioni dei pulsanti | Le posizioni si ritrovano identiche nella copia |
+
+> Verificato a monte: `fn_web_newsletter_blocchi_update` **assegna** `link_url` invece di
+> `COALESCE`-arlo, quindi il NULL cancella davvero il collegamento; `layout` invece è in COALESCE
+> e resta quello di prima. Provato in transazione annullata sul DB locale.
