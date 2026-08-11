@@ -50,7 +50,13 @@
 else
 {
     <div class="d-flex align-center gap-3 mb-3 flex-wrap">
-        <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept="image/*" FilesChanged="Carica" Class="ma-0">
+        @* Stessi parametri del caricamento della Galleria, che funziona: senza MaximumFileCount
+           si fermava a 10 file, senza MaxFileSize scartava in silenzio quelli oltre i 10 MB, e
+           senza ClearAsync riselezionare gli stessi file non faceva scattare nulla perche'
+           l'input conservava il valore precedente. *@
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="_fileUpload" Accept="image/*"
+                       AppendMultipleFiles="false" MaximumFileCount="30" MaxFileSize="20971520"
+                       FilesChanged="Carica" Disabled="@_busy" Class="ma-0">
             <ActivatorContent>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Upload" Disabled="@_busy">
@@ -120,12 +126,16 @@ else
 @code {
     private const string ThumbSizePrefKey = "galleria.thumb_size";
 
+    /// <summary>Tetto per file, allineato a quello della Galleria (20 MB).</summary>
+    private const long MaxFileByte = 20 * 1024 * 1024;
+
     private int _aziendaId;
     private bool _isSuperAdmin;
     private bool _busy;
     private string _messaggioAttesa = "Attendere…";
     private int _thumbSize = 120;
     private List<WebImmagineLibreria> _immagini = new();
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
 
     protected override async Task OnInitializedAsync()
     {
@@ -184,7 +194,7 @@ else
             await InvokeAsync(StateHasChanged);
             try
             {
-                await using var stream = f.OpenReadStream(10 * 1024 * 1024);
+                await using var stream = f.OpenReadStream(MaxFileByte);
                 await Service.CaricaAsync(_aziendaId, f.Name, null, stream);
                 fatti++;
             }
@@ -197,6 +207,10 @@ else
         }
 
         _busy = false;
+
+        // Azzera il controllo: senza, riselezionare gli stessi file non fa scattare l'evento.
+        try { if (_fileUpload != null) await _fileUpload.ClearAsync(); } catch { }
+
         await RicaricaAsync();
         Snackbar.Add(errori == 0 ? $"{fatti} immagini caricate." : $"{fatti} caricate, {errori} non riuscite.",
                      errori == 0 ? Severity.Success : Severity.Warning);
