@@ -47,14 +47,18 @@
                         <MudIcon Icon="@Icons.Material.Filled.HideImage" Color="Color.Default" />
                     }
 
-                    <MudFileUpload T="IBrowserFile" Accept=".png,image/png" FilesChanged="CaricaIcona" Class="ma-0">
-                        <ActivatorContent>
+                    <FileUploader Accept=".png,image/png" MaxByte="2097152"
+                                  EstensioniAmmesse="@(new[] { ".png" })"
+                                  MessaggioEstensione="L'icona deve essere un file PNG: è l'unico formato che conserva lo sfondo trasparente. Con JPEG il logo apparirebbe dentro un riquadro bianco."
+                                  Disabilitato="@_caricando" MostraAttesa="false"
+                                  OnFile="CaricaIcona">
+                        <Attivatore>
                             <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload"
                                        Disabled="@_caricando">
                                 @(string.IsNullOrWhiteSpace(Indirizzo.IconaUrl) ? "Carica icona" : "Sostituisci icona")
                             </MudButton>
-                        </ActivatorContent>
-                    </MudFileUpload>
+                        </Attivatore>
+                    </FileUploader>
 
                     @if (_caricando) { <MudProgressCircular Indeterminate="true" Size="Size.Small" /> }
                 </div>
@@ -86,40 +90,20 @@
     private MudTextField<string>? _primoCampo;
     private bool _caricando;
 
-    /// <summary>Un'icona deve essere PNG: il formato e' un requisito, non una preferenza.</summary>
-    private const long MaxIconaByte = 2 * 1024 * 1024;
-
-    private async Task CaricaIcona(IBrowserFile? file)
+    /// <summary>
+    /// Carica l'icona. Formato ammesso, dimensione massima e apertura dello stream li verifica
+    /// FileUploader: qui resta solo la conversione e il salvataggio.
+    /// </summary>
+    private async Task CaricaIcona(FileUploader.FileDaCaricare f)
     {
-        if (file is null || string.IsNullOrWhiteSpace(Indirizzo.Social)) return;
-
-        // L'attributo Accept e' solo un suggerimento del browser e si aggira: il controllo vero
-        // sta qui. Il PNG non e' una preferenza estetica - e' l'unico formato diffuso che porta
-        // la trasparenza, e senza trasparenza il logo finisce in un riquadro bianco sopra il
-        // colore del pulsante.
-        var nome = file.Name ?? "";
-        var isPng = nome.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
-                 || string.Equals(file.ContentType, "image/png", StringComparison.OrdinalIgnoreCase);
-        if (!isPng)
-        {
-            Snackbar.Add("L'icona deve essere un file PNG: è l'unico formato che conserva lo sfondo " +
-                         "trasparente. Con JPEG il logo apparirebbe dentro un riquadro bianco.", Severity.Warning);
-            return;
-        }
-
-        if (file.Size > MaxIconaByte)
-        {
-            Snackbar.Add($"L'icona supera i 2 MB ({file.Size / 1024 / 1024} MB). Serve un'immagine piccola: " +
-                         "nella mail viene mostrata a 18 pixel.", Severity.Warning);
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(Indirizzo.Social)) return;
 
         _caricando = true;
+        StateHasChanged();
         try
         {
-            await using var stream = file.OpenReadStream(MaxIconaByte);
             var (url, path) = await MediaService.CaricaIconaSocialAsync(
-                Indirizzo.AziendaId, Indirizzo.Social!, stream);
+                Indirizzo.AziendaId, Indirizzo.Social!, f.Contenuto);
 
             if (url is null) { Snackbar.Add("Icona non caricata: riprova.", Severity.Warning); return; }
 
@@ -127,9 +111,9 @@
             Indirizzo.IconaStoragePath = path;
             Snackbar.Add("Icona caricata.", Severity.Success);
         }
-        catch (Exception ex) { Snackbar.Add($"Icona non caricata: {ex.Message}", Severity.Error); }
         finally { _caricando = false; }
     }
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

@@ -1,0 +1,198 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+@* Caricamento di file, unico per tutta l'applicazione.
+
+   Nasce da una constatazione: i sette punti che caricavano file avevano parametri tutti diversi,
+   e QUATTRO SU SETTE non impostavano MaxFileSize — ereditando il default di 10 MB di MudBlazor,
+   che scarta i file piu' grandi SENZA DIRLO. Un difetto silenzioso ripetuto in mezza applicazione.
+
+   Qui i valori giusti stanno in un posto solo, insieme alle tre cose che tutti dimenticano:
+   il limite di dimensione, il numero massimo di file, e ClearAsync — senza il quale riselezionare
+   gli stessi file non fa scattare nulla. *@
+
+@if (Multiplo)
+{
+    <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="_uploadMultiplo"
+                   Accept="@Accept" AppendMultipleFiles="false"
+                   MaximumFileCount="@MaxFile" MaxFileSize="@MaxByte"
+                   FilesChanged="OnMultipli" Disabled="@(Disabilitato || _inCorso)" Class="ma-0">
+        <ActivatorContent>@Attivatore</ActivatorContent>
+    </MudFileUpload>
+}
+else
+{
+    <MudFileUpload T="IBrowserFile" @ref="_uploadSingolo"
+                   Accept="@Accept" MaximumFileCount="1" MaxFileSize="@MaxByte"
+                   FilesChanged="OnSingolo" Disabled="@(Disabilitato || _inCorso)" Class="ma-0">
+        <ActivatorContent>@Attivatore</ActivatorContent>
+    </MudFileUpload>
+}
+
+@if (MostraAttesa && _inCorso)
+{
+    <MudOverlay Visible="true" DarkBackground="true" ZIndex="1300">
+        <MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="8" Style="min-width:320px;">
+            <MudProgressCircular Indeterminate="@(_totale <= 1)" Value="@Percentuale"
+                                 Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Class="mt-4">
+                @(_totale > 1 ? $"Caricamento {_fatti + 1} di {_totale}" : "Caricamento in corso…")
+            </MudText>
+            @if (!string.IsNullOrEmpty(_nomeCorrente))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">@_nomeCorrente</MudText>
+            }
+        </MudPaper>
+    </MudOverlay>
+}
+
+@code {
+    /// <summary>Un file pronto da consumare: lo stream è già aperto e viene chiuso dal componente.</summary>
+    public sealed record FileDaCaricare(IBrowserFile File, Stream Contenuto)
+    {
+        public string Nome => File.Name;
+        public long Dimensione => File.Size;
+        public bool HaEstensione(string ext) =>
+            Nome.EndsWith(ext, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Esito complessivo, per decidere cosa dire e cosa ricaricare.</summary>
+    public sealed record EsitoCaricamento(int Totale, int Riusciti, int Falliti)
+    {
+        public bool TuttoBene => Falliti == 0 && Riusciti > 0;
+    }
+
+    [Parameter] public RenderFragment? Attivatore { get; set; }
+    [Parameter] public bool Multiplo { get; set; }
+    [Parameter] public string Accept { get; set; } = "*/*";
+    [Parameter] public bool Disabilitato { get; set; }
+
+    /// <summary>Quanti file al massimo in una selezione. Vale solo se <see cref="Multiplo"/>.</summary>
+    [Parameter] public int MaxFile { get; set; } = 30;
+
+    /// <summary>
+    /// Dimensione massima per file. Default 20 MB e non i 10 di MudBlazor: quel limite scartava
+    /// in silenzio le foto scattate col telefono.
+    /// </summary>
+    [Parameter] public long MaxByte { get; set; } = 20L * 1024 * 1024;
+
+    /// <summary>
+    /// Estensioni ammesse (es. <c>[".png"]</c>), controllate <b>lato applicazione</b>: l'attributo
+    /// Accept è solo un suggerimento del browser e si aggira trascinando un file.
+    /// </summary>
+    [Parameter] public string[]? EstensioniAmmesse { get; set; }
+
+    /// <summary>Messaggio quando l'estensione non è ammessa. Dire perché, non solo vietare.</summary>
+    [Parameter] public string? MessaggioEstensione { get; set; }
+
+    /// <summary>Chiamata una volta per file, con lo stream già aperto.</summary>
+    [Parameter] public EventCallback<FileDaCaricare> OnFile { get; set; }
+
+    /// <summary>Chiamata a fine selezione, con il riepilogo.</summary>
+    [Parameter] public EventCallback<EsitoCaricamento> OnCompletato { get; set; }
+
+    /// <summary>Overlay di attesa col contatore. Spegnilo se il chiamante ne ha già uno suo.</summary>
+    [Parameter] public bool MostraAttesa { get; set; } = true;
+
+    /// <summary>Riepilogo automatico in snackbar a fine caricamento.</summary>
+    [Parameter] public bool RiepilogoAutomatico { get; set; } = true;
+
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _uploadMultiplo;
+    private MudFileUpload<IBrowserFile>? _uploadSingolo;
+
+    private bool _inCorso;
+    private int _fatti, _totale;
+    private string? _nomeCorrente;
+    private int Percentuale => _totale == 0 ? 0 : (int)(100.0 * _fatti / _totale);
+
+    private Task OnSingolo(IBrowserFile? file) =>
+        Elabora(file is null ? Array.Empty<IBrowserFile>() : new[] { file });
+
+    private Task OnMultipli(IReadOnlyList<IBrowserFile>? files) =>
+        Elabora(files ?? Array.Empty<IBrowserFile>());
+
+    private async Task Elabora(IReadOnlyList<IBrowserFile> files)
+    {
+        if (files.Count == 0) return;
+
+        _inCorso = true;
+        _fatti = 0;
+        _totale = files.Count;
+        await InvokeAsync(StateHasChanged);
+
+        var riusciti = 0;
+        var falliti = 0;
+
+        foreach (var f in files)
+        {
+            _nomeCorrente = f.Name;
+            await InvokeAsync(StateHasChanged);
+
+            if (!EstensioneAmmessa(f.Name))
+            {
+                falliti++;
+                _fatti++;
+                Snackbar.Add(MessaggioEstensione
+                    ?? $"«{f.Name}» non è di un tipo ammesso ({string.Join(", ", EstensioniAmmesse!)}).",
+                    Severity.Warning);
+                continue;
+            }
+
+            if (f.Size > MaxByte)
+            {
+                falliti++;
+                _fatti++;
+                Snackbar.Add($"«{f.Name}» supera i {MaxByte / 1024 / 1024} MB e non è stata caricata.", Severity.Warning);
+                continue;
+            }
+
+            try
+            {
+                await using var stream = f.OpenReadStream(MaxByte);
+                await OnFile.InvokeAsync(new FileDaCaricare(f, stream));
+                riusciti++;
+            }
+            catch (Exception ex)
+            {
+                falliti++;
+                Snackbar.Add($"«{f.Name}» non caricata: {ex.Message}", Severity.Warning);
+            }
+            finally
+            {
+                _fatti++;
+            }
+        }
+
+        _inCorso = false;
+        _nomeCorrente = null;
+
+        // Senza azzerare il controllo, riselezionare gli STESSI file non fa scattare l'evento:
+        // l'input conserva il valore precedente e il pulsante sembra non funzionare piu'.
+        try
+        {
+            if (_uploadMultiplo != null) await _uploadMultiplo.ClearAsync();
+            if (_uploadSingolo != null) await _uploadSingolo.ClearAsync();
+        }
+        catch { /* il controllo puo' essere gia' stato smontato: non e' un errore da mostrare */ }
+
+        var esito = new EsitoCaricamento(files.Count, riusciti, falliti);
+
+        if (RiepilogoAutomatico && files.Count > 1)
+        {
+            Snackbar.Add(
+                esito.TuttoBene ? $"{riusciti} file caricati."
+                                : $"{riusciti} caricati, {falliti} non riusciti.",
+                esito.TuttoBene ? Severity.Success : Severity.Warning);
+        }
+
+        await OnCompletato.InvokeAsync(esito);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool EstensioneAmmessa(string nome)
+    {
+        if (EstensioniAmmesse is null || EstensioniAmmesse.Length == 0) return true;
+        return EstensioniAmmesse.Any(e => nome.EndsWith(e, StringComparison.OrdinalIgnoreCase));
+    }
+}

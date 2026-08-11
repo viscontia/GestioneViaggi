@@ -1061,3 +1061,34 @@ Modifica di una voce della rubrica indirizzi web (`Tabelle → Tabelle web → I
 Valida **prima** di salvare (nome ≥ 2 caratteri, URL con protocollo) pur avendo gli stessi vincoli
 sulla tabella: dire subito cosa manca è meglio che far tornare l'errore dal database a salvataggio
 avvenuto. I messaggi dei vincoli sono comunque nel dizionario centrale, per i casi che sfuggono.
+
+## FileUploader
+
+Caricamento di file, **unico per tutta l'applicazione**. Creato il 2026-08-11 dopo aver constatato
+che i sette punti che caricavano file avevano parametri tutti diversi e che **quattro su sette non
+impostavano `MaxFileSize`**: ereditavano il default di 10 MB di MudBlazor, che scarta i file più
+grandi **senza dirlo**. Un difetto silenzioso ripetuto in mezza applicazione.
+
+Incapsula le tre cose che si dimenticano sempre:
+
+*   **`MaxByte`** (default **20 MB**, non i 10 di MudBlazor) — e il file troppo grande viene
+    **segnalato**, non scartato in silenzio.
+*   **`MaxFile`** (default 30) per le selezioni multiple.
+*   **`ClearAsync()`** dopo l'elaborazione: senza, riselezionare gli *stessi* file non fa scattare
+    l'evento perché l'input conserva il valore precedente, e il pulsante sembra rotto dal secondo
+    tentativo in poi. È il difetto che ha fatto nascere questo componente.
+
+Parametri: `Attivatore` (il pulsante, come `RenderFragment`), `Multiplo`, `Accept`, `MaxFile`,
+`MaxByte`, `EstensioniAmmesse` + `MessaggioEstensione`, `Disabilitato`, `MostraAttesa`,
+`RiepilogoAutomatico`.
+
+`OnFile` viene chiamata **una volta per file** con lo stream già aperto (`FileDaCaricare`), e lo
+chiude il componente: il chiamante scrive solo cosa fare del contenuto. `OnCompletato` riceve il
+riepilogo (`EsitoCaricamento`).
+
+**`EstensioniAmmesse` è controllata lato applicazione**, non solo con `Accept`: quell'attributo è un
+suggerimento del browser e si aggira trascinando un file.
+
+**Usato da:** `WebImmaginiLibreriaPage` (multiplo) e `WebIndirizzoDialog` (icona social, solo PNG).
+**Da migrare:** `WebTourGalleriaTab`, `WebTourMappaTab`, `AziendaLogoDialog`, `ClienteDialog`,
+`OracleImport` — funzionano, ma quattro di questi non hanno un limite di dimensione.
