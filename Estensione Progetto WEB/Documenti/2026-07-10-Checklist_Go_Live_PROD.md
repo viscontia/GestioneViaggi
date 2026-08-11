@@ -539,3 +539,20 @@ SELECT i.web_newsletter_invii_id, i.oggetto, count(b.*) AS blocchi
 Verifica finale in PROD: aprire un modello e controllare che si vedano le immagini e che i
 pulsanti abbiano il colore e l'icona del social.
 
+---
+
+## Iscritti alla sola newsletter: la lista esistente va caricata
+
+`web_newsletter_iscritti` in PROD nasce **vuota**. Chi si è iscritto alla newsletter dal vecchio
+sito non è in `ana_clienti` — non ha mai comprato un viaggio — e quindi oggi non riceverebbe nulla.
+
+**Da fare al go-live:** recuperare la lista degli iscritti esistente e caricarla per l'azienda 6,
+con `stato = 'attivo'`, `consenso = true` e un `token_disiscrizione` generato per ciascuno (il
+token serve al link di disiscrizione: senza, quella persona non può cancellarsi).
+
+> **Conseguenza da tenere a mente per gli invii selettivi.** Gli iscritti dal sito hanno solo
+> email, nome e lingua: **non hanno anagrafica**. Nessun filtro che guardi data di inserimento,
+> residenza, nazione o viaggi fatti può riguardarli, e attivando uno di quei filtri restano
+> automaticamente fuori. Non è un difetto, è una conseguenza del non avere quei dati — ma va
+> mostrato a schermo, non lasciato accadere in silenzio.
+
