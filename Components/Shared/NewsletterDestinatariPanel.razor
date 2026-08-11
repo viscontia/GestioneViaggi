@@ -1,0 +1,184 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebNewsletterFiltriService FiltriService
+@inject NewsletterSenderService Sender
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* A chi va la newsletter.
+
+   Senza criteri va a tutti quelli che ne hanno diritto, che resta il caso normale. I criteri
+   RESTRINGONO e si sommano: consenso, disiscrizioni e soppressioni non si possono scavalcare.
+
+   Il conteggio e' spaccato apposta. Tutti i criteri sono anagrafici, quindi attivandone uno gli
+   iscritti dalla sola newsletter restano fuori: e' conseguenza del non avere quei dati, ma deve
+   VEDERSI mentre si sceglie, non scoprirsi dopo aver spedito. *@
+
+<MudPaper Outlined="true" Class="@($"pa-3 {Class}")">
+    <div class="d-flex align-center gap-2 mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary" />
+        <MudText Typo="Typo.subtitle2">Destinatari</MudText>
+        <MudSpacer />
+        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility"
+                   Disabled="@(Disabilitato || _conteggio.Destinatari == 0)" OnClick="VediElenco">
+            Vedi l'elenco
+        </MudButton>
+    </div>
+
+    @if (_caricando)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+    }
+
+    <div class="d-flex align-center gap-2 flex-wrap mb-2">
+        <MudChip T="string" Color="Color.Primary" Size="Size.Medium" Icon="@Icons.Material.Filled.Mail">
+            @_conteggio.Destinatari destinatari
+        </MudChip>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            @_conteggio.Clienti dall'anagrafica clienti · @_conteggio.Iscritti iscritti dal sito
+        </MudText>
+    </div>
+
+    @if (_filtri.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+            Nessun criterio: va a <strong>tutti quelli che ne hanno diritto</strong>.
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-1">
+            Ricevono solo i clienti che soddisfano <strong>tutti</strong> questi criteri:
+        </MudText>
+
+        <div class="d-flex flex-column gap-1 mb-2">
+            @foreach (var f in _filtri)
+            {
+                <div class="d-flex align-center gap-2">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2">@f.Descrizione</MudText>
+                    <MudSpacer />
+                    <MudTooltip Text="Togli questo criterio">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@Disabilitato" OnClick="@(() => Togli(f))" />
+                    </MudTooltip>
+                </div>
+            }
+        </div>
+
+        @if (_conteggio.IscrittiEsclusi > 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                <strong>@_conteggio.IscrittiEsclusi</strong> iscritti dalla sola newsletter restano fuori:
+                non essendo in anagrafica, questi criteri non possono valutarli.
+            </MudAlert>
+        }
+
+        <MudSwitch T="bool" Value="@_includiIscritti" ValueChanged="OnIncludiIscritti" Color="Color.Primary"
+                   Disabled="@Disabilitato" Class="mb-1"
+                   Label="Includi comunque gli iscritti dal sito" />
+    }
+
+    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@Disabilitato" OnClick="Aggiungi">
+        Aggiungi un criterio
+    </MudButton>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public long InvioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+    [Parameter] public bool IsSuperAdmin { get; set; }
+
+    /// <summary>Vero su una newsletter già spedita: i destinatari non si toccano più.</summary>
+    [Parameter] public bool Disabilitato { get; set; }
+
+    /// <summary>Classi CSS aggiuntive sul riquadro.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Il numero di destinatari è cambiato: serve al chiamante per il pulsante di invio.</summary>
+    [Parameter] public EventCallback<int> OnConteggioCambiato { get; set; }
+
+    private List<WebNewsletterFiltro> _filtri = new();
+    private ConteggioDestinatari _conteggio = new(0, 0, 0, 0);
+    private bool _includiIscritti;
+    private bool _caricando;
+
+    protected override async Task OnParametersSetAsync() => await RicaricaAsync();
+
+    private async Task RicaricaAsync()
+    {
+        if (InvioId == 0 || AziendaId == 0) return;
+
+        _caricando = true;
+        try
+        {
+            _filtri = await FiltriService.ListAsync(InvioId, AziendaId);
+            // Va RILETTO dal database: senza, riaprendo la newsletter l'interruttore tornerebbe
+            // spento pur essendo acceso, e il numero di destinatari non tornerebbe.
+            _includiIscritti = await FiltriService.GetIncludiIscrittiAsync(InvioId, AziendaId);
+            _conteggio = await FiltriService.ConteggioAsync(AziendaId, InvioId);
+            await OnConteggioCambiato.InvokeAsync((int)_conteggio.Destinatari);
+        }
+        catch (Exception ex) { Snackbar.Add($"Destinatari non calcolati: {ex.Message}", Severity.Error); }
+        finally { _caricando = false; }
+    }
+
+    private async Task Aggiungi()
+    {
+        var parametri = new DialogParameters<NewsletterFiltroDialog>
+        {
+            { x => x.AziendaId, AziendaId },
+            { x => x.IsSuperAdmin, IsSuperAdmin }
+        };
+        var dlg = await DialogService.ShowAsync<NewsletterFiltroDialog>("Aggiungi un criterio", parametri,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Small, BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled || res.Data is not NewsletterFiltroDialog.Scelta s) return;
+
+        try
+        {
+            await FiltriService.AggiungiAsync(AziendaId, InvioId, s.Criterio, s.Data, s.Intero);
+            await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+    }
+
+    private async Task Togli(WebNewsletterFiltro f)
+    {
+        try
+        {
+            await FiltriService.EliminaAsync(f.Id, AziendaId);
+            await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+    }
+
+    private async Task OnIncludiIscritti(bool v)
+    {
+        _includiIscritti = v;
+        try
+        {
+            await FiltriService.SetIncludiIscrittiAsync(InvioId, AziendaId, v);
+            await RicaricaAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Warning); }
+    }
+
+    /// <summary>Riusa il dialogo dei destinatari già esistente: qui cambia solo la lista che riceve.</summary>
+    private async Task VediElenco()
+    {
+        try
+        {
+            var destinatari = await Sender.GetRecipientsAsync(AziendaId, InvioId);
+            var parametri = new DialogParameters<NewsletterDestinatariDialog>
+            {
+                { x => x.Destinatari, destinatari }
+            };
+            await DialogService.ShowAsync<NewsletterDestinatariDialog>("Destinatari", parametri,
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium });
+        }
+        catch (Exception ex) { Snackbar.Add($"Elenco non caricato: {ex.Message}", Severity.Error); }
+    }
+}

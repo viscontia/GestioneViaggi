@@ -54,20 +54,29 @@ public sealed class NewsletterSenderService
         _logoService = logoService; _consumi = consumi; _claudeOptions = claudeOptions; _logger = logger;
     }
 
-    public async Task<int> CountRecipientsAsync(int aziendaId)
+    /// <param name="invioId">
+    /// Newsletter di cui applicare i filtri sui destinatari (script 529). Null = tutti quelli che
+    /// ne hanno diritto, cioè il comportamento di sempre.
+    /// </param>
+    public async Task<int> CountRecipientsAsync(int aziendaId, long? invioId = null)
     {
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT count(*) FROM fn_web_destinatari_newsletter(@Az::integer)", conn);
+        await using var cmd = new NpgsqlCommand(
+            "SELECT count(*) FROM fn_web_destinatari_newsletter(@Az::integer, @Invio::bigint)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Invio", (object?)invioId ?? DBNull.Value);
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 
-    public async Task<List<NewsletterRecipient>> GetRecipientsAsync(int aziendaId)
+    /// <inheritdoc cref="CountRecipientsAsync"/>
+    public async Task<List<NewsletterRecipient>> GetRecipientsAsync(int aziendaId, long? invioId = null)
     {
         var list = new List<NewsletterRecipient>();
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT email, nome, cognome, lingua, telefono FROM fn_web_destinatari_newsletter(@Az::integer)", conn);
+        await using var cmd = new NpgsqlCommand(
+            "SELECT email, nome, cognome, lingua, telefono FROM fn_web_destinatari_newsletter(@Az::integer, @Invio::bigint)", conn);
         cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Invio", (object?)invioId ?? DBNull.Value);
         await using var r = await cmd.ExecuteReaderAsync();
         while (await r.ReadAsync())
         {
@@ -255,7 +264,9 @@ public sealed class NewsletterSenderService
         NewsletterRenderService render,
         IProgress<(int Fatti, int Totale)>? progress = null)
     {
-        var recipients = await GetRecipientsAsync(aziendaId);
+        // Con l'invioId i destinatari sono quelli filtrati per QUESTA newsletter: se qui passasse
+        // null, la selezione fatta dall'utente verrebbe ignorata proprio al momento della spedizione.
+        var recipients = await GetRecipientsAsync(aziendaId, invioId);
         if (recipients.Count == 0)
             throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
 

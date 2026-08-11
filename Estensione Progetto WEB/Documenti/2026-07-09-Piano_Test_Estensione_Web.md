@@ -882,3 +882,29 @@ glielo mette l'editor.
 > rifiutata con la bozza agganciata e consentita con la sola inviata. Sulle newsletter reali la
 > verifica ha trovato 3 collegamenti morti veri e — dopo aver stretto l'estrazione dello slug —
 > nessun falso allarme.
+
+---
+
+## 39. Invii selettivi: a chi spedire (script `529`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 39.1 | Apri una newsletter in bozza | Riquadro **Destinatari**: «Nessun criterio: va a tutti quelli che ne hanno diritto», col conteggio spaccato fra anagrafica e iscritti dal sito |
+| 39.2 | **Aggiungi un criterio** | La form avvisa in testa che i criteri guardano l'anagrafica clienti |
+| 39.3 | «In anagrafica da una certa data» → scegli una data | Compare come frase leggibile e il conteggio cala |
+| 39.4 | Aggiungi un secondo criterio | I criteri si **sommano**: ricevono solo i clienti che li soddisfano **tutti** |
+| 39.5 | «Iscritti a una partenza» | Si apre il **selettore viaggio/partenza** già usato altrove |
+| 39.6 | «Residenti in una nazione» | Solo le nazioni dove risiede almeno un cliente, **Italia per prima**, con i nomi in italiano e il numero di clienti |
+| 39.7 | Con un filtro attivo e almeno un iscritto dal sito | Avviso: «N iscritti restano fuori». Il numero **non** è zero se ne esistono |
+| 39.8 | Attiva **«Includi comunque gli iscritti dal sito»** | Il conteggio risale e l'avviso sparisce |
+| 39.9 | Chiudi e riapri la newsletter | Criteri e interruttore sono **ancora quelli**, il conteggio pure |
+| 39.10 | **Vedi l'elenco** | Si apre l'elenco dei destinatari **filtrati**, non di tutti |
+| 39.11 | **Invia a tutti** | Parte solo ai destinatari filtrati: il numero sul pulsante è quello del pannello |
+| 39.12 | Apri una newsletter **già inviata** | Il pannello mostra i criteri usati ma **non si modifica** |
+| 39.13 | Cliente disiscritto che soddisfa tutti i criteri | **Non** riceve: i filtri restringono, non scavalcano |
+
+> Verificato sul database, in transazioni annullate (azienda 2, consenso esteso a tutti i 167
+> clienti per avere una popolazione): senza filtri 157 destinatari (156 + 1 iscritto); «residenti
+> all'estero» → 3, con **1 iscritto segnalato come escluso**; «iscritti a ICHNUSA TOUR del
+> 25/04/2026» → 20, sommando «in anagrafica dal 01/01/2026» → 13; «nel 2025 non hanno viaggiato»
+> → 83. Le descrizioni si leggono come frasi compiute.

@@ -1224,3 +1224,34 @@ lecito e il blocco resta com'era.
 
 > Nota: un pulsante che punta a un tour ora registra anche l'aggancio alla partenza, non solo
 > l'indirizzo. Prima teneva solo l'URL, quindi dopo una clonazione era invisibile al riaggancio.
+
+## NewsletterDestinatariPanel e NewsletterFiltroDialog
+
+`Components/Shared/NewsletterDestinatariPanel.razor` — **a chi** va la newsletter: conteggio,
+criteri attivi, elenco dei destinatari. `NewsletterFiltroDialog` aggiunge un criterio.
+
+Riusano quello che c'era: **`TravelDataSelectorDialog`** per scegliere viaggio e partenza (lo
+stesso delle stampe e dei blocchi tour) e **`NewsletterDestinatariDialog`** per l'elenco — a
+quest'ultimo cambia solo la lista che riceve.
+
+**Tre regole che il pannello rende visibili**, e sono il motivo per cui è un componente e non
+markup sparso nella pagina:
+
+1. **I criteri restringono, non sostituiscono.** Consenso, disiscrizioni e soppressioni restano
+   invalicabili: si applicano dentro la selezione dei clienti, non a valle del risultato.
+2. **I criteri sono anagrafici, quindi riguardano solo i clienti.** Gli iscritti dalla sola
+   newsletter hanno email, nome e lingua: nessun criterio può valutarli. Il conteggio è perciò
+   **spaccato** — «N dall'anagrafica · M iscritti dal sito» — e quando un filtro ne esclude
+   qualcuno lo dice con un avviso, invece di lasciarlo accadere in silenzio. L'interruttore
+   *«includi comunque gli iscritti dal sito»* rende la scelta esplicita.
+3. **Il criterio resta attaccato alla newsletter.** La descrizione in chiaro la compone il
+   database al momento in cui il criterio viene aggiunto e non cambia più: è ciò che si legge
+   nell'archivio di cosa è stato spedito, e fra un anno la partenza citata potrebbe non esistere.
+
+`Disabilitato` va passato vero su una newsletter già spedita — i destinatari di un invio fatto non
+si toccano. Le function lo impongono comunque, ma è meglio non offrire un pulsante che rifiuta.
+
+> Attenzione passando `Class`: il pannello lo dichiara come parametro. Passare a un componente un
+> attributo che non ha **compila** e poi fallisce a runtime — il tipo di errore che si scopre
+> aprendo la pagina, non compilando.
+

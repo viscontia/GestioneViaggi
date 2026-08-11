@@ -238,12 +238,17 @@ else
                 </tbody>
             </MudSimpleTable>
 
+            @* A chi va: criteri, conteggio spaccato ed elenco stanno nel pannello, che e' anche
+               l'unico posto da cui si tocca la selezione. Il conteggio torna qui perche' governa
+               l'abilitazione del pulsante di invio. *@
+            <NewsletterDestinatariPanel InvioId="@_invioCorrente!.Id" AziendaId="@_aziendaId"
+                                        IsSuperAdmin="@_isSuperAdmin"
+                                        Disabilitato="@(_busy || !_invioCorrente!.IsBozza)"
+                                        OnConteggioCambiato="@(n => { _count = n; StateHasChanged(); })"
+                                        Class="mt-3" />
+
             <MudPaper Outlined="true" Class="pa-3 mt-3">
                 <div class="d-flex align-center flex-wrap gap-3">
-                    <MudTooltip Text="Vedi l'elenco dei destinatari">
-                        <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Group"
-                                 OnClick="VediDestinatari" Disabled="@(_busy || _count == 0)">Destinatari: @_count</MudChip>
-                    </MudTooltip>
                     <MudTextField @bind-Value="_testEmail" Label="Invia una prova a" Variant="Variant.Outlined"
                                   Style="max-width:280px;" Margin="Margin.Dense"
                                   HelperText="Indirizzo qualsiasi: riceve la newsletter vera, non una versione ridotta." />
@@ -495,7 +500,7 @@ else
     {
         try
         {
-            _count = await Sender.CountRecipientsAsync(_aziendaId);
+            _count = await Sender.CountRecipientsAsync(_aziendaId, _invioCorrente?.Id);
             _storico = await InviiService.ListByAziendaAsync(_aziendaId);
             _iscritti = await IscrittiService.ListByAziendaAsync(_aziendaId);
             _soppressioni = await SoppressioniService.ListByAziendaAsync(_aziendaId);
@@ -1102,32 +1107,6 @@ else
     }
 
     /// <summary>Elenco in sola lettura di chi ricevera' la campagna.</summary>
-    private async Task VediDestinatari()
-    {
-        try
-        {
-            var destinatari = await Sender.GetRecipientsAsync(_aziendaId);
-            var parameters = new DialogParameters<NewsletterDestinatariDialog>
-            {
-                { x => x.Destinatari, destinatari }
-            };
-            await DialogService.ShowAsync<NewsletterDestinatariDialog>("Destinatari della newsletter", parameters,
-                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true });
-        }
-        catch (Exception ex) { Snackbar.Add($"Errore lettura destinatari: {MessaggioErrore(ex)}", Severity.Error); }
-    }
-
-    /// <summary>
-    /// Controlli sul branding prima di spedire. Sito mancante = STOP (il link di disiscrizione
-    /// sarebbe rotto); logo mancante = conferma esplicita, perche' impedire l'invio per un logo
-    /// lascerebbe l'azienda muta verso i propri clienti.
-    /// Restituisce false se si deve interrompere.
-    /// </summary>
-    /// <param name="invioReale">
-    /// false = invio di prova. Un collegamento morto li' avvisa e basta: comporre la newsletter
-    /// prima di pubblicare la scheda del tour e' una sequenza legittima, e bloccare la prova
-    /// impedirebbe proprio di controllare com'e' venuta.
-    /// </param>
     private async Task<bool> PreflightOkAsync(bool invioReale = true)
     {
         NewsletterPreflight pf;

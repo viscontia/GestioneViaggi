@@ -8,7 +8,7 @@
 
 ## 1. Migrazione DB — script da applicare in ordine
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `528`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `529`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -24,7 +24,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=528 {print $2}' \
+  | awk '$1>=406 && $1<=529 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -37,7 +37,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`528` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`529` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -98,7 +98,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–528)
+### Elenco ordinato (467–529)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -169,6 +169,7 @@ ls SqlScripts/*.sql \
 | 526 | NewsletterBlocchi_ColoriTesto | Aggiunge `colore_titolo` e `colore_sottotitolo` su `web_newsletter_blocchi` (NULL = colore predefinito, i blocchi esistenti non cambiano aspetto). Come il 525 fa da sé il `DROP` delle firme che sostituisce, e **si interrompe da solo** se ne trova più di una per nome |
 | 527 | Newsletter_CollegamentiTour_Integrita | Due guardie sui collegamenti ai tour: `fn_web_tour_contenuti_delete` rifiuta se una newsletter **in bozza** punta a quella partenza (le inviate non fermano niente, sono congelate); nuova `fn_web_newsletter_collegamenti_da_verificare` usata prima di spedire. Solo function: nessuna modifica a tabelle |
 | 528 | EbaCountries_NomiItaliani | Aggiunge `eba_countries.name_it` e traduce tutte e **249** le nazioni. Chiave della traduzione: `iso_alpha2`, non il nome — l'import Oracle ha rovinato le accentate (`CÙTE D'IVOIRE`, `CURAÁAO`) e un JOIN sul nome fallirebbe proprio lì. ⚠️ **Lo script si interrompe se in PROD esiste una nazione non coperta**: è voluto, meglio un errore che una voce vuota nella tendina. In quel caso aggiungere la riga mancante allo script e rilanciare |
+| 529 | Newsletter_InviiSelettivi | Nuova `web_newsletter_filtri` + `includi_iscritti_web` su `web_newsletter_invii`. ⚠️ **`fn_web_destinatari_newsletter` cambia firma** (secondo parametro opzionale `p_invio_id`): lo script fa il `DROP` della versione a un parametro prima di ricrearla, altrimenti le chiamate a un argomento diventano ambigue. Richiede `eba_countries` e le tabelle geografiche (vedi sezione dedicata) |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
@@ -556,4 +557,32 @@ token serve al link di disiscrizione: senza, quella persona non può cancellarsi
 > residenza, nazione o viaggi fatti può riguardarli, e attivando uno di quei filtri restano
 > automaticamente fuori. Non è un difetto, è una conseguenza del non avere quei dati — ma va
 > mostrato a schermo, non lasciato accadere in silenzio.
+
+---
+
+## Tabella `eba_countries`: va portata in PROD
+
+Serve al filtro «clienti residenti in…» degli invii selettivi, attraverso la catena
+`ana_clienti → ana_geo_comuni → ana_geo_province → ana_geo_regioni_ita → eba_countries`.
+
+**Prima di applicare lo script `528`, verificare cosa c'è già in PROD:**
+
+```sql
+SELECT to_regclass('public.eba_countries') AS tabella,
+       (SELECT count(*) FROM eba_countries) AS righe;   -- atteso: 249
+```
+
+| Esito | Cosa fare |
+|---|---|
+| Tabella assente | **Copiare l'intera tabella** da locale (struttura + 249 righe), poi applicare il `528` |
+| Tabella presente con 249 righe | Applicare solo il `528`: aggiunge `name_it` e traduce |
+| Tabella presente con righe **diverse** | Applicare il `528` e **leggere l'errore**: si interrompe elencando le nazioni non coperte. Aggiungerle allo script e rilanciare |
+
+> Non copiare la sola colonna `name_it` su una tabella disallineata: la traduzione è agganciata a
+> `iso_alpha2`, quindi va applicata dallo script e non con un travaso di valori posizionale.
+
+Vale lo stesso ragionamento per le tre tabelle geografiche a monte (`ana_geo_comuni`,
+`ana_geo_province`, `ana_geo_regioni_ita`): senza quelle, la nazione di un cliente non è
+ricavabile e il filtro per residenza resta vuoto. Verificarle **prima** di annunciare la funzione
+ad Antonio.
 

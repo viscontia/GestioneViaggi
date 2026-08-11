@@ -1,0 +1,149 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebNewsletterFiltriService FiltriService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@* Scelta di un criterio per restringere i destinatari.
+
+   Ogni voce dichiara COSA SA RAGGIUNGERE. Sono tutti criteri anagrafici, quindi valgono solo per i
+   clienti: gli iscritti dal sito hanno soltanto email, nome e lingua, e nessuno di questi criteri
+   puo' dire niente su di loro. Detto una volta in testa alla form, invece che ripetuto sotto ogni
+   voce, resta leggibile. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            Tutti i criteri guardano l'<strong>anagrafica clienti</strong>. Gli iscritti dalla sola
+            newsletter non hanno questi dati: attivando un criterio restano fuori, a meno di
+            riammetterli con l'apposita scelta.
+        </MudAlert>
+
+        <MudSelect T="string" @bind-Value="_criterio" Label="Criterio" Variant="Variant.Outlined"
+                   Class="mb-3" HelperText="@HelperCriterio">
+            <MudSelectItem T="string" Value="@("cliente_dal")">In anagrafica da una certa data</MudSelectItem>
+            <MudSelectItem T="string" Value="@("iscritti_a_partenza")">Iscritti a una partenza</MudSelectItem>
+            <MudSelectItem T="string" Value="@("iscritti_da_partenza")">Iscritti a partenze da una certa in poi</MudSelectItem>
+            <MudSelectItem T="string" Value="@("residenza_estero")">Residenti all'estero</MudSelectItem>
+            <MudSelectItem T="string" Value="@("residenza_nazione")">Residenti in una nazione</MudSelectItem>
+            <MudSelectItem T="string" Value="@("mai_viaggiato_anno")">Che in un anno non hanno viaggiato</MudSelectItem>
+        </MudSelect>
+
+        @if (_criterio == "cliente_dal")
+        {
+            <MudDatePicker @bind-Date="_data" Label="In anagrafica dal" Variant="Variant.Outlined"
+                           DateFormat="dd/MM/yyyy" Class="mb-3"
+                           HelperText="La data è compresa." />
+        }
+        else if (_criterio is "iscritti_a_partenza" or "iscritti_da_partenza")
+        {
+            <div class="d-flex align-center gap-3 mb-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Event" OnClick="ScegliPartenza">
+                    @(_partenzaId.HasValue ? "Cambia partenza" : "Scegli la partenza")
+                </MudButton>
+                @if (_partenzaId.HasValue)
+                {
+                    <MudText Typo="Typo.body2">Partenza scelta</MudText>
+                }
+            </div>
+        }
+        else if (_criterio == "residenza_nazione")
+        {
+            @* Solo le nazioni in cui risiede davvero qualcuno: proporne 249 vuote sarebbe rumore. *@
+            <MudSelect T="int" @bind-Value="_nazione" Label="Nazione" Variant="Variant.Outlined" Class="mb-3">
+                @foreach (var n in _nazioni)
+                {
+                    <MudSelectItem T="int" Value="@n.CountryId">@n.Nome (@n.Clienti)</MudSelectItem>
+                }
+            </MudSelect>
+        }
+        else if (_criterio == "mai_viaggiato_anno")
+        {
+            <MudNumericField T="int" @bind-Value="_anno" Label="Anno" Variant="Variant.Outlined"
+                             Min="2000" Max="2100" Class="mb-3"
+                             HelperText="Clienti in anagrafica che in quell'anno non hanno partecipato ad alcun viaggio." />
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())">Annulla</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!Valido)"
+                   OnClick="Conferma">Aggiungi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public int AziendaId { get; set; }
+    [Parameter] public bool IsSuperAdmin { get; set; }
+
+    /// <summary>Il criterio scelto e il suo parametro.</summary>
+    public sealed record Scelta(string Criterio, DateTime? Data, int? Intero);
+
+    private string _criterio = "cliente_dal";
+    private DateTime? _data = DateTime.Today;
+    private int? _partenzaId;
+    private int _nazione;
+    private int _anno = DateTime.Today.Year - 1;
+    private List<NazioneClienti> _nazioni = new();
+
+    private string HelperCriterio => _criterio switch
+    {
+        "cliente_dal"          => "Chi è stato inserito in anagrafica da quella data in poi.",
+        "iscritti_a_partenza"  => "Chi ha partecipato a quella specifica partenza.",
+        "iscritti_da_partenza" => "Chi ha partecipato a quella partenza o a una successiva.",
+        "residenza_estero"     => "Chiunque risieda fuori dall'Italia. Non serve altro.",
+        "residenza_nazione"    => "Chi risiede nella nazione scelta.",
+        "mai_viaggiato_anno"   => "Chi è in anagrafica ma in quell'anno non ha viaggiato.",
+        _                      => ""
+    };
+
+    private bool Valido => _criterio switch
+    {
+        "cliente_dal"                                 => _data.HasValue,
+        "iscritti_a_partenza" or "iscritti_da_partenza" => _partenzaId.HasValue,
+        "residenza_nazione"                           => _nazione != 0,
+        "mai_viaggiato_anno"                          => _anno >= 2000,
+        _                                             => true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Un'eccezione qui congelerebbe l'intera interfaccia, non solo questa form.
+        try { _nazioni = await FiltriService.NazioniAsync(AziendaId); }
+        catch (Exception ex) { Snackbar.Add($"Nazioni non caricate: {ex.Message}", Severity.Warning); }
+    }
+
+    /// <summary>Riusa il selettore di viaggio/partenza già in uso nelle stampe e nei blocchi.</summary>
+    private async Task ScegliPartenza()
+    {
+        var parametri = new DialogParameters<TravelDataSelectorDialog>
+        {
+            { x => x.AziendaId, AziendaId },
+            { x => x.IsSuperAdmin, IsSuperAdmin },
+            { x => x.TitoloPersonalizzato, "Scegli la partenza" },
+            { x => x.EtichettaConferma, "Usa questa partenza" }
+        };
+        var dlg = await DialogService.ShowAsync<TravelDataSelectorDialog>("Scegli la partenza", parametri,
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
+        var res = await dlg.Result;
+        if (res!.Canceled || res.Data is not int id) return;
+        _partenzaId = id;
+    }
+
+    private void Conferma()
+    {
+        var scelta = _criterio switch
+        {
+            "cliente_dal"          => new Scelta(_criterio, _data, null),
+            "residenza_nazione"    => new Scelta(_criterio, null, _nazione),
+            "mai_viaggiato_anno"   => new Scelta(_criterio, null, _anno),
+            "residenza_estero"     => new Scelta(_criterio, null, null),
+            _                      => new Scelta(_criterio, null, _partenzaId)
+        };
+        MudDialog?.Close(DialogResult.Ok(scelta));
+    }
+}
