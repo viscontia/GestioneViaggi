@@ -613,9 +613,9 @@
     /// <summary>Quali gruppi di campi hanno senso per il tipo di blocco corrente.</summary>
     private bool Mostra(string gruppo) => Blocco.Tipo switch
     {
-        "testata"   => gruppo is "titolo" or "sottotitolo" or "immagine",
+        "testata"   => gruppo is "titolo" or "sottotitolo" or "immagine" or "link",
         "testo"     => gruppo is "corpo" or "layout",
-        "info"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "layout",
+        "info"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "link" or "layout",
         "tour"      => gruppo is "titolo" or "sottotitolo" or "corpo" or "immagine" or "link" or "layout",
         "immagine"  => gruppo is "immagine" or "link" or "layout",
         "pulsante"  => gruppo is "link" or "layout",

@@ -168,6 +168,19 @@ public static class NewsletterHtmlRenderer
         <tr><td align=""center"" style=""padding:24px 32px 12px 32px;"">{contenuto}</td></tr>";
     }
 
+    /// <summary>
+    /// Rende cliccabile un'immagine quando il blocco ha un collegamento.
+    /// </summary>
+    /// <remarks>
+    /// Nelle newsletter l'immagine cliccabile e' la norma, non l'eccezione: la testata porta alla
+    /// pagina della campagna e le icone alle rispettive sezioni. Sta in un helper perche' serve a
+    /// testata, riquadro informativo e blocco immagine: tre punti, una regola.
+    /// </remarks>
+    private static string ConCollegamento(string? url, string html) =>
+        string.IsNullOrWhiteSpace(url)
+            ? html
+            : $@"<a href=""{Esc(url)}"" target=""_blank"" style=""text-decoration:none;border:0;"">{html}</a>";
+
     private static string RenderTestata(NewsletterRenderBlocco b)
     {
         var sb = new StringBuilder();
@@ -176,10 +189,9 @@ public static class NewsletterHtmlRenderer
         // funziona solo con VML. Immagine, poi titolo sotto: robusto ovunque.
         if (!string.IsNullOrWhiteSpace(b.ImmagineUrl))
         {
+            var immagine = $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""{Larghezza}"" style=""width:{Larghezza}px;max-width:100%;height:auto;display:block;border:0;"" />";
             sb.Append($@"
-        <tr><td style=""padding:0;"">
-          <img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""{Larghezza}"" style=""width:{Larghezza}px;max-width:100%;height:auto;display:block;border:0;"" />
-        </td></tr>");
+        <tr><td style=""padding:0;"">{ConCollegamento(b.LinkUrl, immagine)}</td></tr>");
         }
 
         if (!string.IsNullOrWhiteSpace(b.Titolo))
@@ -237,7 +249,8 @@ public static class NewsletterHtmlRenderer
 
         var icona = string.IsNullOrWhiteSpace(b.ImmagineUrl)
             ? "&nbsp;"
-            : $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""110"" style=""width:110px;max-width:110px;height:auto;display:block;border:0;"" />";
+            : ConCollegamento(b.LinkUrl,
+                $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""110"" style=""width:110px;max-width:110px;height:auto;display:block;border:0;"" />");
 
         var cellaIcona = $@"<td width=""{LarghezzaIcona}"" valign=""top"" align=""center"" style=""width:{LarghezzaIcona}px;padding:0;"">{icona}</td>";
         var cellaTesto = b.Layout == "destra"
@@ -341,9 +354,8 @@ public static class NewsletterHtmlRenderer
     {
         if (string.IsNullOrWhiteSpace(b.ImmagineUrl)) return string.Empty;
 
-        var img = $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""536"" style=""width:536px;max-width:100%;height:auto;display:block;border:0;"" />";
-        if (!string.IsNullOrWhiteSpace(b.LinkUrl))
-            img = $@"<a href=""{Esc(b.LinkUrl)}"" target=""_blank"" style=""text-decoration:none;"">{img}</a>";
+        var img = ConCollegamento(b.LinkUrl,
+            $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""536"" style=""width:536px;max-width:100%;height:auto;display:block;border:0;"" />");
 
         return $@"
         <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px;"">{img}</td></tr>";
