@@ -90,3 +90,11 @@ public sealed record WebNewsletterElencoVoce(
 {
     public bool IsBozza => Stato == "bozza";
 }
+
+/// <summary>
+/// Un blocco il cui collegamento a un tour non porta più da nessuna parte (script 527).
+/// </summary>
+/// <param name="Ordine">Posizione del blocco nella newsletter, per farlo ritrovare.</param>
+/// <param name="Motivo">Perché il collegamento è morto, in parole leggibili.</param>
+public sealed record ProblemaCollegamento(int Ordine, string Tipo, string Descrizione, string Motivo);
+

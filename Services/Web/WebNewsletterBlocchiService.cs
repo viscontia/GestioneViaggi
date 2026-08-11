@@ -200,6 +200,29 @@ public sealed class WebNewsletterBlocchiService
     private static void AddNullable(NpgsqlCommand cmd, string nome, string? valore)
         => cmd.Parameters.AddWithValue(nome, string.IsNullOrWhiteSpace(valore) ? DBNull.Value : valore);
 
+    /// <summary>
+    /// Blocchi il cui collegamento a un tour non porta più da nessuna parte. Vuoto = si può spedire.
+    /// </summary>
+    /// <remarks>
+    /// Non basta guardare l'aggancio alla partenza: cancellando una partenza la chiave esterna
+    /// viene azzerata (ON DELETE SET NULL) e il blocco resta con l'indirizzo di una pagina che non
+    /// esiste più, invisibile a qualunque controllo che parta dall'aggancio. La function guarda
+    /// anche l'indirizzo, ed è il motivo per cui questa verifica esiste.
+    /// </remarks>
+    public async Task<List<ProblemaCollegamento>> CollegamentiDaVerificareAsync(long invioId, int aziendaId)
+    {
+        var list = new List<ProblemaCollegamento>();
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT ordine, tipo, descrizione, motivo FROM fn_web_newsletter_collegamenti_da_verificare(@Invio::bigint, @Az::integer)", conn);
+        cmd.Parameters.AddWithValue("Invio", invioId);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+            list.Add(new ProblemaCollegamento(r.GetInt32(0), r.GetString(1), r.GetString(2), r.GetString(3)));
+        return list;
+    }
+
     private static WebNewsletterBlocco Map(NpgsqlDataReader r) => new()
     {
         WebNewsletterBloccoId = r.GetInt64(r.GetOrdinal("web_newsletter_blocchi_id")),

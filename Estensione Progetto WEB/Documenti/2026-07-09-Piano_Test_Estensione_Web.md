@@ -862,3 +862,23 @@ glielo mette l'editor.
 | 37.9 | **Duplica** una newsletter con blocchi agganciati | Stessa domanda della creazione da modello: anche una copia dell'anno scorso ha le partenze vecchie |
 | 37.10 | Un modello nella lista | Il pulsante Invia resta bloccato: un modello si duplica, non si invia |
 | 37.11 | Apri un blocco con **social, icona, posizione del pulsante o colori**, salva senza cambiare niente, guarda l'anteprima | Resta tutto. *Prima quei campi venivano azzerati dalla copia di lavoro* |
+
+---
+
+## 38. Collegamenti ai tour: integrità e verifica prima di spedire (script `527`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 38.1 | Newsletter **in bozza** con un blocco agganciato a una partenza → prova a eliminare la **scheda web** di quel tour | Rifiutato, con il nome della newsletter che lo impedisce |
+| 38.2 | Togli o riaggancia quel blocco → riprova | L'eliminazione va a buon fine |
+| 38.3 | Solo una newsletter **già inviata** punta a quella partenza → elimina la scheda web | Consentito: la mail spedita è congelata e non si rompe |
+| 38.4 | Newsletter con un blocco che punta a un tour la cui scheda è **in bozza** → **Invia a tutti** | Invio **bloccato**, con posizione e nome del blocco |
+| 38.5 | Stesso caso → **Invio di prova** | Parte lo stesso, con un **avviso**: comporre prima di pubblicare il tour è una sequenza legittima |
+| 38.6 | Pubblica la scheda del tour → **Invia a tutti** | Nessun avviso, l'invio procede |
+| 38.7 | Blocco con un indirizzo **scritto a mano** che contiene `/tour/` ma non è un nostro link (es. `/it/tour/fuoristrada/autunno-gallura`) | **Nessun falso allarme**: non è un collegamento che abbiamo composto noi |
+| 38.8 | Newsletter con più di 4 blocchi problematici | Ne elenca 4 e dice quanti altri ce ne sono |
+
+> Verificato sul database locale, in transazioni annullate: l'eliminazione della scheda è stata
+> rifiutata con la bozza agganciata e consentita con la sola inviata. Sulle newsletter reali la
+> verifica ha trovato 3 collegamenti morti veri e — dopo aver stretto l'estrazione dello slug —
+> nessun falso allarme.

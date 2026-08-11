@@ -2214,3 +2214,32 @@ DROP esplicito** della firma precedente: `CREATE OR REPLACE` non sostituisce una
 cambia il numero di parametri e lascerebbe firme sovrapposte (vedi script `524`). Lo script
 termina verificando che ne esista **una sola per nome** e fallisce altrimenti.
 `fn_web_newsletter_clona` copia entrambi i colori.
+
+### Integrità fra newsletter e partenze (script `527`)
+
+Il vincolo `web_newsletter_blocchi.data_viaggio_id_fk → ana_date_viaggi` è **`ON DELETE SET NULL`**:
+il database, da solo, non impedisce niente — azzererebbe l'aggancio in silenzio. Ciò che protegge
+davvero è `sp_ana_date_viaggi_delete`, che rifiuta di cancellare una partenza con una scheda di
+contenuti web; e siccome un blocco può puntare a un tour **solo se quel tour ha una scheda web**
+(il collegamento si costruisce da lì), la protezione c'è — ma per **proprietà transitiva**, non per
+un controllo che sappia delle newsletter. Il buco sta lì: la scheda si può eliminare per prima.
+
+**`fn_web_tour_contenuti_delete`** ora rifiuta (`P0001`) se una newsletter **in bozza** punta a
+quella partenza, elencando quali. Le **già inviate non fermano niente**: titolo, immagine e
+indirizzo sono *copie* dentro il blocco, quindi la mail resta leggibile e la prova documentale
+regge — si perde solo la possibilità di risalire alla partenza.
+
+**`fn_web_newsletter_collegamenti_da_verificare(p_invio_id, p_azienda_id)`** → `ordine, tipo,
+descrizione, motivo`. Vuoto = si può spedire. Guarda in **due** modi:
+
+| Via | Cosa intercetta |
+|---|---|
+| per **aggancio** (`data_viaggio_id_fk`) | scheda del tour sparita, o non pubblicata |
+| per **indirizzo** (slug dentro `link_url`) | blocchi il cui aggancio è stato azzerato dalla cancellazione della partenza — invisibili a qualunque controllo che parta dall'aggancio |
+
+Lo slug si estrae come **ultimo segmento** (`'/tour/([^/?#]+)/?$'`), non come primo segmento dopo
+`/tour/`. La differenza non è teorica: su un indirizzo scritto a mano come
+`/it/tour/fuoristrada/autunno-gallura` la forma larga prendeva `fuoristrada` per uno slug e
+dichiarava "tour inesistente" su un collegamento che non abbiamo composto noi e su cui non possiamo
+pronunciarci. Un controllo che grida al lupo viene ignorato.
+

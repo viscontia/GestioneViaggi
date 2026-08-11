@@ -1123,7 +1123,12 @@ else
     /// lascerebbe l'azienda muta verso i propri clienti.
     /// Restituisce false se si deve interrompere.
     /// </summary>
-    private async Task<bool> PreflightOkAsync()
+    /// <param name="invioReale">
+    /// false = invio di prova. Un collegamento morto li' avvisa e basta: comporre la newsletter
+    /// prima di pubblicare la scheda del tour e' una sequenza legittima, e bloccare la prova
+    /// impedirebbe proprio di controllare com'e' venuta.
+    /// </param>
+    private async Task<bool> PreflightOkAsync(bool invioReale = true)
     {
         NewsletterPreflight pf;
         try { pf = await Sender.GetPreflightAsync(_aziendaId); }
@@ -1150,6 +1155,34 @@ else
             if ((await dlg.Result)!.Canceled) return false;
         }
 
+        // Collegamenti ai tour ancora vivi. E' l'ultimo momento utile: dopo l'invio un link
+        // morto non si corregge piu'.
+        if (_invioCorrente != null)
+        {
+            List<ProblemaCollegamento> problemi;
+            try { problemi = await BlocchiService.CollegamentiDaVerificareAsync(_invioCorrente.Id, _aziendaId); }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Errore verifica collegamenti: {MessaggioErrore(ex)}", Severity.Error);
+                return false;
+            }
+
+            foreach (var p in problemi.Take(4))
+            {
+                Snackbar.Add($"Blocco in posizione {p.Ordine} («{p.Descrizione}»): {p.Motivo}.",
+                             invioReale ? Severity.Error : Severity.Warning);
+            }
+            if (problemi.Count > 4)
+                Snackbar.Add($"…e altri {problemi.Count - 4} blocchi con lo stesso problema.", Severity.Info);
+
+            if (invioReale && problemi.Count > 0)
+            {
+                Snackbar.Add("Invio annullato: sistema i collegamenti, oppure pubblica le schede web di quei tour.",
+                             Severity.Error);
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -1163,7 +1196,7 @@ else
         var formato = GestioneViaggi.Validation.Business.ClienteValidator.ValidateEmail(_testEmail!.Trim());
         if (!formato.IsValid) { Snackbar.Add(formato.Message, Severity.Warning); return; }
 
-        if (!await PreflightOkAsync()) return;
+        if (!await PreflightOkAsync(invioReale: false)) return;
         await AccendiAttesa();
         try
         {
