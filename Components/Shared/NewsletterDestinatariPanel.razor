@@ -105,7 +105,19 @@
     private bool _includiIscritti;
     private bool _caricando;
 
-    protected override async Task OnParametersSetAsync() => await RicaricaAsync();
+    // Newsletter per cui i dati sono gia' stati letti. Senza questa guardia si innesca un ciclo
+    // infinito: OnParametersSetAsync scatta a OGNI render del genitore, non solo quando i
+    // parametri cambiano davvero. Ricaricare notifica il conteggio, il genitore ridisegna, il
+    // pannello riceve di nuovo i parametri e ricarica — tre query per giro, all'infinito.
+    // Il risultato non e' un errore ma un'applicazione che smette di rispondere.
+    private long _caricatoPer;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (InvioId == 0 || InvioId == _caricatoPer) return;
+        _caricatoPer = InvioId;
+        await RicaricaAsync();
+    }
 
     private async Task RicaricaAsync()
     {
@@ -118,8 +130,13 @@
             // Va RILETTO dal database: senza, riaprendo la newsletter l'interruttore tornerebbe
             // spento pur essendo acceso, e il numero di destinatari non tornerebbe.
             _includiIscritti = await FiltriService.GetIncludiIscrittiAsync(InvioId, AziendaId);
+            var prima = _conteggio.Destinatari;
             _conteggio = await FiltriService.ConteggioAsync(AziendaId, InvioId);
-            await OnConteggioCambiato.InvokeAsync((int)_conteggio.Destinatari);
+
+            // Si avvisa solo se il numero e' cambiato davvero: seconda difesa contro il ciclo,
+            // perche' il genitore reagisce ridisegnando.
+            if (_conteggio.Destinatari != prima)
+                await OnConteggioCambiato.InvokeAsync((int)_conteggio.Destinatari);
         }
         catch (Exception ex) { Snackbar.Add($"Destinatari non calcolati: {ex.Message}", Severity.Error); }
         finally { _caricando = false; }

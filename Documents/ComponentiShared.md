@@ -1255,3 +1255,16 @@ si toccano. Le function lo impongono comunque, ma è meglio non offrire un pulsa
 > attributo che non ha **compila** e poi fallisce a runtime — il tipo di errore che si scopre
 > aprendo la pagina, non compilando.
 
+> **Trappola, costata un blocco dell'applicazione.** `OnParametersSetAsync` scatta a **ogni render
+> del genitore**, non solo quando i parametri cambiano davvero. Un componente che lì dentro legge
+> dal database e poi notifica il risultato con un `EventCallback` che il genitore gestisce con
+> `StateHasChanged` si autoalimenta: ricarica → notifica → il genitore ridisegna → i parametri
+> arrivano di nuovo → ricarica. Nel pannello dei destinatari erano **tre query per giro**, senza
+> fine: nessun errore a video, ma il pool di connessioni si esaurisce e la prima cosa che ha
+> bisogno del database — nel caso reale, l'elenco dei viaggi di una tendina — resta appesa. Sembra
+> un difetto di quella tendina, ed è a due componenti di distanza.
+>
+> Rimedio: ricaricare **solo quando l'identificativo cambia davvero** (un campo che ricorda per
+> cosa si è già letto) e notificare **solo quando il valore è cambiato**. Servono entrambi: il
+> primo evita il giro, il secondo lo interrompe comunque se qualcuno lo riapre.
+
