@@ -57,6 +57,12 @@ public sealed class WebNewsletterBlocco
     /// </summary>
     public string? LayoutPulsante { get; set; }
 
+    /// <summary>Colore del titolo in #RRGGBB (script 526). NULL = colore predefinito.</summary>
+    public string? ColoreTitolo { get; set; }
+
+    /// <summary>Colore del sottotitolo in #RRGGBB (script 526). NULL = colore predefinito.</summary>
+    public string? ColoreSottotitolo { get; set; }
+
     public int AziendaId { get; set; }
 }
 

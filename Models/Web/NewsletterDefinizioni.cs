@@ -92,3 +92,63 @@ public static class NewsletterLayout
     public static int Casella(string? codice) =>
         Posizioni.FirstOrDefault(p => p.Codice == codice)?.Casella ?? -1;
 }
+
+/// <summary>
+/// I colori del modello grafico della newsletter, in un posto solo.
+/// </summary>
+/// <remarks>
+/// Erano costanti private del renderer: l'utente non poteva sceglierli e nessun'altra parte del
+/// programma sapeva quali fossero. Restano i valori predefiniti — un blocco che non dichiara un
+/// colore ha esattamente l'aspetto di prima — ma ora sono anche la tavolozza offerta nelle form.
+/// </remarks>
+public static class NewsletterColori
+{
+    /// <summary>Testo corrente.</summary>
+    public const string Testo = "#333333";
+
+    /// <summary>Testo secondario: sottotitoli, pie' di pagina.</summary>
+    public const string Tenue = "#888888";
+
+    /// <summary>Titoli. E' lo stesso blu del pulsante non social.</summary>
+    public const string Accento = SocialCatalogo.ColoreDefault;
+
+    /// <summary>
+    /// Colori proposti nella scelta. Non e' un vincolo: si puo' comunque prendere qualsiasi
+    /// colore dal selettore. Sono i valori che stanno bene sul fondo bianco della newsletter,
+    /// messi davanti per non costringere a cercarli ogni volta.
+    /// </summary>
+    public static IReadOnlyList<ColoreProposto> Tavolozza { get; } = new[]
+    {
+        new ColoreProposto(Accento, "Blu del modello"),
+        new ColoreProposto(Testo,   "Grigio scuro"),
+        new ColoreProposto(Tenue,   "Grigio tenue"),
+        new ColoreProposto("#000000", "Nero"),
+        new ColoreProposto("#C0392B", "Rosso"),
+        new ColoreProposto("#D35400", "Arancione"),
+        new ColoreProposto("#1E8449", "Verde"),
+        new ColoreProposto("#6C3483", "Viola"),
+    };
+
+    /// <summary>
+    /// Riporta un colore alla forma <c>#RRGGBB</c>, o null se non e' un colore valido.
+    /// Il vincolo sul database accetta solo quella forma: un valore diverso verrebbe rifiutato
+    /// al salvataggio, e in una mail non darebbe errore ma testo nero senza spiegazione.
+    /// </summary>
+    public static string? Normalizza(string? colore)
+    {
+        if (string.IsNullOrWhiteSpace(colore)) return null;
+
+        var c = colore.Trim();
+        if (!c.StartsWith('#')) c = "#" + c;
+
+        // Un selettore puo' restituire #RRGGBBAA: la trasparenza in una mail non si usa.
+        if (c.Length == 9) c = c[..7];
+
+        return System.Text.RegularExpressions.Regex.IsMatch(c, "^#[0-9A-Fa-f]{6}$")
+            ? c.ToUpperInvariant()
+            : null;
+    }
+}
+
+/// <summary>Un colore della tavolozza: il valore e il nome con cui viene proposto.</summary>
+public sealed record ColoreProposto(string Hex, string Nome);

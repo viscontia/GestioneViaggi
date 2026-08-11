@@ -1581,8 +1581,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
+ |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
+` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
 | `fn_get_cliente_by_id` | p_cliente_id integer, p_azienda_fk integer | json | DB-First: Get cliente by ID with all related data (azienda, comuni) |
 | `fn_get_cliente_init_data` | p_cliente_id integer DEFAULT NULL::integer | json |  |
@@ -1691,10 +1693,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_web_mezzi_occupati_data` | p_data_viaggio_id integer | integer |  |
 | `fn_web_newsletter_blocchi_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_blocchi_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_blocchi |  |
-| `fn_web_newsletter_blocchi_insert` | p_azienda_id integer, p_invio_id_fk bigint, p_tipo character varying, p_ordine integer DEFAULT NULL::integer, p_layout character varying DEFAULT 'pieno'::character varying, p_colonne smallint DEFAULT 1, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying | bigint |  |
+| `fn_web_newsletter_blocchi_insert` | p_azienda_id integer, p_invio_id_fk bigint, p_tipo character varying, p_ordine integer DEFAULT NULL::integer, p_layout character varying DEFAULT 'pieno'::character varying, p_colonne smallint DEFAULT 1, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying, p_colore_titolo character varying DEFAULT NULL::character varying, p_colore_sottotitolo character varying DEFAULT NULL::character varying | bigint |  |
 | `fn_web_newsletter_blocchi_list` | p_invio_id bigint, p_azienda_id integer | SETOF web_newsletter_blocchi |  |
 | `fn_web_newsletter_blocchi_reorder` | p_azienda_id integer, p_invio_id_fk bigint, p_ids bigint[] | integer |  |
-| `fn_web_newsletter_blocchi_update` | p_id bigint, p_azienda_id integer, p_layout character varying DEFAULT NULL::character varying, p_colonne smallint DEFAULT NULL::smallint, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying | integer |  |
+| `fn_web_newsletter_blocchi_update` | p_id bigint, p_azienda_id integer, p_layout character varying DEFAULT NULL::character varying, p_colonne smallint DEFAULT NULL::smallint, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying, p_colore_titolo character varying DEFAULT NULL::character varying, p_colore_sottotitolo character varying DEFAULT NULL::character varying | integer |  |
 | `fn_web_newsletter_clona` | p_invio_id bigint, p_azienda_id integer, p_nuovo_oggetto character varying DEFAULT NULL::character varying, p_come_modello boolean DEFAULT false | bigint |  |
 | `fn_web_newsletter_congela_indirizzi` | p_invio_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_crea_bozza` | p_azienda_id integer, p_oggetto character varying, p_is_modello boolean DEFAULT false | bigint |  |
@@ -2187,3 +2189,28 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `update_updated_at_column`
 - `validate_fiscal_data`
 <!-- AUTO-GENERATED-END -->
+
+### Colore di titolo e sottotitolo nei blocchi (script `526`)
+
+`web_newsletter_blocchi` ha due colonne nuove, `colore_titolo` e `colore_sottotitolo`, entrambe
+`VARCHAR(7)` e vincolate a `^#[0-9A-Fa-f]{6}$`. **NULL = colore predefinito del modello grafico**,
+cioè l'aspetto che i blocchi avevano prima: nessuna newsletter già composta cambia.
+
+Il vincolo di formato non è pignoleria. Quel valore finisce dentro un attributo `style` di una
+mail: un colore malformato non produce alcun errore, produce testo nero e nessuno capisce perché.
+Per lo stesso motivo il valore viene **ricontrollato anche in fase di rendering**
+(`NewsletterColori.Normalizza`), non solo al salvataggio.
+
+I predefiniti **non sono gli stessi ovunque** — è la trappola di questi due campi:
+
+| Blocco | Titolo | Sottotitolo |
+|---|---|---|
+| testata | `#2171A5` accento | `#333333` testo corrente |
+| riquadro informativo | `#2171A5` accento | `#888888` grigio tenue |
+| riquadro tour | `#2171A5` accento | `#888888` grigio tenue |
+
+`fn_web_newsletter_blocchi_insert` (21 parametri) e `_update` (19) sono state **ricreate previo
+DROP esplicito** della firma precedente: `CREATE OR REPLACE` non sostituisce una function quando
+cambia il numero di parametri e lascerebbe firme sovrapposte (vedi script `524`). Lo script
+termina verificando che ne esista **una sola per nome** e fallisce altrimenti.
+`fn_web_newsletter_clona` copia entrambi i colori.

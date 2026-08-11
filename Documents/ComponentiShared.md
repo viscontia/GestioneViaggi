@@ -1155,3 +1155,32 @@ scelta è fatta di **quattro pezzi che devono restare d'accordo**, non solo del 
 
 Il quarto è quello che è già divergiato una volta: mostrava «Home page del sito» su un blocco che
 non aveva alcun collegamento. Estraendo, vanno spostati **tutti e quattro insieme**.
+
+## ColoreTestoSelect
+
+`Components/Shared/ColoreTestoSelect.razor` — scelta del colore di un testo della newsletter.
+Usato per il titolo e per il sottotitolo dei blocchi (testata, riquadro informativo, riquadro tour).
+
+I colori proposti vengono da `NewsletterColori.Tavolozza` (`Models/Web/NewsletterDefinizioni.cs`),
+lo stesso posto da cui il renderer prende i valori predefiniti: tavolozza e modello grafico non
+possono divergere. Non è un vincolo — dal selettore si prende comunque qualsiasi colore — sono i
+valori che stanno bene sul fondo bianco, messi davanti per non cercarli ogni volta.
+
+```razor
+<ColoreTestoSelect @bind-Value="Blocco.ColoreTitolo" Label="Colore del titolo"
+                   Predefinito="@NewsletterColori.Accento" />
+```
+
+**`Predefinito` va passato quello vero.** Il predefinito del sottotitolo non è lo stesso ovunque:
+nella testata è il grigio del testo corrente, negli altri blocchi il grigio tenue. Passandone uno
+sbagliato il pallino mostrerebbe un colore diverso da quello che si vedrà nella mail — cioè
+l'unica cosa che questo controllo deve evitare.
+
+**Nessuna scelta è uno stato a sé**, e non equivale a scegliere a mano il colore predefinito: un
+blocco che non dichiara nulla segue il modello anche se il modello cambia, uno che dichiara
+`#2171A5` resta blu per sempre. Il pulsante con l'icona *format color reset* riporta a "nessuna
+scelta" ed è l'unico modo per tornarci.
+
+`NewsletterColori.Normalizza` riduce qualsiasi forma a `#RRGGBB` (taglia la trasparenza, aggiunge
+il cancelletto, rifiuta ciò che colore non è) e va usata **sia prima di salvare sia in fase di
+rendering**: nell'HTML di una mail un colore malformato non dà errore, dà testo nero.

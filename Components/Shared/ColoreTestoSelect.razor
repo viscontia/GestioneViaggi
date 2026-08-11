@@ -1,0 +1,63 @@
+@using GestioneViaggi.Models.Web
+@using MudBlazor
+@using MudBlazor.Utilities
+
+@* Scelta del colore di un testo della newsletter.
+
+   I colori proposti vengono da NewsletterColori.Tavolozza, che e' lo stesso posto da cui il
+   renderer prende i valori predefiniti: la tavolozza e il modello grafico non possono divergere.
+
+   "Nessuna scelta" e' uno stato a se' e vale predefinito — non e' la stessa cosa che scegliere a
+   mano il colore predefinito. Un blocco che non dichiara nulla segue il modello anche se il
+   modello cambia; uno che dichiara #2171A5 resta blu per sempre. *@
+
+<div class="d-flex align-center gap-1 @Class">
+    <MudColorPicker Label="@Label" Value="@Corrente" ValueChanged="OnColore"
+                    ShowAlpha="false" PickerVariant="PickerVariant.Dialog"
+                    Palette="@Tavolozza" Style="max-width:190px;"
+                    Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Palette"
+                    Disabled="@Disabled" />
+
+    <MudTooltip Text="Torna al colore predefinito">
+        <MudIconButton Icon="@Icons.Material.Filled.FormatColorReset" Size="Size.Small"
+                       Disabled="@(Disabled || Value is null)" OnClick="Ripristina" />
+    </MudTooltip>
+
+    <MudText Typo="Typo.caption" Color="Color.Secondary">
+        @(Value is null ? "Colore predefinito" : Value)
+    </MudText>
+</div>
+
+@code {
+    /// <summary>Colore scelto in #RRGGBB, oppure null per il predefinito.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Colore";
+
+    /// <summary>Colore usato quando l'utente non sceglie: quello che il renderer applicherebbe.</summary>
+    [Parameter] public string Predefinito { get; set; } = NewsletterColori.Testo;
+
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; } = "mb-3";
+
+    private static readonly List<MudColor> Tavolozza =
+        NewsletterColori.Tavolozza.Select(c => new MudColor(c.Hex)).ToList();
+
+    private MudColor Corrente => new MudColor(Value ?? Predefinito);
+
+    private Task OnColore(MudColor c)
+    {
+        // Il selettore puo' restituire una forma con la trasparenza: Normalizza la riduce a
+        // #RRGGBB, l'unica accettata dal vincolo sul database.
+        Value = NewsletterColori.Normalizza(c.ToString(MudColorOutputFormats.Hex));
+        return ValueChanged.InvokeAsync(Value);
+    }
+
+    private Task Ripristina()
+    {
+        Value = null;
+        return ValueChanged.InvokeAsync(null);
+    }
+}

@@ -66,6 +66,10 @@
                           HelperText="@(Blocco.Tipo == "tour"
                                         ? "Nome del tour come apparirà nella newsletter: modificabile, non tocca la scheda del viaggio."
                                         : "Titolo grande in cima al blocco.")" />
+
+            @* Il colore del titolo era fisso nel renderer, e non l'aveva chiesto nessuno. *@
+            <ColoreTestoSelect @bind-Value="Blocco.ColoreTitolo" Label="Colore del titolo"
+                               Predefinito="@NewsletterColori.Accento" />
         }
 
         @if (Mostra("sottotitolo"))
@@ -75,6 +79,12 @@
                           HelperText="@(Blocco.Tipo == "tour"
                                         ? "Periodo della partenza, compilato dal tour (es. \"Dal 2 al 7 maggio 2026\")."
                                         : "Riga più piccola sotto il titolo.")" />
+
+            @* Il predefinito del sottotitolo NON e' lo stesso ovunque: nella testata e' il grigio
+               del testo corrente, negli altri blocchi il grigio tenue. Va detto quello vero,
+               altrimenti il pallino mostra un colore diverso da quello che si vedra' nella mail. *@
+            <ColoreTestoSelect @bind-Value="Blocco.ColoreSottotitolo" Label="Colore del sottotitolo"
+                               Predefinito="@(Blocco.Tipo == "testata" ? NewsletterColori.Testo : NewsletterColori.Tenue)" />
         }
 
         @if (Mostra("corpo"))

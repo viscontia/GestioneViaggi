@@ -818,3 +818,28 @@ Fa eccezione il pulsante, che senza indirizzo non esiste.
 > Verificato a monte: `fn_web_newsletter_blocchi_update` **assegna** `link_url` invece di
 > `COALESCE`-arlo, quindi il NULL cancella davvero il collegamento; `layout` invece è in COALESCE
 > e resta quello di prima. Provato in transazione annullata sul DB locale.
+
+---
+
+## 36. Colore di titolo e sottotitolo (script `526`)
+
+Il colore del titolo era una costante del renderer — blu `#2171A5` — e l'utente non poteva
+cambiarlo. Ora titolo e sottotitolo hanno un colore proprio; il testo del corpo ce l'aveva già,
+glielo mette l'editor.
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 36.1 | Apri un **riquadro informativo** già esistente | Titolo e sottotitolo mostrano «Colore predefinito»; l'anteprima è identica a prima |
+| 36.2 | Titolo → scegli un colore dalla tavolozza → Salva → Anteprima | Il titolo del riquadro ha quel colore. Il sottotitolo resta grigio |
+| 36.3 | Sottotitolo → colore diverso → Salva → Anteprima | I due colori sono indipendenti |
+| 36.4 | Premi l'icona **azzera colore** accanto al titolo → Salva → riapri | Torna «Colore predefinito», il titolo è di nuovo blu |
+| 36.5 | Scegli a mano il blu `#2171A5` (non "predefinito") | Aspetto identico, ma il blocco ha ora un colore **dichiarato**: non seguirà più il modello se il modello cambia |
+| 36.6 | Stessa prova su **testata** e **riquadro tour** | Funziona uguale. Nella testata il predefinito del sottotitolo è più scuro (`#333333`) che negli altri blocchi (`#888888`): il pallino deve mostrare quello giusto |
+| 36.7 | **Invio di prova** di una newsletter con i colori | I colori arrivano nella mail, non solo nell'anteprima |
+| 36.8 | **Clona** una newsletter con i colori | La copia ha gli stessi colori |
+| 36.9 | Blocco **testo** e blocco **pulsante** | Nessuna scelta di colore: non hanno titolo né sottotitolo |
+
+> Verificato a monte, eseguendo il renderer: senza colore dichiarato l'HTML esce identico a prima
+> (`#2171A5` titolo, `#888888` sottotitolo, `#333333` sottotitolo di testata); un valore non valido
+> come `rosso` ricade sul predefinito invece di finire nella mail; `#C0392B80` perde la trasparenza
+> e diventa `#C0392B`, l'unica forma che il vincolo sul database accetta.

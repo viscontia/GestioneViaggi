@@ -18,7 +18,9 @@ public sealed record NewsletterRenderBlocco(
     string? LinkEtichetta = null,
     string? Social = null,
     string? IconaUrl = null,
-    string? LayoutPulsante = null);
+    string? LayoutPulsante = null,
+    string? ColoreTitolo = null,
+    string? ColoreSottotitolo = null);
 
 /// <summary>Dati dell'azienda usati da intestazione e footer.</summary>
 public sealed record NewsletterRenderAzienda(
@@ -65,9 +67,9 @@ public static class NewsletterHtmlRenderer
 {
     private const int Larghezza = 600;
     private const string FontFamily = "Arial, Helvetica, sans-serif";
-    private const string ColoreTesto = "#333333";
-    private const string ColoreTenue = "#888888";
-    private const string ColoreAccento = SocialCatalogo.ColoreDefault;
+    private const string ColoreTesto = NewsletterColori.Testo;
+    private const string ColoreTenue = NewsletterColori.Tenue;
+    private const string ColoreAccento = NewsletterColori.Accento;
     private const string ColoreSfondo = "#f4f4f4";
 
     public static string Render(
@@ -199,7 +201,7 @@ public static class NewsletterHtmlRenderer
         {
             sb.Append($@"
         <tr><td align=""center"" style=""padding:20px 32px 4px 32px;"">
-          <h1 style=""margin:0;font-family:{FontFamily};font-size:26px;line-height:32px;color:{ColoreAccento};"">{Esc(b.Titolo)}</h1>
+          <h1 style=""margin:0;font-family:{FontFamily};font-size:26px;line-height:32px;color:{Colore(b.ColoreTitolo, ColoreAccento)};"">{Esc(b.Titolo)}</h1>
         </td></tr>");
         }
 
@@ -207,7 +209,7 @@ public static class NewsletterHtmlRenderer
         {
             sb.Append($@"
         <tr><td align=""center"" style=""padding:0 32px 16px 32px;"">
-          <p style=""margin:0;font-family:{FontFamily};font-size:16px;line-height:24px;color:{ColoreTesto};"">{Esc(b.Sottotitolo)}</p>
+          <p style=""margin:0;font-family:{FontFamily};font-size:16px;line-height:24px;color:{Colore(b.ColoreSottotitolo, ColoreTesto)};"">{Esc(b.Sottotitolo)}</p>
         </td></tr>");
         }
 
@@ -242,9 +244,9 @@ public static class NewsletterHtmlRenderer
 
         var testo = new StringBuilder();
         if (!string.IsNullOrWhiteSpace(b.Titolo))
-            testo.Append($@"<h3 style=""margin:0 0 8px 0;font-family:{FontFamily};font-size:15px;line-height:20px;color:{ColoreAccento};text-transform:uppercase;"">{Esc(b.Titolo)}</h3>");
+            testo.Append($@"<h3 style=""margin:0 0 8px 0;font-family:{FontFamily};font-size:15px;line-height:20px;color:{Colore(b.ColoreTitolo, ColoreAccento)};text-transform:uppercase;"">{Esc(b.Titolo)}</h3>");
         if (!string.IsNullOrWhiteSpace(b.Sottotitolo))
-            testo.Append($@"<p style=""margin:0 0 6px 0;font-family:{FontFamily};font-size:13px;color:{ColoreTenue};"">{Esc(b.Sottotitolo)}</p>");
+            testo.Append($@"<p style=""margin:0 0 6px 0;font-family:{FontFamily};font-size:13px;color:{Colore(b.ColoreSottotitolo, ColoreTenue)};"">{Esc(b.Sottotitolo)}</p>");
         if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
             testo.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
@@ -339,10 +341,10 @@ public static class NewsletterHtmlRenderer
         var dimTitolo = livello == 0 ? 20 : 17;
 
         if (!string.IsNullOrWhiteSpace(b.Titolo))
-            sb.Append($@"<h2 style=""margin:0 0 6px 0;font-family:{FontFamily};font-size:{dimTitolo}px;line-height:{dimTitolo + 6}px;color:{ColoreAccento};"">{Esc(b.Titolo)}</h2>");
+            sb.Append($@"<h2 style=""margin:0 0 6px 0;font-family:{FontFamily};font-size:{dimTitolo}px;line-height:{dimTitolo + 6}px;color:{Colore(b.ColoreTitolo, ColoreAccento)};"">{Esc(b.Titolo)}</h2>");
 
         if (!string.IsNullOrWhiteSpace(b.Sottotitolo))
-            sb.Append($@"<p style=""margin:0 0 8px 0;font-family:{FontFamily};font-size:13px;color:{ColoreTenue};"">{Esc(b.Sottotitolo)}</p>");
+            sb.Append($@"<p style=""margin:0 0 8px 0;font-family:{FontFamily};font-size:13px;color:{Colore(b.ColoreSottotitolo, ColoreTenue)};"">{Esc(b.Sottotitolo)}</p>");
 
         if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
             sb.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
@@ -546,6 +548,14 @@ public static class NewsletterHtmlRenderer
 
         return BottoneBulletproof(b.LinkUrl!, etichetta!, allineaSinistra, b.Social, b.IconaUrl);
     }
+
+    /// <summary>
+    /// Colore scelto dall'utente, oppure quello del modello. Il valore viene ricontrollato qui e
+    /// non solo al salvataggio: dentro un attributo <c>style</c> un colore malformato non da'
+    /// errore, fa scrivere il testo in nero e nessuno capisce perche'.
+    /// </summary>
+    private static string Colore(string? scelto, string predefinito) =>
+        NewsletterColori.Normalizza(scelto) ?? predefinito;
 
     private static string Esc(string? s) => WebUtility.HtmlEncode(s ?? string.Empty);
 }
