@@ -504,3 +504,38 @@ Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 510) o un
 2. se comporta backfill/segreti/config, aggiungere la voce in §2/§3 e la spunta in §4;
 2bis. se introduce o cambia una **regola di comportamento** visibile all'utente (stati, pubblicabilità, cancellazioni, automatismi), aggiungere la voce da spiegare in §3.4: il manuale si scrive alla fine, ma l'elenco di cosa spiegare si costruisce strada facendo;
 3. aggiornare la data in testa.
+
+---
+
+## Modelli di newsletter da portare in PROD
+
+Oltre agli script, vanno **copiati i dati**: i modelli di newsletter composti qui in locale
+servono ad Antonio come base di partenza, invece di farlo ricominciare da una pagina bianca.
+
+**Cosa copiare:** le righe di `web_newsletter_invii` con `is_modello = true` e **tutti** i loro
+blocchi in `web_newsletter_blocchi`, per l'**azienda 6** (la stessa numerazione di adesso).
+
+```sql
+-- ricognizione in locale: cosa c'è da portare
+SELECT i.web_newsletter_invii_id, i.oggetto, count(b.*) AS blocchi
+  FROM web_newsletter_invii i
+  LEFT JOIN web_newsletter_blocchi b ON b.invio_id_fk = i.web_newsletter_invii_id
+ WHERE i.is_modello = true AND i.azienda_id = 6
+ GROUP BY 1, 2 ORDER BY 1;
+```
+
+**Attenzione a tre cose**, in quest'ordine:
+
+1. **Gli id non si portano dietro.** Le chiavi sono `generated always as identity`: inserire in
+   PROD assegna id nuovi, e `web_newsletter_blocchi.invio_id_fk` va rimappato sull'id nuovo. Non
+   copiare le colonne id.
+2. **Le immagini stanno su Storage, non nel database.** `immagine_url` e `immagine_storage_path`
+   puntano al bucket: i file vanno caricati sul bucket di PROD **prima**, altrimenti i modelli
+   arrivano con le immagini rotte. Vale anche per le icone dei pulsanti social.
+3. **Gli indirizzi vanno prima.** `indirizzo_id_fk` punta a `web_indirizzi`, che è già in questa
+   checklist come tabella da copiare nei contenuti: falla prima, oppure i modelli perdono il
+   legame con la rubrica (l'indirizzo resta, il riaggancio automatico no).
+
+Verifica finale in PROD: aprire un modello e controllare che si vedano le immagini e che i
+pulsanti abbiano il colore e l'icona del social.
+
