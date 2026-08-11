@@ -247,6 +247,9 @@ public static class NewsletterHtmlRenderer
         if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
             testo.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
+        if (!string.IsNullOrWhiteSpace(b.LinkUrl) && !string.IsNullOrWhiteSpace(b.LinkEtichetta))
+            testo.Append(BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: true, b.Social, b.IconaUrl));
+
         var icona = string.IsNullOrWhiteSpace(b.ImmagineUrl)
             ? "&nbsp;"
             : ConCollegamento(b.LinkUrl,
@@ -357,8 +360,14 @@ public static class NewsletterHtmlRenderer
         var img = ConCollegamento(b.LinkUrl,
             $@"<img src=""{Esc(b.ImmagineUrl)}"" alt=""{Esc(b.ImmagineAlt)}"" width=""536"" style=""width:536px;max-width:100%;height:auto;display:block;border:0;"" />");
 
+        // Se c'e' anche un'etichetta, sotto l'immagine compare il pulsante: il campo esisteva
+        // gia' nella form ma non veniva reso, quindi si compilava senza alcun effetto.
+        var pulsante = (string.IsNullOrWhiteSpace(b.LinkUrl) || string.IsNullOrWhiteSpace(b.LinkEtichetta))
+            ? ""
+            : $@"<div style=""margin-top:12px;"">{BottoneBulletproof(b.LinkUrl!, b.LinkEtichetta!, allineaSinistra: false, b.Social, b.IconaUrl)}</div>";
+
         return $@"
-        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px;"">{img}</td></tr>";
+        <tr><td align=""{AllineaDaLayout(b.Layout)}"" style=""padding:16px 32px;"">{img}{pulsante}</td></tr>";
     }
 
     private static string RenderPulsante(NewsletterRenderBlocco b)
