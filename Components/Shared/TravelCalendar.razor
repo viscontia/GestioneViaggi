@@ -81,7 +81,7 @@
                                                 <TravelTooltipContent Travel="@travel" />
                                             </TooltipContent>
                                             <ChildContent>
-                                                <div style="@GetTravelChipStyle(travel.Status)"
+                                                <div style="@GetTravelChipStyle(travel)"
                                                      @onclick="() => HandleTravelClick(travel)"
                                                      @onclick:stopPropagation="true">
                                                     @TruncateText(travel.DescrizioneViaggio, 10)

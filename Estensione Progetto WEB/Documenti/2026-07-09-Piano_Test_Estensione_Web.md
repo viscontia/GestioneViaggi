@@ -940,3 +940,18 @@ ovunque, non solo dalla newsletter.
 | 41.7 | Filtri destinatari → «Iscritti a una partenza» → scegli dall'albero → torna alla form | Compare **il nome del viaggio e la data** scelti, non un generico «Partenza scelta» |
 | 41.8 | Aggiungi il criterio | La frase del criterio nell'elenco è **la stessa** che avevi letto scegliendo |
 | 41.9 | Stessa prova dalle **stampe** e dal **blocco tour** della newsletter | Identico: il selettore è lo stesso componente |
+
+---
+
+## 42. Calendario viaggi: stesso stato di tutto il resto
+
+Non riguarda la newsletter: è il completamento dell'allineamento del §41. Il calendario usava lo
+stesso schema di colori fuorviante del selettore.
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 42.1 | Apri il **calendario viaggi**, mese con partenze **future** | Targhette **neutre** (grigie): una partenza in programma non è un allarme. *Prima erano arancioni* |
+| 42.2 | Mese con partenze **concluse e spuntate** | Targhette **blu**. *Prima verdi* |
+| 42.3 | Partenza **conclusa e non spuntata** come effettuata | Targhetta **ambra**: è l'unica situazione da guardare. *Prima rossa come un errore* |
+| 42.4 | Passa il mouse su una targhetta | Il tooltip riporta date, partecipanti, l'etichetta di stato **e la spiegazione**, con l'indicazione di dove si corregge |
+| 42.5 | Confronta con l'elenco date e con l'albero del selettore | **Stessa etichetta e stesso colore** per la stessa partenza, ovunque |

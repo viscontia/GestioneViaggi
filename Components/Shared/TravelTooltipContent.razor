@@ -1,5 +1,6 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Models.DTOs
+@using GestioneViaggi.Models.Web
 
 <div class="travel-tooltip-content">
     <MudText Typo="Typo.subtitle2" Class="mb-1">@Travel.DescrizioneViaggio</MudText>
@@ -18,9 +19,13 @@
             <MudText Typo="Typo.body2">@Travel.TotClienti partecipanti</MudText>
         </MudStack>
 
-        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor()" Variant="Variant.Filled" Class="mt-1">
-            @Travel.Status.GetLabel()
+        @* Qui siamo gia' dentro un tooltip, quindi la spiegazione si scrive: e' lo stesso testo
+           che altrove compare passando il mouse sullo stato, e nel calendario e' proprio cio' che
+           mancava per capire i colori delle targhette. *@
+        <MudChip T="string" Size="Size.Small" Color="@Colore" Icon="@Icona" Variant="Variant.Filled" Class="mt-1">
+            @Stato.Etichetta
         </MudChip>
+        <MudText Typo="Typo.caption">@Stato.Tooltip</MudText>
 
         @if (!string.IsNullOrEmpty(Travel.AziendaNome))
         {
@@ -36,14 +41,20 @@
     [Parameter, EditorRequired]
     public CalendarTravelDTO Travel { get; set; } = null!;
 
-    private Color GetStatusColor()
+    private EsitoStatoPartenza Stato => StatoPartenzaRules.Valuta(Travel.Effettuato, Travel.DataFine, DateTime.Today);
+
+    // Stesse icone e stessi colori di StatoPartenzaChip: la scelta e' li', qui si riusa.
+    private string Icona => Stato.Livello switch
     {
-        return Travel.Status switch
-        {
-            TravelStatus.Completed => Color.Success,
-            TravelStatus.Future => Color.Warning,
-            TravelStatus.NotCompleted => Color.Error,
-            _ => Color.Default
-        };
-    }
+        LivelloStatoPartenza.Anomalia => Icons.Material.Filled.ErrorOutline,
+        LivelloStatoPartenza.Conclusa => Icons.Material.Filled.EventAvailable,
+        _ => Icons.Material.Filled.Schedule
+    };
+
+    private Color Colore => Stato.Livello switch
+    {
+        LivelloStatoPartenza.Anomalia => Color.Warning,
+        LivelloStatoPartenza.Conclusa => Color.Info,
+        _ => Color.Default
+    };
 }

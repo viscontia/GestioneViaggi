@@ -896,7 +896,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     DataInizio = dataInizio,
                     DataFine = reader.GetDateTime(reader.GetOrdinal("data_fine")),
                     TotClienti = ReadInt(reader, "tot_clienti"),
-                    Status = CalendarTravelDTO.ComputeStatus(effettuatoSino, dataInizio),
+                    Effettuato = effettuatoSino is 'Y' or 'S',
                     AziendaId = ReadInt(reader, "azienda_id"),
                     AziendaNome = reader.GetString(reader.GetOrdinal("azienda_nome"))
                 });

@@ -11,21 +11,16 @@ public class CalendarTravelDTO
     public DateTime DataInizio { get; set; }
     public DateTime DataFine { get; set; }
     public int TotClienti { get; set; }
-    public TravelStatus Status { get; set; }
+    /// <summary>
+    /// Spunta "Viaggio Effettuato" (<c>ana_date_viaggi.data_viaggio_effettuato_sino</c> = 'Y').
+    /// </summary>
+    /// <remarks>
+    /// Si porta il <b>dato grezzo</b> e non uno stato gia' interpretato: come si presenta una
+    /// partenza lo decide <see cref="GestioneViaggi.Models.Web.StatoPartenzaRules"/>, che incrocia
+    /// il flag con la data di <b>fine</b>. Il calcolo che stava qui usava invece la data di
+    /// <b>inizio</b>, e dava un vocabolario diverso da quello del resto dell'applicazione.
+    /// </remarks>
+    public bool Effettuato { get; set; }
     public int AziendaId { get; set; }
     public string AziendaNome { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Calcola lo stato del viaggio basandosi su EffettuatoSino e DataInizio
-    /// </summary>
-    public static TravelStatus ComputeStatus(char effettuatoSino, DateTime dataInizio)
-    {
-        if (effettuatoSino == 'Y' || effettuatoSino == 'S')
-            return TravelStatus.Completed;
-
-        if (dataInizio.Date > DateTime.Today)
-            return TravelStatus.Future;
-
-        return TravelStatus.NotCompleted;
-    }
 }

@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using GestioneViaggi.Models.DTOs;
+using GestioneViaggi.Models.Web;
 using GestioneViaggi.Services.CRUD;
 using Microsoft.AspNetCore.Components;
 using System.Globalization;
@@ -146,16 +147,26 @@ public partial class TravelCalendar : ComponentBase
         }
     }
 
-    private static string GetTravelChipStyle(TravelStatus status)
+    /// <summary>
+    /// Colore della targhetta di una partenza nel calendario.
+    /// </summary>
+    /// <remarks>
+    /// Stesso vocabolario di <c>StatoPartenzaChip</c>, che e' l'unico posto dove i tre casi sono
+    /// definiti: neutro per una partenza in programma, blu per una conclusa, ambra per una
+    /// contraddizione fra la spunta e il calendario. Prima l'arancione toccava a TUTTE le partenze
+    /// future — il caso normale colorato come un allarme — e il rosso a quelle passate.
+    /// </remarks>
+    private static string GetTravelChipStyle(CalendarTravelDTO travel)
     {
         var baseStyle = "font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
 
-        return status switch
+        var livello = StatoPartenzaRules.Valuta(travel.Effettuato, travel.DataFine, DateTime.Today).Livello;
+
+        return livello switch
         {
-            TravelStatus.Completed => $"{baseStyle} background-color: #c8e6c9; color: #2e7d32; border-left: 3px solid #4caf50;",
-            TravelStatus.Future => $"{baseStyle} background-color: #fff3e0; color: #ef6c00; border-left: 3px solid #ff9800;",
-            TravelStatus.NotCompleted => $"{baseStyle} background-color: #ffcdd2; color: #c62828; border-left: 3px solid #f44336;",
-            _ => baseStyle
+            LivelloStatoPartenza.Conclusa => $"{baseStyle} background-color: #e3f2fd; color: #1565c0; border-left: 3px solid #2196f3;",
+            LivelloStatoPartenza.Anomalia => $"{baseStyle} background-color: #fff3e0; color: #ef6c00; border-left: 3px solid #ff9800;",
+            _ => $"{baseStyle} background-color: #eeeeee; color: #424242; border-left: 3px solid #9e9e9e;"
         };
     }
 
