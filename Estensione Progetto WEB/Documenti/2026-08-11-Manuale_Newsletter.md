@@ -250,25 +250,28 @@ spedito e a chi, e serve anche a rispondere a una contestazione. Per rifarla, du
 
 ## Riepilogo — l'ordine giusto
 
-**Auguri di Natale** (nessun tour):
+```mermaid
+flowchart TD
+    A{Di cosa parla<br/>la newsletter?} -->|Auguri, comunicazioni,<br/>nessun tour| B[Nuova newsletter]
+    A -->|Parla di un tour| C[La partenza esiste<br/>in calendario]
 
-```
-Nuova newsletter → componi → prova → invia
+    C --> D[Contenuti Web:<br/>crea la scheda del tour]
+    D --> E{La scheda è<br/>PUBBLICATA?}
+    E -->|No| F[Pubblicala]
+    F --> G
+    E -->|Sì| G[Nuova newsletter<br/>+ riquadro tour]
+
+    B --> H[Componi i blocchi]
+    G --> H
+    H --> I[Invio di prova<br/>a te stesso]
+    I --> J{Va bene?}
+    J -->|No| H
+    J -->|Sì| K([Invia a tutti])
+
+    style A fill:#e3f2fd,stroke:#1565c0
+    style K fill:#e8f5e9,stroke:#2e7d32
+    style E fill:#fff3e0,stroke:#ef6c00
 ```
 
-**Newsletter su un tour:**
-
-```
-partenza in calendario
-    ↓
-scheda di contenuti web  (Contenuti Web → Crea)
-    ↓
-scheda PUBBLICATA
-    ↓
-nuova newsletter → riquadro tour → scegli la partenza
-    ↓
-prova → invia
-```
-
-Il salto più comune è il terzo: la scheda c'è ma è rimasta in bozza. Non impedisce di comporre —
-impedisce di spedire.
+Il salto più comune è il passaggio **E**: la scheda c'è ma è rimasta in bozza. Non impedisce di
+comporre — impedisce di spedire.
