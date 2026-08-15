@@ -62,12 +62,12 @@
                                 {
                                     foreach (var date in _dates)
                                     {
-                                        var status = GetDateStatus(date);
+                                        @* Stesso stato dell'albero, dallo stesso componente: le due schede
+                                           mostrano la stessa partenza e non possono dirne cose diverse.
+                                           L'icona di prima non compariva nemmeno: GetIcon() restituiva la
+                                           stringa "@@Icons.Material.Filled.Schedule", chiocciola compresa. *@
                                         <MudSelectItem Value="@((int?)date.Id)">
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                <MudIcon Icon="@status.GetIcon()"
-                                                       Color="@GetStatusColor(status)"
-                                                       Size="Size.Small" />
                                                 <MudText>
                                                     @date.DataInizio?.ToString("dd/MM/yyyy")
                                                     @if (date.DataFine.HasValue)
@@ -75,9 +75,8 @@
                                                         <text> - @date.DataFine.Value.ToString("dd/MM/yyyy")</text>
                                                     }
                                                 </MudText>
-                                                <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(status)">
-                                                    @status.GetLabel()
-                                                </MudChip>
+                                                <StatoPartenzaChip Effettuato="@(date.EffettuatoSino is "Y" or "S")"
+                                                                   DataFine="@date.DataFine" />
                                             </MudStack>
                                         </MudSelectItem>
                                     }
@@ -162,15 +161,13 @@
 
                                                                     @foreach (var data in viaggioGroup.OrderBy(x => x.DataInizio))
                                                                     {
-                                                                        var status = data.GetStatus();
                                                                         var dataNode = new TravelTreeNode
                                                                         {
                                                                             Type = TravelTreeNodeType.DataViaggio,
                                                                             Year = anno,
                                                                             ViaggioId = viaggioGroup.Key.ViaggioId,
                                                                             DataViaggioId = data.DataViaggioId,
-                                                                            DisplayText = GetDateDisplayText(data),
-                                                                            Status = status
+                                                                            DisplayText = GetDateDisplayText(data)
                                                                         };
 
                                                                         @* CanExpand="false": una partenza non ha figli. Il default e' true, ed e'
@@ -179,11 +176,27 @@
                                                                            OnClick oltre alla selezione: cosi' la scelta avviene comunque,
                                                                            qualunque delle due strade il TreeView decida di percorrere. *@
                                                                         <MudTreeViewItem Value="@dataNode"
-                                                                                       Text="@GetDateDisplayText(data)"
-                                                                                       Icon="@Icons.Material.Filled.InsertDriveFile"
-                                                                                       IconColor="@GetStatusColor(status)"
+                                                                                       Icon="@Icons.Material.Filled.Event"
                                                                                        CanExpand="false"
-                                                                                       OnClick="@(() => SelezionaPartenzaAsync(dataNode))" />
+                                                                                       OnClick="@(() => SelezionaPartenzaAsync(dataNode))">
+                                                                            @* La riga diceva solo la data, con un'icona colorata di cui nessuno
+                                                                               poteva conoscere il significato — e il giallo toccava proprio al
+                                                                               caso normale, la partenza futura. Ora porta le due cose che
+                                                                               servono a riconoscere la partenza giusta: quanti sono iscritti e
+                                                                               in che stato e'. Lo stato lo dice StatoPartenzaChip, che ha gia'
+                                                                               icona, etichetta e la spiegazione nel tooltip. *@
+                                                                            <BodyContent>
+                                                                                <div class="d-flex align-center gap-3" style="width:100%;">
+                                                                                    <MudText Typo="Typo.body2">@GetDateDisplayText(data)</MudText>
+                                                                                    <MudSpacer />
+                                                                                    <MudText Typo="Typo.caption" Color="@(data.Iscritti == 0 ? Color.Secondary : Color.Default)">
+                                                                                        @(data.Iscritti == 0 ? "nessun iscritto" : $"{data.Iscritti} iscritti")
+                                                                                    </MudText>
+                                                                                    <StatoPartenzaChip Effettuato="@(data.EffettuatoSino is 'Y' or 'S')"
+                                                                                                       DataFine="@data.DataFine" />
+                                                                                </div>
+                                                                            </BodyContent>
+                                                                        </MudTreeViewItem>
                                                                     }
 
                                                             </ChildContent>

@@ -2,6 +2,7 @@
 @using GestioneViaggi.Services.Web
 @using MudBlazor
 @inject WebNewsletterFiltriService FiltriService
+@inject GestioneViaggi.Services.CRUD.AnaViaggiService ViaggiService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -38,16 +39,28 @@
         }
         else if (_criterio is "iscritti_a_partenza" or "iscritti_da_partenza")
         {
-            <div class="d-flex align-center gap-3 mb-3">
+            <div class="d-flex align-center gap-3 mb-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Event" OnClick="ScegliPartenza">
                     @(_partenzaId.HasValue ? "Cambia partenza" : "Scegli la partenza")
                 </MudButton>
-                @if (_partenzaId.HasValue)
-                {
-                    <MudText Typo="Typo.body2">Partenza scelta</MudText>
-                }
             </div>
+
+            @* «Partenza scelta» non diceva QUALE: chi torna qui dopo aver navigato l'albero non
+               ha piu' modo di sapere su cosa ha cliccato, e l'unico modo di controllare era
+               riaprire il selettore. *@
+            @if (_partenzaId.HasValue)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
+                    @(_etichettaPartenza ?? "Partenza scelta")
+                </MudAlert>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+                    Nessuna partenza scelta.
+                </MudText>
+            }
         }
         else if (_criterio == "residenza_nazione")
         {
@@ -86,6 +99,7 @@
     private string _criterio = "cliente_dal";
     private DateTime? _data = DateTime.Today;
     private int? _partenzaId;
+    private string? _etichettaPartenza;
     private int _nazione;
     private int _anno = DateTime.Today.Year - 1;
     private List<NazioneClienti> _nazioni = new();
@@ -131,7 +145,13 @@
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
         var res = await dlg.Result;
         if (res!.Canceled || res.Data is not int id) return;
+
         _partenzaId = id;
+
+        // L'etichetta la compone il database, la stessa che finira' nella descrizione del criterio:
+        // cosi' cio' che si legge scegliendo e cio' che si legge dopo sono la stessa frase.
+        try { _etichettaPartenza = await ViaggiService.GetPartenzaEtichettaAsync(id, AziendaId); }
+        catch { _etichettaPartenza = null; }
     }
 
     private void Conferma()

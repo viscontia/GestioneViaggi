@@ -924,3 +924,19 @@ ovunque, non solo dalla newsletter.
 | 40.4 | Scegli dall'albero, poi passa a «Ricerca Rapida» | Le due tendine mostrano **lo stesso** viaggio e la stessa partenza |
 | 40.5 | Clicca un nodo **anno** o **viaggio** | Si apre e si chiude come prima; non conta come scelta di una partenza |
 | 40.6 | Stessa prova dalle **stampe** (menu), dalla **dashboard** e dal **blocco tour** della newsletter | Stesso comportamento: il componente è lo stesso |
+
+---
+
+## 41. Selettore partenze: leggibilità dell'albero e riscontro della scelta (script `530`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 41.1 | Apri il selettore → scheda **«Per Anno»** → espandi fino alle partenze | Ogni riga mostra **date**, **numero di iscritti** e lo **stato** con etichetta leggibile («Partenza da effettuare», «Partenza effettuata») |
+| 41.2 | Passa il mouse sullo stato | Tooltip che spiega il caso e **dove si corregge** |
+| 41.3 | Una partenza **futura** | **Non** è più gialla d'allarme: il caso normale non si segnala come anomalia |
+| 41.4 | Una partenza **conclusa e non spuntata** come effettuata | Compare come **anomalia**, con la spiegazione |
+| 41.5 | Una partenza **senza iscritti** | Si legge «nessun iscritto», non uno zero da interpretare |
+| 41.6 | Scheda **«Ricerca Rapida»**, tendina delle date | Stesso stato e stessa etichetta dell'albero. *Prima l'icona non compariva affatto* |
+| 41.7 | Filtri destinatari → «Iscritti a una partenza» → scegli dall'albero → torna alla form | Compare **il nome del viaggio e la data** scelti, non un generico «Partenza scelta» |
+| 41.8 | Aggiungi il criterio | La frase del criterio nell'elenco è **la stessa** che avevi letto scegliendo |
+| 41.9 | Stessa prova dalle **stampe** e dal **blocco tour** della newsletter | Identico: il selettore è lo stesso componente |

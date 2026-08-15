@@ -70,6 +70,9 @@ public class TravelTreeData
     public DateTime? DataFine { get; set; }
     public char EffettuatoSino { get; set; } = 'N';
 
+    /// <summary>Clienti iscritti a questa partenza (script 530).</summary>
+    public int Iscritti { get; set; }
+
     public TravelStatus GetStatus()
     {
         if (EffettuatoSino == 'Y' || EffettuatoSino == 'S')

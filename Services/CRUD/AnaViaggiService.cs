@@ -761,6 +761,26 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
     /// </summary>
     /// <param name="aziendaId">ID azienda (0 o null per tutte - solo SuperAdmin)</param>
     /// <returns>Lista di TravelTreeData ordinata per anno DESC, viaggio ASC, data ASC</returns>
+    /// <summary>
+    /// Come si nomina una partenza quando la si mostra all'utente: «VIAGGIO del gg/mm/aaaa».
+    /// </summary>
+    /// <remarks>
+    /// Il testo lo compone il database (<c>fn_partenza_etichetta</c>, script 530) ed è lo stesso
+    /// che finisce nella descrizione dei criteri di una newsletter: se lo componesse anche il
+    /// programma, la stessa partenza si leggerebbe in due modi diversi a due schermate di distanza.
+    /// Null se la partenza non esiste per quell'azienda.
+    /// </remarks>
+    public async Task<string?> GetPartenzaEtichettaAsync(int dataViaggioId, int aziendaId)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT fn_partenza_etichetta(@Id::integer, @Az::integer)", connection);
+        command.Parameters.AddWithValue("Id", dataViaggioId);
+        command.Parameters.AddWithValue("Az", aziendaId);
+        var v = await command.ExecuteScalarAsync();
+        return v as string;
+    }
+
     public async Task<List<TravelTreeData>> GetTravelTreeDataAsync(int? aziendaId = null)
     {
         var result = new List<TravelTreeData>();
@@ -787,7 +807,8 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     DataViaggioId = ReadInt(reader, "data_viaggio_id"),
                     DataInizio = ReadNullableDateTime(reader, "data_inizio"),
                     DataFine = ReadNullableDateTime(reader, "data_fine"),
-                    EffettuatoSino = reader.GetString(reader.GetOrdinal("effettuato_sino"))[0]
+                    EffettuatoSino = reader.GetString(reader.GetOrdinal("effettuato_sino"))[0],
+                    Iscritti = ReadInt(reader, "iscritti")
                 });
             }
         }

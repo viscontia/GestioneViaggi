@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `529`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `530`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -43,7 +43,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=529 {print $2}' \
+  | awk '$1>=406 && $1<=530 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -56,7 +56,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`529` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`530` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–529)
+### Elenco ordinato (467–530)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -189,6 +189,7 @@ ls SqlScripts/*.sql \
 | 527 | Newsletter_CollegamentiTour_Integrita | Due guardie sui collegamenti ai tour: `fn_web_tour_contenuti_delete` rifiuta se una newsletter **in bozza** punta a quella partenza (le inviate non fermano niente, sono congelate); nuova `fn_web_newsletter_collegamenti_da_verificare` usata prima di spedire. Solo function: nessuna modifica a tabelle |
 | 528 | EbaCountries_NomiItaliani | Aggiunge `eba_countries.name_it` e traduce tutte e **249** le nazioni. Chiave della traduzione: `iso_alpha2`, non il nome — l'import Oracle ha rovinato le accentate (`CÙTE D'IVOIRE`, `CURAÁAO`) e un JOIN sul nome fallirebbe proprio lì. ⚠️ **Lo script si interrompe se in PROD esiste una nazione non coperta**: è voluto, meglio un errore che una voce vuota nella tendina. In quel caso aggiungere la riga mancante allo script e rilanciare |
 | 529 | Newsletter_InviiSelettivi | Nuova `web_newsletter_filtri` + `includi_iscritti_web` su `web_newsletter_invii`. ⚠️ **`fn_web_destinatari_newsletter` cambia firma** (secondo parametro opzionale `p_invio_id`): lo script fa il `DROP` della versione a un parametro prima di ricrearla, altrimenti le chiamate a un argomento diventano ambigue. Richiede `eba_countries` e le tabelle geografiche (vedi sezione dedicata) |
+| 530 | Albero_Partenze_Iscritti_Etichetta | `get_viaggi_grouped_by_year` restituisce anche il numero di **iscritti** — cambia il tipo del risultato, quindi la function viene rimossa e ricreata (`CREATE OR REPLACE` non può cambiare la firma del risultato). Nuova `fn_partenza_etichetta`, usata sia a video sia dalle descrizioni dei criteri newsletter |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·

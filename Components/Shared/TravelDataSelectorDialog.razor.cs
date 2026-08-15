@@ -278,17 +278,6 @@ public partial class TravelDataSelectorDialog
         }
     }
 
-    private TravelStatus GetDateStatus(AnaDataViaggio date)
-    {
-        if (date.EffettuatoSino == "Y" || date.EffettuatoSino == "S")
-            return TravelStatus.Completed;
-
-        if (date.DataInizio.HasValue && date.DataInizio.Value.Date > DateTime.Today)
-            return TravelStatus.Future;
-
-        return TravelStatus.NotCompleted;
-    }
-
     private string GetDateDisplayText(TravelTreeData data)
     {
         var result = data.DataInizio?.ToString("dd/MM/yyyy") ?? "N/D";
@@ -332,11 +321,6 @@ public partial class TravelDataSelectorDialog
             PrintType.CustomReport => "Genera",
             _ => "Stampa"
         };
-    }
-
-    private MudBlazor.Color GetStatusColor(TravelStatus status)
-    {
-        return Enum.Parse<MudBlazor.Color>(status.GetColor());
     }
 
     private bool IsYearExpanded(int year)
