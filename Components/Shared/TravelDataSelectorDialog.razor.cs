@@ -218,24 +218,41 @@ public partial class TravelDataSelectorDialog
             var key = GetViaggioKey(node.Year.Value, node.ViaggioId.Value);
             ToggleViaggioExpansion(key);
         }
-        else if (node.Type == TravelTreeNodeType.DataViaggio && node.DataViaggioId.HasValue)
+        else if (node.Type == TravelTreeNodeType.DataViaggio)
         {
-            // Selezione da TreeView: sincronizza con Combobox
-            var viaggioId = node.ViaggioId;
-            var dataViaggioId = node.DataViaggioId.Value;
-
-            // Aggiorna selezione viaggio
-            if (_selectedTripId != viaggioId)
-            {
-                _selectedTripId = viaggioId;
-                await LoadDatesAsync();
-            }
-
-            // Aggiorna selezione data
-            _selectedDateId = dataViaggioId;
-
-            StateHasChanged();
+            await SelezionaPartenzaAsync(node);
         }
+    }
+
+    /// <summary>
+    /// Sceglie una partenza dall'albero, allineando anche la scheda "Ricerca Rapida".
+    /// </summary>
+    /// <remarks>
+    /// Chiamata da DUE strade: la selezione del TreeView e il clic diretto sulla foglia. Una sola
+    /// delle due basterebbe, ma quale sia dipende da come il TreeView interpreta il clic — ed e'
+    /// esattamente cio' che non funzionava: la partenza si evidenziava e non risultava scelta.
+    /// Essendo idempotente, arrivarci due volte non fa danno.
+    /// </remarks>
+    private async Task SelezionaPartenzaAsync(TravelTreeNode node)
+    {
+        if (!node.DataViaggioId.HasValue) return;
+
+        _selectedTreeNode = node;
+
+        var viaggioId = node.ViaggioId;
+        var dataViaggioId = node.DataViaggioId.Value;
+
+        // Le date del viaggio servono anche alla scheda "Ricerca Rapida" e al riepilogo:
+        // senza, la partenza risulta scelta ma non se ne vede il dettaglio.
+        if (_selectedTripId != viaggioId || _dates == null)
+        {
+            _selectedTripId = viaggioId;
+            await LoadDatesAsync();
+        }
+
+        _selectedDateId = dataViaggioId;
+
+        StateHasChanged();
     }
 
     private void OnDateSelectedFromCombobox(int? dateId)

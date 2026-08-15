@@ -173,10 +173,17 @@
                                                                             Status = status
                                                                         };
 
+                                                                        @* CanExpand="false": una partenza non ha figli. Il default e' true, ed e'
+                                                                           pensato per gli elementi caricati pigramente: su una foglia fa
+                                                                           trattare il clic come un tentativo di espansione.
+                                                                           OnClick oltre alla selezione: cosi' la scelta avviene comunque,
+                                                                           qualunque delle due strade il TreeView decida di percorrere. *@
                                                                         <MudTreeViewItem Value="@dataNode"
                                                                                        Text="@GetDateDisplayText(data)"
                                                                                        Icon="@Icons.Material.Filled.InsertDriveFile"
-                                                                                       IconColor="@GetStatusColor(status)" />
+                                                                                       IconColor="@GetStatusColor(status)"
+                                                                                       CanExpand="false"
+                                                                                       OnClick="@(() => SelezionaPartenzaAsync(dataNode))" />
                                                                     }
 
                                                             </ChildContent>

@@ -908,3 +908,19 @@ glielo mette l'editor.
 > all'estero» → 3, con **1 iscritto segnalato come escluso**; «iscritti a ICHNUSA TOUR del
 > 25/04/2026» → 20, sommando «in anagrafica dal 01/01/2026» → 13; «nel 2025 non hanno viaggiato»
 > → 83. Le descrizioni si leggono come frasi compiute.
+
+---
+
+## 40. Selettore viaggio/partenza — scheda «Per Anno» *(bug 14, componente condiviso)*
+
+Il difetto è **anteriore** all'estensione web e il componente è usato da sei schermate: va riprovato
+ovunque, non solo dalla newsletter.
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 40.1 | Filtri destinatari → «Iscritti a una partenza» → scheda **«Per Anno»** → apri un anno, un viaggio, clicca una **partenza** | La partenza risulta **scelta**: il pulsante di conferma si abilita |
+| 40.2 | Conferma | Il criterio viene aggiunto con il nome del viaggio e la data giusti |
+| 40.3 | Stessa prova dalla scheda **«Ricerca Rapida»** | Funziona come prima: non deve essere peggiorata |
+| 40.4 | Scegli dall'albero, poi passa a «Ricerca Rapida» | Le due tendine mostrano **lo stesso** viaggio e la stessa partenza |
+| 40.5 | Clicca un nodo **anno** o **viaggio** | Si apre e si chiude come prima; non conta come scelta di una partenza |
+| 40.6 | Stessa prova dalle **stampe** (menu), dalla **dashboard** e dal **blocco tour** della newsletter | Stesso comportamento: il componente è lo stesso |
