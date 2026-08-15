@@ -8,8 +8,11 @@
 
 <MudDialog>
     <DialogContent>
+        @* ShowAlpha="false" e' l'unica deviazione dai valori predefiniti: la trasparenza in una
+           mail non si usa e il vincolo sul database accetta solo #RRGGBB. Barra degli strumenti e
+           anteprima sono gia' attive di loro. *@
         <MudColorPicker PickerVariant="PickerVariant.Static" @bind-Value="_colore"
-                        ShowAlpha="false" ShowPreview="true" DisableToolbar="false" />
+                        ShowAlpha="false" />
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => MudDialog?.Cancel())">Annulla</MudButton>
