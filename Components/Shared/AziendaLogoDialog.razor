@@ -23,18 +23,18 @@
                 <MudTabPanel Text="Informazioni Base" Icon="@Icons.Material.Filled.Info">
                     @if (!IsEditMode)
                     {
-                        <MudFileUpload T="IBrowserFile"
-                                       FilesChanged="OnFileSelected"
-                                       Accept="image/*"
-                                       MaximumFileCount="1">
-                            <ActivatorContent>
+                        @* Il limite era implicito: senza MaxFileSize valeva il default di MudBlazor,
+                           10 MB, e un logo piu' grande spariva senza un messaggio. *@
+                        <FileUploader Accept="image/*" MaxByte="@MaxLogoBytes" MostraAttesa="false"
+                                      RiepilogoAutomatico="false" OnFile="OnFileSelected">
+                            <Attivatore>
                                 <MudButton Variant="Variant.Filled"
                                            Color="Color.Primary"
                                            StartIcon="@Icons.Material.Filled.CloudUpload">
                                     Carica Immagine Logo
                                 </MudButton>
-                            </ActivatorContent>
-                        </MudFileUpload>
+                            </Attivatore>
+                        </FileUploader>
                         @if (_selectedFile != null)
                         {
                             <MudAlert Severity="Severity.Success" Class="mt-2">
@@ -470,17 +470,19 @@
         }
     }
 
-    private async Task OnFileSelected(IBrowserFile? file)
+    /// <summary>Dimensione massima del logo. Prima non era dichiarata da nessuna parte.</summary>
+    private const long MaxLogoBytes = 10L * 1024 * 1024;
+
+    private async Task OnFileSelected(FileUploader.FileDaCaricare f)
     {
+        var file = f.File;
         _selectedFile = file;
 
-        if (file != null)
         {
             try
             {
-                using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
                 using var memoryStream = new MemoryStream();
-                await stream.CopyToAsync(memoryStream);
+                await f.Contenuto.CopyToAsync(memoryStream);
                 var fileBytes = memoryStream.ToArray();
 
                 Entity.BinaryData = fileBytes;

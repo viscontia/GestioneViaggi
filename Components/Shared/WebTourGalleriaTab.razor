@@ -34,12 +34,6 @@
     .galleria-tab .thumb-row { width: var(--thumb, 240px); height: auto; max-height: 340px; object-fit: contain; display: block; background: var(--mud-palette-background-grey); }
     .galleria-tab .badge-cover { position: absolute; top: 8px; left: 8px; font-weight: 700; }
 </style>
-<MudOverlay Visible="_uploading" DarkBackground="true" ZIndex="2000">
-    <MudPaper Class="pa-6 d-flex flex-column align-center gap-3" Elevation="4">
-        <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
-        <MudText Typo="Typo.body1">Caricamento foto @_uploadCurrent di @_uploadTotal…</MudText>
-    </MudPaper>
-</MudOverlay>
 <MudOverlay Visible="_busy" DarkBackground="true" ZIndex="2000">
     <MudPaper Class="pa-6 d-flex flex-column align-center gap-3" Elevation="4">
         <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
@@ -137,19 +131,19 @@ else
     </div>
 
     <div class="d-flex align-center gap-3 mb-3">
-        <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="_fileUpload" Accept="image/*" AppendMultipleFiles="false"
-                       MaximumFileCount="30" MaxFileSize="20971520" FilesChanged="OnFilesSelected" Disabled="@_uploading">
-            <ActivatorContent>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="@_uploading">
+        <FileUploader Multiplo="true" Accept="image/*" MaxFile="30" MaxByte="@MaxUploadBytes"
+                      Disabilitato="@_busy" OnFile="CaricaUna" OnCompletato="FineCaricamento">
+            <Attivatore>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Disabled="@_busy">
                     Carica immagini
                 </MudButton>
-            </ActivatorContent>
-        </MudFileUpload>
+            </Attivatore>
+        </FileUploader>
         <MudText Typo="Typo.body2" Color="Color.Secondary">@_immagini.Count immagini</MudText>
         @if (_immagini.Any())
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteSweep"
-                       Disabled="@(_uploading || _busy)" OnClick="EliminaTutte">Elimina tutte le foto</MudButton>
+                       Disabled="@_busy" OnClick="EliminaTutte">Elimina tutte le foto</MudButton>
         }
     </div>
 
@@ -231,16 +225,12 @@ else
 
     private List<WebTourImmagine> _immagini = new();
     private bool _loading = true;
-    private bool _uploading;
-    private int _uploadCurrent;
-    private int _uploadTotal;
     private bool _tabSetup;
     private bool _vistaGriglia;
     private bool _busy;
     private int _thumbSize = 120;
     private string? _masterTitolo;
     private string? _masterAltText;
-    private MudFileUpload<IReadOnlyList<IBrowserFile>>? _fileUpload;
 
     protected override async Task OnInitializedAsync()
     {
@@ -282,87 +272,65 @@ else
     private Task NotifyStatoAsync()
         => StatoChanged.InvokeAsync(WebTabStatoRules.Galleria(_immagini.Count, _immagini.Any(i => i.Tipo == "principale")));
 
-    private async Task OnFilesSelected(IReadOnlyList<IBrowserFile> files)
+    // Cio' che resta al chiamante e' solo il dominio: lo scarto per nome gia' presente e il
+    // promemoria sugli attributi. Limiti, attesa, errori per file e riepilogo li fa FileUploader.
+    private readonly List<string> _saltate = new();
+    private readonly List<WebTourImmagine> _caricate = new();
+
+    /// <summary>Una foto alla volta, con lo stream gia' aperto.</summary>
+    private async Task CaricaUna(FileUploader.FileDaCaricare f)
     {
-        if (files is null || files.Count == 0) return;
-        _uploading = true;
-        _uploadTotal = files.Count;
-        _uploadCurrent = 0;
-        var saltate = new List<string>();
-        var errori = new List<string>();
-        var caricate = new List<WebTourImmagine>();
-        try
+        // Doppione per nome file: non e' un errore, e' una scelta — quindi non passa dal
+        // meccanismo delle eccezioni ma da un elenco a parte, riportato alla fine.
+        var nomeFile = f.Nome.Trim();
+        if (_immagini.Any(x => string.Equals((x.NomeFile ?? string.Empty).Trim(), nomeFile, StringComparison.OrdinalIgnoreCase)))
         {
-            for (int i = 0; i < files.Count; i++)
-            {
-                var file = files[i];
-                _uploadCurrent = i + 1;
-                StateHasChanged();
-
-                // Dedup per nome file (stesso contenuto): confronto case-insensitive, trim.
-                var nomeFile = file.Name?.Trim() ?? string.Empty;
-                if (_immagini.Any(x => string.Equals((x.NomeFile ?? string.Empty).Trim(), nomeFile, StringComparison.OrdinalIgnoreCase)))
-                {
-                    saltate.Add(nomeFile);
-                    continue;
-                }
-
-                try
-                {
-                    // Copia in memoria: lo stream del browser è forward-only, ImageSharp preferisce seekable.
-                    using var buffer = new MemoryStream();
-                    await using (var src = file.OpenReadStream(MaxUploadBytes))
-                        await src.CopyToAsync(buffer);
-                    buffer.Position = 0;
-
-                    var processed = await WebImageProcessor.ToOptimizedWebpAsync(buffer);
-                    var storagePath = $"{AziendaId}/{ContenutoId}/{Guid.NewGuid():N}.webp";
-                    using var upStream = new MemoryStream(processed.Bytes);
-                    await Storage.UploadAsync(storagePath, upStream, processed.Mime);
-
-                    var img = new WebTourImmagine
-                    {
-                        WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId, Tipo = "galleria",
-                        StoragePath = storagePath, Url = Storage.BuildPublicUrl(storagePath),
-                        Larghezza = processed.Width, Altezza = processed.Height, Mime = processed.Mime,
-                        Ordine = _immagini.Count + 1, NomeFile = file.Name
-                    };
-                    img = await ImmaginiService.CreateAsync(img);
-                    _immagini.Add(img);
-                    caricate.Add(img);
-                }
-                catch (Exception ex)
-                {
-                    errori.Add($"{file.Name}: {ex.Message}");
-                }
-            }
-            await NotifyStatoAsync();
-            StateHasChanged();
-
-            if (saltate.Count > 0)
-            {
-                var elenco = string.Join(", ", saltate.Take(5));
-                if (saltate.Count > 5) elenco += $" e altre {saltate.Count - 5}";
-                Snackbar.Add($"Saltate {saltate.Count} foto già presenti: {elenco}.", Severity.Warning);
-            }
-            if (errori.Count > 0)
-            {
-                var elenco = string.Join("; ", errori.Take(5));
-                if (errori.Count > 5) elenco += $"; e altri {errori.Count - 5} errori";
-                Snackbar.Add($"Errore su {errori.Count} foto: {elenco}", Severity.Error);
-            }
-
-            var senzaAttributi = caricate.Count(x => string.IsNullOrWhiteSpace(x.Titolo) && string.IsNullOrWhiteSpace(x.AltText));
-            if (senzaAttributi > 0)
-            {
-                Snackbar.Add($"Promemoria: {senzaAttributi} foto caricate senza titolo/testo alternativo — ricordati di compilarli.", Severity.Info);
-            }
+            _saltate.Add(nomeFile);
+            return;
         }
-        finally
+
+        // Copia in memoria: lo stream del browser è forward-only, ImageSharp preferisce seekable.
+        using var buffer = new MemoryStream();
+        await f.Contenuto.CopyToAsync(buffer);
+        buffer.Position = 0;
+
+        var processed = await WebImageProcessor.ToOptimizedWebpAsync(buffer);
+        var storagePath = $"{AziendaId}/{ContenutoId}/{Guid.NewGuid():N}.webp";
+        using var upStream = new MemoryStream(processed.Bytes);
+        await Storage.UploadAsync(storagePath, upStream, processed.Mime);
+
+        var img = new WebTourImmagine
         {
-            _uploading = false;
-            try { if (_fileUpload != null) await _fileUpload.ClearAsync(); } catch { /* ignore */ }
+            WebTourContenutoIdFk = ContenutoId, AziendaId = AziendaId, Tipo = "galleria",
+            StoragePath = storagePath, Url = Storage.BuildPublicUrl(storagePath),
+            Larghezza = processed.Width, Altezza = processed.Height, Mime = processed.Mime,
+            Ordine = _immagini.Count + 1, NomeFile = f.Nome
+        };
+        img = await ImmaginiService.CreateAsync(img);
+        _immagini.Add(img);
+        _caricate.Add(img);
+    }
+
+    private async Task FineCaricamento(FileUploader.EsitoCaricamento esito)
+    {
+        await NotifyStatoAsync();
+
+        if (_saltate.Count > 0)
+        {
+            var elenco = string.Join(", ", _saltate.Take(5));
+            if (_saltate.Count > 5) elenco += $" e altre {_saltate.Count - 5}";
+            Snackbar.Add($"Saltate {_saltate.Count} foto già presenti: {elenco}.", Severity.Warning);
         }
+
+        var senzaAttributi = _caricate.Count(x => string.IsNullOrWhiteSpace(x.Titolo) && string.IsNullOrWhiteSpace(x.AltText));
+        if (senzaAttributi > 0)
+        {
+            Snackbar.Add($"Promemoria: {senzaAttributi} foto caricate senza titolo/testo alternativo — ricordati di compilarli.", Severity.Info);
+        }
+
+        _saltate.Clear();
+        _caricate.Clear();
+        StateHasChanged();
     }
 
     private async Task SetPrincipale(WebTourImmagine img)

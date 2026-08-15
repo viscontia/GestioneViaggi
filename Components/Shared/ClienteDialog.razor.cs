@@ -55,7 +55,6 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     // Tab 4
     private MudTextField<string>? _intolleranzaField, _noteField;
 
-    private MudFileUpload<IBrowserFile>? _fileUpload;
     private string? _photoPreviewUrl;
     private const long MaxFileSize = 1024 * 1024 * 5; // 5MB
 
@@ -410,34 +409,28 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
 
 
-    private async Task UploadPhoto(IBrowserFile? file)
+    /// <summary>
+    /// Foto del cliente. Limite di dimensione, apertura e chiusura dello stream li gestisce
+    /// <c>FileUploader</c>: qui resta solo cio' che e' proprio della scheda cliente.
+    /// </summary>
+    private async Task UploadPhoto(FileUploader.FileDaCaricare f)
     {
         try
         {
-            if (file == null)
-            {
-                return;
-            }
-
-            if (file.Size > MaxFileSize)
-            {
-                Snackbar.Add("La dimensione massima del file è 5MB", Severity.Warning);
-                return;
-            }
-
-            if (!file.ContentType.StartsWith("image/"))
+            // Il controllo e' sul tipo dichiarato dal browser e non sull'estensione: un .jpg
+            // rinominato .txt qui verrebbe rifiutato, che e' cio' che si vuole per una foto.
+            if (!f.File.ContentType.StartsWith("image/"))
             {
                 Snackbar.Add("È possibile caricare solo immagini", Severity.Warning);
                 return;
             }
 
-            using var stream = file.OpenReadStream(MaxFileSize);
             using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
+            await f.Contenuto.CopyToAsync(memoryStream);
 
             Entity.Foto = memoryStream.ToArray();
-            Entity.FotoMimeType = file.ContentType;
-            Entity.FotoFilename = file.Name;
+            Entity.FotoMimeType = f.File.ContentType;
+            Entity.FotoFilename = f.Nome;
             Entity.FotoUpdDate = DateTime.Now;
 
             // Update preview

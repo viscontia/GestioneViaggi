@@ -1094,6 +1094,33 @@ suggerimento del browser e si aggira trascinando un file.
 **Da migrare:** `WebTourGalleriaTab`, `WebTourMappaTab`, `AziendaLogoDialog`, `ClienteDialog`,
 `OracleImport` — funzionano, ma quattro di questi non hanno un limite di dimensione.
 
+### Chi lo usa — e perché non deve restare nessuno fuori
+
+| Punto | Cosa carica | Limite |
+|---|---|---|
+| `WebImmaginiLibreriaPage` | icone e immagini generiche | 20 MB, multiplo |
+| `WebTourGalleriaTab` | foto di un tour | 20 MB, fino a 30 |
+| `WebTourMappaTab` | traccia `.gpx` | 20 MB |
+| `AziendaLogoDialog` | logo aziendale | 10 MB |
+| `ClienteDialog` | foto del cliente | 5 MB |
+| `OracleImport` | export Excel `.xlsx` | 50 MB |
+
+**`MudFileUpload` non compare più da nessun'altra parte.** Era il punto: tre di questi sei non
+dichiaravano `MaxFileSize`, quindi ereditavano il default di MudBlazor — **10 MB, scartati in
+silenzio**. Un logo o un export Oracle più grandi sparivano senza un messaggio, e l'utente non
+aveva modo di sapere perché.
+
+Due note sulle migrazioni meno ovvie:
+
+- **`OracleImport` leggeva il file *dopo***, al momento dell'import, riaprendo lo stream di un file
+  scelto anche minuti prima. `FileUploader` consegna lo stream aperto e lo chiude subito, quindi la
+  copia in cache — che l'import faceva comunque — è stata spostata al momento della scelta. È anche
+  più solido: un riferimento a file del browser può scadere.
+- **`WebTourGalleriaTab`** distingue due esiti che sembrano uguali: una foto **già presente** viene
+  saltata (scelta, non errore) e finisce in un elenco riportato alla fine; una foto che **fallisce**
+  passa dalle eccezioni, che `FileUploader` cattura e segnala per file. Tenerli separati è il motivo
+  per cui il riepilogo si legge.
+
 ## PosizioneSelect
 
 `Components/Shared/PosizioneSelect.razor` — scelta di una posizione orizzontale

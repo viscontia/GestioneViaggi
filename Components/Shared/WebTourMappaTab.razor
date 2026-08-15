@@ -100,11 +100,16 @@ else
         <MudText Typo="Typo.subtitle1" Class="mb-2">Carica un GPX</MudText>
 
         <div class="d-flex align-center gap-3 mb-3">
-            <MudFileUpload T="IBrowserFile" Accept=".gpx,.GPX" MaxFileSize="20971520" FilesChanged="OnGpxSelected" Disabled="@_busy">
-                <ActivatorContent>
+            @* EstensioniAmmesse oltre ad Accept: quest'ultimo e' solo un suggerimento al browser
+               e si aggira trascinando un file, mentre il controllo qui e' dell'applicazione. *@
+            <FileUploader Accept=".gpx,.GPX" MaxByte="@MaxGpxBytes"
+                          EstensioniAmmesse="@(new[] { ".gpx" })"
+                          MessaggioEstensione="Serve una traccia GPX: gli altri formati non vengono letti."
+                          MostraAttesa="false" Disabilitato="@_busy" OnFile="OnGpxSelected">
+                <Attivatore>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="@_busy">Scegli GPX</MudButton>
-                </ActivatorContent>
-            </MudFileUpload>
+                </Attivatore>
+            </FileUploader>
             @if (!string.IsNullOrEmpty(_pendingGpxName))
             {
                 <MudText Typo="Typo.body2">@_pendingGpxName</MudText>
@@ -265,15 +270,13 @@ else
         return g == null ? null : GiornataHelper.Estesa(DataInizio, g.GiornoNumero, NumeroGiorni);
     }
 
-    private async Task OnGpxSelected(IBrowserFile? file)
+    private async Task OnGpxSelected(FileUploader.FileDaCaricare f)
     {
-        if (file is null) return;
         try
         {
-            await using var stream = file.OpenReadStream(MaxGpxBytes);
-            using var reader = new StreamReader(stream);
+            using var reader = new StreamReader(f.Contenuto);
             _pendingGpxText = await reader.ReadToEndAsync();
-            _pendingGpxName = file.Name;
+            _pendingGpxName = f.Nome;
 
             // Se la mappa d'insieme c'è già, l'unica scelta possibile è una giornata.
             _abbinaGiornata = _insiemeGiaPresente && _giornateLibere.Count > 0;

@@ -33,16 +33,19 @@
                         </MudPaper>
 
                         <div class="mt-4 d-flex gap-2 justify-center">
-                            <MudFileUpload T="IBrowserFile" @ref="_fileUpload" FilesChanged="UploadPhoto" Accept="image/*" MaximumFileCount="1">
-                                <ActivatorContent>
+                            @* MostraAttesa disattivato: la foto e' piccola e un velo a schermo intero
+                               per un'operazione istantanea sembra un blocco, non un'attesa. *@
+                            <FileUploader Accept="image/*" MaxByte="@MaxFileSize" MostraAttesa="false"
+                                          RiepilogoAutomatico="false" OnFile="UploadPhoto">
+                                <Attivatore>
                                     <MudTooltip Text="Carica Foto">
                                         <MudIconButton Variant="Variant.Filled"
                                                        Color="Color.Primary"
                                                        Icon="@Icons.Material.Filled.PhotoCamera"
                                                        Size="Size.Small" />
                                     </MudTooltip>
-                                </ActivatorContent>
-                            </MudFileUpload>
+                                </Attivatore>
+                            </FileUploader>
 
                             @if (!string.IsNullOrEmpty(_photoPreviewUrl))
                             {

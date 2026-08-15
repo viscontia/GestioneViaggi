@@ -38,18 +38,25 @@
 
             <!-- File Upload -->
             <MudItem xs="12" md="6">
-                <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-                    <ActivatorContent>
+                @* Il file veniva letto DOPO, al momento dell'import, riaprendo lo stream del
+                   browser scelto minuti prima. FileUploader lo consegna aperto e lo chiude subito,
+                   quindi la copia in cache — che l'import faceva comunque — si fa adesso: e' anche
+                   piu' solido, perche' un riferimento a file del browser puo' scadere. *@
+                <FileUploader Accept=".xlsx" MaxByte="@MaxExcelBytes"
+                              EstensioniAmmesse="@(new[] { ".xlsx" })"
+                              MessaggioEstensione="Serve un file Excel .xlsx: gli export Oracle salvati in altri formati non vengono letti."
+                              OnFile="OnExcelSelected">
+                    <Attivatore>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                             StartIcon="@Icons.Material.Filled.CloudUpload">
                             Seleziona File Excel (.xlsx)
                         </MudButton>
-                    </ActivatorContent>
-                </MudFileUpload>
-                @if (_selectedFile != null)
+                    </Attivatore>
+                </FileUploader>
+                @if (_fileScelto != null)
                 {
-                        <MudText Typo="Typo.caption" Class="mt-2">File selezionato: <b>@_selectedFile.Name</b>
-                            (@(_selectedFile.Size / 1024) KB)</MudText>
+                        <MudText Typo="Typo.caption" Class="mt-2">File selezionato: <b>@_fileScelto</b>
+                            (@(_dimensioneScelta / 1024) KB)</MudText>
                 }
             </MudItem>
 
@@ -124,7 +131,15 @@
 
 @code {
     private string _selectedTable = "ana_clienti";
-    private IBrowserFile? _selectedFile;
+    /// <summary>
+    /// Un export Oracle puo' superare i 10 MB del default di MudBlazor, che li scartava senza
+    /// dirlo: qui il limite e' dichiarato.
+    /// </summary>
+    private const long MaxExcelBytes = 50L * 1024 * 1024;
+
+    private string? _fileScelto;
+    private long _dimensioneScelta;
+    private string? _percorsoTemporaneo;
     private bool _keepPk = true; // Forced true for legacy migration
     private bool _backupEnabled = true; // Default true
 
@@ -133,9 +148,16 @@
     private string _logOutput = "";
     private List<string> _duplicates = new();
 
-    private void UploadFiles(IBrowserFile file)
+    /// <summary>Copia subito il file in cache: da qui in avanti l'import lavora su un percorso.</summary>
+    private async Task OnExcelSelected(FileUploader.FileDaCaricare f)
     {
-        _selectedFile = file;
+        var destinazione = Path.Combine(FileSystem.CacheDirectory, f.Nome);
+        await using (var fs = File.Create(destinazione))
+            await f.Contenuto.CopyToAsync(fs);
+
+        _percorsoTemporaneo = destinazione;
+        _fileScelto = f.Nome;
+        _dimensioneScelta = f.Dimensione;
     }
 
     private void AddLog(string message)
@@ -160,7 +182,7 @@
             return;
         }
 
-        if (_selectedFile == null)
+        if (_percorsoTemporaneo == null)
         {
             Snackbar.Add("Selezionare un file Excel prima di proseguire.", Severity.Warning);
             return;
@@ -182,20 +204,14 @@
 
         AddLog($"--- INIZIO {actionName} ---");
         AddLog($"Tabella target: {_selectedTable}");
-        AddLog($"File sorgente: {_selectedFile.Name}");
+        AddLog($"File sorgente: {_fileScelto}");
 
-        // Save file to temporary path
-        var tempFile = Path.Combine(FileSystem.CacheDirectory, _selectedFile.Name);
+        // Il file e' gia' in cache: copiato al momento della scelta, non adesso.
+        var tempFile = _percorsoTemporaneo;
 
         try
         {
-            AddLog("Upload file in cache...");
-            {
-                await using var stream = _selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10MB limit
-                await using var fs = File.Create(tempFile);
-                await stream.CopyToAsync(fs);
-            }
-            AddLog($"File salvato in: {tempFile}");
+            AddLog($"File in cache: {tempFile}");
 
             // Common Backup Logic (Ideally moved to a base class or interface)
             if (_backupEnabled && !dryRun)

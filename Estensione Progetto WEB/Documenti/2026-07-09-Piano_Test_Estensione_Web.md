@@ -955,3 +955,24 @@ stesso schema di colori fuorviante del selettore.
 | 42.3 | Partenza **conclusa e non spuntata** come effettuata | Targhetta **ambra**: è l'unica situazione da guardare. *Prima rossa come un errore* |
 | 42.4 | Passa il mouse su una targhetta | Il tooltip riporta date, partecipanti, l'etichetta di stato **e la spiegazione**, con l'indicazione di dove si corregge |
 | 42.5 | Confronta con l'elenco date e con l'albero del selettore | **Stessa etichetta e stesso colore** per la stessa partenza, ovunque |
+
+---
+
+## 43. Caricamento file: un solo componente per tutta l'applicazione
+
+Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprovate tutte.
+
+| # | Dove | Cosa fare | Cosa deve succedere |
+|---|---|---|---|
+| 43.1 | **Foto cliente** | Carica una foto normale | Si carica e compare l'anteprima, come prima |
+| 43.2 | Foto cliente | Carica un file **oltre 5 MB** | Messaggio che nomina il limite. *Prima: oltre 10 MB spariva in silenzio* |
+| 43.3 | **Logo azienda** | Carica un logo **oltre 10 MB** | Messaggio esplicito. *Prima: nessun limite dichiarato, spariva* |
+| 43.4 | **Import Oracle** | Scegli un `.xlsx` | Nome e dimensione compaiono subito; il file viene copiato in cache **alla scelta**, non all'import |
+| 43.5 | Import Oracle | Scegli un file **non** `.xlsx` | Rifiutato con un messaggio che dice cosa serve |
+| 43.6 | Import Oracle | Scegli un `.xlsx` **oltre 10 MB** (fino a 50) | Si carica: il limite ora è 50 MB. *Prima: scartato in silenzio* |
+| 43.7 | **Galleria tour** | Carica più foto insieme | Attesa con contatore e nome del file; le foto arrivano tutte |
+| 43.8 | Galleria tour | Ricarica una foto **già presente** | «Saltate N foto già presenti», con l'elenco |
+| 43.9 | Galleria tour | Carica foto senza titolo/alt | Resta il promemoria di compilarli |
+| 43.10 | **Mappa GPX** | Carica un `.gpx` | Funziona come prima |
+| 43.11 | Mappa GPX | Rinomina un `.txt` in `.gpx`… anzi: carica un file **non** `.gpx` trascinandolo | Rifiutato lato applicazione, non solo dal filtro del browser |
+| 43.12 | Tutte | Riseleziona **lo stesso file** appena caricato | Riparte il caricamento (senza `ClearAsync` il controllo sembrerebbe non funzionare più) |
