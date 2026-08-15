@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Newsletter da un modello — riaggancio della partenza</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #ffffff;
+      --color-ink:    #1b2f55;
+      --color-muted:  #4f6285;
+      --color-soft:   #64738f;
+      --color-accent: #1a7a43;
+      --color-rule:   rgba(27,47,85,0.12);
+      --font-sans:  'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1000px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; line-height: 1.15; margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      font-size: 0.9rem; color: var(--color-muted);
+      max-width: 62ch; margin-bottom: 2rem; line-height: 1.5;
+    }
+    svg { width: 100%; height: auto; display: block; }
+    footer {
+      margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-rule);
+      font-family: var(--font-mono); font-size: 0.66rem;
+      letter-spacing: 0.08em; color: var(--color-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Gestione Viaggi · Newsletter</p>
+    <h1>Creare una newsletter da un modello</h1>
+    <p class="subtitle">
+      La clonazione copia anche il legame con la partenza. Un modello riusato l'anno dopo
+      punterebbe al viaggio dell'anno prima, con le date vecchie nel sottotitolo: per questo
+      il programma chiede, blocco per blocco, a quale partenza agganciarsi.
+    </p>
+
+    <svg viewBox="0 0 920 800" role="img" aria-labelledby="nl-modello-title nl-modello-desc"
+         xmlns="http://www.w3.org/2000/svg">
+      <title id="nl-modello-title">Creare una newsletter da un modello con riaggancio della partenza</title>
+      <desc id="nl-modello-desc">Diagramma di flusso: creando una newsletter si sceglie se partire da vuota o da un modello; se il modello contiene blocchi agganciati a una partenza, per ognuno viene chiesto a quale partenza agganciarlo, e saltando la domanda il blocco resta legato alla partenza dell'originale.</desc>
+
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#4f6285"/>
+        </marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1a7a43"/>
+        </marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#1976d2"/>
+        </marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#ffffff"/>
+
+      <!-- ============ CONNETTORI (prima dei nodi: restano sotto) ============ -->
+
+      <!-- 1. avvio -> bivio -->
+      <line x1="360" y1="84" x2="360" y2="112" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 2. bivio -> clona -->
+      <line x1="360" y1="204" x2="360" y2="248" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 3. bivio -> (vuota) colonna di sinistra -> composizione -->
+      <path d="M248,160 H88 Q80,160 80,168 V656 Q80,664 88,664 H256"
+            fill="none" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 4. clona -> domanda sul riaggancio -->
+      <line x1="360" y1="312" x2="360" y2="340" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 5. domanda -> per ogni blocco (focale) -->
+      <line x1="492" y1="400" x2="566" y2="400" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 6. domanda -> (no) composizione -->
+      <line x1="360" y1="456" x2="360" y2="636" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 7. per ogni blocco -> scegli -->
+      <path d="M643,432 V472 Q643,480 635,480 H568 Q560,480 560,488 V492"
+            fill="none" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 8. per ogni blocco -> salta -->
+      <path d="M717,432 V472 Q717,480 725,480 H792 Q800,480 800,488 V492"
+            fill="none" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 9. scegli -> composizione -->
+      <path d="M560,560 V644 Q560,652 552,652 H464"
+            fill="none" stroke="#4f6285" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- 10. saltato -> composizione -->
+      <path d="M800,560 V668 Q800,676 792,676 H464"
+            fill="none" stroke="#4f6285" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+
+      <!-- ============ ETICHETTE DEI CONNETTORI ============ -->
+
+      <rect x="196" y="140" width="52" height="12" rx="2" fill="#ffffff"/>
+      <text x="222" y="149" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">VUOTA</text>
+
+      <rect x="370" y="216" width="76" height="12" rx="2" fill="#ffffff"/>
+      <text x="408" y="225" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">DA MODELLO</text>
+
+      <rect x="500" y="382" width="20" height="12" rx="2" fill="#ffffff"/>
+      <text x="510" y="391" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">SÌ</text>
+
+      <rect x="370" y="492" width="24" height="12" rx="2" fill="#ffffff"/>
+      <text x="382" y="501" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">NO</text>
+
+      <rect x="573" y="462" width="56" height="12" rx="2" fill="#ffffff"/>
+      <text x="601" y="471" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">SCEGLIE</text>
+
+      <rect x="734" y="462" width="48" height="12" rx="2" fill="#ffffff"/>
+      <text x="758" y="471" fill="#64738f" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.06em">SALTA</text>
+
+      <!-- ============ NODI ============ -->
+
+      <!-- N1 — avvio (ovale) -->
+      <rect x="260" y="40" width="200" height="44" rx="20" fill="#ffffff"/>
+      <rect x="260" y="40" width="200" height="44" rx="20" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="360" y="67" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Nuova newsletter</text>
+
+      <!-- N2 — bivio: da dove si parte -->
+      <path d="M360,116 L472,160 L360,204 L248,160 Z" fill="#ffffff"/>
+      <path d="M360,116 L472,160 L360,204 L248,160 Z" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="360" y="164" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Da dove si parte?</text>
+
+      <!-- N3 — clonazione -->
+      <rect x="250" y="252" width="220" height="60" rx="6" fill="#ffffff"/>
+      <rect x="250" y="252" width="220" height="60" rx="6" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="360" y="278" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Copia del modello</text>
+      <text x="360" y="296" fill="#64738f" font-size="8"
+            font-family="'Geist Mono', monospace" text-anchor="middle">blocchi · testi · immagini · colori</text>
+
+      <!-- N4 — FOCALE: la domanda che il riaggancio esiste per porre -->
+      <path d="M360,344 L492,400 L360,456 L228,400 Z" fill="#ffffff"/>
+      <path d="M360,344 L492,400 L360,456 L228,400 Z" fill="rgba(39,174,96,0.10)" stroke="#1a7a43" stroke-width="1.2"/>
+      <text x="360" y="394" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Blocchi agganciati</text>
+      <text x="360" y="412" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">a una partenza?</text>
+
+      <!-- N5 — la domanda, blocco per blocco -->
+      <rect x="566" y="368" width="228" height="64" rx="6" fill="#ffffff"/>
+      <rect x="566" y="368" width="228" height="64" rx="6" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <rect x="578" y="378" width="60" height="12" rx="2" fill="transparent" stroke="rgba(27,47,85,0.40)" stroke-width="0.8"/>
+      <text x="608" y="387" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace"
+            text-anchor="middle" letter-spacing="0.08em">PER OGNI</text>
+      <text x="680" y="408" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">A quale partenza</text>
+      <text x="680" y="424" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">lo aggancio?</text>
+
+      <!-- N6a — esito: scelta fatta -->
+      <rect x="460" y="492" width="200" height="68" rx="6" fill="#ffffff"/>
+      <rect x="460" y="492" width="200" height="68" rx="6" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="560" y="518" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Blocco aggiornato</text>
+      <text x="560" y="536" fill="#64738f" font-size="8"
+            font-family="'Geist Mono', monospace" text-anchor="middle">titolo · date · immagine</text>
+      <text x="560" y="550" fill="#64738f" font-size="8"
+            font-family="'Geist Mono', monospace" text-anchor="middle">collegamento</text>
+
+      <!-- N6b — FOCALE: l'esito che si paga dopo -->
+      <rect x="700" y="492" width="200" height="68" rx="6" fill="#ffffff"/>
+      <rect x="700" y="492" width="200" height="68" rx="6" fill="rgba(39,174,96,0.10)" stroke="#1a7a43" stroke-width="1.2"/>
+      <text x="800" y="518" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Resta la partenza</text>
+      <text x="800" y="534" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">dell'originale</text>
+      <text x="800" y="552" fill="#64738f" font-size="8"
+            font-family="'Geist Mono', monospace" text-anchor="middle">da sistemare componendo</text>
+
+      <!-- N8 — uscita (ovale) -->
+      <rect x="256" y="640" width="208" height="48" rx="20" fill="#ffffff"/>
+      <rect x="256" y="640" width="208" height="48" rx="20" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="360" y="669" fill="#1b2f55" font-size="12" font-weight="600"
+            font-family="'Geist', sans-serif" text-anchor="middle">Componi, prova, invia</text>
+
+      <!-- ============ LEGENDA ============ -->
+      <line x1="30" y1="724" x2="890" y2="724" stroke="rgba(27,47,85,0.12)" stroke-width="0.8"/>
+      <text x="30" y="744" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace"
+            letter-spacing="0.14em">LEGENDA</text>
+
+      <path d="M124,740 L136,748 L124,756 L112,748 Z" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="144" y="752" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace">DECISIONE</text>
+
+      <rect x="264" y="740" width="24" height="16" rx="4" fill="#ffffff" stroke="#1b2f55" stroke-width="1"/>
+      <text x="296" y="752" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace">PASSAGGIO</text>
+
+      <rect x="424" y="740" width="24" height="16" rx="4" fill="rgba(39,174,96,0.10)" stroke="#1a7a43" stroke-width="1.2"/>
+      <text x="456" y="752" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace">DOVE SI PERDE IL DATO</text>
+
+      <line x1="676" y1="748" x2="716" y2="748" stroke="#4f6285" stroke-width="1.2" stroke-dasharray="5,4"/>
+      <text x="724" y="752" fill="#4f6285" font-size="8" font-family="'Geist Mono', monospace">PROSEGUE NON RIAGGANCIATO</text>
+    </svg>
+
+    <footer>Gestione Viaggi · Estensione Web · script 529–530</footer>
+  </div>
+</body>
+</html>
