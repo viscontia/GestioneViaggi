@@ -296,7 +296,10 @@ public sealed class NewsletterSenderService
 
         foreach (var rec in recipients)
         {
-            var html = NewsletterRenderService.Render(ctx, rec.Email);
+            // La lingua del destinatario governa per ora i soli testi del programma — in
+            // particolare la frase di disiscrizione, che e' un obbligo di legge e finora partiva
+            // in italiano verso tutti.
+            var html = NewsletterRenderService.Render(ctx, rec.Email, rec.Lingua);
 
             bool sent;
             try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggetto, html, ctx.Azienda.RagioneSociale); }
@@ -308,6 +311,9 @@ public sealed class NewsletterSenderService
                 await _destinatariService.CreateAsync(new WebNewsletterInvioDestinatario
                 {
                     AziendaId = aziendaId, InvioIdFk = invioId, Email = rec.Email,
+                    // Resta "IT" di proposito: il registro dice in che lingua e' la NEWSLETTER, e
+                    // i contenuti sono ancora italiani. Diventera' rec.Lingua con la traduzione
+                    // per campo — scriverlo adesso sarebbe una dichiarazione falsa.
                     Lingua = "IT", StatoConsegna = sent ? "inviato" : "errore", Data = DateTime.UtcNow
                 });
             }

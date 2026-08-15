@@ -76,7 +76,8 @@ public static class NewsletterHtmlRenderer
         IEnumerable<NewsletterRenderBlocco> blocchi,
         NewsletterRenderAzienda azienda,
         NewsletterFooterConfig? footerConfig,
-        string unsubscribeUrl)
+        string unsubscribeUrl,
+        string lingua = "IT")
     {
         var lista = blocchi?.ToList() ?? new List<NewsletterRenderBlocco>();
         var cfg = footerConfig ?? NewsletterFooterConfig.Default;
@@ -104,7 +105,7 @@ public static class NewsletterHtmlRenderer
             if (b.Tipo == "tour" && b.Colonne == 2
                 && i + 1 < lista.Count && lista[i + 1].Tipo == "tour" && lista[i + 1].Colonne == 2)
             {
-                sb.Append(RenderTourAffiancati(b, lista[i + 1]));
+                sb.Append(RenderTourAffiancati(b, lista[i + 1], lingua));
                 i++; // consumata anche la seconda
                 continue;
             }
@@ -126,11 +127,11 @@ public static class NewsletterHtmlRenderer
                     i++;
                 }
                 i--; // il for incrementa di nuovo
-                sb.Append(RenderPulsantiInFila(fila));
+                sb.Append(RenderPulsantiInFila(fila, lingua));
                 continue;
             }
 
-            sb.Append(RenderBlocco(b, azienda, cfg, unsubscribeUrl));
+            sb.Append(RenderBlocco(b, azienda, cfg, unsubscribeUrl, lingua));
         }
 
         sb.Append(@"
@@ -146,17 +147,17 @@ public static class NewsletterHtmlRenderer
 
     private static string RenderBlocco(
         NewsletterRenderBlocco b, NewsletterRenderAzienda azienda,
-        NewsletterFooterConfig cfg, string unsubscribeUrl) => b.Tipo switch
+        NewsletterFooterConfig cfg, string unsubscribeUrl, string lingua) => b.Tipo switch
         {
             "intestazione" => RenderIntestazione(azienda),
             "testata"      => RenderTestata(b),
             "testo"        => RenderTesto(b),
             "info"         => RenderInfo(b),
-            "tour"         => RenderTour(b),
+            "tour"         => RenderTour(b, lingua),
             "immagine"     => RenderImmagine(b),
-            "pulsante"     => RenderPulsante(b),
+            "pulsante"     => RenderPulsante(b, lingua),
             "separatore"   => RenderSeparatore(),
-            "footer"       => RenderFooter(azienda, cfg, unsubscribeUrl),
+            "footer"       => RenderFooter(azienda, cfg, unsubscribeUrl, lingua),
             _              => string.Empty
         };
 
@@ -272,9 +273,9 @@ public static class NewsletterHtmlRenderer
         </td></tr>";
     }
 
-    private static string RenderTour(NewsletterRenderBlocco b)
+    private static string RenderTour(NewsletterRenderBlocco b, string lingua)
     {
-        var testo = TestoTour(b, 0);
+        var testo = TestoTour(b, 0, lingua);
 
         // layout pieno: immagine sopra, testo sotto
         if (b.Layout == "pieno" || string.IsNullOrWhiteSpace(b.ImmagineUrl))
@@ -309,16 +310,16 @@ public static class NewsletterHtmlRenderer
         </td></tr>";
     }
 
-    private static string RenderTourAffiancati(NewsletterRenderBlocco a, NewsletterRenderBlocco b)
+    private static string RenderTourAffiancati(NewsletterRenderBlocco a, NewsletterRenderBlocco b, string lingua)
     {
-        static string Colonna(NewsletterRenderBlocco t, string padding)
+        string Colonna(NewsletterRenderBlocco t, string padding)
         {
             var img = string.IsNullOrWhiteSpace(t.ImmagineUrl) ? "" : $@"
                 <tr><td style=""padding:0 0 10px 0;""><img src=""{Esc(t.ImmagineUrl)}"" alt=""{Esc(t.ImmagineAlt)}"" width=""258"" style=""width:258px;max-width:100%;height:auto;display:block;border:0;"" /></td></tr>";
 
             return $@"<td width=""268"" valign=""top"" style=""width:268px;{padding}"">
               <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">{img}
-                <tr><td>{TestoTour(t, 1)}</td></tr>
+                <tr><td>{TestoTour(t, 1, lingua)}</td></tr>
               </table>
             </td>";
         }
@@ -335,7 +336,7 @@ public static class NewsletterHtmlRenderer
     }
 
     /// <summary>Titolo + testo + pulsante di un riquadro tour. <paramref name="livello"/> 1 = versione affiancata (piu' piccola).</summary>
-    private static string TestoTour(NewsletterRenderBlocco b, int livello)
+    private static string TestoTour(NewsletterRenderBlocco b, int livello, string lingua)
     {
         var sb = new StringBuilder();
         var dimTitolo = livello == 0 ? 20 : 17;
@@ -350,7 +351,7 @@ public static class NewsletterHtmlRenderer
             sb.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
         if (!string.IsNullOrWhiteSpace(b.LinkUrl))
-            sb.Append(PulsanteDelBlocco(b, "Vai alla pagina del Tour", allineaSinistra: true));
+            sb.Append(PulsanteDelBlocco(b, NewsletterTesti.PulsanteTour(lingua), allineaSinistra: true));
 
         return sb.ToString();
     }
@@ -373,9 +374,9 @@ public static class NewsletterHtmlRenderer
         return RigaAllineata(b.Layout, "16px 32px 8px 32px", img) + rigaPulsante;
     }
 
-    private static string RenderPulsante(NewsletterRenderBlocco b)
+    private static string RenderPulsante(NewsletterRenderBlocco b, string lingua)
     {
-        var pulsante = PulsanteDelBlocco(b, EtichettaDiRiserva);
+        var pulsante = PulsanteDelBlocco(b, NewsletterTesti.PulsanteGenerico(lingua));
         return pulsante.Length == 0
             ? string.Empty
             : RigaAllineata(b.Layout, "8px 32px 16px 32px", pulsante);
@@ -424,7 +425,7 @@ public static class NewsletterHtmlRenderer
     /// <para>Le caselle vuote restano vuote di proposito: sinistra + destra senza il centro e' una
     /// disposizione legittima, e riempire il buco spostando i pulsanti tradirebbe la scelta.</para>
     /// </remarks>
-    private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila)
+    private static string RenderPulsantiInFila(List<NewsletterRenderBlocco> fila, string lingua)
     {
         // Tre caselle fisse: 0 = sinistra, 1 = centro, 2 = destra.
         var caselle = new NewsletterRenderBlocco?[NewsletterLayout.MaxPulsantiInFila];
@@ -446,7 +447,7 @@ public static class NewsletterHtmlRenderer
         for (int c = 0; c < NewsletterLayout.MaxPulsantiInFila; c++)
         {
             var b = caselle[c];
-            var contenuto = b == null ? string.Empty : PulsanteDelBlocco(b, EtichettaDiRiserva);
+            var contenuto = b == null ? string.Empty : PulsanteDelBlocco(b, NewsletterTesti.PulsanteGenerico(lingua));
             if (contenuto.Length == 0) contenuto = "&nbsp;";
 
             celle.Append($@"<td width=""33.33%"" align=""{NewsletterLayout.Posizioni[c].Css}"" valign=""middle"" style=""width:33.33%;padding:0 4px;"">{contenuto}</td>");
@@ -463,7 +464,7 @@ public static class NewsletterHtmlRenderer
     private static string RenderSeparatore() => $@"
         <tr><td style=""padding:8px 32px;""><hr style=""border:none;border-top:1px solid #e0e0e0;margin:0;"" /></td></tr>";
 
-    private static string RenderFooter(NewsletterRenderAzienda a, NewsletterFooterConfig cfg, string unsubscribeUrl)
+    private static string RenderFooter(NewsletterRenderAzienda a, NewsletterFooterConfig cfg, string unsubscribeUrl, string lingua)
     {
         var valori = new List<string>();
         foreach (var campo in cfg.Campi)
@@ -509,8 +510,8 @@ public static class NewsletterHtmlRenderer
         <tr><td align=""{align}"" style=""padding:4px 32px 8px 32px;"">{corpo}</td></tr>
         <tr><td align=""{align}"" style=""padding:0 32px 24px 32px;"">
           <p style=""margin:0;font-family:{FontFamily};font-size:12px;line-height:18px;color:{ColoreTenue};"">
-            Non desideri piu' ricevere la nostra newsletter?
-            <a href=""{Esc(unsubscribeUrl)}"" target=""_blank"" style=""color:{ColoreTenue};"">Disiscriviti</a>
+            {Esc(NewsletterTesti.DomandaDisiscrizione(lingua))}
+            <a href=""{Esc(unsubscribeUrl)}"" target=""_blank"" style=""color:{ColoreTenue};"">{Esc(NewsletterTesti.Disiscriviti(lingua))}</a>
           </p>
         </td></tr>";
     }
@@ -527,9 +528,6 @@ public static class NewsletterHtmlRenderer
     /// sta su <c>align</c> e non su <c>text-align</c> perche' Outlook segue il primo e ignora il
     /// secondo su un elemento a tabella come il pulsante.
     /// </summary>
-    /// <summary>Testo del pulsante quando l'utente non l'ha scritto.</summary>
-    private const string EtichettaDiRiserva = "Scopri di piu'";
-
     private static string RigaAllineata(string? layout, string padding, string contenuto) => $@"
         <tr><td align=""{AllineaDaLayout(layout)}"" style=""padding:{padding};"">{contenuto}</td></tr>";
 

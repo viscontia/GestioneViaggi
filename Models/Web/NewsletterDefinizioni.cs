@@ -152,3 +152,54 @@ public static class NewsletterColori
 
 /// <summary>Un colore della tavolozza: il valore e il nome con cui viene proposto.</summary>
 public sealed record ColoreProposto(string Hex, string Nome);
+
+/// <summary>
+/// I testi che mette il <b>programma</b>, nelle lingue in cui si spedisce.
+/// </summary>
+/// <remarks>
+/// Non sono traduzioni: sono <b>localizzazioni</b>. La differenza non è terminologica —
+/// una traduzione è un dato, si archivia, si revisiona e può diventare obsoleta quando
+/// l'originale cambia; questi testi non hanno un originale che qualcuno ha scritto, li produce
+/// il codice e cambiano solo se cambiamo il codice. Metterli in <c>web_traduzioni</c>
+/// significherebbe dare a un utente il compito di rileggerli a ogni newsletter.
+/// <para>La frase di disiscrizione è quella che conta di più: è un obbligo di legge, e finora
+/// partiva <b>in italiano verso tutti</b>. Un destinatario tedesco poteva non capire come
+/// cancellarsi — che è esattamente la cosa che deve poter fare senza sforzo.</para>
+/// </remarks>
+public static class NewsletterTesti
+{
+    /// <summary>Lingue in cui si spedisce. La prima è l'originale.</summary>
+    public static IReadOnlyList<string> Lingue { get; } = new[] { "IT", "EN", "DE", "ES", "FR" };
+
+    private static string Scegli(string? lingua, string it, string en, string de, string es, string fr) =>
+        (lingua ?? "").Trim().ToUpperInvariant() switch
+        {
+            "EN" => en,
+            "DE" => de,
+            "ES" => es,
+            "FR" => fr,
+            _    => it   // IT e qualunque lingua non prevista: meglio l'originale di un vuoto
+        };
+
+    /// <summary>Frase che introduce il collegamento di disiscrizione.</summary>
+    public static string DomandaDisiscrizione(string? lingua) => Scegli(lingua,
+        "Non desideri più ricevere la nostra newsletter?",
+        "No longer wish to receive our newsletter?",
+        "Sie möchten unseren Newsletter nicht mehr erhalten?",
+        "¿Ya no deseas recibir nuestra newsletter?",
+        "Vous ne souhaitez plus recevoir notre newsletter ?");
+
+    /// <summary>Testo del collegamento di disiscrizione.</summary>
+    public static string Disiscriviti(string? lingua) => Scegli(lingua,
+        "Disiscriviti", "Unsubscribe", "Abmelden", "Cancelar la suscripción", "Se désabonner");
+
+    /// <summary>Etichetta di riserva del pulsante di un riquadro tour.</summary>
+    public static string PulsanteTour(string? lingua) => Scegli(lingua,
+        "Vai alla pagina del Tour", "View the tour page", "Zur Tour-Seite",
+        "Ver la página del tour", "Voir la page du circuit");
+
+    /// <summary>Etichetta di riserva di un pulsante senza testo.</summary>
+    public static string PulsanteGenerico(string? lingua) => Scegli(lingua,
+        "Scopri di più", "Learn more", "Mehr erfahren", "Saber más", "En savoir plus");
+}
+

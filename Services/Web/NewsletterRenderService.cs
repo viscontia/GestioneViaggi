@@ -251,7 +251,12 @@ public sealed class NewsletterRenderService
     }
 
     /// <summary>HTML per un singolo destinatario, dal contesto gia' preparato.</summary>
-    public static string Render(ContestoRender ctx, string emailDestinatario)
+    /// <param name="lingua">
+    /// Lingua del destinatario. In questa fase governa i testi che mette il <b>programma</b>
+    /// (disiscrizione, etichette di riserva); i contenuti scritti dall'utente restano in
+    /// italiano finché non arriva la traduzione per campo.
+    /// </param>
+    public static string Render(ContestoRender ctx, string emailDestinatario, string lingua = "IT")
     {
         var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Token);
 
@@ -272,15 +277,16 @@ public sealed class NewsletterRenderService
             ColoreTitolo: b.ColoreTitolo,
             ColoreSottotitolo: b.ColoreSottotitolo));
 
-        return NewsletterHtmlRenderer.Render(render, ctx.Azienda, ctx.Footer, unsub);
+        return NewsletterHtmlRenderer.Render(render, ctx.Azienda, ctx.Footer, unsub, lingua);
     }
 
     /// <summary>
     /// HTML completo di una newsletter. <paramref name="emailDestinatario"/> serve solo a firmare
     /// il link di disiscrizione: in anteprima si passa un indirizzo di esempio.
     /// </summary>
-    public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario)
-        => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario);
+    public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario,
+                                          string lingua = "IT")
+        => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario, lingua);
 
     /// <summary>Una newsletter inviata e' immutabile: nessuna risoluzione dalla rubrica.</summary>
     private async Task<bool> IsInviataAsync(long invioId, int aziendaId)
