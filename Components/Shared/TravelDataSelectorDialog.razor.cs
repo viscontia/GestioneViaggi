@@ -197,8 +197,7 @@ public partial class TravelDataSelectorDialog
                 Year = matchingData.Anno,
                 ViaggioId = matchingData.ViaggioId,
                 DataViaggioId = matchingData.DataViaggioId,
-                DisplayText = GetDateDisplayText(matchingData),
-                Status = matchingData.GetStatus()
+                DisplayText = GetDateDisplayText(matchingData)
             };
         }
     }
@@ -271,8 +270,7 @@ public partial class TravelDataSelectorDialog
                     Year = matchingData.Anno,
                     ViaggioId = matchingData.ViaggioId,
                     DataViaggioId = matchingData.DataViaggioId,
-                    DisplayText = GetDateDisplayText(matchingData),
-                    Status = matchingData.GetStatus()
+                    DisplayText = GetDateDisplayText(matchingData)
                 };
             }
         }

@@ -31,7 +31,6 @@ public class TravelTreeNode
     public int? ViaggioId { get; set; }
     public int? DataViaggioId { get; set; }
     public string DisplayText { get; set; } = string.Empty;
-    public TravelStatus? Status { get; set; }
     public bool IsExpanded { get; set; }
 
     // For equality comparison in MudTreeView
@@ -72,17 +71,6 @@ public class TravelTreeData
 
     /// <summary>Clienti iscritti a questa partenza (script 530).</summary>
     public int Iscritti { get; set; }
-
-    public TravelStatus GetStatus()
-    {
-        if (EffettuatoSino == 'Y' || EffettuatoSino == 'S')
-            return TravelStatus.Completed;
-
-        if (DataInizio.HasValue && DataInizio.Value.Date > DateTime.Today)
-            return TravelStatus.Future;
-
-        return TravelStatus.NotCompleted;
-    }
 }
 
 /// <summary>
@@ -90,28 +78,9 @@ public class TravelTreeData
 /// </summary>
 public static class TravelStatusExtensions
 {
-    public static string GetColor(this TravelStatus status)
-    {
-        return status switch
-        {
-            TravelStatus.Future => "Warning",
-            TravelStatus.Completed => "Success",
-            TravelStatus.NotCompleted => "Error",
-            _ => "Default"
-        };
-    }
-
-    public static string GetIcon(this TravelStatus status)
-    {
-        return status switch
-        {
-            TravelStatus.Future => "@Icons.Material.Filled.Schedule",
-            TravelStatus.Completed => "@Icons.Material.Filled.CheckCircle",
-            TravelStatus.NotCompleted => "@Icons.Material.Filled.Cancel",
-            _ => "@Icons.Material.Filled.Circle"
-        };
-    }
-
+    // GetColor e GetIcon rimosse: nessun chiamante dopo il passaggio a StatoPartenzaChip.
+    // GetIcon era anche rotta — restituiva la stringa "@Icons.Material.Filled.Schedule",
+    // chiocciola compresa, quindi non ha mai disegnato un'icona.
     public static string GetLabel(this TravelStatus status)
     {
         return status switch
