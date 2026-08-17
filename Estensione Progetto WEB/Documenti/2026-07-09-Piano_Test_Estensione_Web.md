@@ -1030,3 +1030,24 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 | 46.5 | Lingua **non tradotta** (es. FR 0/18) | L'anteprima si vede lo stesso, tutta in italiano **tranne** disiscrizione ed etichette dei pulsanti, che sono in francese |
 | 46.6 | Torna su **IT** | Ricompone l'originale |
 | 46.7 | Clicca ripetutamente fra due lingue | Nessun accavallamento: mentre ricompone i pulsanti sono disabilitati |
+
+---
+
+## 47. Riquadro tour nelle altre lingue (fase 4.3, script `533`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 47.1 | Riquadro tour agganciato a una partenza → **Anteprima in DE** | Il periodo è in tedesco: «Vom 2. bis 7. Mai 2026», non «Dal 2 al 7 maggio 2026» |
+| 47.2 | Stessa prova in EN, ES, FR | «From 2 to 7 May 2026» · «Del 2 al 7 de mayo de 2026» · «Du 2 au 7 mai 2026» |
+| 47.3 | Partenza **a cavallo di due anni** (Capodanno) | Entrambi gli anni compaiono: «Dal 30 dicembre 2025 al 4 gennaio 2026» |
+| 47.4 | Partenza di **un solo giorno** | Forma breve, senza «Dal … al …» |
+| 47.5 | Anteprima in **IT** | Il periodo resta quello memorizzato: se l'avevi corretto a mano, la correzione non viene sovrascritta |
+| 47.6 | Inserisci un riquadro tour di un tour **già tradotto**, senza toccare i testi → riquadro **Lingue** | Il testo del riquadro risulta **già tradotto**: ereditato dalla scheda, senza spendere una traduzione |
+| 47.7 | Guarda quella traduzione ereditata | Se sulla scheda era **revisionata**, lo è anche qui: il testo è identico, riapprovarlo sarebbe lavoro inutile |
+| 47.8 | **Riscrivi** il testo del riquadro | Le traduzioni ereditate diventano **obsolete** e non vengono riereditate: ora il testo è tuo |
+| 47.9 | Riporta il testo esattamente a quello del tour | Torna a ereditare |
+| 47.10 | Modifica la **scheda del tour** dopo aver composto la newsletter | Nella newsletter **non cambia nulla**: è una fotografia. Per aggiornarla si riseleziona il tour |
+
+> Verificato sul database in transazione annullata: inserito un riquadro tour col testo della
+> scheda → il trigger eredita **4 lingue** con `revisionato` conservato; riscritto il testo → le 4
+> diventano obsolete e non si rieredita.

@@ -219,7 +219,8 @@ public sealed class NewsletterRenderService
         NewsletterFooterConfig Footer,
         string? Token,
         long InvioId,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>> Traduzioni);
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>> Traduzioni,
+        IReadOnlyDictionary<long, (DateTime Inizio, DateTime? Fine)> Periodi);
 
     public async Task<ContestoRender> PreparaAsync(long invioId, int aziendaId)
     {
@@ -257,7 +258,8 @@ public sealed class NewsletterRenderService
         var footer = await GetFooterConfigAsync(aziendaId);
         var token = await GetTokenIscrizioneAsync(aziendaId);
         return new ContestoRender(blocchi, azienda, footer, token, invioId,
-                                  await CaricaTraduzioniAsync(invioId, aziendaId));
+                                  await CaricaTraduzioniAsync(invioId, aziendaId),
+                                  await CaricaPeriodiAsync(invioId, aziendaId));
     }
 
     /// <summary>HTML per un singolo destinatario, dal contesto gia' preparato.</summary>
@@ -277,12 +279,28 @@ public sealed class NewsletterRenderService
         string? T(long id, string campo, string? originale) =>
             tr.TryGetValue((id, campo), out var t) ? t : originale;
 
+        // Il periodo di un riquadro tour non e' testo: si RIGENERA dalle date della partenza.
+        // Solo per le lingue diverse dall'italiano — quello memorizzato e' gia' in italiano e
+        // l'utente potrebbe averlo corretto a mano, e sovrascriverlo sarebbe una perdita.
+        var italiano = (lingua ?? "IT").Trim().ToUpperInvariant() == "IT";
+        string? Periodo(Models.Web.WebNewsletterBlocco b)
+        {
+            if (italiano || b.Tipo != "tour") return b.Sottotitolo;
+            return ctx.Periodi.TryGetValue(b.WebNewsletterBloccoId, out var d)
+                ? Models.Web.NewsletterPeriodo.Componi(d.Inizio, d.Fine, lingua)
+                : b.Sottotitolo;   // aggancio perso: meglio la data italiana che nessuna data
+        }
+
         var render = ctx.Blocchi.Select(b => new NewsletterRenderBlocco(
             Tipo: b.Tipo,
             Layout: b.Layout,
             Colonne: b.Colonne,
             Titolo: T(b.WebNewsletterBloccoId, "titolo", b.Titolo),
-            Sottotitolo: T(b.WebNewsletterBloccoId, "sottotitolo", b.Sottotitolo),
+            // Sul riquadro tour il sottotitolo e' il periodo, che si rigenera; altrove e' testo
+            // scritto dall'utente, che si traduce.
+            Sottotitolo: b.Tipo == "tour"
+                         ? Periodo(b)
+                         : T(b.WebNewsletterBloccoId, "sottotitolo", b.Sottotitolo),
             CorpoHtml: T(b.WebNewsletterBloccoId, "corpo_html", b.CorpoHtml),
             ImmagineUrl: b.ImmagineUrl,
             ImmagineAlt: T(b.WebNewsletterBloccoId, "immagine_alt", b.ImmagineAlt),
@@ -319,6 +337,35 @@ public sealed class NewsletterRenderService
     public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario,
                                           string lingua = "IT")
         => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario, lingua);
+
+    /// <summary>
+    /// Date delle partenze agganciate ai riquadri tour, per rigenerare il periodo nella lingua giusta.
+    /// </summary>
+    /// <remarks>
+    /// Se la lettura fallisce si resta con il periodo memorizzato, che è in italiano: una data
+    /// nella lingua sbagliata è meglio di nessuna data.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<long, (DateTime Inizio, DateTime? Fine)>>
+        CaricaPeriodiAsync(long invioId, int aziendaId)
+    {
+        var d = new Dictionary<long, (DateTime, DateTime?)>();
+        try
+        {
+            await using var conn = await _db.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT blocco_id, data_inizio, data_fine FROM fn_web_newsletter_periodi(@Invio::bigint, @Az::integer)", conn);
+            cmd.Parameters.AddWithValue("Invio", invioId);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            await using var r = await cmd.ExecuteReaderAsync();
+            while (await r.ReadAsync())
+                d[r.GetInt64(0)] = (r.GetDateTime(1), r.IsDBNull(2) ? null : r.GetDateTime(2));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Date delle partenze non lette per l'invio {Invio}: i periodi restano in italiano", invioId);
+        }
+        return d;
+    }
 
     /// <summary>
     /// Quanto è tradotta una newsletter, lingua per lingua.

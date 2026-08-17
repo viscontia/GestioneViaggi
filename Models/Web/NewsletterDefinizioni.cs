@@ -203,3 +203,89 @@ public static class NewsletterTesti
         "Scopri di più", "Learn more", "Mehr erfahren", "Saber más", "En savoir plus");
 }
 
+/// <summary>
+/// Il periodo di una partenza («Dal 2 al 7 maggio 2026»), scritto nella lingua del destinatario.
+/// </summary>
+/// <remarks>
+/// <b>Si genera, non si traduce.</b> È composto da due date: archiviarne una traduzione
+/// fotograferebbe un valore destinato a cambiare — spostata la partenza, l'italiano si aggiorna e
+/// il tedesco resta indietro senza che nessuno se ne accorga.
+/// <para>I nomi dei mesi stanno qui e non arrivano da <c>CultureInfo</c>: dipenderebbero dalla
+/// presenza di ICU sulla macchina, e un mese in inglese dentro una frase tedesca è il tipo di
+/// difetto che si scopre dal cliente. Le maiuscole seguono l'uso di ogni lingua — in tedesco i mesi
+/// sono nomi propri, in italiano no.</para>
+/// </remarks>
+public static class NewsletterPeriodo
+{
+    private static readonly Dictionary<string, string[]> Mesi = new()
+    {
+        ["IT"] = new[] { "gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre" },
+        ["EN"] = new[] { "January","February","March","April","May","June","July","August","September","October","November","December" },
+        ["DE"] = new[] { "Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember" },
+        ["ES"] = new[] { "enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre" },
+        ["FR"] = new[] { "janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre" },
+    };
+
+    private static string Mese(int m, string lingua) =>
+        (Mesi.TryGetValue(lingua, out var tab) ? tab : Mesi["IT"])[Math.Clamp(m, 1, 12) - 1];
+
+    /// <summary>
+    /// Periodo leggibile. <paramref name="fine"/> null o uguale a <paramref name="inizio"/> dà la
+    /// forma a data singola.
+    /// </summary>
+    public static string Componi(DateTime inizio, DateTime? fine, string? lingua)
+    {
+        var l = (lingua ?? "IT").Trim().ToUpperInvariant();
+        if (!Mesi.ContainsKey(l)) l = "IT";
+
+        var f = fine ?? inizio;
+        if (f.Date < inizio.Date) f = inizio;
+
+        var (gi, mi, ai) = (inizio.Day, Mese(inizio.Month, l), inizio.Year);
+        var (gf, mf, af) = (f.Day, Mese(f.Month, l), f.Year);
+
+        // Data singola
+        if (inizio.Date == f.Date)
+            return l switch
+            {
+                "EN" => $"{gi} {mi} {ai}",
+                "DE" => $"{gi}. {mi} {ai}",
+                "ES" => $"{gi} de {mi} de {ai}",
+                "FR" => $"{gi} {mi} {ai}",
+                _    => $"{gi} {mi} {ai}"
+            };
+
+        // Stesso mese e stesso anno: il mese e l'anno si dicono una volta sola
+        if (ai == af && inizio.Month == f.Month)
+            return l switch
+            {
+                "EN" => $"From {gi} to {gf} {mi} {ai}",
+                "DE" => $"Vom {gi}. bis {gf}. {mi} {ai}",
+                "ES" => $"Del {gi} al {gf} de {mi} de {ai}",
+                "FR" => $"Du {gi} au {gf} {mi} {ai}",
+                _    => $"Dal {gi} al {gf} {mi} {ai}"
+            };
+
+        // Stesso anno, mesi diversi: l'anno si dice una volta sola
+        if (ai == af)
+            return l switch
+            {
+                "EN" => $"From {gi} {mi} to {gf} {mf} {ai}",
+                "DE" => $"Vom {gi}. {mi} bis {gf}. {mf} {ai}",
+                "ES" => $"Del {gi} de {mi} al {gf} de {mf} de {ai}",
+                "FR" => $"Du {gi} {mi} au {gf} {mf} {ai}",
+                _    => $"Dal {gi} {mi} al {gf} {mf} {ai}"
+            };
+
+        // A cavallo di due anni: capodanno, ed è il caso che non si può abbreviare
+        return l switch
+        {
+            "EN" => $"From {gi} {mi} {ai} to {gf} {mf} {af}",
+            "DE" => $"Vom {gi}. {mi} {ai} bis {gf}. {mf} {af}",
+            "ES" => $"Del {gi} de {mi} de {ai} al {gf} de {mf} de {af}",
+            "FR" => $"Du {gi} {mi} {ai} au {gf} {mf} {af}",
+            _    => $"Dal {gi} {mi} {ai} al {gf} {mf} {af}"
+        };
+    }
+}
+

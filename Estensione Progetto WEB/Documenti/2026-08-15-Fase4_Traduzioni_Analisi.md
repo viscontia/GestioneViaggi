@@ -1,6 +1,6 @@
 # Fase 4 — Traduzione della newsletter · analisi
 
-*Analisi preliminare. **4.1, 4.2 e 4.4 realizzati** (script 531–532); restano 4.3 (riquadro tour) e 4.5 (interfaccia).*
+*Analisi preliminare. **4.1–4.4 realizzati** (script 531–533); della 4.5 c'è l'anteprima per lingua, resta la revisione dei testi tradotti.*
 
 ---
 
@@ -203,9 +203,9 @@ Perché sia usabile e non un obbligo, serve poco ma preciso:
 |---|---|---|
 | **4.1** ✅ | Localizzazione dei testi **del programma**: piè di pagina, disiscrizione, etichette di riserva, nomi dei mesi | Nessun database, nessuna IA. Da solo elimina l'italiano dalle parti fisse della mail spedita a stranieri |
 | **4.2** ✅ | Traduzione per campo dei blocchi (categoria 1) + risoluzione al rendering + fallback IT | Il cuore |
-| **4.3** | Riquadro tour: riuso delle traduzioni del tour, e rilevamento dei campi riscritti a mano | Dipende dal 4.2 ma è separabile |
+| **4.3** ✅ | Riquadro tour: riuso delle traduzioni del tour, e rilevamento dei campi riscritti a mano | Dipende dal 4.2 ma è separabile |
 | **4.4** ✅ | Ciclo di vita: obsolescenza alla modifica, clonazione, **archivio per lingua** all'invio | Va fatto prima di spedire davvero in multilingua |
-| **4.5** | Interfaccia: stato per lingua, «traduci mancanti», anteprima per lingua, avviso pre-invio | Ultimo: prima si stabilizza il modello |
+| **4.5** ◐ | Interfaccia: stato per lingua, «traduci mancanti», anteprima per lingua, avviso pre-invio | Ultimo: prima si stabilizza il modello |
 
 **Il 4.1 è indipendente da tutto e si può fare subito.**
 
@@ -230,5 +230,9 @@ Perché sia usabile e non un obbligo, serve poco ma preciso:
    da concordare la *forma* dell'indirizzo con chi costruisce il sito (§5).
 2. ~~Clonando un modello, le traduzioni si copiano?~~ **Chiuso: sì**, e per ogni clonazione, non solo per i modelli. Le obsolete restano fuori: sono già disallineate dall'italiano.
 3. ~~Si archivia il corpo per lingua all'invio?~~ **Chiuso: sì**, tabella `web_newsletter_invii_corpi`, una riga per lingua usata con oggetto, corpo e numero di destinatari.
-4. **Il titolo del riquadro tour si traduce o si riusa dal tour?** (§4) — dipende se l'utente l'ha
-   riscritto, e quel dato oggi non lo abbiamo.
+4. ~~Il titolo del riquadro tour si traduce o si riusa dal tour?~~ **Chiuso.** Il *titolo* viene da
+   `ana_viaggi.viaggio_descrizione_breve`, che **non è tradotto alla fonte**: resta traduzione del
+   blocco. Si eredita solo il **testo** (da `web_tour_contenuti.sottotitolo`, che è tradotto), e
+   **al momento della scelta**, non al rendering — leggerlo al rendering darebbe l'italiano vecchio
+   del blocco insieme al tedesco nuovo del tour. La distinzione «riscritto o no» si fa
+   confrontando il testo italiano, senza campi aggiuntivi.
