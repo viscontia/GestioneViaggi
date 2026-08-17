@@ -1296,3 +1296,29 @@ si toccano. Le function lo impongono comunque, ma è meglio non offrire un pulsa
 > cosa si è già letto) e notificare **solo quando il valore è cambiato**. Servono entrambi: il
 > primo evita il giro, il secondo lo interrompe comunque se qualcuno lo riapre.
 
+## NewsletterTraduzioniPanel
+
+`Components/Shared/NewsletterTraduzioniPanel.razor` — in quali lingue parte una newsletter, e cosa
+manca. Riusa il motore che traduce già i contenuti web (`WebTraduzioneOrchestratorService`): la
+newsletter aggiunge solo il modo di raccogliere i propri campi, non un secondo meccanismo.
+
+**Si traduce ciò che l'utente ha scritto**: oggetto, titoli, sottotitoli, testi, etichette dei
+pulsanti, testi alternativi. Restano fuori, e non per dimenticanza:
+
+- il **sottotitolo di un riquadro tour** — è il periodo, generato dalle date della partenza.
+  Archiviarne una traduzione fotografa un valore che cambierà: spostata la partenza, l'italiano si
+  aggiorna e il tedesco resta indietro senza che nessuno se ne accorga;
+- le **frasi del programma** (disiscrizione, «Scopri di più») — localizzate nel codice
+  (`NewsletterTesti`), perché non hanno un originale scritto da qualcuno.
+
+**Il fallback è per campo, non per newsletter.** Se manca la traduzione di un solo titolo, torna in
+italiano quel titolo: il resto resta tradotto. Fermarsi all'italiano per tutto butterebbe via il
+lavoro già fatto.
+
+**L'obsolescenza non è nel componente, è nel database.** `fn_web_newsletter_blocchi_update` marca
+obsolete le traduzioni del campo che è cambiato davvero — confronto con `IS DISTINCT FROM`, perché
+fra `NULL` e un testo l'operatore normale direbbe «non cambiato» proprio quando un campo viene
+svuotato. Sta lì e non nel programma perché è l'unico modo di non poterselo dimenticare: chiunque
+aggiorni un blocco ci passa. Una traduzione obsoleta non viene più usata — è peggio di una mancante,
+perché sembra giusta.
+

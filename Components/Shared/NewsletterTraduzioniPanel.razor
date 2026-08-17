@@ -1,0 +1,144 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject NewsletterRenderService RenderService
+@inject WebTraduzioneOrchestratorService Orchestrator
+@inject ISnackbar Snackbar
+
+@* In quali lingue parte la newsletter.
+
+   Si traduce cio' che l'utente ha SCRITTO: oggetto, titoli, testi, etichette dei pulsanti, testi
+   alternativi. Non le date di un riquadro tour, che sono generate dalla partenza e vanno
+   rigenerate; non le frasi del programma, che sono gia' localizzate nel codice.
+
+   Il fallback e' per CAMPO: dove una traduzione manca torna l'italiano solo quel campo, non
+   l'intera mail. *@
+
+<MudPaper Outlined="true" Class="@($"pa-3 {Class}")">
+    <div class="d-flex align-center gap-2 mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Translate" Color="Color.Primary" />
+        <MudText Typo="Typo.subtitle2">Lingue</MudText>
+        <MudSpacer />
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoAwesome"
+                   Disabled="@(Disabilitato || _inCorso || !CeQualcosaDaFare)" OnClick="Traduci">
+            Traduci quello che manca
+        </MudButton>
+    </div>
+
+    @if (_inCorso)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@_avanzamento</MudText>
+    }
+
+    <div class="d-flex flex-wrap gap-2 mb-1">
+        @foreach (var s in _stato)
+        {
+            <MudTooltip Text="@Spiega(s)">
+                <MudChip T="string" Size="Size.Small" Color="@Colore(s)" Icon="@Icona(s)">
+                    @s.Lingua @s.Tradotti/@s.Traducibili
+                </MudChip>
+            </MudTooltip>
+        }
+    </div>
+
+    @if (_stato.Any(x => x.DaRifare))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+            Alcuni testi italiani sono cambiati dopo la traduzione: le versioni in lingua di
+            <strong>quei campi</strong> non vengono più usate, e al loro posto parte l'italiano.
+            Ritraduci per riallinearle.
+        </MudAlert>
+    }
+
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+        Le date dei riquadri tour e le frasi del programma non si traducono qui: le prime si
+        rigenerano dalla partenza, le seconde sono già in tutte le lingue.
+    </MudText>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public long InvioId { get; set; }
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    /// <summary>Vero su una newsletter già spedita: non si ritraduce ciò che è partito.</summary>
+    [Parameter] public bool Disabilitato { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Le traduzioni sono cambiate: chi ospita il pannello può rinfrescare l'anteprima.</summary>
+    [Parameter] public EventCallback OnTradotto { get; set; }
+
+    private List<NewsletterRenderService.StatoTraduzione> _stato = new();
+    private bool _inCorso;
+    private string _avanzamento = "";
+
+    // Stessa guardia del pannello destinatari: OnParametersSetAsync scatta a ogni render del
+    // genitore, e ricaricare qui vorrebbe dire una query per ogni ridisegno.
+    private long _caricatoPer;
+
+    private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (InvioId == 0 || InvioId == _caricatoPer) return;
+        _caricatoPer = InvioId;
+        await RicaricaAsync();
+    }
+
+    private async Task RicaricaAsync()
+    {
+        try { _stato = await RenderService.StatoTraduzioniAsync(InvioId, AziendaId); }
+        catch (Exception ex) { Snackbar.Add($"Stato traduzioni non letto: {ex.Message}", Severity.Error); }
+    }
+
+    private async Task Traduci()
+    {
+        _inCorso = true;
+        _avanzamento = "Raccolta dei testi…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var items = await Orchestrator.GetTranslatableNewsletterItemsAsync(InvioId, AziendaId);
+            if (items.Count == 0)
+            {
+                Snackbar.Add("Non c'è nulla da tradurre: i blocchi non hanno testi.", Severity.Info);
+                return;
+            }
+
+            var progress = new Progress<string>(t => { _avanzamento = t; InvokeAsync(StateHasChanged); });
+            var (ok, errori, markup, saltate) = await Orchestrator.TranslateAsync(
+                AziendaId, items, WebTraduzioneOrchestratorService.Lingue, progress);
+
+            await RicaricaAsync();
+            await OnTradotto.InvokeAsync();
+
+            var msg = $"Tradotti {ok} testi";
+            if (saltate > 0) msg += $", {saltate} già a posto";
+            if (errori > 0) msg += $", {errori} non riusciti";
+            Snackbar.Add(msg + ".", errori > 0 ? Severity.Warning : Severity.Success);
+
+            if (markup > 0)
+                Snackbar.Add($"{markup} testi con formattazione da ricontrollare: la traduzione c'è, ma i tag potrebbero essere cambiati.", Severity.Warning);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _inCorso = false; _avanzamento = ""; }
+    }
+
+    private static Color Colore(NewsletterRenderService.StatoTraduzione s) =>
+        s.DaRifare ? Color.Warning : s.Completa ? Color.Success : s.Tradotti > 0 ? Color.Info : Color.Default;
+
+    private static string Icona(NewsletterRenderService.StatoTraduzione s) =>
+        s.DaRifare ? Icons.Material.Filled.Update
+        : s.Completa ? Icons.Material.Filled.CheckCircle
+        : Icons.Material.Filled.RadioButtonUnchecked;
+
+    private static string Spiega(NewsletterRenderService.StatoTraduzione s)
+    {
+        if (s.Traducibili == 0) return "Non c'è testo da tradurre.";
+        if (s.DaRifare) return $"{s.Obsoleti} testi sono cambiati in italiano dopo la traduzione: per quei campi parte l'italiano.";
+        if (s.Completa) return "Tutti i testi sono tradotti.";
+        if (s.Tradotti == 0) return "Nessun testo tradotto: chi ha questa lingua riceverà l'italiano.";
+        return $"{s.Mancanti} testi non tradotti: quei campi partiranno in italiano.";
+    }
+}

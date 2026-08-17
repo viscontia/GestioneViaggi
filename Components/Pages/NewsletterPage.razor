@@ -241,6 +241,10 @@ else
             @* A chi va: criteri, conteggio spaccato ed elenco stanno nel pannello, che e' anche
                l'unico posto da cui si tocca la selezione. Il conteggio torna qui perche' governa
                l'abilitazione del pulsante di invio. *@
+            <NewsletterTraduzioniPanel InvioId="@_invioCorrente!.Id" AziendaId="@_aziendaId"
+                                       Disabilitato="@(_busy || !_invioCorrente!.IsBozza)"
+                                       Class="mt-3" />
+
             <NewsletterDestinatariPanel InvioId="@_invioCorrente!.Id" AziendaId="@_aziendaId"
                                         IsSuperAdmin="@_isSuperAdmin"
                                         Disabilitato="@(_busy || !_invioCorrente!.IsBozza)"
@@ -1132,6 +1136,25 @@ else
             var dlg = await DialogService.ShowAsync<DeleteConfirmationDialog>("Logo mancante", parameters,
                 new DialogOptions { BackdropClick = false });
             if ((await dlg.Result)!.Canceled) return false;
+        }
+
+        // Traduzioni: si AVVISA e basta. Spedire in italiano a un tedesco e' peggio del silenzio,
+        // ma bloccare l'invio per una traduzione mancante e' peggio ancora — e la lingua di un
+        // destinatario si puo' sempre correggere dopo, il momento di spedire no.
+        if (_invioCorrente != null && invioReale)
+        {
+            try
+            {
+                var stato = await RenderService.StatoTraduzioniAsync(_invioCorrente.Id, _aziendaId);
+                var incomplete = stato.Where(x => x.Traducibili > 0 && !x.Completa).ToList();
+                if (incomplete.Count > 0)
+                {
+                    var elenco = string.Join(", ", incomplete.Select(x => $"{x.Lingua} {x.Tradotti}/{x.Traducibili}"));
+                    Snackbar.Add($"Traduzioni incomplete ({elenco}): i testi non tradotti partiranno in italiano.",
+                                 Severity.Warning);
+                }
+            }
+            catch (Exception ex) { Logger.LogWarning(ex, "Stato traduzioni non letto prima dell'invio"); }
         }
 
         // Collegamenti ai tour ancora vivi. E' l'ultimo momento utile: dopo l'invio un link

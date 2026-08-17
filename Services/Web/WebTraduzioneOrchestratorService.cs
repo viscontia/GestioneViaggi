@@ -26,6 +26,8 @@ public sealed class WebTraduzioneOrchestratorService
     private readonly WebTourItinerarioPassaggiService _passi;
     private readonly WebTourMappaService _mappe;
     private readonly WebAiConsumoService _consumi;
+    private readonly WebNewsletterBlocchiService _blocchi;
+    private readonly WebNewsletterInviiService _invii;
     private readonly ClaudeOptions _claudeOptions;
     private readonly GestioneViaggi.Services.CRUD.AnaViaggiService _viaggi;
     private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
@@ -35,6 +37,7 @@ public sealed class WebTraduzioneOrchestratorService
         IDatabaseService db, ClaudeTranslationClient claude, WebTraduzioniService traduzioni,
         WebTourContenutiService contenuti, WebTourItinerarioService itinerario, WebTourItinerarioPassaggiService passi,
         WebTourMappaService mappe, WebAiConsumoService consumi, ClaudeOptions claudeOptions,
+        WebNewsletterBlocchiService blocchi, WebNewsletterInviiService invii,
         GestioneViaggi.Services.CRUD.AnaViaggiService viaggi,
         GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
         ILogger<WebTraduzioneOrchestratorService> logger)
@@ -42,6 +45,7 @@ public sealed class WebTraduzioneOrchestratorService
         _db = db; _claude = claude; _traduzioni = traduzioni;
         _contenuti = contenuti; _itinerario = itinerario; _passi = passi; _mappe = mappe;
         _consumi = consumi; _claudeOptions = claudeOptions;
+        _blocchi = blocchi; _invii = invii;
         _viaggi = viaggi; _secretKey = secretKey; _logger = logger;
     }
 
@@ -156,6 +160,57 @@ public sealed class WebTraduzioneOrchestratorService
     }
 
     // ---- Traduzione -----------------------------------------------------------
+
+    /// <summary>
+    /// Campi traducibili di una <b>newsletter</b>: l'oggetto e i testi scritti dall'utente sui blocchi.
+    /// </summary>
+    /// <remarks>
+    /// Non entra tutto ciò che è testo, e le esclusioni non sono arbitrarie:
+    /// <list type="bullet">
+    ///   <item>il <b>sottotitolo di un riquadro tour</b> è il periodo («Dal 2 al 7 maggio 2026»),
+    ///   generato dalle date della partenza. Archiviarne una traduzione fotografa un valore che
+    ///   cambierà: spostata la partenza, l'italiano si aggiorna e il tedesco resta indietro senza
+    ///   che nessuno se ne accorga. Va rigenerato per lingua, non tradotto;</item>
+    ///   <item>le etichette che mette il <b>programma</b> (disiscrizione, «Scopri di più») sono
+    ///   localizzate nel codice: non hanno un originale scritto da qualcuno, e metterle qui
+    ///   significherebbe farle rileggere a ogni newsletter.</item>
+    /// </list>
+    /// L'etichetta di ogni item porta il numero del blocco, perché è così che l'utente lo ritrova
+    /// nella composizione: «Blocco 3 — Titolo» si cerca, «Titolo» no.
+    /// </remarks>
+    public async Task<List<TranslatableItem>> GetTranslatableNewsletterItemsAsync(long invioId, int aziendaId)
+    {
+        var items = new List<TranslatableItem>();
+
+        var invio = await _invii.GetByIdAsync(invioId, aziendaId);
+        if (invio != null && !string.IsNullOrWhiteSpace(invio.Oggetto))
+        {
+            items.Add(new TranslatableItem("web_newsletter_invii", invioId, "oggetto",
+                                           "Oggetto della newsletter", invio.Oggetto));
+        }
+
+        var blocchi = await _blocchi.ListAsync(invioId, aziendaId);
+        var n = 0;
+        foreach (var b in blocchi.OrderBy(x => x.Ordine))
+        {
+            n++;
+            var numero = n;
+            void Add(string campo, string label, string? val)
+            {
+                if (!string.IsNullOrWhiteSpace(val))
+                    items.Add(new TranslatableItem("web_newsletter_blocchi", b.WebNewsletterBloccoId,
+                                                   campo, $"Blocco {numero} — {label}", val!));
+            }
+
+            Add("titolo", "Titolo", b.Titolo);
+            if (b.Tipo != "tour") Add("sottotitolo", "Sottotitolo", b.Sottotitolo);
+            Add("corpo_html", "Testo", b.CorpoHtml);
+            Add("link_etichetta", "Testo del pulsante", b.LinkEtichetta);
+            Add("immagine_alt", "Testo alternativo dell'immagine", b.ImmagineAlt);
+        }
+
+        return items;
+    }
 
     /// <summary>Traduce gli item nelle lingue indicate e li salva (upsert). Ritorna (ok, errori).</summary>
     /// <remarks>

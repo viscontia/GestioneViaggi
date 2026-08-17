@@ -296,13 +296,14 @@ public sealed class NewsletterSenderService
 
         foreach (var rec in recipients)
         {
-            // La lingua del destinatario governa per ora i soli testi del programma — in
-            // particolare la frase di disiscrizione, che e' un obbligo di legge e finora partiva
-            // in italiano verso tutti.
             var html = NewsletterRenderService.Render(ctx, rec.Email, rec.Lingua);
 
+            // L'oggetto segue il corpo: un testo tradotto sotto un oggetto italiano si riconosce
+            // come posta indesiderata prima ancora di essere aperto.
+            var oggettoLingua = NewsletterRenderService.Oggetto(ctx, oggetto, rec.Lingua);
+
             bool sent;
-            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggetto, html, ctx.Azienda.RagioneSociale); }
+            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggettoLingua, html, ctx.Azienda.RagioneSociale); }
             catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
             if (sent) ok++; else err++;
 
@@ -311,10 +312,11 @@ public sealed class NewsletterSenderService
                 await _destinatariService.CreateAsync(new WebNewsletterInvioDestinatario
                 {
                     AziendaId = aziendaId, InvioIdFk = invioId, Email = rec.Email,
-                    // Resta "IT" di proposito: il registro dice in che lingua e' la NEWSLETTER, e
-                    // i contenuti sono ancora italiani. Diventera' rec.Lingua con la traduzione
-                    // per campo — scriverlo adesso sarebbe una dichiarazione falsa.
-                    Lingua = "IT", StatoConsegna = sent ? "inviato" : "errore", Data = DateTime.UtcNow
+                    // La lingua con cui la mail e' stata composta. Dove una traduzione manca il
+                    // singolo campo ricade sull'italiano, quindi il registro dice la lingua
+                    // RICHIESTA, non una garanzia di completezza: quella si verifica prima di
+                    // spedire, con lo stato delle traduzioni.
+                    Lingua = rec.Lingua, StatoConsegna = sent ? "inviato" : "errore", Data = DateTime.UtcNow
                 });
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Log destinatario {Email} fallito", rec.Email); }
@@ -325,6 +327,9 @@ public sealed class NewsletterSenderService
         // corpo_html conserva l'istantanea di cio' che e' partito (con un indirizzo generico nel
         // link di disiscrizione: le firme per-destinatario non hanno senso nello storico).
         invio.Stato = "inviata";
+        // ⚠️ Una colonna sola: conserva la versione ITALIANA. Con l'invio multilingua serve
+        // l'archivio per lingua (fase 4.4), altrimenti di cio' che ha ricevuto il destinatario
+        // tedesco non resta traccia.
         invio.CorpoHtml = NewsletterRenderService.Render(ctx, "archivio@storico");
         invio.NumeroDestinatari = recipients.Count;
         invio.DataInvio = DateTime.UtcNow;

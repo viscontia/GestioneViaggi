@@ -1,6 +1,6 @@
 # Fase 4 — Traduzione della newsletter · analisi
 
-*Analisi preliminare, prima di scrivere codice. Nessuna implementazione decisa.*
+*Analisi preliminare. **4.1 e 4.2 realizzati** (script 531); 4.3–4.5 da fare.*
 
 ---
 
@@ -201,8 +201,8 @@ Perché sia usabile e non un obbligo, serve poco ma preciso:
 
 | # | Contenuto | Perché in quest'ordine |
 |---|---|---|
-| **4.1** | Localizzazione dei testi **del programma**: piè di pagina, disiscrizione, etichette di riserva, nomi dei mesi | Nessun database, nessuna IA. Da solo elimina l'italiano dalle parti fisse della mail spedita a stranieri |
-| **4.2** | Traduzione per campo dei blocchi (categoria 1) + risoluzione al rendering + fallback IT | Il cuore |
+| **4.1** ✅ | Localizzazione dei testi **del programma**: piè di pagina, disiscrizione, etichette di riserva, nomi dei mesi | Nessun database, nessuna IA. Da solo elimina l'italiano dalle parti fisse della mail spedita a stranieri |
+| **4.2** ✅ | Traduzione per campo dei blocchi (categoria 1) + risoluzione al rendering + fallback IT | Il cuore |
 | **4.3** | Riquadro tour: riuso delle traduzioni del tour, e rilevamento dei campi riscritti a mano | Dipende dal 4.2 ma è separabile |
 | **4.4** | Ciclo di vita: obsolescenza alla modifica, clonazione, **archivio per lingua** all'invio | Va fatto prima di spedire davvero in multilingua |
 | **4.5** | Interfaccia: stato per lingua, «traduci mancanti», anteprima per lingua, avviso pre-invio | Ultimo: prima si stabilizza il modello |

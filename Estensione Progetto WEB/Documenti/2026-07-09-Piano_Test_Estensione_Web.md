@@ -976,3 +976,25 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 | 43.10 | **Mappa GPX** | Carica un `.gpx` | Funziona come prima |
 | 43.11 | Mappa GPX | Rinomina un `.txt` in `.gpx`… anzi: carica un file **non** `.gpx` trascinandolo | Rifiutato lato applicazione, non solo dal filtro del browser |
 | 43.12 | Tutte | Riseleziona **lo stesso file** appena caricato | Riparte il caricamento (senza `ClearAsync` il controllo sembrerebbe non funzionare più) |
+
+---
+
+## 44. Traduzione della newsletter (fasi 4.1 e 4.2, script `531`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 44.1 | Apri una newsletter in bozza | Riquadro **Lingue** con EN/DE/ES/FR e il conteggio `0/N` |
+| 44.2 | **Traduci quello che manca** | Avanzamento testo per testo; a fine i quattro contatori vanno a `N/N` |
+| 44.3 | Rilancia subito la traduzione | Dice «già a posto»: non ritraduce, così non butta via la revisione |
+| 44.4 | **Invio di prova** a un indirizzo con lingua diversa da IT | La mail arriva con **oggetto e testi** in quella lingua |
+| 44.5 | Modifica il **titolo** di un blocco già tradotto → guarda il riquadro Lingue | Compare l'avviso «testi cambiati dopo la traduzione»; quel campo torna in **italiano** nella mail, gli altri restano tradotti |
+| 44.6 | Ritraduci | L'avviso sparisce, il contatore torna pieno |
+| 44.7 | Newsletter **senza** traduzioni → **Invia a tutti** | Avviso non bloccante: «Traduzioni incomplete (EN 0/18, …)»; l'invio **procede** |
+| 44.8 | Registro dei destinatari dopo l'invio | La colonna lingua riporta la lingua di ciascun destinatario, non più «IT» per tutti |
+| 44.9 | Riquadro **tour**: guarda i campi tradotti | Il **periodo** («Dal 2 al 7 maggio 2026») **non** compare fra i traducibili: è generato |
+| 44.10 | Newsletter **già inviata** | Il riquadro Lingue è in sola lettura: non si ritraduce ciò che è partito |
+
+> Verificato sul database in transazioni annullate: copertura 18 campi traducibili; tradotti
+> oggetto + due campi in DE → `DE 3/18`, le altre lingue a zero; modificato il titolo tradotto →
+> la traduzione diventa obsoleta e **sparisce dalla lettura di rendering**, quindi si ricade
+> sull'italiano.

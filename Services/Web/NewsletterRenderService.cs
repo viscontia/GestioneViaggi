@@ -206,11 +206,20 @@ public sealed class NewsletterRenderService
     /// questo contesto, una campagna da 400 destinatari rileggerebbe blocchi, azienda, logo e
     /// configurazione footer 400 volte.
     /// </summary>
+    /// <param name="Traduzioni">
+    /// Traduzioni valide della newsletter, per lingua: <c>lingua → (id entità, campo) → testo</c>.
+    /// Si caricano <b>una volta sola</b> perché lo stesso contesto serve destinatari di lingue
+    /// diverse — leggerle per destinatario significherebbe una query per ogni mail.
+    /// Le obsolete non ci sono: le esclude già la function, e una traduzione obsoleta è peggio di
+    /// nessuna traduzione perché sembra giusta.
+    /// </param>
     public sealed record ContestoRender(
         List<Models.Web.WebNewsletterBlocco> Blocchi,
         NewsletterRenderAzienda Azienda,
         NewsletterFooterConfig Footer,
-        string? Token);
+        string? Token,
+        long InvioId,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>> Traduzioni);
 
     public async Task<ContestoRender> PreparaAsync(long invioId, int aziendaId)
     {
@@ -247,7 +256,8 @@ public sealed class NewsletterRenderService
         var azienda = await GetDatiAziendaAsync(aziendaId, logoUrl);
         var footer = await GetFooterConfigAsync(aziendaId);
         var token = await GetTokenIscrizioneAsync(aziendaId);
-        return new ContestoRender(blocchi, azienda, footer, token);
+        return new ContestoRender(blocchi, azienda, footer, token, invioId,
+                                  await CaricaTraduzioniAsync(invioId, aziendaId));
     }
 
     /// <summary>HTML per un singolo destinatario, dal contesto gia' preparato.</summary>
@@ -260,17 +270,24 @@ public sealed class NewsletterRenderService
     {
         var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Token);
 
+        // Fallback CAMPO PER CAMPO, non per newsletter: se manca solo la traduzione di un titolo,
+        // il resto resta tradotto e quel titolo torna in italiano. Fermarsi all'italiano per tutto
+        // butterebbe via il lavoro fatto sugli altri campi.
+        var tr = Tabella(ctx, lingua);
+        string? T(long id, string campo, string? originale) =>
+            tr.TryGetValue((id, campo), out var t) ? t : originale;
+
         var render = ctx.Blocchi.Select(b => new NewsletterRenderBlocco(
             Tipo: b.Tipo,
             Layout: b.Layout,
             Colonne: b.Colonne,
-            Titolo: b.Titolo,
-            Sottotitolo: b.Sottotitolo,
-            CorpoHtml: b.CorpoHtml,
+            Titolo: T(b.WebNewsletterBloccoId, "titolo", b.Titolo),
+            Sottotitolo: T(b.WebNewsletterBloccoId, "sottotitolo", b.Sottotitolo),
+            CorpoHtml: T(b.WebNewsletterBloccoId, "corpo_html", b.CorpoHtml),
             ImmagineUrl: b.ImmagineUrl,
-            ImmagineAlt: b.ImmagineAlt,
+            ImmagineAlt: T(b.WebNewsletterBloccoId, "immagine_alt", b.ImmagineAlt),
             LinkUrl: b.LinkUrl,
-            LinkEtichetta: b.LinkEtichetta,
+            LinkEtichetta: T(b.WebNewsletterBloccoId, "link_etichetta", b.LinkEtichetta),
             Social: b.Social,
             IconaUrl: b.IconaUrl,
             LayoutPulsante: b.LayoutPulsante,
@@ -280,6 +297,21 @@ public sealed class NewsletterRenderService
         return NewsletterHtmlRenderer.Render(render, ctx.Azienda, ctx.Footer, unsub, lingua);
     }
 
+    private static IReadOnlyDictionary<(long Id, string Campo), string> Tabella(ContestoRender ctx, string lingua)
+        => ctx.Traduzioni.TryGetValue((lingua ?? "IT").Trim().ToUpperInvariant(), out var t)
+            ? t
+            : new Dictionary<(long, string), string>();
+
+    /// <summary>
+    /// Oggetto della mail nella lingua del destinatario, o quello italiano se non è tradotto.
+    /// </summary>
+    /// <remarks>
+    /// È la prima riga che il destinatario legge nella posta in arrivo: un corpo tradotto sotto un
+    /// oggetto italiano si riconosce come posta indesiderata prima ancora di essere aperto.
+    /// </remarks>
+    public static string Oggetto(ContestoRender ctx, string oggettoItaliano, string lingua)
+        => Tabella(ctx, lingua).TryGetValue((ctx.InvioId, "oggetto"), out var t) ? t : oggettoItaliano;
+
     /// <summary>
     /// HTML completo di una newsletter. <paramref name="emailDestinatario"/> serve solo a firmare
     /// il link di disiscrizione: in anteprima si passa un indirizzo di esempio.
@@ -287,6 +319,72 @@ public sealed class NewsletterRenderService
     public async Task<string> RenderAsync(long invioId, int aziendaId, string emailDestinatario,
                                           string lingua = "IT")
         => Render(await PreparaAsync(invioId, aziendaId), emailDestinatario, lingua);
+
+    /// <summary>
+    /// Quanto è tradotta una newsletter, lingua per lingua.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="Traducibili"/> conta i campi <b>compilati</b>: un titolo vuoto non è una
+    /// traduzione mancante, e contarlo farebbe apparire incompleta una newsletter completa.
+    /// </remarks>
+    public sealed record StatoTraduzione(string Lingua, int Traducibili, int Tradotti, int Obsoleti, int Mancanti)
+    {
+        public bool Completa => Traducibili > 0 && Tradotti == Traducibili;
+        public bool DaRifare => Obsoleti > 0;
+    }
+
+    /// <summary>Copertura delle traduzioni, per la composizione e per l'avviso prima di spedire.</summary>
+    public async Task<List<StatoTraduzione>> StatoTraduzioniAsync(long invioId, int aziendaId)
+    {
+        var list = new List<StatoTraduzione>();
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT lingua, traducibili, tradotti, obsoleti, mancanti FROM fn_web_newsletter_traduzioni_stato(@Invio::bigint, @Az::integer)", conn);
+        cmd.Parameters.AddWithValue("Invio", invioId);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        await using var r = await cmd.ExecuteReaderAsync();
+        while (await r.ReadAsync())
+            list.Add(new StatoTraduzione(r.GetString(0).Trim(), r.GetInt32(1), r.GetInt32(2), r.GetInt32(3), r.GetInt32(4)));
+        return list;
+    }
+
+    /// <summary>
+    /// Traduzioni valide della newsletter, tutte le lingue in una lettura sola.
+    /// </summary>
+    /// <remarks>
+    /// Se la lettura fallisce non si interrompe l'invio: si torna a una tabella vuota e la mail
+    /// parte in italiano. Una newsletter spedita in italiano è un difetto; una newsletter non
+    /// spedita per un errore sulle traduzioni è un danno.
+    /// </remarks>
+    private async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>>>
+        CaricaTraduzioniAsync(long invioId, int aziendaId)
+    {
+        var perLingua = new Dictionary<string, Dictionary<(long, string), string>>();
+        try
+        {
+            await using var conn = await _db.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT lingua, entita_id, campo, testo FROM fn_web_newsletter_traduzioni(@Invio::bigint, @Az::integer)", conn);
+            cmd.Parameters.AddWithValue("Invio", invioId);
+            cmd.Parameters.AddWithValue("Az", aziendaId);
+            await using var r = await cmd.ExecuteReaderAsync();
+            while (await r.ReadAsync())
+            {
+                var lingua = r.GetString(0).Trim().ToUpperInvariant();
+                if (!perLingua.TryGetValue(lingua, out var tab))
+                    perLingua[lingua] = tab = new Dictionary<(long, string), string>();
+                tab[(r.GetInt64(1), r.GetString(2))] = r.GetString(3);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Traduzioni della newsletter {Invio} non caricate: si compone in italiano", invioId);
+        }
+
+        return perLingua.ToDictionary(
+            kv => kv.Key,
+            kv => (IReadOnlyDictionary<(long Id, string Campo), string>)kv.Value);
+    }
 
     /// <summary>Una newsletter inviata e' immutabile: nessuna risoluzione dalla rubrica.</summary>
     private async Task<bool> IsInviataAsync(long invioId, int aziendaId)
