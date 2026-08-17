@@ -957,7 +957,12 @@ else
         // altrimenti resterebbe un velo di attesa dietro l'anteprima.
         await InvokeAsync(StateHasChanged);
 
-        var parameters = new DialogParameters<NewsletterAnteprimaDialog> { { x => x.Html, html } };
+        var parameters = new DialogParameters<NewsletterAnteprimaDialog>
+        {
+            { x => x.Html, html },
+            { x => x.InvioId, invioId },
+            { x => x.AziendaId, _aziendaId }
+        };
         await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
     }

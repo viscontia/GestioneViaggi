@@ -1016,3 +1016,17 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 > Verificato in transazione annullata: blocco con 2 traduzioni valide + 1 obsoleta → la copia (16
 > blocchi) riceve **solo le 2 valide**, con `revisionato` preservato.
+
+---
+
+## 46. Anteprima nella lingua del destinatario (fase 4.5, prima parte)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 46.1 | Apri l'**Anteprima** di una newsletter | In cima, le cinque lingue. L'italiano è selezionato |
+| 46.2 | Guarda le etichette delle lingue | Ognuna riporta la copertura (`DE 18/18`, `FR 0/18`): non si può credere tradotta una lingua che non lo è |
+| 46.3 | Clicca **DE** | Ricompone e mostra la versione tedesca: torna il velo di attesa finché le immagini non sono pronte |
+| 46.4 | Con DE selezionato | Compare l'avviso «I testi non tradotti restano in italiano» |
+| 46.5 | Lingua **non tradotta** (es. FR 0/18) | L'anteprima si vede lo stesso, tutta in italiano **tranne** disiscrizione ed etichette dei pulsanti, che sono in francese |
+| 46.6 | Torna su **IT** | Ricompone l'originale |
+| 46.7 | Clicca ripetutamente fra due lingue | Nessun accavallamento: mentre ricompone i pulsanti sono disabilitati |

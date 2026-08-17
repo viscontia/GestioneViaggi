@@ -1,6 +1,9 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
+@using GestioneViaggi.Services.Web
 @inject IJSRuntime JS
+@inject NewsletterRenderService RenderService
+@inject ISnackbar Snackbar
 
 @* Anteprima della newsletter: l'HTML vero, dentro un iframe.
    L'iframe non e' un vezzo — serve a ISOLARE gli stili della newsletter da quelli
@@ -10,13 +13,37 @@
 
 <MudDialog>
     <DialogContent>
-        <div class="d-flex align-center gap-2 mb-2">
+        <div class="d-flex align-center gap-2 mb-2 flex-wrap">
             <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" />
             <MudText Typo="Typo.body2">
                 È il rendering reale, lo stesso che verrà spedito. Le immagini si vedono solo se
                 l'indirizzo è pubblicamente raggiungibile.
             </MudText>
         </div>
+
+        @* Anteprima nella lingua del destinatario. Senza, per vedere la versione tedesca
+           bisognava spedire una prova a un indirizzo il cui CLIENTE ha lingua DE — la lingua
+           viene dall'anagrafica, non si sceglie. *@
+        @if (InvioId > 0)
+        {
+            <div class="d-flex align-center gap-2 mb-2 flex-wrap">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Vedila in:</MudText>
+                @foreach (var l in Lingue)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="@(l == _lingua ? Variant.Filled : Variant.Outlined)"
+                             Color="@(l == _lingua ? Color.Primary : Color.Default)"
+                             OnClick="@(() => CambiaLingua(l))" Disabled="@_cambiando">
+                        @l@Copertura(l)
+                    </MudChip>
+                }
+                @if (_lingua != "IT")
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        I testi non tradotti restano in italiano.
+                    </MudText>
+                }
+            </div>
+        }
 
         <div style="position:relative;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
             @* Velo di attesa: copre l'anteprima finche' le immagini non sono caricate e
@@ -49,35 +76,85 @@
 @code {
     [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
 
+    /// <summary>HTML già composto: è la prima cosa che si vede, senza attendere una lettura.</summary>
     [Parameter] public string Html { get; set; } = string.Empty;
 
+    /// <summary>Newsletter da ricomporre quando si cambia lingua. 0 = nessun selettore.</summary>
+    [Parameter] public long InvioId { get; set; }
+    [Parameter] public int AziendaId { get; set; }
+
+    private static readonly string[] Lingue = { "IT", "EN", "DE", "ES", "FR" };
+
     private ElementReference _iframe;
-    private bool _scritto;
     private bool _pronta;
+    private bool _cambiando;
+    private string _lingua = "IT";
+    private string _htmlCorrente = string.Empty;
+    private bool _daScrivere = true;
+    private List<NewsletterRenderService.StatoTraduzione> _stato = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _htmlCorrente = Html;
+
+        // Un'eccezione qui congelerebbe l'intera interfaccia: senza lo stato si mostrano le
+        // lingue senza i contatori, che e' una perdita accettabile.
+        if (InvioId > 0)
+        {
+            try { _stato = await RenderService.StatoTraduzioniAsync(InvioId, AziendaId); }
+            catch { _stato = new(); }
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!_daScrivere || string.IsNullOrEmpty(_htmlCorrente)) return;
+        _daScrivere = false;
+
         // Al primo render l'iframe esiste ma il suo documento puo' non essere ancora pronto:
         // un piccolo ritardo evita l'anteprima vuota al primo colpo.
-        if (firstRender && !_scritto && !string.IsNullOrEmpty(Html))
+        if (firstRender) await Task.Delay(80);
+
+        try
         {
-            await Task.Delay(80);
-            try
-            {
-                // La chiamata torna solo quando le immagini sono caricate (o dopo il timeout
-                // di sicurezza): e' quello che tiene su il velo di attesa.
-                _scritto = await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, Html, 10000);
-            }
-            catch (Exception)
-            {
-                _scritto = false;
-            }
-            finally
-            {
-                _pronta = true;
-            }
-            StateHasChanged();
+            // La chiamata torna solo quando le immagini sono caricate (o dopo il timeout
+            // di sicurezza): e' quello che tiene su il velo di attesa.
+            await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, _htmlCorrente, 10000);
         }
+        catch (Exception) { /* l'anteprima resta vuota: il velo si toglie comunque */ }
+        finally { _pronta = true; }
+
+        StateHasChanged();
+    }
+
+    private async Task CambiaLingua(string lingua)
+    {
+        if (lingua == _lingua || _cambiando) return;
+
+        _cambiando = true;
+        _pronta = false;              // rimette il velo: la ricomposizione rilegge dal database
+        _lingua = lingua;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            _htmlCorrente = await RenderService.RenderAsync(InvioId, AziendaId, "anteprima@esempio.it", lingua);
+            _daScrivere = true;       // fa riscrivere l'iframe al prossimo render
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Anteprima in {lingua} non composta: {ex.Message}", Severity.Error);
+            _pronta = true;
+        }
+        finally { _cambiando = false; }
+    }
+
+    /// <summary>Copertura della lingua, per non far credere tradotto ciò che non lo è.</summary>
+    private string Copertura(string lingua)
+    {
+        if (lingua == "IT") return "";
+        var s = _stato.FirstOrDefault(x => x.Lingua == lingua);
+        return s is null || s.Traducibili == 0 ? "" : $" {s.Tradotti}/{s.Traducibili}";
     }
 
     private void Chiudi() => MudDialog?.Close();
