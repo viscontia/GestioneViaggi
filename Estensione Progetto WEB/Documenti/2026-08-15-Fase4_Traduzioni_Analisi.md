@@ -1,6 +1,6 @@
 # Fase 4 — Traduzione della newsletter · analisi
 
-*Analisi preliminare. **4.1 e 4.2 realizzati** (script 531); 4.3–4.5 da fare.*
+*Analisi preliminare. **4.1, 4.2 e 4.4 realizzati** (script 531–532); restano 4.3 (riquadro tour) e 4.5 (interfaccia).*
 
 ---
 
@@ -204,7 +204,7 @@ Perché sia usabile e non un obbligo, serve poco ma preciso:
 | **4.1** ✅ | Localizzazione dei testi **del programma**: piè di pagina, disiscrizione, etichette di riserva, nomi dei mesi | Nessun database, nessuna IA. Da solo elimina l'italiano dalle parti fisse della mail spedita a stranieri |
 | **4.2** ✅ | Traduzione per campo dei blocchi (categoria 1) + risoluzione al rendering + fallback IT | Il cuore |
 | **4.3** | Riquadro tour: riuso delle traduzioni del tour, e rilevamento dei campi riscritti a mano | Dipende dal 4.2 ma è separabile |
-| **4.4** | Ciclo di vita: obsolescenza alla modifica, clonazione, **archivio per lingua** all'invio | Va fatto prima di spedire davvero in multilingua |
+| **4.4** ✅ | Ciclo di vita: obsolescenza alla modifica, clonazione, **archivio per lingua** all'invio | Va fatto prima di spedire davvero in multilingua |
 | **4.5** | Interfaccia: stato per lingua, «traduci mancanti», anteprima per lingua, avviso pre-invio | Ultimo: prima si stabilizza il modello |
 
 **Il 4.1 è indipendente da tutto e si può fare subito.**
@@ -228,8 +228,7 @@ Perché sia usabile e non un obbligo, serve poco ma preciso:
 
 1. ~~Gli URL del sito avranno la lingua?~~ **Chiuso il 15/08/2026: sì, indirizzi separati.** Resta
    da concordare la *forma* dell'indirizzo con chi costruisce il sito (§5).
-2. **Clonando un modello, le traduzioni si copiano?** (§6b) — io direi sì per i modelli.
-3. **Si archivia il corpo per lingua all'invio?** (§6c) — io direi sì: è la stessa logica per cui
-   una newsletter inviata non si modifica.
+2. ~~Clonando un modello, le traduzioni si copiano?~~ **Chiuso: sì**, e per ogni clonazione, non solo per i modelli. Le obsolete restano fuori: sono già disallineate dall'italiano.
+3. ~~Si archivia il corpo per lingua all'invio?~~ **Chiuso: sì**, tabella `web_newsletter_invii_corpi`, una riga per lingua usata con oggetto, corpo e numero di destinatari.
 4. **Il titolo del riquadro tour si traduce o si riusa dal tour?** (§4) — dipende se l'utente l'ha
    riscritto, e quel dato oggi non lo abbiamo.

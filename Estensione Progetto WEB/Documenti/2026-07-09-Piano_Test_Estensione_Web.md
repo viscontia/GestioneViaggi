@@ -998,3 +998,21 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 > oggetto + due campi in DE → `DE 3/18`, le altre lingue a zero; modificato il titolo tradotto →
 > la traduzione diventa obsoleta e **sparisce dalla lettura di rendering**, quindi si ricade
 > sull'italiano.
+
+---
+
+## 45. Archivio per lingua e clonazione delle traduzioni (fase 4.4, script `532`)
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 45.1 | Traduci una newsletter, poi **Invia a tutti** con destinatari di lingue diverse | In `web_newsletter_invii_corpi` c'è **una riga per lingua usata**, con oggetto, corpo e numero di destinatari |
+| 45.2 | Confronta il corpo archiviato in DE con la mail ricevuta da un destinatario tedesco | Stesso testo. Cambia solo il collegamento di disiscrizione, che nell'archivio è generico |
+| 45.3 | Invio a destinatari **tutti italiani** | Una riga sola, `IT` |
+| 45.4 | **Clona** una newsletter con traduzioni | La copia nasce **già tradotta**: il riquadro Lingue mostra gli stessi contatori |
+| 45.5 | Nella newsletter d'origine rendi obsoleta una traduzione (modifica il testo italiano), poi clona | Quella traduzione **non** viene copiata: era già disallineata |
+| 45.6 | Nella copia, controlla una traduzione che nell'originale era **revisionata** | Risulta ancora revisionata: il testo è identico, riapprovarlo sarebbe lavoro inutile |
+| 45.7 | Clona e verifica l'**oggetto** | La copia ha l'oggetto nuovo che hai scritto, **senza** traduzioni ereditate |
+| 45.8 | Crea da **modello** con blocchi agganciati a una partenza | Traduzioni copiate **e** riaggancio della partenza: le due cose non si escludono |
+
+> Verificato in transazione annullata: blocco con 2 traduzioni valide + 1 obsoleta → la copia (16
+> blocchi) riceve **solo le 2 valide**, con `revisionato` preservato.

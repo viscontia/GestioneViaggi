@@ -91,6 +91,22 @@ public sealed class NewsletterSenderService
         return list;
     }
 
+    /// <summary>Conserva cio' che e' partito in una lingua. Vedi <c>web_newsletter_invii_corpi</c>.</summary>
+    private async Task ArchiviaCorpoAsync(int aziendaId, long invioId, string lingua,
+                                          string oggetto, string corpo, int destinatari)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT fn_web_newsletter_corpo_archivia(@Invio::bigint, @Az::integer, @Lingua::varchar, @Ogg::varchar, @Corpo::text, @N::integer)", conn);
+        cmd.Parameters.AddWithValue("Invio", invioId);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Lingua", lingua);
+        cmd.Parameters.AddWithValue("Ogg", oggetto);
+        cmd.Parameters.AddWithValue("Corpo", corpo);
+        cmd.Parameters.AddWithValue("N", destinatari);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     /// <summary>Dati azienda + logo per il template email brandizzato (caricati una volta per campagna).</summary>
     private sealed record NlBranding(string Nome, string? Sito, string? Token, string? Telefono, string? LogoBase64, string? LogoMime);
 
@@ -327,9 +343,29 @@ public sealed class NewsletterSenderService
         // corpo_html conserva l'istantanea di cio' che e' partito (con un indirizzo generico nel
         // link di disiscrizione: le firme per-destinatario non hanno senso nello storico).
         invio.Stato = "inviata";
-        // ⚠️ Una colonna sola: conserva la versione ITALIANA. Con l'invio multilingua serve
-        // l'archivio per lingua (fase 4.4), altrimenti di cio' che ha ricevuto il destinatario
-        // tedesco non resta traccia.
+        // Archivio per lingua: una riga per ogni lingua effettivamente usata. Una newsletter
+        // inviata e' la prova documentale di cosa e' stato mandato e a chi — se il registro dei
+        // destinatari dice "DE" e l'archivio ha solo l'italiano, la prova non c'e' piu'.
+        // Si rende con un indirizzo generico: le firme per-destinatario nel link di disiscrizione
+        // non hanno senso nello storico.
+        foreach (var gruppo in recipients.GroupBy(r => r.Lingua))
+        {
+            try
+            {
+                await ArchiviaCorpoAsync(
+                    aziendaId, invioId, gruppo.Key,
+                    NewsletterRenderService.Oggetto(ctx, oggetto, gruppo.Key),
+                    NewsletterRenderService.Render(ctx, "archivio@storico", gruppo.Key),
+                    gruppo.Count());
+            }
+            catch (Exception ex)
+            {
+                // L'archivio non deve far fallire un invio gia' avvenuto: le mail sono partite.
+                _logger.LogError(ex, "Archivio del corpo {Lingua} non scritto per l'invio {Invio}", gruppo.Key, invioId);
+            }
+        }
+
+        // Resta anche qui, in italiano: e' cio' che lo Storico mostra da sempre.
         invio.CorpoHtml = NewsletterRenderService.Render(ctx, "archivio@storico");
         invio.NumeroDestinatari = recipients.Count;
         invio.DataInvio = DateTime.UtcNow;
