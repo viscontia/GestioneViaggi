@@ -77,12 +77,26 @@ window.dialogFormHelper = {
                 field.addEventListener('keydown', tabHandler);
             });
 
-            // Focus automatico sul primo campo (SOLO se non è un refresh)
+            // Focus automatico sul primo campo (SOLO se non è un refresh).
+            //
+            // Un tentativo solo non basta: MudBlazor prende il fuoco per sé mentre apre il
+            // dialogo, e lo fa DOPO di noi — il campo si illuminava per un istante e poi il
+            // cursore spariva. Si riprova a intervalli finché il fuoco non è dentro al dialogo.
+            //
+            // La condizione "è già dentro" non è una precauzione qualsiasi: è ciò che impedisce
+            // di calpestare i dialoghi che scelgono da sé quale campo attivare (molti lo fanno da
+            // C# a +300ms). Se il fuoco è già su un loro campo, qui non si tocca niente.
             if (fields.length > 0 && !skipAutoFocus) {
-                setTimeout(() => {
+                const assicuraFocus = (tentativo = 0) => {
+                    if (dialogContent.contains(document.activeElement)) return;
+                    if (tentativo > 4) {
+                        console.log('Dialog focus: rinuncio dopo 5 tentativi');
+                        return;
+                    }
                     fields[0].focus();
-                    console.log('Dialog TAB navigation setup complete - focus set on first field');
-                }, 150);
+                    setTimeout(() => assicuraFocus(tentativo + 1), 150);
+                };
+                setTimeout(() => assicuraFocus(), 150);
             } else if (skipAutoFocus) {
                 console.log('Dialog TAB navigation setup complete - auto-focus skipped (refresh mode)');
             }

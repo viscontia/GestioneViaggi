@@ -97,6 +97,15 @@
             {
                 Console.WriteLine($"Error setting up dialog tab navigation: {ex.Message}");
             }
+
+            // Il focus va ribadito da qui: il solo helper JS non basta, perche' MudBlazor prende
+            // il fuoco per se' mentre apre il dialogo, e lo fa DOPO il tentativo dell'helper.
+            // E' lo stesso schema dei dialoghi in cui il focus funziona.
+            if (_nomeRepartoField != null)
+            {
+                await Task.Delay(300);
+                try { await _nomeRepartoField.FocusAsync(); } catch { }
+            }
         }
     }
 
