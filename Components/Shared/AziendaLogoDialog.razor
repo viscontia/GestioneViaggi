@@ -271,9 +271,14 @@
                                 }
                             }
                         </MudStack>
+                        @* Immediate: senza, @bind-Value aggiorna solo all'uscita dal campo, quindi
+                           premendo INVIO la variabile e' ancora vuota e AddSeoKeyword esce in
+                           silenzio. Il "+" invece funzionava perche' cliccarlo toglie il fuoco al
+                           campo, e il valore arriva un istante prima del gestore. *@
                         <MudTextField @bind-Value="_newSeoKeyword"
                                       Label="Aggiungi parola chiave"
                                       Variant="Variant.Outlined"
+                                      Immediate="true"
                                       Adornment="Adornment.End"
                                       AdornmentIcon="@Icons.Material.Filled.Add"
                                       OnAdornmentClick="AddSeoKeyword"
