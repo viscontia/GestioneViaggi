@@ -133,10 +133,11 @@
         <Compile Remove="test_*.cs" />
         <MauiAsset Remove="Unit_Tests\**" />
 
-        <!-- Configurazione degli MCP server: e' del progetto ma non dell'APPLICAZIONE. MAUI prova
-             a includere nel bundle ogni file della cartella, e un file nella radice fa fallire la
-             build con "would result in a file outside of the app bundle". Stessa ragione di
-             graphify-out qui sotto. -->
+        <!-- .mcp.json non c'e' (la configurazione degli MCP server sta nel profilo utente), ma
+             l'esclusione resta come guardia: basta un "claude mcp add -s project" perche' il file
+             ricompaia nella radice, e MAUI fallisce la build con un messaggio che non nomina la
+             causa — "would result in a file outside of the app bundle". Tre righe per non
+             ridiagnosticarlo. Stessa ragione di graphify-out qui sotto. -->
         <Content Remove=".mcp.json" />
         <None Remove=".mcp.json" />
         <MauiAsset Remove=".mcp.json" />
