@@ -270,6 +270,11 @@ public sealed class NewsletterRenderService
     /// </param>
     public static string Render(ContestoRender ctx, string emailDestinatario, string lingua = "IT")
     {
+        // La lingua si normalizza QUI, una volta: da qui in giu' e' sempre un codice a due
+        // lettere maiuscole e non puo' essere nulla. Ogni metodo che se la rinormalizzava per
+        // conto proprio era un posto in cui la regola poteva divergere.
+        lingua = string.IsNullOrWhiteSpace(lingua) ? "IT" : lingua.Trim().ToUpperInvariant();
+
         var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Token);
 
         // Fallback CAMPO PER CAMPO, non per newsletter: se manca solo la traduzione di un titolo,
@@ -282,7 +287,7 @@ public sealed class NewsletterRenderService
         // Il periodo di un riquadro tour non e' testo: si RIGENERA dalle date della partenza.
         // Solo per le lingue diverse dall'italiano — quello memorizzato e' gia' in italiano e
         // l'utente potrebbe averlo corretto a mano, e sovrascriverlo sarebbe una perdita.
-        var italiano = (lingua ?? "IT").Trim().ToUpperInvariant() == "IT";
+        var italiano = lingua == "IT";
         string? Periodo(Models.Web.WebNewsletterBlocco b)
         {
             if (italiano || b.Tipo != "tour") return b.Sottotitolo;
