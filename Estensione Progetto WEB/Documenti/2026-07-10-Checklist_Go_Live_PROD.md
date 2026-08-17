@@ -609,3 +609,30 @@ Vale lo stesso ragionamento per le tre tabelle geografiche a monte (`ana_geo_com
 ricavabile e il filtro per residenza resta vuoto. Verificarle **prima** di annunciare la funzione
 ad Antonio.
 
+---
+
+## Configurazione MCP di Supabase — da completare **prima** del go-live
+
+Il server MCP di Supabase è registrato nel **profilo utente** (non nel repository: era in
+`.mcp.json` nella radice del progetto e faceva fallire la build MAUI — vedi l'esclusione nel
+`.csproj`). Risulta però ancora **`! Needs authentication`**.
+
+**Da fare:** in una sessione interattiva, `/mcp` → autenticare Supabase (OAuth).
+
+⚠️ **I server MCP si caricano all'avvio della sessione**: dopo averlo aggiunto o autenticato serve
+riaprire Claude Code, altrimenti `/mcp` continua a mostrare l'elenco di quando la sessione è
+partita.
+
+**Perché prima del go-live e non dopo:** senza autenticazione l'assistente non può interrogare il
+database di PROD. Il deploy sono **128 script da applicare in ordine** più tabelle da copiare, e le
+verifiche che questa checklist chiede — quante righe ha `eba_countries`, quali function hanno firme
+sovrapposte, se `web_indirizzi` è arrivata — vanno fatte **su PROD**, non in locale. Farle a mano
+una per una è possibile ma è esattamente il punto in cui si salta un controllo.
+
+Verifica rapida dello stato:
+
+```bash
+claude mcp list | grep supabase
+# atteso dopo l'autenticazione: ✔ Connected
+```
+
