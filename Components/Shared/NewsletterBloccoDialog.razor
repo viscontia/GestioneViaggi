@@ -6,7 +6,9 @@
 @inject IDialogService DialogService
 @inject NewsletterRenderService RenderService
 @inject NewsletterTourApplicatore TourApplicatore
+@using Microsoft.Extensions.Logging
 @inject GestioneViaggi.Services.CRUD.AnaViaggiService ViaggiService
+@inject Microsoft.Extensions.Logging.ILogger<NewsletterBloccoDialog> Logger
 @inject NewsletterMediaService MediaService
 @inject WebIndirizziService IndirizziService
 
@@ -358,6 +360,16 @@
     /// </summary>
     private async Task OnImmagineScelta(ImmaginePicker.Voce? v)
     {
+        // Una conversione alla volta. Il primo clic avvia uno scaricamento e una riconversione
+        // che durano il loro tempo, e finche' non finiscono la galleria resta cliccabile: un
+        // secondo clic — che e' esattamente cio' che si fa quando "non sembra funzionare" —
+        // faceva partire una seconda conversione sopra la prima.
+        if (_caricando)
+        {
+            Snackbar.Add("Conversione dell'immagine in corso: attendi.", Severity.Info);
+            return;
+        }
+
         if (v is null)
         {
             Blocco.ImmagineUrl = null;
@@ -370,16 +382,28 @@
 
         _caricando = true;
         StateHasChanged();
+
+        // Tracce nel registro: e' il percorso su cui l'applicazione si e' chiusa senza lasciare
+        // niente, ne' un'eccezione nostra ne' un rapporto di sistema. Due righe su un'operazione
+        // che si fa di rado costano nulla e dicono se il punto di rottura e' qui.
+        Logger.LogWarning("Immagine scelta: conversione avviata per {Url}", v.Url);
         try
         {
             Blocco.ImmagineUrl = await MediaService.ConvertiDaUrlAsync(v.Url, v.StoragePath) ?? v.Url;
+            Logger.LogWarning("Immagine scelta: conversione conclusa, uso {Url}", Blocco.ImmagineUrl);
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Immagine scelta: conversione fallita per {Url}", v.Url);
             Blocco.ImmagineUrl = v.Url;
         }
-        finally { _caricando = false; }
+        finally
+        {
+            _caricando = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
+
     private bool _caricando;
 
     /// <summary>Nome e data della partenza agganciata: la compone il database, come altrove.</summary>
