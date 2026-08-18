@@ -6,9 +6,9 @@
 //
 // Il punto delicato e' il momento in cui serve. Quando il canale fra JavaScript e .NET muore, i
 // clic non arrivano piu' e subito dopo la pagina si ricarica: un messaggio spedito in quell'istante
-// si perderebbe. Percio' si accoda PRIMA in localStorage — che al ricaricamento sopravvive — e si
-// svuota la coda appena il canale c'e'. Cosi' la riga scritta un istante prima della morte si
-// legge un istante dopo.
+// si perderebbe. Percio' qui non si spedisce niente: si scrive in localStorage — che al
+// ricaricamento e perfino al riavvio sopravvive — e la coda se la viene a prendere .NET quando e'
+// pronto. La riga scritta un istante prima della morte si legge un istante dopo.
 //
 // Va caricato per primo, prima di blazor.webview.js: deve poter registrare anche cio' che accade
 // durante l'avvio.
@@ -31,22 +31,27 @@ window.registroErrori = (function () {
             while (righe.length > MASSIMO) righe.shift();
             localStorage.setItem(CHIAVE, JSON.stringify(righe));
         } catch (_) { /* archivio pieno o non disponibile: si perde la riga, non la pagina */ }
-
-        svuota();
     }
 
-    // Manda a .NET quello che c'e' in coda, e la ripulisce solo a consegna avvenuta: se il canale
-    // e' morto la coda resta, e riparte al prossimo avvio.
-    function svuota() {
-        if (typeof DotNet === 'undefined' || !DotNet.invokeMethodAsync) return;
-
-        let righe;
-        try { righe = JSON.parse(localStorage.getItem(CHIAVE) || '[]'); } catch (_) { return; }
-        if (!righe.length) return;
-
-        DotNet.invokeMethodAsync('GestioneViaggi', 'RegistraErroriJs', JSON.stringify(righe))
-            .then(function () { try { localStorage.removeItem(CHIAVE); } catch (_) { } })
-            .catch(function () { /* canale non pronto: si riprova al prossimo giro */ });
+    // Consegna la coda e la svuota. Chiamata DA .NET, mai il contrario.
+    //
+    // La prima versione chiamava lei .NET, con un tentativo al secondo dall'avvio. Non parte piu'
+    // niente: mandare un messaggio prima che Blazor abbia agganciato la pagina fa
+    // «Cannot receive IPC messages when no page is attached», e l'avvio non si completa — schermo
+    // nero, "Caricamento in corso" per sempre. Uno strumento di diagnosi che rompe il programma da
+    // diagnosticare e' peggio di nessuno strumento.
+    //
+    // Chiamata da .NET il problema non esiste: se .NET puo' chiedere, la pagina c'e' per
+    // definizione. E arriva comunque tutto, perche' cio' che conta e' scritto in localStorage e
+    // aspetta li' quanto serve — anche attraverso un riavvio.
+    function preleva() {
+        try {
+            const righe = localStorage.getItem(CHIAVE) || '[]';
+            localStorage.removeItem(CHIAVE);
+            return righe;
+        } catch (_) {
+            return '[]';
+        }
     }
 
     window.addEventListener('error', function (e) {
@@ -79,13 +84,5 @@ window.registroErrori = (function () {
         }).observe(riquadro, { attributes: true, attributeFilter: ['style'] });
     });
 
-    // All'avvio la coda del giro precedente e' quella che racconta la morte. Il canale non c'e'
-    // subito: si insiste per un po', poi si lascia perdere.
-    let tentativi = 0;
-    const attesa = setInterval(function () {
-        svuota();
-        if (++tentativi > 30) clearInterval(attesa);   // ~30 secondi
-    }, 1000);
-
-    return { accoda: accoda, svuota: svuota };
+    return { accoda: accoda, preleva: preleva };
 })();

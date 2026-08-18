@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Microsoft.JSInterop;
 
 namespace GestioneViaggi.Services.Diagnostics;
 
@@ -14,9 +13,15 @@ namespace GestioneViaggi.Services.Diagnostics;
 /// un'attesa di JavaScript completata due volte — mai la causa.
 /// <para>Conta soprattutto per un guasto come quello: quando il canale fra le due parti muore, i
 /// clic non arrivano piu' ("Chiudi" che non chiude) e subito dopo la pagina si ricarica. Un
-/// messaggio inviato in quel momento non arriverebbe mai. Per questo la parte JavaScript accoda
-/// prima in <c>localStorage</c>, che al ricaricamento sopravvive, e svuota la coda appena il
-/// canale c'e': la riga scritta un istante prima della morte si legge un istante dopo.</para>
+/// messaggio inviato in quel momento non arriverebbe mai. Per questo la parte JavaScript non
+/// spedisce niente: scrive in <c>localStorage</c>, che al ricaricamento e al riavvio sopravvive, e
+/// la coda se la viene a prendere .NET. La riga scritta un istante prima della morte si legge un
+/// istante dopo.</para>
+/// <para>La direzione della chiamata non e' un dettaglio. Nella prima versione era JavaScript a
+/// chiamare .NET, e partiva subito all'avvio: un messaggio inviato prima che Blazor abbia
+/// agganciato la pagina da' «Cannot receive IPC messages when no page is attached» e l'avvio non si
+/// completa. Il programma restava sullo schermo nero. Chiedendo da .NET il caso non esiste: se .NET
+/// puo' chiedere, la pagina c'e'.</para>
 /// <para>Solo diagnostica: non cambia il comportamento di niente.</para>
 /// </remarks>
 public static class RegistroJs
@@ -27,11 +32,10 @@ public static class RegistroJs
 
     private sealed record Riga(string? Q, string? Tipo, string? Messaggio, string? Dettaglio);
 
-    /// <summary>Riceve la coda accumulata dalla parte JavaScript. Il nome e' invocato da registroErrori.js.</summary>
-    [JSInvokable]
-    public static void RegistraErroriJs(string json)
+    /// <summary>Scrive nel registro la coda prelevata da <c>registroErrori.preleva()</c>.</summary>
+    public static void Registra(string? json)
     {
-        if (_log is null) return;
+        if (_log is null || string.IsNullOrWhiteSpace(json)) return;
 
         try
         {

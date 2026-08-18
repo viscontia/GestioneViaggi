@@ -135,6 +135,18 @@
     {
         if (firstRender)
         {
+            // Cio' che e' andato storto dalla parte JavaScript aspetta in localStorage, anche da
+            // prima di un riavvio: e' proprio la coda del giro precedente a raccontare una morte
+            // improvvisa. Si preleva qui perche' questo e' il primo momento in cui .NET e' certo
+            // che la pagina sia agganciata — chiedere prima e' cio' che impediva l'avvio.
+            try
+            {
+                // Nome per intero: "Services" in questo componente e' l'IServiceProvider iniettato.
+                GestioneViaggi.Services.Diagnostics.RegistroJs.Registra(
+                    await JSRuntime.InvokeAsync<string>("registroErrori.preleva"));
+            }
+            catch { /* il registro non deve poter impedire il disegno del layout */ }
+
             // RESPONSIVE: Detect screen width
             try
             {
