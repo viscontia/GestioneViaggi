@@ -203,6 +203,32 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
 
+        // ---- Registro degli errori su file -------------------------------------------------
+        // Fuori dal #if DEBUG di proposito: AddDebug() scrive nell'output del debugger, che sulla
+        // macchina di chi usa il programma non esiste. Senza un file, un guasto dal cliente non e'
+        // raccontabile — resta "si e' chiuso da solo", ed e' esattamente il punto in cui ci siamo
+        // arenati diagnosticando la chiusura dell'anteprima.
+        var registroErrori = new Services.Diagnostics.FileLoggerProvider(
+            Path.Combine(FileSystem.AppDataDirectory, "logs"));
+        builder.Logging.AddProvider(registroErrori);
+
+        // Le due strade da cui un'eccezione esce senza che nessuno la veda. La seconda e' quella
+        // dei Task non attesi: e' cosi' che un aggiornamento a video partito da un'operazione
+        // lunga puo' far cadere l'applicazione senza lasciare traccia.
+        var registro = new Microsoft.Extensions.Logging.LoggerFactory(new[] { registroErrori })
+            .CreateLogger("Eccezioni non gestite");
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            registro.LogError(e.ExceptionObject as Exception, "Eccezione non gestita (terminazione: {Term})", e.IsTerminating);
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            registro.LogError(e.Exception, "Eccezione in un Task che nessuno ha atteso");
+            e.SetObserved();   // gia' registrata: non deve far cadere il processo
+        };
+
+        registro.LogWarning("Avvio. Registro in: {Percorso}", registroErrori.FileDiOggi);
+
 #if DEBUG
         // Questo abilita l'Ispeziona Elemento (tasto destro)
         builder.Services.AddBlazorWebViewDeveloperTools();
