@@ -4,6 +4,7 @@
 @inject NewsletterRenderService RenderService
 @inject WebTraduzioneOrchestratorService Orchestrator
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 @* In quali lingue parte la newsletter.
 
@@ -77,6 +78,11 @@
     // genitore, e ricaricare qui vorrebbe dire una query per ogni ridisegno.
     private long _caricatoPer;
 
+    /// <summary>Il pannello e' stato smontato: gli aggiornamenti in arrivo dalla traduzione si fermano.</summary>
+    private bool _smontato;
+
+    public void Dispose() => _smontato = true;
+
     private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
 
     protected override async Task OnParametersSetAsync()
@@ -106,7 +112,24 @@
                 return;
             }
 
-            var progress = new Progress<string>(t => { _avanzamento = t; InvokeAsync(StateHasChanged); });
+            // I contatori vanno rinfrescati mentre si traduce: fermi sul valore di partenza
+            // mentre la barra avanza, davano l'impressione che non stesse succedendo niente.
+            // Non a ogni testo pero' — sarebbe una lettura al secondo per minuti: ogni otto.
+            var fatti = 0;
+            var progress = new Progress<string>(t =>
+            {
+                _avanzamento = t;
+                var vaiDiStato = (++fatti % 8) == 0;
+
+                // Il riscontro a video di un'operazione lunga non deve poterla far fallire:
+                // se il pannello non c'e' piu', qui non succede niente.
+                _ = InvokeAsync(async () =>
+                {
+                    if (_smontato) return;
+                    if (vaiDiStato) { try { await RicaricaAsync(); } catch { } }
+                    StateHasChanged();
+                });
+            });
             var (ok, errori, markup, saltate) = await Orchestrator.TranslateAsync(
                 AziendaId, items, WebTraduzioneOrchestratorService.Lingue, progress);
 
@@ -122,7 +145,14 @@
                 Snackbar.Add($"{markup} testi con formattazione da ricontrollare: la traduzione c'è, ma i tag potrebbero essere cambiati.", Severity.Warning);
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
-        finally { _inCorso = false; _avanzamento = ""; }
+        finally
+        {
+            _inCorso = false;
+            _avanzamento = "";
+            // Senza, la barra puo' restare a video dopo la fine: l'ultimo render utile e' quello
+            // che ha chiuso l'attesa, e a operazione lunga conclusa non ne arriva un altro da solo.
+            if (!_smontato) await InvokeAsync(StateHasChanged);
+        }
     }
 
     private static Color Colore(NewsletterRenderService.StatoTraduzione s) =>
