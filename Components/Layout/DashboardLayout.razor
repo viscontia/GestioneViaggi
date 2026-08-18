@@ -81,19 +81,16 @@
             </MudPaper>
 
             <MudPaper Elevation="0" Class="pa-4" Style="background: transparent;">
-                <ErrorBoundary @ref="_errorBoundary">
+                @* ConfineErrori e non ErrorBoundary: fermava l'eccezione e la mostrava, ma non la
+                   scriveva da nessuna parte. Chiuso il messaggio, di quel guasto non restava traccia. *@
+                <ConfineErrori @ref="_errorBoundary" Contesto="pagina">
                     <ChildContent>
                         @Body
                     </ChildContent>
                     <ErrorContent Context="ex">
-                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
-                            <MudText Typo="Typo.h6">Errore Critico nel Componente</MudText>
-                            <MudText>@ex.GetType().Name: @ex.Message</MudText>
-                            <MudText Typo="Typo.body2" Class="mt-2">Stack Trace:</MudText>
-                            <pre style="white-space: pre-wrap; font-size: 0.75rem;">@ex.StackTrace</pre>
-                        </MudAlert>
+                        <PannelloErrore Errore="ex" OnRiprova="@(() => _errorBoundary?.Recover())" />
                     </ErrorContent>
-                </ErrorBoundary>
+                </ConfineErrori>
             </MudPaper>
         </MudContainer>
     </MudMainContent>
@@ -110,7 +107,7 @@
     private bool _isDarkMode = false;
     private bool _drawerOpen = true;
     private MudThemeProvider? _mudThemeProvider;
-    private ErrorBoundary? _errorBoundary;
+    private ConfineErrori? _errorBoundary;
 
     protected override void OnParametersSet()
     {

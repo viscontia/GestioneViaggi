@@ -6,7 +6,23 @@
 @inject IJSRuntime JSRuntime
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
-<MudDialogProvider />
+
+@* I dialoghi vanno dentro un confine d'errore, e questo e' l'unico posto dove si puo' mettere.
+   MudDialogProvider vive qui, nel layout: le finestre che apre NON sono discendenti del confine
+   che avvolge il corpo della pagina, quindi un'eccezione dentro un dialogo non veniva fermata da
+   nessuno e faceva ricostruire l'intero albero — a video, lo schermo nero con "Caricamento in
+   corso". Ed e' nei dialoghi che si inserisce quasi tutto: viaggi, date, blocchi di newsletter. *@
+<ConfineErrori @ref="_confineDialoghi" Contesto="dialoghi">
+    <ChildContent>
+        <MudDialogProvider />
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 3000; max-width: 640px;">
+            <PannelloErrore Errore="ex" OnRiprova="RecuperaDialoghi" />
+        </div>
+    </ErrorContent>
+</ConfineErrori>
+
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
@@ -51,6 +67,11 @@
 </div>
 
 @code {
+    private ConfineErrori? _confineDialoghi;
+
+    /// <summary>Rimette in piedi il gestore dei dialoghi dopo un errore: senza, non se ne aprono più.</summary>
+    private void RecuperaDialoghi() => _confineDialoghi?.Recover();
+
     bool _drawerOpen = true;
     bool _isDarkMode = false; // Default Light Mode
     bool _isMobile = false; // Track mobile/tablet (<960px)

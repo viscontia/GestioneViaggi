@@ -1,0 +1,50 @@
+@using MudBlazor
+
+@* Cosa si vede quando un confine d'errore ferma un'eccezione.
+
+   Unico per tutti i confini: la pagina e i dialoghi devono raccontare il guasto allo stesso modo.
+
+   Il dettaglio tecnico sta chiuso: a chi usa il programma serve sapere che l'errore e' stato
+   registrato e che puo' riprovare. La pila delle chiamate serve a chi la segnalazione la riceve,
+   ed e' comunque gia' nel file di registro. *@
+
+<MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="@Class">
+    <MudText Typo="Typo.subtitle2">Qualcosa è andato storto in questa parte del programma.</MudText>
+    <MudText Typo="Typo.body2" Class="mt-1">
+        L'errore è stato scritto nel registro. Il resto del programma continua a funzionare:
+        puoi riprovare, e se succede di nuovo segnalalo allegando il registro di oggi.
+    </MudText>
+
+    <div class="d-flex align-center gap-2 mt-3">
+        @if (OnRiprova.HasDelegate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Refresh" OnClick="OnRiprova">
+                Riprova
+            </MudButton>
+        }
+        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Inherit"
+                   OnClick="@(() => _dettaglio = !_dettaglio)">
+            @(_dettaglio ? "Nascondi dettaglio" : "Mostra dettaglio")
+        </MudButton>
+    </div>
+
+    @if (_dettaglio && Errore is not null)
+    {
+        <MudText Typo="Typo.caption" Class="d-block mt-2">
+            <strong>@Errore.GetType().Name</strong>: @Errore.Message
+        </MudText>
+        <pre style="white-space: pre-wrap; font-size: 0.7rem; max-height: 220px; overflow: auto;">@Errore.StackTrace</pre>
+    }
+</MudAlert>
+
+@code {
+    [Parameter, EditorRequired] public Exception? Errore { get; set; }
+
+    /// <summary>Chi ospita il pannello rimette in piedi il confine: senza, resta l'errore a video per sempre.</summary>
+    [Parameter] public EventCallback OnRiprova { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private bool _dettaglio;
+}
