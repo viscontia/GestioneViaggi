@@ -1,9 +1,16 @@
 ﻿using Microsoft.AspNetCore.Components.WebView;
+using Microsoft.Extensions.Logging;
 
 namespace GestioneViaggi;
 
 public partial class MainPage : ContentPage
 {
+	/// <summary>
+	/// Registro per le navigazioni della WebView. Statico perche' MainPage viene costruita a mano
+	/// (App.xaml.cs), non dal contenitore: non c'e' un costruttore in cui iniettarlo.
+	/// </summary>
+	internal static ILogger? Registro { get; set; }
+
 	public MainPage()
 	{
 		InitializeComponent();
@@ -25,6 +32,16 @@ public partial class MainPage : ContentPage
 			{
 				e.UrlLoadingStrategy = UrlLoadingStrategy.OpenInWebView;
 			}
+
+			// Ogni navigazione finisce nel registro, non solo quelle che dirottiamo.
+			//
+			// Perche' serve: OpenInWebView dice alla WebView di ANDARE a quell'indirizzo. Sull'iframe
+			// dell'anteprima e' quello che vogliamo; se pero' l'evento riguardasse il riquadro
+			// principale, la pagina Blazor verrebbe sostituita da about:blank — schermo nero, canale
+			// verso .NET morto, i clic che non arrivano piu'. E' esattamente il guasto che stiamo
+			// cercando, e questa riga e' cio' che distingue le due cose invece di supporle.
+			Registro?.LogWarning("Navigazione WebView: {Indirizzo} -> {Strategia}",
+								 indirizzo, e.UrlLoadingStrategy);
 		};
 	}
 }

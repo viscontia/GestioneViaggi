@@ -227,6 +227,11 @@ public static class MauiProgram
             e.SetObserved();   // gia' registrata: non deve far cadere il processo
         };
 
+        // La terza strada, finora cieca: quello che va storto dentro la WebView. Vedi RegistroJs.
+        var fabbrica = new Microsoft.Extensions.Logging.LoggerFactory(new[] { registroErrori });
+        Services.Diagnostics.RegistroJs.Configura(fabbrica.CreateLogger("Parte JavaScript"));
+        MainPage.Registro = fabbrica.CreateLogger("WebView");
+
         registro.LogWarning("Avvio. Registro in: {Percorso}", registroErrori.FileDiOggi);
 
 #if DEBUG
