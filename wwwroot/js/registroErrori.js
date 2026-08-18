@@ -64,6 +64,14 @@ window.registroErrori = (function () {
         accoda('promessa', (r && r.message) || r, (r && r.stack) || '');
     });
 
+    // Come e' arrivata qui questa pagina. Il registro lato .NET dice CHE la pagina si ricarica su
+    // una rotta dell'applicazione, non PERCHE': "reload" e "navigate" sono due guasti diversi —
+    // il primo e' la pagina che si riavvia da sola, il secondo e' qualcuno che ci porta.
+    try {
+        const n = performance.getEntriesByType('navigation')[0];
+        accoda('pagina-caricata', location.href, 'tipo: ' + ((n && n.type) || 'sconosciuto'));
+    } catch (_) { }
+
     // La pagina sta per andarsene. E' la riga piu' importante di tutte: se lo schermo nero nasce da
     // una NAVIGAZIONE della WebView — e non da un'eccezione — questo e' l'unico posto dove si vede,
     // insieme all'indirizzo da cui si stava partendo.
