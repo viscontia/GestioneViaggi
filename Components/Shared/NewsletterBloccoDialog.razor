@@ -233,15 +233,19 @@
                               HelperText="Le parole scritte dentro il pulsante." />
             }
 
-            @* Il pulsante ha una posizione propria: ereditare quella dell'immagine lo inchiodava
-               a sinistra ogni volta che l'immagine era a piena larghezza. Vale SOLO per il blocco
-               immagine: nel riquadro informativo e nel tour il pulsante sta dentro la colonna del
-               testo e la segue, quindi offrire li' questa scelta prometterebbe un effetto che non c'e'. *@
-            @if (Blocco.Tipo == "immagine" && !string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
+            @* Il pulsante ha una posizione propria, sul blocco immagine e sul riquadro tour: in
+               entrambi ereditava un allineamento deciso da altro — dall'immagine nel primo caso,
+               dalla colonna del testo nel secondo — e restava inchiodato a sinistra.
+               Nel riquadro informativo no: li' il pulsante e' in fondo a un testo che scorre
+               accanto all'icona, e spostarlo lo staccherebbe dal discorso. *@
+            @if ((Blocco.Tipo == "immagine" && !string.IsNullOrWhiteSpace(Blocco.LinkEtichetta))
+                 || (Blocco.Tipo == "tour" && !string.IsNullOrWhiteSpace(Blocco.LinkUrl)))
             {
                 <PosizioneSelect @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
                                  Clearable="true"
-                                 HelperText="Vuoto = segue la posizione dell'immagine." />
+                                 HelperText="@(Blocco.Tipo == "tour"
+                                              ? "Vuoto = al centro."
+                                              : "Vuoto = segue la posizione dell'immagine.")" />
             }
         }
 

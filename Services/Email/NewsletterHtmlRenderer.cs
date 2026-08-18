@@ -350,8 +350,17 @@ public static class NewsletterHtmlRenderer
         if (!string.IsNullOrWhiteSpace(b.CorpoHtml))
             sb.Append($@"<div style=""font-family:{FontFamily};font-size:14px;line-height:21px;color:{ColoreTesto};"">{b.CorpoHtml}</div>");
 
-        if (!string.IsNullOrWhiteSpace(b.LinkUrl))
-            sb.Append(PulsanteDelBlocco(b, NewsletterTesti.PulsanteTour(lingua), allineaSinistra: true));
+        // Il pulsante ha una posizione propria anche qui. Stava incollato a sinistra perche'
+        // ereditava l'allineamento della colonna del testo: una scelta che altrove si fa e qui no.
+        // Il valore predefinito e' CENTRO — su un riquadro tour il pulsante e' l'invito all'azione,
+        // e al centro lo si vede.
+        var pulsanteTour = PulsanteDelBlocco(b, NewsletterTesti.PulsanteTour(lingua), allineaSinistra: true);
+        if (pulsanteTour.Length > 0)
+        {
+            sb.Append($@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0"" border=""0"">
+              <tr><td align=""{AllineaDaLayout(b.LayoutPulsante ?? "centro")}"" style=""padding:0;"">{pulsanteTour}</td></tr>
+            </table>");
+        }
 
         return sb.ToString();
     }

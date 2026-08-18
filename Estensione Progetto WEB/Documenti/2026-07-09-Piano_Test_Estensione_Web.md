@@ -1051,3 +1051,13 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 > Verificato sul database in transazione annullata: inserito un riquadro tour col testo della
 > scheda → il trigger eredita **4 lingue** con `revisionato` conservato; riscritto il testo → le 4
 > diventano obsolete e non si rieredita.
+
+### 47 bis — Posizione del pulsante nel riquadro tour
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| 47.11 | Apri un riquadro tour con il collegamento compilato | Compare **«Posizione del pulsante»**, con nota «Vuoto = al centro» |
+| 47.12 | Lascia la posizione vuota → Anteprima | Il pulsante è **al centro**, non più a sinistra |
+| 47.13 | Scegli *A destra* → Anteprima | Il pulsante si sposta a destra, dentro la colonna del testo |
+| 47.14 | Riquadro **informativo** con pulsante | Lì la scelta **non** compare: il pulsante chiude un testo che scorre accanto all'icona, e spostarlo lo staccherebbe dal discorso |
+
