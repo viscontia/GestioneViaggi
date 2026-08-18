@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `535`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `536`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -43,7 +43,7 @@ Comando (adattare host/credenziali PROD — NON usare il container Docker locale
 ls SqlScripts/*.sql \
   | grep -vi 'Rollback' \
   | sed -E 's#.*/([0-9]+)_#\1 &#' \
-  | awk '$1>=406 && $1<=535 {print $2}' \
+  | awk '$1>=406 && $1<=536 {print $2}' \
   | sort -n -t/ -k2 \
   | while read -r f; do
       echo "==> $f"
@@ -56,7 +56,7 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (406–466)
 
-> Nota: questa tabella dettaglia i primi script; per `467`–`535` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
+> Nota: questa tabella dettaglia i primi script; per `467`–`536` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
 
 | # | Script | Note |
 |---|--------|------|
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–535)
+### Elenco ordinato (467–536)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -195,6 +195,7 @@ ls SqlScripts/*.sql \
 | 533 | Newsletter_Tour_Periodi_Traduzioni | Il riquadro tour nelle altre lingue: `fn_web_newsletter_periodi` (date per rigenerare il periodo) e `fn_web_newsletter_blocco_eredita_traduzioni`, richiamata da un **trigger** su `web_newsletter_blocchi`. Il trigger va verificato dopo il deploy: `\\d web_newsletter_blocchi` deve elencare `trg_web_newsletter_blocchi_eredita` |
 | 534 | Eredita_Traduzioni_Formattazione | L'ereditarietà confronta il **testo** e non il markup (`fn_solo_testo`), così un grassetto non la rompe, e inserisce la traduzione dentro la formattazione esistente |
 | 535 | Traduzioni_Newsletter_Pulizia | Trigger `AFTER DELETE` su blocchi e invii: le traduzioni seguono ciò che viene eliminato. `web_traduzioni` è polimorfica e non può avere una chiave esterna, quindi senza trigger le righe restavano orfane. **Include la pulizia delle orfane già presenti** — su PROD saranno altre, la condizione le trova comunque |
+| 536 | Obsolescenza_Prima_Della_Update | In `fn_web_newsletter_blocchi_update` l'obsolescenza delle traduzioni passa **prima** della `UPDATE`: dopo, marcava obsolete proprio le traduzioni che il trigger di ereditarietà aveva appena scritto. Include il ripristino dei blocchi già salvati con l'ordine sbagliato |
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
