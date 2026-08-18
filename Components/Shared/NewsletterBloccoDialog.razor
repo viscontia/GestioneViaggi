@@ -242,9 +242,9 @@
                  || (Blocco.Tipo == "tour" && !string.IsNullOrWhiteSpace(Blocco.LinkUrl)))
             {
                 <PosizioneSelect @bind-Value="Blocco.LayoutPulsante" Label="Posizione del pulsante"
-                                 Clearable="true"
+                                 Clearable="@(Blocco.Tipo != "tour")"
                                  HelperText="@(Blocco.Tipo == "tour"
-                                              ? "Vuoto = al centro."
+                                              ? "Dove appare il pulsante nel riquadro."
                                               : "Vuoto = segue la posizione dell'immagine.")" />
             }
         }
@@ -462,6 +462,13 @@
         // sul database, ma per questo tipo non e' una disposizione valida.
         if (Blocco.Tipo == "info" && Blocco.Layout is not ("sinistra" or "destra"))
             Blocco.Layout = "sinistra";
+
+        // Sul riquadro tour "nessuna posizione" non significa niente: il pulsante sta a sinistra,
+        // al centro o a destra. Lasciare la tendina vuota col significato nascosto in una nota
+        // costringeva a leggerla per sapere cosa sarebbe successo. Si scrive il valore vero.
+        // Sul blocco immagine invece il vuoto ha un senso suo — "segui l'immagine" — e resta.
+        if (Blocco.Tipo == "tour" && string.IsNullOrWhiteSpace(Blocco.LayoutPulsante))
+            Blocco.LayoutPulsante = "centro";
     }
 
     protected override async Task OnInitializedAsync()
