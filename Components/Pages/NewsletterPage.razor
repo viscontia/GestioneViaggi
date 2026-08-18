@@ -169,11 +169,14 @@ else
         else
         {
             @* ---------- COMPOSIZIONE A BLOCCHI ---------- *@
+            @* La via d'uscita va NOMINATA. Era una freccia sola accanto all'oggetto: chi entra
+               nella composizione non ha modo di sapere che quella riporta indietro, e non
+               esiste altro modo per uscire — un'icona muta, in una schermata piena di campi,
+               si legge come decorazione. *@
             <div class="d-flex align-center gap-2 mb-3">
-                <MudTooltip Text="Torna all'elenco">
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default"
-                                   OnClick="ChiudiComposizione" />
-                </MudTooltip>
+                <MudButton Variant="Variant.Filled" Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.ArrowBack"
+                           OnClick="ChiudiComposizione">Elenco newsletter</MudButton>
                 <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined"
                               MaxLength="255" Margin="Margin.Dense" Style="max-width:420px;" />
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save"
