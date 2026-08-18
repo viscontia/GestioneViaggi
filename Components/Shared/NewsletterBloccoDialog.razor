@@ -6,6 +6,7 @@
 @inject IDialogService DialogService
 @inject NewsletterRenderService RenderService
 @inject NewsletterTourApplicatore TourApplicatore
+@inject GestioneViaggi.Services.CRUD.AnaViaggiService ViaggiService
 @inject NewsletterMediaService MediaService
 @inject WebIndirizziService IndirizziService
 
@@ -33,10 +34,28 @@
                     }
                     else if (Blocco.DataViaggioIdFk.HasValue)
                     {
+                        @* Dire QUALE tour, non solo che ce n'è uno: «compilato dal tour» si
+                           somigliava troppo a «nessun tour scelto», e un riquadro rimasto senza
+                           aggancio non si distingueva da uno agganciato. *@
                         <MudChip T="string" Size="Size.Small" Color="Color.Success"
-                                 Icon="@Icons.Material.Filled.Check">Compilato dal tour</MudChip>
+                                 Icon="@Icons.Material.Filled.Check">
+                            @(_etichettaTour ?? "Compilato dal tour")
+                        </MudChip>
                     }
                 </div>
+
+                @* Un riquadro tour senza aggancio e' un riquadro a meta': i testi si possono
+                   scrivere a mano, ma restano fuori da tutto cio' che dipende dalla partenza —
+                   il periodo nelle altre lingue, l'ereditarieta' delle traduzioni, il riaggancio
+                   quando si clona. Va detto qui, non scoperto dopo. *@
+                @if (!Blocco.DataViaggioIdFk.HasValue && !_caricando)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                        Nessun tour scelto. Puoi scrivere i testi a mano, ma senza il collegamento a
+                        una partenza il periodo non verrà tradotto nelle altre lingue e i testi non
+                        erediteranno le traduzioni della scheda web.
+                    </MudAlert>
+                }
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">
                     Titolo, periodo e testo sono <strong>modificabili qui sotto</strong>: quelli del tour
                     servono da punto di partenza. Le modifiche restano nella newsletter e non toccano la
@@ -358,6 +377,9 @@
         finally { _caricando = false; }
     }
     private bool _caricando;
+
+    /// <summary>Nome e data della partenza agganciata: la compone il database, come altrove.</summary>
+    private string? _etichettaTour;
     private bool _avvisoBozza;
     private bool _avvisoSenzaSito;
 
@@ -415,6 +437,8 @@
                 return;
             }
 
+            await AggiornaEtichettaTourAsync();
+
             // L'editor non si accorge da solo che il corpo e' cambiato sotto di lui.
             if (_editor != null && !string.IsNullOrWhiteSpace(Blocco.CorpoHtml))
             {
@@ -444,6 +468,8 @@
             _sitoWeb = az.SitoWeb;
         }
         catch { _sitoWeb = null; }
+
+        await AggiornaEtichettaTourAsync();
 
         try { _rubrica = await IndirizziService.ListAsync(Blocco.AziendaId, soloAttivi: true); }
         catch { _rubrica = new(); }
@@ -495,6 +521,27 @@
         }
 
         return valore;
+    }
+
+    /// <summary>
+    /// Nome e data della partenza agganciata al riquadro tour.
+    /// </summary>
+    /// <remarks>
+    /// La frase la compone il database (<c>fn_partenza_etichetta</c>), la stessa che si legge
+    /// scegliendo una partenza nei criteri dei destinatari: lo stesso viaggio non deve chiamarsi
+    /// in due modi a due schermate di distanza. Se la lettura fallisce si resta sull'etichetta
+    /// generica — un nome mancante non deve impedire di comporre il blocco.
+    /// </remarks>
+    private async Task AggiornaEtichettaTourAsync()
+    {
+        if (Blocco.Tipo != "tour" || !Blocco.DataViaggioIdFk.HasValue)
+        {
+            _etichettaTour = null;
+            return;
+        }
+
+        try { _etichettaTour = await ViaggiService.GetPartenzaEtichettaAsync(Blocco.DataViaggioIdFk.Value, Blocco.AziendaId); }
+        catch { _etichettaTour = null; }
     }
 
     /// <summary>Cambio della destinazione del collegamento.</summary>
