@@ -88,7 +88,11 @@ window.dialogFormHelper = {
             // C# a +300ms). Se il fuoco è già su un loro campo, qui non si tocca niente.
             if (fields.length > 0 && !skipAutoFocus) {
                 const assicuraFocus = (tentativo = 0) => {
-                    if (dialogContent.contains(document.activeElement)) return;
+                    // Si insiste finche' il fuoco non e' su QUESTO campo, non finche' e'
+                    // genericamente dentro al dialogo: MudBlazor lo mette sulla superficie del
+                    // dialogo o su un altro campo, che stanno comunque "dentro", e con la
+                    // condizione larga si rinunciava proprio nel caso da correggere.
+                    if (document.activeElement === fields[0]) return;
                     if (tentativo > 4) {
                         console.log('Dialog focus: rinuncio dopo 5 tentativi');
                         return;
