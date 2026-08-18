@@ -1,9 +1,11 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
 @using GestioneViaggi.Services.Web
+@using Microsoft.JSInterop
 @inject IJSRuntime JS
 @inject NewsletterRenderService RenderService
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 @* Anteprima della newsletter: l'HTML vero, dentro un iframe.
    L'iframe non e' un vezzo — serve a ISOLARE gli stili della newsletter da quelli
@@ -86,6 +88,20 @@
     private static readonly string[] Lingue = { "IT", "EN", "DE", "ES", "FR" };
 
     private ElementReference _iframe;
+
+    // La scrittura nell'iframe ASPETTA il caricamento delle immagini, fino a dieci secondi.
+    // Chiudendo l'anteprima nel frattempo, la chiamata tornerebbe verso un componente ormai
+    // distrutto: in MAUI quell'eccezione non la raccoglie nessuno e l'applicazione si chiude.
+    // Da qui il gettone di annullamento, che stacca la chiamata quando il dialogo se ne va.
+    private readonly CancellationTokenSource _cts = new();
+    private bool _smontato;
+
+    public void Dispose()
+    {
+        _smontato = true;
+        try { _cts.Cancel(); } catch { }
+        _cts.Dispose();
+    }
     private bool _pronta;
     private bool _cambiando;
     private string _lingua = "IT";
@@ -108,22 +124,34 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_daScrivere || string.IsNullOrEmpty(_htmlCorrente)) return;
+        if (_smontato || !_daScrivere || string.IsNullOrEmpty(_htmlCorrente)) return;
         _daScrivere = false;
 
         // Al primo render l'iframe esiste ma il suo documento puo' non essere ancora pronto:
         // un piccolo ritardo evita l'anteprima vuota al primo colpo.
-        if (firstRender) await Task.Delay(80);
+        if (firstRender)
+        {
+            try { await Task.Delay(80, _cts.Token); }
+            catch (OperationCanceledException) { return; }
+        }
+
+        if (_smontato) return;
 
         try
         {
-            // La chiamata torna solo quando le immagini sono caricate (o dopo il timeout
-            // di sicurezza): e' quello che tiene su il velo di attesa.
-            await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _iframe, _htmlCorrente, 10000);
+            // La chiamata torna solo quando le immagini sono caricate (o dopo il timeout di
+            // sicurezza): e' quello che tiene su il velo di attesa. Il gettone la stacca se
+            // l'utente chiude prima.
+            await JS.InvokeAsync<bool>("newsletterPreview.scrivi", _cts.Token,
+                                       _iframe, _htmlCorrente, 10000);
         }
+        catch (OperationCanceledException) { return; }   // anteprima chiusa: nulla da fare
+        catch (JSDisconnectedException) { return; }      // finestra gia' andata
         catch (Exception) { /* l'anteprima resta vuota: il velo si toglie comunque */ }
-        finally { _pronta = true; }
 
+        if (_smontato) return;
+
+        _pronta = true;
         StateHasChanged();
     }
 
@@ -139,10 +167,12 @@
         try
         {
             _htmlCorrente = await RenderService.RenderAsync(InvioId, AziendaId, "anteprima@esempio.it", lingua);
+            if (_smontato) return;    // chiusa mentre ricomponeva
             _daScrivere = true;       // fa riscrivere l'iframe al prossimo render
         }
         catch (Exception ex)
         {
+            if (_smontato) return;
             Snackbar.Add($"Anteprima in {lingua} non composta: {ex.Message}", Severity.Error);
             _pronta = true;
         }
