@@ -36,7 +36,14 @@ public sealed class NewsletterTourApplicatore
         public static Esito Fallito(string errore) => new(false, errore, false, false);
     }
 
-    /// <summary>Etichetta di partenza del pulsante, quando l'utente non ne ha scritta una.</summary>
+    /// <summary>
+    /// Etichetta di partenza del pulsante di un <b>pulsante</b> che punta a un tour.
+    /// </summary>
+    /// <remarks>
+    /// Non si usa sul riquadro tour: lì il pulsante lo disegna il renderer, che ha già l'etichetta
+    /// in tutte le lingue. Scrivendola nel campo diventerebbe testo dell'utente e resterebbe
+    /// italiana per tutti — che è esattamente il difetto per cui questa distinzione esiste.
+    /// </remarks>
     public const string EtichettaTour = "Vai alla pagina del Tour";
 
     public async Task<Esito> ApplicaAsync(WebNewsletterBlocco b, int dataViaggioId, ModoTesti modo)
@@ -62,7 +69,14 @@ public sealed class NewsletterTourApplicatore
         // Dati strutturali: si aggiornano sempre, perche' sono il legame col tour scelto.
         b.DataViaggioIdFk = dataViaggioId;
         b.LinkUrl = dati.LinkCompleto;
-        if (string.IsNullOrWhiteSpace(b.LinkEtichetta)) b.LinkEtichetta = EtichettaTour;
+
+        // Sul riquadro tour l'etichetta si LASCIA VUOTA di proposito: il renderer ci mette quella
+        // giusta per la lingua del destinatario. Scriverla qui la trasformerebbe in un testo
+        // dell'utente, e un tedesco leggerebbe "Vai alla pagina del Tour".
+        // Su un pulsante invece l'etichetta e' il pulsante: senza, l'utente non vedrebbe cosa ha
+        // creato, quindi si compila e semmai si traduce come ogni altro testo scritto.
+        if (soloCollegamento && string.IsNullOrWhiteSpace(b.LinkEtichetta))
+            b.LinkEtichetta = EtichettaTour;
 
         if (!soloCollegamento)
         {
