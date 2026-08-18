@@ -40,8 +40,16 @@ public partial class MainPage : ContentPage
 			// principale, la pagina Blazor verrebbe sostituita da about:blank — schermo nero, canale
 			// verso .NET morto, i clic che non arrivano piu'. E' esattamente il guasto che stiamo
 			// cercando, e questa riga e' cio' che distingue le due cose invece di supporle.
-			Registro?.LogWarning("Navigazione WebView: {Indirizzo} -> {Strategia}",
-								 indirizzo, e.UrlLoadingStrategy);
+			// Con la pila delle chiamate, perche' e' l'unica cosa che risponde a "chi l'ha chiesto".
+			//
+			// Sappiamo che la pagina viene caricata da capo su una rotta dell'applicazione
+			// (dashboard-admin, anagrafiche/clienti, tabelle/comuni), che il tipo di caricamento e'
+			// "navigate" e non "reload", e che dalla pagina non parte alcun evento di abbandono:
+			// nessun collegamento cliccato, quindi l'ordine arriva da questo lato. Se e' codice .NET
+			// a chiederlo, il chiamante e' qui dentro; se la pila contiene solo il delegato della
+			// WebView, allora e' il sistema a rinavigare e la ricerca va spostata altrove.
+			Registro?.LogWarning("Navigazione WebView: {Indirizzo} -> {Strategia}\nChiamata da:\n{Pila}",
+								 indirizzo, e.UrlLoadingStrategy, Environment.StackTrace);
 		};
 	}
 }

@@ -10,6 +10,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JSRuntime
+@using Microsoft.Extensions.Logging
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
@@ -219,7 +220,19 @@
         }
 
         TabManager.OnTabsChanged += OnTabsChanged;
+
+        // Le navigazioni volute da Blazor, per confronto con quelle della WebView.
+        //
+        // Sono due elenchi che devono combaciare: una navigazione interna di Blazor NON ricarica la
+        // pagina, quindi non deve comparire nel registro della WebView. Se un indirizzo compare in
+        // entrambi, e' una navigazione nostra che si e' trasformata in un caricamento da capo — e
+        // allora il colpevole e' nel codice. Se compare solo nel registro della WebView, nessuno
+        // qui l'ha chiesta e la causa e' fuori dall'applicazione.
+        Navigation.LocationChanged += TracciaNavigazione;
     }
+
+    private void TracciaNavigazione(object? _, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        MainPage.Registro?.LogWarning("Navigazione Blazor (interna): {Indirizzo}", e.Location);
 
     private void OnTabsChanged()
     {
@@ -267,5 +280,6 @@
     {
         _isDisposing = true;
         TabManager.OnTabsChanged -= OnTabsChanged;
+        Navigation.LocationChanged -= TracciaNavigazione;
     }
 }
