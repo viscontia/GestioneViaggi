@@ -35,13 +35,21 @@ public static class RegistroJs
     /// <summary>Scrive nel registro la coda prelevata da <c>registroErrori.preleva()</c>.</summary>
     public static void Registra(string? json)
     {
-        if (_log is null || string.IsNullOrWhiteSpace(json)) return;
+        if (_log is null) return;
 
         try
         {
-            var righe = JsonSerializer.Deserialize<List<Riga>>(
-                json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (righe is null) return;
+            var righe = string.IsNullOrWhiteSpace(json)
+                ? new List<Riga>()
+                : JsonSerializer.Deserialize<List<Riga>>(
+                      json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                  ?? new List<Riga>();
+
+            // Si scrive anche quando non c'e' niente da riferire, ed e' voluto: uno strumento che
+            // tace non distingue "non e' successo niente" da "non funziona". Con questa riga a ogni
+            // avvio, l'assenza di errori JavaScript diventa un'informazione verificata invece che
+            // un silenzio da interpretare.
+            _log.LogWarning("Coda JavaScript prelevata: {Righe} righe", righe.Count);
 
             foreach (var r in righe)
             {
