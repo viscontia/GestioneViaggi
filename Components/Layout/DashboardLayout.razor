@@ -9,10 +9,26 @@
 @inject ITabManagerService TabManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
-<MudDialogProvider />
+@* I dialoghi dentro un confine d'errore, e questo e' l'unico posto utile: il gestore dei dialoghi
+   vive qui, quindi le finestre che apre NON sono discendenti del confine che avvolge il corpo
+   della pagina, piu' in basso. Un'eccezione dentro un dialogo non veniva fermata da nessuno e
+   faceva ricostruire l'intero albero Blazor. Ed e' nei dialoghi che si inserisce quasi tutto:
+   viaggi, date di partenza, clienti, blocchi di newsletter. *@
+<ConfineErrori @ref="_confineDialoghi" Contesto="dialoghi">
+    <ChildContent>
+        <MudDialogProvider />
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div style="position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 3000; max-width: 640px;">
+            <PannelloErrore Errore="ex" OnRiprova="@(() => _confineDialoghi?.Recover())" />
+        </div>
+    </ErrorContent>
+</ConfineErrori>
+
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
@@ -108,6 +124,7 @@
     private bool _drawerOpen = true;
     private MudThemeProvider? _mudThemeProvider;
     private ConfineErrori? _errorBoundary;
+    private ConfineErrori? _confineDialoghi;
 
     protected override void OnParametersSet()
     {
@@ -118,6 +135,18 @@
     {
         if (firstRender)
         {
+            // Cio' che e' andato storto dalla parte JavaScript aspetta in localStorage, anche da
+            // prima di un riavvio: e' proprio la coda del giro precedente a raccontare una morte
+            // improvvisa. Si preleva qui perche' e' il primo istante in cui .NET e' certo che la
+            // pagina sia agganciata — chiedere prima impedisce l'avvio.
+            try
+            {
+                // Nome per intero: "Services" e' gia' preso in altri layout, e qui non c'e' using.
+                GestioneViaggi.Services.Diagnostics.RegistroJs.Registra(
+                    await JSRuntime.InvokeAsync<string>("registroErrori.preleva"));
+            }
+            catch { /* il registro non deve poter impedire il disegno del layout */ }
+
             // Controlla se c'è una preferenza salvata
             if (Preferences.ContainsKey("is_dark_mode"))
             {
