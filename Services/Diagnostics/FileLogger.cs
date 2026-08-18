@@ -41,18 +41,33 @@ public sealed class FileLoggerProvider : ILoggerProvider
 
     private void Accoda(string riga)
     {
-        // Se la coda e' piena si perde la riga invece di rallentare l'applicazione: un registro
-        // non deve mai diventare il collo di bottiglia di cio' che sta registrando.
-        if (!_chiuso) _coda.TryAdd(riga);
+        // Nulla di cio' che accade qui puo' propagarsi a chi sta registrando. Un registro che fa
+        // cadere l'applicazione che dovrebbe raccontare e' peggio di nessun registro — e TryAdd
+        // LANCIA se la coda e' stata chiusa nel frattempo, cosa che il controllo su _chiuso non
+        // esclude: fra la lettura e la chiamata c'e' spazio.
+        try
+        {
+            if (!_chiuso) _coda.TryAdd(riga);
+        }
+        catch { /* coda chiusa o gia' smaltita: la riga si perde, l'applicazione no */ }
     }
 
     private void Scrivi()
     {
-        foreach (var riga in _coda.GetConsumingEnumerable())
+        // Il try avvolge ANCHE l'enumerazione, non solo la scrittura. GetConsumingEnumerable
+        // lancia se la coda viene smaltita mentre e' in attesa, e un'eccezione che sfugge da un
+        // thread come questo non la intercetta nessuno: termina il processo, senza un rigo di
+        // spiegazione da nessuna parte. Era il difetto peggiore possibile proprio qui, in un
+        // componente che esiste per rendere spiegabili i guasti.
+        try
         {
-            try { File.AppendAllText(FileDiOggi, riga, Encoding.UTF8); }
-            catch { /* disco pieno o file bloccato: non c'e' niente di sensato da fare qui */ }
+            foreach (var riga in _coda.GetConsumingEnumerable())
+            {
+                try { File.AppendAllText(FileDiOggi, riga, Encoding.UTF8); }
+                catch { /* disco pieno o file bloccato: non c'e' niente di sensato da fare qui */ }
+            }
         }
+        catch { /* coda chiusa: si smette di scrivere, in silenzio */ }
     }
 
     private void PulisciVecchi()
@@ -68,10 +83,17 @@ public sealed class FileLoggerProvider : ILoggerProvider
 
     public void Dispose()
     {
-        _chiuso = true;
-        _coda.CompleteAdding();
-        try { _scrittore.Join(TimeSpan.FromSeconds(2)); } catch { }
-        _coda.Dispose();
+        // Non si smaltisce la coda. CompleteAdding basta a far terminare il consumatore, mentre
+        // Dispose mentre quello e' ancora dentro l'enumerazione e' proprio la corsa da evitare:
+        // il thread e' in background, il processo termina comunque, e la memoria la riprende il
+        // sistema. Qualche byte in piu' vale meno di un'uscita improvvisa.
+        try
+        {
+            _chiuso = true;
+            _coda.CompleteAdding();
+            _scrittore.Join(TimeSpan.FromSeconds(2));
+        }
+        catch { /* in chiusura non c'e' niente da salvare */ }
     }
 
     private sealed class Logger : ILogger
