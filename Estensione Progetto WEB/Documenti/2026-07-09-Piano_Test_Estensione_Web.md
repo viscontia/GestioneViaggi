@@ -78,9 +78,12 @@
 
 ## 6. Blocco 9 — GPX → mappa statica *(serve ApiKey Geoapify + ServiceKey Supabase)*
 
-- ☐ Upload `.gpx` → **Genera mappa** → anteprima mappa centrata con traccia + attribuzione OSM.
-- ☐ Rigenera (da GPX salvato) ed elimina.
-- ☐ Nessun dato GPX raggiunge il browser (solo l'immagine).
+- ✅ Upload `.gpx` → **Genera mappa** → anteprima mappa centrata con traccia + attribuzione OSM.
+- ✅ Rigenera (da GPX salvato) ed elimina.
+- ✅ Nessun dato GPX raggiunge il browser (solo l'immagine).
+
+*Verificato a runtime (confermato dal committente il 2026-08-19): la ApiKey Geoapify reale c'è e la
+pipeline gira. Il piano lo dava ancora per non provato.*
 
 ## 7. Blocco 10 — Traduzioni Claude *(serve chiave Claude sull'azienda)*
 
