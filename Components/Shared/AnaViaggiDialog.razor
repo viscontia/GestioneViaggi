@@ -237,7 +237,11 @@
     <DialogActions>
         @if (IsContenutiWebTabActive)
         {
-            <MudButton OnClick="CloseFromContentTab">Chiudi</MudButton>
+            @* Stessa logica della X, e un nome che dice dove porta: da un sotto-tab riporta ai
+               Contenuti, dai Contenuti esce dal viaggio. Prima chiamava GoToContenuti() sempre,
+               quindi stando gia' sui Contenuti metteva l'indice 0 a 0 e non succedeva niente:
+               un pulsante "Chiudi" che non chiudeva. *@
+            <MudButton OnClick="ChiudiDallaX">@(TornaAiContenuti ? "Torna ai contenuti" : "Chiudi")</MudButton>
         }
         else
         {
@@ -639,13 +643,6 @@
         if (result == null) return false; // Annulla: resta nel tab Contenuti Web
         if (result == true) return _webEdizioniManager != null && await _webEdizioniManager.SaveActiveIfDirtyAsync();
         return true; // Scarta: procedi perdendo le modifiche
-    }
-
-    /// <summary>Uscita esplicita dal tab Contenuti Web (footer "Chiudi"): niente Salva-viaggio in competizione.</summary>
-    private void CloseFromContentTab()
-    {
-        // "Chiudi" NON esce dal viaggio: riporta alla sotto-scheda Contenuti restando nel dialog.
-        _webEdizioniManager?.GoToContenuti();
     }
 
     /// <summary>
