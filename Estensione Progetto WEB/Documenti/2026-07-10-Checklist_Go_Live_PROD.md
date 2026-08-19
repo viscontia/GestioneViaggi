@@ -441,6 +441,15 @@ deprecata non si può togliere.
 
 #### 2.8.4 — I controlli sul cliente: due implementazioni, nessuna condivisa
 
+> **Ordine dei lavori, deciso il 2026-08-19.** Questo è il **primo** lavoro da fare, prima di tutto
+> il resto del go-live — e si fa in due tempi ravvicinati: **prima il gestionale** (centralizzare i
+> controlli di `ana_clienti`, facendo scendere nel DB quelli che devono valere ovunque), **subito
+> dopo il sito**, che a quel punto si allinea a una regola sola invece che a diciassette sparse.
+>
+> L'ordine non è un dettaglio: replicare sul sito controlli che nel gestionale sono ancora
+> frammentati significherebbe duplicare la frammentazione invece di chiuderla. Fatto così, su
+> `ana_clienti` non ci si torna più.
+
 **Da verificare, non ancora deciso.** Il CRUD cliente del sito applica i suoi controlli; il
 gestionale applica i propri. Nessuno dei due sa cosa fa l'altro, e non esiste un punto in cui la
 regola sia scritta una volta sola.
