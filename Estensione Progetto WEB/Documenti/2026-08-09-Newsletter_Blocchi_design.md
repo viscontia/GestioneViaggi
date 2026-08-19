@@ -140,6 +140,8 @@ meno token, e soprattutto le immagini e la struttura non possono più tornare in
 2. La composizione è un elenco di blocchi con aggiungi / riordina / elimina.
 3. **Anteprima** mostra la newsletter come la vedrà il destinatario, nella lingua scelta.
 4. **"Invia a me"** manda il rendering **reale** a un solo indirizzo: nessun `[TEST]`, lingua a scelta.
+   *(La lingua a scelta è arrivata dopo, il 2026-08-18: fino ad allora la prova era sempre italiana,
+   e il collaudo delle traduzioni costava un invio a tutti. Tendina accanto all'indirizzo.)*
 5. **Duplica** crea una bozza identica da modificare — il caso più frequente.
 
 ---

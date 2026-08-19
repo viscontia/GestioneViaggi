@@ -260,6 +260,15 @@ else
                     <MudTextField @bind-Value="_testEmail" Label="Invia una prova a" Variant="Variant.Outlined"
                                   Style="max-width:280px;" Margin="Margin.Dense"
                                   HelperText="Indirizzo qualsiasi: riceve la newsletter vera, non una versione ridotta." />
+                    @* Vedere la mail come la riceve uno straniero non deve costare un invio a tutti. *@
+                    <MudSelect T="string" @bind-Value="_linguaProva" Label="Lingua" Variant="Variant.Outlined"
+                               Style="max-width:120px;" Margin="Margin.Dense" Dense="true"
+                               HelperText="I testi non tradotti restano in italiano.">
+                        @foreach (var l in GestioneViaggi.Models.Web.NewsletterTesti.Lingue)
+                        {
+                            <MudSelectItem T="string" Value="@l">@l</MudSelectItem>
+                        }
+                    </MudSelect>
                     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Send"
                                Disabled="@_busy" OnClick="InviaProva">Invia prova</MudButton>
                     <MudSpacer />
@@ -430,6 +439,9 @@ else
     private int _invioPercentuale => _invioTotale == 0 ? 0 : (int)(100.0 * _invioFatti / _invioTotale);
     private string? _oggetto;
     private string? _testEmail;
+
+    /// <summary>Lingua dell'invio di prova: italiano finché non si sceglie altro.</summary>
+    private string _linguaProva = "IT";
     private string? _sopEmail;
     private string? _sopMotivo;
 
@@ -1223,10 +1235,10 @@ else
         try
         {
             // Rendering REALE dei blocchi: nessun prefisso [TEST], nessuna versione ridotta.
-            // Serve proprio a vedere cosa arrivera' ai destinatari.
+            // Serve proprio a vedere cosa arrivera' ai destinatari, nella lingua scelta.
             var ok = await Sender.SendProvaBlocchiAsync(
-                _aziendaId, _invioCorrente!.Id, _oggetto!.Trim(), _testEmail!.Trim(), RenderService);
-            Snackbar.Add(ok ? "Prova inviata: controlla la casella." : "Invio di prova fallito (verifica la configurazione email).",
+                _aziendaId, _invioCorrente!.Id, _oggetto!.Trim(), _testEmail!.Trim(), RenderService, _linguaProva);
+            Snackbar.Add(ok ? $"Prova inviata in {_linguaProva}: controlla la casella." : "Invio di prova fallito (verifica la configurazione email).",
                          ok ? Severity.Success : Severity.Error);
         }
         catch (Exception ex) { Snackbar.Add(MessaggioErrore(ex), Severity.Error); }

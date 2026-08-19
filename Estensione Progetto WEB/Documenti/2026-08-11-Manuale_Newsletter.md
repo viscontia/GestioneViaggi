@@ -197,12 +197,25 @@ serve il passo successivo.
 A un indirizzo tuo. **Fallo sempre.** È l'unico modo di vedere come la mail arriva davvero — Outlook
 per Windows è il caso più severo.
 
+Accanto all'indirizzo scegli la **lingua**: la prova arriva tradotta come la riceverebbe un
+destinatario straniero, oggetto compreso, e i testi non ancora tradotti restano in italiano. Così
+controlli la resa in tedesco o in spagnolo senza spedire a nessuno.
+
 Se un collegamento a un tour non funziona, la prova **parte lo stesso** e ti avvisa: comporre la
 newsletter prima di pubblicare la scheda del tour è una sequenza legittima.
 
 ### Invia a tutti
 
-Prima di partire il programma controlla, e **blocca** se:
+**Le traduzioni devono essere complete.** Se una lingua che qualcuno riceverà non è pronta — mancano
+dei testi, oppure ne hai modificati alcuni dopo averli tradotti — l'invio **non parte**, e il messaggio
+ti dice quale lingua e quanto manca (es. «DE 5/6»). Hai due strade: completare la traduzione, oppure
+togliere dai destinatari le lingue non pronte. Una lingua incompleta ma **senza destinatari** non
+blocca nulla.
+
+È una scelta deliberata: una mail per metà in tedesco e per metà in italiano arriva a un cliente vero
+e non si richiama indietro.
+
+Prima di partire il programma controlla anche, e **blocca** se:
 
 - l'azienda non ha un sito web (link di disiscrizione impossibile);
 - un blocco è vuoto;

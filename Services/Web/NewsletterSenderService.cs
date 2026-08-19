@@ -371,16 +371,21 @@ public sealed class NewsletterSenderService
         invio.DataInvio = DateTime.UtcNow;
         await _inviiService.UpdateAsync(invio);
 
-        return new NewsletterSendResult(recipients.Count, ok, err, TradottoIncompleto: false);
+        return new NewsletterSendResult(recipients.Count, ok, err);
     }
 
     /// <summary>Invio di prova di una newsletter a blocchi: il rendering REALE a un solo indirizzo.</summary>
     /// <remarks>
-    /// Niente prefisso <c>[TEST]</c> e nessuna versione ridotta: serve proprio a vedere cosa
-    /// arrivera' ai destinatari. Non registra la campagna nello storico.
+    /// <para>Niente prefisso <c>[TEST]</c> e nessuna versione ridotta: serve proprio a vedere cosa
+    /// arrivera' ai destinatari. Non registra la campagna nello storico.</para>
+    /// <para>La <paramref name="lingua"/> e' quella che il destinatario vedrebbe: il rendering usa
+    /// le traduzioni di quella lingua e l'oggetto tradotto, con lo stesso fallback per campo
+    /// dell'invio vero. Prima era sempre italiano, e per vedere una newsletter in tedesco bisognava
+    /// spedirla a tutti.</para>
     /// </remarks>
     public async Task<bool> SendProvaBlocchiAsync(
-        int aziendaId, long invioId, string oggetto, string emailProva, NewsletterRenderService render)
+        int aziendaId, long invioId, string oggetto, string emailProva, NewsletterRenderService render,
+        string lingua = "IT")
     {
         var ctx = await render.PreparaAsync(invioId, aziendaId);
 
