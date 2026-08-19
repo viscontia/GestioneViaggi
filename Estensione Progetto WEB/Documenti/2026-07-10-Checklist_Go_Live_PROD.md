@@ -205,7 +205,7 @@ ls SqlScripts/*.sql \
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
-`468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · `491` e `509` vincoli che falliscono su dati sporchi ·
+`468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · **consenso email mancante sul sito di iscrizione (§2.8.1)** · `491` e `509` vincoli che falliscono su dati sporchi ·
 `499_Rollback` da non eseguire mai.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
@@ -358,13 +358,60 @@ script → poi eseguibile. Mai il contrario.
 
 ---
 
-### 2.8 — Sito di iscrizione ai viaggi: allineamento da decidere (non urgente)
+### 2.8 — Sito di iscrizione ai viaggi: la revisione che manca
 
 Il sito Flask (§12 di `Funzioni_DB.md`) **continua a funzionare senza alcuna modifica** dopo il
 re-model: manda il titolo come testo (`SIG.`, `SIG.RA`, maiuscolo come tutti i suoi campi) e un sesso
 separato, e il ponte del `539` gli assegna la FK. Verificato il 2026-08-19 su inserimento, rilettura
 e aggiornamento, anche con titolo e sesso in contraddizione fra loro: vince il sesso, esattamente
 come nel gestionale.
+
+**Funzionare non basta però.** Il sito è rimasto indietro rispetto a tutto quello che è stato messo
+nel gestionale, e i tre punti qui sotto sono un lavoro a metà finché restano aperti. Il primo — il
+consenso — è il più serio e **non dipende dal go-live**: andrebbe chiuso comunque, anche se il resto
+non si toccasse mai. Gli altri due possono seguire con calma, e in tempi diversi fra loro.
+
+#### 2.8.1 — Il consenso all'invio di email: **grave, e non recuperabile dopo**
+
+Lo schema prevede il consenso fatto a norma — non un flag, ma **tre** colonne (`SqlScripts/428`):
+
+| Colonna | Cosa contiene |
+|---|---|
+| `consenso_marketing` | `BOOLEAN NOT NULL DEFAULT false` |
+| `consenso_marketing_data` | quando è stato raccolto |
+| `consenso_marketing_fonte` | da dove |
+
+Le ultime due esistono perché il GDPR non chiede di *avere* il consenso, chiede di poterlo
+**dimostrare**. Il sito non ne valorizza nessuna delle tre: `fn_wizard_insert_cliente` non le nomina.
+
+**Cosa questo NON è.** Non è un invio senza consenso: il default è `false`, quindi chi si iscrive dal
+sito non entra in nessuna newsletter. Da questo lato il sistema sbaglia dalla parte giusta.
+
+**Cosa questo è, e perché è grave lo stesso.** Chi si iscrive e *vorrebbe* essere ricontattato non
+viene mai interpellato: è irraggiungibile per sempre, e la newsletter è la funzione su cui è stato
+speso l'ultimo mese. Ma il pericolo peggiore viene dopo: quando ci si accorgerà del buco, la
+tentazione sarà **accendere il flag in blocco** sugli iscritti dal sito. Sarebbe *quella* la
+violazione — `data` e `fonte` resterebbero vuote e non ci sarebbe nulla da esibire in caso di
+contestazione. Il consenso si raccoglie alla fonte o non si raccoglie: **non è recuperabile a
+posteriori**, e nessun backfill lo rende lecito.
+
+**Cosa serve:** una casella di spunta esplicita nella form del sito (non pre-spuntata, separata
+dall'accettazione delle condizioni: sono due consensi distinti), e il passaggio dei tre valori a
+`fn_wizard_insert_cliente` — `true/false`, `now()`, e una fonte riconoscibile tipo `SITO_ISCRIZIONE`.
+
+#### 2.8.2 — L'avviso nome/sesso va replicato
+
+`CoerenzaNomeSessoValidator` (vedi `Gestione_check.md`) avvisa, senza bloccare, quando il nome
+smentisce il sesso: nome in `-a` con sesso M, o in `-o` con sesso F. Nel gestionale intercetta chi
+lascia `SIG.` anche su una donna — l'errore tipico da quando il sesso si deriva dal titolo.
+
+Sul sito quel controllo **non c'è**, e lì il sesso è per giunta un campo a sé: la stessa incoerenza
+può rientrare dalla finestra. Da replicare insieme al punto 2.8.3, con la stessa lista di eccezioni
+(`ANDREA, LUCA, NICOLA, ELIA, MATTIA, ENEA, ISAIA, GEREMIA, ZACCARIA, BATTISTA, EVANGELISTA, COSMA`
++ composti attaccati + `MARIA` come secondo nome) e la stessa regola: **avvisa, non blocca**. Senza
+la lista scatta 56 volte su 56 a torto, misurato sui clienti veri.
+
+#### 2.8.3 — Titolo e sesso: le tre strade
 
 **Ma resta l'ultima porta da cui può entrare un'incoerenza.** Nel gestionale il sesso non è più
 digitabile; sul sito sì, ed è un campo separato dal titolo. Chi si iscrive in fretta può ancora
