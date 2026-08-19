@@ -1,9 +1,11 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.Web
+@using Microsoft.Extensions.Logging
 @using MudBlazor
 @inject NewsletterRenderService RenderService
 @inject WebTraduzioneOrchestratorService Orchestrator
 @inject ISnackbar Snackbar
+@inject ILogger<NewsletterTraduzioniPanel> Logger
 @implements IDisposable
 
 @* In quali lingue parte la newsletter.
@@ -20,10 +22,12 @@
         <MudIcon Icon="@Icons.Material.Filled.Translate" Color="Color.Primary" />
         <MudText Typo="Typo.subtitle2">Lingue</MudText>
         <MudSpacer />
-        <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoAwesome"
-                   Disabled="@(Disabilitato || _inCorso || !CeQualcosaDaFare)" OnClick="Traduci">
-            Traduci quello che manca
-        </MudButton>
+        <MudTooltip Text="@PercheSpento" Disabled="@(PercheSpento is null)">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoAwesome"
+                       Disabled="@(Disabilitato || _inCorso || !CeQualcosaDaFare)" OnClick="Traduci">
+                Traduci quello che manca
+            </MudButton>
+        </MudTooltip>
     </div>
 
     @if (_inCorso)
@@ -52,6 +56,15 @@
         </MudAlert>
     }
 
+    @* L'esito di un'operazione che dura minuti non puo' vivere in un messaggio che sparisce dopo
+       quattro secondi: chi si allontana mentre traduce torna e non sa se e' andata. Qui resta. *@
+    @if (_esito is not null)
+    {
+        <MudText Typo="Typo.caption" Class="d-block mt-2" Style="font-weight:500;">
+            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-1" />@_esito
+        </MudText>
+    }
+
     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
         Le date dei riquadri tour e le frasi del programma non si traducono qui: le prime si
         rigenerano dalla partenza, le seconde sono già in tutte le lingue.
@@ -65,6 +78,13 @@
     /// <summary>Vero su una newsletter già spedita: non si ritraduce ciò che è partito.</summary>
     [Parameter] public bool Disabilitato { get; set; }
 
+    /// <summary>
+    /// Cambia ogni volta che i testi italiani cambiano (blocchi salvati, oggetto riscritto):
+    /// il pannello rilegge lo stato. Senza, restava fermo a com'era all'apertura e una traduzione
+    /// diventata obsoleta non si vedeva finche' non si riapriva la newsletter.
+    /// </summary>
+    [Parameter] public int Revisione { get; set; }
+
     [Parameter] public string? Class { get; set; }
 
     /// <summary>Le traduzioni sono cambiate: chi ospita il pannello può rinfrescare l'anteprima.</summary>
@@ -74,9 +94,15 @@
     private bool _inCorso;
     private string _avanzamento = "";
 
+    /// <summary>Esito dell'ultima traduzione di questa sessione: resta a video, non svanisce.</summary>
+    private string? _esito;
+
     // Stessa guardia del pannello destinatari: OnParametersSetAsync scatta a ogni render del
-    // genitore, e ricaricare qui vorrebbe dire una query per ogni ridisegno.
+    // genitore, e ricaricare qui vorrebbe dire una query per ogni ridisegno. A differenza dei
+    // destinatari pero' questo stato dipende dai testi, che cambiano mentre la newsletter e'
+    // aperta: la guardia guarda anche Revisione, altrimenti non si accorge di niente.
     private long _caricatoPer;
+    private int _revisioneCaricata = -1;
 
     /// <summary>Il pannello e' stato smontato: gli aggiornamenti in arrivo dalla traduzione si fermano.</summary>
     private bool _smontato;
@@ -85,10 +111,22 @@
 
     private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
 
+    // Un bottone spento senza motivo sembra rotto: chi guarda non sa se manchi qualcosa da fare
+    // o se sia l'applicazione a non rispondere. Durante la traduzione non serve: c'e' la barra.
+    private string? PercheSpento =>
+        Disabilitato ? "La newsletter è già partita: non si ritraduce ciò che è stato spedito."
+        : _inCorso ? null
+        : !CeQualcosaDaFare ? "Tutte le lingue sono a posto: non c'è niente da tradurre."
+        : null;
+
     protected override async Task OnParametersSetAsync()
     {
-        if (InvioId == 0 || InvioId == _caricatoPer) return;
+        if (InvioId == 0) return;
+        if (InvioId == _caricatoPer && Revisione == _revisioneCaricata) return;
+        // Cambiando newsletter l'esito precedente non c'entra piu' niente.
+        if (InvioId != _caricatoPer) _esito = null;
         _caricatoPer = InvioId;
+        _revisioneCaricata = Revisione;
         await RicaricaAsync();
     }
 
@@ -139,12 +177,24 @@
             var msg = $"Tradotti {ok} testi";
             if (saltate > 0) msg += $", {saltate} già a posto";
             if (errori > 0) msg += $", {errori} non riusciti";
+
+            // Tre destinazioni, perche' una sola non basta: il messaggio per chi sta guardando,
+            // la riga nel pannello per chi torna dopo, il registro per capire cosa e' successo
+            // quando nessuno stava guardando.
+            _esito = $"{DateTime.Now:HH:mm} — {msg}.";
+            Logger.LogInformation("Traduzione newsletter {InvioId}: {Esito}", InvioId, msg);
             Snackbar.Add(msg + ".", errori > 0 ? Severity.Warning : Severity.Success);
 
             if (markup > 0)
                 Snackbar.Add($"{markup} testi con formattazione da ricontrollare: la traduzione c'è, ma i tag potrebbero essere cambiati.", Severity.Warning);
         }
-        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (Exception ex)
+        {
+            // Anche il fallimento resta scritto: e' il caso in cui serve di piu' saperlo.
+            _esito = $"{DateTime.Now:HH:mm} — traduzione non riuscita: {ex.Message}";
+            Logger.LogError(ex, "Traduzione newsletter {InvioId} fallita", InvioId);
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
         finally
         {
             _inCorso = false;

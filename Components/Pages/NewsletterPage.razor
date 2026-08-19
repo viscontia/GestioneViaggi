@@ -246,6 +246,7 @@ else
                l'abilitazione del pulsante di invio. *@
             <NewsletterTraduzioniPanel InvioId="@_invioCorrente!.Id" AziendaId="@_aziendaId"
                                        Disabilitato="@(_busy || !_invioCorrente!.IsBozza)"
+                                       Revisione="@_revisioneTesti"
                                        Class="mt-3" />
 
             <NewsletterDestinatariPanel InvioId="@_invioCorrente!.Id" AziendaId="@_aziendaId"
@@ -442,6 +443,9 @@ else
     private List<WebNewsletterTipoBlocco> _catalogo = new();
     private List<WebNewsletterBlocco> _blocchi = new();
     private List<ImmaginePicker.Voce> _galleria = new();
+
+    /// <summary>Sale a ogni cambio dei testi italiani: e' il segnale per il pannello Lingue.</summary>
+    private int _revisioneTesti;
 
     // --- Impostazioni: composizione del footer ----------------------------
     private sealed class CampoFooter
@@ -785,7 +789,13 @@ else
     private async Task CaricaBlocchiAsync()
     {
         if (_invioCorrente is null) return;
-        try { _blocchi = await BlocchiService.ListAsync(_invioCorrente.Id, _aziendaId); }
+        try
+        {
+            _blocchi = await BlocchiService.ListAsync(_invioCorrente.Id, _aziendaId);
+            // Passa di qui ogni aggiunta, modifica, eliminazione e riordino: e' il punto unico
+            // da cui avvisare il pannello Lingue che i testi non sono piu' quelli di prima.
+            _revisioneTesti++;
+        }
         catch (Exception ex) { Snackbar.Add($"Errore lettura blocchi: {MessaggioErrore(ex)}", Severity.Error); }
     }
 
@@ -802,6 +812,8 @@ else
                 await InviiService.UpdateAsync(invio);
                 await ReloadAsync();
                 _invioCorrente = Elenco.FirstOrDefault(x => x.Id == _invioCorrente.Id) ?? _invioCorrente;
+                // Anche l'oggetto e' un testo tradotto: riscriverlo rende obsoleta la sua traduzione.
+                _revisioneTesti++;
                 Snackbar.Add("Oggetto aggiornato.", Severity.Success);
             }
         }
