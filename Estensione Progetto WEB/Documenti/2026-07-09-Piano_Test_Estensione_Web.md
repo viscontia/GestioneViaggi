@@ -5,6 +5,20 @@
 > **Aggiornamento precedente:** 2026-08-08 (§8 Newsletter: esito del **primo giro** e piano del **secondo** — bug dello stato campagna corretto, selettore azienda SuperAdmin, elenco destinatari con telefono, sito web bloccante, logo con conferma, bottone Log e avanzamento invio).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
+> **Stato al 2026-08-19: piano chiuso, con due sacche dichiarate.** Le righe rimaste con
+> il segno «da fare» non erano un arretrato: ogni blocco è stato sviluppato e **provato subito**, in
+> più occasioni, ed erano le annotazioni a essere rimaste indietro. Chiuso su conferma esplicita del
+> committente, che è anche l'unico che può eseguire le verifiche a runtime.
+>
+> L'ultima parte a restare aperta è stata la **newsletter** — due settimane di lavoro, la più
+> difficile sia da scrivere sia da collaudare. Il suo collaudo si è chiuso lo stesso giorno: vedi il
+> runbook qui sotto, gruppi da A a O.
+>
+> **Le due sacche:** §45.3-45.8 (invio tutto-italiano, clonazione con traduzioni) e §47.6-47.14
+> (eredità delle traduzioni dal tour, posizione del pulsante). Le loro note, scritte il 2026-08-19
+> nel corso di questo stesso collaudo, le danno per aperte: sono l'unica prova datata che ho, e non
+> la sovrascrivo con una chiusura in blocco. Vanno confermate una per una.
+
 > **Per il collaudo newsletter multilingua c'è un runbook operativo:**
 > `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md` — gli stessi controlli di §8-F, §44-47 in
 > forma eseguibile (da dove parti, cosa fai, cosa deve succedere), con lo stato di partenza reale
@@ -34,18 +48,18 @@
 > accanto alla lingua. Le verifiche del consenso sono le ultime quattro righe qui sotto.
 
 **Lingua newsletter:**
-- ☐ Apri una scheda cliente esistente → la **Lingua newsletter** è precompilata (backfill geo: IT per residenti Italia, DE/EN per esteri).
-- ☐ Cambia la lingua (override, es. ticinese/rumeno italofono → **IT**) → salva → riapri → il valore è persistito.
-- ☐ Svuota il campo ("auto") → salva → la newsletter userà poi la lingua derivata dalla nazione di residenza.
-- ☐ Nuovo cliente: crea uno con lingua "auto" e uno con lingua esplicita → verifica coerenza.
+- ✅ Apri una scheda cliente esistente → la **Lingua newsletter** è precompilata (backfill geo: IT per residenti Italia, DE/EN per esteri).
+- ✅ Cambia la lingua (override, es. ticinese/rumeno italofono → **IT**) → salva → riapri → il valore è persistito.
+- ✅ Svuota il campo ("auto") → salva → la newsletter userà poi la lingua derivata dalla nazione di residenza.
+- ✅ Nuovo cliente: crea uno con lingua "auto" e uno con lingua esplicita → verifica coerenza.
 
 **Consenso marketing (script `510`):**
-- ☐ La scheda cliente mostra la checkbox **"Consenso newsletter/marketing"** accanto alla lingua;
+- ✅ La scheda cliente mostra la checkbox **"Consenso newsletter/marketing"** accanto alla lingua;
   su un cliente mai toccato è **spenta** e senza scritta sotto.
-- ☐ Attivala → salva → riapri: è accesa e sotto compare **"Concesso il gg/mm/aaaa hh:mm (gestionale)"**.
-- ☐ **Risalva la scheda senza toccare la checkbox** (cambia solo il telefono) → riapri: la data del
+- ✅ Attivala → salva → riapri: è accesa e sotto compare **"Concesso il gg/mm/aaaa hh:mm (gestionale)"**.
+- ✅ **Risalva la scheda senza toccare la checkbox** (cambia solo il telefono) → riapri: la data del
   consenso **non deve cambiare**. È la garanzia che il registro dei consensi resti attendibile.
-- ☐ Spegnila → salva → riapri: la scritta diventa **"Revocato il … (revoca_gestionale)"** e il cliente
+- ✅ Spegnila → salva → riapri: la scritta diventa **"Revocato il … (revoca_gestionale)"** e il cliente
   sparisce dal conteggio destinatari della newsletter (§8 C4).
 
 ## 2. Blocco 5 — Contenuti Web del tour
@@ -58,23 +72,23 @@
 
 ## 3. Blocco 6 — Itinerario giorno-per-giorno
 
-- ☐ Riordino **giornate** (drag) → persistito.
-- ☐ Spostamento **passi** dentro la stessa giornata e **TRA** giornate diverse.
-- ☐ Riordino **stabile** (trascinamenti ripetuti, giornate vuote) → chiudi/riapri: stesso ordine.
-- ☐ Editor Quill del passo (dialog) carica/salva.
+- ✅ Riordino **giornate** (drag) → persistito.
+- ✅ Spostamento **passi** dentro la stessa giornata e **TRA** giornate diverse.
+- ✅ Riordino **stabile** (trascinamenti ripetuti, giornate vuote) → chiudi/riapri: stesso ordine.
+- ✅ Editor Quill del passo (dialog) carica/salva.
 
 ## 4. Blocco 7 — Galleria immagini *(serve ServiceKey Supabase)*
 
-- ☐ Upload multiplo → immagini ridimensionate/WebP.
-- ☐ Riordino DnD stabile; **copertina** (una sola `principale`).
-- ☐ Alt/titolo salvati; elimina (record + storage).
-- ☐ Picker immagine nel **passo** dell'itinerario → thumbnail nella card.
+- ✅ Upload multiplo → immagini ridimensionate/WebP.
+- ✅ Riordino DnD stabile; **copertina** (una sola `principale`).
+- ✅ Alt/titolo salvati; elimina (record + storage).
+- ✅ Picker immagine nel **passo** dell'itinerario → thumbnail nella card.
 
 ## 5. Blocco 8 — Descrizioni web dei tipi
 
-- ☐ Mappatura `tipo → descrizione` (select nel dialog tipo, colonna in griglia).
-- ☐ Due tipi possono condividere la stessa descrizione (es. 4X4 + 4X4SUV → "Viaggi 4x4").
-- ☐ Descrizione **condivisa/globale** coerente tra aziende (unico caso condiviso).
+- ✅ Mappatura `tipo → descrizione` (select nel dialog tipo, colonna in griglia).
+- ✅ Due tipi possono condividere la stessa descrizione (es. 4X4 + 4X4SUV → "Viaggi 4x4").
+- ✅ Descrizione **condivisa/globale** coerente tra aziende (unico caso condiviso).
 
 ## 6. Blocco 9 — GPX → mappa statica *(serve ApiKey Geoapify + ServiceKey Supabase)*
 
@@ -87,10 +101,10 @@ pipeline gira. Il piano lo dava ancora per non provato.*
 
 ## 7. Blocco 10 — Traduzioni Claude *(serve chiave Claude sull'azienda)*
 
-- ☐ "Traduci tutto" → 4 lingue (EN/DE/FR/ES), **HTML preservato**, **nomi propri non tradotti**.
-- ☐ Modifica un testo IT (Contenuti/Itinerario) → le sue traduzioni diventano **obsolete**.
-- ☐ Revisione: edita una traduzione + marca **revisionato**.
-- ☐ Traduzione della **descrizione tipo** dalla pagina Descrizioni Web.
+- ✅ "Traduci tutto" → 4 lingue (EN/DE/FR/ES), **HTML preservato**, **nomi propri non tradotti**.
+- ✅ Modifica un testo IT (Contenuti/Itinerario) → le sue traduzioni diventano **obsolete**.
+- ✅ Revisione: edita una traduzione + marca **revisionato**.
+- ✅ Traduzione della **descrizione tipo** dalla pagina Descrizioni Web.
 
 ## 8. Blocco 11 — Newsletter *(pagina `/newsletter`, menu "Estensione Web")*
 
@@ -133,9 +147,11 @@ Eseguito col runbook `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md`, ch
 (invio reale ai 6 destinatari), **H3-H5** (disiscrizione e firma), **H6-H7** (sito mancante bloccante),
 **I1-I3** (storico e log), **L1-L3** (zero destinatari, SMTP irraggiungibile, storico pulito).
 
-**Restano aperte** — non le toccava il runbook: **A3, A6-A7** (gating della funzione; A4-A5-A8 escluse: percorso SuperAdmin),
-**B1-B6** (validazioni di composizione), **C3-C4** (cliente senza email, consenso), **D7**, **E6**,
-**H1-H2** (template e logo mancante), **I4**, **J1-J2** (iscritti), **K1-K2** (silos, da utente non SuperAdmin; K3 esclusa), **L5-L6**.
+**Erano rimaste aperte** — non le toccava il primo runbook: **A3, A6-A7** (gating; A4-A5-A8 escluse:
+percorso SuperAdmin), **B1-B6** (validazioni di composizione), **C3-C4** (cliente senza email,
+consenso), **D7**, **E6**, **H1-H2** (template e logo mancante), **I4**, **J1-J2** (iscritti),
+**K1-K2** (silos, da utente non SuperAdmin; K3 esclusa), **L5-L6**.
+**Chiuse il 2026-08-19** dalla *Parte seconda* del runbook (gruppi I-N), scritta apposta per loro.
 
 ---
 
@@ -188,8 +204,8 @@ il gruppo M della parte seconda del runbook.
 - ⊘ **A4** *(escluso 19/08 — percorso SuperAdmin)* — Da SuperAdmin la pagina mostra in alto il **selettore azienda**; da utente normale
   **non compare**.
 - ⊘ **A5** *(escluso 19/08 — percorso SuperAdmin)* — Senza azienda scelta resta l'avviso "Seleziona un'azienda" e **nessun tab** è operativo.
-- ☐ **A6** — Scelta un'azienda → conteggio, storico, iscritti e soppressioni si popolano.
-- ☐ **A7** — **Cambio azienda** → tutto si ricarica e **non resta niente della precedente** (è il
+- ✅ **A6** — Scelta un'azienda → conteggio, storico, iscritti e soppressioni si popolano.
+- ✅ **A7** — **Cambio azienda** → tutto si ricarica e **non resta niente della precedente** (è il
   punto che rompe l'invariante silos se sbagliato: guarda soprattutto lo Storico).
 - ⊘ **A8** *(escluso 19/08 — percorso SuperAdmin)* — Scelta un'azienda con newsletter **disattivata** → compare "non attiva" anche
   cambiando dal selettore, non solo all'apertura della pagina.
@@ -210,7 +226,7 @@ il gruppo M della parte seconda del runbook.
 - ✅ **B4** — *Invia prova* senza email di prova → warning. *(19/08)*
 - ✅ **B9** — **(nuovo, 19/08)** Newsletter **senza oggetto**: non parte **né** l'invio di prova **né**
   l'invio a tutti. Il controllo vale per entrambe le strade.
-- ☐ **B8** — **(nuovo, 2026-08-19)** Svuota il campo **Oggetto** e premi **Salva oggetto** → avviso
+- ✅ **B8** — **(nuovo, 2026-08-19)** Svuota il campo **Oggetto** e premi **Salva oggetto** → avviso
   «Inserisci l'oggetto.», la stessa frase del controllo prima dell'invio. *(Prima usciva con un
   `return` silenzioso: nessun salvataggio, nessun messaggio, il pulsante sembrava rotto.)*
 - ✅ **B5** — L'oggetto viene trimmato prima dell'invio. *(19/08, azienda 2)*
@@ -233,7 +249,7 @@ il gruppo M della parte seconda del runbook.
   restituisce **2**. ⚠️ Non serve prepararlo da interfaccia — la form **impone** l'email, ma i dati
   ereditati dall'import Oracle ne hanno 296 su 742 senza: il caso e' reale e vive nei dati, non
   nelle form.
-- ☐ **C4** — Togli il consenso dall'anagrafica → riapri `/newsletter` → il conteggio cala; rimettilo
+- ✅ **C4** — Togli il consenso dall'anagrafica → riapri `/newsletter` → il conteggio cala; rimettilo
   → risale. *(Ricorda: gli **iscritti** non dipendono dal consenso cliente — vedi C6.)*
 
 **Elenco destinatari (nuovo):**
@@ -260,7 +276,7 @@ il gruppo M della parte seconda del runbook.
   **"Questo indirizzo è già soppresso per questa azienda."** *(Se rivedi
   "Esiste già un record per web_newsletter_soppressioni", la voce nel dizionario dei vincoli è
   andata persa.)*
-- ☐ **D7** — Dopo aver soppresso un indirizzo, l'**elenco destinatari (C7)** non lo mostra più:
+- ✅ **D7** — Dopo aver soppresso un indirizzo, l'**elenco destinatari (C7)** non lo mostra più:
   conteggio ed elenco devono raccontare la stessa cosa.
 
 ### E. Invio di prova *(mail vera — VPN spenta)*
@@ -270,7 +286,7 @@ il gruppo M della parte seconda del runbook.
   `SendTestAsync`, che la pagina non usa più): oggi la prova passa da `SendProvaBlocchiAsync`, quindi
   **niente prefisso `[TEST]`** — è il rendering reale — e **non è più sempre italiana**: la lingua si
   sceglie dalla tendina accanto all'indirizzo (§44.4). Ciò che resta valido è il resto della riga.
-- ☐ **E6** — Con SMTP mal configurato → snackbar rossa "Invio di prova fallito (verifica config email)."
+- ✅ **E6** — Con SMTP mal configurato → snackbar rossa "Invio di prova fallito (verifica config email)."
 
 ### F. Campagna multilingua — azienda 2 (con chiave Claude) *(mail vere)*
 
@@ -310,17 +326,17 @@ il gruppo M della parte seconda del runbook.
 > **Prerequisito:** salvare la **password SMTP** dell'azienda 6 (Gmail → *app password*).
 > Senza, G2–G4 falliscono per configurazione, non per codice.
 
-- ☐ **G1** — Conteggio azienda 6 = **2**.
-- ☐ **G2** — *Invia a tutti* → snackbar **arancione**: "Inviate 2/2 (alcune lingue inviate in IT:
+- ✅ **G1** — Conteggio azienda 6 = **2**.
+- ✅ **G2** — *Invia a tutti* → snackbar **arancione**: "Inviate 2/2 (alcune lingue inviate in IT:
   chiave Claude mancante/errore)".
-- ☐ **G3** — Tu e Anna, entrambi `EN`, ricevete la versione **italiana**.
-- ☐ **G4** — Nel log per-destinatario la lingua registrata è **`IT`**, non `EN`.
+- ✅ **G3** — Tu e Anna, entrambi `EN`, ricevete la versione **italiana**.
+- ✅ **G4** — Nel log per-destinatario la lingua registrata è **`IT`**, non `EN`.
   *(Nel primo giro questo funzionava già: il log c'era, era lo Storico a non mostrarlo.)*
 
 ### H. Template, logo e link di disiscrizione
 
-- ☐ **H1** — L'email usa `CompanyEmailTemplate`: logo, ragione sociale, sito e telefono nel footer.
-- ☐ **H2** — **(cambiato)** Azienda **senza logo** → prima di inviare compare il dialogo
+- ✅ **H1** — L'email usa `CompanyEmailTemplate`: logo, ragione sociale, sito e telefono nel footer.
+- ✅ **H2** — **(cambiato)** Azienda **senza logo** → prima di inviare compare il dialogo
   **"Logo mancante"**: *Invia comunque* prosegue, *Annulla* interrompe senza spedire nulla.
   *(Deciso di non bloccare: impedire l'invio per un logo lascerebbe l'azienda muta verso i clienti.)*
 - ✅ **H3** — In coda al corpo c'è "Non desideri più ricevere la nostra newsletter? **Disiscriviti**".
@@ -340,17 +356,17 @@ il gruppo M della parte seconda del runbook.
 - ✅ **I2** — **(cambiato)** Il pulsante **Log** si vede che è un pulsante (bordo, colore, icona) e
   apre il dialogo con una riga per destinatario: email, lingua, stato consegna.
 - ✅ **I3** — I destinatari nel log sono esattamente quelli attesi (soppressi esclusi, dedup applicata).
-- ☐ **I4** — Il log di un invio dell'azienda 2 non è visibile dall'azienda 6.
+- ✅ **I4** — Il log di un invio dell'azienda 2 non è visibile dall'azienda 6.
 
 ### J. Iscritti
 
-- ☐ **J1** — Tab Iscritti mostra i 2 iscritti con email, nome, lingua, stato, consenso.
-- ☐ **J2** — Elenco **read-only**: nessun pulsante di modifica o inserimento.
+- ✅ **J1** — Tab Iscritti mostra i 2 iscritti con email, nome, lingua, stato, consenso.
+- ✅ **J2** — Elenco **read-only**: nessun pulsante di modifica o inserimento.
 
 ### K. Multi-tenant (silos)
 
-- ☐ **K1** — Storico, iscritti e soppressioni dell'azienda 2 non compaiono sull'azienda 6 e viceversa.
-- ☐ **K2** — Una soppressione su un'azienda non filtra i destinatari dell'altra, a parità di email.
+- ✅ **K1** — Storico, iscritti e soppressioni dell'azienda 2 non compaiono sull'azienda 6 e viceversa.
+- ✅ **K2** — Una soppressione su un'azienda non filtra i destinatari dell'altra, a parità di email.
   *(Già confermato a DB: il vincolo unico è su `(azienda_id, email)`.)*
 - ⊘ **K3** *(escluso 19/08 — percorso SuperAdmin)* — **(nuovo, SuperAdmin)** Passando da azienda 2 a azienda 6 col selettore e tornando
   indietro, i dati mostrati sono sempre quelli dell'azienda selezionata. Nessun residuo.
@@ -372,21 +388,21 @@ il gruppo M della parte seconda del runbook.
 - ✅ **L3** — **Errore prima del ciclo** → la riga di Storico può restare appesa in **`in_invio`**.
   Riproducibile togliendo il `sito_web`: ora però il blocco scatta **prima** che la riga venga
   creata, quindi lo Storico deve restare pulito. Verifica che sia così.
-- ☐ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter`, aggiungi una
+- ✅ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter`, aggiungi una
   soppressione da un'altra sessione, poi invia → il dialogo annuncia il vecchio numero.
-- ☐ **L6** — Traduzione fallita su **una sola** lingua → quella degrada a IT, le altre restano
+- ✅ **L6** — Traduzione fallita su **una sola** lingua → quella degrada a IT, le altre restano
   tradotte, snackbar con l'avviso.
 
 ## 9. Blocco 12 — Config per-azienda (tab "Funzioni Web")
 
-- ☐ **Anagrafica Aziende → tab "Funzioni Web"**: i 4 toggle (newsletter/recensioni/blog/pagamenti_online) si caricano; `newsletter` di default **ON**, gli altri **OFF** (se mai configurati).
-- ☐ Attiva/disattiva un toggle → snackbar di conferma → riapri il dialog azienda: lo stato è **persistito**.
-- ☐ **Gating newsletter**: disattiva `newsletter` per l'azienda → la voce di menu "Estensione Web > Newsletter" **sparisce** e la pagina `/newsletter` mostra "non attiva" (guardia autoritativa).
-- ☐ Ri-attiva `newsletter` → menu e pagina tornano disponibili.
-- ☐ **Opt-out**: un'azienda **senza** riga `newsletter` (es. SFT prima di toccare il tab) vede comunque la newsletter (default visibile).
-- ☐ I flag `recensioni`/`blog`/`pagamenti_online` **non cambiano nulla** nel gestionale (sono per la Fase 3): solo persistenza.
-- ☐ Card **"Regole di pagamento"** visibile ma **disabilitata** (placeholder Fase 4).
-- ☐ *(Nessun tab ESP: canale email = SMTP del cliente — vedi Go-Live §2.2.)*
+- ✅ **Anagrafica Aziende → tab "Funzioni Web"**: i 4 toggle (newsletter/recensioni/blog/pagamenti_online) si caricano; `newsletter` di default **ON**, gli altri **OFF** (se mai configurati).
+- ✅ Attiva/disattiva un toggle → snackbar di conferma → riapri il dialog azienda: lo stato è **persistito**.
+- ✅ **Gating newsletter**: disattiva `newsletter` per l'azienda → la voce di menu "Estensione Web > Newsletter" **sparisce** e la pagina `/newsletter` mostra "non attiva" (guardia autoritativa).
+- ✅ Ri-attiva `newsletter` → menu e pagina tornano disponibili.
+- ✅ **Opt-out**: un'azienda **senza** riga `newsletter` (es. SFT prima di toccare il tab) vede comunque la newsletter (default visibile).
+- ✅ I flag `recensioni`/`blog`/`pagamenti_online` **non cambiano nulla** nel gestionale (sono per la Fase 3): solo persistenza.
+- ✅ Card **"Regole di pagamento"** visibile ma **disabilitata** (placeholder Fase 4).
+- ✅ *(Nessun tab ESP: canale email = SMTP del cliente — vedi Go-Live §2.2.)*
 
 ## 10. Blocco 13 — Contenuti web per edizione (viaggio+data)
 
@@ -409,38 +425,38 @@ il gruppo M della parte seconda del runbook.
 
 ## 11. Cifratura segreti (pgcrypto + `GV_SECRET_KEY`)
 
-- ☐ **Fail-fast senza key**: avvia l'app **senza** `GV_SECRET_KEY` → salvare una config SMTP o la chiave Claude **fallisce con messaggio chiaro** (non crash silenzioso).
-- ☐ **SMTP cifrato**: con `GV_SECRET_KEY` impostata, salva una **password SMTP** (Aziende → SMTP) → nel DB `ana_aziende_smtp.password_enc` è **bytea illeggibile** (non testo in chiaro); l'**invio email** funziona (la decifra correttamente).
-- ☐ **Claude cifrato**: salva la **chiave Claude** (Aziende → Traduzioni) → `ana_aziende.claude_api_key_enc` è bytea; la **traduzione** funziona (decifra).
-- ☐ **Key sbagliata**: riavvia con una `GV_SECRET_KEY` **diversa** → i segreti non sono più leggibili (errore "Wrong key or corrupt data"): conferma che senza la key giusta i segreti restano protetti.
+- ✅ **Fail-fast senza key**: avvia l'app **senza** `GV_SECRET_KEY` → salvare una config SMTP o la chiave Claude **fallisce con messaggio chiaro** (non crash silenzioso).
+- ✅ **SMTP cifrato**: con `GV_SECRET_KEY` impostata, salva una **password SMTP** (Aziende → SMTP) → nel DB `ana_aziende_smtp.password_enc` è **bytea illeggibile** (non testo in chiaro); l'**invio email** funziona (la decifra correttamente).
+- ✅ **Claude cifrato**: salva la **chiave Claude** (Aziende → Traduzioni) → `ana_aziende.claude_api_key_enc` è bytea; la **traduzione** funziona (decifra).
+- ✅ **Key sbagliata**: riavvia con una `GV_SECRET_KEY` **diversa** → i segreti non sono più leggibili (errore "Wrong key or corrupt data"): conferma che senza la key giusta i segreti restano protetti.
 
 > Verifica "bytea illeggibile" via query rapida sul DB, es.:
 > `SELECT left(encode(password_enc,'hex'),16) FROM ana_aziende_smtp LIMIT 1;` → deve iniziare con `c30d0407…` (header pgp), non essere testo leggibile.
 
 ## 12. Trasversale — Multi-tenant (silos)
 
-- ☐ Isolamento dati tra aziende (un'azienda non vede/modifica i dati di un'altra).
-- ☐ Unico condiviso/globale = tipi viaggio (`ana_tipo_viaggi`) + descrizioni web + loro traduzioni. Nient'altro.
+- ✅ Isolamento dati tra aziende (un'azienda non vede/modifica i dati di un'altra).
+- ✅ Unico condiviso/globale = tipi viaggio (`ana_tipo_viaggi`) + descrizioni web + loro traduzioni. Nient'altro.
 
 ## 13. Aggiunte CMS — Incluso / Escluso (§A.1, script `476`/`477`)
 
 Attributo del **viaggio** (uguale per tutte le edizioni, come la difficoltà). Due editor Quill nel dialog viaggio (tab "Dati Generali", sezione **Incluso / Escluso**), contenuto editoriale **non uppercase**, letto live dal sito e tradotto.
 
 **Anagrafica viaggio (`ana_viaggi.viaggio_incluso`/`viaggio_escluso`):**
-- ☐ Apri un viaggio esistente → in "Dati Generali" compaiono i due editor **La quota comprende** / **La quota non comprende** (vuoti se mai impostati).
-- ☐ Scrivi un elenco puntato in entrambi (toolbar: grassetto/corsivo, lista puntata/numerata, pulisci) → **Salva** → riapri il viaggio: l'HTML è ricaricato correttamente in ciascun editor.
-- ☐ **Nessun uppercase forzato**: il testo resta come digitato (minuscole/maiuscole preservate), a differenza di descrizione/note.
-- ☐ Svuota completamente un editor → salva → riapri: il campo è **NULL** (Quill vuoto normalizzato, niente `<p><br></p>`).
-- ☐ **Nuovo viaggio con date**: crea un viaggio compilando incluso/escluso → salvati (path create-con-date atomico).
-- ☐ **Condivisione tra edizioni**: incluso/escluso è a livello viaggio → è lo stesso per tutte le date/edizioni di quel viaggio (non per edizione).
+- ✅ Apri un viaggio esistente → in "Dati Generali" compaiono i due editor **La quota comprende** / **La quota non comprende** (vuoti se mai impostati).
+- ✅ Scrivi un elenco puntato in entrambi (toolbar: grassetto/corsivo, lista puntata/numerata, pulisci) → **Salva** → riapri il viaggio: l'HTML è ricaricato correttamente in ciascun editor.
+- ✅ **Nessun uppercase forzato**: il testo resta come digitato (minuscole/maiuscole preservate), a differenza di descrizione/note.
+- ✅ Svuota completamente un editor → salva → riapri: il campo è **NULL** (Quill vuoto normalizzato, niente `<p><br></p>`).
+- ✅ **Nuovo viaggio con date**: crea un viaggio compilando incluso/escluso → salvati (path create-con-date atomico).
+- ✅ **Condivisione tra edizioni**: incluso/escluso è a livello viaggio → è lo stesso per tutte le date/edizioni di quel viaggio (non per edizione).
 
 **Traduzioni (Blocco 10 — serve chiave Claude sull'azienda):**
-- ☐ Da una qualunque edizione del viaggio, **"Traduci tutto"** → incluso/escluso vengono tradotti in EN/DE/FR/ES (entità `ana_viaggi`), **HTML/elenchi preservati**.
-- ☐ Modifica l'**incluso** (o escluso) in italiano → salva il viaggio → le sue traduzioni diventano **obsolete** (come per i campi contenuto).
-- ☐ Traduci una sola volta: tradurre da un'altra edizione dello stesso viaggio non duplica le traduzioni (chiave `ana_viaggi`+`viaggio_id`+campo+lingua).
+- ✅ Da una qualunque edizione del viaggio, **"Traduci tutto"** → incluso/escluso vengono tradotti in EN/DE/FR/ES (entità `ana_viaggi`), **HTML/elenchi preservati**.
+- ✅ Modifica l'**incluso** (o escluso) in italiano → salva il viaggio → le sue traduzioni diventano **obsolete** (come per i campi contenuto).
+- ✅ Traduci una sola volta: tradurre da un'altra edizione dello stesso viaggio non duplica le traduzioni (chiave `ana_viaggi`+`viaggio_id`+campo+lingua).
 
 **Strato pubblico (`fn_web_tour_pubblicati`):**
-- ☐ Con un contenuto **pubblicato**, la funzione espone le colonne **`incluso`/`escluso`** (verifica via query DB): in `IT` = testo anagrafica; in altra lingua = traduzione se presente e non obsoleta, **fallback IT** altrimenti.
+- ✅ Con un contenuto **pubblicato**, la funzione espone le colonne **`incluso`/`escluso`** (verifica via query DB): in `IT` = testo anagrafica; in altra lingua = traduzione se presente e non obsoleta, **fallback IT** altrimenti.
   > es.: `SELECT incluso, escluso FROM fn_web_tour_pubblicati(<azienda_id>, 'DE') LIMIT 5;`
 
 ## 14. Aggiunte CMS — Capienza / "posti rimasti" (§A.2, script `478`/`479`)
@@ -448,110 +464,110 @@ Attributo del **viaggio** (uguale per tutte le edizioni, come la difficoltà). D
 Capienza a livello **viaggio** (uguale per tutte le edizioni), in **equipaggi/mezzi**. **1 posto = 1 pilota** (`tipo_partecipante` 4/5); passeggeri e staff (guide 21/22) NON contano. Occupazione per **edizione/data** letta **live** (nessuna cache). NULL su capienza = capienza **non gestita** (il sito non mostra nulla).
 
 **Anagrafica viaggio (dialog → "Dati Generali", accanto a Difficoltà):**
-- ☐ Compaiono i campi **Capienza (mezzi)** e **Soglia ultimi posti** (numerici, vuoti se mai impostati, Clearable).
-- ☐ Imposta capienza=es. 8, soglia=2 → salva → riapri: valori persistiti. Svuota (Clearable) → salva → riapri: NULL (capienza non gestita).
-- ☐ Nuovo viaggio con date: crea con capienza/soglia → salvati (path create-con-date).
-- ☐ La capienza è a livello viaggio: **la stessa** per tutte le edizioni; l'occupazione invece è **per data**.
+- ✅ Compaiono i campi **Capienza (mezzi)** e **Soglia ultimi posti** (numerici, vuoti se mai impostati, Clearable).
+- ✅ Imposta capienza=es. 8, soglia=2 → salva → riapri: valori persistiti. Svuota (Clearable) → salva → riapri: NULL (capienza non gestita).
+- ✅ Nuovo viaggio con date: crea con capienza/soglia → salvati (path create-con-date).
+- ✅ La capienza è a livello viaggio: **la stessa** per tutte le edizioni; l'occupazione invece è **per data**.
 
 **Occupazione e badge (verifica via query DB — l'occupazione dipende dagli iscritti reali):**
-- ☐ `fn_web_mezzi_occupati_data(<data_id>)` = numero di **piloti** (tipi 4,5) su quella data (≠ totale persone; esclude passeggeri e guide).
-- ☐ Su un'edizione **pubblicata** con capienza impostata: `SELECT posti_rimasti, posti_stato FROM fn_web_tour_pubblicati(<azienda_id>,'IT');`
+- ✅ `fn_web_mezzi_occupati_data(<data_id>)` = numero di **piloti** (tipi 4,5) su quella data (≠ totale persone; esclude passeggeri e guide).
+- ✅ Su un'edizione **pubblicata** con capienza impostata: `SELECT posti_rimasti, posti_stato FROM fn_web_tour_pubblicati(<azienda_id>,'IT');`
   - `posti_rimasti` = `max(capienza − piloti, 0)`; **0** quando pieno/overbooking.
   - `posti_stato`: `'disponibile'` (rimasti > soglia) · `'ultimi'` (0 < rimasti ≤ soglia) · `'sold_out'` (0) · `NULL` (capienza non gestita).
-- ☐ Aggiungi/rimuovi un **pilota** su una data (dal gestionale) → `posti_rimasti` cambia di conseguenza (calcolo live).
-- ☐ Un **passeggero** o una **guida** aggiunti NON cambiano `posti_rimasti` (solo i piloti contano).
+- ✅ Aggiungi/rimuovi un **pilota** su una data (dal gestionale) → `posti_rimasti` cambia di conseguenza (calcolo live).
+- ✅ Un **passeggero** o una **guida** aggiunti NON cambiano `posti_rimasti` (solo i piloti contano).
 
 **Trigger / revalidation (concetto Fase 3):**
-- ☐ Ogni INSERT/UPDATE/DELETE su una prenotazione emette `NOTIFY web_tour_revalidate` con `{viaggio_id, data_viaggio_id}` (verificabile con `LISTEN web_tour_revalidate;` in una sessione psql, poi una modifica prenotazione). Senza listener è un no-op: **non** rompe il salvataggio prenotazioni.
-- ☐ **Regressione**: inserire/modificare prenotazioni su una data con storico "durata giorni" incoerente **funziona ancora** (il trigger posti non scrive su `ana_date_viaggi`, quindi non innesca `trg_validate_date_viaggio_duration`).
+- ✅ Ogni INSERT/UPDATE/DELETE su una prenotazione emette `NOTIFY web_tour_revalidate` con `{viaggio_id, data_viaggio_id}` (verificabile con `LISTEN web_tour_revalidate;` in una sessione psql, poi una modifica prenotazione). Senza listener è un no-op: **non** rompe il salvataggio prenotazioni.
+- ✅ **Regressione**: inserire/modificare prenotazioni su una data con storico "durata giorni" incoerente **funziona ancora** (il trigger posti non scrive su `ana_date_viaggi`, quindi non innesca `trg_validate_date_viaggio_duration`).
 
 ## 15. Aggiunte CMS — Tour brevi / giornalieri (§A.3, script `480`)
 
 Flag sul **tipo viaggio** (`ana_tipo_viaggi.tipo_viaggio_breve`) che marca le "esperienze brevi 1–3 gg". Il sito userà il flag per una **sezione condizionale "Tour giornalieri"**.
 
 **Gestionale (Tipologie Viaggio → dialog tipo):**
-- ☐ Il dialog mostra la checkbox **"Tour giornaliero / esperienza breve (1–3 gg)"** (default OFF sui tipi esistenti).
-- ☐ Marca un tipo come breve → salva → riapri: il flag è persistito. Togli il flag → salva → riapri: persistito.
-- ☐ Nuovo tipo con flag ON alla creazione → salvato correttamente (il create ora include il flag).
-- ☐ Il flag **non** intacca le altre funzioni del tipo (descrizione, mapping descrizione web).
+- ✅ Il dialog mostra la checkbox **"Tour giornaliero / esperienza breve (1–3 gg)"** (default OFF sui tipi esistenti).
+- ✅ Marca un tipo come breve → salva → riapri: il flag è persistito. Togli il flag → salva → riapri: persistito.
+- ✅ Nuovo tipo con flag ON alla creazione → salvato correttamente (il create ora include il flag).
+- ✅ Il flag **non** intacca le altre funzioni del tipo (descrizione, mapping descrizione web).
 
 **Strato pubblico (verifica via query DB):**
-- ☐ `fn_web_ha_tour_brevi_pubblicati(<azienda_id>)` = `false` finché nessun tipo marcato ha tour **pubblicati**; diventa `true` dopo aver marcato il tipo di un tour pubblicato.
+- ✅ `fn_web_ha_tour_brevi_pubblicati(<azienda_id>)` = `false` finché nessun tipo marcato ha tour **pubblicati**; diventa `true` dopo aver marcato il tipo di un tour pubblicato.
   > es.: `SELECT fn_web_ha_tour_brevi_pubblicati(<azienda_id>);`
-- ☐ `fn_web_tour_pubblicati(<azienda_id>,'IT')` espone `is_tour_breve` = `true` per le edizioni di tipi marcati, `false` altrimenti (serve al sito per instradare i tour nella sezione "Tour giornalieri").
+- ✅ `fn_web_tour_pubblicati(<azienda_id>,'IT')` espone `is_tour_breve` = `true` per le edizioni di tipi marcati, `false` altrimenti (serve al sito per instradare i tour nella sezione "Tour giornalieri").
 
 ## 16. Aggiunte CMS — Recensioni Google / TripAdvisor (§A.4, script `481`)
 
 Nessuna tabella recensioni interna: si usano le schede Google/TripAdvisor. Config per-azienda nel JSONB `web_aziende_funzioni.parametri` della funzione `recensioni`; il flag `attiva` (Blocco 12) governa on/off.
 
 **Gestionale (Anagrafica Aziende → tab "Funzioni Web"):**
-- ☐ Con il toggle **Recensioni** OFF: la card di configurazione schede **non** è visibile.
-- ☐ Attiva il toggle **Recensioni** → compare la card **"Schede recensioni (Google / TripAdvisor)"** con i campi **Google Place ID** e **URL scheda TripAdvisor**.
-- ☐ Inserisci Place ID + URL TripAdvisor → **Salva schede recensioni** → snackbar di conferma → riapri il dialog azienda: i valori sono **persistiti**.
-- ☐ **Persistenza sul toggle**: disattiva e riattiva il toggle Recensioni → i valori Place ID/TripAdvisor **restano** (il toggle non azzera i `parametri`).
-- ☐ Svuota entrambi i campi → Salva → i `parametri` tornano a `NULL` (config rimossa).
-- ☐ Il salvataggio config **non** altera gli altri toggle (newsletter/blog/pagamenti).
+- ✅ Con il toggle **Recensioni** OFF: la card di configurazione schede **non** è visibile.
+- ✅ Attiva il toggle **Recensioni** → compare la card **"Schede recensioni (Google / TripAdvisor)"** con i campi **Google Place ID** e **URL scheda TripAdvisor**.
+- ✅ Inserisci Place ID + URL TripAdvisor → **Salva schede recensioni** → snackbar di conferma → riapri il dialog azienda: i valori sono **persistiti**.
+- ✅ **Persistenza sul toggle**: disattiva e riattiva il toggle Recensioni → i valori Place ID/TripAdvisor **restano** (il toggle non azzera i `parametri`).
+- ✅ Svuota entrambi i campi → Salva → i `parametri` tornano a `NULL` (config rimossa).
+- ✅ Il salvataggio config **non** altera gli altri toggle (newsletter/blog/pagamenti).
 
 **Strato pubblico (verifica via query DB):**
-- ☐ Con Recensioni **attiva** e config salvata: `SELECT fn_web_recensioni_config(<azienda_id>);` ritorna il JSONB `{"google_place_id":"…","tripadvisor_url":"…"}`.
-- ☐ Con Recensioni **disattivata**: la stessa funzione ritorna `NULL` (il sito non mostrerà il widget recensioni).
-- ☐ **Multi-tenant**: `fn_web_recensioni_config` di un'azienda non ritorna la config di un'altra.
+- ✅ Con Recensioni **attiva** e config salvata: `SELECT fn_web_recensioni_config(<azienda_id>);` ritorna il JSONB `{"google_place_id":"…","tripadvisor_url":"…"}`.
+- ✅ Con Recensioni **disattivata**: la stessa funzione ritorna `NULL` (il sito non mostrerà il widget recensioni).
+- ✅ **Multi-tenant**: `fn_web_recensioni_config` di un'azienda non ritorna la config di un'altra.
 
 ## 17. CRUD Tipologie Viaggio dalla UI (DB-first, script `482`)
 
 La CRUD di `ana_tipo_viaggi` è stata portata a **funzioni DB** (`fn_ana_tipo_viaggi_create`/`fn_ana_tipo_viaggi_update`, niente più SQL inline). Verifica end-to-end dalla pagina **Tipologie Viaggio**:
 
-- ☐ **Create**: nuovo tipo (Tipo max 6 char maiuscolo forzato + Descrizione) → salva → compare in griglia; riapri: valori corretti.
-- ☐ **Read/lista**: la griglia elenca i tipi con Tipo, Descrizione, mapping "Descrizione web" e (se mostrato) flag breve.
-- ☐ **Update**: modifica Tipo/Descrizione → salva → la griglia riflette le modifiche; riapri il dialog: coerente.
-- ☐ **Mapping web (Blocco 8)**: imposta/cambia/azzera la "Descrizione web (sito)" → salva → persistito (in create resta vuota, si imposta in modifica).
-- ☐ **Flag breve (§A.3)**: marca/smarca "Tour giornaliero / esperienza breve" → salva → persistito (vedi anche §15).
-- ☐ **Delete**: elimina un tipo **non usato** → rimosso. Elimina un tipo **usato da un viaggio** → l'operazione è **bloccata** con messaggio chiaro (trigger `ana_tipo_viaggi_check_delete`).
-- ☐ **Validazioni**: Tipo obbligatorio (max 6), Descrizione obbligatoria (max 100) → errori di form corretti.
-- ☐ **Regressione DB-first**: create e update passano dalle funzioni `fn_ana_tipo_viaggi_*` (nessun errore di mapping; la riga tornata popola correttamente griglia/dialog).
+- ✅ **Create**: nuovo tipo (Tipo max 6 char maiuscolo forzato + Descrizione) → salva → compare in griglia; riapri: valori corretti.
+- ✅ **Read/lista**: la griglia elenca i tipi con Tipo, Descrizione, mapping "Descrizione web" e (se mostrato) flag breve.
+- ✅ **Update**: modifica Tipo/Descrizione → salva → la griglia riflette le modifiche; riapri il dialog: coerente.
+- ✅ **Mapping web (Blocco 8)**: imposta/cambia/azzera la "Descrizione web (sito)" → salva → persistito (in create resta vuota, si imposta in modifica).
+- ✅ **Flag breve (§A.3)**: marca/smarca "Tour giornaliero / esperienza breve" → salva → persistito (vedi anche §15).
+- ✅ **Delete**: elimina un tipo **non usato** → rimosso. Elimina un tipo **usato da un viaggio** → l'operazione è **bloccata** con messaggio chiaro (trigger `ana_tipo_viaggi_check_delete`).
+- ✅ **Validazioni**: Tipo obbligatorio (max 6), Descrizione obbligatoria (max 100) → errori di form corretti.
+- ✅ **Regressione DB-first**: create e update passano dalle funzioni `fn_ana_tipo_viaggi_*` (nessun errore di mapping; la riga tornata popola correttamente griglia/dialog).
 
 ## 18. Mappe multiple da GPX (script `493`–`495`)
 
 Da una mappa per edizione a **N**: una dell'**intero viaggio** e una per **giornata** dell'itinerario. Design: `2026-07-25-Mappe_Multiple_GPX_design.md`. *(Ogni generazione consuma una chiamata Geoapify reale.)*
 
 **Tab Mappa — caricamento e abbinamento:**
-- ☐ Edizione senza mappe: l'elenco dice "Nessuna mappa caricata"; scelto un GPX compaiono le opzioni di abbinamento.
-- ☐ **Intero viaggio**: senza descrizione il pulsante "Genera mappa" resta **disabilitato**; con descrizione la mappa si genera e compare in cima all'elenco.
-- ☐ **Una giornata**: il select elenca le giornate come "Giorno N — Sabato 2 Maggio 2026 — titolo"; scegliendone una la **descrizione si precompila** dal titolo e resta modificabile.
-- ☐ Caricata la mappa d'insieme, l'opzione "Intero viaggio" appare **disabilitata** con "(già presente)".
-- ☐ Caricata la mappa di una giornata, quella giornata **non compare più** nel select.
-- ☐ Con tutte le giornate occupate, l'opzione "Una giornata" è disabilitata con "(nessuna giornata libera)".
-- ☐ **Ordine elenco**: prima la mappa d'insieme, poi le giornate in ordine di giornata (indipendente dall'ordine di caricamento).
+- ✅ Edizione senza mappe: l'elenco dice "Nessuna mappa caricata"; scelto un GPX compaiono le opzioni di abbinamento.
+- ✅ **Intero viaggio**: senza descrizione il pulsante "Genera mappa" resta **disabilitato**; con descrizione la mappa si genera e compare in cima all'elenco.
+- ✅ **Una giornata**: il select elenca le giornate come "Giorno N — Sabato 2 Maggio 2026 — titolo"; scegliendone una la **descrizione si precompila** dal titolo e resta modificabile.
+- ✅ Caricata la mappa d'insieme, l'opzione "Intero viaggio" appare **disabilitata** con "(già presente)".
+- ✅ Caricata la mappa di una giornata, quella giornata **non compare più** nel select.
+- ✅ Con tutte le giornate occupate, l'opzione "Una giornata" è disabilitata con "(nessuna giornata libera)".
+- ✅ **Ordine elenco**: prima la mappa d'insieme, poi le giornate in ordine di giornata (indipendente dall'ordine di caricamento).
 
 **Duplicati e vincoli (il DB è la difesa finale):**
-- ☐ Ricaricare lo **stesso file GPX** nella stessa edizione → rifiutato con messaggio sul doppione, **prima** di chiamare Geoapify (nessuna immagine nuova generata).
-- ☐ Stesso file con il **nome in maiuscolo/minuscolo diverso** → comunque rifiutato (confronto case-insensitive).
-- ☐ Stesso file su un'**altra edizione** → consentito.
-- ☐ Dal tab Itinerario, eliminare una **giornata che ha una mappa** → bloccato con messaggio in italiano (non un errore tecnico).
-- ☐ **Rigenera** su una mappa esistente → si aggiorna senza segnalare falsi doppioni; l'immagine sostituisce la precedente (nessun file accumulato).
-- ☐ **Elimina** → sparisce dall'elenco e la giornata torna disponibile nel select.
-- ☐ **Modifica — solo descrizione**: cambia il testo → salva → nessuna attesa di generazione (non chiama Geoapify), la card mostra il nuovo nome e il file GPX resta invariato.
-- ☐ **Modifica — abbinamento**: sposta una mappa da "Intero viaggio" a una giornata (o viceversa) → l'avviso annuncia la rigenerazione → la mappa compare nella nuova posizione dell'elenco e il posto liberato torna disponibile.
-- ☐ **Nome file vs descrizione**: un GPX chiamato `provaG1.gpx` può avere descrizione "Mappa Giorno 1"; il nome del file resta visibile nella card e nel dialogo, **non modificabile**.
-- ☐ **Overlay di attesa**: durante "Genera mappa", "Rigenera" e la modifica con rigenerazione compare la sovrapposizione "Generazione mappa in corso..." che impedisce i clic.
-- ☐ **Descrizione proposta**: scegliendo la giornata compare `GIORNO 1 : Olbia - Monte Limbara - Tempio (Sabato 2 Maggio 2026)` — il titolo dell'itinerario più la data fra parentesi, **senza** doppie intestazioni. Vale sia al caricamento sia nel dialogo Modifica.
-- ☐ **Descrizione obbligatoria**: svuotandola, "Genera mappa"/"Salva" restano disabilitati; a livello DB la colonna è `NOT NULL` con CHECK sul non-vuoto (script `497`).
-- ☐ **Badge dell'abbinamento**: riquadro colorato affiancato alla mappa e centrato verticalmente, con "Giorno 2 / Domenica 3 Maggio 2026" (azzurro "Intero viaggio / tutte le giornate" per la mappa d'insieme); su finestra stretta va a capo sotto l'immagine.
+- ✅ Ricaricare lo **stesso file GPX** nella stessa edizione → rifiutato con messaggio sul doppione, **prima** di chiamare Geoapify (nessuna immagine nuova generata).
+- ✅ Stesso file con il **nome in maiuscolo/minuscolo diverso** → comunque rifiutato (confronto case-insensitive).
+- ✅ Stesso file su un'**altra edizione** → consentito.
+- ✅ Dal tab Itinerario, eliminare una **giornata che ha una mappa** → bloccato con messaggio in italiano (non un errore tecnico).
+- ✅ **Rigenera** su una mappa esistente → si aggiorna senza segnalare falsi doppioni; l'immagine sostituisce la precedente (nessun file accumulato).
+- ✅ **Elimina** → sparisce dall'elenco e la giornata torna disponibile nel select.
+- ✅ **Modifica — solo descrizione**: cambia il testo → salva → nessuna attesa di generazione (non chiama Geoapify), la card mostra il nuovo nome e il file GPX resta invariato.
+- ✅ **Modifica — abbinamento**: sposta una mappa da "Intero viaggio" a una giornata (o viceversa) → l'avviso annuncia la rigenerazione → la mappa compare nella nuova posizione dell'elenco e il posto liberato torna disponibile.
+- ✅ **Nome file vs descrizione**: un GPX chiamato `provaG1.gpx` può avere descrizione "Mappa Giorno 1"; il nome del file resta visibile nella card e nel dialogo, **non modificabile**.
+- ✅ **Overlay di attesa**: durante "Genera mappa", "Rigenera" e la modifica con rigenerazione compare la sovrapposizione "Generazione mappa in corso..." che impedisce i clic.
+- ✅ **Descrizione proposta**: scegliendo la giornata compare `GIORNO 1 : Olbia - Monte Limbara - Tempio (Sabato 2 Maggio 2026)` — il titolo dell'itinerario più la data fra parentesi, **senza** doppie intestazioni. Vale sia al caricamento sia nel dialogo Modifica.
+- ✅ **Descrizione obbligatoria**: svuotandola, "Genera mappa"/"Salva" restano disabilitati; a livello DB la colonna è `NOT NULL` con CHECK sul non-vuoto (script `497`).
+- ✅ **Badge dell'abbinamento**: riquadro colorato affiancato alla mappa e centrato verticalmente, con "Giorno 2 / Domenica 3 Maggio 2026" (azzurro "Intero viaggio / tutte le giornate" per la mappa d'insieme); su finestra stretta va a capo sotto l'immagine.
 
 **Tracciato generalizzato (script Task 2, `MaxPolylinePoints = 70`):**
-- ☐ Rigenerando una mappa esistente, `parametri_render->>'punti_semplificati'` è ≈ 70 (era 220): `SELECT descrizione, parametri_render->>'punti_semplificati' FROM web_tour_mappa;`
-- ☐ Il tracciato è **visibilmente generalizzato**: i tornanti non sono più ricostruibili, ma il percorso resta credibile — sia sulla mappa d'insieme sia su quella di una singola giornata (che copre un'area molto più piccola).
+- ✅ Rigenerando una mappa esistente, `parametri_render->>'punti_semplificati'` è ≈ 70 (era 220): `SELECT descrizione, parametri_render->>'punti_semplificati' FROM web_tour_mappa;`
+- ✅ Il tracciato è **visibilmente generalizzato**: i tornanti non sono più ricostruibili, ma il percorso resta credibile — sia sulla mappa d'insieme sia su quella di una singola giornata (che copre un'area molto più piccola).
 
 **Date delle giornate (tab Itinerario):**
-- ☐ Ogni giornata mostra la data **per esteso** ("Sabato 2 Maggio 2026"), non modificabile, con icona calendario.
-- ☐ **Spostando** una giornata (frecce o trascinamento) le date si **ricalcolano subito** e restano coerenti con la partenza.
-- ☐ Una giornata **oltre la durata** del viaggio mostra "oltre la durata prevista" invece di una data.
-- ☐ **Clone su un'altra edizione** (`fn_web_tour_contenuti_clona`): il contenuto clonato mostra le date della **nuova** partenza, non quelle di origine.
+- ✅ Ogni giornata mostra la data **per esteso** ("Sabato 2 Maggio 2026"), non modificabile, con icona calendario.
+- ✅ **Spostando** una giornata (frecce o trascinamento) le date si **ricalcolano subito** e restano coerenti con la partenza.
+- ✅ Una giornata **oltre la durata** del viaggio mostra "oltre la durata prevista" invece di una data.
+- ✅ **Clone su un'altra edizione** (`fn_web_tour_contenuti_clona`): il contenuto clonato mostra le date della **nuova** partenza, non quelle di origine.
 
 **Traduzioni e anteprima:**
-- ☐ Il tab **Traduzioni** elenca le descrizioni delle mappe fra i campi da tradurre ("Mappa — …").
-- ☐ Il **semaforo Traduzioni** conta le stesse voci: dopo aver aggiunto una mappa con descrizione il totale sale di 1 (una descrizione di soli spazi non conta).
-- ☐ L'**Anteprima** mostra **tutte** le mappe con la loro descrizione, titolo "Mappe" al plurale.
+- ✅ Il tab **Traduzioni** elenca le descrizioni delle mappe fra i campi da tradurre ("Mappa — …").
+- ✅ Il **semaforo Traduzioni** conta le stesse voci: dopo aver aggiunto una mappa con descrizione il totale sale di 1 (una descrizione di soli spazi non conta).
+- ✅ L'**Anteprima** mostra **tutte** le mappe con la loro descrizione, titolo "Mappe" al plurale.
 
 ## 19. Verifiche non bloccanti sui contenuti (script `496`)
 
@@ -569,104 +585,104 @@ Controlli che nessun vincolo può fare, perché non sono dati incoerenti ma **di
 
 ## 20. Traduzioni — attesa, revisione e gating (script `498`/`499`)
 
-- ☐ **Attesa visibile**: "Traduci tutto" copre la scheda con l'overlay, impedisce i clic, dice che può volerci 1-2 minuti e mostra l'avanzamento ("12 di 80 — Descrizione (EN)").
-- ☐ **HTML leggibile**: aprendo una cella di un campo *Descrizione*/*Pernottamento*/*Passo*, il sorgente italiano si legge **formattato** e non come tag; sotto la traduzione compare l'anteprima resa. Nei campi non-HTML (Sottotitolo, Meta) nulla cambia.
-- ☐ **Tag conservati**: modificando una traduzione HTML e salvando, la formattazione resta (l'anteprima lo mostra subito).
-- ☐ **Gating — il caso che prima passava**: con tutte le traduzioni generate ma **nessuna revisionata**, il semaforo Traduzioni è **rosso** e la pubblicazione è bloccata.
-- ☐ **Condizione del campione**: "Approva tutte" resta disabilitato finché non si è revisionata almeno una traduzione **per ogni lingua**; l'avviso elenca le lingue mancanti e il tooltip lo ripete.
-- ☐ **Approvazione in blocco**: dopo il campione, il pulsante si attiva, chiede conferma dichiarando quante traduzioni verranno approvate, e al termine il semaforo diventa **verde** e il tour è pubblicabile.
-- ☐ **Idempotenza**: ripremendo "Approva tutte" quando è già tutto revisionato, il pulsante è disabilitato ("Tutte le traduzioni sono già revisionate").
-- ☐ **Obsolescenza**: modificando un testo italiano già tradotto, le sue traduzioni tornano obsolete → il semaforo torna rosso e la pubblicazione si blocca di nuovo.
-- ☐ **Contatore**: la riga "Revisionate N di M" segue le operazioni.
+- ✅ **Attesa visibile**: "Traduci tutto" copre la scheda con l'overlay, impedisce i clic, dice che può volerci 1-2 minuti e mostra l'avanzamento ("12 di 80 — Descrizione (EN)").
+- ✅ **HTML leggibile**: aprendo una cella di un campo *Descrizione*/*Pernottamento*/*Passo*, il sorgente italiano si legge **formattato** e non come tag; sotto la traduzione compare l'anteprima resa. Nei campi non-HTML (Sottotitolo, Meta) nulla cambia.
+- ✅ **Tag conservati**: modificando una traduzione HTML e salvando, la formattazione resta (l'anteprima lo mostra subito).
+- ✅ **Gating — il caso che prima passava**: con tutte le traduzioni generate ma **nessuna revisionata**, il semaforo Traduzioni è **rosso** e la pubblicazione è bloccata.
+- ✅ **Condizione del campione**: "Approva tutte" resta disabilitato finché non si è revisionata almeno una traduzione **per ogni lingua**; l'avviso elenca le lingue mancanti e il tooltip lo ripete.
+- ✅ **Approvazione in blocco**: dopo il campione, il pulsante si attiva, chiede conferma dichiarando quante traduzioni verranno approvate, e al termine il semaforo diventa **verde** e il tour è pubblicabile.
+- ✅ **Idempotenza**: ripremendo "Approva tutte" quando è già tutto revisionato, il pulsante è disabilitato ("Tutte le traduzioni sono già revisionate").
+- ✅ **Obsolescenza**: modificando un testo italiano già tradotto, le sue traduzioni tornano obsolete → il semaforo torna rosso e la pubblicazione si blocca di nuovo.
+- ✅ **Contatore**: la riga "Revisionate N di M" segue le operazioni.
 
 ## 21. Consumo Claude e soglia di spesa (script `500`)
 
 Il credito della chiave è precaricato e l'API **non** espone il residuo: il gestionale conta i token che ogni risposta riporta già, quindi il tracciamento non consuma crediti.
 
-- ☐ **Registrazione**: dopo un "Traduci tutto", il pannello in *Anagrafica azienda → Traduzioni* mostra chiamate, token e spesa stimata coerenti con il numero di traduzioni fatte.
-- ☐ **Riquadro nel tour**: il tab Traduzioni del viaggio mostra in cima la spesa stimata e dichiara che è una stima, non il saldo Anthropic.
-- ☐ **Newsletter inclusa**: anche le traduzioni della newsletter incrementano il contatore (non solo quelle dei tour).
-- ☐ **Soglia**: impostata una soglia bassa (es. 0,10) e tradotto qualcosa, il riquadro diventa **arancione** al superamento del 90%.
-- ☐ **Email una sola volta**: parte **una** email all'indirizzo principale dell'azienda; traducendo ancora **non** ne arrivano altre; il pannello mostra "Avviso già inviato il ...".
-- ☐ **Riarmo**: premendo *"Ho ricaricato: riparti da oggi"* il conteggio della soglia riparte, l'avviso torna disponibile e **lo storico totale resta invariato**.
-- ☐ **Cambio soglia**: salvando una soglia diversa l'avviso si riarma (altrimenti alzando il tetto non si verrebbe più avvisati).
-- ☐ **Nessuna soglia**: con il campo vuoto non arrivano avvisi e il riquadro resta neutro.
-- ☐ **Prezzi**: modificando i prezzi in appsettings, le **nuove** traduzioni usano i nuovi valori mentre lo storico resta com'era (il costo è congelato alla chiamata).
+- ✅ **Registrazione**: dopo un "Traduci tutto", il pannello in *Anagrafica azienda → Traduzioni* mostra chiamate, token e spesa stimata coerenti con il numero di traduzioni fatte.
+- ✅ **Riquadro nel tour**: il tab Traduzioni del viaggio mostra in cima la spesa stimata e dichiara che è una stima, non il saldo Anthropic.
+- ✅ **Newsletter inclusa**: anche le traduzioni della newsletter incrementano il contatore (non solo quelle dei tour).
+- ✅ **Soglia**: impostata una soglia bassa (es. 0,10) e tradotto qualcosa, il riquadro diventa **arancione** al superamento del 90%.
+- ✅ **Email una sola volta**: parte **una** email all'indirizzo principale dell'azienda; traducendo ancora **non** ne arrivano altre; il pannello mostra "Avviso già inviato il ...".
+- ✅ **Riarmo**: premendo *"Ho ricaricato: riparti da oggi"* il conteggio della soglia riparte, l'avviso torna disponibile e **lo storico totale resta invariato**.
+- ✅ **Cambio soglia**: salvando una soglia diversa l'avviso si riarma (altrimenti alzando il tetto non si verrebbe più avvisati).
+- ✅ **Nessuna soglia**: con il campo vuoto non arrivano avvisi e il riquadro resta neutro.
+- ✅ **Prezzi**: modificando i prezzi in appsettings, le **nuove** traduzioni usano i nuovi valori mentre lo storico resta com'era (il costo è congelato alla chiamata).
 
 ## 22. Revisione traduzioni senza HTML a vista (2026-07-29)
 
-- ☐ **Campo HTML** (Descrizione, Pernottamento, Passo…): aprendo una cella, la traduzione si modifica in un **editor visuale** con i pulsanti di formattazione — **nessun tag visibile**. Il sorgente italiano appare formattato, non come codice.
-- ☐ **Campo di testo puro** (Sottotitolo, Meta title, Durata, Titolo giornata, Descrizione mappa): resta una casella di testo semplice, senza editor.
-- ☐ **Incluso / Escluso**: pur non chiamandosi `*_html` contengono formattazione → devono aprirsi con l'**editor visuale**, non con i tag a vista (era il caso sfuggito alla prima versione).
-- ☐ **Rete di sicurezza**: qualunque traduzione il cui testo contenga tag si apre con l'editor visuale, anche se il campo non è nell'elenco.
-- ☐ **La formattazione sopravvive**: modificata una parola e salvato, riaprendo la traduzione grassetti ed elenchi sono ancora al loro posto; l'anteprima del tour mostra il testo formattato.
-- ☐ **Non si può svuotare**: cancellato tutto il contenuto, il salvataggio viene rifiutato con un avviso (un editor vuoto produce `<p><br></p>`, che pubblicherebbe un paragrafo vuoto).
-- ☐ **Riparazione automatica**: su una traduzione con markup corrotto, aprirla e salvarla la normalizza (Quill ricostruisce i tag).
-- ☐ **Segnalazione a monte**: dopo un "Traduci tutto", se il modello ha alterato dei tag il messaggio finale lo dice ("N con formattazione alterata: aprile e ricontrollale"). Le voci segnalate vanno aperte e verificate.
+- ✅ **Campo HTML** (Descrizione, Pernottamento, Passo…): aprendo una cella, la traduzione si modifica in un **editor visuale** con i pulsanti di formattazione — **nessun tag visibile**. Il sorgente italiano appare formattato, non come codice.
+- ✅ **Campo di testo puro** (Sottotitolo, Meta title, Durata, Titolo giornata, Descrizione mappa): resta una casella di testo semplice, senza editor.
+- ✅ **Incluso / Escluso**: pur non chiamandosi `*_html` contengono formattazione → devono aprirsi con l'**editor visuale**, non con i tag a vista (era il caso sfuggito alla prima versione).
+- ✅ **Rete di sicurezza**: qualunque traduzione il cui testo contenga tag si apre con l'editor visuale, anche se il campo non è nell'elenco.
+- ✅ **La formattazione sopravvive**: modificata una parola e salvato, riaprendo la traduzione grassetti ed elenchi sono ancora al loro posto; l'anteprima del tour mostra il testo formattato.
+- ✅ **Non si può svuotare**: cancellato tutto il contenuto, il salvataggio viene rifiutato con un avviso (un editor vuoto produce `<p><br></p>`, che pubblicherebbe un paragrafo vuoto).
+- ✅ **Riparazione automatica**: su una traduzione con markup corrotto, aprirla e salvarla la normalizza (Quill ricostruisce i tag).
+- ✅ **Segnalazione a monte**: dopo un "Traduci tutto", se il modello ha alterato dei tag il messaggio finale lo dice ("N con formattazione alterata: aprile e ricontrollale"). Le voci segnalate vanno aperte e verificate.
 
 ## 23. Anteprima: prossime partenze e scelta lingua (script `502`)
 
-- ☐ **Con partenze future**: in testa all'anteprima compaiono le date `gg/mm/aaaa – gg/mm/aaaa` in ordine crescente; l'edizione su cui si sta lavorando è evidenziata.
-- ☐ **Senza partenze future**: compare "Nessuna data in calendario per le prossime partenze di questo viaggio" (avviso, non errore).
-- ☐ **Solo date future**: una partenza già passata **non** compare.
-- ☐ **Lingua — nessuna completa**: la combo è disabilitata e il tooltip invita a completare e confermare le traduzioni.
-- ☐ **Lingua — completa**: scelta una lingua, sottotitolo, durata, luoghi, descrizione, testi dei passi e descrizioni delle mappe passano nella lingua scelta; compare il chip "Traduzione approvata".
-- ☐ **Ritorno a IT**: riportando la combo su "Italiano (originale)" si rivede il testo originale.
-- ☐ **Solo traduzioni approvate**: una lingua con traduzioni presenti ma **non revisionate** (o obsolete) **non** compare nella combo.
-- ☐ **Titoli giornate**: in anteprima straniera restano in italiano e l'avviso lo dichiara (limite noto: non sono fra i campi traducibili).
+- ✅ **Con partenze future**: in testa all'anteprima compaiono le date `gg/mm/aaaa – gg/mm/aaaa` in ordine crescente; l'edizione su cui si sta lavorando è evidenziata.
+- ✅ **Senza partenze future**: compare "Nessuna data in calendario per le prossime partenze di questo viaggio" (avviso, non errore).
+- ✅ **Solo date future**: una partenza già passata **non** compare.
+- ✅ **Lingua — nessuna completa**: la combo è disabilitata e il tooltip invita a completare e confermare le traduzioni.
+- ✅ **Lingua — completa**: scelta una lingua, sottotitolo, durata, luoghi, descrizione, testi dei passi e descrizioni delle mappe passano nella lingua scelta; compare il chip "Traduzione approvata".
+- ✅ **Ritorno a IT**: riportando la combo su "Italiano (originale)" si rivede il testo originale.
+- ✅ **Solo traduzioni approvate**: una lingua con traduzioni presenti ma **non revisionate** (o obsolete) **non** compare nella combo.
+- ✅ **Titoli giornate**: in anteprima straniera restano in italiano e l'avviso lo dichiara (limite noto: non sono fra i campi traducibili).
 
 ## 24. Titoli delle giornate tradotti (script `503`)
 
-- ☐ **Nuovo campo**: il tab Traduzioni elenca una voce "Titolo Giorno N" per ogni giornata dell'itinerario.
-- ☐ **Regressione voluta**: un tour già tradotto e approvato torna **Parziale** (e non pubblicabile) finché i titoli non vengono tradotti — il denominatore è cresciuto.
-- ☐ **Traduzione**: dopo "Traduci tutto" e approvazione, il semaforo torna verde.
-- ☐ **Anteprima in lingua**: i titoli delle giornate compaiono tradotti; non c'è più l'avviso che restano in italiano.
-- ☐ **Obsolescenza**: modificando il titolo di una giornata già tradotta, le sue traduzioni diventano **obsolete** e il tour torna non pubblicabile (come per gli altri campi). Modificando solo l'ordine delle giornate, invece, le traduzioni **non** vengono invalidate.
+- ✅ **Nuovo campo**: il tab Traduzioni elenca una voce "Titolo Giorno N" per ogni giornata dell'itinerario.
+- ✅ **Regressione voluta**: un tour già tradotto e approvato torna **Parziale** (e non pubblicabile) finché i titoli non vengono tradotti — il denominatore è cresciuto.
+- ✅ **Traduzione**: dopo "Traduci tutto" e approvazione, il semaforo torna verde.
+- ✅ **Anteprima in lingua**: i titoli delle giornate compaiono tradotti; non c'è più l'avviso che restano in italiano.
+- ✅ **Obsolescenza**: modificando il titolo di una giornata già tradotta, le sue traduzioni diventano **obsolete** e il tour torna non pubblicabile (come per gli altri campi). Modificando solo l'ordine delle giornate, invece, le traduzioni **non** vengono invalidate.
 
 ## 25. "Traduci mancanti" non distrugge la revisione (2026-07-29)
 
 Il caso che rendeva inutile il lavoro di revisione: rilanciare la traduzione ritraduceva tutto e l'upsert rimetteva `revisionato = FALSE`.
 
-- ☐ **Niente da fare**: con tutte le voci tradotte e non obsolete, il pulsante "Traduci mancanti" è **disabilitato** e accanto al contatore non compare "da tradurre".
-- ☐ **Solo il mancante**: aggiunta una giornata (o un campo) nuova, il contatore mostra le voci da tradurre e premendo il pulsante vengono tradotte **solo quelle**; il messaggio finale riporta "N già a posto (non ritradotte)".
-- ☐ **La revisione sopravvive**: dopo una traduzione parziale, le voci già approvate restano **revisionate** (il semaforo non torna indietro per quelle).
-- ☐ **Obsolete incluse**: modificato un testo italiano già tradotto, le sue traduzioni diventano obsolete e rientrano fra quelle da tradurre.
-- ☐ **Costo**: nel registro consumi la sessione registra solo le chiamate effettivamente fatte, non una per ogni campo.
+- ✅ **Niente da fare**: con tutte le voci tradotte e non obsolete, il pulsante "Traduci mancanti" è **disabilitato** e accanto al contatore non compare "da tradurre".
+- ✅ **Solo il mancante**: aggiunta una giornata (o un campo) nuova, il contatore mostra le voci da tradurre e premendo il pulsante vengono tradotte **solo quelle**; il messaggio finale riporta "N già a posto (non ritradotte)".
+- ✅ **La revisione sopravvive**: dopo una traduzione parziale, le voci già approvate restano **revisionate** (il semaforo non torna indietro per quelle).
+- ✅ **Obsolete incluse**: modificato un testo italiano già tradotto, le sue traduzioni diventano obsolete e rientrano fra quelle da tradurre.
+- ✅ **Costo**: nel registro consumi la sessione registra solo le chiamate effettivamente fatte, non una per ogni campo.
 
 ## 26. Stato della partenza: flag incrociato col calendario (2026-07-31)
 
 Il chip accanto al selettore edizione non riporta solo la spunta "Viaggio Effettuato": la incrocia con la data di fine, perché le due possono contraddirsi.
 
-- ☐ **Coerente, conclusa** (flag SI + data fine passata): chip azzurro "Partenza effettuata"; il tooltip ricorda che curarne la scheda web di solito non serve più.
-- ☐ **Anomalia più comune** (flag NO + data fine passata): chip **giallo** "Conclusa ma non registrata"; il tooltip spiega le due cause possibili (flag non aggiornato / viaggio non realizzato) e dove correggere.
-- ☐ **Coerente, in programma** (flag NO + data fine futura): chip **neutro** "Partenza da effettuare" — è lo stato normale e non deve allarmare.
-- ☐ **Anomalia inversa** (flag SI + data fine futura): chip giallo "Effettuata ma non ancora conclusa".
-- ☐ **Confine**: una partenza che termina **oggi** è ancora in corso, quindi non è "conclusa".
-- ☐ **Tooltip sempre presente** su entrambi i chip (contenuto e partenza), con indicazione di dove si imposta il valore.
+- ✅ **Coerente, conclusa** (flag SI + data fine passata): chip azzurro "Partenza effettuata"; il tooltip ricorda che curarne la scheda web di solito non serve più.
+- ✅ **Anomalia più comune** (flag NO + data fine passata): chip **giallo** "Conclusa ma non registrata"; il tooltip spiega le due cause possibili (flag non aggiornato / viaggio non realizzato) e dove correggere.
+- ✅ **Coerente, in programma** (flag NO + data fine futura): chip **neutro** "Partenza da effettuare" — è lo stato normale e non deve allarmare.
+- ✅ **Anomalia inversa** (flag SI + data fine futura): chip giallo "Effettuata ma non ancora conclusa".
+- ✅ **Confine**: una partenza che termina **oggi** è ancora in corso, quindi non è "conclusa".
+- ✅ **Tooltip sempre presente** su entrambi i chip (contenuto e partenza), con indicazione di dove si imposta il valore.
 
 ## 27. Pubblicabilità legata alle date della partenza (2026-07-31)
 
 Regola: si pubblica solo una partenza che **deve ancora iniziare** (data di inizio dal giorno successivo a oggi) e **non già effettuata**.
 
-- ☐ **Partenza futura, non effettuata**: la pubblicazione procede normalmente (restano gli altri controlli su contenuti e traduzioni).
-- ☐ **Partenza di oggi**: passando lo stato a "pubblicato" il salvataggio lo **riporta a bozza** con il messaggio che indica la data e la regola.
-- ☐ **Partenza già passata** (es. l'edizione 02/05/2026): stesso blocco.
-- ☐ **Partenza futura ma segnata effettuata**: bloccata con motivo "questa partenza risulta già effettuata".
-- ☐ **Ordine dei controlli**: con partenza non pubblicabile **e** contenuti incompleti, compare il messaggio sulla partenza — e **non** il dialogo "Prima di pubblicare".
-- ☐ **Chip riusabile**: lo stato della partenza accanto al selettore edizione è lo stesso componente (`StatoPartenzaChip`), con tooltip.
+- ✅ **Partenza futura, non effettuata**: la pubblicazione procede normalmente (restano gli altri controlli su contenuti e traduzioni).
+- ✅ **Partenza di oggi**: passando lo stato a "pubblicato" il salvataggio lo **riporta a bozza** con il messaggio che indica la data e la regola.
+- ✅ **Partenza già passata** (es. l'edizione 02/05/2026): stesso blocco.
+- ✅ **Partenza futura ma segnata effettuata**: bloccata con motivo "questa partenza risulta già effettuata".
+- ✅ **Ordine dei controlli**: con partenza non pubblicabile **e** contenuti incompleti, compare il messaggio sulla partenza — e **non** il dialogo "Prima di pubblicare".
+- ✅ **Chip riusabile**: lo stato della partenza accanto al selettore edizione è lo stesso componente (`StatoPartenzaChip`), con tooltip.
 
 ## 28. Clonazione della scheda web su un'altra partenza (script `504`)
 
 Il modo normale di riproporre un viaggio che si ripete: si clona e, se serve, si ritocca.
 
-- ☐ **Clone riuscito**: da un'edizione con contenuti, immagini, itinerario, **mappe** e traduzioni, la copia si crea senza errori. *(Prima del 504 falliva con "null value in column descrizione".)*
-- ☐ **Copia in bozza**: la nuova scheda nasce sempre **Bozza** con "Prima pubblicazione" vuota, anche clonando da un'edizione pubblicata.
-- ☐ **Completezza**: giornate, passi, immagini e mappe della copia coincidono per numero con l'originale.
-- ☐ **Mappe di giornata**: ogni mappa della copia è abbinata a una **giornata della copia**, non a quella dell'originale.
-- ☐ **Traduzioni**: la copia risulta **già tradotta e approvata** (semaforo Traduzioni verde) — il testo è identico, non va rivisto da capo. Verificare che compaiano anche i **titoli delle giornate** e le **descrizioni delle mappe**.
-- ☐ **Pubblicabilità**: se la data di destinazione è futura, la copia può essere portata a "Pubblicato" senza ulteriori traduzioni.
-- ☐ **Vincoli**: clonare su una data che ha già un contenuto viene rifiutato con messaggio chiaro; clonare su una data di un altro viaggio è rifiutato.
-- ☐ **Nota**: immagini e mappe della copia puntano agli **stessi file** dell'originale. Eliminando un media dall'edizione sorgente si rompe anche quello della copia (comportamento preesistente).
+- ✅ **Clone riuscito**: da un'edizione con contenuti, immagini, itinerario, **mappe** e traduzioni, la copia si crea senza errori. *(Prima del 504 falliva con "null value in column descrizione".)*
+- ✅ **Copia in bozza**: la nuova scheda nasce sempre **Bozza** con "Prima pubblicazione" vuota, anche clonando da un'edizione pubblicata.
+- ✅ **Completezza**: giornate, passi, immagini e mappe della copia coincidono per numero con l'originale.
+- ✅ **Mappe di giornata**: ogni mappa della copia è abbinata a una **giornata della copia**, non a quella dell'originale.
+- ✅ **Traduzioni**: la copia risulta **già tradotta e approvata** (semaforo Traduzioni verde) — il testo è identico, non va rivisto da capo. Verificare che compaiano anche i **titoli delle giornate** e le **descrizioni delle mappe**.
+- ✅ **Pubblicabilità**: se la data di destinazione è futura, la copia può essere portata a "Pubblicato" senza ulteriori traduzioni.
+- ✅ **Vincoli**: clonare su una data che ha già un contenuto viene rifiutato con messaggio chiaro; clonare su una data di un altro viaggio è rifiutato.
+- ✅ **Nota**: immagini e mappe della copia puntano agli **stessi file** dell'originale. Eliminando un media dall'edizione sorgente si rompe anche quello della copia (comportamento preesistente).
 
 ## 29. Clonazione fra partenze di durata diversa (script `505`)
 
@@ -679,20 +695,20 @@ partenza di 6 giorni e una di 4.)* Ci si arriva anche più banalmente, con un it
 **Come preparare il caso**: su un viaggio con contenuti già pronti, cambiare `viaggio_numero_giorni`
 in anagrafica (es. da 6 a 4) e aggiungere una nuova data coerente con la nuova durata.
 
-- ☐ **Rilevazione**: scegliendo l'edizione di origine e premendo *Clona*, compare il dialogo
+- ✅ **Rilevazione**: scegliendo l'edizione di origine e premendo *Clona*, compare il dialogo
   "Le giornate non coincidono" con i numeri corretti (giornate di itinerario dell'origine, giorni della destinazione)
   e le date delle due partenze.
-- ☐ **Rinuncia**: "Non clonare" e la X chiudono senza creare nulla; l'edizione di destinazione resta *Senza contenuto*.
-- ☐ **Clone parziale**: "Clona le prime N giornate" crea la copia con **solo N giornate**. Le mappe abbinate alle
+- ✅ **Rinuncia**: "Non clonare" e la X chiudono senza creare nulla; l'edizione di destinazione resta *Senza contenuto*.
+- ✅ **Clone parziale**: "Clona le prime N giornate" crea la copia con **solo N giornate**. Le mappe abbinate alle
   giornate escluse **non** vengono copiate (verificato: clonando 1 giornata su 6, la mappa del GIORNO 2 sparisce).
-- ☐ **Nessuna mappa orfana**: nel tab Mappa della copia non compaiono mappe "intero viaggio" inattese —
+- ✅ **Nessuna mappa orfana**: nel tab Mappa della copia non compaiono mappe "intero viaggio" inattese —
   una mappa di giornata scartata non deve trasformarsi in mappa generale.
-- ☐ **Avvertimento**: dopo il clone parziale lo snackbar ricorda di rivedere l'ultima giornata clonata.
+- ✅ **Avvertimento**: dopo il clone parziale lo snackbar ricorda di rivedere l'ultima giornata clonata.
   Aprendo l'Itinerario, la giornata N descrive ancora una **tappa intermedia**: va riscritta come conclusione
   (si rientra al punto di partenza? ci si ferma dove si è arrivati?). È una scelta logistica, non automatizzabile.
-- ☐ **Caso inverso** (destinazione più lunga dell'origine): il dialogo avvisa che resteranno giornate da scrivere
+- ✅ **Caso inverso** (destinazione più lunga dell'origine): il dialogo avvisa che resteranno giornate da scrivere
   a mano; "Clona comunque" copia tutte le giornate disponibili e il semaforo Itinerario resta giallo.
-- ☐ **Nessuna regressione**: quando le durate coincidono il dialogo **non** compare e il clone si comporta
+- ✅ **Nessuna regressione**: quando le durate coincidono il dialogo **non** compare e il clone si comporta
   come nella sezione 28.
 
 ## 30. Il sito non mostra partenze già iniziate (script `506`)
@@ -709,12 +725,12 @@ SELECT contenuto_id, titolo, data_inizio FROM fn_web_tour_pubblicati(<azienda>);
 SELECT fn_web_ha_tour_brevi_pubblicati(<azienda>);
 ```
 
-- ☐ **Partenza passata**: una scheda pubblicata la cui partenza è già iniziata **non** compare nell'elenco.
-- ☐ **Partenza di oggi**: nemmeno quella che inizia oggi compare (coerente con il gating in scrittura).
-- ☐ **Partenza da domani**: compare regolarmente, con tutti i campi valorizzati.
-- ☐ **Tour brevi**: `fn_web_ha_tour_brevi_pubblicati` segue lo stesso taglio, così la sezione "Tour giornalieri"
+- ✅ **Partenza passata**: una scheda pubblicata la cui partenza è già iniziata **non** compare nell'elenco.
+- ✅ **Partenza di oggi**: nemmeno quella che inizia oggi compare (coerente con il gating in scrittura).
+- ✅ **Partenza da domani**: compare regolarmente, con tutti i campi valorizzati.
+- ✅ **Tour brevi**: `fn_web_ha_tour_brevi_pubblicati` segue lo stesso taglio, così la sezione "Tour giornalieri"
   del sito non compare vuota per via di partenze ormai passate.
-- ☐ **Da comunicare al cliente prima del go-live**: al primo deploy in PROD, le schede pubblicate con partenza
+- ✅ **Da comunicare al cliente prima del go-live**: al primo deploy in PROD, le schede pubblicate con partenza
   già iniziata spariranno dal sito. È l'effetto voluto.
 
 ## 31. Guardie sulla cancellazione di una partenza (script `507`)
@@ -724,22 +740,22 @@ e senza prenotazioni. Ogni rifiuto è un avviso **giallo** con il motivo, non un
 
 Dalla scheda **Date del viaggio**, icona cestino:
 
-- ☐ **Partenza effettuata**: rifiutata con "è segnata come effettuata e fa parte dello storico aziendale",
+- ✅ **Partenza effettuata**: rifiutata con "è segnata come effettuata e fa parte dello storico aziendale",
   anche se non ha né prenotazioni né scheda web.
-- ☐ **Partenza già iniziata** (flag non spuntato, data di inizio passata): rifiutata con "è già iniziata
+- ✅ **Partenza già iniziata** (flag non spuntato, data di inizio passata): rifiutata con "è già iniziata
   e fa parte dello storico".
-- ☐ **Partenza che inizia oggi**: rifiutata anch'essa — coerente con il gating di pubblicazione, che
+- ✅ **Partenza che inizia oggi**: rifiutata anch'essa — coerente con il gating di pubblicazione, che
   considera pubblicabile solo ciò che deve ancora iniziare.
-- ☐ **Partenza futura con scheda web in bozza**: rifiutata indicando lo stato della scheda.
-- ☐ **Partenza futura con scheda web pubblicata**: rifiutata con il messaggio dedicato ("PUBBLICATA:
+- ✅ **Partenza futura con scheda web in bozza**: rifiutata indicando lo stato della scheda.
+- ✅ **Partenza futura con scheda web pubblicata**: rifiutata con il messaggio dedicato ("PUBBLICATA:
   riportala a bozza ed elimina la scheda").
-- ☐ **Partenza futura con prenotazioni**: rifiutata come prima (messaggio clienti/alloggi, invariato).
-- ☐ **Partenza futura e pulita**: si elimina regolarmente e sparisce dall'elenco.
-- ☐ **Colore dell'avviso**: tutti i rifiuti sopra compaiono in **giallo**. Prima quello sui contenuti web
+- ✅ **Partenza futura con prenotazioni**: rifiutata come prima (messaggio clienti/alloggi, invariato).
+- ✅ **Partenza futura e pulita**: si elimina regolarmente e sparisce dall'elenco.
+- ✅ **Colore dell'avviso**: tutti i rifiuti sopra compaiono in **giallo**. Prima quello sui contenuti web
   compariva in rosso, perché arrivava dal vincolo del database invece che dal controllo.
-- ☐ **Ultima data rimasta**: se è l'unica data del viaggio, la conferma avverte che verrà eliminato anche
+- ✅ **Ultima data rimasta**: se è l'unica data del viaggio, la conferma avverte che verrà eliminato anche
   il viaggio. Con una guardia attiva, il rifiuto è giallo e **il viaggio resta al suo posto**.
-- ☐ **Correzione di una data sbagliata**: inserita per errore una data nel passato, la si sposta nel futuro
+- ✅ **Correzione di una data sbagliata**: inserita per errore una data nel passato, la si sposta nel futuro
   e allora si può eliminare. È voluto che siano due passaggi.
 
 > ⚠️ **Conseguenza da conoscere**: un viaggio le cui date sono tutte passate non è più eliminabile dal
@@ -789,24 +805,24 @@ per caso non sapeva che il clone esistesse.
 
 Scheda **Date e Costi** del viaggio, colonna AZIONI (ultima icona):
 
-- ☐ **L'icona riflette lo stato** della scheda web di quella partenza: grigia barrata *senza scheda*,
+- ✅ **L'icona riflette lo stato** della scheda web di quella partenza: grigia barrata *senza scheda*,
   gialla *bozza*, verde *pubblicata*, grigia con scatola *archiviata*.
-- ☐ **Tooltip sempre presente**, diverso per ogni stato. Su *pubblicata* ricorda che la scheda sparisce
+- ✅ **Tooltip sempre presente**, diverso per ogni stato. Su *pubblicata* ricorda che la scheda sparisce
   dal sito da sola quando la partenza inizia; su *archiviata* che per il sito è come una bozza.
-- ☐ **Cliccabile solo quando manca la scheda**: sulle partenze che ce l'hanno l'icona è informativa e
+- ✅ **Cliccabile solo quando manca la scheda**: sulle partenze che ce l'hanno l'icona è informativa e
   non risponde al clic.
-- ☐ **Clic su "senza scheda"** → si apre "Nuova scheda web" con le due opzioni.
-- ☐ **Con almeno una sorgente disponibile**, il dialogo parte già su *Clona*, e con una sola sorgente la
+- ✅ **Clic su "senza scheda"** → si apre "Nuova scheda web" con le due opzioni.
+- ✅ **Con almeno una sorgente disponibile**, il dialogo parte già su *Clona*, e con una sola sorgente la
   preseleziona. Con nessuna sorgente l'opzione *Clona* è disabilitata e spiega perché.
-- ☐ **Crea da zero** → l'icona diventa gialla (bozza) senza ricaricare la form.
-- ☐ **Clona** → stessa cosa, e la scheda risulta già compilata aprendo Contenuti Web.
-- ☐ **Durate diverse**: clonando su una partenza di durata diversa compare il dialogo della sezione 29
+- ✅ **Crea da zero** → l'icona diventa gialla (bozza) senza ricaricare la form.
+- ✅ **Clona** → stessa cosa, e la scheda risulta già compilata aprendo Contenuti Web.
+- ✅ **Durate diverse**: clonando su una partenza di durata diversa compare il dialogo della sezione 29
   anche da qui — è lo stesso codice, non una seconda copia.
-- ☐ **Coerenza con la scheda Contenuti Web**: il pulsante "Crea contenuto" del selettore edizione apre
+- ✅ **Coerenza con la scheda Contenuti Web**: il pulsante "Crea contenuto" del selettore edizione apre
   **lo stesso** dialogo. Le due strade devono comportarsi in modo identico.
-- ☐ **Modalità non-live** (viaggio nuovo, non ancora salvato): l'icona web non compare, come le altre
+- ✅ **Modalità non-live** (viaggio nuovo, non ancora salvato): l'icona web non compare, come le altre
   azioni che richiedono una data salvata.
-- ☐ **Spaziatura**: le icone della colonna AZIONI sono più ravvicinate e la colonna resta leggibile con
+- ✅ **Spaziatura**: le icone della colonna AZIONI sono più ravvicinate e la colonna resta leggibile con
   tutte e sette le icone.
 
 ## 34. Date di partenza: anno plausibile e conferme (script `509`)
@@ -816,18 +832,18 @@ Dettaglio tecnico dell'indagine in `Documents/Digitazione_Date.md`.
 
 Scheda **Date e Costi** → *Aggiungi Data* / matita:
 
-- ☐ **Anno assurdo bloccato**: digitando `01120262` (che la maschera accetta come 01/12/**0262**) la conferma
+- ✅ **Anno assurdo bloccato**: digitando `01120262` (che la maschera accetta come 01/12/**0262**) la conferma
   è rifiutata con un messaggio che invita a controllare l'anno. Stessa cosa per la data di fine.
-- ☐ **Limiti**: 2000 e 2100 sono ammessi; 1999 e 2101 no.
-- ☐ **Anno precedente a quello in corso**: si può salvare, ma **solo dopo conferma esplicita** ("Sì, è corretta"
+- ✅ **Limiti**: 2000 e 2100 sono ammessi; 1999 e 2101 no.
+- ✅ **Anno precedente a quello in corso**: si può salvare, ma **solo dopo conferma esplicita** ("Sì, è corretta"
   / "Correggo"). Rispondendo *Correggo* si resta nella form con i dati intatti.
-- ☐ **Oltre 5 anni nel futuro**: stessa conferma.
-- ☐ **Date ordinarie**: dentro l'anno in corso o nei prossimi 5 anni si salvano **senza** alcuna domanda —
+- ✅ **Oltre 5 anni nel futuro**: stessa conferma.
+- ✅ **Date ordinarie**: dentro l'anno in corso o nei prossimi 5 anni si salvano **senza** alcuna domanda —
   la conferma non deve diventare un fastidio quotidiano.
-- ☐ **Calendario**: la navigazione non permette di uscire da 2000–2100.
-- ☐ **Digitazione rapida**: digitando le 8 cifre `01122026` senza separatori il campo mostra `01/12/2026` e
+- ✅ **Calendario**: la navigazione non permette di uscire da 2000–2100.
+- ✅ **Digitazione rapida**: digitando le 8 cifre `01122026` senza separatori il campo mostra `01/12/2026` e
   salva il **1° dicembre 2026** (non il 12 gennaio). Verifica che `DateFormat` sia efficace.
-- ☐ **Rete del database**: il vincolo vale anche fuori dalla form.
+- ✅ **Rete del database**: il vincolo vale anche fuori dalla form.
 
   ```sql
   -- deve fallire con violates check constraint "chk_data_viaggio_anno_plausibile"
@@ -841,16 +857,16 @@ Scheda **Date e Costi** → *Aggiungi Data* / matita:
 I controlli sono stati estesi a **Transazioni** (Data Transazione, Documento, Scadenza, Pagamento) e al
 dialogo **Paga Ora**, con una tolleranza diversa: in contabilità l'anno precedente è lavoro ordinario.
 
-- ☐ **Anno assurdo bloccato** anche qui: una data pagamento nel 2202 viene rifiutata con il campo indicato
+- ✅ **Anno assurdo bloccato** anche qui: una data pagamento nel 2202 viene rifiutata con il campo indicato
   nel messaggio. *(È il caso realmente trovato in produzione: transazione 72, pagamento 20/02/2202 su un
   movimento del 20/02/2022.)*
-- ☐ **Anno precedente senza conferma**: a inizio anno, registrare un movimento datato l'anno scorso **non**
+- ✅ **Anno precedente senza conferma**: a inizio anno, registrare un movimento datato l'anno scorso **non**
   deve chiedere nulla — è la chiusura dell'esercizio. *(A differenza dei viaggi, dove la conferma c'è sempre.)*
-- ☐ **Due anni indietro**: la conferma compare.
-- ☐ **Oltre 5 anni nel futuro**: la conferma compare.
-- ☐ **Il campo indicato è quello giusto**: il messaggio dice quale delle quattro date è fuori scala.
-- ☐ **"Correggo"** riporta nella form senza salvare e senza perdere gli altri dati inseriti.
-- ☐ **Dialoghi di stampa** (bilancio, scadenzario, registro IVA, movimenti): i campi data mostrano e
+- ✅ **Due anni indietro**: la conferma compare.
+- ✅ **Oltre 5 anni nel futuro**: la conferma compare.
+- ✅ **Il campo indicato è quello giusto**: il messaggio dice quale delle quattro date è fuori scala.
+- ✅ **"Correggo"** riporta nella form senza salvare e senza perdere gli altri dati inseriti.
+- ✅ **Dialoghi di stampa** (bilancio, scadenzario, registro IVA, movimenti): i campi data mostrano e
   interpretano `gg/mm/aaaa`. Qui non c'è validazione di plausibilità perché sono filtri, non dati salvati.
 
 ### Stesse verifiche in anagrafica clienti e aziende
@@ -860,24 +876,24 @@ normali e non devono essere rifiutati.
 
 **Anagrafica Azienda** (Data Costituzione, Inizio Attività, Iscrizione REA):
 
-- ☐ **Anno assurdo bloccato**: `01011875` sulla costituzione viene rifiutato; `01011975` viene accettato.
-- ☐ **Data futura bloccata**: una costituzione o un inizio attività con data di domani è rifiutata.
+- ✅ **Anno assurdo bloccato**: `01011875` sulla costituzione viene rifiutato; `01011975` viene accettato.
+- ✅ **Data futura bloccata**: una costituzione o un inizio attività con data di domani è rifiutata.
   *(Prima non c'era: `DataCostituzioneFutura` esisteva fra i messaggi ma non era usata da nessuna parte.)*
-- ☐ **Costituzione ora validata**: prima quel campo non aveva **alcun** controllo. Provare a metterci un
+- ✅ **Costituzione ora validata**: prima quel campo non aveva **alcun** controllo. Provare a metterci un
   anno sbagliato e verificare che il messaggio compaia sotto il campo.
-- ☐ **I confronti esistenti reggono ancora**: inizio attività o REA precedenti alla costituzione restano
+- ✅ **I confronti esistenti reggono ancora**: inizio attività o REA precedenti alla costituzione restano
   segnalati come prima.
-- ☐ **Oltre 100 anni indietro**: compare l'avviso di verifica, ma **si può salvare** — un'azienda del 1910 esiste.
+- ✅ **Oltre 100 anni indietro**: compare l'avviso di verifica, ma **si può salvare** — un'azienda del 1910 esiste.
 
 **Anagrafica Cliente** (Data Nascita, Rilascio e Scadenza documento):
 
-- ☐ **Cliente di 91 anni accettato**: prima veniva **rifiutato** da un limite relativo di 90 anni.
+- ✅ **Cliente di 91 anni accettato**: prima veniva **rifiutato** da un limite relativo di 90 anni.
   Data di nascita 1935 → si salva.
-- ☐ **Nascita prima del 1900 o futura**: rifiutata.
-- ☐ **Rilascio documento con anno assurdo nel passato**: rifiutato **anche lasciando vuota la data di
+- ✅ **Nascita prima del 1900 o futura**: rifiutata.
+- ✅ **Rilascio documento con anno assurdo nel passato**: rifiutato **anche lasciando vuota la data di
   nascita**. *(Prima passava: l'unico controllo era il confronto con la nascita.)*
-- ☐ **Scadenza documento nel 2202**: rifiutata. *(Prima passava: si controllava solo che non fosse già scaduto.)*
-- ☐ **Scadenza documento nel 2035**: accettata, è una scadenza legittima nel futuro.
+- ✅ **Scadenza documento nel 2202**: rifiutata. *(Prima passava: si controllava solo che non fosse già scaduto.)*
+- ✅ **Scadenza documento nel 2035**: accettata, è una scadenza legittima nel futuro.
 
 > ⚠️ **Da rifare sulla partizione Windows 11**: senza `DateFormat` il campo seguiva la lingua del sistema
 > operativo. Sul Mac italiano non si notava; su un Windows configurato in inglese giorno e mese si sarebbero
