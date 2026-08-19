@@ -178,6 +178,7 @@ svanisce o a una didascalia grigia.**
 | R6 | **Conseguenza del blocco:** un'azienda **senza chiave Claude** non poteva più spedire a destinatari non italiani | **Chiuso il 19/08:** blocca solo la mezza traduzione. A zero traduzioni si spedisce in italiano, quindi l'azienda 6 torna a funzionare |
 | R8 | **«Salva oggetto» taceva se il campo era vuoto**: `return` silenzioso, nessun salvataggio e nessun messaggio. Stessa famiglia del «Chiudi» che non chiudeva | **Corretto il 19/08:** avviso «Inserisci l'oggetto.», lo stesso del controllo prima dell'invio. Da collaudare in J7 |
 | R9 | **Il menu non reagisce subito** al toggle della funzione newsletter: il gating si calcola alla costruzione del menu, quindi la voce sparisce al prossimo accesso | **Lasciato così (19/08).** La pagina si difende comunque e lo dice chiaramente; farlo reagire subito costerebbe più di quanto valga |
+| R10 | **TAB e fuoco assenti nella pagina Newsletter**: `NewsletterPage.razor` non agganciava `dialogFormHelper` — non iniettava nemmeno `IJSRuntime` — quindi dall'email delle soppressioni non si arrivava al motivo, e nessun campo riceveva il fuoco | **Corretto il 19/08:** catena TAB su tutta la pagina (`.newsletter-form`), riagganciata a ogni render perché la vista di composizione si completa in asincrono; fuoco dato da C# con `@ref`/`FocusAsync` sui due campi che contano (*Email da sopprimere*, *Oggetto*), non dall'helper, che sceglierebbe il primo campo del DOM — una casella di spunta. **Da collaudare: vedi O** |
 | R7 | **«Chiudi» che non chiude** nella scheda Contenuti Web del viaggio: il pulsante del footer chiamava sempre `GoToContenuti()`, che porta alla sotto-scheda 0. Stando **già** sui Contenuti metteva 0 a 0 e non faceva niente. La X in alto era invece scritta bene | **Corretto il 19/08:** il pulsante usa la stessa logica della X e cambia nome — «Torna ai contenuti» da un sotto-tab, «Chiudi» dai Contenuti. Da collaudare: vedi H1-H3 |
 
 ---
@@ -303,3 +304,50 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 > IT, le altre restano tradotte». Descriveva il motore che traduceva **al momento dell'invio**
 > (`BuildBodiesAsync`), rimosso il 2026-08-19. Oggi le traduzioni si fanno prima, e una lingua
 > tradotta a metà **blocca l'invio** invece di degradare (§44.7). Stessa sorte del §8-G.
+
+### Esito N1 — eseguito il 2026-08-19: **passa**
+
+Non serve una seconda istanza dell'app, e non basta aggiungere la soppressione dall'interfaccia:
+`AggiungiSoppressione()` chiama `ReloadAsync()`, quindi il conteggio si aggiorna e il difetto non
+si manifesta. L'unica via è cambiare il DB da fuori, mentre la pagina resta aperta.
+
+Come è stato eseguito, con i tre indirizzi estranei già soppressi per non spedire a terzi:
+
+```bash
+# a pagina aperta e conteggio a video (3), da un terminale:
+docker exec -i postgres_db psql -U postgres -d gestione_viaggi -c "
+SELECT fn_web_newsletter_soppressioni_insert(2, 'visconti.adriano+fr@gmail.com'::citext, 'Collaudo N1', now());"
+```
+
+| Cosa | Atteso | Osservato |
+|---|---|---|
+| Dialogo di conferma | 3 (numero vecchio) | **3** — il difetto atteso, confermato |
+| Destinatari nello Storico | 2 | **2** |
+| Log dell'invio | `+de@` (DE) e `visconti.adriano@` (EN), niente `+fr@` | **conforme**, entrambi `inviato` |
+
+Il numero reale è quello aggiornato perché `SendAsync` rilegge i destinatari al momento dell'invio
+(`NewsletterSenderService.GetRecipientsAsync`): a video resta fermo il conteggio letto all'apertura.
+A fine test le quattro soppressioni sono state rimosse (`motivo='Collaudo N1'`).
+
+---
+
+## O — Tabulazione e fuoco nella pagina Newsletter *(rilievo R10)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| O1 | Tab **Soppressioni** | Entra nel tab | Il fuoco è su **Email da sopprimere** — *verificato il 19/08* |
+| O2 | Stesso tab, cursore sull'email | TAB, poi SHIFT+TAB | Vai su **Motivo** e torni indietro |
+| O3 | Tab **Newsletter**, newsletter aperta in composizione | Guarda dov'è il cursore | Il fuoco è su **Oggetto** — *verificato il 19/08* |
+| O4 | Stessa vista, cursore su Oggetto | TAB | Ci si sposta su un campo, mai su un pulsante. **Annota dove atterra**: la catena copre tutta la pagina in ordine di DOM, quindi dopo *Oggetto* vengono i campi dei pannelli Traduzioni e Destinatari e solo in fondo *Invia una prova a*. Se il salto è troppo lungo per essere usabile, la catena va spezzata per form. **Verificato il 19/08: atterra su *Invia una prova a*** — il caso migliore, la catena resta una sola per tutta la pagina |
+| O5 | Tab **Impostazioni** | TAB dai campi del footer | Si arriva a **Colonne** e poi ad **Allineamento** |
+| O6 | Una qualsiasi delle form | Scrivi in un campo senza premere nulla | Il cursore **non viene strappato via**: il fuoco automatico scatta solo al cambio di vista, non a ogni ridisegno — *verificato il 19/08* |
+
+> **Non toccato di proposito:** altri 15 componenti hanno due o più campi e nessun aggancio
+> all'helper (`ClienteDialog` con 26 campi, `NewsletterBloccoDialog` con 10, `WebIndirizzoDialog`,
+> `NuovaNewsletterDialog`, `NewsletterFiltroDialog`, i due `WebTour*Edit`, i tab azienda…).
+> Su `NewsletterBloccoDialog` c'è una ragione precisa per non procedere alla cieca: contiene
+> l'editor Quill, che è un `div contenteditable` e non rientra fra i selettori dell'helper
+> (`input`, `select`, `textarea`, slot dei MudSelect). Applicandolo lì si **perderebbe** la
+> possibilità di entrare in TAB nel corpo del testo: sarebbe un peggioramento, non una correzione.
+
+> **Ancora da provare:** O2 e O5. Il 19/08 sono stati verificati O1, O3, O4 e O6.

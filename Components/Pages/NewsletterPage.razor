@@ -21,6 +21,7 @@
 @inject NewsletterRenderService RenderService
 @inject NewsletterTourApplicatore TourApplicatore
 @inject ILogger<NewsletterPage> Logger
+@inject IJSRuntime JS
 @attribute [Authorize]
 @implements IDisposable
 
@@ -69,7 +70,10 @@ else if (!_enabled)
 }
 else
 {
-<MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+@* Contenitore per la navigazione TAB: l'helper incatena i campi visibili qui dentro. *@
+<div class="newsletter-form">
+<MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4"
+         @bind-ActivePanelIndex="_tabAttivo">
 
     <!-- CAMPAGNA -->
     <!-- NEWSLETTER: elenco oppure composizione a blocchi -->
@@ -178,7 +182,7 @@ else
                            StartIcon="@Icons.Material.Filled.ArrowBack"
                            OnClick="ChiudiComposizione">Elenco newsletter</MudButton>
                 <MudTextField @bind-Value="_oggetto" Label="Oggetto" Variant="Variant.Outlined"
-                              MaxLength="255" Margin="Margin.Dense" Style="max-width:420px;" />
+                              MaxLength="255" Margin="Margin.Dense" Style="max-width:420px;" @ref="_campoOggetto" />
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save"
                            Disabled="@_busy" OnClick="SalvaOggetto">Salva oggetto</MudButton>
                 <MudSpacer />
@@ -333,7 +337,7 @@ else
     <!-- SOPPRESSIONI -->
     <MudTabPanel Text="Soppressioni" Icon="@Icons.Material.Filled.Block">
         <div class="d-flex align-center gap-2 mb-3">
-            <MudTextField @bind-Value="_sopEmail" Label="Email da sopprimere" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px;" />
+            <MudTextField @bind-Value="_sopEmail" Label="Email da sopprimere" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px;" @ref="_campoSopEmail" />
             <MudTextField @bind-Value="_sopMotivo" Label="Motivo" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px;" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@_busy" OnClick="AggiungiSoppressione">Aggiungi</MudButton>
         </div>
@@ -424,6 +428,7 @@ else
         </div>
     </MudTabPanel>
 </MudTabs>
+</div>
 }
 
 @code {
@@ -444,6 +449,12 @@ else
     private string _linguaProva = "IT";
     private string? _sopEmail;
     private string? _sopMotivo;
+
+    /// <summary>Tab attivo: serve a riagganciare la navigazione TAB quando cambia il pannello.</summary>
+    private int _tabAttivo;
+    private string? _firmaTab;
+    private MudTextField<string>? _campoOggetto;
+    private MudTextField<string>? _campoSopEmail;
 
     private List<WebNewsletterInvio> _storico = new();
     private List<WebNewsletterIscritto> _iscritti = new();
@@ -517,7 +528,53 @@ else
         StateHasChanged();
     }
 
-    public void Dispose() => StatusBarService.SetCurrentTable(null);
+    /// <summary>
+    /// Riaggancia la navigazione TAB fra i campi. Serve perche' il TAB nativo non incatena i
+    /// campi di queste form (stesso motivo per cui la usano i dialoghi e le pagine a filtri):
+    /// senza, dall'email delle soppressioni non si arriva al motivo.
+    ///
+    /// Si rifa' a OGNI render, non solo al cambio di pannello: MudTabs rende il solo pannello
+    /// attivo, e la vista di composizione si completa in asincrono (traduzioni, destinatari,
+    /// blocchi). Agganciando una volta sola si incatenavano i campi di un DOM ancora a meta',
+    /// ed era il motivo per cui il TAB non funzionava nel tab Newsletter.
+    ///
+    /// Il fuoco sul primo campo NON lo da' l'helper: il suo "primo campo" e' il primo del DOM,
+    /// che a seconda del pannello e' un interruttore o una casella di spunta. Si usa il @ref e
+    /// FocusAsync, come i dialoghi della newsletter, cosi' il campo lo scegliamo noi.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var firma = $"{_tabAttivo}|{_invioCorrente?.Id}";
+        var cambioVista = !firstRender && firma != _firmaTab;
+        _firmaTab = firma;
+
+        // Durante l'invio la pagina si ridisegna a ogni destinatario senza cambiare struttura.
+        if (_busy && !cambioVista) return;
+
+        try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".newsletter-form", true); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Newsletter: setup navigazione TAB non riuscito"); }
+
+        if (!cambioVista) return;
+
+        // Il ritardo non e' scaramanzia: MudBlazor sistema il pannello appena mostrato DOPO di
+        // noi, e senza attesa il fuoco si posa su un campo che viene subito rimpiazzato.
+        var campo = _tabAttivo switch
+        {
+            0 => _invioCorrente is null ? null : _campoOggetto,
+            3 => _campoSopEmail,
+            _ => null
+        };
+        if (campo is null) return;
+
+        try { await Task.Delay(150); await campo.FocusAsync(); }
+        catch (Exception ex) { Logger.LogDebug(ex, "Newsletter: fuoco sul primo campo non riuscito"); }
+    }
+
+    public void Dispose()
+    {
+        StatusBarService.SetCurrentTable(null);
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup", ".newsletter-form"); } catch { }
+    }
 
     private async Task ReloadAsync()
     {
