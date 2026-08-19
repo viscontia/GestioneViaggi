@@ -3,7 +3,6 @@ using GestioneViaggi.Services.CRUD;
 using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Email;
 using GestioneViaggi.Services.Shared;
-using GestioneViaggi.Services.Shared.Ai;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -13,7 +12,7 @@ namespace GestioneViaggi.Services.Web;
 public sealed record NewsletterRecipient(string Email, string? Nome, string? Cognome, string Lingua, string? Telefono = null);
 
 /// <summary>Esito invio campagna.</summary>
-public sealed record NewsletterSendResult(int Totale, int Inviate, int Errori, bool TradottoIncompleto);
+public sealed record NewsletterSendResult(int Totale, int Inviate, int Errori);
 
 /// <summary>
 /// Esito dei controlli preliminari sul branding dell'azienda, letti PRIMA di spedire.
@@ -25,33 +24,35 @@ public sealed record NewsletterSendResult(int Totale, int Inviate, int Errori, b
 public sealed record NewsletterPreflight(bool SitoMancante, bool LogoMancante);
 
 /// <summary>
-/// Motore invio newsletter (Blocco 11, per-azienda): risolve i destinatari (clienti+iscritti−soppressioni),
-/// traduce oggetto+corpo per-lingua via Claude, invia via SMTP/ESP dell'azienda, logga la consegna
-/// per-destinatario e registra la campagna. Link di disiscrizione firmato HMAC.
+/// Motore invio newsletter (per-azienda): risolve i destinatari (clienti+iscritti−soppressioni),
+/// compone i blocchi nella lingua di ciascuno, invia via SMTP/ESP dell'azienda, logga la consegna
+/// per-destinatario, archivia il corpo di ogni lingua e registra la campagna. Link di disiscrizione
+/// firmato HMAC.
 /// </summary>
+/// <remarks>
+/// Le traduzioni <b>non</b> si fanno qui: sono gia' scritte campo per campo in <c>web_traduzioni</c>
+/// (le produce il riquadro Lingue) e il rendering le pesca da li'. Il vecchio motore che traduceva
+/// l'intero blob HTML al volo e' stato rimosso il 2026-08-19: era senza chiamanti da quando la
+/// newsletter e' fatta di blocchi.
+/// </remarks>
 public sealed class NewsletterSenderService
 {
     private readonly IDatabaseService _db;
     private readonly EmailSenderFactory _emailFactory;
-    private readonly ClaudeTranslationClient _claude;
-    private readonly WebTraduzioneOrchestratorService _orchestrator;
     private readonly WebNewsletterInviiService _inviiService;
     private readonly WebNewsletterInviiDestinatariService _destinatariService;
     private readonly AziendaLogoService _logoService;
-    private readonly WebAiConsumoService _consumi;
-    private readonly Services.Shared.Ai.ClaudeOptions _claudeOptions;
     private readonly ILogger<NewsletterSenderService> _logger;
 
     public NewsletterSenderService(
-        IDatabaseService db, EmailSenderFactory emailFactory, ClaudeTranslationClient claude,
-        WebTraduzioneOrchestratorService orchestrator, WebNewsletterInviiService inviiService,
+        IDatabaseService db, EmailSenderFactory emailFactory,
+        WebNewsletterInviiService inviiService,
         WebNewsletterInviiDestinatariService destinatariService, AziendaLogoService logoService,
-        WebAiConsumoService consumi, Services.Shared.Ai.ClaudeOptions claudeOptions,
         ILogger<NewsletterSenderService> logger)
     {
-        _db = db; _emailFactory = emailFactory; _claude = claude; _orchestrator = orchestrator;
+        _db = db; _emailFactory = emailFactory;
         _inviiService = inviiService; _destinatariService = destinatariService;
-        _logoService = logoService; _consumi = consumi; _claudeOptions = claudeOptions; _logger = logger;
+        _logoService = logoService; _logger = logger;
     }
 
     /// <param name="invioId">
@@ -157,113 +158,38 @@ public sealed class NewsletterSenderService
             LogoMancante: string.IsNullOrWhiteSpace(b.LogoBase64));
     }
 
-    /// <summary>Traduce (oggetto, corpo) per ogni lingua richiesta ≠ IT. Senza chiave Claude → tutti IT.</summary>
-    private async Task<(Dictionary<string, (string Oggetto, string Corpo)> Bodies, bool Incompleto)> BuildBodiesAsync(
-        int aziendaId, string oggetto, string corpo, IReadOnlyCollection<string> lingue)
+    /// <summary>
+    /// Lingue che qualcuno ricevera' davvero e che sono tradotte <b>a meta'</b>, come "DE 5/6".
+    /// Vuoto = si spedisce.
+    /// </summary>
+    /// <remarks>
+    /// <para>Regola sola per la UI (che blocca il pulsante) e per il motore (che rifiuta comunque):
+    /// una mail per meta' in tedesco e per meta' in italiano arriva a un cliente vero e non si
+    /// richiama indietro. Decisione del 2026-08-19: meglio non spedire che spedire mista.</para>
+    /// <para><b>Mezza traduzione, non nessuna traduzione.</b> Una lingua a zero (nessuna chiave
+    /// Claude, oppure semplicemente non ancora tradotta) non blocca: quella mail parte tutta in
+    /// italiano, che e' coerente e si capisce. Il danno e' il miscuglio, non l'italiano.
+    /// Senza questa distinzione un'azienda senza chiave Claude non potrebbe spedire affatto.</para>
+    /// <para>Conta solo le lingue con destinatari: una traduzione francese a meta' non impedisce
+    /// una spedizione dove nessuno e' francese.</para>
+    /// </remarks>
+    public async Task<IReadOnlyList<string>> LingueIncompleteAsync(
+        int aziendaId, long invioId, NewsletterRenderService render)
     {
-        var bodies = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase) { ["IT"] = (oggetto, corpo) };
-        var target = lingue.Where(l => !string.Equals(l, "IT", StringComparison.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (target.Count == 0) return (bodies, false);
+        var recipients = await GetRecipientsAsync(aziendaId, invioId);
+        var lingueUsate = recipients
+            .Select(r => (r.Lingua ?? "IT").Trim().ToUpperInvariant())
+            .Where(l => l != "IT")
+            .ToHashSet();
 
-        var key = await _orchestrator.GetClaudeKeyAsync(aziendaId);
-        if (string.IsNullOrWhiteSpace(key)) return (bodies, true); // niente chiave → fallback IT (incompleto)
+        if (lingueUsate.Count == 0) return Array.Empty<string>();
 
-        var incompleto = false;
-        foreach (var l in target)
-        {
-            try
-            {
-                var o = await _claude.TranslateAsync(key, oggetto, l);
-                var c = await _claude.TranslateAsync(key, corpo, l);
-                bodies[l] = (o.Testo, c.Testo);
-
-                // Anche le traduzioni della newsletter consumano credito: vanno nello stesso registro,
-                // altrimenti il totale mostrato all'utente sarebbe più basso della spesa reale.
-                foreach (var u in new[] { o, c })
-                    await _consumi.RegistraAsync(aziendaId, _claudeOptions.Model, $"Newsletter ({l})",
-                        u.InputTokens, u.OutputTokens,
-                        _claudeOptions.StimaCosto(u.InputTokens, u.OutputTokens), _claudeOptions.Valuta);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Traduzione newsletter {Lang} fallita, uso IT", l);
-                incompleto = true;
-            }
-        }
-        return (bodies, incompleto);
-    }
-
-    /// <summary>Footer di disiscrizione, aggiunto in coda al corpo dentro il template brandizzato.</summary>
-    private static string UnsubFooter(string unsubUrl) =>
-        $@"<hr style=""margin-top:24px;border:none;border-top:1px solid #ddd;"" /><p style=""font-size:12px;color:#888;"">Non desideri più ricevere la nostra newsletter? <a href=""{unsubUrl}"" style=""color:#888;"">Disiscriviti</a></p>";
-
-    /// <summary>Genera l'email brandizzata (template aziendale con logo) includendo il footer di disiscrizione.</summary>
-    private static string BuildHtml(NlBranding b, string corpo, string unsubUrl) =>
-        CompanyEmailTemplate.GetHtmlBody(b.LogoBase64, b.LogoMime, b.Nome, null, null,
-            corpo + UnsubFooter(unsubUrl), DateTime.Now, b.Sito, b.Telefono);
-
-    /// <summary>Invia la campagna a tutti i destinatari (multilingua) e registra invio + log.</summary>
-    public async Task<NewsletterSendResult> SendCampaignAsync(
-        int aziendaId, string oggetto, string corpoHtml, IProgress<(int Fatti, int Totale)>? progress = null)
-    {
-        var recipients = await GetRecipientsAsync(aziendaId);
-        if (recipients.Count == 0)
-            throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
-
-        var branding = await GetBrandingAsync(aziendaId);
-
-        // Guardia autoritativa: senza sito_web il link di disiscrizione punta a example.com.
-        // La UI avvisa prima, ma il blocco deve stare anche qui: una newsletter con un
-        // "Disiscriviti" rotto non si puo' richiamare indietro.
-        if (string.IsNullOrWhiteSpace(branding.Sito))
-            throw new InvalidOperationException(
-                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
-                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
-        var (bodies, incompleto) = await BuildBodiesAsync(aziendaId, oggetto, corpoHtml, recipients.Select(r => r.Lingua).ToList());
-        var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
-        var canale = sender is SmtpEmailSender ? "smtp" : "resend";
-
-        var invio = await _inviiService.CreateAsync(new WebNewsletterInvio
-        {
-            AziendaId = aziendaId, Oggetto = oggetto, CorpoHtml = corpoHtml, Stato = "in_invio", Canale = canale
-        });
-
-        int ok = 0, err = 0;
-        progress?.Report((0, recipients.Count));
-        foreach (var rec in recipients)
-        {
-            var lang = bodies.ContainsKey(rec.Lingua) ? rec.Lingua : "IT";
-            var (subj, corpo) = bodies[lang];
-            var unsub = NewsletterUnsubscribe.BuildUrl(branding.Sito, rec.Email, branding.Token);
-            var html = BuildHtml(branding, corpo, unsub);
-
-            bool sent;
-            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, subj, html, branding.Nome); }
-            catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
-            if (sent) ok++; else err++;
-
-            try
-            {
-                await _destinatariService.CreateAsync(new WebNewsletterInvioDestinatario
-                {
-                    AziendaId = aziendaId, InvioIdFk = invio.WebNewsletterInvioId, Email = rec.Email,
-                    Lingua = lang, StatoConsegna = sent ? "inviato" : "errore", Data = DateTime.UtcNow
-                });
-            }
-            catch (Exception ex) { _logger.LogWarning(ex, "Log destinatario {Email} fallito", rec.Email); }
-
-            progress?.Report((ok + err, recipients.Count));
-        }
-
-        // "inviata" (femminile): e' il valore ammesso da chk_web_newsletter_invii_stato
-        // ('bozza','in_invio','inviata'). Con "inviato" l'UPDATE finale falliva sempre (23514),
-        // lasciando la campagna in 'in_invio' con data_invio e numero_destinatari NULL.
-        invio.Stato = "inviata";
-        invio.NumeroDestinatari = recipients.Count;
-        invio.DataInvio = DateTime.UtcNow;
-        await _inviiService.UpdateAsync(invio);
-
-        return new NewsletterSendResult(recipients.Count, ok, err, incompleto);
+        var stato = await render.StatoTraduzioniAsync(invioId, aziendaId);
+        return stato
+            .Where(s => lingueUsate.Contains(s.Lingua.Trim().ToUpperInvariant())
+                        && s.Tradotti > 0 && s.Tradotti < s.Traducibili)
+            .Select(s => $"{s.Lingua.Trim()} {s.Tradotti}/{s.Traducibili}")
+            .ToList();
     }
 
     /// <summary>
@@ -271,9 +197,9 @@ public sealed class NewsletterSenderService
     /// per ogni destinatario, perche' il link di disiscrizione e' firmato sul suo indirizzo.
     /// </summary>
     /// <remarks>
-    /// ⚠️ In questa fase l'invio e' <b>monolingua (IT)</b>: la traduzione per campo dei blocchi e'
-    /// la Fase 4. Il vecchio percorso traduceva l'intero blob HTML, cosa che con i blocchi non ha
-    /// piu' senso — la struttura non deve passare dentro Claude.
+    /// Ogni destinatario riceve la <b>sua</b> lingua: il rendering usa le traduzioni per campo e
+    /// ricade sull'italiano solo dove manca qualcosa. Le lingue tradotte a meta' non arrivano
+    /// nemmeno a questo punto — vedi <see cref="LingueIncompleteAsync"/>.
     /// </remarks>
     public async Task<NewsletterSendResult> SendCampaignBlocchiAsync(
         int aziendaId, long invioId, string oggetto,
@@ -285,6 +211,16 @@ public sealed class NewsletterSenderService
         var recipients = await GetRecipientsAsync(aziendaId, invioId);
         if (recipients.Count == 0)
             throw new InvalidOperationException("Nessun destinatario (verifica consensi clienti / iscritti / soppressioni).");
+
+        // Guardia autoritativa sulle traduzioni: sta QUI e non solo nella UI, come per il sito web
+        // mancante. E sta PRIMA di congelare gli indirizzi e di creare la riga di storico, cosi' un
+        // invio rifiutato non lascia traccia ne' effetti.
+        var incomplete = await LingueIncompleteAsync(aziendaId, invioId, render);
+        if (incomplete.Count > 0)
+            throw new InvalidOperationException(
+                $"Traduzioni incomplete ({string.Join(", ", incomplete)}): la newsletter partirebbe " +
+                "per meta' tradotta e per meta' in italiano. Completa le traduzioni, oppure togli " +
+                "dai destinatari le lingue non pronte.");
 
         // Congela gli indirizzi presi dalla rubrica PRIMA di comporre: da qui in avanti la
         // newsletter e' un documento storico e non deve piu' cambiare se qualcuno corregge un
@@ -394,23 +330,10 @@ public sealed class NewsletterSenderService
                 "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
                 "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
 
-        var html = NewsletterRenderService.Render(ctx, emailProva);
+        var html = NewsletterRenderService.Render(ctx, emailProva, lingua);
+        var oggettoTradotto = NewsletterRenderService.Oggetto(ctx, oggetto, lingua);
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
-        return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggetto, html, ctx.Azienda.RagioneSociale);
+        return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggettoTradotto, html, ctx.Azienda.RagioneSociale);
     }
 
-    /// <summary>Invio di prova a un solo indirizzo (in IT, senza registrare la campagna).</summary>
-    public async Task<bool> SendTestAsync(int aziendaId, string oggetto, string corpoHtml, string testEmail)
-    {
-        var branding = await GetBrandingAsync(aziendaId);
-        if (string.IsNullOrWhiteSpace(branding.Sito))
-            throw new InvalidOperationException(
-                "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
-                "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
-
-        var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
-        var unsub = NewsletterUnsubscribe.BuildUrl(branding.Sito, testEmail, branding.Token);
-        var html = BuildHtml(branding, corpoHtml, unsub);
-        return await sender.SendHtmlEmailAsync(new[] { testEmail }, "[TEST] " + oggetto, html, branding.Nome);
-    }
 }
