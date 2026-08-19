@@ -205,6 +205,9 @@ il gruppo M della parte seconda del runbook.
   newsletter non ha contenuti: aggiungi almeno un blocco.» *(`ComposizioneValida` conta i blocchi
   che non siano `intestazione` o `footer`: da soli non fanno una newsletter.)*
 - ☐ **B4** — *Invia prova* senza email di prova → warning.
+- ☐ **B8** — **(nuovo, 2026-08-19)** Svuota il campo **Oggetto** e premi **Salva oggetto** → avviso
+  «Inserisci l'oggetto.», la stessa frase del controllo prima dell'invio. *(Prima usciva con un
+  `return` silenzioso: nessun salvataggio, nessun messaggio, il pulsante sembrava rotto.)*
 - ✅ **B5** — L'oggetto viene trimmato prima dell'invio. *(19/08, azienda 2)*
 - ✅ **B6** — Durante l'invio i pulsanti sono disabilitati: niente doppio invio a doppio clic. *(19/08)*
 

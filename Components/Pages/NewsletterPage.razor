@@ -813,7 +813,17 @@ else
 
     private async Task SalvaOggetto()
     {
-        if (_invioCorrente is null || string.IsNullOrWhiteSpace(_oggetto)) return;
+        if (_invioCorrente is null) return;
+
+        // Con l'oggetto vuoto si usciva con un return silenzioso: il pulsante non salvava, non
+        // diceva niente e sembrava rotto. Stesso messaggio del controllo prima dell'invio, cosi'
+        // chi lo legge due volte legge la stessa frase.
+        if (string.IsNullOrWhiteSpace(_oggetto))
+        {
+            Snackbar.Add("Inserisci l'oggetto.", Severity.Warning);
+            return;
+        }
+
         await AccendiAttesa();
         try
         {
