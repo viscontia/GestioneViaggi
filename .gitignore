@@ -497,3 +497,8 @@ GPX/
 
 # Foto di test della galleria web - non versionare (solo test data locale) + escluse da graphify
 Gallerie Foto Web/
+
+# Dump del registro di sistema catturati durante le diagnosi: utili sul momento,
+# inutili in cronologia (e maui_syslog.txt pesava 217K di righe di libxpc).
+maui_syslog.txt
+*.syslog
