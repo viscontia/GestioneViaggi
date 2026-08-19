@@ -88,6 +88,14 @@
                                         HelperText="Impostato dal titolo: per cambiarlo scegli un altro titolo." />
                                 </MudItem>
 
+                                @* Avviso non bloccante: Andrea e Luca devono poter passare. *@
+                                @if (AvvisoNomeSesso is not null)
+                                {
+                                    <MudItem xs="12">
+                                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-n2">@AvvisoNomeSesso</MudAlert>
+                                    </MudItem>
+                                }
+
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_cognomeField" @bind-Value="Entity.Cognome" For="@(() => Entity.Cognome)" Label="Cognome"
                                         Variant="Variant.Outlined" Immediate="true" Required="true"

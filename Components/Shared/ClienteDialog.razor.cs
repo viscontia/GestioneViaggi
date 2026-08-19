@@ -9,6 +9,7 @@ using GestioneViaggi.Validation.Exceptions;
 using GestioneViaggi.Validation.Fiscal;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Components.Forms;
+using GestioneViaggi.Validation.Semantic;
 
 namespace GestioneViaggi.Components.Shared;
 
@@ -96,6 +97,13 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         if (titolo is not null) Entity.Sesso = titolo.Sesso;
     }
+
+    /// <summary>
+    /// Sospetto di titolo sbagliato, dedotto dal nome. Ricalcolato a ogni render: e' un confronto
+    /// fra due stringhe, e cosi' l'avviso compare appena si sceglie il titolo, non solo al salvataggio.
+    /// </summary>
+    private string? AvvisoNomeSesso =>
+        Entity.TitoloFk == 0 ? null : CoerenzaNomeSessoValidator.Avviso(Entity.Nome, Entity.Sesso);
 
     /// <summary>Sesso a video: vuoto finche' non c'e' un titolo, perche' prima non e' un dato ma un default.</summary>
     private string SessoDescrizione =>

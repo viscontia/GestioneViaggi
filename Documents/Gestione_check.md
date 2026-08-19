@@ -144,6 +144,26 @@ Verificano la **logica** del dato in contesto.
 > `Documents/Digitazione_Date.md`). Da qui anche `DateValidator.MotivoDaConfermare`, che non vieta ma
 > chiede conferma sulle date insolite — l'unico modo di cogliere un refuso *dentro* l'intervallo lecito.
 
+> ⚠️ **Avvisare non è validare.** `CoerenzaNomeSessoValidator.Avviso(nome, sesso)` non restituisce un
+> `ValidationResult` e non blocca niente: restituisce una stringa (o `null`). Segnala il sospetto che
+> il titolo scelto sia sbagliato quando il nome dice il contrario — nome in `-a` con sesso M, o in
+> `-o` con sesso F. Serve da quando `cliente_sesso` si deriva dal titolo: `SIG.` è la prima voce
+> della tendina, e chi va di fretta ce la lascia anche su una donna.
+>
+> **Perché non blocca, e perché ha una lista di eccezioni.** Andrea e Luca sono nomi maschili. Senza
+> la lista (`ANDREA, LUCA, NICOLA, ELIA, MATTIA, ENEA, ISAIA, GEREMIA, ZACCARIA, BATTISTA,
+> EVANGELISTA, COSMA` + i composti attaccati + `MARIA` come secondo nome) l'avviso, misurato sui 742
+> clienti reali, scattava **56 volte su 56 a torto**, e 38 erano Andrea e Luca. Con la lista scende a
+> **1**. Un avviso che sbaglia sempre insegna solo a chiuderlo senza leggerlo — cioè esattamente il
+> comportamento che si voleva correggere.
+>
+> Il confronto è **esatto sull'ultimo token**, non per suffisso: `AURELIA` finisce per `ELIA` e con un
+> match per suffisso verrebbe zittita a torto, insieme ad Amelia e Ofelia.
+>
+> **Nessun filtro sulla lingua**, benché il controllo valga per l'italiano: fra i 30 clienti stranieri
+> gli unici due che scatterebbero si chiamano `LUCA`, già coperto. Aggiungere la lingua avrebbe
+> richiesto di portarla nel model (oggi vive solo a DB) per zero casi reali.
+
 ### 3. **Business Validators** (Validatori di Business)
 Verificano **regole di dominio complesse**.
 
