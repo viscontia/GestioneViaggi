@@ -205,7 +205,7 @@ ls SqlScripts/*.sql \
 
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
-`468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · **consenso email mancante sul sito di iscrizione (§2.8.1)** · `491` e `509` vincoli che falliscono su dati sporchi ·
+`468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · **revisione del sito di iscrizione, prerequisito (§2.8)** · `491` e `509` vincoli che falliscono su dati sporchi ·
 `499_Rollback` da non eseguire mai.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
@@ -366,10 +366,15 @@ separato, e il ponte del `539` gli assegna la FK. Verificato il 2026-08-19 su in
 e aggiornamento, anche con titolo e sesso in contraddizione fra loro: vince il sesso, esattamente
 come nel gestionale.
 
-**Funzionare non basta però.** Il sito è rimasto indietro rispetto a tutto quello che è stato messo
-nel gestionale, e i tre punti qui sotto sono un lavoro a metà finché restano aperti. Il primo — il
-consenso — è il più serio e **non dipende dal go-live**: andrebbe chiuso comunque, anche se il resto
-non si toccasse mai. Gli altri due possono seguire con calma, e in tempi diversi fra loro.
+> ⛔️ **PREREQUISITO DI GO-LIVE (deciso il 2026-08-19).** Il sito va rivisto **prima** di andare in
+> produzione, non dopo. Non perché si rompa — funziona — ma perché il giorno in cui gli script
+> `406+` arrivano su PROD, il sito comincia a creare clienti su uno schema che ha il consenso, i
+> titoli normalizzati e i controlli del gestionale, **senza rispettarne nessuno**. Ogni iscrizione
+> raccolta in quella finestra è un dato che poi non si sistema più: il consenso non si recupera con
+> un backfill (§2.8.1) e le anagrafiche entrate senza controlli restano com'erano.
+>
+> Il momento giusto per chiudere questi quattro punti è quello in cui il sito **non ha ancora**
+> scritto nulla sul nuovo schema.
 
 #### 2.8.1 — Il consenso all'invio di email: **grave, e non recuperabile dopo**
 
@@ -433,6 +438,42 @@ interventi indipendenti, e questo può seguire mesi dopo. Le tre strade, dalla p
 
 Finché non si fa la 3, il debito dichiarato in `Funzioni_DB.md` §8.3 resta aperto: la colonna
 deprecata non si può togliere.
+
+#### 2.8.4 — I controlli sul cliente: due implementazioni, nessuna condivisa
+
+**Da verificare, non ancora deciso.** Il CRUD cliente del sito applica i suoi controlli; il
+gestionale applica i propri. Nessuno dei due sa cosa fa l'altro, e non esiste un punto in cui la
+regola sia scritta una volta sola.
+
+L'inventario del gestionale, rilevato il 2026-08-19:
+
+| Dove | Cosa |
+|---|---|
+| `Validation/Business/ClienteValidator` | **17 metodi**: email, cognome, nome, indirizzo, data di nascita, telefono, prefisso, tipo/numero/ente del documento, date di rilascio e scadenza (incrociate fra loro e con la nascita), IBAN, unicità email passeggeri |
+| `Validation/Syntax/CodiceFiscaleValidator` | formato e coerenza del CF |
+| `Validation/Semantic/CoerenzaNomeSessoValidator` | avviso nome/sesso (§2.8.2) |
+| Annotazioni su `Models/Cliente` | obbligatorietà, lunghezze, formato email, `[MF]` |
+| **Database** | **un solo `CHECK`**: `cliente_sesso IN ('M','F')` — più la FK e il `NOT NULL` del titolo aggiunti dal `538` |
+
+È qui il problema: **tutte le regole vivono nel C#, dove il sito non arriva.** Il database accetta
+quasi tutto, quindi il sito può scrivere un'anagrafica che il gestionale avrebbe rifiutato — email
+malformata, CF incoerente, documento scaduto prima di essere rilasciato — e nessuno se ne accorge
+finché quel cliente non viene riaperto nella form desktop.
+
+**Verifiche da fare** (per ciascuna riga della tabella sopra): il sito la applica? con quale regola?
+e cosa succede al dato se le due regole divergono?
+
+**Direzione probabile, da confermare.** Non si possono condividere i validator C# con un sito Flask.
+L'unico strato che entrambi attraversano davvero è **il database**, ed è anche quello che la regola
+DB-First del progetto (`overview.md` §3.1) indica come casa naturale della logica. Quindi: le regole
+che devono valere *ovunque* scendono nel DB — come `CHECK`, o come funzione di validazione
+richiamabile da entrambi — e in C# resta solo ciò che serve all'immediatezza dell'interfaccia
+(messaggio inline, fuoco sul campo, avvisi non bloccanti). Da valutare caso per caso: alcune regole
+sono genuinamente di presentazione e nel DB non ci stanno.
+
+> **Nota:** dopo il re-model del `538`, `ClienteValidator.ValidateTitolo` e `ValidateSesso` non hanno
+> più chiamanti — il titolo è una FK e il sesso è derivato. Non rimossi: vanno riviste insieme a
+> questa verifica, non prima.
 
 ---
 
@@ -649,6 +690,7 @@ libero.
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] **Dominio definitivo deciso** (rebrand sì/no) e `sito_web` azienda valorizzato di conseguenza **prima del primo invio newsletter**; SPF/DKIM/DMARC + warm-up pianificati se il dominio mittente cambia (§3.6). ← condiziona i link di disiscrizione già spediti
+- [ ] **Sito di iscrizione ai viaggi rivisto (§2.8)** — consenso email raccolto alla fonte con data e fonte (§2.8.1), avviso nome/sesso replicato (§2.8.2), titolo/sesso allineati (§2.8.3), controlli del CRUD cliente confrontati con quelli del gestionale (§2.8.4). ← **prerequisito**: dopo il deploy degli script il sito scrive su uno schema che non rispetta, e quei dati non si sistemano più
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
