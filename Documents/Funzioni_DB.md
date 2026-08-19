@@ -1166,6 +1166,10 @@ Stessa convenzione CRUD web (scoping `p_azienda_id`, audit da trigger, 0/1 su up
 - **`fn_ana_aziende_get_claude_key(p_azienda_id)` / `fn_ana_aziende_set_claude_key(p_azienda_id, p_key)`** (`SqlScripts/463`, Blocco 10) — get/set della chiave Claude per-azienda (`ana_aziende.claude_api_key`, in chiaro → cifrare pre-rilascio).
 - **`fn_web_newsletter_iscritti_*`** (`SqlScripts/438`) — CRUD standard + **`fn_web_newsletter_iscritti_by_token(p_token)`** (lookup per link di disiscrizione, senza azienda: il token è il segreto).
 - **`fn_web_newsletter_invii_*`** (`SqlScripts/439`), **`fn_web_newsletter_invii_destinatari_*`** (`SqlScripts/440`, list per `p_invio_id`), **`fn_web_newsletter_soppressioni_*`** (`SqlScripts/441`) — CRUD standard.
+- **Chi marca l'obsolescenza dei testi newsletter.** Le traduzioni non si invalidano da sole: sono le funzioni di update a chiamare `fn_web_traduzioni_marca_obsolete`, **prima** della UPDATE (l'ordine conta, vedi `SqlScripts/536`).
+  - `fn_web_newsletter_blocchi_update` (`SqlScripts/536`) → i 5 campi del blocco (`titolo`, `sottotitolo`, `corpo_html`, `link_etichetta`, `immagine_alt`), ognuno col proprio confronto `IS DISTINCT FROM`.
+  - `fn_web_newsletter_invii_update` (`SqlScripts/537`) → il campo `oggetto`. **Mancava fino al 2026-08-18:** l'oggetto veniva riscritto lasciando valide le traduzioni del testo precedente, e la newsletter partiva con l'oggetto vecchio tradotto per i destinatari stranieri e quello nuovo per gli italiani. Il confronto protegge il motore d'invio, che chiama la stessa funzione con l'oggetto invariato per aggiornare stato/data/destinatari.
+  - Aggiungendo un campo traducibile a queste tabelle, va aggiunto qui il suo confronto: senza, il campo si traduce ma non si invalida mai.
 
 ### Funzioni CRUD config per-azienda — `fn_web_aziende_funzioni_*`, `fn_ana_aziende_esp_*` (Blocco 2)
 
@@ -1414,6 +1418,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1483,8 +1488,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_ana_tipo_viaggi_update` | p_id integer, p_tipo character varying, p_descrizione character varying, p_descrizione_web_fk bigint, p_breve boolean | SETOF ana_tipo_viaggi |  |
 | `fn_ana_viaggi_get_all` | p_azienda_id integer DEFAULT NULL::integer, p_filter_year integer DEFAULT NULL::integer, p_only_completed boolean DEFAULT NULL::boolean, p_future_only boolean DEFAULT NULL::boolean | TABLE(viaggio_id integer, viaggio_descrizione_breve character varying, viaggio_descrizione_estesa text, viaggio_numero_giorni integer, viaggio_numero_notti integer, viaggio_pasti_al_sacco character, viaggio_num_km integer, viaggio_difficolta character varying, viaggio_incluso text, viaggio_escluso text, viaggio_capienza_max integer, viaggio_capienza_alert integer, viaggio_note text, viaggio_tipo_viaggio_fk integer, viaggio_tipo_trattamento_fk integer, viaggio_nazione_fk integer, viaggio_tipo_pernottamento_fk integer, created_by character varying, created timestamp with time zone, updated_by character varying, updated timestamp with time zone, viaggio_link character varying, viaggio_mappa bytea, viaggio_mappa_mimetype character varying, viaggio_mappa_filename character varying, viaggio_mappa_charset character varying, viaggio_mappa_upd_date date, azienda_id integer, viaggio_tipo_avvicinamento_fk integer, nazione_nome character varying, tipo_viaggi_descrizione character varying, tipo_trattamento_descrizione character varying, ana_tipo_pernottamento_descrizione character varying, tipo_avvicinamento_descrizione character varying, azienda_nome character varying, matching_dates_count bigint) |  |
 | `fn_ana_viaggi_get_by_id` | p_viaggio_id integer | TABLE(viaggio_id integer, viaggio_descrizione_breve character varying, viaggio_descrizione_estesa text, viaggio_numero_giorni integer, viaggio_numero_notti integer, viaggio_pasti_al_sacco character, viaggio_num_km integer, viaggio_difficolta character varying, viaggio_incluso text, viaggio_escluso text, viaggio_capienza_max integer, viaggio_capienza_alert integer, viaggio_note text, viaggio_tipo_viaggio_fk integer, viaggio_tipo_trattamento_fk integer, viaggio_nazione_fk integer, viaggio_tipo_pernottamento_fk integer, created_by character varying, created timestamp with time zone, updated_by character varying, updated timestamp with time zone, viaggio_link character varying, viaggio_mappa bytea, viaggio_mappa_mimetype character varying, viaggio_mappa_filename character varying, viaggio_mappa_charset character varying, viaggio_mappa_upd_date date, azienda_id integer, viaggio_tipo_avvicinamento_fk integer, nazione_nome character varying, tipo_viaggi_descrizione character varying, tipo_trattamento_descrizione character varying, ana_tipo_pernottamento_descrizione character varying, tipo_avvicinamento_descrizione character varying, azienda_nome character varying) |  |
-| `fn_app_create_azienda` | p_tenant_id character varying, p_ragione_sociale character varying, p_partita_iva character varying, p_forma_giuridica character varying DEFAULT NULL::character varying, p_codice_fiscale character varying DEFAULT NULL::character varying, p_capitale_sociale numeric DEFAULT NULL::numeric, p_socio_unico boolean DEFAULT false, p_in_liquidazione boolean DEFAULT false, p_pec character varying DEFAULT NULL::character varying, p_sito_web character varying DEFAULT NULL::character varying, p_telefono_principale character varying DEFAULT NULL::character varying, p_attivo boolean DEFAULT true | jsonb | Crea nuova azienda/tenant (solo SuperAdmin) |
 | `fn_app_create_azienda` | p_data jsonb | jsonb |  |
+| `fn_app_create_azienda` | p_tenant_id character varying, p_ragione_sociale character varying, p_partita_iva character varying, p_forma_giuridica character varying DEFAULT NULL::character varying, p_codice_fiscale character varying DEFAULT NULL::character varying, p_capitale_sociale numeric DEFAULT NULL::numeric, p_socio_unico boolean DEFAULT false, p_in_liquidazione boolean DEFAULT false, p_pec character varying DEFAULT NULL::character varying, p_sito_web character varying DEFAULT NULL::character varying, p_telefono_principale character varying DEFAULT NULL::character varying, p_attivo boolean DEFAULT true | jsonb | Crea nuova azienda/tenant (solo SuperAdmin) |
 | `fn_app_create_country` | p_name character varying, p_nationality character varying, p_country_code character varying, p_iso_alpha2 character varying, p_capital character varying DEFAULT NULL::character varying, p_population bigint DEFAULT NULL::bigint, p_area_km2 numeric DEFAULT NULL::numeric, p_region_id integer DEFAULT NULL::integer, p_sub_region_id integer DEFAULT NULL::integer, p_intermediate_region_id integer DEFAULT NULL::integer, p_organization_region_id integer DEFAULT NULL::integer | jsonb | Crea una nuova nazione |
 | `fn_app_create_country_organization` | p_code character varying, p_name character varying | jsonb | Crea una nuova organizzazione |
 | `fn_app_create_geo_capoluogo` | p_data jsonb | jsonb | Crea nuovo capoluogo |
@@ -1539,8 +1544,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_app_health_check` |  | json |  |
 | `fn_app_list_roles` |  | TABLE(role_id integer, role_code character varying, role_name character varying, is_system boolean, created_at timestamp with time zone) |  |
 | `fn_app_list_users` |  | TABLE(user_id uuid, email text, nome text, cognome text, role_code text, role_name text, azienda_id integer, ragione_sociale text, is_active boolean, last_login_at timestamp with time zone, created_at timestamp with time zone, data_nascita date, valuta_default_id integer) |  |
-| `fn_app_login` | p_email citext, p_password text, p_ip inet DEFAULT inet_client_addr(), p_user_agent text DEFAULT 'Unknown'::text | jsonb |  |
 | `fn_app_login` | p_email citext, p_password text | jsonb |  |
+| `fn_app_login` | p_email citext, p_password text, p_ip inet DEFAULT inet_client_addr(), p_user_agent text DEFAULT 'Unknown'::text | jsonb |  |
 | `fn_app_login_text` | p_email text, p_password text | jsonb |  |
 | `fn_app_login_text_debug` | p_email text, p_password text | jsonb | Versione di debug del login che restituisce hash e dettagli di confronto password |
 | `fn_app_logo_create_backup_20250909` | p_tenant_id character varying, p_azienda_fk integer, p_logo_data jsonb | jsonb | Funzione di backup legacy per la tabella loghi (Non utilizzare) |
@@ -1576,15 +1581,13 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_anni_fatture_attive` | p_azienda_id integer | TABLE(anno integer) |  |
 | `fn_get_api_config_value` | p_service_code character varying, p_config_key character varying | text | Recupera il valore di una singola configurazione API attiva per service_code e config_key. Validazioni: parametri obbligatori, esistenza record, stato attivo, valore non vuoto. Usato da CurrencyApiService per recuperare API key dinamicamente dal DB invece che dal codice. |
 | `fn_get_azienda_badge_counts` | p_azienda_id integer | TABLE(sedi integer, contatti integer, banche integer, email integer, reparti integer, smtp integer, logo integer) |  |
-| `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
+| `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
+| `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
- |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
-` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
 | `fn_get_cliente_by_id` | p_cliente_id integer, p_azienda_fk integer | json | DB-First: Get cliente by ID with all related data (azienda, comuni) |
 | `fn_get_cliente_init_data` | p_cliente_id integer DEFAULT NULL::integer | json |  |
@@ -1613,10 +1616,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_tasso_cambio` | p_iso_da character varying, p_iso_a character varying, p_data date | numeric | Wrapper che accetta codici ISO e invoca la core function. |
 | `fn_get_transazioni_by_azienda` | p_azienda_id integer, p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_transazione date DEFAULT NULL::date, p_solo_da_pagare boolean DEFAULT false, p_causale_tipo_id integer DEFAULT NULL::integer | TABLE(transazione_id integer, transazione_azienda_id integer, transazione_viaggio_id integer, transazione_data_viaggio_id integer, transazione_controparte_id integer, transazione_causale_tipo_id integer, transazione_importo numeric, transazione_valuta_id integer, transazione_importo_eur numeric, transazione_data date, transazione_data_scadenza date, transazione_data_pagamento date, transazione_stato character varying, transazione_causale text, transazione_note text, transazione_numero_documento character varying, transazione_data_documento date, transazione_fattura_fk integer, transazione_aliquota_iva_fk integer, transazione_imponibile_eur numeric, transazione_iva_eur numeric, transazione_lordo_eur numeric, transazione_iva_modalita_input character varying, transazione_tasso_cambio_applicato numeric, transazione_tasso_fonte character varying, transazione_tasso_data_validita date, created_at timestamp with time zone, created_by character varying, updated_at timestamp with time zone, updated_by character varying, azienda_codice text, controparte_ragione_sociale character varying, valuta_codice_iso character varying, causale_descrizione character varying, causale_segno integer, causale_ciclo character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_per_stampa` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_tipo_movimento character varying DEFAULT NULL::character varying, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'DATA_DOCUMENTO'::character varying | TABLE(transazione_id integer, transazione_azienda_id integer, transazione_viaggio_id integer, transazione_data_viaggio_id integer, transazione_controparte_id integer, transazione_tipo_movimento character varying, transazione_importo numeric, transazione_valuta_id integer, transazione_importo_eur numeric, transazione_data date, transazione_data_scadenza date, transazione_data_pagamento date, transazione_data_documento date, transazione_stato character varying, transazione_causale text, transazione_note text, transazione_numero_documento character varying, transazione_fattura_fk integer, azienda_codice text, controparte_ragione_sociale character varying, valuta_codice_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
-| `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, transazione_importo numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, causale_ciclo character varying, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, imponibile_eur numeric, iva_eur numeric, lordo_eur numeric, aliquota_iva_codice character varying, aliquota_iva_percentuale numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
-| `fn_get_transazioni_stampa_subtotali` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, valuta_codice_iso character varying, totale_valuta_originale numeric, totale_valuta_target numeric, totale_fatturato_target numeric, totale_pagato_target numeric, valuta_target_iso character varying, conteggio_transazioni integer, is_totale_generale boolean) |  |
+| `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, transazione_importo numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_stampa_subtotali` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, valuta_codice_iso character varying, totale_valuta_originale numeric, totale_valuta_target numeric, totale_fatturato_target numeric, totale_pagato_target numeric, totale_imponibile_target numeric, totale_iva_target numeric, valuta_target_iso character varying, conteggio_transazioni integer, is_totale_generale boolean) |  |
+| `fn_get_transazioni_stampa_subtotali` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, valuta_codice_iso character varying, totale_valuta_originale numeric, totale_valuta_target numeric, totale_fatturato_target numeric, totale_pagato_target numeric, valuta_target_iso character varying, conteggio_transazioni integer, is_totale_generale boolean) |  |
 | `fn_get_travel_print_data` | p_data_viaggio_id integer | jsonb |  |
 | `fn_get_trip_header_string` | p_viaggio_id integer, p_data_viaggio_id integer | text | Genera intestazione viaggio formattata: "Descrizione (Dal GG/MM/AAAA al GG/MM/AAAA)". Usato per header UI. |
 | `fn_get_viaggi_init_data` | p_viaggio_id integer DEFAULT NULL::integer | json |  |
@@ -1631,8 +1634,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_logo_update_access_stats` | p_logo_id uuid | void | Aggiorna le statistiche di accesso (timestamp e contatore) per un logo |
 | `fn_logo_validate_mime_type` | p_file_format character varying, p_mime_type character varying | boolean | Valida che il formato file corrisponda al MIME type dichiarato |
 | `fn_mese_italiano` | p_mese integer | character varying |  |
+| `fn_partenza_etichetta` | p_data_viaggio_id integer, p_azienda_id integer | text | Come si nomina una partenza quando la si mostra all'utente. NULL se non esiste per quell'azienda. |
 | `fn_search_clienti` | p_azienda_fk integer, p_search_text character varying | json | DB-First: Full-text search clienti by cognome, nome, email, CF, telefono |
 | `fn_set_azienda_id` |  | trigger |  |
+| `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
 | `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
@@ -1675,7 +1680,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_web_aziende_funzioni_insert` | p_azienda_id integer, p_funzione character varying, p_attiva boolean DEFAULT false, p_parametri jsonb DEFAULT NULL::jsonb | bigint |  |
 | `fn_web_aziende_funzioni_list` | p_azienda_id integer | SETOF web_aziende_funzioni |  |
 | `fn_web_aziende_funzioni_update` | p_id bigint, p_azienda_id integer, p_funzione character varying, p_attiva boolean, p_parametri jsonb | integer |  |
-| `fn_web_destinatari_newsletter` | p_azienda_id integer | TABLE(email citext, nome character varying, cognome character varying, lingua character, fonte character varying, cliente_id integer, iscritto_id bigint, token_disiscrizione character varying, telefono character varying) |  |
+| `fn_web_destinatari_newsletter` | p_azienda_id integer, p_invio_id bigint DEFAULT NULL::bigint | TABLE(email citext, nome character varying, cognome character varying, lingua character, fonte character varying, cliente_id integer, iscritto_id bigint, token_disiscrizione character varying, telefono character varying) |  |
 | `fn_web_edizioni_per_viaggio` | p_viaggio_id integer, p_azienda_id integer | TABLE(data_viaggio_id integer, data_inizio date, data_fine date, effettuato_sino character, web_tour_contenuti_id bigint, stato_pubblicazione character varying) |  |
 | `fn_web_ha_tour_brevi_pubblicati` | p_azienda_id integer | boolean |  |
 | `fn_web_immagini_azienda` | p_azienda_id integer | TABLE(url character varying, storage_path character varying, alt_text character varying, contesto character varying) |  |
@@ -1691,18 +1696,27 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_web_indirizzi_list` | p_azienda_id integer, p_solo_attivi boolean DEFAULT false | SETOF web_indirizzi |  |
 | `fn_web_indirizzi_update` | p_id bigint, p_azienda_id integer, p_descrizione character varying, p_url character varying, p_note text DEFAULT NULL::text, p_ordine integer DEFAULT NULL::integer, p_attivo boolean DEFAULT true, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_icona_path character varying DEFAULT NULL::character varying | integer |  |
 | `fn_web_mezzi_occupati_data` | p_data_viaggio_id integer | integer |  |
+| `fn_web_nazioni_clienti` | p_azienda_id integer | TABLE(country_id integer, nome character varying, estero boolean, clienti bigint) |  |
 | `fn_web_newsletter_blocchi_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_blocchi_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_blocchi |  |
 | `fn_web_newsletter_blocchi_insert` | p_azienda_id integer, p_invio_id_fk bigint, p_tipo character varying, p_ordine integer DEFAULT NULL::integer, p_layout character varying DEFAULT 'pieno'::character varying, p_colonne smallint DEFAULT 1, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying, p_colore_titolo character varying DEFAULT NULL::character varying, p_colore_sottotitolo character varying DEFAULT NULL::character varying | bigint |  |
 | `fn_web_newsletter_blocchi_list` | p_invio_id bigint, p_azienda_id integer | SETOF web_newsletter_blocchi |  |
 | `fn_web_newsletter_blocchi_reorder` | p_azienda_id integer, p_invio_id_fk bigint, p_ids bigint[] | integer |  |
 | `fn_web_newsletter_blocchi_update` | p_id bigint, p_azienda_id integer, p_layout character varying DEFAULT NULL::character varying, p_colonne smallint DEFAULT NULL::smallint, p_titolo character varying DEFAULT NULL::character varying, p_sottotitolo character varying DEFAULT NULL::character varying, p_corpo_html text DEFAULT NULL::text, p_immagine_url character varying DEFAULT NULL::character varying, p_immagine_storage_path character varying DEFAULT NULL::character varying, p_immagine_alt character varying DEFAULT NULL::character varying, p_link_url character varying DEFAULT NULL::character varying, p_link_etichetta character varying DEFAULT NULL::character varying, p_data_viaggio_id_fk integer DEFAULT NULL::integer, p_indirizzo_id_fk bigint DEFAULT NULL::bigint, p_social character varying DEFAULT NULL::character varying, p_icona_url character varying DEFAULT NULL::character varying, p_layout_pulsante character varying DEFAULT NULL::character varying, p_colore_titolo character varying DEFAULT NULL::character varying, p_colore_sottotitolo character varying DEFAULT NULL::character varying | integer |  |
+| `fn_web_newsletter_blocco_eredita_traduzioni` | p_blocco_id bigint, p_azienda_id integer | integer | Il riquadro tour eredita le traduzioni del tour, ma solo se il suo testo italiano è ancora quello del tour. |
 | `fn_web_newsletter_clona` | p_invio_id bigint, p_azienda_id integer, p_nuovo_oggetto character varying DEFAULT NULL::character varying, p_come_modello boolean DEFAULT false | bigint |  |
+| `fn_web_newsletter_collegamenti_da_verificare` | p_invio_id bigint, p_azienda_id integer | TABLE(ordine integer, tipo character varying, descrizione text, motivo text) | Blocchi il cui collegamento a un tour non porta più da nessuna parte. Vuoto = si può spedire. |
 | `fn_web_newsletter_congela_indirizzi` | p_invio_id bigint, p_azienda_id integer | integer |  |
+| `fn_web_newsletter_conteggio` | p_azienda_id integer, p_invio_id bigint DEFAULT NULL::bigint | TABLE(destinatari bigint, clienti bigint, iscritti bigint, iscritti_esclusi bigint) |  |
+| `fn_web_newsletter_corpi_list` | p_invio_id bigint, p_azienda_id integer | TABLE(lingua character, oggetto character varying, corpo_html text, destinatari integer) |  |
+| `fn_web_newsletter_corpo_archivia` | p_invio_id bigint, p_azienda_id integer, p_lingua character varying, p_oggetto character varying, p_corpo text, p_destinatari integer | bigint |  |
 | `fn_web_newsletter_crea_bozza` | p_azienda_id integer, p_oggetto character varying, p_is_modello boolean DEFAULT false | bigint |  |
 | `fn_web_newsletter_dati_azienda` | p_azienda_id integer | TABLE(ragione_sociale character varying, partita_iva character varying, indirizzo character varying, email character varying, telefono character varying, sito_web character varying) |  |
 | `fn_web_newsletter_dati_tour` | p_data_viaggio_id integer, p_azienda_id integer | TABLE(titolo character varying, periodo character varying, testo character varying, slug character varying, pubblicato boolean, immagine_url character varying, immagine_storage_path character varying) |  |
 | `fn_web_newsletter_elenco` | p_azienda_id integer, p_modelli boolean DEFAULT false | TABLE(web_newsletter_invii_id bigint, oggetto character varying, stato character varying, data_invio timestamp with time zone, numero_destinatari integer, canale character varying, is_modello boolean, n_blocchi integer, created timestamp with time zone) |  |
+| `fn_web_newsletter_filtri_delete` | p_id bigint, p_azienda_id integer | integer |  |
+| `fn_web_newsletter_filtri_insert` | p_azienda_id integer, p_invio_id bigint, p_criterio character varying, p_param_data date DEFAULT NULL::date, p_param_int integer DEFAULT NULL::integer | bigint |  |
+| `fn_web_newsletter_filtri_list` | p_invio_id bigint, p_azienda_id integer | TABLE(id bigint, criterio character varying, descrizione character varying, param_data date, param_int integer) |  |
 | `fn_web_newsletter_invii_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_invii_destinatari_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_invii_destinatari_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_invii_destinatari |  |
@@ -1712,19 +1726,23 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_web_newsletter_invii_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_invii |  |
 | `fn_web_newsletter_invii_insert` | p_azienda_id integer, p_oggetto character varying, p_corpo_html text, p_stato character varying DEFAULT 'bozza'::character varying, p_data_invio timestamp with time zone DEFAULT NULL::timestamp with time zone, p_numero_destinatari integer DEFAULT NULL::integer, p_canale character varying DEFAULT NULL::character varying | bigint |  |
 | `fn_web_newsletter_invii_list` | p_azienda_id integer | SETOF web_newsletter_invii |  |
-| `fn_web_newsletter_invii_update` | p_id bigint, p_azienda_id integer, p_oggetto character varying, p_corpo_html text, p_stato character varying, p_data_invio timestamp with time zone, p_numero_destinatari integer, p_canale character varying | integer |  |
+| `fn_web_newsletter_invii_update` | p_id bigint, p_azienda_id integer, p_oggetto character varying, p_corpo_html text, p_stato character varying, p_data_invio timestamp with time zone, p_numero_destinatari integer, p_canale character varying | integer | Aggiorna una newsletter. Se l'oggetto cambia, marca obsolete le sue traduzioni prima di scrivere (script 537). |
 | `fn_web_newsletter_iscritti_by_token` | p_token character varying | SETOF web_newsletter_iscritti |  |
 | `fn_web_newsletter_iscritti_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_iscritti_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_iscritti |  |
 | `fn_web_newsletter_iscritti_insert` | p_azienda_id integer, p_email citext, p_nome character varying DEFAULT NULL::character varying, p_cognome character varying DEFAULT NULL::character varying, p_lingua character varying DEFAULT 'IT'::character varying, p_consenso boolean DEFAULT true, p_consenso_data timestamp with time zone DEFAULT NULL::timestamp with time zone, p_consenso_fonte character varying DEFAULT NULL::character varying, p_stato character varying DEFAULT 'attivo'::character varying, p_cliente_fk integer DEFAULT NULL::integer | bigint |  |
 | `fn_web_newsletter_iscritti_list` | p_azienda_id integer | SETOF web_newsletter_iscritti |  |
 | `fn_web_newsletter_iscritti_update` | p_id bigint, p_azienda_id integer, p_email citext, p_nome character varying, p_cognome character varying, p_lingua character varying, p_consenso boolean, p_consenso_data timestamp with time zone, p_consenso_fonte character varying, p_stato character varying, p_cliente_fk integer | integer |  |
+| `fn_web_newsletter_periodi` | p_invio_id bigint, p_azienda_id integer | TABLE(blocco_id bigint, data_inizio date, data_fine date) | Date delle partenze agganciate ai riquadri tour: servono a rigenerare il periodo nella lingua del destinatario. |
+| `fn_web_newsletter_set_oggetto` | p_invio_id bigint, p_azienda_id integer, p_oggetto character varying | integer |  |
 | `fn_web_newsletter_soppressioni_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_newsletter_soppressioni_get` | p_id bigint, p_azienda_id integer | SETOF web_newsletter_soppressioni |  |
 | `fn_web_newsletter_soppressioni_insert` | p_azienda_id integer, p_email citext, p_motivo character varying, p_data timestamp with time zone DEFAULT NULL::timestamp with time zone | bigint |  |
 | `fn_web_newsletter_soppressioni_list` | p_azienda_id integer | SETOF web_newsletter_soppressioni |  |
 | `fn_web_newsletter_soppressioni_update` | p_id bigint, p_azienda_id integer, p_email citext, p_motivo character varying, p_data timestamp with time zone | integer |  |
 | `fn_web_newsletter_tipi_blocco` |  | TABLE(tipo character varying, etichetta character varying, obbligatorio boolean, max_occorrenze integer, ordine_catalogo integer) |  |
+| `fn_web_newsletter_traduzioni` | p_invio_id bigint, p_azienda_id integer, p_lingua character varying DEFAULT NULL::character varying | TABLE(lingua character, entita character varying, entita_id bigint, campo character varying, testo text) | Traduzioni valide (non obsolete) di una newsletter: oggetto e campi dei blocchi. p_lingua NULL = tutte. |
+| `fn_web_newsletter_traduzioni_stato` | p_invio_id bigint, p_azienda_id integer | TABLE(lingua character, traducibili integer, tradotti integer, obsoleti integer, mancanti integer) | Copertura delle traduzioni di una newsletter per lingua: traducibili, tradotti, obsoleti, mancanti. |
 | `fn_web_prezzo_da` | p_viaggio_id integer | integer |  |
 | `fn_web_prezzo_da_data` | p_data_viaggio_id integer | integer |  |
 | `fn_web_recensioni_config` | p_azienda_id integer | jsonb |  |
@@ -1853,7 +1871,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `get_totmezzi_dataviaggio` | p_viaggio_id integer, p_data_viaggio_id integer | integer | Conta i veicoli assegnati ed effettivi per una data viaggio |
 | `get_travel_passengers` | p_data_viaggio_id integer, p_exclude_client_id integer | TABLE(nominativo text, ruolo text) | Restituisce la lista passeggeri per un viaggio escludendo un ID cliente specifico |
 | `get_travel_stats` | p_data_viaggio_id integer | TABLE(total_participants integer, total_crews integer, total_vehicles integer) |  |
-| `get_viaggi_grouped_by_year` | p_azienda_id integer | TABLE(anno integer, viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_inizio date, data_fine date, effettuato_sino character) |  |
+| `get_viaggi_grouped_by_year` | p_azienda_id integer | TABLE(anno integer, viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_inizio date, data_fine date, effettuato_sino character, iscritti integer) |  |
 | `get_viaggio_partecipanti` | p_data_viaggio_id integer | TABLE(gruppo_id integer, pilota_nominativo text, passeggeri_nominativi text) | Restituisce lista partecipanti raggruppati per pilota con formattazione dettagliata |
 | `get_viaggio_partecipanti_summary` | p_data_viaggio_id integer | text |  |
 | `hash_password` | p_password text | character varying | Genera hash bcrypt sicuro per una password in chiaro |
@@ -1862,8 +1880,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `request_password_reset_retool` | p_email character varying, p_ip_address inet DEFAULT NULL::inet, p_user_agent character varying DEFAULT NULL::character varying | void | Procedura principale per Retool con messaggi italiani |
 | `reset_password_with_token` | p_token character varying, p_new_password_plain text | character varying |  |
 | `reset_password_with_token` | p_token character varying, p_new_password_hash character varying | character varying | Esegue reset password con token e invalida tutti i token utente |
-| `set_user_context` | p_user_id uuid, p_azienda_id integer | void |  |
 | `set_user_context` | p_user_id uuid | TABLE(tenant_id text, azienda_id integer, role_code text) | Imposta contesto completo utente: tenant, azienda e ruolo |
+| `set_user_context` | p_user_id uuid, p_azienda_id integer | void |  |
 | `sp_ana_aliquote_iva_create` | p_azienda_fk integer, p_iva_codice character varying, p_iva_descrizione character varying, p_iva_percentuale numeric, p_iva_natura character varying, p_is_default boolean, p_is_active boolean, p_ordinamento smallint, p_created_by character varying, p_updated_by character varying | integer | Crea nuova aliquota IVA con validazione e normalizzazione UPPER CASE. Ritorna iva_id. |
 | `sp_ana_aliquote_iva_delete` | p_iva_id integer | void | Elimina aliquota IVA. Solleva eccezione se in uso da altre tabelle. |
 | `sp_ana_aliquote_iva_set_default` | p_iva_id integer, p_azienda_id integer | void | Imposta un'aliquota come default per azienda. Il trigger rimuove automaticamente il flag dalle altre. |
@@ -1879,9 +1897,9 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `sp_ana_date_viaggi_create` | p_viaggio_id_fk integer, p_data_viaggio_data_inizio date, p_data_viaggio_data_fine date, p_data_viaggio_effettuato_sino character, p_data_viaggio_costo_pilota integer, p_data_viaggio_costo_passeggero integer, p_data_viaggio_costo_passeggero_auto_guida integer, p_data_viaggio_costo_bambino_0_2 integer, p_data_viaggio_costo_bambino_2_6 integer, p_data_viaggio_costo_bambino_6_12 integer, p_data_viaggio_note character varying, p_azienda_id integer, p_created_by character varying | integer |  |
 | `sp_ana_date_viaggi_delete` | p_data_viaggio_id integer | TABLE(deleted boolean, error_message text) | Elimina una partenza previe guardie: rifiuta le partenze effettuate o già iniziate (storico aziendale), quelle con una scheda di contenuti web e quelle con prenotazioni o alloggi. Ritorna (deleted, error_message) invece di sollevare eccezioni, così la UI mostra un avviso e non un errore. |
 | `sp_ana_date_viaggi_update` | p_data_viaggio_id integer, p_data_viaggio_data_inizio date, p_data_viaggio_data_fine date, p_data_viaggio_effettuato_sino character, p_data_viaggio_costo_pilota integer, p_data_viaggio_costo_passeggero integer, p_data_viaggio_costo_passeggero_auto_guida integer, p_data_viaggio_costo_bambino_0_2 integer, p_data_viaggio_costo_bambino_2_6 integer, p_data_viaggio_costo_bambino_6_12 integer, p_data_viaggio_note character varying, p_azienda_id integer, p_updated_by character varying, p_updated timestamp with time zone | void |  |
-| `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying | integer | Crea nuova causale con validazione completa e normalizzazione automatica UPPER CASE. |
 | `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false, p_tipo_documento_sdi character varying DEFAULT NULL::character varying | integer |  |
 | `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false | integer |  |
+| `sp_ana_tipi_causali_create` | p_azienda_fk integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_created_by character varying DEFAULT NULL::character varying, p_updated_by character varying DEFAULT NULL::character varying | integer | Crea nuova causale con validazione completa e normalizzazione automatica UPPER CASE. |
 | `sp_ana_tipi_causali_delete` | p_causale_id integer | void | Elimina causale. Blocca eliminazione se in uso da transazioni. |
 | `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false | void |  |
 | `sp_ana_tipi_causali_update` | p_causale_id integer, p_causale_codice character varying, p_causale_descrizione character varying, p_causale_segno integer, p_causale_is_documento boolean, p_causale_ciclo character varying, p_causale_richiede_scadenza boolean DEFAULT false, p_causale_giorni_scadenza_default integer DEFAULT NULL::integer, p_causale_genera_scadenza_auto boolean DEFAULT false, p_causale_genera_iva boolean DEFAULT false, p_causale_richiede_iva boolean DEFAULT false, p_causale_aliquota_iva_default_fk integer DEFAULT NULL::integer, p_is_active boolean DEFAULT true, p_updated_by character varying DEFAULT NULL::character varying, p_causale_concorre_fatturato boolean DEFAULT false, p_tipo_documento_sdi character varying DEFAULT NULL::character varying | void |  |
@@ -1923,6 +1941,9 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `trg_user_roles_delete_protection` |  | trigger |  |
 | `trg_user_roles_updated_at` |  | trigger |  |
 | `trg_web_audit` |  | trigger |  |
+| `trg_web_newsletter_blocchi_pulizia_trad` |  | trigger |  |
+| `trg_web_newsletter_blocco_eredita` |  | trigger |  |
+| `trg_web_newsletter_invii_pulizia_trad` |  | trigger |  |
 | `update_changetimestamp_column` |  | trigger |  |
 | `update_modified_column` |  | trigger |  |
 | `update_updated_at_column` |  | trigger |  |
@@ -2021,7 +2042,9 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_logo_calculate_hash`
 - `fn_logo_update_access_stats`
 - `fn_logo_validate_mime_type`
+- `fn_partenza_etichetta`
 - `fn_set_azienda_id`
+- `fn_solo_testo`
 - `fn_touch_data_ultima_modifica`
 - `fn_touch_updated_at`
 - `fn_touch_updated_at_menu`
@@ -2065,17 +2088,26 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_web_indirizzi_insert`
 - `fn_web_indirizzi_update`
 - `fn_web_mezzi_occupati_data`
+- `fn_web_nazioni_clienti`
 - `fn_web_newsletter_blocchi_delete`
 - `fn_web_newsletter_blocchi_get`
 - `fn_web_newsletter_blocchi_insert`
 - `fn_web_newsletter_blocchi_reorder`
 - `fn_web_newsletter_blocchi_update`
+- `fn_web_newsletter_blocco_eredita_traduzioni`
 - `fn_web_newsletter_clona`
+- `fn_web_newsletter_collegamenti_da_verificare`
 - `fn_web_newsletter_congela_indirizzi`
+- `fn_web_newsletter_conteggio`
+- `fn_web_newsletter_corpi_list`
+- `fn_web_newsletter_corpo_archivia`
 - `fn_web_newsletter_crea_bozza`
 - `fn_web_newsletter_dati_azienda`
 - `fn_web_newsletter_dati_tour`
 - `fn_web_newsletter_elenco`
+- `fn_web_newsletter_filtri_delete`
+- `fn_web_newsletter_filtri_insert`
+- `fn_web_newsletter_filtri_list`
 - `fn_web_newsletter_invii_delete`
 - `fn_web_newsletter_invii_destinatari_delete`
 - `fn_web_newsletter_invii_destinatari_get`
@@ -2092,12 +2124,16 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_web_newsletter_iscritti_insert`
 - `fn_web_newsletter_iscritti_list`
 - `fn_web_newsletter_iscritti_update`
+- `fn_web_newsletter_periodi`
+- `fn_web_newsletter_set_oggetto`
 - `fn_web_newsletter_soppressioni_delete`
 - `fn_web_newsletter_soppressioni_get`
 - `fn_web_newsletter_soppressioni_insert`
 - `fn_web_newsletter_soppressioni_list`
 - `fn_web_newsletter_soppressioni_update`
 - `fn_web_newsletter_tipi_blocco`
+- `fn_web_newsletter_traduzioni`
+- `fn_web_newsletter_traduzioni_stato`
 - `fn_web_prezzo_da_data`
 - `fn_web_recensioni_config`
 - `fn_web_tipi_viaggio_descrizioni_delete`
@@ -2184,62 +2220,11 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `trg_prevent_client_delete_func`
 - `trg_user_roles_delete_protection`
 - `trg_user_roles_updated_at`
+- `trg_web_newsletter_blocchi_pulizia_trad`
+- `trg_web_newsletter_blocco_eredita`
+- `trg_web_newsletter_invii_pulizia_trad`
 - `update_changetimestamp_column`
 - `update_modified_column`
 - `update_updated_at_column`
 - `validate_fiscal_data`
 <!-- AUTO-GENERATED-END -->
-
-### Colore di titolo e sottotitolo nei blocchi (script `526`)
-
-`web_newsletter_blocchi` ha due colonne nuove, `colore_titolo` e `colore_sottotitolo`, entrambe
-`VARCHAR(7)` e vincolate a `^#[0-9A-Fa-f]{6}$`. **NULL = colore predefinito del modello grafico**,
-cioè l'aspetto che i blocchi avevano prima: nessuna newsletter già composta cambia.
-
-Il vincolo di formato non è pignoleria. Quel valore finisce dentro un attributo `style` di una
-mail: un colore malformato non produce alcun errore, produce testo nero e nessuno capisce perché.
-Per lo stesso motivo il valore viene **ricontrollato anche in fase di rendering**
-(`NewsletterColori.Normalizza`), non solo al salvataggio.
-
-I predefiniti **non sono gli stessi ovunque** — è la trappola di questi due campi:
-
-| Blocco | Titolo | Sottotitolo |
-|---|---|---|
-| testata | `#2171A5` accento | `#333333` testo corrente |
-| riquadro informativo | `#2171A5` accento | `#888888` grigio tenue |
-| riquadro tour | `#2171A5` accento | `#888888` grigio tenue |
-
-`fn_web_newsletter_blocchi_insert` (21 parametri) e `_update` (19) sono state **ricreate previo
-DROP esplicito** della firma precedente: `CREATE OR REPLACE` non sostituisce una function quando
-cambia il numero di parametri e lascerebbe firme sovrapposte (vedi script `524`). Lo script
-termina verificando che ne esista **una sola per nome** e fallisce altrimenti.
-`fn_web_newsletter_clona` copia entrambi i colori.
-
-### Integrità fra newsletter e partenze (script `527`)
-
-Il vincolo `web_newsletter_blocchi.data_viaggio_id_fk → ana_date_viaggi` è **`ON DELETE SET NULL`**:
-il database, da solo, non impedisce niente — azzererebbe l'aggancio in silenzio. Ciò che protegge
-davvero è `sp_ana_date_viaggi_delete`, che rifiuta di cancellare una partenza con una scheda di
-contenuti web; e siccome un blocco può puntare a un tour **solo se quel tour ha una scheda web**
-(il collegamento si costruisce da lì), la protezione c'è — ma per **proprietà transitiva**, non per
-un controllo che sappia delle newsletter. Il buco sta lì: la scheda si può eliminare per prima.
-
-**`fn_web_tour_contenuti_delete`** ora rifiuta (`P0001`) se una newsletter **in bozza** punta a
-quella partenza, elencando quali. Le **già inviate non fermano niente**: titolo, immagine e
-indirizzo sono *copie* dentro il blocco, quindi la mail resta leggibile e la prova documentale
-regge — si perde solo la possibilità di risalire alla partenza.
-
-**`fn_web_newsletter_collegamenti_da_verificare(p_invio_id, p_azienda_id)`** → `ordine, tipo,
-descrizione, motivo`. Vuoto = si può spedire. Guarda in **due** modi:
-
-| Via | Cosa intercetta |
-|---|---|
-| per **aggancio** (`data_viaggio_id_fk`) | scheda del tour sparita, o non pubblicata |
-| per **indirizzo** (slug dentro `link_url`) | blocchi il cui aggancio è stato azzerato dalla cancellazione della partenza — invisibili a qualunque controllo che parta dall'aggancio |
-
-Lo slug si estrae come **ultimo segmento** (`'/tour/([^/?#]+)/?$'`), non come primo segmento dopo
-`/tour/`. La differenza non è teorica: su un indirizzo scritto a mano come
-`/it/tour/fuoristrada/autunno-gallura` la forma larga prendeva `fuoristrada` per uno slug e
-dichiarava "tour inesistente" su un collegamento che non abbiamo composto noi e su cui non possiamo
-pronunciarci. Un controllo che grida al lupo viene ignorato.
-
