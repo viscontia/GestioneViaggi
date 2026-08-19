@@ -1,8 +1,14 @@
 # Piano di Test — Estensione Web SFT
 
 > **USO INTERNO (Adriano + AI).** Documento vivo: si aggiorna man mano che i blocchi vengono testati.
-> **Creato:** 2026-07-09 · **Aggiornato:** 2026-08-08 (§8 Newsletter: esito del **primo giro** e piano del **secondo** — bug dello stato campagna corretto, selettore azienda SuperAdmin, elenco destinatari con telefono, sito web bloccante, logo con conferma, bottone Log e avanzamento invio).
+> **Creato:** 2026-07-09 · **Aggiornato:** 2026-08-18 (due clienti nuovi in **ES** e **FR**: i destinatari dell'azienda 2 passano da 4 a **6** e le cinque lingue diventano collaudabili su posta vera; §44.3 riscritto perché il bottone di traduzione ora si spegne da solo; **§44.5 falliva** — il riquadro Lingue non si aggiornava restando nella newsletter: corretto, e la riga ora lo dice esplicitamente; **§44.5-bis falliva** per una causa diversa e più seria — l'oggetto riscritto non invalidava le sue traduzioni e la newsletter partiva con l'oggetto tradotto vecchio: corretto con `SqlScripts/537`, più il nuovo §44.5-ter che lo verifica sulla mail).
+> **Aggiornamento precedente:** 2026-08-08 (§8 Newsletter: esito del **primo giro** e piano del **secondo** — bug dello stato campagna corretto, selettore azienda SuperAdmin, elenco destinatari con telefono, sito web bloccante, logo con conferma, bottone Log e avanzamento invio).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
+
+> **Per il collaudo newsletter multilingua c'è un runbook operativo:**
+> `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md` — gli stessi controlli di §8-F, §44-47 in
+> forma eseguibile (da dove parti, cosa fai, cosa deve succedere), con lo stato di partenza reale
+> del DB locale. Questo piano resta il riferimento completo; il runbook è la sequenza da seguire.
 
 **Come usare questo piano:** imposta prima i prerequisiti (§0), poi procedi sezione per sezione. Segna l'esito di ogni riga: ☐ da fare · ✅ ok · ❌ da correggere (annota accanto cosa non va). Le sezioni sono indipendenti: puoi testare un blocco alla volta.
 
@@ -85,7 +91,8 @@
 
 ## 8. Blocco 11 — Newsletter *(pagina `/newsletter`, menu "Estensione Web")*
 
-> **Dati di test preparati (2026-08-07).** Seed applicato al DB locale — destinatari attesi:
+> **Dati di test preparati (2026-08-07, ampliati il 2026-08-18).** Seed applicato al DB locale —
+> destinatari attesi, letti da `fn_web_destinatari_newsletter`:
 >
 > | azienda | email | lingua | fonte |
 > |---|---|---|---|
@@ -93,11 +100,23 @@
 > | 2 | mirania008@gmail.com | EN | cliente |
 > | 2 | visconti.adriano+de@gmail.com | DE | iscritto |
 > | 2 | visconti.adriano@gmail.com | EN | **entrambi** (cliente *e* iscritto → prova la dedup) |
+> | 2 | offadventure@gmail.com | **ES** | cliente *(aggiunto il 18/08)* |
+> | 2 | visconti.adriano+fr@gmail.com | **FR** | cliente *(aggiunto il 18/08)* |
 > | 6 (**senza** chiave Claude) | mirania008@gmail.com | EN | cliente |
 > | 6 | visconti.adriano@gmail.com | EN | cliente |
 >
-> `visconti.adriano+de@` è plus-addressing Gmail: consegna nella stessa inbox ma vale come
-> iscritto tedesco. L'azienda 6 non ha chiave Claude → è lo scenario di fallback IT.
+> **Azienda 2 = 6 destinatari** (era 4 fino al 17/08). Tutte e cinque le lingue hanno ora un
+> destinatario vero: prima di questi due clienti, ES e FR si potevano verificare solo in anteprima.
+>
+> **Tutti e sei gli indirizzi sono leggibili** (verificato il 18/08): `offadventure@gmail.com` è una
+> casella reale di Adriano; `visconti.adriano+de@` e `+fr@` sono plus-addressing Gmail, che consegna
+> nella stessa inbox ma li tratta come indirizzi distinti. L'azienda 6 non ha chiave Claude → è lo
+> scenario di fallback IT.
+>
+> 💡 **Per aggiungere una lingua non serve una casella nuova:** basta un `+xx` sul proprio indirizzo.
+> Il cliente FR era nato come `offadventure@gmail.**it**` — dominio inventato, con un server di posta
+> vero ma estraneo (`mx1.gmail.it`), quindi una mail spedita là non sarebbe finita in nessuna inbox
+> leggibile. Corretto in `visconti.adriano+fr@gmail.com` il 18/08 (`ana_clienti.cliente_id = 4349`).
 >
 > ⚠️ **Spegnere la VPN prima di ogni invio**: il server di posta blocca i range VPN/datacenter
 > sulle porte 465/587 e `Connect` va in timeout (sembra un bug SMTP, è routing).
@@ -157,7 +176,9 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 
 ### C. Destinatari, dedup ed elenco
 
-- ✅ **C1** — Conteggio azienda 2 = **4**, non 5: la dedup regge (`entrambi` contato una volta).
+- ☐ **C1** — Conteggio azienda 2 = **6**, non 7: la dedup regge (`entrambi` contato una volta).
+  *(Verificato ✅ l'8/08 quando erano 4 su 5. Da rifare con i due clienti ES/FR: cambia il numero,
+  non il comportamento.)*
 - ✅ **C2** — Conteggio azienda 6 = **2**.
 - ✅ **C5** — Iscritto `disiscritto` o `consenso=false` → escluso (4 → 3, ripristino a 4).
 - ✅ **C6 (già C5-bis)** — La disiscrizione **non basta** se la persona è anche cliente con consenso:
@@ -173,7 +194,7 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ☐ **C8** — Si apre un elenco **in sola lettura** con le colonne, da sinistra:
   **Cognome, Nome, Mail, Telefono, Lingua**.
 - ☐ **C9** — Le righe sono **le stesse** del conteggio: stesso numero, nessun duplicato.
-  Su azienda 2 devono essere 4, con `visconti.adriano@gmail.com` **una volta sola**.
+  Su azienda 2 devono essere 6, con `visconti.adriano@gmail.com` **una volta sola**.
 - ☐ **C10** — Il **telefono** compare per chi è cliente e **è vuoto (—) per `visconti.adriano+de@`**,
   che è solo un iscritto: è il comportamento voluto, non un dato mancante.
 - ☐ **C11** — La **lingua** in elenco coincide con quella con cui la mail arriverà davvero
@@ -196,8 +217,11 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 
 ### E. Invio di prova *(mail vera — VPN spenta)*
 
-- ✅ **E1–E5** — Prova inviata, oggetto con `[TEST]`, sempre in italiano, non registrata nello
-  Storico, indipendente da consensi e soppressioni.
+- ✅ **E1–E5** — Prova inviata, non registrata nello Storico, indipendente da consensi e soppressioni.
+  ⚠️ **Due dettagli di queste righe sono superati** (verificati l'8/08 sul vecchio percorso
+  `SendTestAsync`, che la pagina non usa più): oggi la prova passa da `SendProvaBlocchiAsync`, quindi
+  **niente prefisso `[TEST]`** — è il rendering reale — e **non è più sempre italiana**: la lingua si
+  sceglie dalla tendina accanto all'indirizzo (§44.4). Ciò che resta valido è il resto della riga.
 - ☐ **E6** — Con SMTP mal configurato → snackbar rossa "Invio di prova fallito (verifica config email)."
 
 ### F. Campagna multilingua — azienda 2 (con chiave Claude) *(mail vere)*
@@ -205,18 +229,35 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ✅ **F3** — Nella inbox arrivano **2** mail (la tua `EN` e quella `+de` in `DE`), non 3: dedup ok.
 - ✅ **F4** — Lingue corrette: Antonio in `IT`, Anna in `EN`, `+de` in `DE`, oggetto e corpo tradotti.
 - ✅ **F5** — L'HTML del corpo sopravvive alla traduzione.
-- ☐ **F1** — *Invia a tutti* → conferma "Inviare la newsletter a **4** destinatari?"; *Annulla* non manda nulla.
-- ☐ **F2** — **La verifica chiave del secondo giro:** esito **snackbar VERDE "Inviate 4/4"**, senza
+- ☐ **F1** — *Invia a tutti* → conferma "Inviare la newsletter a **6** destinatari?"; *Annulla* non manda nulla.
+- ☐ **F2** — **La verifica chiave del secondo giro:** esito **snackbar VERDE "Inviate 6/6"**, senza
   errori. Se ricompare "Un valore inserito per web_newsletter_invii non rispetta le regole di
   validità", la correzione dello stato è stata persa.
-- ☐ **F6** — Il consumo Claude finisce nel registro con causale "Newsletter (EN)" / "Newsletter (DE)".
+- ☐ **F6** — **(corretto il 2026-08-19)** Il consumo Claude si registra **quando si traduce**, non
+  quando si spedisce, e la causale è **il campo tradotto**: «Oggetto della newsletter (EN)»,
+  «Blocco 2 — Titolo (DE)», «Blocco 4 — Testo (ES)»… *(La causale «Newsletter (EN)» apparteneva al
+  motore testuale `BuildBodiesAsync`, rimosso: traduceva al momento dell'invio. Ora al momento
+  dell'invio non c'è più consumo Claude, perché i testi sono già tradotti.)*
 - ☐ **F7** — Tab Storico: riga con stato **`inviata`** (chip **verde**), **Data invio valorizzata**,
-  **Destinatari = 4**, canale `smtp`. Erano le due colonne vuote del primo giro.
+  **Destinatari = 6**, canale `smtp`. Erano le due colonne vuote del primo giro.
 - ☐ **F8** — **Avanzamento (nuovo)**: durante l'invio compare prima "Preparazione dell'invio
-  (traduzione dei testi)…" e poi **"Invio in corso: N di 4"** con la barra che avanza. A fine invio
+  (traduzione dei testi)…" e poi **"Invio in corso: N di 6"** con la barra che avanza. A fine invio
   sparisce tutto.
+- ☐ **F9** — **(nuovo, cinque lingue)** Nella tua inbox arrivano **3** mail — `EN`, `DE` (`+de@`) e
+  **`FR`** (`+fr@`) — più una **`ES`** su `offadventure@gmail.com` e la `IT` ad Antonio. In tutto
+  **5 mail leggibili su 6 destinatari**: `visconti.adriano@` è contato una volta sola. Confronta gli
+  oggetti: cinque lingue diverse, non cinque volte l'italiano.
 
 ### G. Fallback senza chiave Claude — azienda 6 *(mail vere)*
+
+> ⚠️ **Sezione da riscrivere (2026-08-19).** Descriveva il motore **testuale**
+> (`SendCampaignAsync` + `BuildBodiesAsync`), che traduceva al momento dell'invio e ripiegava
+> sull'italiano: era senza chiamanti da quando la newsletter è fatta di blocchi, ed è stato
+> **rimosso**. Il fallback per un'azienda senza chiave Claude esiste ancora, ma passa da un'altra
+> strada: i testi semplicemente non vengono mai tradotti, la lingua resta a `0/N` e — per scelta
+> esplicita — **l'invio parte lo stesso, tutto in italiano** (§44.7-quater). Quindi:
+> **G1 resta valido** (conteggio 2), **G2-G4 vanno riscritti**: non esiste più lo snackbar arancione
+> «alcune lingue inviate in IT», e nel log la lingua registrata è quella del destinatario.
 
 > **Prerequisito:** salvare la **password SMTP** dell'azienda 6 (Gmail → *app password*).
 > Senza, G2–G4 falliscono per configurazione, non per codice.
@@ -274,7 +315,7 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
   disattivati anche i **due iscritti**, che non hanno UI. Via SQL:
   `UPDATE web_newsletter_iscritti SET stato='disiscritto' WHERE azienda_id=2;`
   *(Nel primo giro erano loro i 2 destinatari che restavano.)*
-- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → "Inviate 0/4, 4 errori", log con
+- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → "Inviate 0/6, 6 errori", log con
   tutti `errore`.
   ⚠️ **Ora verificabile davvero** (prima era mascherato dal bug dello stato): controlla se la riga
   di Storico risulta comunque **`inviata`**. Lo stato è messo a fine ciclo **senza guardare gli
@@ -985,19 +1026,45 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 |---|---|---|
 | 44.1 | Apri una newsletter in bozza | Riquadro **Lingue** con EN/DE/ES/FR e il conteggio `0/N` |
 | 44.2 | **Traduci quello che manca** | Avanzamento testo per testo; a fine i quattro contatori vanno a `N/N` |
-| 44.3 | Rilancia subito la traduzione | Dice «già a posto»: non ritraduce, così non butta via la revisione |
-| 44.4 | **Invio di prova** a un indirizzo con lingua diversa da IT | La mail arriva con **oggetto e testi** in quella lingua |
-| 44.5 | Modifica il **titolo** di un blocco già tradotto → guarda il riquadro Lingue | Compare l'avviso «testi cambiati dopo la traduzione»; quel campo torna in **italiano** nella mail, gli altri restano tradotti |
+| 44.3 | A traduzione completa, guarda il bottone **Traduci quello che manca** | È **spento**: non si può ritradurre ciò che è già a posto. Passandoci sopra, il perché — «Tutte le lingue sono a posto: non c'è niente da tradurre» |
+| 44.3-bis | Riaccendilo con una modifica (fai prima 44.5), poi clicca | Lo snackbar conta i saltati: **«Tradotti 1 testi, N già a posto»**. È la prova che ritraduce solo il campo toccato e non butta via la revisione degli altri |
+| 44.4 | **Invio di prova** con la tendina **Lingua** su `DE` | Arriva il rendering **reale** dei blocchi (nessun `[TEST]`) **in tedesco, oggetto compreso**; i testi non tradotti restano in italiano, campo per campo. Lo snackbar conferma «Prova inviata in DE» |
+| 44.4-bis | Invio di prova con **Lingua = IT** | Tutto in italiano: è il default, chi non usa le traduzioni non deve accorgersi della tendina |
+| 44.4-ter | Invio di prova in una lingua **non tradotta** (es. `FR 0/18`) | Parte lo stesso: tutto in italiano **tranne** disiscrizione ed etichette dei pulsanti, che sono in francese — come in anteprima (46.5) |
+| 44.5 | Modifica il **titolo** di un blocco già tradotto → guarda il riquadro Lingue **restando nella newsletter** | Compare l'avviso «testi cambiati dopo la traduzione» **subito, senza uscire e rientrare**; il contatore cala (`6/6` → `5/6`); quel campo torna in **italiano** nella mail, gli altri restano tradotti |
+| 44.5-bis | Riscrivi l'**oggetto** e premi *Salva oggetto* | Stessa cosa: l'oggetto è un testo tradotto come gli altri, il riquadro Lingue deve accorgersene da solo |
+| 44.5-ter | Con l'oggetto cambiato e **non** ritradotto, fai un **invio di prova in `DE`** (o guarda l'Anteprima in DE) | L'oggetto è **in italiano** (fallback per campo), **non** la vecchia traduzione tedesca. È il danno vero che `537` chiude: prima partiva l'oggetto tradotto della versione precedente, e solo per gli stranieri. *(Al collaudo del 18/08 questo passo non era eseguibile: la prova era sempre italiana e non distingueva le due cose. Da qui è nata la tendina Lingua.)* |
 | 44.6 | Ritraduci | L'avviso sparisce, il contatore torna pieno |
-| 44.7 | Newsletter **senza** traduzioni → **Invia a tutti** | Avviso non bloccante: «Traduzioni incomplete (EN 0/18, …)»; l'invio **procede** |
-| 44.8 | Registro dei destinatari dopo l'invio | La colonna lingua riporta la lingua di ciascun destinatario, non più «IT» per tutti |
+| 44.7 | Newsletter con una lingua tradotta **a metà** (es. `DE 5/6`) → **Invia a tutti** | **(cambiato il 2026-08-19: ora BLOCCA)** Errore rosso «Traduzioni incomplete (DE 5/6): completa le traduzioni prima di inviare, oppure togli dai destinatari le lingue non pronte», e **non parte nulla**. Prima era un avviso di quattro secondi e l'invio procedeva |
+| 44.7-quater | Newsletter con una lingua a **zero** (`EN 0/18`: mai tradotta, o azienda senza chiave Claude) → *Invia a tutti* | **Parte.** Quelle mail escono **tutte in italiano**, che è coerente e si capisce: il danno è il miscuglio, non l'italiano. Senza questa distinzione un'azienda senza chiave Claude non potrebbe spedire affatto |
+| 44.7-bis | Newsletter con **FR incompleto** ma **nessun destinatario francese** → *Invia a tutti* | **Parte**: il blocco guarda solo le lingue che qualcuno riceverà davvero |
+| 44.7-ter | Con l'invio bloccato, controlla il tab **Storico** | **Nessuna riga** e nessuna riga appesa in `in_invio`: la guardia sta prima del congelamento indirizzi e della creazione della campagna |
+| 44.8 | Registro dei destinatari dopo l'invio | La colonna lingua riporta la lingua di ciascun destinatario, non più «IT» per tutti. Sull'azienda 2 devono comparire **tutte e cinque**: IT, EN, DE, ES, FR |
 | 44.9 | Riquadro **tour**: guarda i campi tradotti | Il **periodo** («Dal 2 al 7 maggio 2026») **non** compare fra i traducibili: è generato |
-| 44.10 | Newsletter **già inviata** | Il riquadro Lingue è in sola lettura: non si ritraduce ciò che è partito |
+| 44.10 | Newsletter **già inviata** | Il riquadro Lingue è in sola lettura: non si ritraduce ciò che è partito. Il tooltip sul bottone spento lo dice: «La newsletter è già partita…» |
 
 > Verificato sul database in transazioni annullate: copertura 18 campi traducibili; tradotti
 > oggetto + due campi in DE → `DE 3/18`, le altre lingue a zero; modificato il titolo tradotto →
 > la traduzione diventa obsoleta e **sparisce dalla lettura di rendering**, quindi si ricade
 > sull'italiano.
+>
+> **Difetto trovato al collaudo del 2026-08-18 (corretto).** 44.5 falliva: modificando un blocco non
+> compariva alcun avviso e il bottone non si riaccendeva. Il database era a posto (`obsoleti = 1` in
+> tutte e quattro le lingue): era il **riquadro Lingue a non rileggere**. La sua guardia contro le
+> query a ogni ridisegno (`InvioId == _caricatoPer`) era stata presa dal pannello dei destinatari,
+> dove è corretta perché i destinatari non cambiano mentre componi — le traduzioni sì. Ora il
+> pannello riceve un contatore `Revisione` che sale da `CaricaBlocchiAsync()` (punto unico di
+> passaggio di aggiunte, modifiche, eliminazioni e riordini) e da `SalvaOggetto`.
+> **Per questo 44.5 dice «restando nella newsletter»:** uscire e rientrare maschererebbe il difetto.
+>
+> **Secondo difetto, trovato con 44.5-bis lo stesso giorno (corretto, `SqlScripts/537`).** Riscrivendo
+> l'**oggetto** non succedeva niente — e stavolta il database aveva torto davvero: `obsoleti = 0`.
+> `fn_web_newsletter_invii_update` faceva una UPDATE secca, mentre i campi dei blocchi avevano già il
+> loro trattamento da `536`. L'oggetto era rimasto fuori perché vive su un'altra tabella.
+> **Il danno non era l'avviso mancante:** le traduzioni restavano *valide* pur riferendosi al testo
+> vecchio, quindi la newsletter partiva con **l'oggetto tradotto della versione precedente** ai
+> destinatari stranieri e quello nuovo agli italiani. In silenzio. Osservato sulla 32: italiano
+> «(notte piena)» delle 20:38, traduzioni ferme a «(night)/(Nacht)/(noche)/(nuit)» delle 20:12.
 
 ---
 
@@ -1005,7 +1072,7 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| 45.1 | Traduci una newsletter, poi **Invia a tutti** con destinatari di lingue diverse | In `web_newsletter_invii_corpi` c'è **una riga per lingua usata**, con oggetto, corpo e numero di destinatari |
+| 45.1 | Traduci una newsletter, poi **Invia a tutti** con destinatari di lingue diverse | In `web_newsletter_invii_corpi` c'è **una riga per lingua usata**: sull'azienda 2 devono essere **5** (IT, EN, DE, ES, FR), con oggetto, corpo e numero di destinatari — `EN` con 2, le altre con 1 |
 | 45.2 | Confronta il corpo archiviato in DE con la mail ricevuta da un destinatario tedesco | Stesso testo. Cambia solo il collegamento di disiscrizione, che nell'archivio è generico |
 | 45.3 | Invio a destinatari **tutti italiani** | Una riga sola, `IT` |
 | 45.4 | **Clona** una newsletter con traduzioni | La copia nasce **già tradotta**: il riquadro Lingue mostra gli stessi contatori |
