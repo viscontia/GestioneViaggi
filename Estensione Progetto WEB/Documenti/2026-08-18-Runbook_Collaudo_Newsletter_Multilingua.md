@@ -213,7 +213,6 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 |---|---|---|
 | P1 | Una **credenziale utente dell'azienda 6** (o di un'altra azienda con dati propri) | Serve per il gruppo M: i silos si provano entrando come utente, non dal selettore SuperAdmin |
 | P2 | Un'azienda con la newsletter **disattivata** | Anagrafica Aziende → tab **Funzioni Web** → togli `newsletter` a un'azienda che non sia la 2 |
-| P3 | Un cliente **senza email** e con consenso | Anagrafica clienti: creane uno o svuota l'email a uno esistente (annota quale, va ripristinato) |
 | P4 | Un'azienda **senza logo** | L'azienda 6 va bene se non ne ha uno; altrimenti togli il logo temporaneamente |
 | P5 | L'azienda **6** con i suoi 2 destinatari | È il termine di paragone per i silos: ha clienti ma nessun dato web |
 
@@ -246,14 +245,19 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 | J5 | Oggetto con **spazi in testa e in coda** | Salva e guarda cosa arriva | L'oggetto viene ripulito prima dell'invio |
 | J6 | Invio in corso | **Doppio clic** sui pulsanti | Restano disabilitati: niente doppio invio |
 
-## K — Destinatari: i casi che mancavano *(§8-C3, C4, D7)*
+## K — Destinatari: i casi che mancavano *(§8-C4, D7)*
+
+> **C3 (cliente senza email) è già verificata a DB il 19/08** e non richiede un passo qui: la form
+> impone l'email, ma 296 clienti su 742 non ce l'hanno per via dell'import da Oracle. Con il consenso
+> acceso su uno di loro i destinatari restano 6, e l'azienda 6 — 288 clienti senza email — ne
+> restituisce 2. La regola vive in `fn_web_destinatari_newsletter`, cioè nello stesso punto da cui
+> l'interfaccia prende il numero: provarla due volte non aggiunge niente.
 
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| K1 | Cliente **P3, senza email**, con consenso | Apri `/newsletter` e guarda il conteggio | **Non compare**: senza indirizzo non è un destinatario. Né nel numero né nell'elenco |
-| K2 | Un cliente con consenso | Togli il consenso in anagrafica → riapri `/newsletter` | Il conteggio **cala di uno**. Rimettilo → risale. *(Gli iscritti non dipendono dal consenso cliente)* |
-| K3 | Conteggio a 6 | Sopprimi uno dei sei indirizzi, poi apri l'**elenco destinatari** | Il soppresso **non c'è più nell'elenco**, non solo nel numero: conteggio ed elenco devono raccontare la stessa cosa |
-| K4 | Stato di K3 | Togli la soppressione | Torna tutto come prima |
+| K1 | Un cliente con consenso | Togli il consenso in anagrafica → riapri `/newsletter` | Il conteggio **cala di uno**. Rimettilo → risale. *(Gli iscritti non dipendono dal consenso cliente)* |
+| K2 | Conteggio a 6 | Sopprimi uno dei sei indirizzi, poi apri l'**elenco destinatari** | Il soppresso **non c'è più nell'elenco**, non solo nel numero: conteggio ed elenco devono raccontare la stessa cosa |
+| K3 | Stato di K3 | Togli la soppressione | Torna tutto come prima |
 
 ## L — Template, logo e prova fallita *(§8-H1, H2, E6)*
 

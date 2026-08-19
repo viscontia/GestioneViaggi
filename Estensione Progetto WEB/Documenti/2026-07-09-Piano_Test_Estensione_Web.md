@@ -205,7 +205,13 @@ il gruppo M della parte seconda del runbook.
 - ✅ **C6 (già C5-bis)** — La disiscrizione **non basta** se la persona è anche cliente con consenso:
   resta destinataria e `fonte` scivola da `entrambi` a `cliente`. Non è un difetto oggi (il flusso
   reale passa dalle soppressioni), ma è un requisito per la Fase 3 → Checklist Go-Live §2.3.
-- ☐ **C3** — Cliente senza email → mai nel conteggio.
+- ✅ **C3** — Cliente senza email → mai nel conteggio. **Verificato a DB il 2026-08-19**, in
+  transazione annullata: acceso il consenso su un cliente dell'azienda 2 privo di email
+  (`cliente_id 3327`), i destinatari restano **6** e quel cliente non compare. Prova ancora più
+  netta: l'azienda 6 ha **288 clienti senza email** e `fn_web_destinatari_newsletter(6)` ne
+  restituisce **2**. ⚠️ Non serve prepararlo da interfaccia — la form **impone** l'email, ma i dati
+  ereditati dall'import Oracle ne hanno 296 su 742 senza: il caso e' reale e vive nei dati, non
+  nelle form.
 - ☐ **C4** — Togli il consenso dall'anagrafica → riapri `/newsletter` → il conteggio cala; rimettilo
   → risale. *(Ricorda: gli **iscritti** non dipendono dal consenso cliente — vedi C6.)*
 
