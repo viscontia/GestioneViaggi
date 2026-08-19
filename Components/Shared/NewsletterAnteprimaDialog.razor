@@ -38,13 +38,19 @@
                         @l@Copertura(l)
                     </MudChip>
                 }
-                @if (_lingua != "IT")
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
-                        I testi non tradotti restano in italiano.
-                    </MudText>
-                }
             </div>
+
+            @* Prima compariva per QUALSIASI lingua diversa dall'italiano, anche a copertura piena,
+               dove non voleva dire niente: una didascalia sempre presente e' rumore, e si smette di
+               leggerla proprio quando avrebbe qualcosa da dire. Ora parla solo se manca davvero
+               qualcosa, e dice quanto. *@
+            @if (Mancanti() is int n && n > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                    @n test@(n == 1 ? "o" : "i") non ancora tradott@(n == 1 ? "o" : "i") in @_lingua:
+                    @(n == 1 ? "resta" : "restano") in italiano dentro una mail per il resto in @_lingua.
+                </MudAlert>
+            }
         }
 
         <div style="position:relative;border:1px solid var(--mud-palette-lines-default);border-radius:4px;overflow:hidden;background:#f4f4f4;">
@@ -177,6 +183,18 @@
             _pronta = true;
         }
         finally { _cambiando = false; }
+    }
+
+    /// <summary>
+    /// Quanti testi mancano nella lingua che si sta guardando: 0 se è a posto o se è l'italiano.
+    /// Mancanti e obsoleti si contano insieme perché al destinatario fanno la stessa cosa —
+    /// quel campo gli arriva in italiano.
+    /// </summary>
+    private int Mancanti()
+    {
+        if (_lingua == "IT") return 0;
+        var s = _stato.FirstOrDefault(x => x.Lingua == _lingua);
+        return s is null || s.Traducibili == 0 ? 0 : s.Traducibili - s.Tradotti;
     }
 
     /// <summary>Copertura della lingua, per non far credere tradotto ciò che non lo è.</summary>
