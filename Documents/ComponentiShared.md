@@ -263,6 +263,26 @@ Componente per la selezione di valute (`Components/Shared/ValutaSelect.razor`).
                   Clearable="true" />
     ```
 
+### TitoloPersonaSelect
+Tendina dei titoli di cortesia (`Components/Shared/TitoloPersonaSelect.razor`), letta da
+`ana_titolo_persone` (tabella GLOBALE) via `AnaTitoloPersoneService`.
+
+**Particolarità:** oltre al codice (`@bind-Value`, la FK `cliente_titolo_fk`) emette anche la riga
+scelta con `SelectedChanged`. Serve perché **il titolo porta il sesso**: chi lo usa deve poterlo
+ricavare senza rileggere il database. È così che `ClienteDialog` imposta `cliente_sesso`, che non è
+più un campo digitabile.
+
+Espone `FocusAsync()` perché in `ClienteDialog` è il **primo campo** della form e la regola UI del
+progetto vuole il fuoco lì all'apertura (`overview.md` §3.3.1).
+
+```razor
+<TitoloPersonaSelect @ref="_titoloField" @bind-Value="Entity.TitoloFk"
+                     SelectedChanged="OnTitoloScelto" Label="Titolo" Required="true" />
+```
+
+Validazione: la tendina non espone `.Error`, quindi si valida sul valore
+(`_validationRequested && Entity.TitoloFk == 0`), come si fa già per i `ComuneSelect`.
+
 ### RuoloSelect
 Componente per la selezione del ruolo utente (`Components/Shared/RuoloSelect.razor`).
 *   **Funzionalità**:
@@ -415,6 +435,7 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 | **TipoMezzo** | `TipoMezzoSelect.razor` | `ana_tipi_mezzo` | Descrizione | Classificazione mezzi (Auto, Moto, Furgone). |
 | **TipoSede** | `TipoSedeSelect.razor` | `ana_tipi_sede` | Descrizione | Classificazione sedi (Legale, Operativa, Magazzino). |
 | **UrgenzaSelect** | `UrgenzaSelect.razor` | Valori statici | - | Selezione urgenza scadenze (SCADUTO/URGENTE/IN_SCADENZA/NORMALE). Utilizzato nei filtri stampe. |
+| **TitoloPersonaSelect** | `TitoloPersonaSelect.razor` | `ana_titolo_persone` | Descrizione | Titolo di cortesia del cliente. Emette anche la riga scelta (`SelectedChanged`) perché il titolo determina `cliente_sesso`. |
 | **ValutaSelect** | `ValutaSelect.razor` | `ana_valute` | Codice ISO + Descrizione | Selezione valuta per transazioni e preferenze utente. Convertito a MudAutocomplete per supportare asterisco + icona ricerca. |
 | **ViaggioSelect** | `ViaggioSelect.razor` | `ana_viaggi` | Descrizione Breve | Selezione viaggio con ricerca su descrizione e nazione. Supporta parametro `AziendaId` e `CustomItems`. |
 | **DataViaggioBilancioSelect** | `DataViaggioBilancioSelect.razor` | `ana_date_viaggi` | Data Inizio DESC | **Specializzato per Stampe**: Selezione data viaggio con indicatore ($) presenza movimenti. Avvisa se la data non ha movimenti. |

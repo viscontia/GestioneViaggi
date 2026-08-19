@@ -74,22 +74,18 @@
                                 }
 
                                 <MudItem xs="12" sm="4">
-                                    <MudSelect @ref="_titoloField" @bind-Value="Entity.Titolo" For="@(() => Entity.Titolo)" Label="Titolo"
-                                        Variant="Variant.Outlined" Required="true" RequiredError="Obbligatorio">
-                                        <MudSelectItem Value="@("Sig.")">Sig.</MudSelectItem>
-                                        <MudSelectItem Value="@("Sig.ra")">Sig.ra</MudSelectItem>
-                                        <MudSelectItem Value="@("Dott.")">Dott.</MudSelectItem>
-                                        <MudSelectItem Value="@("Dott.ssa")">Dott.ssa</MudSelectItem>
-                                        <MudSelectItem Value="@("Ing.")">Ing.</MudSelectItem>
-                                        <MudSelectItem Value="@("Avv.")">Avv.</MudSelectItem>
-                                        <MudSelectItem Value="@("Prof.")">Prof.</MudSelectItem>
-                                    </MudSelect>
+                                    @* Titoli letti da ana_titolo_persone: la vecchia tendina cablata scriveva
+                                       valori che il normalizzatore poi rendeva irriconoscibili. *@
+                                    <TitoloPersonaSelect @ref="_titoloField" @bind-Value="Entity.TitoloFk"
+                                        SelectedChanged="OnTitoloScelto" Label="Titolo" Required="true"
+                                        RequiredError="Obbligatorio" />
                                 </MudItem>
                                 <MudItem xs="12" sm="8">
-                                    <MudRadioGroup @bind-Value="Entity.Sesso" Required="true" Class="mt-3">
-                                        <MudRadio Value="'M'" Color="Color.Primary">Maschio</MudRadio>
-                                        <MudRadio Value="'F'" Color="Color.Secondary">Femmina</MudRadio>
-                                    </MudRadioGroup>
+                                    @* Il sesso non si digita piu': lo porta il titolo. Un campo libero
+                                       accanto a un titolo di genere e' solo un modo per contraddirlo. *@
+                                    <MudTextField T="string" Value="@SessoDescrizione" Label="Sesso"
+                                        Variant="Variant.Outlined" ReadOnly="true"
+                                        HelperText="Impostato dal titolo: per cambiarlo scegli un altro titolo." />
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">

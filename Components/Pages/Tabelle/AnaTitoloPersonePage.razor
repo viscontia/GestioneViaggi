@@ -1,0 +1,175 @@
+@page "/tabelle/titoli-persone"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using GestioneViaggi.Components.Shared
+@using MudBlazor
+@inject AnaTitoloPersoneService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@* Gestione dei titoli di cortesia (ana_titolo_persone). Tabella GLOBALE: vale per tutte le aziende.
+   Il sesso non e' un attributo decorativo: da qui viene impostato cliente_sesso in anagrafica. *@
+
+@if (!string.IsNullOrEmpty(_errore))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errore</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="AnaTitoloPersone"
+                        Items="@_items"
+                        Title="Gestione Titoli Persone"
+                        SearchFunction="@Cerca"
+                        @bind-SelectedItem="_selezionato">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@ApriNuovo">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" HeaderStyle="min-width: 200px;" CellStyle="min-width: 200px;" />
+
+            <TemplateColumn Title="Sesso">
+                <CellTemplate>
+                    <MudText Typo="Typo.body2">@(context.Item.Sesso == 'F' ? "F — Femminile" : "M — Maschile")</MudText>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <EnterpriseActionsColumn T="AnaTitoloPersone"
+                                     OnEdit="@ApriModifica"
+                                     OnDelete="@Elimina" />
+        </Columns>
+
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<AnaTitoloPersone> _items = new();
+    private AnaTitoloPersone? _selezionato;
+    private string _errore = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ANA_TITOLO_PERSONE");
+        await CaricaAsync();
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task CaricaAsync()
+    {
+        try
+        {
+            _errore = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errore = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Cerca(AnaTitoloPersone item, string testo)
+        => string.IsNullOrWhiteSpace(testo)
+           || item.Descrizione.Contains(testo, StringComparison.OrdinalIgnoreCase);
+
+    private static DialogOptions Opzioni => new()
+    {
+        BackdropClick = false,
+        CloseButton = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    private async Task ApriNuovo()
+    {
+        var parametri = new DialogParameters<AnaTitoloPersoneEditDialog>
+        {
+            { x => x.Entity, new AnaTitoloPersone() },
+            { x => x.IsEditMode, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<AnaTitoloPersoneEditDialog>("Nuovo Titolo", parametri, Opzioni);
+        var esito = await dialog.Result;
+
+        // Il salvataggio avviene nel dialog: qui arriva solo cio' che e' gia' a DB.
+        if (!esito!.Canceled && esito.Data is AnaTitoloPersone)
+        {
+            // Ricarico invece di inserire in lista: l'ordine e' quello di
+            // fn_ana_titolo_persone_list (SIG. e SIG.RA in testa), non alfabetico.
+            await CaricaAsync();
+            Snackbar.Add("Titolo creato.", Severity.Success);
+        }
+    }
+
+    private async Task ApriModifica(AnaTitoloPersone item)
+    {
+        var parametri = new DialogParameters<AnaTitoloPersoneEditDialog>
+        {
+            { x => x.Entity, item.Clone<AnaTitoloPersone>() },
+            { x => x.IsEditMode, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<AnaTitoloPersoneEditDialog>("Modifica Titolo", parametri, Opzioni);
+        var esito = await dialog.Result;
+
+        if (!esito!.Canceled && esito.Data is AnaTitoloPersone)
+        {
+            await CaricaAsync();
+            Snackbar.Add("Titolo aggiornato.", Severity.Success);
+        }
+    }
+
+    private async Task Elimina(AnaTitoloPersone item)
+    {
+        var inUso = await Service.ContaClientiAsync(item.Id);
+        if (inUso > 0)
+        {
+            Snackbar.Add($"«{item.Descrizione}» è usato da {inUso} client{(inUso == 1 ? "e" : "i")}: non si può eliminare.",
+                         Severity.Warning);
+            return;
+        }
+
+        var parametri = new DialogParameters
+        {
+            { "Title", "Attenzione" },
+            { "ContentText", $"Vuoi veramente cancellare questo titolo? ({item.Descrizione})" }
+        };
+
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Delete", parametri,
+            new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.ExtraSmall });
+        var esito = await dialog.Result;
+        if (esito!.Canceled) return;
+
+        try
+        {
+            if (await Service.DeleteAsync(item.Id))
+            {
+                _items.Remove(item);
+                Snackbar.Add("Titolo eliminato.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Titolo non trovato.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Il DB rifiuta se ci sono clienti che portano questo titolo: il messaggio lo dice.
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

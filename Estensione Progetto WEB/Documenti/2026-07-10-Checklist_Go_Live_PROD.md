@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `537`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `540`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–537)
+### Elenco ordinato (467–540)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -198,9 +198,14 @@ ls SqlScripts/*.sql \
 | 536 | Obsolescenza_Prima_Della_Update | In `fn_web_newsletter_blocchi_update` l'obsolescenza delle traduzioni passa **prima** della `UPDATE`: dopo, marcava obsolete proprio le traduzioni che il trigger di ereditarietà aveva appena scritto. Include il ripristino dei blocchi già salvati con l'ordine sbagliato |
 | 537 | Obsolescenza_Oggetto_Newsletter | Stessa regola del `536`, applicata all'**oggetto** della newsletter: `fn_web_newsletter_invii_update` marca obsolete le traduzioni dell'oggetto **prima** di riscriverlo. Senza, l'oggetto cambiato lasciava valide le traduzioni del testo precedente e i destinatari stranieri ricevevano l'oggetto **vecchio** tradotto mentre gli italiani ricevevano quello nuovo, in silenzio. `CREATE OR REPLACE` a firma invariata, nessun dato toccato: idempotente |
 
+| 538 | Create_AnaTitoloPersone | **Re-model anagrafica clienti.** Nuova lookup GLOBALE `ana_titolo_persone` (codice, descrizione, sesso) + `ana_clienti.cliente_titolo_fk` **NOT NULL** + migrazione dei clienti esistenti + trigger che deriva `cliente_sesso` dal titolo. ⚠️ **Prova a secco già fatta su PROD il 2026-08-19** — vedi §2.7 |
+| 539 | TitoloPersone_Compatibilita | Ponte per chi scrive ancora il titolo come testo (**sito di iscrizione**, `sp_ana_clienti_*`, wizard): il trigger ricava la FK dal testo e tiene `cliente_titolo` come specchio. Senza questo, ogni iscrizione dal sito fallirebbe subito |
+| 540 | TitoloPersone_Ordinamento_e_Uso | `SIG.`/`SIG.RA` in testa alla tendina + `fn_ana_titolo_persone_conta_clienti`. Nessun impatto sui dati |
+
+
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
-`468` e `493` re-model con migrazione dati · `491` e `509` vincoli che falliscono su dati sporchi ·
+`468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · `491` e `509` vincoli che falliscono su dati sporchi ·
 `499_Rollback` da non eseguire mai.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
@@ -303,6 +308,84 @@ SELECT setval(pg_get_serial_sequence('ana_tipo_viaggi','tipo_viaggi_id'),
 ```
 
 Verifica finale: conteggi identici a TEST, nessun `descrizione_web_fk` orfano, `ordine` = 1..N senza duplicati.
+
+---
+
+### 2.7 — Titolo e sesso del cliente: re-model `ana_clienti` (538–540)
+
+**Perché esiste.** `cliente_titolo` era testo libero e `cliente_sesso` un campo a parte: nulla
+impediva di salvare un titolo maschile su una donna, e infatti era successo. Non è un errore degli
+utenti, è un errore dello schema: chi compila in fretta prende la prima voce del combobox senza
+leggerla, e questo continuerà a succedere sempre. L'unico rimedio che regge è togliere la possibilità
+di essere incoerenti — il sesso ora **si deriva** dal titolo, non si digita.
+
+**Prova a secco eseguita su PROD il 2026-08-19** (sola lettura, nessuna scrittura). Simulata la
+mappatura dello script `538` sui clienti veri:
+
+| Titolo attuale | Sesso | Diventa | Clienti |
+|---|---|---|---|
+| `SIG` | M | `SIG.` | 493 |
+| `SRA` | F | `SIG.RA` | 264 |
+| `SIG` | F | `SIG.RA` | **11** ← le incoerenze storiche |
+| `SIG.` | M | `SIG.` | 5 |
+| `SIG.RA` | F | `SIG.RA` | 4 |
+| *(vuoto)* | M | `SIG.` | 1 |
+
+**778 clienti, nessuno resta senza titolo**: il `SET NOT NULL` passerà. Verificati anche: PostgreSQL
+17.6, vincolo `cliente_sesso IN ('M','F')` presente, le 9 function che citano `cliente_titolo` sono
+le stesse del locale, nessuna vista, i 4 trigger preesistenti su `ana_clienti` non confliggono (il
+nuovo scatta dopo `trg_ana_clienti_audit`, che è BEFORE e alfabeticamente precedente).
+
+> **PROD non è una copia del locale:** 778 clienti contro 742, e PROD ha **un cliente senza titolo**
+> che in locale non esiste — era il caso che poteva far fallire il `NOT NULL`. In compenso PROD non
+> ha nessun `DOTT.`. Le prove fatte solo in locale non avrebbero intercettato né l'uno né l'altro.
+
+**Regola d'ordine, obbligatoria:** applicare `538`→`540` **PRIMA** di distribuire l'eseguibile nuovo.
+L'app nuova scrive solo `cliente_titolo_fk` e su uno schema vecchio non funziona; il sito di
+iscrizione invece funziona **con o senza** gli script (lo copre il ponte del `539`). Quindi:
+script → poi eseguibile. Mai il contrario.
+
+**Due trappole latenti — da conoscere, non da risolvere ora:**
+
+- **RLS attiva su `ana_clienti` con zero policy.** Solo il proprietario della tabella la vede: tutto
+  funziona perché app e sito si collegano come `postgres`. Non è introdotto da questo re-model, ma il
+  giorno in cui qualcosa si collegasse con un ruolo diverso, `ana_clienti` sarebbe già invisibile.
+- **`fn_wizard_insert_cliente` non è `SECURITY DEFINER`**: gira coi privilegi del chiamante, e il
+  trigger nuovo — che legge `ana_titolo_persone` — pure. Oggi il chiamante è `postgres`. Se il sito
+  passasse a un ruolo limitato servirebbe una `GRANT SELECT` sulla tabella nuova, altrimenti **ogni
+  iscrizione web fallirebbe**. Non aggiunta ora perché nessuna lookup del progetto ha grant diversi
+  da `postgres`: farlo solo qui sarebbe un'incoerenza.
+
+---
+
+### 2.8 — Sito di iscrizione ai viaggi: allineamento da decidere (non urgente)
+
+Il sito Flask (§12 di `Funzioni_DB.md`) **continua a funzionare senza alcuna modifica** dopo il
+re-model: manda il titolo come testo (`SIG.`, `SIG.RA`, maiuscolo come tutti i suoi campi) e un sesso
+separato, e il ponte del `539` gli assegna la FK. Verificato il 2026-08-19 su inserimento, rilettura
+e aggiornamento, anche con titolo e sesso in contraddizione fra loro: vince il sesso, esattamente
+come nel gestionale.
+
+**Ma resta l'ultima porta da cui può entrare un'incoerenza.** Nel gestionale il sesso non è più
+digitabile; sul sito sì, ed è un campo separato dal titolo. Chi si iscrive in fretta può ancora
+scegliere `SIG.` ed essere donna. Il DB oggi lo corregge in silenzio — il che va bene per il dato,
+ma significa che il sito mostra all'utente una cosa e ne salva un'altra.
+
+**Va allineato, e va deciso quando.** Non è urgente e non è bloccante per il go-live: sono due
+interventi indipendenti, e questo può seguire mesi dopo. Le tre strade, dalla più leggera:
+
+1. **Solo cosmetica sul sito** — togliere il campo sesso dalla form e derivarlo dal titolo scelto,
+   lasciando invariate le chiamate DB. È il minimo che elimina la contraddizione a video. Il ponte
+   del `539` resta necessario.
+2. **Il sito legge la lookup** — la tendina dei titoli viene da `ana_titolo_persone` invece che da un
+   elenco cablato, così i titoli nuovi aggiunti dal gestionale compaiono anche sul sito. Serve una
+   function di sola lettura esposta al ruolo del sito.
+3. **Il sito passa alla FK** — nuove `fn_wizard_insert_cliente`/`update` che accettano
+   `p_titolo_fk INTEGER` invece di testo e sesso. È la sola strada che permette poi di **eliminare**
+   `ana_clienti.cliente_titolo`, il ponte del `539` e `fn_ana_titolo_persone_da_testo`.
+
+Finché non si fa la 3, il debito dichiarato in `Funzioni_DB.md` §8.3 resta aperto: la colonna
+deprecata non si può togliere.
 
 ---
 

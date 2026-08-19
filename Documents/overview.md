@@ -235,6 +235,7 @@ Documento completo: **`Documents/ComponentiShared.md`**
 | `RegioneSelect` | `ana_geo_regioni_ita` |
 | `ProvinciaSelect` | `ana_geo_province_ita` |
 | `ComuneSelect` | `ana_geo_comuni` |
+| `TitoloPersonaSelect` | `ana_titolo_persone` |
 | `RuoloSelect` | `IRoleService` |
 | `CicloSelect` | Valori statici (ATTIVO/PASSIVO) |
 | `UrgenzaSelect` | Valori statici (SCADUTO/URGENTE/IN_SCADENZA/NORMALE) |

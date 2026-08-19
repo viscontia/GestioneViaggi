@@ -45,6 +45,14 @@
 
     <MudNavGroup Title="Tabelle" Icon="@Icons.Material.Filled.TableChart" Expanded="false">
 
+        <!-- Tabelle Anagrafiche -->
+        <MudNavGroup Title="Tabelle Anagrafiche" Icon="@Icons.Material.Filled.Badge" Expanded="false">
+            <MudNavLink Icon="@Icons.Material.Filled.EmojiPeople"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/titoli-persone", "Titoli persone", "table"))">
+                <MudText Typo="Typo.body1">Tabella Titolo Persone</MudText>
+            </MudNavLink>
+        </MudNavGroup>
+
         <!-- Tabelle web -->
         <MudNavGroup Title="Tabelle web" Icon="@Icons.Material.Filled.Language" Expanded="false">
             <MudNavLink Icon="@Icons.Material.Filled.Link"

@@ -40,7 +40,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private bool IsSuperAdmin => AziendaFk == 0;
 
     private MudForm? _form;
-    private MudSelect<string>? _titoloField;
+    private TitoloPersonaSelect? _titoloField;
     private MudTextField<string>? _cognomeField, _nomeField;
     private MudDatePicker? _dataNascitaField;
     
@@ -90,6 +90,16 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             Entity.Sesso = 'M'; // Default
         }
     }
+
+    /// <summary>Il titolo porta il sesso: lo si copia nell'entita' appena viene scelto.</summary>
+    private void OnTitoloScelto(AnaTitoloPersone? titolo)
+    {
+        if (titolo is not null) Entity.Sesso = titolo.Sesso;
+    }
+
+    /// <summary>Sesso a video: vuoto finche' non c'e' un titolo, perche' prima non e' un dato ma un default.</summary>
+    private string SessoDescrizione =>
+        Entity.TitoloFk == 0 ? string.Empty : (Entity.Sesso == 'F' ? "F — Femminile" : "M — Maschile");
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -316,7 +326,6 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         // Trim e Uppercase per campi testo
         Entity.Cognome = Entity.Cognome?.Trim().ToUpperInvariant() ?? string.Empty;
         Entity.Nome = Entity.Nome?.Trim().ToUpperInvariant() ?? string.Empty;
-        Entity.Titolo = Entity.Titolo?.Trim().ToUpperInvariant();
         Entity.IndirizzoResidenza = Entity.IndirizzoResidenza?.Trim().ToUpperInvariant();
         Entity.CodiceFiscale = Entity.CodiceFiscale?.Trim().ToUpperInvariant();
         Entity.Iban = Entity.Iban?.Trim().ToUpperInvariant();
@@ -481,7 +490,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         switch (tabName)
         {
             case "Generale":
-                hasError = CheckSelects(_titoloField)
+                hasError = (_validationRequested && Entity.TitoloFk == 0)
                            || CheckFields(_cognomeField, _nomeField) 
                            || CheckDatePickers(_dataNascitaField)
                            || (IsSuperAdmin && _validationRequested && Entity.AziendaFk == 0)

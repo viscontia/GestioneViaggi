@@ -1,0 +1,105 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject AnaTitoloPersoneService Service
+@implements IDisposable
+
+@* Dialog CRUD di un titolo di cortesia (ana_titolo_persone).
+   Il salvataggio avviene QUI: su errore di vincolo la form resta aperta coi dati (overview.md §3.3.5). *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEditMode ? "Modifica Titolo" : "Nuovo Titolo")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_errore))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_errore</MudAlert>
+        }
+
+        <MudForm @ref="_form" Model="@Entity">
+            <MudTextField T="string" @ref="_primoCampo" Value="@Entity.Descrizione"
+                          ValueChanged="@((string v) => Entity.Descrizione = v?.ToUpper() ?? string.Empty)"
+                          For="@(() => Entity.Descrizione)" Label="Descrizione"
+                          Variant="Variant.Outlined" Immediate="true" Required="true"
+                          RequiredError="La descrizione è obbligatoria"
+                          MaxLength="30" tabindex="1" Class="mb-3 uppercase-input"
+                          HelperText="Come compare nella tendina dei clienti, es. SIG.RA. Univoca." />
+
+            <MudSelect T="char" @bind-Value="Entity.Sesso" For="@(() => Entity.Sesso)" Label="Sesso"
+                       Variant="Variant.Outlined" Required="true" RequiredError="Il sesso è obbligatorio"
+                       Dense="true" tabindex="2"
+                       HelperText="Il sesso del cliente viene impostato da qui: un titolo valido per entrambi lo renderebbe casuale.">
+                <MudSelectItem T="char" Value="@('M')">M — Maschile</MudSelectItem>
+                <MudSelectItem T="char" Value="@('F')">F — Femminile</MudSelectItem>
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Annulla" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="Salva" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_salvataggio">
+            @(_salvataggio ? "Salvataggio..." : (IsEditMode ? "Aggiorna" : "Crea"))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudForm? _form;
+    private MudTextField<string>? _primoCampo;
+
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public AnaTitoloPersone Entity { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+
+    private bool _salvataggio;
+    private string? _errore;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try { await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation"); } catch { }
+        if (_primoCampo != null)
+        {
+            await Task.Delay(300);
+            try { await _primoCampo.FocusAsync(); } catch { }
+        }
+    }
+
+    public void Dispose()
+    {
+        try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
+    }
+
+    private void Annulla() => MudDialog?.Cancel();
+
+    private async Task Salva()
+    {
+        if (_form == null) return;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            if (_primoCampo?.Error == true) await _primoCampo.FocusAsync();
+            return;
+        }
+
+        _salvataggio = true;
+        _errore = null;
+        try
+        {
+            var salvato = IsEditMode ? await Service.UpdateAsync(Entity) : await Service.CreateAsync(Entity);
+            MudDialog?.Close(DialogResult.Ok(salvato));
+        }
+        catch (Exception ex)
+        {
+            // Messaggio già tradotto dal service (Helpers/DatabaseExceptionHelper): resto nella form.
+            _errore = ex.Message;
+        }
+        finally
+        {
+            _salvataggio = false;
+        }
+    }
+}

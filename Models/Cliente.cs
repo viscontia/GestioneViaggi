@@ -13,9 +13,17 @@ public class Cliente : BaseEntity, IAuditable, IValidatableObject
     public int ClienteId { get; set; }
 
     // Dati Anagrafici
-    [Column("cliente_titolo")]
+    [Column("cliente_titolo_fk")]
     [Required(ErrorMessage = "Il titolo è obbligatorio")]
-    public string? Titolo { get; set; }
+    [Range(1, int.MaxValue, ErrorMessage = "Il titolo è obbligatorio")]
+    public int TitoloFk { get; set; }
+
+    /// <summary>
+    /// Descrizione del titolo, risolta dalla lookup: sola lettura, non viene mai scritta.
+    /// Serve a stampe ed export, che mostrano il titolo e non il suo codice.
+    /// </summary>
+    [NotMapped]
+    public string? TitoloDescrizione { get; set; }
 
     [Column("cliente_cognome")]
     [Required(ErrorMessage = "Il cognome è obbligatorio")]

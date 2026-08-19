@@ -315,7 +315,6 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
     {
         var validations = new List<(string Field, string? Value, int MaxLength)>
         {
-            ("Titolo", cliente.Titolo, 10),
             ("Cognome", cliente.Cognome, 50),
             ("Nome", cliente.Nome, 50),
             ("IndirizzoResidenza", cliente.IndirizzoResidenza, 100),
@@ -503,7 +502,6 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         // Uppercase per campi testo
         cliente.Cognome = cliente.Cognome?.ToUpperInvariant() ?? string.Empty;
         cliente.Nome = cliente.Nome?.ToUpperInvariant() ?? string.Empty;
-        cliente.Titolo = cliente.Titolo?.ToUpperInvariant();
         cliente.IndirizzoResidenza = cliente.IndirizzoResidenza?.ToUpperInvariant();
 
         // Uppercase per codice fiscale
@@ -516,7 +514,6 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         cliente.Email = cliente.Email?.ToLowerInvariant();
 
         // Trim su tutti i campi stringa
-        cliente.Titolo = cliente.Titolo?.Trim();
         cliente.Cognome = cliente.Cognome?.Trim() ?? string.Empty;
         cliente.Nome = cliente.Nome?.Trim() ?? string.Empty;
         cliente.IndirizzoResidenza = cliente.IndirizzoResidenza?.Trim();
@@ -538,7 +535,6 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         // Trim finali (ridondante se ToUpperInvariant gestisce stringhe, ma utile se null safe logic cambia)
         // La logica sopra gestisce il replace. I Trim sotto sono ora ridondanti per i campi uppercased.
         // Rimuovo i trim dei campi che ho appena uppercasato per pulizia
-        cliente.Titolo = cliente.Titolo?.Trim();
         cliente.PrefTelInt = cliente.PrefTelInt?.Trim();
         cliente.Telefono = cliente.Telefono?.Trim();
         cliente.Email = cliente.Email?.Trim();

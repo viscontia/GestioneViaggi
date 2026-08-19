@@ -146,6 +146,7 @@ public static class MauiProgram
         builder.Services.AddScoped<RepartoAziendaleService>();
         builder.Services.AddScoped<TipoViaggioService>();
         builder.Services.AddScoped<TipoPartecipanteService>();
+        builder.Services.AddScoped<AnaTitoloPersoneService>();
         builder.Services.AddScoped<TipoTrattamentoService>();
         builder.Services.AddScoped<TipoAlloggioService>();
         builder.Services.AddScoped<TipoPernottamentoService>();

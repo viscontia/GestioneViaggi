@@ -29,7 +29,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -178,7 +180,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -287,7 +291,7 @@ public class ClienteRepository(
 
             var sql = @"
                 INSERT INTO ana_clienti (
-                    cliente_titolo,
+                    cliente_titolo_fk,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -320,7 +324,7 @@ public class ClienteRepository(
                     azienda_fk
                 )
                 VALUES (
-                    @titolo,
+                    @titoloFk,
                     @cognome,
                     @nome,
                     @sesso,
@@ -400,7 +404,7 @@ public class ClienteRepository(
             var sql = @"
                 UPDATE ana_clienti
                 SET
-                    cliente_titolo = @titolo,
+                    cliente_titolo_fk = @titoloFk,
                     cliente_cognome = @cognome,
                     cliente_nome = @nome,
                     cliente_sesso = @sesso,
@@ -513,7 +517,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -580,7 +586,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -647,7 +655,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -907,7 +917,9 @@ public class ClienteRepository(
             var sql = @"
                 SELECT
                     cliente_id,
-                    cliente_titolo,
+                    cliente_titolo_fk,
+                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
+                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
                     cliente_nome,
                     cliente_sesso,
@@ -1173,7 +1185,8 @@ public class ClienteRepository(
         return new Cliente
         {
             ClienteId = reader.GetInt32(reader.GetOrdinal("cliente_id")),
-            Titolo = reader.IsDBNull(reader.GetOrdinal("cliente_titolo")) ? null : reader.GetString(reader.GetOrdinal("cliente_titolo")),
+            TitoloFk = reader.GetInt32(reader.GetOrdinal("cliente_titolo_fk")),
+            TitoloDescrizione = ReadNullableString(reader, "cliente_titolo_descrizione"),
             Cognome = reader.GetString(reader.GetOrdinal("cliente_cognome")),
             Nome = reader.GetString(reader.GetOrdinal("cliente_nome")),
             Sesso = reader.GetChar(reader.GetOrdinal("cliente_sesso")),
@@ -1219,7 +1232,7 @@ public class ClienteRepository(
 
     private static void AddInsertUpdateParameters(NpgsqlCommand command, Cliente cliente)
     {
-        command.Parameters.AddWithValue("titolo", (object?)cliente.Titolo ?? DBNull.Value);
+        command.Parameters.AddWithValue("titoloFk", cliente.TitoloFk);
         command.Parameters.AddWithValue("cognome", cliente.Cognome);
         command.Parameters.AddWithValue("nome", cliente.Nome);
         command.Parameters.AddWithValue("sesso", cliente.Sesso);

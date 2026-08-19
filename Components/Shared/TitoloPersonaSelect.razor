@@ -1,0 +1,84 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject AnaTitoloPersoneService Service
+
+@*
+    COMPONENT: TitoloPersonaSelect
+    DESC: Tendina dei titoli di cortesia, letta da ana_titolo_persone (tabella GLOBALE).
+    NOTA: oltre al codice emette anche la riga scelta (SelectedChanged), perche' il titolo
+          porta con se' il sesso: chi lo usa deve poter ricavare il sesso senza rileggere il DB.
+*@
+
+<MudSelect @ref="_select" T="int?" Value="@Valore" ValueChanged="@OnValueChanged" Label="@Label"
+           Variant="Variant.Outlined" Required="@Required" RequiredError="@RequiredError"
+           Disabled="@(Disabled || _caricamento)" Class="@Class" Dense="true"
+           Adornment="@(Required ? Adornment.End : Adornment.None)"
+           AdornmentText="@(Required ? "*" : "")" AdornmentColor="Color.Error"
+           @attributes="AdditionalAttributes">
+    @foreach (var t in _titoli)
+    {
+        <MudSelectItem T="int?" Value="@t.Id">@t.Descrizione</MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+
+    /// <summary>Riga completa scelta: serve a chi deve ricavare il sesso dal titolo.</summary>
+    [Parameter] public EventCallback<AnaTitoloPersone?> SelectedChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Titolo";
+    [Parameter] public bool Required { get; set; } = false;
+    [Parameter] public string RequiredError { get; set; } = "Il titolo è obbligatorio";
+    [Parameter] public bool Disabled { get; set; } = false;
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Elenco già in memoria: evita una lettura in più quando la form lo ha già.</summary>
+    [Parameter] public List<AnaTitoloPersone>? Items { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private MudSelect<int?>? _select;
+    private List<AnaTitoloPersone> _titoli = new();
+    private bool _caricamento = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _titoli = Items is { Count: > 0 } ? Items : await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            // Una tendina che non carica non deve impedire di aprire la form.
+            _titoli = new List<AnaTitoloPersone>();
+            System.Diagnostics.Debug.WriteLine($"[TitoloPersonaSelect] Errore caricamento titoli: {ex.Message}");
+        }
+        finally
+        {
+            _caricamento = false;
+        }
+    }
+
+    /// <summary>Porta il fuoco sulla tendina: serve a chi la usa come primo campo della form.</summary>
+    public async Task FocusAsync()
+    {
+        if (_select != null) await _select.FocusAsync();
+    }
+
+    /// <summary>
+    /// Valore visto da MudBlazor. Deve essere annullabile: con un int nudo lo zero e' un valore
+    /// come un altro, Required non scatta mai e il campo non si colora di rosso come gli altri.
+    /// </summary>
+    private int? Valore => Value == 0 ? null : Value;
+
+    private async Task OnValueChanged(int? value)
+    {
+        Value = value ?? 0;
+        await ValueChanged.InvokeAsync(Value);
+        await SelectedChanged.InvokeAsync(_titoli.FirstOrDefault(t => t.Id == Value));
+    }
+}
