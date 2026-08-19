@@ -202,33 +202,38 @@ Prima di aprire il codice, raccogli questi tre elementi: separano quasi sempre l
 
 # Parte seconda — il §8 che resta *(scritta il 2026-08-19)*
 
-La parte multilingua è chiusa. Restano i controlli che il primo runbook non toccava: gating e
-multi-azienda, validazioni di composizione, i casi dei destinatari, template e logo, silos.
+La parte multilingua è chiusa. Restano i controlli che il primo runbook non toccava: gating della
+funzione, validazioni di composizione, i casi dei destinatari, template e logo, silos.
+**Il percorso SuperAdmin è escluso** — vedi la nota in testa al gruppo I.
 Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN accesa.
 
 ## Preparazione — cosa serve avere sottomano
 
 | # | Cosa serve | Come ottenerlo |
 |---|---|---|
-| P1 | Un utente **SuperAdmin** | Serve per tutto il gruppo I e per M3 |
+| P1 | Una **credenziale utente dell'azienda 6** (o di un'altra azienda con dati propri) | Serve per il gruppo M: i silos si provano entrando come utente, non dal selettore SuperAdmin |
 | P2 | Un'azienda con la newsletter **disattivata** | Anagrafica Aziende → tab **Funzioni Web** → togli `newsletter` a un'azienda che non sia la 2 |
 | P3 | Un cliente **senza email** e con consenso | Anagrafica clienti: creane uno o svuota l'email a uno esistente (annota quale, va ripristinato) |
 | P4 | Un'azienda **senza logo** | L'azienda 6 va bene se non ne ha uno; altrimenti togli il logo temporaneamente |
-| P5 | L'azienda **6** raggiungibile dal selettore | Ha 2 destinatari e nessun dato web: è il termine di paragone per i silos |
+| P5 | L'azienda **6** con i suoi 2 destinatari | È il termine di paragone per i silos: ha clienti ma nessun dato web |
 
 ---
 
-## I — Gating e selettore azienda *(§8-A3 → A8)*
+## I — Gating della funzione newsletter *(§8-A3, A6-A7)*
+
+> **Il percorso SuperAdmin è escluso dal collaudo (decisione del 2026-08-19).** Il SuperAdmin è
+> Adriano, lo usa di rado e quasi solo per le tabelle comuni a tutte le aziende; l'assistenza si fa
+> **entrando con le credenziali dell'utente** o prendendo il suo computer da remoto. Il selettore
+> azienda vive quindi solo sul computer dello sviluppatore: un difetto lì costa poco, lo stesso
+> difetto sul percorso dell'utente costa un cliente. Restano fuori: la comparsa del selettore, il
+> cambio azienda e i residui fra un'azienda e l'altra (§8-A4, A5, A8, K3).
 
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| I1 | Utente **normale** (non SuperAdmin) su `/newsletter` | Guarda in cima alla pagina | **Nessun selettore azienda**: vede solo la sua |
-| I2 | **SuperAdmin** su `/newsletter`, nessuna azienda scelta | Guarda la pagina | Avviso «Seleziona un'azienda» e **nessun tab operativo** |
-| I3 | SuperAdmin | Scegli l'azienda **2** | Conteggio, storico, iscritti e soppressioni si popolano |
-| I4 | SuperAdmin sull'azienda 2 | Passa all'azienda **6** | **Tutto si ricarica e non resta niente della precedente.** Guarda soprattutto lo **Storico**: se compaiono le campagne della 2, l'invariante silos è rotta |
-| I5 | SuperAdmin | Scegli l'azienda **P2** (newsletter disattivata) | Compare «non attiva» **cambiando dal selettore**, non solo all'apertura della pagina |
-| I6 | Utente normale dell'azienda P2 | Apri il menu | La voce **Estensione Web → Newsletter sparisce**; forzando `/newsletter` la pagina dice «non attiva» |
-| I7 | Riattiva `newsletter` su P2 | Ricarica | Menu e pagina tornano disponibili |
+| I1 | Utente **normale** su `/newsletter` | Guarda in cima alla pagina | **Nessun selettore azienda**: vede solo la sua, e non deve nemmeno sapere che esistono le altre |
+| I2 | Utente dell'azienda **P2** (newsletter disattivata) | Apri il menu | La voce **Estensione Web → Newsletter sparisce** |
+| I3 | Stesso utente | Forza l'indirizzo `/newsletter` | La pagina dice **«non attiva»** e non interroga niente: la guardia è nella pagina, non solo nel menu |
+| I4 | Riattiva `newsletter` su P2 | Rientra | Menu e pagina tornano disponibili |
 
 ## J — Validazioni di composizione *(§8-B — nessuna mail parte)*
 
@@ -258,15 +263,19 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 | L2 | Azienda **P4, senza logo** | *Invia a tutti* | Prima di spedire compare il dialogo **«Logo mancante»**: *Invia comunque* prosegue, *Annulla* interrompe **senza spedire niente** |
 | L3 | SMTP volutamente sbagliato *(cambia la porta e salva)* | *Invia prova* | Snackbar rossa **«Invio di prova fallito (verifica la configurazione email).»** Poi **ripristina la configurazione** |
 
-## M — Silos multi-tenant *(§8-I4, J1, J2, K1, K2, K3)*
+## M — Silos multi-tenant *(§8-I4, J1, J2, K1, K2)*
+
+> Si collaudano **accedendo come utente di ciascuna azienda**, non passando dal selettore del
+> SuperAdmin: è così che il software viene usato davvero, ed è lì che un travaso di dati farebbe
+> danno. Serve una credenziale utente dell'azienda 6 (o di un'altra azienda con dati propri).
 
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| M1 | Tab **Iscritti** dell'azienda 2 | Guardalo | I **2 iscritti** con email, nome, lingua, stato, consenso |
+| M1 | Utente dell'azienda 2, tab **Iscritti** | Guardalo | I **2 iscritti** con email, nome, lingua, stato, consenso |
 | M2 | Stesso tab | Cerca un pulsante di modifica o inserimento | **Non c'è**: l'elenco è in sola lettura |
-| M3 | SuperAdmin sull'azienda **6** | Apri Storico, Iscritti, Soppressioni | **Niente dell'azienda 2**, e viceversa tornando indietro |
-| M4 | Azienda 6 | Prova ad aprire il **Log** di un invio dell'azienda 2 | Non è raggiungibile da qui |
-| M5 | Stessa email soppressa sull'azienda 2 | Guarda i destinatari dell'azienda 6 | **Non è filtrata**: il vincolo unico è su `(azienda_id, email)`, le soppressioni non attraversano le aziende |
+| M3 | **Esci e rientra come utente dell'azienda 6** | Apri Storico, Iscritti, Soppressioni | **Niente dell'azienda 2**: né campagne, né iscritti, né soppressioni. È la verifica che conta |
+| M4 | Ancora come utente dell'azienda 6 | Cerca il **Log** di un invio dell'azienda 2 | Non è raggiungibile in nessun modo dall'interfaccia |
+| M5 | Un'email soppressa sull'azienda 2, presente anche fra i clienti della 6 | Guarda i destinatari dell'azienda 6 | **Non è filtrata**: le soppressioni non attraversano le aziende — il vincolo unico è su `(azienda_id, email)` |
 
 ## N — L'ultimo caso limite *(§8-L5)*
 

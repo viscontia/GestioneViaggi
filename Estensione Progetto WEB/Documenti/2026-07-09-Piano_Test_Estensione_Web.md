@@ -130,9 +130,9 @@ Eseguito col runbook `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md`, ch
 (invio reale ai 6 destinatari), **H3-H5** (disiscrizione e firma), **H6-H7** (sito mancante bloccante),
 **I1-I3** (storico e log), **L1-L3** (zero destinatari, SMTP irraggiungibile, storico pulito).
 
-**Restano aperte** — non le toccava il runbook: **A3-A8** (gating e selettore azienda SuperAdmin),
+**Restano aperte** — non le toccava il runbook: **A3, A6-A7** (gating della funzione; A4-A5-A8 escluse: percorso SuperAdmin),
 **B1-B6** (validazioni di composizione), **C3-C4** (cliente senza email, consenso), **D7**, **E6**,
-**H1-H2** (template e logo mancante), **I4**, **J1-J2** (iscritti), **K1-K3** (silos), **L5-L6**.
+**H1-H2** (template e logo mancante), **I4**, **J1-J2** (iscritti), **K1-K2** (silos, da utente non SuperAdmin; K3 esclusa), **L5-L6**.
 
 ---
 
@@ -169,14 +169,21 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ✅ **A2** — La pagina carica conteggio, storico, iscritti e soppressioni senza eccezioni.
 - ☐ **A3** — Azienda con `newsletter` disattivata (§9) → "non attiva", nessuna query.
 
-**SuperAdmin (nuovo):**
-- ☐ **A4** — Da SuperAdmin la pagina mostra in alto il **selettore azienda**; da utente normale
+**SuperAdmin — ⊘ FUORI PERIMETRO dal 2026-08-19.** Il SuperAdmin è Adriano, lo usa di rado e quasi
+solo per le tabelle comuni a tutte le aziende; quando arriva una segnalazione entra con **le
+credenziali dell'utente** o ne prende il computer da remoto. Il selettore azienda vive quindi solo
+sulla macchina dello sviluppatore. Restano valide **A3, A6, A7** (gating della funzione, che tocca
+gli utenti veri) e i **silos**, da verificare però accedendo come utente di ciascuna azienda — vedi
+il gruppo M della parte seconda del runbook.
+
+**SuperAdmin (voci escluse):**
+- ⊘ **A4** *(escluso 19/08 — percorso SuperAdmin)* — Da SuperAdmin la pagina mostra in alto il **selettore azienda**; da utente normale
   **non compare**.
-- ☐ **A5** — Senza azienda scelta resta l'avviso "Seleziona un'azienda" e **nessun tab** è operativo.
+- ⊘ **A5** *(escluso 19/08 — percorso SuperAdmin)* — Senza azienda scelta resta l'avviso "Seleziona un'azienda" e **nessun tab** è operativo.
 - ☐ **A6** — Scelta un'azienda → conteggio, storico, iscritti e soppressioni si popolano.
 - ☐ **A7** — **Cambio azienda** → tutto si ricarica e **non resta niente della precedente** (è il
   punto che rompe l'invariante silos se sbagliato: guarda soprattutto lo Storico).
-- ☐ **A8** — Scelta un'azienda con newsletter **disattivata** → compare "non attiva" anche
+- ⊘ **A8** *(escluso 19/08 — percorso SuperAdmin)* — Scelta un'azienda con newsletter **disattivata** → compare "non attiva" anche
   cambiando dal selettore, non solo all'apertura della pagina.
 
 ### B. Composizione e validazioni (nessuna mail parte)
@@ -318,7 +325,7 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ☐ **K1** — Storico, iscritti e soppressioni dell'azienda 2 non compaiono sull'azienda 6 e viceversa.
 - ☐ **K2** — Una soppressione su un'azienda non filtra i destinatari dell'altra, a parità di email.
   *(Già confermato a DB: il vincolo unico è su `(azienda_id, email)`.)*
-- ☐ **K3** — **(nuovo, SuperAdmin)** Passando da azienda 2 a azienda 6 col selettore e tornando
+- ⊘ **K3** *(escluso 19/08 — percorso SuperAdmin)* — **(nuovo, SuperAdmin)** Passando da azienda 2 a azienda 6 col selettore e tornando
   indietro, i dati mostrati sono sempre quelli dell'azienda selezionata. Nessun residuo.
 
 ### L. Errori e casi limite
