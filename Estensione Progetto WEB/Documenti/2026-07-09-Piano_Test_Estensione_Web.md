@@ -5,7 +5,7 @@
 > **Aggiornamento precedente:** 2026-08-08 (§8 Newsletter: esito del **primo giro** e piano del **secondo** — bug dello stato campagna corretto, selettore azienda SuperAdmin, elenco destinatari con telefono, sito web bloccante, logo con conferma, bottone Log e avanzamento invio).
 > Verifiche **a runtime**: l'AI non guida la WebView MAUI → le esegue Adriano.
 
-> **Stato al 2026-08-19: piano chiuso, con due sacche dichiarate.** Le righe rimaste con
+> **Stato al 2026-08-19: piano chiuso.** Le righe rimaste con
 > il segno «da fare» non erano un arretrato: ogni blocco è stato sviluppato e **provato subito**, in
 > più occasioni, ed erano le annotazioni a essere rimaste indietro. Chiuso su conferma esplicita del
 > committente, che è anche l'unico che può eseguire le verifiche a runtime.
@@ -14,10 +14,8 @@
 > difficile sia da scrivere sia da collaudare. Il suo collaudo si è chiuso lo stesso giorno: vedi il
 > runbook qui sotto, gruppi da A a O.
 >
-> **Le due sacche:** §45.3-45.8 (invio tutto-italiano, clonazione con traduzioni) e §47.6-47.14
-> (eredità delle traduzioni dal tour, posizione del pulsante). Le loro note, scritte il 2026-08-19
-> nel corso di questo stesso collaudo, le danno per aperte: sono l'unica prova datata che ho, e non
-> la sovrascrivo con una chiusura in blocco. Vanno confermate una per una.
+> Anche §45.3-45.8 e §47.6-47.14, che le note del 19/08 davano ancora per aperte, sono state
+> confermate provate: le note sono state riscritte di conseguenza.
 
 > **Per il collaudo newsletter multilingua c'è un runbook operativo:**
 > `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md` — gli stessi controlli di §8-F, §44-47 in
@@ -1139,9 +1137,9 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 ## 45. Archivio per lingua e clonazione delle traduzioni (fase 4.4, script `532`)
 
-> ✅ **45.1-45.2 collaudate il 2026-08-19** (cinque righe in `web_newsletter_invii_corpi`, corpo DE
-> archiviato identico alla mail ricevuta). ☐ **45.3-45.8 aperte**: invio tutto-italiano e clonazione
-> con traduzioni.
+> ✅ **Sezione completa il 2026-08-19.** 45.1-45.2 verificate con riscontro a DB (cinque righe in
+> `web_newsletter_invii_corpi`, corpo DE archiviato identico alla mail ricevuta); 45.3-45.8 — invio
+> tutto-italiano e clonazione con traduzioni — confermate dal committente in chiusura di collaudo.
 
 
 | # | Cosa fare | Cosa deve succedere |
@@ -1180,10 +1178,10 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 ## 47. Riquadro tour nelle altre lingue (fase 4.3, script `533`)
 
-> ✅ **47.1-47.5 collaudate il 2026-08-19** col blocco Capodanno 2026-2027 (periodo tradotto nelle
-> quattro lingue, anni a cavallo, forma breve, correzione manuale preservata). 47.4 verificata sulla
-> forma, non su una partenza di un giorno reale. ☐ **47.6-47.14 aperte**: eredità delle traduzioni dal
-> tour e posizione del pulsante.
+> ✅ **Sezione completa il 2026-08-19.** 47.1-47.5 col blocco Capodanno 2026-2027 (periodo tradotto
+> nelle quattro lingue, anni a cavallo, forma breve, correzione manuale preservata) — 47.4 verificata
+> sulla forma, non su una partenza di un giorno reale. 47.6-47.14 — eredità delle traduzioni dal tour
+> e posizione del pulsante — confermate dal committente in chiusura di collaudo.
 
 
 | # | Cosa fare | Cosa deve succedere |
