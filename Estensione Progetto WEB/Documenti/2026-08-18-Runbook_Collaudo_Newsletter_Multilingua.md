@@ -176,6 +176,7 @@ svanisce o a una didascalia grigia.**
 | R4 | La frase dell'anteprima compariva sempre, anche a copertura piena, come didascalia in coda ai chip | **Fatto:** ora è un avviso vero, **solo** a lingua incompleta, e dice quanti testi mancano |
 | R5 | `SendCampaignAsync` (motore testuale con fallback IT) senza più chiamanti | **Rimosso il 19/08**, con `BuildBodiesAsync`, `BuildHtml`, `UnsubFooter`, `SendTestAsync`, quattro dipendenze rimaste orfane e il flag `TradottoIncompleto`: 123 righe. Il §8-G del piano va riscritto |
 | R6 | **Conseguenza del blocco:** un'azienda **senza chiave Claude** non poteva più spedire a destinatari non italiani | **Chiuso il 19/08:** blocca solo la mezza traduzione. A zero traduzioni si spedisce in italiano, quindi l'azienda 6 torna a funzionare |
+| R8 | **«Salva oggetto» tace se il campo è vuoto.** `SalvaOggetto` esce con un `return` silenzioso su oggetto vuoto: nessun salvataggio, nessun messaggio, nessun errore. Stessa famiglia del «Chiudi» che non chiudeva | **Da decidere.** Una riga: avviso «Inserisci l'oggetto.» invece del `return` |
 | R7 | **«Chiudi» che non chiude** nella scheda Contenuti Web del viaggio: il pulsante del footer chiamava sempre `GoToContenuti()`, che porta alla sotto-scheda 0. Stando **già** sui Contenuti metteva 0 a 0 e non faceva niente. La X in alto era invece scritta bene | **Corretto il 19/08:** il pulsante usa la stessa logica della X e cambia nome — «Torna ai contenuti» da un sotto-tab, «Chiudi» dai Contenuti. Da collaudare: vedi H1-H3 |
 
 ---
@@ -230,20 +231,24 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
 | I1 | Utente **normale** su `/newsletter` | Guarda in cima alla pagina | **Nessun selettore azienda**: vede solo la sua, e non deve nemmeno sapere che esistono le altre |
-| I2 | Utente dell'azienda **P2** (newsletter disattivata) | Apri il menu | La voce **Estensione Web → Newsletter sparisce** |
-| I3 | Stesso utente | Forza l'indirizzo `/newsletter` | La pagina dice **«non attiva»** e non interroga niente: la guardia è nella pagina, non solo nel menu |
+| ✅ I2 | Utente dell'azienda **P2** (newsletter disattivata) | Apri il menu | ⚠️ **La voce non sparisce subito.** Il gating del menu è *best-effort* e si calcola quando il menu viene costruito (`OnInitializedAsync`): sparisce **al prossimo accesso**, non appena tocchi il toggle. La difesa vera è la pagina — vedi I3. *Comportamento accettato il 19/08* |
+| ✅ I3 | Stesso utente | Entra nella funzione | «La funzione Newsletter non è attiva per questa azienda. Attivala in Anagrafica Aziende → Funzioni Web» — e non interroga niente. *(19/08)* |
 | I4 | Riattiva `newsletter` su P2 | Rientra | Menu e pagina tornano disponibili |
 
 ## J — Validazioni di composizione *(§8-B — nessuna mail parte)*
 
+> **Esito del 19/08:** J1, J5, J6 e il nuovo J2 verificati. J3 e J4 (ex B2-B3) sono risultati
+> **superati a monte**: la validazione del testo vuoto sta nel dialogo del blocco, non nella pagina.
+> Resta da fare solo **J4**.
+
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| J1 | Newsletter in bozza, **oggetto vuoto** | *Invia prova* | Avviso «Inserisci l'oggetto.» |
-| J2 | Corpo Quill **vuoto** | *Invia prova* | Avviso «Il corpo è vuoto.» |
-| J3 | Corpo con **solo un a-capo** (`<p><br></p>`) | *Invia prova* | Conta come vuoto: stesso avviso di J2 |
-| J4 | Oggetto valido, **email di prova vuota** | *Invia prova* | Avviso sull'indirizzo mancante |
-| J5 | Oggetto con **spazi in testa e in coda** | Salva e guarda cosa arriva | L'oggetto viene ripulito prima dell'invio |
-| J6 | Invio in corso | **Doppio clic** sui pulsanti | Restano disabilitati: niente doppio invio |
+| ✅ J1 | Newsletter aperta | **Svuota il campo Oggetto senza salvare**, poi *Invia prova* | Avviso «Inserisci l'oggetto.» ⚠️ Non serve creare una newsletter senza oggetto — la form lo impone: il controllo guarda il **campo a video** |
+| ✅ J2 | Newsletter con **solo intestazione e footer**, nessun blocco di contenuto | *Invia prova* o *Invia a tutti* | «La newsletter non ha contenuti: aggiungi almeno un blocco.» *(trovato collaudando: la regola c'era, il piano no)* |
+| ✅ J3 | Un blocco di testo **vuoto**, o con **solo un a-capo** | Prova a confermare il dialogo del blocco | **Non si salva**: il dialogo resta aperto con l'avviso. La validazione è a monte, nel blocco |
+| ☐ **J4** | Newsletter valida | **Svuota l'indirizzo** in «Invia una prova a» e premi *Invia prova* | Avviso sull'indirizzo mancante. *(Diverso da J2: lì mancava il contenuto, qui il destinatario)* |
+| ✅ J5 | Oggetto con **spazi in testa e in coda** | Salva e guarda cosa arriva | Ripulito prima dell'invio *(19/08, azienda 2 — la 6 non ha SMTP)* |
+| ✅ J6 | Invio in corso | **Doppio clic** sui pulsanti | Restano disabilitati: niente doppio invio |
 
 ## K — Destinatari: i casi che mancavano *(§8-C4, D7)*
 

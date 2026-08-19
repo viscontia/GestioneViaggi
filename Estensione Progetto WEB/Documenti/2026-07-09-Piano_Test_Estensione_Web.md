@@ -167,7 +167,12 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ✅ **A1** — Menu "Estensione Web > Newsletter" presente; `/newsletter` si apre senza errori e la
   status bar mostra `web_newsletter_invii`.
 - ✅ **A2** — La pagina carica conteggio, storico, iscritti e soppressioni senza eccezioni.
-- ☐ **A3** — Azienda con `newsletter` disattivata (§9) → "non attiva", nessuna query.
+- ✅ **A3** — Azienda con `newsletter` disattivata (§9) → la pagina mostra «La funzione Newsletter non
+  è attiva per questa azienda. Attivala in Anagrafica Aziende → Funzioni Web», nessuna query. *(19/08)*
+  ⚠️ **La voce di menu NON sparisce subito**: il gating del menu è *best-effort* e si calcola in
+  `OnInitializedAsync`, cioè quando il menu viene costruito — la voce sparisce **al prossimo accesso**,
+  non appena si tocca il toggle. Con `aziendaId` nullo resta comunque visibile. La guardia autoritativa
+  è la pagina, ed è quella che ha risposto. **Comportamento accettato dal committente il 19/08.**
 
 **SuperAdmin — ⊘ FUORI PERIMETRO dal 2026-08-19.** Il SuperAdmin è Adriano, lo usa di rado e quasi
 solo per le tabelle comuni a tutte le aziende; quando arriva una segnalazione entra con **le
@@ -188,12 +193,20 @@ il gruppo M della parte seconda del runbook.
 
 ### B. Composizione e validazioni (nessuna mail parte)
 
-- ☐ **B1** — Oggetto vuoto + *Invia prova* → warning "Inserisci l'oggetto.".
-- ☐ **B2** — Corpo Quill vuoto → warning "Il corpo è vuoto.".
-- ☐ **B3** — Corpo con **solo un a-capo** (`<p><br></p>`) → deve contare come vuoto.
+- ✅ **B1** — Oggetto vuoto + *Invia prova* → warning "Inserisci l'oggetto.". ⚠️ **Non si crea una
+  newsletter senza oggetto** (la form di creazione lo impone): il controllo guarda il **campo a
+  video**, quindi si raggiunge svuotando il campo Oggetto **senza salvare** e premendo *Invia prova*.
+- ⊘ **B2-B3** — *(superate dai blocchi, 2026-08-19)* Descrivevano il **corpo Quill unico** della
+  newsletter di prima dei blocchi. Oggi il testo vive nei blocchi e la validazione sta **a monte**,
+  nel dialogo del blocco (`NewsletterBloccoValidator.Valida`): un blocco di testo vuoto — o con solo
+  un a-capo — **non si salva**, il dialogo resta aperto con l'avviso. Verificato il 19/08.
+- ✅ **B7** — **(nuovo, dal collaudo del 19/08)** Newsletter con **nessun blocco di contenuto**, solo
+  intestazione e footer che ci sono sempre → *Invia prova* e *Invia a tutti* rifiutano con «La
+  newsletter non ha contenuti: aggiungi almeno un blocco.» *(`ComposizioneValida` conta i blocchi
+  che non siano `intestazione` o `footer`: da soli non fanno una newsletter.)*
 - ☐ **B4** — *Invia prova* senza email di prova → warning.
-- ☐ **B5** — L'oggetto viene trimmato prima dell'invio.
-- ☐ **B6** — Durante l'invio i pulsanti sono disabilitati: niente doppio invio a doppio clic.
+- ✅ **B5** — L'oggetto viene trimmato prima dell'invio. *(19/08, azienda 2)*
+- ✅ **B6** — Durante l'invio i pulsanti sono disabilitati: niente doppio invio a doppio clic. *(19/08)*
 
 ### C. Destinatari, dedup ed elenco
 
