@@ -194,7 +194,7 @@
                 { x => x.Destinatari, destinatari }
             };
             await DialogService.ShowAsync<NewsletterDestinatariDialog>("Destinatari", parametri,
-                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium });
+                new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, BackdropClick = false });
         }
         catch (Exception ex) { Snackbar.Add($"Elenco non caricato: {ex.Message}", Severity.Error); }
     }

@@ -1001,7 +1001,7 @@ else
             { x => x.AziendaId, _aziendaId }
         };
         await DialogService.ShowAsync<NewsletterAnteprimaDialog>("Anteprima newsletter", parameters,
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Large, CloseButton = true, BackdropClick = false });
     }
 
     /// <summary>Riga di riepilogo del contenuto di un blocco, per l'elenco di composizione.</summary>
@@ -1300,7 +1300,7 @@ else
             { x => x.AziendaId, _aziendaId },
             { x => x.Oggetto, invio.Oggetto }
         };
-        await DialogService.ShowAsync<NewsletterLogDialog>("Log invio", parameters, new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true });
+        await DialogService.ShowAsync<NewsletterLogDialog>("Log invio", parameters, new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.Medium, CloseButton = true, BackdropClick = false });
     }
 
     private async Task AggiungiSoppressione()

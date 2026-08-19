@@ -204,7 +204,9 @@ il gruppo M della parte seconda del runbook.
   intestazione e footer che ci sono sempre → *Invia prova* e *Invia a tutti* rifiutano con «La
   newsletter non ha contenuti: aggiungi almeno un blocco.» *(`ComposizioneValida` conta i blocchi
   che non siano `intestazione` o `footer`: da soli non fanno una newsletter.)*
-- ☐ **B4** — *Invia prova* senza email di prova → warning.
+- ✅ **B4** — *Invia prova* senza email di prova → warning. *(19/08)*
+- ✅ **B9** — **(nuovo, 19/08)** Newsletter **senza oggetto**: non parte **né** l'invio di prova **né**
+  l'invio a tutti. Il controllo vale per entrambe le strade.
 - ☐ **B8** — **(nuovo, 2026-08-19)** Svuota il campo **Oggetto** e premi **Salva oggetto** → avviso
   «Inserisci l'oggetto.», la stessa frase del controllo prima dell'invio. *(Prima usciva con un
   `return` silenzioso: nessun salvataggio, nessun messaggio, il pulsante sembrava rotto.)*

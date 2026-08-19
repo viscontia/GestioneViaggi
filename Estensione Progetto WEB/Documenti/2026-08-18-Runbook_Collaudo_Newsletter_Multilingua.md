@@ -247,12 +247,17 @@ Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN a
 | ✅ J1 | Newsletter aperta | **Svuota il campo Oggetto senza salvare**, poi *Invia prova* | Avviso «Inserisci l'oggetto.» ⚠️ Non serve creare una newsletter senza oggetto — la form lo impone: il controllo guarda il **campo a video** |
 | ✅ J2 | Newsletter con **solo intestazione e footer**, nessun blocco di contenuto | *Invia prova* o *Invia a tutti* | «La newsletter non ha contenuti: aggiungi almeno un blocco.» *(trovato collaudando: la regola c'era, il piano no)* |
 | ✅ J3 | Un blocco di testo **vuoto**, o con **solo un a-capo** | Prova a confermare il dialogo del blocco | **Non si salva**: il dialogo resta aperto con l'avviso. La validazione è a monte, nel blocco |
-| ☐ **J4** | Newsletter valida | **Svuota l'indirizzo** in «Invia una prova a» e premi *Invia prova* | Avviso sull'indirizzo mancante. *(Diverso da J2: lì mancava il contenuto, qui il destinatario)* |
-| ☐ **J7** | Newsletter aperta | **Svuota il campo Oggetto** e premi **Salva oggetto** | Avviso «Inserisci l'oggetto.» — la stessa frase del controllo prima dell'invio. *(Prima non succedeva niente: nessun salvataggio e nessun messaggio. Corretto il 19/08)* |
+| ✅ J4 | Newsletter valida | **Svuota l'indirizzo** in «Invia una prova a» e premi *Invia prova* | Avviso sull'indirizzo mancante. *(Diverso da J2: lì mancava il contenuto, qui il destinatario)* |
+| ✅ J8 | **(nuovo, dal collaudo)** Newsletter **senza oggetto** | Prova sia *Invia prova* sia **Invia a tutti** | Nessuno dei due parte: il controllo vale per entrambe le strade, non solo per la prova |
+| ✅ J7 | Newsletter aperta | **Svuota il campo Oggetto** e premi **Salva oggetto** | Avviso «Inserisci l'oggetto.» — la stessa frase del controllo prima dell'invio. *(Prima non succedeva niente: nessun salvataggio e nessun messaggio. Corretto il 19/08)* |
 | ✅ J5 | Oggetto con **spazi in testa e in coda** | Salva e guarda cosa arriva | Ripulito prima dell'invio *(19/08, azienda 2 — la 6 non ha SMTP)* |
 | ✅ J6 | Invio in corso | **Doppio clic** sui pulsanti | Restano disabilitati: niente doppio invio |
 
 ## K — Destinatari: i casi che mancavano *(§8-C4, D7)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| ☐ **K0** | Composizione newsletter → apri la modale **Destinatari** | **Clicca fuori dalla modale** | ⚠️ **Non deve chiudersi.** Da una modale si esce solo con i comandi previsti: è la regola `BackdropClick = false` di `overview.md` §3.3.4. *(Trovato aperto il 19/08 su `NewsletterDestinatariDialog`; corretto lo stesso giorno insieme ad Anteprima e Log invio, che avevano lo stesso buco. **Serve il riavvio dell'app**)* |
 
 > **C3 (cliente senza email) è già verificata a DB il 19/08** e non richiede un passo qui: la form
 > impone l'email, ma 296 clienti su 742 non ce l'hanno per via dell'import da Oracle. Con il consenso
