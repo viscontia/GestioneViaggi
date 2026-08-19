@@ -122,6 +122,20 @@
 > sulle porte 465/587 e `Connect` va in timeout (sembra un bug SMTP, è routing).
 > ⚠️ "Invia a tutti" sull'azienda 2 manda una mail **vera ad Antonio**.
 
+### Esito del collaudo del 2026-08-19
+
+Eseguito col runbook `2026-08-18-Runbook_Collaudo_Newsletter_Multilingua.md`, che copre la parte
+**multilingua** end-to-end. Segnate ✅ le voci verificate quel giorno: **A1-A2** (menu e caricamento),
+**C1, C7-C12** (conteggio 6 e elenco destinatari), **D6** (doppia soppressione), **F1-F2, F6-F9**
+(invio reale ai 6 destinatari), **H3-H5** (disiscrizione e firma), **H6-H7** (sito mancante bloccante),
+**I1-I3** (storico e log), **L1-L3** (zero destinatari, SMTP irraggiungibile, storico pulito).
+
+**Restano aperte** — non le toccava il runbook: **A3-A8** (gating e selettore azienda SuperAdmin),
+**B1-B6** (validazioni di composizione), **C3-C4** (cliente senza email, consenso), **D7**, **E6**,
+**H1-H2** (template e logo mancante), **I4**, **J1-J2** (iscritti), **K1-K3** (silos), **L5-L6**.
+
+---
+
 **Ordine consigliato:** A → B → C → D → E → F → G → H → I → J → K → L.
 I gruppi E/F/G inviano posta vera: falli in una sessione sola, a VPN spenta.
 
@@ -150,9 +164,9 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 
 ### A. Accesso e gating
 
-- ☐ **A1** — Menu "Estensione Web > Newsletter" presente; `/newsletter` si apre senza errori e la
+- ✅ **A1** — Menu "Estensione Web > Newsletter" presente; `/newsletter` si apre senza errori e la
   status bar mostra `web_newsletter_invii`.
-- ☐ **A2** — La pagina carica conteggio, storico, iscritti e soppressioni senza eccezioni.
+- ✅ **A2** — La pagina carica conteggio, storico, iscritti e soppressioni senza eccezioni.
 - ☐ **A3** — Azienda con `newsletter` disattivata (§9) → "non attiva", nessuna query.
 
 **SuperAdmin (nuovo):**
@@ -176,7 +190,7 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 
 ### C. Destinatari, dedup ed elenco
 
-- ☐ **C1** — Conteggio azienda 2 = **6**, non 7: la dedup regge (`entrambi` contato una volta).
+- ✅ **C1** — Conteggio azienda 2 = **6**, non 7: la dedup regge (`entrambi` contato una volta).
   *(Verificato ✅ l'8/08 quando erano 4 su 5. Da rifare con i due clienti ES/FR: cambia il numero,
   non il comportamento.)*
 - ✅ **C2** — Conteggio azienda 6 = **2**.
@@ -189,17 +203,17 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
   → risale. *(Ricorda: gli **iscritti** non dipendono dal consenso cliente — vedi C6.)*
 
 **Elenco destinatari (nuovo):**
-- ☐ **C7** — Il chip "Destinatari: N" è **cliccabile** (cursore e tooltip "Vedi l'elenco dei
+- ✅ **C7** — Il chip "Destinatari: N" è **cliccabile** (cursore e tooltip "Vedi l'elenco dei
   destinatari"); con 0 destinatari è disabilitato.
-- ☐ **C8** — Si apre un elenco **in sola lettura** con le colonne, da sinistra:
+- ✅ **C8** — Si apre un elenco **in sola lettura** con le colonne, da sinistra:
   **Cognome, Nome, Mail, Telefono, Lingua**.
-- ☐ **C9** — Le righe sono **le stesse** del conteggio: stesso numero, nessun duplicato.
+- ✅ **C9** — Le righe sono **le stesse** del conteggio: stesso numero, nessun duplicato.
   Su azienda 2 devono essere 6, con `visconti.adriano@gmail.com` **una volta sola**.
-- ☐ **C10** — Il **telefono** compare per chi è cliente e **è vuoto (—) per `visconti.adriano+de@`**,
+- ✅ **C10** — Il **telefono** compare per chi è cliente e **è vuoto (—) per `visconti.adriano+de@`**,
   che è solo un iscritto: è il comportamento voluto, non un dato mancante.
-- ☐ **C11** — La **lingua** in elenco coincide con quella con cui la mail arriverà davvero
+- ✅ **C11** — La **lingua** in elenco coincide con quella con cui la mail arriverà davvero
   (verificabile dopo F).
-- ☐ **C12** — L'elenco è ordinato per Cognome e non è modificabile (nessun campo editabile).
+- ✅ **C12** — L'elenco è ordinato per Cognome e non è modificabile (nessun campo editabile).
 
 ### D. Soppressioni
 
@@ -208,7 +222,7 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ✅ **D4** — L'indirizzo soppresso **non riceve**: le campagne 2/3/4 avevano esattamente
   `info@`, `mirania008@` e `visconti.adriano+de@`, senza `visconti.adriano@`. La mail arrivata in
   quella casella era quella all'alias `+de`, che Gmail consegna nella stessa inbox.
-- ☐ **D6** — Doppia soppressione della stessa email → atteso in snackbar:
+- ✅ **D6** — Doppia soppressione della stessa email → atteso in snackbar:
   **"Questo indirizzo è già soppresso per questa azienda."** *(Se rivedi
   "Esiste già un record per web_newsletter_soppressioni", la voce nel dizionario dei vincoli è
   andata persa.)*
@@ -229,21 +243,21 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ✅ **F3** — Nella inbox arrivano **2** mail (la tua `EN` e quella `+de` in `DE`), non 3: dedup ok.
 - ✅ **F4** — Lingue corrette: Antonio in `IT`, Anna in `EN`, `+de` in `DE`, oggetto e corpo tradotti.
 - ✅ **F5** — L'HTML del corpo sopravvive alla traduzione.
-- ☐ **F1** — *Invia a tutti* → conferma "Inviare la newsletter a **6** destinatari?"; *Annulla* non manda nulla.
-- ☐ **F2** — **La verifica chiave del secondo giro:** esito **snackbar VERDE "Inviate 6/6"**, senza
+- ✅ **F1** — *Invia a tutti* → conferma "Inviare la newsletter a **6** destinatari?"; *Annulla* non manda nulla.
+- ✅ **F2** — **La verifica chiave del secondo giro:** esito **snackbar VERDE "Inviate 6/6"**, senza
   errori. Se ricompare "Un valore inserito per web_newsletter_invii non rispetta le regole di
   validità", la correzione dello stato è stata persa.
-- ☐ **F6** — **(corretto il 2026-08-19)** Il consumo Claude si registra **quando si traduce**, non
+- ✅ **F6** — **(corretto il 2026-08-19)** Il consumo Claude si registra **quando si traduce**, non
   quando si spedisce, e la causale è **il campo tradotto**: «Oggetto della newsletter (EN)»,
   «Blocco 2 — Titolo (DE)», «Blocco 4 — Testo (ES)»… *(La causale «Newsletter (EN)» apparteneva al
   motore testuale `BuildBodiesAsync`, rimosso: traduceva al momento dell'invio. Ora al momento
   dell'invio non c'è più consumo Claude, perché i testi sono già tradotti.)*
-- ☐ **F7** — Tab Storico: riga con stato **`inviata`** (chip **verde**), **Data invio valorizzata**,
+- ✅ **F7** — Tab Storico: riga con stato **`inviata`** (chip **verde**), **Data invio valorizzata**,
   **Destinatari = 6**, canale `smtp`. Erano le due colonne vuote del primo giro.
-- ☐ **F8** — **Avanzamento (nuovo)**: durante l'invio compare prima "Preparazione dell'invio
+- ✅ **F8** — **Avanzamento (nuovo)**: durante l'invio compare prima "Preparazione dell'invio
   (traduzione dei testi)…" e poi **"Invio in corso: N di 6"** con la barra che avanza. A fine invio
   sparisce tutto.
-- ☐ **F9** — **(nuovo, cinque lingue)** Nella tua inbox arrivano **3** mail — `EN`, `DE` (`+de@`) e
+- ✅ **F9** — **(nuovo, cinque lingue)** Nella tua inbox arrivano **3** mail — `EN`, `DE` (`+de@`) e
   **`FR`** (`+fr@`) — più una **`ES`** su `offadventure@gmail.com` e la `IT` ad Antonio. In tutto
   **5 mail leggibili su 6 destinatari**: `visconti.adriano@` è contato una volta sola. Confronta gli
   oggetti: cinque lingue diverse, non cinque volte l'italiano.
@@ -275,23 +289,23 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 - ☐ **H2** — **(cambiato)** Azienda **senza logo** → prima di inviare compare il dialogo
   **"Logo mancante"**: *Invia comunque* prosegue, *Annulla* interrompe senza spedire nulla.
   *(Deciso di non bloccare: impedire l'invio per un logo lascerebbe l'azienda muta verso i clienti.)*
-- ☐ **H3** — In coda al corpo c'è "Non desideri più ricevere la nostra newsletter? **Disiscriviti**".
-- ☐ **H4** — Il link punta a `<sito_web>/unsubscribe?email=…&sig=…`, con l'email URL-encoded.
-- ☐ **H5** — **Firma reale**: stessa email inviata da azienda 2 e da azienda 6 → i `sig` devono
+- ✅ **H3** — In coda al corpo c'è "Non desideri più ricevere la nostra newsletter? **Disiscriviti**".
+- ✅ **H4** — Il link punta a `<sito_web>/unsubscribe?email=…&sig=…`, con l'email URL-encoded.
+- ✅ **H5** — **Firma reale**: stessa email inviata da azienda 2 e da azienda 6 → i `sig` devono
   essere **diversi**. Se sono identici, `token_iscrizione` è NULL e l'HMAC gira a chiave vuota.
   *(Ora verificabile: nel primo giro le mail non partivano.)*
-- ☐ **H6** — **(cambiato: ora bloccante)** Azienda **senza `sito_web`** → l'invio **non parte** e
+- ✅ **H6** — **(cambiato: ora bloccante)** Azienda **senza `sito_web`** → l'invio **non parte** e
   compare "Questa azienda non ha un sito web: il link di disiscrizione sarebbe rotto…".
   Vale sia per *Invia prova* sia per *Invia a tutti*.
-- ☐ **H7** — Il blocco è **autoritativo**: sta anche nel servizio, non solo nella UI. Non c'è
+- ✅ **H7** — Il blocco è **autoritativo**: sta anche nel servizio, non solo nella UI. Non c'è
   percorso che spedisca con un link a `example.com`.
 
 ### I. Storico e log
 
-- ☐ **I1** — Storico con oggetto, stato, data, n. destinatari, canale — **tutte valorizzate**.
-- ☐ **I2** — **(cambiato)** Il pulsante **Log** si vede che è un pulsante (bordo, colore, icona) e
+- ✅ **I1** — Storico con oggetto, stato, data, n. destinatari, canale — **tutte valorizzate**.
+- ✅ **I2** — **(cambiato)** Il pulsante **Log** si vede che è un pulsante (bordo, colore, icona) e
   apre il dialogo con una riga per destinatario: email, lingua, stato consegna.
-- ☐ **I3** — I destinatari nel log sono esattamente quelli attesi (soppressi esclusi, dedup applicata).
+- ✅ **I3** — I destinatari nel log sono esattamente quelli attesi (soppressi esclusi, dedup applicata).
 - ☐ **I4** — Il log di un invio dell'azienda 2 non è visibile dall'azienda 6.
 
 ### J. Iscritti
@@ -309,19 +323,19 @@ Le campagne di prova sono state cancellate: lo Storico riparte vuoto.
 
 ### L. Errori e casi limite
 
-- ☐ **L1** — Azienda **senza destinatari** → *Invia a tutti* → snackbar rossa "Errore invio: Nessun
+- ✅ **L1** — Azienda **senza destinatari** → *Invia a tutti* → snackbar rossa "Errore invio: Nessun
   destinatario…" e **nessuna riga** nello Storico.
   ⚠️ Per arrivare davvero a zero sull'azienda 2 non basta togliere il consenso ai clienti: vanno
   disattivati anche i **due iscritti**, che non hanno UI. Via SQL:
   `UPDATE web_newsletter_iscritti SET stato='disiscritto' WHERE azienda_id=2;`
   *(Nel primo giro erano loro i 2 destinatari che restavano.)*
-- ☐ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → "Inviate 0/6, 6 errori", log con
+- ✅ **L2** — **SMTP irraggiungibile** (o VPN accesa apposta) → "Inviate 0/6, 6 errori", log con
   tutti `errore`.
   ⚠️ **Ora verificabile davvero** (prima era mascherato dal bug dello stato): controlla se la riga
   di Storico risulta comunque **`inviata`**. Lo stato è messo a fine ciclo **senza guardare gli
   esiti**, quindi una campagna interamente fallita si archivia come inviata. Se confermato, è da
   correggere — il CHECK non prevede un valore `errore`, quindi serve uno script.
-- ☐ **L3** — **Errore prima del ciclo** → la riga di Storico può restare appesa in **`in_invio`**.
+- ✅ **L3** — **Errore prima del ciclo** → la riga di Storico può restare appesa in **`in_invio`**.
   Riproducibile togliendo il `sito_web`: ora però il blocco scatta **prima** che la riga venga
   creata, quindi lo Storico deve restare pulito. Verifica che sia così.
 - ☐ **L5** — Conteggio del dialogo di conferma **stantio**: apri `/newsletter`, aggiungi una
@@ -1022,6 +1036,11 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 ## 44. Traduzione della newsletter (fasi 4.1 e 4.2, script `531`)
 
+> ✅ **Collaudata il 2026-08-19, per intero** (44.1-44.10, incluse 44.3 riscritta, 44.4 con la tendina
+> Lingua, 44.5/44.5-bis/44.5-ter e 44.7-quater). Due difetti trovati e corretti lo stesso giorno: il
+> riquadro Lingue che non rileggeva lo stato, e l'oggetto che non invalidava le sue traduzioni (`537`).
+
+
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
 | 44.1 | Apri una newsletter in bozza | Riquadro **Lingue** con EN/DE/ES/FR e il conteggio `0/N` |
@@ -1070,6 +1089,11 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 ## 45. Archivio per lingua e clonazione delle traduzioni (fase 4.4, script `532`)
 
+> ✅ **45.1-45.2 collaudate il 2026-08-19** (cinque righe in `web_newsletter_invii_corpi`, corpo DE
+> archiviato identico alla mail ricevuta). ☐ **45.3-45.8 aperte**: invio tutto-italiano e clonazione
+> con traduzioni.
+
+
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
 | 45.1 | Traduci una newsletter, poi **Invia a tutti** con destinatari di lingue diverse | In `web_newsletter_invii_corpi` c'è **una riga per lingua usata**: sull'azienda 2 devono essere **5** (IT, EN, DE, ES, FR), con oggetto, corpo e numero di destinatari — `EN` con 2, le altre con 1 |
@@ -1088,6 +1112,10 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 
 ## 46. Anteprima nella lingua del destinatario (fase 4.5, prima parte)
 
+> ✅ **Collaudata il 2026-08-19, per intero** (46.1-46.7). 46.4 corretta in corso d'opera: l'avviso
+> compariva per qualsiasi lingua diversa dall'italiano, anche a copertura piena.
+
+
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
 | 46.1 | Apri l'**Anteprima** di una newsletter | In cima, le cinque lingue. L'italiano è selezionato |
@@ -1101,6 +1129,12 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 ---
 
 ## 47. Riquadro tour nelle altre lingue (fase 4.3, script `533`)
+
+> ✅ **47.1-47.5 collaudate il 2026-08-19** col blocco Capodanno 2026-2027 (periodo tradotto nelle
+> quattro lingue, anni a cavallo, forma breve, correzione manuale preservata). 47.4 verificata sulla
+> forma, non su una partenza di un giorno reale. ☐ **47.6-47.14 aperte**: eredità delle traduzioni dal
+> tour e posizione del pulsante.
+
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
@@ -1128,3 +1162,17 @@ Tocca sei schermate, tre delle quali **fuori** dall'estensione web: vanno riprov
 | 47.13 | Scegli *A destra* → Anteprima | Il pulsante si sposta a destra, dentro la colonna del testo |
 | 47.14 | Riquadro **informativo** con pulsante | Lì la scelta **non** compare: il pulsante chiude un testo che scorre accanto all'icona, e spostarlo lo staccherebbe dal discorso |
 
+
+---
+
+## 48. La via d'uscita dai contenuti web *(2026-08-19)*
+
+Nata da un difetto trovato collaudando: nella scheda Contenuti Web il pulsante del footer chiamava
+sempre `GoToContenuti()`, che porta alla sotto-scheda 0. Stando **già** sui Contenuti metteva 0 a 0 e
+non faceva niente — un «Chiudi» che non chiudeva. La X in alto era invece scritta bene.
+
+| # | Cosa fare | Cosa deve succedere |
+|---|---|---|
+| ✅ 48.1 | Viaggio → **Contenuti Web** → sotto-scheda **Contenuti**, premi il pulsante in basso | Si chiama **«Chiudi»** e chiude davvero il dialog del viaggio |
+| ✅ 48.2 | Come sopra ma da un **sotto-tab** (Galleria, Itinerario, Mappa, Traduzioni) | Si chiama **«Torna ai contenuti»** e riporta alla sotto-scheda Contenuti, restando nel viaggio |
+| ✅ 48.3 | Come 48.1 con **modifiche non salvate** | Chiede prima cosa fare — salva o scarta — come la X in alto |

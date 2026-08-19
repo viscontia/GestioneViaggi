@@ -197,3 +197,84 @@ Prima di aprire il codice, raccogli questi tre elementi: separano quasi sempre l
 | H1 | Viaggio aperto → **Contenuti Web** → sotto-scheda **Contenuti** | Guarda il pulsante in basso e premilo | Si chiama **«Chiudi»** e **chiude davvero** il dialog del viaggio. Era questo il difetto: non faceva niente |
 | H2 | Viaggio aperto → Contenuti Web → un **sotto-tab** (Galleria, Itinerario, Mappa, Traduzioni) | Guarda il pulsante in basso e premilo | Si chiama **«Torna ai contenuti»** e riporta alla sotto-scheda Contenuti, restando nel viaggio |
 | H3 | Come H1 ma con **modifiche non salvate** | Premi Chiudi | Chiede prima cosa fare delle modifiche — salva o scarta — esattamente come la X in alto |
+
+---
+
+# Parte seconda — il §8 che resta *(scritta il 2026-08-19)*
+
+La parte multilingua è chiusa. Restano i controlli che il primo runbook non toccava: gating e
+multi-azienda, validazioni di composizione, i casi dei destinatari, template e logo, silos.
+Nessuno di questi manda posta vera **tranne L3**, quindi si possono fare a VPN accesa.
+
+## Preparazione — cosa serve avere sottomano
+
+| # | Cosa serve | Come ottenerlo |
+|---|---|---|
+| P1 | Un utente **SuperAdmin** | Serve per tutto il gruppo I e per M3 |
+| P2 | Un'azienda con la newsletter **disattivata** | Anagrafica Aziende → tab **Funzioni Web** → togli `newsletter` a un'azienda che non sia la 2 |
+| P3 | Un cliente **senza email** e con consenso | Anagrafica clienti: creane uno o svuota l'email a uno esistente (annota quale, va ripristinato) |
+| P4 | Un'azienda **senza logo** | L'azienda 6 va bene se non ne ha uno; altrimenti togli il logo temporaneamente |
+| P5 | L'azienda **6** raggiungibile dal selettore | Ha 2 destinatari e nessun dato web: è il termine di paragone per i silos |
+
+---
+
+## I — Gating e selettore azienda *(§8-A3 → A8)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| I1 | Utente **normale** (non SuperAdmin) su `/newsletter` | Guarda in cima alla pagina | **Nessun selettore azienda**: vede solo la sua |
+| I2 | **SuperAdmin** su `/newsletter`, nessuna azienda scelta | Guarda la pagina | Avviso «Seleziona un'azienda» e **nessun tab operativo** |
+| I3 | SuperAdmin | Scegli l'azienda **2** | Conteggio, storico, iscritti e soppressioni si popolano |
+| I4 | SuperAdmin sull'azienda 2 | Passa all'azienda **6** | **Tutto si ricarica e non resta niente della precedente.** Guarda soprattutto lo **Storico**: se compaiono le campagne della 2, l'invariante silos è rotta |
+| I5 | SuperAdmin | Scegli l'azienda **P2** (newsletter disattivata) | Compare «non attiva» **cambiando dal selettore**, non solo all'apertura della pagina |
+| I6 | Utente normale dell'azienda P2 | Apri il menu | La voce **Estensione Web → Newsletter sparisce**; forzando `/newsletter` la pagina dice «non attiva» |
+| I7 | Riattiva `newsletter` su P2 | Ricarica | Menu e pagina tornano disponibili |
+
+## J — Validazioni di composizione *(§8-B — nessuna mail parte)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| J1 | Newsletter in bozza, **oggetto vuoto** | *Invia prova* | Avviso «Inserisci l'oggetto.» |
+| J2 | Corpo Quill **vuoto** | *Invia prova* | Avviso «Il corpo è vuoto.» |
+| J3 | Corpo con **solo un a-capo** (`<p><br></p>`) | *Invia prova* | Conta come vuoto: stesso avviso di J2 |
+| J4 | Oggetto valido, **email di prova vuota** | *Invia prova* | Avviso sull'indirizzo mancante |
+| J5 | Oggetto con **spazi in testa e in coda** | Salva e guarda cosa arriva | L'oggetto viene ripulito prima dell'invio |
+| J6 | Invio in corso | **Doppio clic** sui pulsanti | Restano disabilitati: niente doppio invio |
+
+## K — Destinatari: i casi che mancavano *(§8-C3, C4, D7)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| K1 | Cliente **P3, senza email**, con consenso | Apri `/newsletter` e guarda il conteggio | **Non compare**: senza indirizzo non è un destinatario. Né nel numero né nell'elenco |
+| K2 | Un cliente con consenso | Togli il consenso in anagrafica → riapri `/newsletter` | Il conteggio **cala di uno**. Rimettilo → risale. *(Gli iscritti non dipendono dal consenso cliente)* |
+| K3 | Conteggio a 6 | Sopprimi uno dei sei indirizzi, poi apri l'**elenco destinatari** | Il soppresso **non c'è più nell'elenco**, non solo nel numero: conteggio ed elenco devono raccontare la stessa cosa |
+| K4 | Stato di K3 | Togli la soppressione | Torna tutto come prima |
+
+## L — Template, logo e prova fallita *(§8-H1, H2, E6)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| L1 | Una mail ricevuta dai giri precedenti | Guardala tutta | Usa `CompanyEmailTemplate`: **logo, ragione sociale, sito e telefono** nel footer |
+| L2 | Azienda **P4, senza logo** | *Invia a tutti* | Prima di spedire compare il dialogo **«Logo mancante»**: *Invia comunque* prosegue, *Annulla* interrompe **senza spedire niente** |
+| L3 | SMTP volutamente sbagliato *(cambia la porta e salva)* | *Invia prova* | Snackbar rossa **«Invio di prova fallito (verifica la configurazione email).»** Poi **ripristina la configurazione** |
+
+## M — Silos multi-tenant *(§8-I4, J1, J2, K1, K2, K3)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| M1 | Tab **Iscritti** dell'azienda 2 | Guardalo | I **2 iscritti** con email, nome, lingua, stato, consenso |
+| M2 | Stesso tab | Cerca un pulsante di modifica o inserimento | **Non c'è**: l'elenco è in sola lettura |
+| M3 | SuperAdmin sull'azienda **6** | Apri Storico, Iscritti, Soppressioni | **Niente dell'azienda 2**, e viceversa tornando indietro |
+| M4 | Azienda 6 | Prova ad aprire il **Log** di un invio dell'azienda 2 | Non è raggiungibile da qui |
+| M5 | Stessa email soppressa sull'azienda 2 | Guarda i destinatari dell'azienda 6 | **Non è filtrata**: il vincolo unico è su `(azienda_id, email)`, le soppressioni non attraversano le aziende |
+
+## N — L'ultimo caso limite *(§8-L5)*
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| N1 | `/newsletter` aperta con il conteggio a video | Da **un'altra sessione** (o via SQL) aggiungi una soppressione, poi torna e premi *Invia a tutti* | ⚠️ Il dialogo annuncia il **vecchio numero**: è il difetto atteso. Verifica poi **quanti ne parte davvero** — il motore rilegge i destinatari, quindi il numero reale dovrebbe essere quello aggiornato |
+
+> **§8-L6 non è più eseguibile.** Diceva: «traduzione fallita su una sola lingua → quella degrada a
+> IT, le altre restano tradotte». Descriveva il motore che traduceva **al momento dell'invio**
+> (`BuildBodiesAsync`), rimosso il 2026-08-19. Oggi le traduzioni si fanno prima, e una lingua
+> tradotta a metà **blocca l'invio** invece di degradare (§44.7). Stessa sorte del §8-G.
