@@ -174,8 +174,8 @@ convertire: letture per id/email/CF/anagrafica, i tre `ExistsBy*`, `SearchAsync`
 
 | # | Domanda | Decisione |
 |---|---|---|
-| 1 | Email obbligatoria? | **Sì, sempre — anche in modifica.** Chi riapre un'anagrafica senza email non salva finché non la inserisce |
-| 2 | Email univoca? | **`UNIQUE (azienda_fk, email)`**. Fra aziende diverse la stessa email resta lecita: i silos sono indipendenti |
+| 1 | Email obbligatoria? | ~~Sì, sempre~~ → **rivista**: obbligatoria per i **piloti**, facoltativa per gli accompagnatori. Vedi sotto |
+| 2 | Email univoca? | ~~`UNIQUE (azienda_fk, email)`~~ → **rivista**: avviso, non vincolo. Vedi sotto |
 | 3 | Documento scaduto | **Avviso, non blocco.** Importante ma non è un invariante: un documento scade da solo col tempo |
 | 4 | Consenso e lingua nel CRUD | **Dentro**, e il consenso va raccolto **anche dal sito** per chi lascia lì la propria anagrafica |
 
@@ -196,6 +196,65 @@ committente, presa con questi numeri sotto gli occhi.**
 **Conseguenze della 2.** Vanno sanate **3 email duplicate dentro la stessa azienda** prima di poter
 creare il vincolo. I **5 casi di stessa email su aziende diverse** non si toccano: sono leciti per
 costruzione.
+
+### Revisione delle decisioni 1 e 2 — dopo aver guardato i dati
+
+Le prime due decisioni sono state **riviste lo stesso giorno**, perché i dati veri hanno mostrato che
+le regole come formulate contraddicevano il modo in cui si lavora davvero.
+
+#### Email: obbligatoria per i **piloti**, facoltativa per gli accompagnatori
+
+L'obbligo indiscriminato produce dati falsi, non dati. Le tre coppie con email ripetuta lo
+dimostrano: in ciascuna, **l'indirizzo appartiene a uno dei due** e l'altro se l'è fatto prestare —
+`lulu.sciascia@` è di Sciascia, `massimo.fratantonio@` di Fratantonio, `s.biavati@` di Biavati. È la
+firma di una form che pretende un'email da chi non vuole darla: la moglie che si iscrive col marito e
+non lascia il proprio indirizzo per non ricevere posta che non le interessa.
+
+Il criterio giusto lo detta il ruolo, ed è **già quello che il sito di iscrizione applica**. Misurato
+su PROD il 2026-08-20:
+
+| Ruolo | Iscrizioni | Senza email |
+|---|---|---|
+| **Piloti** (pilota mezzo proprio, guida, moto, quad, noleggiato) | **667** | **11** — 1,6% |
+| **Non piloti** (passeggeri, guida in seconda) | **532** | **385** — 72% |
+
+Chi guida lascia l'email quasi sempre; chi è trasportato quasi mai. La regola descrive la pratica
+invece di combatterla, e **la bonifica passa da 297 righe a 11**.
+
+> ⚠️ **Conseguenza architetturale, non banale.** Il ruolo pilota/passeggero **non sta sul cliente**:
+> sta sull'iscrizione al viaggio (`mov_clienti_viaggi.tipo_partecipante_id_fk` →
+> `ana_tipo_partecipante.tipo_partecipante_pilota`). La stessa persona è pilota in un viaggio e
+> passeggero in un altro.
+>
+> Quindi la regola **non può essere** un `NOT NULL` né un `CHECK` su `ana_clienti`, e la form
+> anagrafica da sola non può applicarla: non sa in che ruolo verrà iscritta quella persona. Va
+> imposta **dove il ruolo si conosce** — al momento dell'iscrizione al viaggio. Sull'anagrafica
+> l'email resta facoltativa.
+
+#### Email univoca: avviso, non vincolo
+
+Stessa causa. Se la moglie non lascia l'email e la form la pretende, si finisce per metterci quella
+del marito: il vincolo di unicità non impedirebbe il dato sbagliato, lo renderebbe soltanto più
+faticoso da inserire. Diventa un **avviso** — «questa email è già usata da un altro cliente di questa
+azienda» — che intercetta la scheda duplicata per errore senza vietare la coppia. Coerente con la
+scelta fatta per il documento scaduto.
+
+Niente da sanare su PROD: le tre coppie restano legittime. La newsletter deduplica già per email
+(`fn_web_destinatari_newsletter`), quindi una casella condivisa riceve un solo messaggio.
+
+#### Perché il controllo anti-duplicato non ha fermato quelle tre coppie
+
+Indagato il 2026-08-20. Il SQL di `ExistsByEmailAsync` è corretto: interrogato oggi vede tutte e tre
+le coppie. Il dialog è l'**unico** percorso di creazione dell'app, e `HandleSubmit` rispetta
+`_form.IsValid`. Le ipotesi degli spazi in coda e dell'azienda non propagata sono cadute — le email
+non hanno spazi, e la segreteria è `azienda_admin` con azienda 2 correttamente valorizzata.
+
+La spiegazione è più semplice: **il controllo è nato dopo**. Introdotto il 2026-01-02 (commit
+`b079d2c`), mentre le coppie sono del **2025-09-11** e del **2025-11-05**.
+
+> **Resta un caso non spiegato:** la coppia del **2026-01-25**, creata *dopo* l'introduzione del
+> controllo. Da chiarire prima di considerare chiusa l'indagine — è l'unico indizio che il controllo
+> possa avere un percorso di fallimento ancora vivo.
 
 ### Domande ancora aperte
 
