@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `552`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `553`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–552)
+### Elenco ordinato (467–553)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -204,6 +204,7 @@ ls SqlScripts/*.sql \
 | 545 | AnaClienti_Bonifica_Da_CodiceFiscale | **Repair dati guidato dal codice fiscale**, idempotente: nome/cognome invertiti, data e comune di nascita allineati a cio' che il codice dichiara. Ogni regola si applica **solo se rende il codice corretto**. ✅ **Gia' eseguito su PROD il 2026-08-20** (11 righe) e in locale (9) |
 | 548 | Verifiche_Gravita | Le verifiche restituiscono la **gravità** (`OK`/`AVVISO`/`CONFERMA`/`ERRORE`), non solo valido sì/no: la politica «questo blocca, quello chiede conferma» sta nel DB e vale per entrambi i client. ⚠️ Fa `DROP FUNCTION` su `fn_cf_verifica` perché ne cambia il tipo restituito. ✅ Applicato su PROD il 2026-08-20 |
 | 551 | MovClientiViaggi_CRUD | **Fase 4**: iscrizione al viaggio con la regola dell'**email obbligatoria per i piloti** (dipende dal ruolo, e il ruolo sta sull'iscrizione). La segnalazione porta il `cliente_id` per aprire il popup sulla persona giusta. ✅ Applicato su PROD |
+| 553 | MovClientiViaggi_MezzoObbligatorio | I **dati del mezzo** (marca, modello, targa) diventano obbligatori quando `tipo_partecipante_dati_mezzo_obb` lo richiede: la colonna esisteva da sempre e non la leggeva nessuno. Allinea anche `ana_tipo_partecipante` fra i due ambienti (su PROD e' un no-op: il committente l'aveva gia' corretta). ✅ Applicato su PROD |
 | 552 | AnaClienti_Valida_Formati | La validazione anticipa i formati con messaggi leggibili: senza, l'errore arriva dal vincolo e **riversa nel log l'intera riga**, dati personali compresi. ✅ Applicato su PROD |
 | 550 | AnaClienti_CRUD | **Fase 3**: il CRUD unico (`valida`/`insert`/`update`/`delete`), dati in JSONB con i nomi delle colonne. Assorbe consenso e lingua. Sostituira' `ClienteRepository` (SQL inline), `sp_ana_clienti_*` e `fn_wizard_insert_cliente`/`_update`. ✅ Applicato su PROD il 2026-08-20 (additivo) |
 | 549 | AnaClienti_Verifica_Duplicato | **Fase 2**: anti-omonimia a tre livelli (stesso CF · stessa anagrafica completa · stesso nome e cognome). Nessun livello richiede il CF per funzionare. ✅ Applicato su PROD il 2026-08-20 (additivo, nessuno lo chiama ancora) |

@@ -414,6 +414,22 @@ persona**: sta sull'iscrizione. Su PROD **7 clienti su 687** sono pilota in un v
 un altro. Un campo «è un pilota» sull'anagrafica sarebbe giusto per il 99% e **falso in silenzio** su
 quei sette. Qui il ruolo si conosce con certezza.
 
+### I dati del mezzo, quando il ruolo li richiede (`SqlScripts/553`)
+
+`ana_tipo_partecipante.tipo_partecipante_dati_mezzo_obb` dichiara, per ogni ruolo, se i dati del mezzo
+servono. La colonna esiste da sempre e si può spuntare dall'interfaccia — **e non la leggeva nessuno**:
+cercandone gli usi si trovano solo il dialogo che la modifica e la griglia che la mostra. Una regola
+scritta nei dati e applicata da nessuna parte, che su PROD aveva lasciato 14 iscrizioni senza mezzo su
+ruoli che lo richiedono.
+
+«Dati del mezzo» significa **marca, modello e targa**, e lo dicono i dati: si valorizzano insieme —
+su 611 iscrizioni come *pilota mezzo proprio* ne mancano rispettivamente 3, 5 e 4, in pratica le stesse
+righe. La segnalazione dice **quale** manca (*«manca la marca, il modello e la targa»*), perché «dati
+del mezzo mancanti» costringerebbe a indovinare.
+
+⚠️ Scatta all'inserimento **e alla modifica**: le iscrizioni storiche incomplete non si potranno
+modificare senza completare il mezzo. È una bonifica graduale, voluta.
+
 ### Il `riferimento`: la segnalazione dice *chi*
 
 `PILOTA_SENZA_EMAIL` restituisce il `cliente_id` nel campo `riferimento`. Serve al client per aprire
@@ -1674,6 +1690,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1918,7 +1936,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_mov_clienti_viaggi_guardia` | p_dati jsonb, p_modifica boolean, p_conferme_accettate boolean | void |  |
 | `fn_mov_clienti_viaggi_insert` | p_dati jsonb, p_conferme_accettate boolean DEFAULT false | integer | Iscrizione al viaggio, unica per gestionale e sito. Sostituira' sp_mov_clienti_viaggi_create e fn_wizard_insert_prenotazione. |
 | `fn_mov_clienti_viaggi_update` | p_dati jsonb, p_conferme_accettate boolean DEFAULT false | integer |  |
-| `fn_mov_clienti_viaggi_valida` | p_dati jsonb, p_modifica boolean DEFAULT false | TABLE(gravita character varying, esito character varying, messaggio text, riferimento integer) | Regole dell'iscrizione al viaggio (SqlScripts/551). Qui vive l'obbligo dell'email per i PILOTI: dipende dal ruolo, e il ruolo sta sull'iscrizione, non sulla persona. |
+| `fn_mov_clienti_viaggi_valida` | p_dati jsonb, p_modifica boolean DEFAULT false | TABLE(gravita character varying, esito character varying, messaggio text, riferimento integer) | Regole dell'iscrizione al viaggio (SqlScripts/551, 553): email obbligatoria per i PILOTI e dati del mezzo obbligatori quando ana_tipo_partecipante.tipo_partecipante_dati_mezzo_obb lo richiede. Entrambe dipendono dal RUOLO, che sta sull'iscrizione e non sulla persona. |
 | `fn_partenza_etichetta` | p_data_viaggio_id integer, p_azienda_id integer | text | Come si nomina una partenza quando la si mostra all'utente. NULL se non esiste per quell'azienda. |
 | `fn_search_clienti` | p_azienda_fk integer, p_search_text character varying | json | DB-First: Full-text search clienti by cognome, nome, email, CF, telefono |
 | `fn_set_azienda_id` |  | trigger |  |
