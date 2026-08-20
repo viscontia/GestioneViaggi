@@ -31,20 +31,22 @@ nella logica.
 
 Il sito legge la configurazione SMTP dell'azienda dal database chiamando
 `fn_get_smtp_config_for_email` — **la stessa funzione del gestionale**. La password è cifrata, e
-serve la chiave. Va aggiunta a `.env.local` (e in produzione all'ambiente del processo):
+serve la chiave.
+
+**In locale è già a posto e verificato** (2026-08-20): nel repository Flask c'è un **symlink** al
+file della chiave del gestionale (`.gv_secret_key.local.sh`), quindi il segreto resta in un posto
+solo, e `avvia-locale.sh` lo carica da sé. Provato: la configurazione dell'azienda 2 viene letta e
+la password decifrata, e all'avvio compare
 
 ```
-GV_SECRET_KEY=<la stessa chiave usata dal gestionale>
+[FLASK FACTORY] DEBUG - Flask-Mail inizializzato da DB (Server=mail.sardegnafuoritraccia.it, Porta=465, Security=ssl).
 ```
 
-Senza, all'avvio compare:
+Se invece leggi `GV_SECRET_KEY non impostata`, stai lanciando il sito da una shell non interattiva
+e senza lo script: `~/.zshrc` non viene letto in quel caso. Usa `./avvia-locale.sh`.
 
-```
-[AZIENDA DAO] WARN - GV_SECRET_KEY non impostata: i segreti SMTP non sono decifrabili…
-```
-
-e **il sito non invia email**. Non è un errore: è lo stato dichiarato onestamente. I test del
-gruppo E non si possono fare finché la chiave non c'è.
+**Non** mettere la chiave in `.env`: quel file viene sovrascritto da `avvia-locale.sh` e
+`avvia-supabase.sh`. Per la produzione, i passi sono nella Checklist Go-Live (§ variabili d'ambiente).
 
 ---
 
@@ -107,7 +109,9 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 
 ---
 
-## E — La posta (solo dopo aver impostato `GV_SECRET_KEY`)
+## E — La posta
+
+La chiave in locale c'è già (vedi il prerequisito): questo gruppo si può eseguire subito.
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|

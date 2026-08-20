@@ -743,7 +743,27 @@ libero.
 - [ ] Migrati i **dati** di `web_tipi_viaggio_descrizioni` (+ traduzioni) e `ana_tipo_viaggi` da TEST a PROD, nell'ordine e con FK coerenti, **sequence identity riallineate** (§2.6).
 - [ ] Config app PROD completata (§3), **`GV_SECRET_KEY` verificata sulla macchina del cliente** (§3.1) e **Prova di consegna superata** (§3.3) — è il passo che evita di consegnare un'app con le funzioni sui segreti spente.
 - [ ] **Dominio definitivo deciso** (rebrand sì/no) e `sito_web` azienda valorizzato di conseguenza **prima del primo invio newsletter**; SPF/DKIM/DMARC + warm-up pianificati se il dominio mittente cambia (§3.6). ← condiziona i link di disiscrizione già spediti
-- [ ] **`GV_SECRET_KEY` nell'ambiente del processo Flask** — il sito legge la configurazione SMTP dell'azienda con `fn_get_smtp_config_for_email`, la stessa del gestionale, e la password è cifrata. Senza la chiave la posta resta spenta (con avviso esplicito nel log) e **non parte nessuna conferma di iscrizione**. È la stessa chiave del gestionale, non una seconda.
+- [ ] **`GV_SECRET_KEY` nell'ambiente del processo Flask** — il sito legge la configurazione SMTP dell'azienda con `fn_get_smtp_config_for_email`, la stessa funzione del gestionale, e la password è cifrata con pgcrypto. Senza la chiave la posta resta spenta — con un avviso esplicito nel log — e **non parte nessuna conferma di iscrizione**.
+
+  **È la stessa chiave del gestionale, non una seconda.** Una chiave diversa non dà «password errata»: rende il dato illeggibile (`Wrong key or corrupt data`). Se in PROD si cifrassero i segreti con una chiave e si leggessero con un'altra, il guasto si scoprirebbe solo alla prima email non partita.
+
+  **Dov'è oggi (macchina di sviluppo):** un unico file,
+  `MAUI/GestioneViaggi/.gv_secret_key.local.sh`, contenente `export GV_SECRET_KEY=…`.
+  Lo caricano `~/.zshrc` (quindi ogni terminale interattivo la esporta) e `run_maui.sh`.
+  Nel repository Flask c'è un **symlink** allo stesso file, non una copia: il segreto resta in un posto solo. Entrambi i file sono gitignored e non tracciati.
+
+  **In PROD** il file di sviluppo non esiste, e la chiave va messa nell'ambiente del processo che serve l'applicazione. In ordine di preferenza:
+
+  1. **systemd** — nell'unit di gunicorn:
+     `Environment="GV_SECRET_KEY=…"`, oppure `EnvironmentFile=/etc/gestioneviaggi/segreti.env` con il file a `chmod 600` e proprietario l'utente del servizio. È l'opzione migliore: la chiave non sta in nessun file del progetto.
+  2. **Pannello dell'hosting** — se il sito gira su una piattaforma con gestione variabili d'ambiente, si imposta lì.
+  3. **File accanto allo script** — `.gv_secret_key.local.sh` nella cartella del progetto, che `start_prod.sh` carica da solo. Comodo, ma mette il segreto sul disco dell'applicazione: da usare solo se le prime due non sono praticabili, e comunque `chmod 600`.
+
+  ⚠️ **Non** metterla in `.env`: quel file viene sovrascritto da `avvia-locale.sh` / `avvia-supabase.sh`, e la chiave sparirebbe al primo cambio di ambiente.
+
+  **Come si verifica che sia a posto**, senza stampare il segreto: avviare il sito e leggere il log. Deve comparire
+  `Flask-Mail inizializzato da DB (Server=…, Porta=…, Security=…)`.
+  Se compare invece `GV_SECRET_KEY non impostata` o `Nessuna configurazione SMTP utilizzabile`, la chiave manca o è quella sbagliata.
 - [ ] **Sito di iscrizione ai viaggi rivisto (§2.8)** — consenso email raccolto alla fonte con data e fonte (§2.8.1), avviso nome/sesso replicato (§2.8.2), titolo/sesso allineati (§2.8.3), controlli del CRUD cliente confrontati con quelli del gestionale (§2.8.4). ← **prerequisito**: dopo il deploy degli script il sito scrive su uno schema che non rispetta, e quei dati non si sistemano più
 - [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
 - [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
