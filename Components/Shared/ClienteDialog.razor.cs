@@ -264,6 +264,21 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     /// <summary>
     /// Validazione asincrona del codice fiscale (formato + unicità)
     /// </summary>
+    /// <summary>
+    /// Azienda su cui cercare i duplicati, oppure null se non si sa.
+    ///
+    /// Serviva a evitare un buco silenzioso: i chiamanti passano AziendaFk con un `?? 0`
+    /// (DashboardAdmin, Clienti), e lo zero non e' un'azienda — e' "non lo so". Trattandolo come
+    /// un'azienda vera la ricerca girava a vuoto, non trovava nulla e APPROVAVA. Il salvataggio
+    /// falliva comunque sulla chiave esterna, ma con un errore tecnico invece che con
+    /// "email gia' presente".
+    /// </summary>
+    private int? AziendaDaControllare()
+    {
+        var azienda = IsSuperAdmin ? Entity.AziendaFk : AziendaFk;
+        return azienda > 0 ? azienda : null;
+    }
+
     private async Task<IEnumerable<string>> ValidateCodiceFiscaleAsync(string cf)
     {
         cf = cf?.Trim() ?? string.Empty;
@@ -289,9 +304,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         {
             int? excludeId = IsEditMode ? Entity.ClienteId : null;
             // Se AziendaFk (dal parametro) è 0 (es. SuperAdmin), controlla l'azienda selezionata.
-            int? aziendaCheck = IsSuperAdmin ? (Entity.AziendaFk == 0 ? null : Entity.AziendaFk) : AziendaFk;
+            var aziendaCheck = AziendaDaControllare();
 
-            if (aziendaCheck == null) return []; // Non validare se azienda non selezionata
+            // Azienda ignota: non si approva in silenzio. Vedi AziendaDaControllare.
+            if (aziendaCheck is null)
+                return IsSuperAdmin ? [] : ["Impossibile verificare l'unicità del codice fiscale: azienda non determinata."];
 
             bool exists = await ClienteService.CheckCodiceFiscaleEsistenzaAsync(cf, aziendaCheck, excludeId);
 
@@ -406,9 +423,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         {
             int? excludeId = IsEditMode ? Entity.ClienteId : null;
             // Se AziendaFk è 0, usa Entity.AziendaFk (selezionata)
-            int? aziendaCheck = IsSuperAdmin ? (Entity.AziendaFk == 0 ? null : Entity.AziendaFk) : AziendaFk;
+            var aziendaCheck = AziendaDaControllare();
 
-            if (aziendaCheck == null) return []; // Non validare se azienda non selezionata
+            // Azienda ignota: non si approva in silenzio. Vedi AziendaDaControllare.
+            if (aziendaCheck is null)
+                return IsSuperAdmin ? [] : ["Impossibile verificare l'unicità dell'email: azienda non determinata."];
 
             bool exists = await ClienteService.VerificaClienteEsistenteAsync(email, aziendaCheck, excludeId);
 

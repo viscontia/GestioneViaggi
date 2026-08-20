@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `540`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `541`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–540)
+### Elenco ordinato (467–541)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -200,6 +200,7 @@ ls SqlScripts/*.sql \
 
 | 538 | Create_AnaTitoloPersone | **Re-model anagrafica clienti.** Nuova lookup GLOBALE `ana_titolo_persone` (codice, descrizione, sesso) + `ana_clienti.cliente_titolo_fk` **NOT NULL** + migrazione dei clienti esistenti + trigger che deriva `cliente_sesso` dal titolo. ⚠️ **Prova a secco già fatta su PROD il 2026-08-19** — vedi §2.7 |
 | 539 | TitoloPersone_Compatibilita | Ponte per chi scrive ancora il titolo come testo (**sito di iscrizione**, `sp_ana_clienti_*`, wizard): il trigger ricava la FK dal testo e tiene `cliente_titolo` come specchio. Senza questo, ogni iscrizione dal sito fallirebbe subito |
+| 541 | AnaClienti_Vincoli_Invarianti | Sei `CHECK` su `ana_clienti`: formato email, minimi su nome e cognome, coerenza fra le date del documento, forma dell'IBAN. **Zero violazioni misurate su PROD il 2026-08-20**, quindi nessuna bonifica. Primo passo della centralizzazione: valgono anche per il sito di iscrizione |
 | 540 | TitoloPersone_Ordinamento_e_Uso | `SIG.`/`SIG.RA` in testa alla tendina + `fn_ana_titolo_persone_conta_clienti`. Nessun impatto sui dati |
 
 

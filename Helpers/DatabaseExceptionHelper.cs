@@ -196,7 +196,17 @@ public static class DatabaseExceptionHelper
             { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." },
             { "ck_web_tour_mappa_descrizione_insieme", "La mappa dell'intero viaggio richiede una descrizione." },
             { "chk_web_indirizzi_url", "L'indirizzo deve iniziare con https:// (o http://). Copialo dalla barra del browser." },
-            { "chk_web_indirizzi_descrizione", "Il nome dell'indirizzo deve avere almeno 2 caratteri." }
+            { "chk_web_indirizzi_descrizione", "Il nome dell'indirizzo deve avere almeno 2 caratteri." },
+
+            // Invarianti di ana_clienti scesi nel DB (SqlScripts/541): valgono per il gestionale
+            // e per il sito di iscrizione, quindi il messaggio deve essere leggibile in entrambi.
+            { "ana_clienti_email_formato_check", "L'indirizzo email non è scritto in modo valido." },
+            { "ana_clienti_cognome_minimo_check", "Il cognome deve avere almeno 2 caratteri." },
+            { "ana_clienti_nome_minimo_check", "Il nome deve avere almeno 2 caratteri." },
+            { "ana_clienti_rilascio_dopo_nascita_check", "La data di rilascio del documento è precedente alla data di nascita." },
+            { "ana_clienti_scadenza_dopo_rilascio_check", "Il documento risulta scadere prima di essere stato rilasciato." },
+            { "ana_clienti_iban_formato_check", "L'IBAN non è valido: servono da 15 a 34 caratteri e due lettere di paese iniziali." },
+            { "ana_clienti_cliente_sesso_check", "Il sesso può essere solo M o F." }
         };
 
         foreach (var mapping in checkMessages)

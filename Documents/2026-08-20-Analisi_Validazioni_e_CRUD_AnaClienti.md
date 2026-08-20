@@ -311,6 +311,60 @@ a essere la terza copia di un fatto che vive già sull'iscrizione.
 
 Da sanare: gli **11 piloti senza email** già presenti (su 667 iscrizioni come pilota).
 
+## Parte G — L'omonimia: il controllo c'è, ma si autodisattiva
+
+Trovato il 2026-08-20 indagando su **due schede di ANTONIO TOLU** nella stessa azienda.
+
+Il controllo anti-duplicato anagrafico **esiste ed è collegato** — `ClienteService`, riga ~476 —
+ma è racchiuso in questa guardia:
+
+```csharp
+if (cliente.DataNascita.HasValue && !string.IsNullOrWhiteSpace(cliente.CodiceFiscale))
+```
+
+**Gira solo se ci sono sia la data di nascita sia il codice fiscale.** E la query che esegue
+(`ExistsByAnagraficaAsync`) pretende per giunta **l'uguaglianza del codice fiscale** fra i criteri di
+ricerca. Quindi il controllo è cieco esattamente sulle schede che hanno più probabilità di essere
+duplicate: quelle incomplete.
+
+Misurato su PROD:
+
+| | |
+|---|---|
+| Clienti **senza codice fiscale** — controllo mai eseguito su di loro | **327 su 778 (42%)** |
+| Clienti senza data di nascita | 34 |
+| **Gruppi di omonimi già presenti** nella stessa azienda | **5** (5 schede in eccesso) |
+
+Sul caso Tolu il controllo sarebbe stato cieco due volte: nessuna delle due schede aveva il CF, e le
+date di nascita differivano per un refuso (24 agosto contro 24 luglio 1977) pur essendo identici
+comune di nascita, comune di residenza, indirizzo e telefono.
+
+### Proposta per il controllo nuovo — da decidere
+
+L'idea è quella del committente: *«l'omonimia può esserci, ma non a parità di data di nascita, luogo
+di nascita e soprattutto di codice fiscale»*. Tradotta in tre livelli, e nessuno dei tre deve
+pretendere il CF per funzionare:
+
+| Coincidenza | Proposta |
+|---|---|
+| Stesso **codice fiscale** (quando c'è) | **Blocco** — è la stessa persona, sempre |
+| Stessi cognome + nome + **data e comune di nascita** | **Blocco**, con messaggio che dice quale scheda esiste già |
+| Stessi cognome + nome soltanto | **Avviso** non bloccante: l'omonimia esiste davvero |
+
+### Bonifica eseguita su PROD il 2026-08-20
+
+Le due schede TOLU sono state fuse: sopravvive la **3071** (la più vecchia, con l'autore noto),
+che ha ricevuto email e telefono col prefisso dalla 4361; il viaggio e la riga di alloggio della
+4361 sono stati spostati, e la 4361 eliminata. Consolidati 3 viaggi e 3 righe di alloggio, nessun
+residuo. Data di nascita lasciata al 24 agosto 1977 in attesa del codice fiscale, che contiene già
+data e comune e permetterà di verificarli entrambi. **In locale il duplicato non esisteva.**
+
+> Antonio Tolu è una **guida**, non un cliente: tutte e tre le iscrizioni hanno ruolo `GUIDA`, ed è
+> il motivo per cui porta l'indirizzo della segreteria invece di uno suo. Vale la pena chiedersi, più
+> avanti, se il personale debba stare in `ana_clienti` insieme ai clienti.
+
+---
+
 ### Codice orfano rilevato (non rimosso: si decide col nuovo CRUD)
 
 | Validatore | Perché è orfano |
