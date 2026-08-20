@@ -282,110 +282,62 @@ public class ClienteRepository(
         }
     }
 
-    public async Task<Cliente> InsertAsync(Cliente cliente)
+    /// <summary>
+    /// Crea un cliente chiamando <c>fn_ana_clienti_insert</c>. Le regole — duplicati,
+    /// omonimi, codice fiscale, date — vivono dentro quella funzione: qui non se ne
+    /// riscrive nessuna, perché il sito di iscrizione chiama la stessa e deve
+    /// comportarsi allo stesso modo.
+    /// </summary>
+    /// <summary>
+    /// Chiede al database cosa non va, senza scrivere. Serve alla form per sapere
+    /// PRIMA di salvare, e poter chiedere conferma dove serve.
+    /// </summary>
+    public async Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT gravita, esito, messaggio FROM fn_ana_clienti_valida(@dati::jsonb, @id)", connection);
+        command.Parameters.AddWithValue("dati", ClienteJson.Serializza(cliente));
+        command.Parameters.Add(new NpgsqlParameter("id", NpgsqlTypes.NpgsqlDbType.Integer)
+        {
+            Value = (object?)clienteId ?? DBNull.Value
+        });
+
+        var esiti = new List<EsitoValidazione>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            esiti.Add(new EsitoValidazione
+            {
+                Gravita = reader.GetString(0),
+                Esito = reader.GetString(1),
+                Messaggio = reader.GetString(2)
+            });
+        }
+        return esiti;
+    }
+
+    public async Task<Cliente> InsertAsync(Cliente cliente, bool conferme = false)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand(
+                "SELECT fn_ana_clienti_insert(@dati::jsonb, @conferme)", connection);
+            command.Parameters.AddWithValue("dati", ClienteJson.Serializza(cliente));
+            command.Parameters.AddWithValue("conferme", conferme);
 
+            cliente.ClienteId = Convert.ToInt32(await command.ExecuteScalarAsync());
+            _logger.LogInformation("Cliente {ClienteId} creato per azienda {AziendaFk}", cliente.ClienteId, cliente.AziendaFk);
 
-            var sql = @"
-                INSERT INTO ana_clienti (
-                    cliente_titolo_fk,
-                    cliente_cognome,
-                    cliente_nome,
-                    cliente_sesso,
-                    cliente_comune_residenza_fk,
-                    cliente_indirizzo_residenza,
-                    cliente_comune_nascita_fk,
-                    cliente_data_nascita,
-                    cliente_preftelint,
-                    cliente_telefono,
-                    cliente_email,
-                    cliente_codicefiscale,
-                    cliente_iban,
-                    cliente_foto,
-                    cliente_carta_identita,
-                    cliente_tipodoc_identita,
-                    cliente_documento_numero,
-                    cliente_documento_rilasciato_da,
-                    cliente_documento_rilasciato_data,
-                    cliente_documento_rilasciato_scadenza,
-                    cliente_note,
-                    cliente_foto_mimetype,
-                    cliente_foto_filename,
-                    cliente_foto_charset,
-                    cliente_foto_upd_date,
-                    cliente_documento_mimetype,
-                    cliente_documento_filename,
-                    cliente_documento_chartset,
-                    cliente_documento_upd_date,
-                    cliente_intolleranza,
-                    azienda_fk
-                )
-                VALUES (
-                    @titoloFk,
-                    @cognome,
-                    @nome,
-                    @sesso,
-                    @comuneResidenzaFk,
-                    @indirizzoResidenza,
-                    @comuneNascitaFk,
-                    @dataNascita,
-                    @prefTelInt,
-                    @telefono,
-                    @email,
-                    @codiceFiscale,
-                    @iban,
-                    @foto,
-                    @cartaIdentita,
-                    @tipoDocIdentita,
-                    @documentoNumero,
-                    @documentoRilasciatoDa,
-                    @documentoRilasciatoData,
-                    @documentoRilasciatoScadenza,
-                    @note,
-                    @fotoMimeType,
-                    @fotoFilename,
-                    @fotoCharset,
-                    @fotoUpdDate,
-                    @documentoMimeType,
-                    @documentoFilename,
-                    @documentoCharset,
-                    @documentoUpdDate,
-                    @intolleranza,
-                    @aziendaFk
-                )
-                RETURNING
-                    cliente_id,
-                    created_by,
-                    created,
-                    updated_by,
-                    updated";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            AddInsertUpdateParameters(command, cliente);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                cliente.ClienteId = reader.GetInt32(0);
-                cliente.CreatedBy = reader.IsDBNull(1) ? null : reader.GetString(1);
-                cliente.Created = reader.IsDBNull(2) ? null : reader.GetDateTime(2);
-                cliente.UpdatedBy = reader.IsDBNull(3) ? null : reader.GetString(3);
-                cliente.Updated = reader.IsDBNull(4) ? null : reader.GetDateTime(4);
-            }
-
-            _logger.LogInformation("Cliente {ClienteId} creato con successo per azienda {AziendaFk}", cliente.ClienteId, cliente.AziendaFk);
-
-            // Ritorniamo l'oggetto completo (con join) per aggiornare correttamente la griglia
+            // Si rilegge per avere i campi calcolati dal database: sesso derivato dal
+            // titolo, audit, e le descrizioni dei comuni che servono alla griglia.
             return await GetByIdAsync(cliente.ClienteId, cliente.AziendaFk) ?? cliente;
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
-            _logger.LogWarning(ex, "Violazione constraint univoco durante inserimento cliente");
-            throw new InvalidOperationException($"Cliente già esistente: {ex.MessageText}", ex);
+            // Messaggio gia' in italiano: lo compone la funzione di validazione.
+            throw new InvalidOperationException(ex.MessageText, ex);
         }
         catch (Exception ex)
         {
@@ -394,73 +346,32 @@ public class ClienteRepository(
         }
     }
 
-    public async Task<Cliente> UpdateAsync(Cliente cliente)
+    /// <summary>
+    /// Aggiorna un cliente con <c>fn_ana_clienti_update</c>. L'aggiornamento è
+    /// parziale per costruzione, ma qui si manda l'entità intera: la form la
+    /// possiede tutta, e mandare tutto evita di dover sapere cosa è cambiato.
+    /// </summary>
+    public async Task<Cliente> UpdateAsync(Cliente cliente, bool conferme = false)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand(
+                "SELECT fn_ana_clienti_update(@id, @dati::jsonb, @conferme)", connection);
+            command.Parameters.AddWithValue("id", cliente.ClienteId);
+            command.Parameters.AddWithValue("dati", ClienteJson.Serializza(cliente, includiAzienda: false));
+            command.Parameters.AddWithValue("conferme", conferme);
 
+            var righe = Convert.ToInt32(await command.ExecuteScalarAsync());
+            if (righe == 0)
+                throw new InvalidOperationException($"Cliente {cliente.ClienteId} non trovato.");
 
-            var sql = @"
-                UPDATE ana_clienti
-                SET
-                    cliente_titolo_fk = @titoloFk,
-                    cliente_cognome = @cognome,
-                    cliente_nome = @nome,
-                    cliente_sesso = @sesso,
-                    cliente_comune_residenza_fk = @comuneResidenzaFk,
-                    cliente_indirizzo_residenza = @indirizzoResidenza,
-                    cliente_comune_nascita_fk = @comuneNascitaFk,
-                    cliente_data_nascita = @dataNascita,
-                    cliente_preftelint = @prefTelInt,
-                    cliente_telefono = @telefono,
-                    cliente_email = @email,
-                    cliente_codicefiscale = @codiceFiscale,
-                    cliente_iban = @iban,
-                    cliente_foto = @foto,
-                    cliente_carta_identita = @cartaIdentita,
-                    cliente_tipodoc_identita = @tipoDocIdentita,
-                    cliente_documento_numero = @documentoNumero,
-                    cliente_documento_rilasciato_da = @documentoRilasciatoDa,
-                    cliente_documento_rilasciato_data = @documentoRilasciatoData,
-                    cliente_documento_rilasciato_scadenza = @documentoRilasciatoScadenza,
-                    cliente_note = @note,
-                    cliente_foto_mimetype = @fotoMimeType,
-                    cliente_foto_filename = @fotoFilename,
-                    cliente_foto_charset = @fotoCharset,
-                    cliente_foto_upd_date = @fotoUpdDate,
-                    cliente_documento_mimetype = @documentoMimeType,
-                    cliente_documento_filename = @documentoFilename,
-                    cliente_documento_chartset = @documentoCharset,
-                    cliente_documento_upd_date = @documentoUpdDate,
-                    cliente_intolleranza = @intolleranza
-                WHERE cliente_id = @clienteId
-                  AND azienda_fk = @aziendaFk
-                RETURNING
-                    updated_by,
-                    updated";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("clienteId", cliente.ClienteId);
-            AddInsertUpdateParameters(command, cliente);
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                cliente.UpdatedBy = reader.IsDBNull(0) ? null : reader.GetString(0);
-                cliente.Updated = reader.IsDBNull(1) ? null : reader.GetDateTime(1);
-            }
-
-            _logger.LogInformation("Cliente {ClienteId} aggiornato con successo", cliente.ClienteId);
-
-            // Ritorniamo l'oggetto completo (con join) per aggiornare correttamente la griglia
+            _logger.LogInformation("Cliente {ClienteId} aggiornato", cliente.ClienteId);
             return await GetByIdAsync(cliente.ClienteId, cliente.AziendaFk) ?? cliente;
         }
-        catch (PostgresException ex) when (ex.SqlState == "23505")
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
-            _logger.LogWarning(ex, "Violazione constraint univoco durante aggiornamento cliente {ClienteId}", cliente.ClienteId);
-            throw new InvalidOperationException($"Cliente già esistente: {ex.MessageText}", ex);
+            throw new InvalidOperationException(ex.MessageText, ex);
         }
         catch (Exception ex)
         {
@@ -474,29 +385,18 @@ public class ClienteRepository(
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                DELETE FROM ana_clienti
-                WHERE cliente_id = @clienteId
-                  AND azienda_fk = @aziendaFk";
+            await using var command = new NpgsqlCommand(
+                "SELECT fn_ana_clienti_delete(@id, @azienda)", connection);
+            command.Parameters.AddWithValue("id", clienteId);
+            command.Parameters.AddWithValue("azienda", aziendaFk);
 
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("clienteId", clienteId);
-            command.Parameters.AddWithValue("aziendaFk", aziendaFk);
-
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-
-            if (rowsAffected > 0)
-            {
-                _logger.LogInformation("Cliente {ClienteId} eliminato con successo", clienteId);
-                return true;
-            }
-
-            return false;
+            var righe = Convert.ToInt32(await command.ExecuteScalarAsync());
+            _logger.LogInformation("Cliente {ClienteId} eliminato ({Righe} righe)", clienteId, righe);
+            return righe > 0;
         }
-        catch (PostgresException ex)
+        catch (PostgresException ex) when (ex.SqlState == "P0001")
         {
-            _logger.LogWarning(ex, "Errore durante eliminazione cliente {ClienteId}: {Message}", clienteId, ex.MessageText);
-            throw new InvalidOperationException($"Impossibile eliminare il cliente: {ex.MessageText}", ex);
+            throw new InvalidOperationException(ex.MessageText, ex);
         }
         catch (Exception ex)
         {

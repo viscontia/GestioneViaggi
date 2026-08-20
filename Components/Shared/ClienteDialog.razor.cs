@@ -21,6 +21,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     [Inject] public IClienteService ClienteService { get; set; } = default!;
     [Inject] public ComuneService ComuneService { get; set; } = default!;
     [Inject] public ISnackbar Snackbar { get; set; } = default!;
+    [Inject] public IDialogService DialogService { get; set; } = default!;
     [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
     [Inject] public ClienteLinguaService ClienteLinguaService { get; set; } = default!;
     [Inject] public ClienteConsensoService ClienteConsensoService { get; set; } = default!;
@@ -90,6 +91,60 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             Entity.AziendaFk = AziendaFk;
             Entity.Sesso = 'M'; // Default
         }
+    }
+
+    private bool _confermeAccettate;
+
+    /// <summary>
+    /// Chiede al database le sue segnalazioni e, dove serve, chiede conferma all'utente.
+    /// Restituisce false se il salvataggio non deve proseguire.
+    ///
+    /// Le regole non sono qui: qui c'e' solo il modo di presentarle. La stessa
+    /// validazione la chiama il sito di iscrizione, che le presentera' a modo suo.
+    /// </summary>
+    private async Task<bool> ConfermeOttenuteAsync()
+    {
+        _confermeAccettate = false;
+
+        List<EsitoValidazione> esiti;
+        try
+        {
+            esiti = await ClienteService.ValidaAsync(Entity, IsEditMode ? Entity.ClienteId : null);
+        }
+        catch (Exception ex)
+        {
+            // Se la verifica non si puo' fare non si tira a indovinare: si prosegue e
+            // sara' il salvataggio a rifiutare, con il suo messaggio.
+            Console.WriteLine($"Validazione cliente non riuscita: {ex.Message}");
+            return true;
+        }
+
+        var errori = esiti.Where(e => e.Blocca).ToList();
+        if (errori.Count > 0)
+        {
+            foreach (var e in errori) Snackbar.Add(e.Messaggio, Severity.Error);
+            return false;
+        }
+
+        foreach (var a in esiti.Where(e => e.Gravita == "AVVISO"))
+            Snackbar.Add(a.Messaggio, Severity.Info);
+
+        var daConfermare = esiti.Where(e => e.RichiedeConferma).ToList();
+        if (daConfermare.Count == 0) return true;
+
+        var parametri = new DialogParameters
+        {
+            { "Title", "Confermi?" },
+            { "ContentText", string.Join("\n\n", daConfermare.Select(e => e.Messaggio)) }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma", parametri,
+            new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small });
+        var esito = await dialog.Result;
+
+        if (esito!.Canceled) return false;
+
+        _confermeAccettate = true;
+        return true;
     }
 
     /// <summary>Il titolo porta il sesso: lo si copia nell'entita' appena viene scelto.</summary>
@@ -219,9 +274,18 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 // Normalizza i campi prima del salvataggio
                 NormalizeEntity();
 
+                // Si chiede al database cosa non va PRIMA di scrivere. E' l'unico modo
+                // per poter chiedere conferma: se si scoprisse solo al salvataggio,
+                // all'utente resterebbe un errore e nessuna via d'uscita.
+                if (!await ConfermeOttenuteAsync())
+                {
+                    _isSaving = false;
+                    return;
+                }
+
                 if (IsEditMode)
                 {
-                    var updated = await ClienteService.UpdateAsync(Entity);
+                    var updated = await ClienteService.UpdateAsync(Entity, _confermeAccettate);
                     await ClienteLinguaService.SetAsync(Entity.ClienteId, _lingua);
                     await ClienteConsensoService.SetAsync(Entity.ClienteId, _consenso);
                     Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
@@ -229,7 +293,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 }
                 else
                 {
-                    var created = await ClienteService.CreateAsync(Entity);
+                    var created = await ClienteService.CreateAsync(Entity, _confermeAccettate);
                     await ClienteLinguaService.SetAsync(created.ClienteId, _lingua);
                     await ClienteConsensoService.SetAsync(created.ClienteId, _consenso);
                     Snackbar.Add("Cliente creato con successo", Severity.Success);

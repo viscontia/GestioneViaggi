@@ -143,8 +143,8 @@ Sostituisce `fn_wizard_insert_prenotazione` e riempie il vuoto di `MovClientiVia
 
 | File | Cosa cambia |
 |---|---|
-| `Repositories/ClienteRepository.cs` | 1271 righe di SQL inline → chiamate alle funzioni. È il file che porta via più tempo |
-| `Services/CRUD/ClienteService.cs` | la guardia anti-duplicato sparisce: la fa il database |
+| `Repositories/ClienteRepository.cs` | 1271 righe di SQL inline → chiamate alle funzioni. È il file che porta via più tempo. **✅ Scritture fatte** (insert/update/delete + `ValidaAsync`): 1271 → 1142 righe. Restano le letture e i tre `ExistsBy*` |
+| `Services/CRUD/ClienteService.cs` | la guardia anti-duplicato sparisce: la fa il database. **✅ fatto**: 541 → 342 righe, rimossa l'intera catena di validazione ormai orfana |
 | `Services/CRUD/MovClientiViaggiService.cs` | chiama `fn_mov_clienti_viaggi_insert` |
 | `Validation/Business/ClienteValidator.cs` | secondo la mappa della Parte H dell'analisi: **4 metodi da eliminare** (`ValidateTitolo`, `ValidateSesso`, `ValidatePassengerEmailDifferentFromPilot`, `ValidatePassengerEmailUnique`), il resto ridotto ad anticipazione |
 | `Validation/Fiscal/CodiceFiscaleValidator.cs` | i tre metodi orfani si eliminano: la logica è nel DB |

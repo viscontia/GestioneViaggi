@@ -62,18 +62,20 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         }
     }
 
-    public async Task<Cliente> CreateAsync(Cliente cliente)
+    /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>
+    public Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null)
+        => _repository.ValidaAsync(cliente, clienteId);
+
+    public async Task<Cliente> CreateAsync(Cliente cliente, bool conferme = false)
     {
         try
         {
-            // Validazioni pre-insert
-            await ValidateClienteAsync(cliente, isUpdate: false);
-
-            // Normalizza dati
+            // Le validazioni NON stanno piu' qui: le fa fn_ana_clienti_insert, cosi'
+            // valgono anche per il sito di iscrizione, che questo C# non lo vede.
+            // Resta la normalizzazione, che e' presentazione e non regola.
             NormalizeCliente(cliente);
 
-            // Insert
-            return await _repository.InsertAsync(cliente);
+            return await _repository.InsertAsync(cliente, conferme);
         }
         catch (Exception ex)
         {
@@ -82,18 +84,13 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         }
     }
 
-    public async Task<Cliente> UpdateAsync(Cliente cliente)
+    public async Task<Cliente> UpdateAsync(Cliente cliente, bool conferme = false)
     {
         try
         {
-            // Validazioni pre-update
-            await ValidateClienteAsync(cliente, isUpdate: true);
-
-            // Normalizza dati
             NormalizeCliente(cliente);
 
-            // Update
-            return await _repository.UpdateAsync(cliente);
+            return await _repository.UpdateAsync(cliente, conferme);
         }
         catch (Exception ex)
         {
@@ -290,212 +287,13 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
     /// <summary>
     /// Validazione completa cliente prima di INSERT/UPDATE
     /// </summary>
-    private async Task ValidateClienteAsync(Cliente cliente, bool isUpdate)
-    {
-        // 1. Validazioni Sintattiche (Lunghezza Campi)
-        ValidateFieldLengths(cliente);
+    // Le validazioni che stavano qui (lunghezze, formati, codice fiscale, unicita')
+    // sono scese nel database con SqlScripts/541-552. Non sono state "spostate" per
+    // ordine: erano invisibili al sito di iscrizione, che scrive sulla stessa tabella.
+    // Ora le fa fn_ana_clienti_valida, e valgono per entrambi.
+    //
+    // Qui resta la sola normalizzazione, che e' presentazione e non regola.
 
-        // 2. Validazioni Semantiche (Email, Telefono, Date)
-        ValidateSemanticFields(cliente);
-
-        // 3. Validazione Codice Fiscale (se presente)
-        if (!string.IsNullOrWhiteSpace(cliente.CodiceFiscale))
-        {
-            ValidateCodiceFiscale(cliente);
-        }
-
-        // 4. Validazioni Business (Unicità)
-        await ValidateBusinessRules(cliente, isUpdate);
-    }
-
-    /// <summary>
-    /// Validazione lunghezze campi
-    /// </summary>
-    private static void ValidateFieldLengths(Cliente cliente)
-    {
-        var validations = new List<(string Field, string? Value, int MaxLength)>
-        {
-            ("Cognome", cliente.Cognome, 50),
-            ("Nome", cliente.Nome, 50),
-            ("IndirizzoResidenza", cliente.IndirizzoResidenza, 100),
-            ("PrefTelInt", cliente.PrefTelInt, 5),
-            ("Telefono", cliente.Telefono, 15),
-            ("Email", cliente.Email, 100),
-            ("CodiceFiscale", cliente.CodiceFiscale, 16),
-            ("Iban", cliente.Iban, 34),
-            ("TipoDocIdentita", cliente.TipoDocIdentita, 10),
-            ("DocumentoNumero", cliente.DocumentoNumero, 50),
-            ("DocumentoRilasciatoDa", cliente.DocumentoRilasciatoDa, 100)
-        };
-
-        foreach (var (field, value, maxLength) in validations)
-        {
-            var result = FieldLengthValidator.ValidateMaxLength(value, maxLength, field);
-            if (!result.IsValid)
-            {
-                throw new ArgumentException(result.Message, field);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Validazione semantica email, telefono, date
-    /// </summary>
-    private static void ValidateSemanticFields(Cliente cliente)
-    {
-        // Email
-        if (!string.IsNullOrWhiteSpace(cliente.Email))
-        {
-            var emailResult = ClienteValidator.ValidateEmail(cliente.Email);
-            if (!emailResult.IsValid)
-            {
-                throw new ArgumentException(emailResult.Message, nameof(cliente));
-            }
-        }
-
-        // Telefono
-        if (!string.IsNullOrWhiteSpace(cliente.Telefono))
-        {
-            var phoneResult = ClienteValidator.ValidateTelefono(cliente.Telefono);
-            if (!phoneResult.IsValid)
-            {
-                throw new ArgumentException(phoneResult.Message, nameof(cliente));
-            }
-        }
-
-        // Prefisso Telefono
-        if (!string.IsNullOrWhiteSpace(cliente.PrefTelInt))
-        {
-            var prefResult = ClienteValidator.ValidatePrefissoTelefono(cliente.PrefTelInt);
-            if (!prefResult.IsValid)
-            {
-                throw new ArgumentException(prefResult.Message, nameof(cliente));
-            }
-        }
-
-        // Data Nascita
-        if (cliente.DataNascita.HasValue)
-        {
-            var dataNascitaResult = ClienteValidator.ValidateDataNascita(cliente.DataNascita.Value);
-            if (!dataNascitaResult.IsValid)
-            {
-                throw new ArgumentException(dataNascitaResult.Message, nameof(cliente));
-            }
-        }
-
-        // Date Documento - validazione manuale (metodo non esistente in ClienteValidator)
-        if (cliente.DocumentoRilasciatoData.HasValue && cliente.DocumentoRilasciatoScadenza.HasValue)
-        {
-            if (cliente.DocumentoRilasciatoScadenza.Value <= cliente.DocumentoRilasciatoData.Value)
-            {
-                throw new ArgumentException(
-                    "La data di scadenza del documento deve essere successiva alla data di rilascio",
-                    nameof(cliente)
-                );
-            }
-        }
-
-        // IBAN - validazione basica (validatore completo potrebbe non esistere)
-        if (!string.IsNullOrWhiteSpace(cliente.Iban))
-        {
-            var trimmedIban = cliente.Iban.Trim().Replace(" ", "");
-            if (trimmedIban.Length < 15 || trimmedIban.Length > 34)
-            {
-                throw new ArgumentException(
-                    "IBAN non valido: deve essere tra 15 e 34 caratteri",
-                    nameof(cliente)
-                );
-            }
-        }
-    }
-
-    /// <summary>
-    /// Validazione Codice Fiscale con algoritmo completo
-    /// </summary>
-    private void ValidateCodiceFiscale(Cliente cliente)
-    {
-        // Validazione formato e check digit
-        var cfResult = CodiceFiscaleValidator.ValidateCodiceFiscale(cliente.CodiceFiscale!);
-        if (!cfResult.IsValid)
-        {
-            throw new CodiceFiscaleValidationException(
-                cfResult.Message,
-                cliente.CodiceFiscale!,
-                cfResult.ErrorType ?? "invalid_format"
-            );
-        }
-
-        // Validazione contro anagrafica (se data nascita presente)
-        if (cliente.DataNascita.HasValue)
-        {
-            // TODO: Validazione anagrafica richiede codice catastale del comune
-            // Per ora usiamo solo la validazione base del formato
-            _logger.LogDebug(
-                "Codice fiscale {CF} - validazione anagrafica completa da implementare con codice catastale comune",
-                cliente.CodiceFiscale
-            );
-        }
-    }
-
-    /// <summary>
-    /// Validazioni business rules (unicità email, codice fiscale, anagrafica)
-    /// </summary>
-    private async Task ValidateBusinessRules(Cliente cliente, bool isUpdate)
-    {
-        int? excludeId = isUpdate ? cliente.ClienteId : null;
-
-        // Verifica unicità email (se presente)
-        if (!string.IsNullOrWhiteSpace(cliente.Email))
-        {
-            var emailExists = await _repository.ExistsByEmailAsync(cliente.Email, cliente.AziendaFk, excludeId);
-            if (emailExists)
-            {
-                throw new UniqueConstraintViolationException(
-                    $"Email già utilizzata da un altro cliente: {cliente.Email}",
-                    cliente.Email,
-                    "cliente_email"
-                );
-            }
-        }
-
-        // Verifica unicità codice fiscale (se presente)
-        if (!string.IsNullOrWhiteSpace(cliente.CodiceFiscale))
-        {
-            var cfExists = await _repository.ExistsByCodiceFiscaleAsync(cliente.CodiceFiscale, cliente.AziendaFk, excludeId);
-            if (cfExists)
-            {
-                throw new UniqueConstraintViolationException(
-                    $"Codice fiscale già utilizzato da un altro cliente: {cliente.CodiceFiscale}",
-                    null,
-                    "cliente_codicefiscale"
-                );
-            }
-        }
-
-        // Verifica unicità anagrafica (cognome + nome + data nascita + CF)
-        if (cliente.DataNascita.HasValue && !string.IsNullOrWhiteSpace(cliente.CodiceFiscale))
-        {
-            var anagraficaExists = await _repository.ExistsByAnagraficaAsync(
-                cliente.Cognome,
-                cliente.Nome,
-                cliente.DataNascita.Value,
-                cliente.CodiceFiscale,
-                cliente.AziendaFk,
-                excludeId
-            );
-
-            if (anagraficaExists)
-            {
-                throw new DuplicateBookingException(
-                    "Cliente già esistente con stessa anagrafica (cognome, nome, data nascita, codice fiscale)",
-                    cliente.Email
-                );
-            }
-        }
-    }
-
-    /// <summary>
-    /// Normalizza i dati del cliente prima del salvataggio
     /// </summary>
     private static void NormalizeCliente(Cliente cliente)
     {

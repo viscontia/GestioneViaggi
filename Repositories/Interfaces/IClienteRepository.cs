@@ -12,8 +12,11 @@ public interface IClienteRepository
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
     Task<Cliente?> GetDetailAsync(int clienteId);
     Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null);
-    Task<Cliente> InsertAsync(Cliente cliente);
-    Task<Cliente> UpdateAsync(Cliente cliente);
+    Task<Cliente> InsertAsync(Cliente cliente, bool conferme = false);
+
+    /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>
+    Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null);
+    Task<Cliente> UpdateAsync(Cliente cliente, bool conferme = false);
     Task<bool> DeleteAsync(int clienteId, int aziendaFk);
 
     // Ricerche Specializzate

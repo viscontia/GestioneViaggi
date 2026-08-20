@@ -12,8 +12,11 @@ public interface IClienteService
     Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null);
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
     Task<Cliente?> GetDetailAsync(int clienteId);
-    Task<Cliente> CreateAsync(Cliente cliente);
-    Task<Cliente> UpdateAsync(Cliente cliente);
+    Task<Cliente> CreateAsync(Cliente cliente, bool conferme = false);
+    Task<Cliente> UpdateAsync(Cliente cliente, bool conferme = false);
+
+    /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>
+    Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null);
     Task<bool> DeleteAsync(int clienteId, int aziendaFk);
 
     // Validation Operations
