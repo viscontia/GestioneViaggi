@@ -22,7 +22,6 @@ public interface IClienteService
     // Validation Operations
     Task<bool> VerificaClienteEsistenteAsync(string email, int? aziendaFk, int? excludeId = null);
     Task<bool> CheckCodiceFiscaleEsistenzaAsync(string codiceFiscale, int? aziendaFk, int? excludeClienteId = null);
-    Task<Cliente?> FindExistingByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk);
 
     // Search Operations
     Task<List<int>> GetTravelYearsAsync(int clienteId);

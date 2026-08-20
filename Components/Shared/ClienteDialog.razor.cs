@@ -277,6 +277,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 // Si chiede al database cosa non va PRIMA di scrivere. E' l'unico modo
                 // per poter chiedere conferma: se si scoprisse solo al salvataggio,
                 // all'utente resterebbe un errore e nessuna via d'uscita.
+                // Lingua e consenso viaggiano CON il cliente, non con due chiamate
+                // dopo il salvataggio: il consenso va registrato nel momento in cui
+                // l'anagrafica nasce, altrimenti la data che lo dimostra non e' quella.
+                Entity.Lingua = string.IsNullOrWhiteSpace(_lingua) ? "IT" : _lingua!.Trim().ToUpperInvariant();
+                Entity.Consenso = _consenso;
+                if (_consenso && !string.IsNullOrWhiteSpace(_consensoFonte))
+                    Entity.ConsensoFonte = _consensoFonte;
+
                 if (!await ConfermeOttenuteAsync())
                 {
                     _isSaving = false;
@@ -286,16 +294,12 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 if (IsEditMode)
                 {
                     var updated = await ClienteService.UpdateAsync(Entity, _confermeAccettate);
-                    await ClienteLinguaService.SetAsync(Entity.ClienteId, _lingua);
-                    await ClienteConsensoService.SetAsync(Entity.ClienteId, _consenso);
                     Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(updated));
                 }
                 else
                 {
                     var created = await ClienteService.CreateAsync(Entity, _confermeAccettate);
-                    await ClienteLinguaService.SetAsync(created.ClienteId, _lingua);
-                    await ClienteConsensoService.SetAsync(created.ClienteId, _consenso);
                     Snackbar.Add("Cliente creato con successo", Severity.Success);
                     MudDialog?.Close(DialogResult.Ok(created));
                 }
@@ -477,34 +481,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         if (string.IsNullOrWhiteSpace(email))
             return [];
 
-        // 1. Validazione Formato (Veloce)
+        // Solo la forma: e' immediata e va detta mentre si scrive.
+        // L'unicita' NON si controlla piu' qui. E' un AVVISO, non un divieto —
+        // condividere la casella e' prassi legittima (moglie e marito) — e un
+        // validatore di campo puo' solo dipingere di rosso, cioe' vietare.
+        // Il riscontro arriva al salvataggio, con la sua gravita' vera.
         var formatResult = ClienteValidator.ValidateEmail(email);
-        if (!formatResult.IsValid)
-            return [formatResult.Message];
+        return formatResult.IsValid ? [] : [formatResult.Message];
 
-        // 2. Validazione Unicità (DB)
-        try
-        {
-            int? excludeId = IsEditMode ? Entity.ClienteId : null;
-            // Se AziendaFk è 0, usa Entity.AziendaFk (selezionata)
-            var aziendaCheck = AziendaDaControllare();
-
-            // Azienda ignota: non si approva in silenzio. Vedi AziendaDaControllare.
-            if (aziendaCheck is null)
-                return IsSuperAdmin ? [] : ["Impossibile verificare l'unicità dell'email: azienda non determinata."];
-
-            bool exists = await ClienteService.VerificaClienteEsistenteAsync(email, aziendaCheck, excludeId);
-
-            if (exists)
-                return ["Mail già presente in Anagrafica Clienti: impossibile proseguire"];
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Errore validazione Email: {ex.Message}");
-            return ["Impossibile verificare l'unicità dell'email"];
-        }
-
-        return [];
     }
 
 

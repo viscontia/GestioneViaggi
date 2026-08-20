@@ -26,12 +26,13 @@ public interface IClienteRepository
     /// <summary>
     /// Cerca cliente per anagrafica (cognome + nome + data_nascita + codice_fiscale)
     /// </summary>
-    Task<Cliente?> GetByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk);
 
     // Validazioni di Esistenza
+    /// <summary>I riscontri di duplicato dal database: CF, anagrafica, omonimia, email.</summary>
+    Task<List<EsitoValidazione>> VerificaDuplicatoAsync(int aziendaFk, string? cognome, string? nome, DateTime? dataNascita, int? comuneNascitaFk, string? codiceFiscale, int? escludiClienteId, string? email);
+
     Task<bool> ExistsByEmailAsync(string email, int? aziendaFk, int? excludeClienteId = null);
     Task<bool> ExistsByCodiceFiscaleAsync(string codiceFiscale, int? aziendaFk, int? excludeClienteId = null);
-    Task<bool> ExistsByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk, int? excludeClienteId = null);
 
     // Verifica Relazioni
     Task<bool> HasRelatedBookingsAsync(int clienteId, int aziendaFk);

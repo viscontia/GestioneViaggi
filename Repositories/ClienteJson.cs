@@ -50,7 +50,12 @@ internal static class ClienteJson
             ["cliente_documento_mimetype"] = c.DocumentoMimeType,
             ["cliente_documento_filename"] = c.DocumentoFilename,
             ["cliente_documento_chartset"] = c.DocumentoCharset,
-            ["cliente_documento_upd_date"] = Data(c.DocumentoUpdDate)
+            ["cliente_documento_upd_date"] = Data(c.DocumentoUpdDate),
+            ["cliente_lingua"] = c.Lingua,
+            // Il consenso viaggia con il cliente, non con una chiamata successiva:
+            // va raccolto nel momento in cui l'anagrafica nasce, o non e' dimostrabile.
+            ["consenso_marketing"] = c.Consenso,
+            ["consenso_marketing_fonte"] = c.ConsensoFonte
         };
 
         if (includiAzienda)

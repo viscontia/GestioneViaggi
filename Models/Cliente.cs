@@ -19,6 +19,24 @@ public class Cliente : BaseEntity, IAuditable, IValidatableObject
     public int TitoloFk { get; set; }
 
     /// <summary>
+    /// Lingua del cliente (ISO a 2 lettere). NOT NULL a database, default IT.
+    /// </summary>
+    [Column("cliente_lingua")]
+    public string Lingua { get; set; } = "IT";
+
+    /// <summary>
+    /// Consenso all'invio di email commerciali. Le due colonne che lo accompagnano —
+    /// data e fonte — le scrive il database quando il consenso viene acceso: servono
+    /// a dimostrarlo, e un consenso che non si puo'  dimostrare non vale.
+    /// </summary>
+    [Column("consenso_marketing")]
+    public bool Consenso { get; set; }
+
+    /// <summary>Da dove arriva il consenso, quando lo si accende. Es. SITO_ISCRIZIONE.</summary>
+    [NotMapped]
+    public string? ConsensoFonte { get; set; }
+
+    /// <summary>
     /// Descrizione del titolo, risolta dalla lookup: sola lettura, non viene mai scritta.
     /// Serve a stampe ed export, che mostrano il titolo e non il suo codice.
     /// </summary>

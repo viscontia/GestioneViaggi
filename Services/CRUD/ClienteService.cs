@@ -160,19 +160,6 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
         }
     }
 
-    public async Task<Cliente?> FindExistingByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk)
-    {
-        try
-        {
-            return await _repository.GetByAnagraficaAsync(cognome, nome, dataNascita, codiceFiscale, aziendaFk);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante la ricerca cliente per anagrafica");
-            throw;
-        }
-    }
-
     #endregion
 
     #region Search Operations

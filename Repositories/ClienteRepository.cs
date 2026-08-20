@@ -30,6 +30,8 @@ public class ClienteRepository(
                 SELECT
                     cliente_id,
                     cliente_titolo_fk,
+                    cliente_lingua,
+                    consenso_marketing,
                     (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
                       WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
@@ -181,6 +183,8 @@ public class ClienteRepository(
                 SELECT
                     cliente_id,
                     cliente_titolo_fk,
+                    cliente_lingua,
+                    consenso_marketing,
                     (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
                       WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
@@ -288,6 +292,42 @@ public class ClienteRepository(
     /// riscrive nessuna, perché il sito di iscrizione chiama la stessa e deve
     /// comportarsi allo stesso modo.
     /// </summary>
+    /// <summary>
+    /// I riscontri di duplicato su un'anagrafica, dal database. E' l'unico posto da
+    /// cui passano: codice fiscale, anagrafica completa, omonimia ed email.
+    /// </summary>
+    public async Task<List<EsitoValidazione>> VerificaDuplicatoAsync(
+        int aziendaFk, string? cognome, string? nome, DateTime? dataNascita,
+        int? comuneNascitaFk, string? codiceFiscale, int? escludiClienteId, string? email)
+    {
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT gravita, esito, messaggio, cliente_id FROM fn_ana_clienti_verifica_duplicato(" +
+            "@azienda, @cognome, @nome, @nascita, @comune, @cf, @escludi, @email)", connection);
+        command.Parameters.AddWithValue("azienda", aziendaFk);
+        command.Parameters.AddWithValue("cognome", (object?)cognome ?? DBNull.Value);
+        command.Parameters.AddWithValue("nome", (object?)nome ?? DBNull.Value);
+        command.Parameters.Add(new NpgsqlParameter("nascita", NpgsqlTypes.NpgsqlDbType.Date) { Value = (object?)dataNascita ?? DBNull.Value });
+        command.Parameters.Add(new NpgsqlParameter("comune", NpgsqlTypes.NpgsqlDbType.Integer) { Value = (object?)comuneNascitaFk ?? DBNull.Value });
+        command.Parameters.AddWithValue("cf", (object?)codiceFiscale ?? DBNull.Value);
+        command.Parameters.Add(new NpgsqlParameter("escludi", NpgsqlTypes.NpgsqlDbType.Integer) { Value = (object?)escludiClienteId ?? DBNull.Value });
+        command.Parameters.AddWithValue("email", (object?)email ?? DBNull.Value);
+
+        var esiti = new List<EsitoValidazione>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            esiti.Add(new EsitoValidazione
+            {
+                Gravita = reader.GetString(0),
+                Esito = reader.GetString(1),
+                Messaggio = reader.GetString(2),
+                Riferimento = reader.IsDBNull(3) ? null : reader.GetInt32(3)
+            });
+        }
+        return esiti;
+    }
+
     /// <summary>
     /// Chiede al database cosa non va, senza scrivere. Serve alla form per sapere
     /// PRIMA di salvare, e poter chiedere conferma dove serve.
@@ -418,6 +458,8 @@ public class ClienteRepository(
                 SELECT
                     cliente_id,
                     cliente_titolo_fk,
+                    cliente_lingua,
+                    consenso_marketing,
                     (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
                       WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
@@ -487,6 +529,8 @@ public class ClienteRepository(
                 SELECT
                     cliente_id,
                     cliente_titolo_fk,
+                    cliente_lingua,
+                    consenso_marketing,
                     (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
                       WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
@@ -547,197 +591,26 @@ public class ClienteRepository(
         }
     }
 
-    public async Task<Cliente?> GetByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk)
-    {
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT
-                    cliente_id,
-                    cliente_titolo_fk,
-                    (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
-                      WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
-                    cliente_cognome,
-                    cliente_nome,
-                    cliente_sesso,
-                    cliente_comune_residenza_fk,
-                    cliente_indirizzo_residenza,
-                    cliente_comune_nascita_fk,
-                    cliente_data_nascita,
-                    cliente_preftelint,
-                    cliente_telefono,
-                    cliente_email,
-                    cliente_codicefiscale,
-                    cliente_iban,
-                    cliente_foto,
-                    cliente_carta_identita,
-                    cliente_tipodoc_identita,
-                    cliente_documento_numero,
-                    cliente_documento_rilasciato_da,
-                    cliente_documento_rilasciato_data,
-                    cliente_documento_rilasciato_scadenza,
-                    cliente_note,
-                    cliente_foto_mimetype,
-                    cliente_foto_filename,
-                    cliente_foto_charset,
-                    cliente_foto_upd_date,
-                    cliente_documento_mimetype,
-                    cliente_documento_filename,
-                    cliente_documento_chartset,
-                    cliente_documento_upd_date,
-                    cliente_intolleranza,
-                    azienda_fk,
-                    created_by,
-                    created,
-                    updated_by,
-                    updated
-                FROM ana_clienti
-                WHERE UPPER(cliente_cognome) = UPPER(@cognome)
-                  AND UPPER(cliente_nome) = UPPER(@nome)
-                  AND cliente_data_nascita = @dataNascita
-                  AND UPPER(cliente_codicefiscale) = UPPER(@codiceFiscale)
-                  AND azienda_fk = @aziendaFk";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("cognome", cognome);
-            command.Parameters.AddWithValue("nome", nome);
-            command.Parameters.AddWithValue("dataNascita", dataNascita);
-            command.Parameters.AddWithValue("codiceFiscale", codiceFiscale);
-            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)aziendaFk ?? DBNull.Value
-            });
-
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                return MapFromReader(reader);
-            }
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante la ricerca del cliente per anagrafica");
-            throw;
-        }
-    }
-
     #endregion
 
     #region Validazioni di Esistenza
 
+    /// <summary>
+    /// Esiste gia' un cliente con questa email nella stessa azienda? Si appoggia
+    /// alla verifica canonica: la regola non si riscrive qui.
+    /// ⚠️ L'email ripetuta e' un AVVISO, non un divieto — condividere la casella e'
+    /// prassi legittima. Chi chiama non deve trattarla come un blocco.
+    /// </summary>
     public async Task<bool> ExistsByEmailAsync(string email, int? aziendaFk, int? excludeClienteId = null)
     {
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM ana_clienti
-                    WHERE LOWER(cliente_email) = LOWER(@email)
-                      AND azienda_fk = @aziendaFk
-                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
-                )";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("email", email);
-            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)aziendaFk ?? DBNull.Value
-            });
-            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)excludeClienteId ?? DBNull.Value
-            });
-
-            var result = await command.ExecuteScalarAsync();
-            return result != null && (bool)result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante la verifica esistenza email {Email}", email);
-            throw;
-        }
+        var esiti = await VerificaDuplicatoAsync(aziendaFk ?? 0, null, null, null, null, null, excludeClienteId, email);
+        return esiti.Any(e => e.Esito == "STESSA_EMAIL");
     }
 
     public async Task<bool> ExistsByCodiceFiscaleAsync(string codiceFiscale, int? aziendaFk, int? excludeClienteId = null)
     {
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM ana_clienti
-                    WHERE UPPER(cliente_codicefiscale) = UPPER(@codiceFiscale)
-                      AND azienda_fk = @aziendaFk
-                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
-                )";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("codiceFiscale", codiceFiscale);
-            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)aziendaFk ?? DBNull.Value
-            });
-            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)excludeClienteId ?? DBNull.Value
-            });
-
-            var result = await command.ExecuteScalarAsync();
-            return result != null && (bool)result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante la verifica esistenza codice fiscale {CodiceFiscale}", codiceFiscale);
-            throw;
-        }
-    }
-
-    public async Task<bool> ExistsByAnagraficaAsync(string cognome, string nome, DateTime dataNascita, string codiceFiscale, int? aziendaFk, int? excludeClienteId = null)
-    {
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM ana_clienti
-                    WHERE UPPER(cliente_cognome) = UPPER(@cognome)
-                      AND UPPER(cliente_nome) = UPPER(@nome)
-                      AND cliente_data_nascita = @dataNascita
-                      AND UPPER(cliente_codicefiscale) = UPPER(@codiceFiscale)
-                      AND azienda_fk = @aziendaFk
-                      AND (@excludeClienteId IS NULL OR cliente_id != @excludeClienteId)
-                )";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("cognome", cognome);
-            command.Parameters.AddWithValue("nome", nome);
-            command.Parameters.AddWithValue("dataNascita", dataNascita);
-            command.Parameters.AddWithValue("codiceFiscale", codiceFiscale);
-            command.Parameters.Add(new NpgsqlParameter("aziendaFk", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)aziendaFk ?? DBNull.Value
-            });
-            command.Parameters.Add(new NpgsqlParameter("excludeClienteId", NpgsqlTypes.NpgsqlDbType.Integer)
-            {
-                Value = (object?)excludeClienteId ?? DBNull.Value
-            });
-
-            var result = await command.ExecuteScalarAsync();
-            return result != null && (bool)result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante la verifica esistenza per anagrafica");
-            throw;
-        }
+        var esiti = await VerificaDuplicatoAsync(aziendaFk ?? 0, null, null, null, null, codiceFiscale, excludeClienteId, null);
+        return esiti.Any(e => e.Esito == "STESSO_CF");
     }
 
     #endregion
@@ -818,6 +691,8 @@ public class ClienteRepository(
                 SELECT
                     cliente_id,
                     cliente_titolo_fk,
+                    cliente_lingua,
+                    consenso_marketing,
                     (SELECT t.titolo_persone_descrizione FROM ana_titolo_persone t
                       WHERE t.titolo_persone_cod = cliente_titolo_fk) AS cliente_titolo_descrizione,
                     cliente_cognome,
@@ -1086,6 +961,8 @@ public class ClienteRepository(
         {
             ClienteId = reader.GetInt32(reader.GetOrdinal("cliente_id")),
             TitoloFk = reader.GetInt32(reader.GetOrdinal("cliente_titolo_fk")),
+            Lingua = reader.IsDBNull(reader.GetOrdinal("cliente_lingua")) ? "IT" : reader.GetString(reader.GetOrdinal("cliente_lingua")).Trim(),
+            Consenso = !reader.IsDBNull(reader.GetOrdinal("consenso_marketing")) && reader.GetBoolean(reader.GetOrdinal("consenso_marketing")),
             TitoloDescrizione = ReadNullableString(reader, "cliente_titolo_descrizione"),
             Cognome = reader.GetString(reader.GetOrdinal("cliente_cognome")),
             Nome = reader.GetString(reader.GetOrdinal("cliente_nome")),
