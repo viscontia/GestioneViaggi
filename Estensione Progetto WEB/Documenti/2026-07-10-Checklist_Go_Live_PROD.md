@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `557`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `560`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–557)
+### Elenco ordinato (467–560)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -207,6 +207,9 @@ ls SqlScripts/*.sql \
 | 554 | VerificaDuplicato_Email | L'email ripetuta entra fra i riscontri come **AVVISO** (non era implementata, e intanto il dialog la trattava come un divieto) |
 | 555 | CodiceFiscale_Verifica_Cliente | `fn_cf_verifica_cliente(cf, cliente_id)`: verifica partendo da un cliente a database. Sostituisce ~70 righe di orchestrazione Python nel sito |
 | 557 | Wizard_Leggi_Cliente_TitoloFk | `fn_wizard_leggi_dati_cliente` restituisce anche **la chiave del titolo** e **il consenso**: senza, il sito non ritrovava il titolo di un cliente esistente e ne avrebbe spento il consenso al primo salvataggio |
+| 558 | Letture_Clienti_Complete | Le funzioni di lettura dei clienti (`fn_get_all_clienti`, `fn_get_cliente_by_id`, `fn_search_clienti`) **esistevano dal 2026-03-16 e nessuno le chiamava**. Completate con `TitoloFk`, `Lingua`, `Consenso` e i comuni annidati, cosi' il repository puo' finalmente usarle. Additivo: aggiunge chiavi al JSON, non ne toglie |
+| 559 | Letture_Clienti_Residue | Le ultime quattro letture inline scendono nel DB: cliente per email, per codice fiscale, e le due guardie alla cancellazione (iscrizioni / alloggi). Le prime due **delegano** a `fn_get_cliente_by_id` invece di riscrivere la SELECT, e ordinano per `cliente_id` — l'email non e' univoca e prima quale scheda tornasse era arbitrario |
+| 560 | Cliente_Detail_Unificato | `fn_get_cliente_detail` sostituisce la vecchia `get_cliente_detail` (TABLE a 41 colonne, ferma al titolo testuale). Con la 558-559, `ClienteRepository.cs` non contiene **piu' una sola SELECT** |
 | 556 | AnaClienti_Insert_Titolo_Testuale | Ponte: il CRUD accetta anche il titolo come **testo** + sesso, perché il sito non conosce ancora la lookup. Si toglie quando il sito passa alla chiave (§2.8.3). ⚠️ **Non applicabile a PROD finché non c'è il `539`** |
 | 553 | MovClientiViaggi_MezzoObbligatorio | I **dati del mezzo** (marca, modello, targa) diventano obbligatori quando `tipo_partecipante_dati_mezzo_obb` lo richiede: la colonna esisteva da sempre e non la leggeva nessuno. Allinea anche `ana_tipo_partecipante` fra i due ambienti (su PROD e' un no-op: il committente l'aveva gia' corretta). ✅ Applicato su PROD |
 | 552 | AnaClienti_Valida_Formati | La validazione anticipa i formati con messaggi leggibili: senza, l'errore arriva dal vincolo e **riversa nel log l'intera riga**, dati personali compresi. ✅ Applicato su PROD |

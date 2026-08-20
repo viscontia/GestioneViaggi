@@ -153,6 +153,34 @@ convertire: letture per id/email/CF/anagrafica, i tre `ExistsBy*`, `SearchAsync`
 
 ---
 
+## Il prossimo perimetro da analizzare — iscrizioni e camere *(2026-08-20)*
+
+Segnalato dal committente a lavoro su `ana_clienti` in corso, **da fare con lo stesso metodo di questa
+analisi** e non prima:
+
+> «La parte di iscrizione al viaggio e soprattutto di assegnazione delle camere ha tutta una serie di
+> controlli e verifiche. Temo che siano doppi e forse diversi tra MAUI e Flask.»
+
+Il sospetto è fondato, e questa analisi ne ha già trovato la firma nel proprio perimetro:
+
+- `mov_clienti_viaggi` — **verificato**: `sp_mov_clienti_viaggi_create` controllava il doppio
+  inserimento e lo diceva in italiano, `fn_wizard_insert_prenotazione` inseriva e basta. Due porte
+  sulla stessa stanza, con serrature diverse. Chiuso con `SqlScripts/551`.
+- `mov_clienti_alloggi` — **non guardato**. È la tabella con **sei colonne cliente**
+  (`cliente_id1_fk` … `cliente_id6_fk`), cioè una camera fino a sei occupanti. Regole plausibili e
+  tutte da verificare: capienza del tipo di alloggio (`ana_tipo_alloggio.tipo_alloggio_numero_occupanti`
+  esiste e — come `dati_mezzo_obb` — potrebbe non leggerla nessuno), una persona in due camere dello
+  stesso viaggio, camere senza occupanti, occupanti non iscritti a quella partenza.
+- Il **wizard** assegna le camere in autonomia (`fn_wizard_insert_alloggio_assegnato`,
+  `mov_clienti_alloggi_dao.py`), il gestionale ha la propria gestione partecipanti/alloggi e la
+  rooming list. Tre percorsi sulla stessa tabella.
+
+**Da dove partire**, quando sarà il momento: come qui — misurare sui dati veri di PROD *prima* di
+scrivere una riga. La domanda che ha reso utile questa analisi è stata «quante righe violerebbero
+questa regola?», non «cosa dice il codice».
+
+---
+
 ## Parte E — Proposta di lavoro
 
 1. **Decidere qual è la regola** per email, telefono, prefisso, indirizzo e documento (Parte C,

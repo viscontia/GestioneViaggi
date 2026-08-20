@@ -1168,6 +1168,34 @@ Funzioni e stored procedures per la gestione completa dell'anagrafica clienti (C
 | `fn_search_clienti` | Ricerca full-text clienti per cognome, nome, email, codice fiscale, telefono. Usa pattern matching LIKE case-insensitive con UPPER. Restituisce JSON con comuni nested come fn_get_all_clienti | `p_azienda_fk INT, p_search_text VARCHAR(100)` | `JSON` (array clienti matching con ComuneNascita/ComuneResidenza nested) | `Repositories/ClienteRepository.cs` (SearchAsync) |
 | `fn_count_clienti_by_azienda` | Conta totale clienti per azienda. Usato per statistiche e report | `p_azienda_fk INT` | `INT` (numero totale clienti) | `Repositories/ClienteRepository.cs` (CountByAziendaAsync) |
 
+### 📌 Letture completate DB-first (2026-08-20, `SqlScripts/558`–`560`)
+
+Le funzioni di lettura qui sopra **esistevano dal 2026-03-16 ma nessuno le chiamava**: il
+repository si scriveva le SELECT a mano. Questa tabella descriveva quindi un progetto, non il
+codice in esecuzione. Da oggi corrisponde alla realta': `Repositories/ClienteRepository.cs`
+non contiene piu' nemmeno una SELECT.
+
+Per collegarle sono state completate (`558`) con cio' che il model si aspetta:
+`TitoloFk` (la chiave del titolo, non piu' solo il testo deprecato), `Lingua`, `Consenso` e i
+comuni annidati `ComuneNascita`/`ComuneResidenza` (`Id`, `Nome`, `ProvinciaDescrizione`) —
+costruiti sui join che nelle funzioni **c'erano gia'**, inutilizzati.
+
+⚠️ La foto e il documento viaggiano **solo** nel dettaglio: `fn_get_all_clienti` non li porta,
+e non deve iniziare a portarli (169 clienti pesano 189 kB senza).
+
+| Nome della Function | Scopo | Input | Output | Files Coinvolti |
+| :--- | :--- | :--- | :--- | :--- |
+| `fn_get_cliente_detail` | Dettaglio cliente per sola chiave. **Delega** a `fn_get_cliente_by_id` prendendo l'azienda dal cliente stesso: la forma del JSON resta definita in un punto solo | `p_cliente_id INT` | `JSON` | `Repositories/ClienteRepository.cs` (GetDetailAsync), `Components/Shared/TravelStatsDialog.razor` |
+| `fn_get_cliente_by_email` | Cliente per email nel silos dell'azienda. Delega a `fn_get_cliente_by_id`. **`ORDER BY cliente_id`**: l'email non e' univoca (le coppie condividono la casella), prima quale scheda tornasse era arbitrario | `p_email VARCHAR, p_azienda_fk INT` | `JSON` (NULL se assente) | `Repositories/ClienteRepository.cs` (GetByEmailAsync) |
+| `fn_get_cliente_by_codice_fiscale` | Come sopra, per codice fiscale | `p_codice_fiscale VARCHAR, p_azienda_fk INT` | `JSON` (NULL se assente) | `Repositories/ClienteRepository.cs` (GetByCodiceFiscaleAsync) |
+| `fn_cliente_ha_iscrizioni` | Guardia alla cancellazione: il cliente ha iscrizioni a viaggi? Filtra per azienda passando da `ana_clienti` — il C# il parametro lo riceveva e **non lo usava** | `p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` | `Repositories/ClienteRepository.cs` (HasRelatedBookingsAsync) |
+| `fn_cliente_ha_alloggi` | Come sopra per gli alloggi; copre tutte e sei le colonne `cliente_idN_fk` | `p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` | `Repositories/ClienteRepository.cs` (HasRelatedAccommodationsAsync) |
+
+**Da ritirare al go-live, non prima:** `get_cliente_detail` (la vecchia TABLE a 41 colonne) resta
+nel database ma non ha piu' chiamanti in MAUI. Va eliminata solo dopo aver verificato che nessun
+altro software la usi. Stessa sorte per `sp_ana_clienti_create/_update/_delete`, sostituite da
+`fn_ana_clienti_insert/_update/_delete`.
+
 ### 📝 Note Implementative - Anagrafiche Clienti (2026-03-16)
 
 #### 🏗️ Architettura DB-First
@@ -1696,6 +1724,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
+
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1764,8 +1796,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_ana_clienti_titolo_fk` | p_dati jsonb | integer | Chiave del titolo: quella esplicita se c'e', altrimenti ricavata dal testo e dal sesso (ponte per il sito di iscrizione, SqlScripts/556). Si elimina quando il sito passa alla lookup. |
 | `fn_ana_clienti_update` | p_cliente_id integer, p_dati jsonb, p_conferme_accettate boolean DEFAULT false | integer | Aggiornamento PARZIALE: chiave assente = campo invariato, chiave presente a null = campo svuotato. |
 | `fn_ana_clienti_valida` | p_dati jsonb, p_cliente_id integer DEFAULT NULL::integer | TABLE(gravita character varying, esito character varying, messaggio text) | Tutte le segnalazioni su un'anagrafica, con gravita', senza scrivere. Serve al client per sapere PRIMA di salvare. Chiavi JSONB = nomi delle colonne. |
-| `fn_ana_clienti_verifica_duplicato` | p_azienda_id integer, p_cognome character varying, p_nome character varying, p_data_nascita date DEFAULT NULL::date, p_comune_nascita_id integer DEFAULT NULL::integer, p_cf character varying DEFAULT NULL::character varying, p_escludi_cliente_id integer DEFAULT NULL::integer | TABLE(gravita character varying, esito character varying, messaggio text, cliente_id integer) | Anti-duplicato anagrafico a tre livelli (SqlScripts/549). NESSUN livello richiede il codice fiscale per funzionare: era l'errore del controllo precedente, cieco sul 42% dei clienti. Unico punto di verita' per gestionale e sito. |
 | `fn_ana_clienti_verifica_duplicato` | p_azienda_id integer, p_cognome character varying, p_nome character varying, p_data_nascita date DEFAULT NULL::date, p_comune_nascita_id integer DEFAULT NULL::integer, p_cf character varying DEFAULT NULL::character varying, p_escludi_cliente_id integer DEFAULT NULL::integer, p_email character varying DEFAULT NULL::character varying | TABLE(gravita character varying, esito character varying, messaggio text, cliente_id integer) |  |
+| `fn_ana_clienti_verifica_duplicato` | p_azienda_id integer, p_cognome character varying, p_nome character varying, p_data_nascita date DEFAULT NULL::date, p_comune_nascita_id integer DEFAULT NULL::integer, p_cf character varying DEFAULT NULL::character varying, p_escludi_cliente_id integer DEFAULT NULL::integer | TABLE(gravita character varying, esito character varying, messaggio text, cliente_id integer) | Anti-duplicato anagrafico a tre livelli (SqlScripts/549). NESSUN livello richiede il codice fiscale per funzionare: era l'errore del controllo precedente, cieco sul 42% dei clienti. Unico punto di verita' per gestionale e sito. |
 | `fn_ana_tipi_causali_get_active` | p_azienda_id integer | SETOF ana_tipi_causali | Recupera solo le causali attive per azienda. Usato nei dropdown/combobox. |
 | `fn_ana_tipi_causali_get_active_by_ciclo` | p_azienda_id integer, p_ciclo character varying | SETOF ana_tipi_causali | Recupera causali attive filtrate per ciclo contabile (ATTIVO/PASSIVO). Usato nei filtri transazioni. |
 | `fn_ana_tipi_causali_get_all` | p_azienda_id integer | SETOF ana_tipi_causali | Recupera tutte le causali per azienda, ordinate per ciclo e descrizione. Usato dalla griglia principale. |
@@ -1796,8 +1828,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_app_delete_geo_ita_ripgeo` | p_id text | jsonb | Elimina ripartizione geografica |
 | `fn_app_delete_geo_province` | p_id text | jsonb | Elimina provincia |
 | `fn_app_delete_geo_regioni_ita` | p_id text | jsonb | Elimina regione |
-| `fn_app_get_all_aziende` | p_user_id uuid DEFAULT NULL::uuid, p_page_number integer DEFAULT 1, p_page_size integer DEFAULT 25, p_search_term text DEFAULT NULL::text, p_sort_column text DEFAULT 'ragione_sociale'::text, p_sort_direction text DEFAULT 'ASC'::text, p_filters jsonb DEFAULT NULL::jsonb | jsonb | Recupera lista paginata di tutte le aziende con filtri e ricerca per SuperAdmin |
 | `fn_app_get_all_aziende` |  | jsonb |  |
+| `fn_app_get_all_aziende` | p_user_id uuid DEFAULT NULL::uuid, p_page_number integer DEFAULT 1, p_page_size integer DEFAULT 25, p_search_term text DEFAULT NULL::text, p_sort_column text DEFAULT 'ragione_sociale'::text, p_sort_direction text DEFAULT 'ASC'::text, p_filters jsonb DEFAULT NULL::jsonb | jsonb | Recupera lista paginata di tutte le aziende con filtri e ricerca per SuperAdmin |
 | `fn_app_get_all_countries` | p_tenant_id character varying DEFAULT NULL::character varying, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50, p_search text DEFAULT NULL::text, p_sort_by character varying DEFAULT 'name'::character varying, p_sort_order character varying DEFAULT 'ASC'::character varying | jsonb | Recupera tutte le nazioni con paginazione, ricerca e ordinamento |
 | `fn_app_get_all_country_organizations` | p_tenant_id character varying DEFAULT NULL::character varying, p_page integer DEFAULT 1, p_page_size integer DEFAULT 50, p_search text DEFAULT NULL::text, p_sort_by character varying DEFAULT 'name'::character varying, p_sort_order character varying DEFAULT 'ASC'::character varying | jsonb | Recupera tutte le organizzazioni con paginazione, ricerca e ordinamento |
 | `fn_app_get_all_geo_capoluogos` | p_tenant_id text DEFAULT NULL::text, p_page integer DEFAULT 1, p_page_size integer DEFAULT 25, p_search text DEFAULT NULL::text, p_sort_by text DEFAULT 'capoluogo_id'::text, p_sort_order text DEFAULT 'asc'::text | jsonb | Lista paginata capoluoghi con ricerca e ordinamento |
@@ -1836,8 +1868,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_app_health_check` |  | json |  |
 | `fn_app_list_roles` |  | TABLE(role_id integer, role_code character varying, role_name character varying, is_system boolean, created_at timestamp with time zone) |  |
 | `fn_app_list_users` |  | TABLE(user_id uuid, email text, nome text, cognome text, role_code text, role_name text, azienda_id integer, ragione_sociale text, is_active boolean, last_login_at timestamp with time zone, created_at timestamp with time zone, data_nascita date, valuta_default_id integer) |  |
-| `fn_app_login` | p_email citext, p_password text, p_ip inet DEFAULT inet_client_addr(), p_user_agent text DEFAULT 'Unknown'::text | jsonb |  |
 | `fn_app_login` | p_email citext, p_password text | jsonb |  |
+| `fn_app_login` | p_email citext, p_password text, p_ip inet DEFAULT inet_client_addr(), p_user_agent text DEFAULT 'Unknown'::text | jsonb |  |
 | `fn_app_login_text` | p_email text, p_password text | jsonb |  |
 | `fn_app_login_text_debug` | p_email text, p_password text | jsonb | Versione di debug del login che restituisce hash e dettagli di confronto password |
 | `fn_app_logo_create_backup_20250909` | p_tenant_id character varying, p_azienda_fk integer, p_logo_data jsonb | jsonb | Funzione di backup legacy per la tabella loghi (Non utilizzare) |
@@ -1871,6 +1903,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_check_email_unique_across_companies` |  | trigger | Garantisce che una email non possa essere usata da aziende diverse. |
 | `La stessa azienda può usare la stessa email per reparti diversi.` |  |  |  |
 | `fn_check_single_default_iva` |  | trigger | Garantisce che solo 1 aliquota per azienda abbia is_default = TRUE. Eseguito BEFORE INSERT/UPDATE quando is_default = TRUE. |
+| `fn_cliente_ha_alloggi` | p_cliente_id integer, p_azienda_fk integer | boolean |  |
+| `fn_cliente_ha_iscrizioni` | p_cliente_id integer, p_azienda_fk integer | boolean |  |
 | `fn_count_clienti_by_azienda` | p_azienda_fk integer | integer | DB-First: Count total clienti for specific azienda |
 | `fn_enforce_user_azienda_integrity` |  | trigger |  |
 | `fn_exists_cliente_anagrafica` | p_cognome character varying, p_nome character varying, p_data_nascita date, p_codice_fiscale character varying, p_exclude_cliente_id integer DEFAULT 0, p_azienda_fk integer DEFAULT NULL::integer | boolean | DB-First: Check if cliente with same anagrafica data already exists |
@@ -1884,15 +1918,20 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_anni_fatture_attive` | p_azienda_id integer | TABLE(anno integer) |  |
 | `fn_get_api_config_value` | p_service_code character varying, p_config_key character varying | text | Recupera il valore di una singola configurazione API attiva per service_code e config_key. Validazioni: parametri obbligatori, esistenza record, stato attivo, valore non vuoto. Usato da CurrencyApiService per recuperare API key dinamicamente dal DB invece che dal codice. |
 | `fn_get_azienda_badge_counts` | p_azienda_id integer | TABLE(sedi integer, contatti integer, banche integer, email integer, reparti integer, smtp integer, logo integer) |  |
-| `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
+| `fn_get_bilancio_annuale_viaggi` | p_azienda_id integer, p_anno integer, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, data_viaggio_id integer, data_viaggio_data_inizio date, data_viaggio_data_fine date, data_viaggio_numero_partecipanti integer, data_viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
+| `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
+ |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
+` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
+| `fn_get_cliente_by_codice_fiscale` | p_codice_fiscale character varying, p_azienda_fk integer | json |  |
+| `fn_get_cliente_by_email` | p_email character varying, p_azienda_fk integer | json |  |
 | `fn_get_cliente_by_id` | p_cliente_id integer, p_azienda_fk integer | json | DB-First: Get cliente by ID with all related data (azienda, comuni) |
+| `fn_get_cliente_detail` | p_cliente_id integer | json |  |
 | `fn_get_cliente_init_data` | p_cliente_id integer DEFAULT NULL::integer | json |  |
 | `fn_get_clienti_export` | p_azienda_id integer DEFAULT NULL::integer | TABLE(cognome character varying, nome character varying, titolo character varying, sesso character, data_nascita date, comune_nascita text, provincia_nascita character varying, indirizzo_residenza character varying, comune_residenza text, provincia_residenza character varying, prefisso_telefono character varying, telefono character varying, email character varying, codice_fiscale character varying, iban character varying, tipo_documento character varying, numero_documento character varying, documento_rilasciato_da character varying, documento_data_rilascio date, documento_data_scadenza date, intolleranza text, note text, azienda character varying) | Restituisce dati clienti flat per export Excel. Campi business only, comuni/province decodificati. |
 | `fn_get_controparte_init_data` | p_controparte_id integer DEFAULT NULL::integer | json |  |
@@ -1906,8 +1945,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_fatture_attive_elenco` | p_azienda_id integer, p_controparte_id integer DEFAULT NULL::integer, p_data_doc_da date DEFAULT NULL::date, p_data_doc_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_stato character varying DEFAULT NULL::character varying, p_numero_documento character varying DEFAULT NULL::character varying | TABLE(transazione_id integer, transazione_data date, data_documento date, numero_documento character varying, numero_protocollo_iva integer, controparte_ragione_sociale character varying, imponibile_eur numeric, iva_eur numeric, lordo_eur numeric, stato character varying, data_scadenza date, causale_descrizione character varying) |  |
 | `fn_get_logo_field_help` | field_name text | text | Restituisce il testo di aiuto per i campi della configurazione logo |
 | `fn_get_menu_breadcrumbs` | p_menu_id uuid | jsonb | Recupera breadcrumbs path per menu specifico |
-| `fn_get_monthly_trend` | p_table_name text, p_year integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(month_num integer, count_val bigint) |  |
 | `fn_get_monthly_trend` | p_table_name text, p_year integer, p_azienda_id integer DEFAULT NULL::integer, p_date_column text DEFAULT 'created'::text | TABLE(month_num integer, count_val bigint) |  |
+| `fn_get_monthly_trend` | p_table_name text, p_year integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(month_num integer, count_val bigint) |  |
 | `fn_get_mov_clienti_alloggi_by_date` | p_data_viaggio_id integer | TABLE(mov_clienti_alloggio_pk integer, viaggio_id_fk integer, data_viaggio_id_fk integer, tipo_alloggio_id_fk integer, cliente_id1_fk integer, cliente_id2_fk integer, cliente_id3_fk integer, cliente_id4_fk integer, cliente_id5_fk integer, cliente_id6_fk integer) | Recupera tutti gli alloggi (camere) assegnati per una specifica data viaggio. Restituisce dati raw con i 6 slot clienti (ClienteId1Fk...ClienteId6Fk). |
 | `fn_get_mov_clienti_viaggi_by_date` | p_data_viaggio_id integer | TABLE(viaggio_id_fk integer, data_viaggio_id_fk integer, cliente_id_fk integer, tipo_partecipante_id_fk integer, ana_mezzi_id_fk integer, mezzo_modello_id_fk integer, cliente_pilota_id_fk integer, mov_cliente_viaggio_scontoval_totale numeric, mov_cliente_viaggio_targa_mezzo character varying, mov_cliente_viaggio_cane_sino character varying, mov_cliente_viaggio_note text) | Recupera tutti i partecipanti iscritti a una specifica data viaggio. Usato per caricamento dati raw senza arricchimenti. |
 | `fn_get_participants_view` | p_data_viaggio_id integer | TABLE(viaggio_id integer, data_id integer, cliente_id integer, nominativo character varying, tipo_partecipante_id integer, ruolo character varying, note text, cane_sino character varying, intolleranze text, mezzo_dettagli text, cliente_pilota_id integer, grouping_key integer) | Vista arricchita partecipanti con dati anagrafici, ruolo, intolleranze e dettagli mezzo. Ordinata per equipaggio (pilota → passeggeri). |
@@ -2188,8 +2227,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `request_password_reset_retool` | p_email character varying, p_ip_address inet DEFAULT NULL::inet, p_user_agent character varying DEFAULT NULL::character varying | void | Procedura principale per Retool con messaggi italiani |
 | `reset_password_with_token` | p_token character varying, p_new_password_hash character varying | character varying | Esegue reset password con token e invalida tutti i token utente |
 | `reset_password_with_token` | p_token character varying, p_new_password_plain text | character varying |  |
-| `set_user_context` | p_user_id uuid | TABLE(tenant_id text, azienda_id integer, role_code text) | Imposta contesto completo utente: tenant, azienda e ruolo |
 | `set_user_context` | p_user_id uuid, p_azienda_id integer | void |  |
+| `set_user_context` | p_user_id uuid | TABLE(tenant_id text, azienda_id integer, role_code text) | Imposta contesto completo utente: tenant, azienda e ruolo |
 | `sp_ana_aliquote_iva_create` | p_azienda_fk integer, p_iva_codice character varying, p_iva_descrizione character varying, p_iva_percentuale numeric, p_iva_natura character varying, p_is_default boolean, p_is_active boolean, p_ordinamento smallint, p_created_by character varying, p_updated_by character varying | integer | Crea nuova aliquota IVA con validazione e normalizzazione UPPER CASE. Ritorna iva_id. |
 | `sp_ana_aliquote_iva_delete` | p_iva_id integer | void | Elimina aliquota IVA. Solleva eccezione se in uso da altre tabelle. |
 | `sp_ana_aliquote_iva_set_default` | p_iva_id integer, p_azienda_id integer | void | Imposta un'aliquota come default per azienda. Il trigger rimuove automaticamente il flag dalle altre. |
@@ -2349,8 +2388,13 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_cf_omocodia_a_base`
 - `fn_cf_verifica`
 - `fn_cf_verifica_cliente`
+- `fn_cliente_ha_alloggi`
+- `fn_cliente_ha_iscrizioni`
 - `fn_enforce_user_azienda_integrity`
 - `fn_get_calendar_data`
+- `fn_get_cliente_by_codice_fiscale`
+- `fn_get_cliente_by_email`
+- `fn_get_cliente_detail`
 - `fn_get_date_viaggi_with_transazioni`
 - `fn_get_debug_v2`
 - `fn_get_logo_field_help`

@@ -135,6 +135,37 @@
 | I5 | Invia una **newsletter di prova** | I destinatari e i loro telefoni sono quelli di prima (il prefisso ha ancora lo spazio: `+39 333…`) |
 | I6 | Elimina un cliente **con viaggi** | Rifiutato come prima (lo bloccano i trigger) |
 
+## L — Le letture, ora anch'esse nel database
+
+Con gli script `558`–`560` **`ClienteRepository.cs` non contiene più una sola SELECT**. Le funzioni
+di lettura esistevano dal marzo 2026 e nessuno le chiamava: sono state completate e collegate. È il
+gruppo che copre il rischio maggiore di questo lavoro, perché un campo che sparisce da una form non
+dà errore — semplicemente non c'è, e se ne accorge solo chi guarda.
+
+**Il modo giusto di fare questi test è confrontare, non ispezionare:** apri la stessa scheda che
+conosci e verifica che ci sia tutto quello che c'era ieri.
+
+| # | Cosa fai | Cosa deve succedere |
+|---|---|---|
+| L1 | **Griglia clienti**: apri l'elenco | Ci sono tutti. Comune di nascita e di residenza **con la provincia**, non vuoti |
+| L2 | Nella griglia guarda le colonne **viaggi fatti / da fare** | Valorizzate come prima (il conteggio lo fa `fn_get_all_clienti`) |
+| L3 | Filtra l'elenco **per anno** | Il filtro funziona e riduce le righe |
+| L4 | **Cerca** un cliente per cognome, poi per email, poi per codice fiscale | Trova in tutti e tre i casi; i comuni sono valorizzati anche nei risultati di ricerca |
+| L5 | Apri un cliente **con foto e documento** | Foto e documento si vedono. È il caso più a rischio: viaggiano in base64 e **solo** nel dettaglio |
+| L6 | Apri un cliente e controlla **titolo, lingua e consenso** | Il titolo è quello giusto nella combobox (non vuoto), lingua e consenso corrispondono al database |
+| L7 | Apri un cliente, **salva senza modificare**, riaprilo | Titolo, lingua e consenso **invariati**. Se il titolo tornasse vuoto o il consenso si spegnesse, la lettura non porta la chiave |
+| L8 | Da un cliente apri le **statistiche viaggi** (`TravelStatsDialog`) | Si apre. Prima di questa correzione andava in eccezione: leggeva colonne che la vecchia funzione non restituiva |
+| L9 | Prova a **cancellare** un cliente con iscrizioni, e uno con alloggio assegnato | Rifiutato in entrambi i casi, come prima |
+| L10 | Cancella un cliente **senza** iscrizioni né alloggi (uno `ZZ` di prova) | Si cancella |
+| L11 | Accedi come utente di **un'altra azienda** e cerca un cliente della prima | Non lo trova. Le due guardie alla cancellazione ora filtrano davvero per azienda: prima ricevevano il parametro e lo ignoravano |
+
+> **L'email doppia, da guardare una volta.** `fn_get_cliente_by_email` ora ordina per `cliente_id` e
+> restituisce la scheda più vecchia. Prima non ordinava affatto: con le tre coppie che in PROD
+> condividono la casella, quale dei due tornasse era arbitrario e poteva cambiare fra due esecuzioni
+> identiche. Se qualcosa nel gestionale dipendeva da quel caso, si vede qui.
+
+---
+
 ---
 
 ## Pulizia finale
@@ -151,7 +182,6 @@ SELECT cliente_id, cliente_cognome, cliente_nome FROM ana_clienti WHERE cliente_
 
 - **PROD.** Nulla di questo si prova là: manca lo schema (`538`-`542`).
 - **La consegna coordinata** (fase 6): script → sito → eseguibile, in quest'ordine.
-- **Le letture** di `ClienteRepository`, non ancora convertite: restano SQL inline e funzionano come prima.
 - **Chi spunta il consenso per un passeggero** è chi compila l'iscrizione, non il passeggero stesso.
   La spunta c'è per ciascun partecipante come deciso, ma resta una questione aperta di sostanza: un
   consenso dato da altri vale poco. Se il passeggero ha un'email propria, la strada pulita è
