@@ -1,6 +1,9 @@
 # Analisi — Validazioni e CRUD di `ana_clienti`
 
-> **USO INTERNO.** Rilevata il 2026-08-20 su DB locale **e** su PROD Supabase (sola lettura).
+> **USO INTERNO.** Rilevata il 2026-08-20. ⚠️ **I numeri di questo documento vengono da PROD**
+> (Supabase, sola lettura). Il DB locale non è una copia di produzione: oltre all'import da Oracle
+> porta la sporcizia di mesi di test, quindi non si usa per misurare — solo per far girare il codice
+> e provare gli script.
 > Prepara il lavoro deciso il 2026-08-19: centralizzare i controlli nel gestionale e **subito dopo**
 > allineare il sito di iscrizione (§2.8 della Checklist Go-Live PROD). È un'analisi: propone, non decide.
 
@@ -167,9 +170,56 @@ convertire: letture per id/email/CF/anagrafica, i tre `ExistsBy*`, `SearchAsync`
    bloccanti come `CoerenzaNomeSessoValidator`. Le lunghezze massime restano duplicate: servono a
    dare il messaggio prima del round-trip.
 
-### Domande aperte
+### Decisioni prese il 2026-08-20
 
-- Email obbligatoria? E se sì, per i nuovi soltanto?
-- L'email deve essere **univoca** per azienda? Oggi ci sono 3 duplicati.
-- «Documento scaduto» resta un avviso o diventa un blocco all'inserimento?
-- Il CRUD unificato assorbe consenso e lingua, o restano funzioni separate?
+| # | Domanda | Decisione |
+|---|---|---|
+| 1 | Email obbligatoria? | **Sì, sempre — anche in modifica.** Chi riapre un'anagrafica senza email non salva finché non la inserisce |
+| 2 | Email univoca? | **`UNIQUE (azienda_fk, email)`**. Fra aziende diverse la stessa email resta lecita: i silos sono indipendenti |
+| 3 | Documento scaduto | **Avviso, non blocco.** Importante ma non è un invariante: un documento scade da solo col tempo |
+| 4 | Consenso e lingua nel CRUD | **Dentro**, e il consenso va raccolto **anche dal sito** per chi lascia lì la propria anagrafica |
+
+**Conseguenze della 1, misurate su PROD.** I clienti senza email sono 297:
+
+| Profilo | Clienti |
+|---|---|
+| Mai iscritti a un viaggio | 40 |
+| **Attivi** — viaggio negli ultimi 3 anni | **82** |
+| Solo viaggi più vecchi di 3 anni | 175 |
+
+Con l'obbligo anche in modifica, ognuna di queste 297 schede diventa non salvabile finché non le si
+aggiunge un'email. Sugli 82 attivi è una bonifica realistica — sono persone che viaggiano e a cui la
+si può chiedere. Sui 175 storici e sui 40 mai partiti l'effetto pratico è che quelle schede non si
+toccano più: chi le aprisse per correggere un telefono si troverebbe bloccato. **Scelta del
+committente, presa con questi numeri sotto gli occhi.**
+
+**Conseguenze della 2.** Vanno sanate **3 email duplicate dentro la stessa azienda** prima di poter
+creare il vincolo. I **5 casi di stessa email su aziende diverse** non si toccano: sono leciti per
+costruzione.
+
+### Domande ancora aperte
+
+
+- **Le 3 email duplicate su PROD**: come si sanano? Sono persone reali, va guardato caso per caso
+  (stessa persona inserita due volte? oppure due persone che condividono una casella?). Query pronta
+  in fondo a questo documento.
+- **I 297 senza email**: bonifica pianificata o si accetta che quelle schede restino congelate?
+- Il gruppo 2 della Parte C (17 righe fra telefoni, codici fiscali e indirizzi) va guardato prima di
+  vincolare.
+
+---
+
+## Query per la bonifica (da eseguire su PROD, in sola lettura)
+
+Le tre email duplicate dentro la stessa azienda — contiene dati personali, quindi va lanciata da te:
+
+```sql
+SELECT c.azienda_fk, c.cliente_id, c.cliente_cognome, c.cliente_nome, c.cliente_email
+FROM ana_clienti c
+JOIN (SELECT azienda_fk, lower(btrim(cliente_email)) AS e
+      FROM ana_clienti
+      WHERE cliente_email IS NOT NULL AND btrim(cliente_email) <> ''
+      GROUP BY 1,2 HAVING count(*) > 1) d
+  ON d.azienda_fk = c.azienda_fk AND d.e = lower(btrim(c.cliente_email))
+ORDER BY c.azienda_fk, lower(btrim(c.cliente_email)), c.cliente_id;
+```
