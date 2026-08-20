@@ -149,6 +149,7 @@ Sostituisce `fn_wizard_insert_prenotazione` e riempie il vuoto di `MovClientiVia
 | `Validation/Business/ClienteValidator.cs` | secondo la mappa della Parte H dell'analisi: **4 metodi da eliminare** (`ValidateTitolo`, `ValidateSesso`, `ValidatePassengerEmailDifferentFromPilot`, `ValidatePassengerEmailUnique`), il resto ridotto ad anticipazione |
 | `Validation/Fiscal/CodiceFiscaleValidator.cs` | i tre metodi orfani si eliminano: la logica è nel DB |
 | `Components/Shared/ClienteDialog.razor.cs` | la domanda non memorizzata «questa persona guiderà?» che decide se pretendere l'email |
+| **Gestione partecipanti** | **popup «manca l'email»**: iscrivendo un pilota senza email, si chiede se inserirla subito e si aggiorna l'anagrafica senza uscire dalla schermata. Il `riferimento` restituito da `fn_mov_clienti_viaggi_valida` porta il `cliente_id` su cui aprirlo; la scrittura passa da `fn_ana_clienti_update`, che valida l'email *(deciso il 2026-08-20)* |
 | `Helpers/DatabaseExceptionHelper.cs` | messaggi per i nuovi rifiuti |
 
 **Restano in C#** gli avvisi non bloccanti, che sono presentazione e non regole:
