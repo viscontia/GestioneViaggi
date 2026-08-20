@@ -96,6 +96,9 @@
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
 | G1 | Wizard, passo 2 | Guarda sotto l'email | C'è la spunta **«Desidero ricevere comunicazioni…»**, **non pre-selezionata** e distinta dall'accettazione delle condizioni |
+| G1b | Wizard, **passo 3** → aggiungi un passeggero | Guarda la modale | La stessa spunta c'è **anche lì**: la modale riusa lo stesso componente, quindi il consenso è **per ciascun partecipante** |
+| G1c | Wizard, passo 2 | Scegli il titolo | Il **sesso si imposta da solo** ed è in sola lettura. La tendina dei titoli viene da `ana_titolo_persone`: le voci sono le stesse del gestionale |
+| G1d | Wizard | Entra con l'email di un cliente **esistente** | Titolo **ritrovato** nella tendina e spunta del consenso **com'era**. ⚠️ Sono le due regressioni chiuse col `557`: senza, il titolo restava vuoto e il consenso si sarebbe spento da solo |
 | G2 | Wizard | Completa un'iscrizione **spuntando** il consenso | A DB il nuovo cliente ha consenso vero, data e **fonte `SITO_ISCRIZIONE`** |
 | G3 | Wizard | Completa un'iscrizione **senza** spuntarlo | Consenso falso. Nessuna data, nessuna fonte |
 | G4 | Wizard, campo CF | Inserisci un CF con l'ultimo carattere errato | Il sito lo rifiuta — ora è il database a dirlo |
@@ -149,5 +152,7 @@ SELECT cliente_id, cliente_cognome, cliente_nome FROM ana_clienti WHERE cliente_
 - **PROD.** Nulla di questo si prova là: manca lo schema (`538`-`542`).
 - **La consegna coordinata** (fase 6): script → sito → eseguibile, in quest'ordine.
 - **Le letture** di `ClienteRepository`, non ancora convertite: restano SQL inline e funzionano come prima.
-- **Il consenso per i passeggeri** del wizard (passo 3): oggi la spunta è solo per chi compila. La
-  decisione del 2026-08-20 era «uno per ciascun partecipante» — resta da fare.
+- **Chi spunta il consenso per un passeggero** è chi compila l'iscrizione, non il passeggero stesso.
+  La spunta c'è per ciascun partecipante come deciso, ma resta una questione aperta di sostanza: un
+  consenso dato da altri vale poco. Se il passeggero ha un'email propria, la strada pulita è
+  chiedergliela a lui — da valutare.
