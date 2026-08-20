@@ -252,9 +252,65 @@ non hanno spazi, e la segreteria è `azienda_admin` con azienda 2 correttamente 
 La spiegazione è più semplice: **il controllo è nato dopo**. Introdotto il 2026-01-02 (commit
 `b079d2c`), mentre le coppie sono del **2025-09-11** e del **2025-11-05**.
 
-> **Resta un caso non spiegato:** la coppia del **2026-01-25**, creata *dopo* l'introduzione del
-> controllo. Da chiarire prima di considerare chiusa l'indagine — è l'unico indizio che il controllo
-> possa avere un percorso di fallimento ancora vivo.
+**La coppia del 2026-01-25** è nata *dopo* il controllo, e su di lei l'indagine è proseguita.
+Escluse con prove, in ordine: SQL sbagliato (oggi vede tutte e tre le coppie); spazi in coda nelle
+email (zero); azienda non valorizzata (la segreteria è `azienda_admin` su azienda 2, e `Clienti.razor`
+la imposta correttamente); scorciatoia del SuperAdmin che salta il controllo (non è SuperAdmin); un
+secondo percorso di creazione (`ClienteDialog` è l'unico dell'app); `HandleSubmit` che ignora
+`IsValid` (non lo ignora); campo Email non registrato nella form perché su un'altra scheda dei
+`MudTabs` (`KeepPanelsAlive="true"`, resta registrato). L'audit non aiuta: gli eventi di quelle due
+schede sono datati **2026-04-07**, entrambi allo stesso microsecondo e senza autore — un
+ripopolamento a posteriori, non la traccia della creazione. Le due schede sono nate a **7 minuti**
+di distanza e non sono **mai** state modificate: la seconda è stata creata con l'email già dentro.
+
+Piste ancora aperte: **(a)** la build installata sulla macchina del cliente il 25 gennaio poteva
+essere anteriore al 2 gennaio — il controllo è nel repository, non necessariamente nell'eseguibile in
+uso *(da confermare: solo il committente sa quando ha consegnato)*; **(b)** una race sulla validazione
+asincrona, difficile da provare.
+
+> ⚠️ **Difetto latente trovato durante l'indagine, indipendente da questo caso.**
+> `DashboardAdmin.OpenNewClientDialog` apre il dialog con `AziendaFk = _currentUser?.AziendaId ?? 0`.
+> Quel `?? 0` trasforma «azienda sconosciuta» in «azienda zero»: per un utente non SuperAdmin
+> `aziendaCheck` vale 0, la ricerca gira su un'azienda inesistente, non trova nulla e **approva in
+> silenzio**. Lo stesso schema vale per il controllo sul codice fiscale. Da chiudere a prescindere da
+> come finisce l'indagine.
+
+---
+
+## Parte F — L'obbligo dell'email al pilota: dove vive la regola
+
+**Il controllo all'iscrizione non esiste.** `MovClientiViaggiService` non ha **nessuna** validazione:
+solo traduzione in italiano degli errori del database. Si può iscrivere come pilota una persona senza
+email, e nulla lo impedisce.
+
+**Quanto pesa l'obiezione «il ruolo cambia da viaggio a viaggio»** — misurato su PROD il 2026-08-20:
+
+| Profilo | Clienti |
+|---|---|
+| Sempre e solo pilota | 347 |
+| Sempre e solo passeggero | 333 |
+| **Pilota in un viaggio, passeggero in un altro** | **7** (1%) |
+
+Un flag memorizzato sull'anagrafica sarebbe giusto per il 99% e **falso in silenzio** su quei 7 — oltre
+a essere la terza copia di un fatto che vive già sull'iscrizione.
+
+**Decisione del 2026-08-20.** Due presidi, nessun dato duplicato:
+
+1. **In anagrafica, una domanda non memorizzata** — «questa persona guiderà?» — che serve solo a
+   decidere se pretendere l'email. Per chi risulta già pilota nello storico si risponde da sola.
+2. **All'iscrizione al viaggio, il controllo autoritativo**: iscrivere qualcuno come pilota richiede
+   che la sua anagrafica abbia un'email. È il punto in cui il ruolo si conosce con certezza, e prende
+   automaticamente anche i 7 che cambiano ruolo.
+
+Da sanare: gli **11 piloti senza email** già presenti (su 667 iscrizioni come pilota).
+
+### Codice orfano rilevato (non rimosso: si decide col nuovo CRUD)
+
+| Validatore | Perché è orfano |
+|---|---|
+| `ValidateTitolo`, `ValidateSesso` | superati dal re-model del `538`: il titolo è una FK, il sesso è derivato |
+| `ValidatePassengerEmailDifferentFromPilot` | ⚠️ codifica l'assunto **opposto** a quello stabilito: vieta al passeggero l'email del pilota. Se qualcuno lo collegasse, vieterebbe le coppie che condividono la casella — cioè il caso reale |
+| `ValidatePassengerEmailUnique` | stessa famiglia |
 
 ### Domande ancora aperte
 
