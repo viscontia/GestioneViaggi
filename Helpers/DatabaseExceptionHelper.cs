@@ -206,7 +206,10 @@ public static class DatabaseExceptionHelper
             { "ana_clienti_rilascio_dopo_nascita_check", "La data di rilascio del documento è precedente alla data di nascita." },
             { "ana_clienti_scadenza_dopo_rilascio_check", "Il documento risulta scadere prima di essere stato rilasciato." },
             { "ana_clienti_iban_formato_check", "L'IBAN non è valido: servono da 15 a 34 caratteri e due lettere di paese iniziali." },
-            { "ana_clienti_cliente_sesso_check", "Il sesso può essere solo M o F." }
+            { "ana_clienti_cliente_sesso_check", "Il sesso può essere solo M o F." },
+            { "ana_clienti_telefono_caratteri_check", "Il telefono può contenere solo cifre, spazi e i simboli + ( ) - . /" },
+            { "ana_clienti_codicefiscale_lunghezza_check", "Il codice fiscale deve essere di 16 caratteri." },
+            { "ana_clienti_indirizzo_minimo_check", "L'indirizzo di residenza deve avere almeno 5 caratteri." }
         };
 
         foreach (var mapping in checkMessages)
