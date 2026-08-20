@@ -63,6 +63,9 @@ public class ClienteService(IClienteRepository repository, IDatabaseService data
     }
 
     /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>
+    public Task<string?> AvvisoNomeSessoAsync(string? nome, char sesso)
+        => _repository.AvvisoNomeSessoAsync(nome, sesso);
+
     public Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null)
         => _repository.ValidaAsync(cliente, clienteId);
 

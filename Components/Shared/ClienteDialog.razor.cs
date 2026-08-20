@@ -148,17 +148,29 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     }
 
     /// <summary>Il titolo porta il sesso: lo si copia nell'entita' appena viene scelto.</summary>
-    private void OnTitoloScelto(AnaTitoloPersone? titolo)
+    private async Task OnTitoloScelto(AnaTitoloPersone? titolo)
     {
         if (titolo is not null) Entity.Sesso = titolo.Sesso;
+        await AggiornaAvvisoNomeSesso();
     }
 
+    private string? AvvisoNomeSesso;
+
     /// <summary>
-    /// Sospetto di titolo sbagliato, dedotto dal nome. Ricalcolato a ogni render: e' un confronto
-    /// fra due stringhe, e cosi' l'avviso compare appena si sceglie il titolo, non solo al salvataggio.
+    /// Sospetto di titolo sbagliato, dedotto dal nome. La regola sta nel database
+    /// (<c>fn_nome_sesso_avviso</c>), non piu' in C#: e' la stessa che applica il sito di
+    /// iscrizione, e la lista dei nomi maschili in -a si aggiorna senza ricompilare nulla.
+    ///
+    /// Si ricalcola quando si sceglie il titolo e quando si lascia il campo Nome — non a
+    /// ogni tasto: e' un giro al database, e il momento utile e' quando il nome e' finito.
     /// </summary>
-    private string? AvvisoNomeSesso =>
-        Entity.TitoloFk == 0 ? null : CoerenzaNomeSessoValidator.Avviso(Entity.Nome, Entity.Sesso);
+    private async Task AggiornaAvvisoNomeSesso()
+    {
+        AvvisoNomeSesso = Entity.TitoloFk == 0
+            ? null
+            : await ClienteService.AvvisoNomeSessoAsync(Entity.Nome, Entity.Sesso);
+        StateHasChanged();
+    }
 
     /// <summary>Sesso a video: vuoto finche' non c'e' un titolo, perche' prima non e' un dato ma un default.</summary>
     private string SessoDescrizione =>

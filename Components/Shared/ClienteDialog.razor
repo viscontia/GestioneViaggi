@@ -106,6 +106,7 @@
                                     <MudTextField @ref="_nomeField" @bind-Value="Entity.Nome" For="@(() => Entity.Nome)" Label="Nome"
                                         Variant="Variant.Outlined" Immediate="true" Required="true" 
                                         RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input" 
+                                        OnBlur="@(async () => await AggiornaAvvisoNomeSesso())"
                                         Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
                                 </MudItem>
 

@@ -126,6 +126,31 @@ public class ClienteRepository(
     /// Chiede al database cosa non va, senza scrivere. Serve alla form per sapere
     /// PRIMA di salvare, e poter chiedere conferma dove serve.
     /// </summary>
+    /// <summary>
+    /// Sospetto di titolo sbagliato dedotto dal nome. La regola (e la lista dei nomi
+    /// maschili in -a) vive nel database, in <c>fn_nome_sesso_avviso</c>: e' la stessa
+    /// che vede il sito di iscrizione. Averla anche qui in C# significherebbe due
+    /// liste che col tempo divergono.
+    /// </summary>
+    public async Task<string?> AvvisoNomeSessoAsync(string? nome, char sesso)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand("SELECT fn_nome_sesso_avviso(@nome, @sesso)", connection);
+            command.Parameters.AddWithValue("nome", nome ?? string.Empty);
+            command.Parameters.AddWithValue("sesso", sesso);
+
+            return await command.ExecuteScalarAsync() as string;
+        }
+        catch (Exception ex)
+        {
+            // Un avviso che non arriva non deve impedire di lavorare.
+            _logger.LogWarning(ex, "Avviso nome/sesso non calcolabile");
+            return null;
+        }
+    }
+
     public async Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null)
     {
         await using var connection = await _databaseService.GetConnectionAsync();

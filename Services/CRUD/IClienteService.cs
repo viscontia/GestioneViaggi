@@ -16,6 +16,7 @@ public interface IClienteService
     Task<Cliente> UpdateAsync(Cliente cliente, bool conferme = false);
 
     /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>
+    Task<string?> AvvisoNomeSessoAsync(string? nome, char sesso);
     Task<List<EsitoValidazione>> ValidaAsync(Cliente cliente, int? clienteId = null);
     Task<bool> DeleteAsync(int clienteId, int aziendaFk);
 
