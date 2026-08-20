@@ -311,6 +311,59 @@ a essere la terza copia di un fatto che vive già sull'iscrizione.
 
 Da sanare: gli **11 piloti senza email** già presenti (su 667 iscrizioni come pilota).
 
+## Parte H — Dove finisce ciascuno dei 17 validatori
+
+**Decisione del 2026-08-20: i validatori si spostano dal C# alle function del database.** Sotto, uno
+per uno, dove atterra ciascuno. «DB» non vuol dire sempre `CHECK`: alcune regole non possono esserlo
+(vedi la nota su `CURRENT_DATE` nella Parte C) e vivranno nella **funzione CRUD**, che è comunque
+database. In C# resta solo l'immediatezza dell'interfaccia: messaggio inline, fuoco sul campo, avvisi.
+
+| # | Validatore | Regola | Dove va | Stato |
+|---|---|---|---|---|
+| 1 | `ValidateEmail` | formato · max 100 · obbligatoria | `CHECK` `541` · già colonna · **funzione iscrizione** (dipende dal ruolo) | formato ✅ · obbligo da fare |
+| 2 | `ValidateCognome` | presente · min 2 · max 50 | `NOT NULL` · `CHECK` `541` · già colonna | ✅ |
+| 3 | `ValidateNome` | idem | idem | ✅ |
+| 4 | `ValidateTitolo` | — | **da eliminare**: superato dal re-model `538` | orfano |
+| 5 | `ValidateSesso` | — | **da eliminare**: il sesso è derivato dal titolo | orfano |
+| 6 | `ValidateIndirizzoResidenza` | presente · min 5 · max 100 | `CHECK` `542` · già colonna. **Obbligatorietà da decidere** (61 clienti su PROD non ce l'hanno) | parziale |
+| 7 | `ValidateDataNascita` | data plausibile | `CHECK` sull'intervallo di anni — **da fare** | da fare |
+| 8 | `ValidateTelefono` | caratteri · max 15 · obbligatorio | `CHECK` `542` · già colonna. **Obbligatorietà da decidere** | parziale |
+| 9 | `ValidatePrefissoTelefono` | obbligatorio **se c'è il telefono** | `CHECK` condizionale — è esprimibile, **da fare** | da fare |
+| 10 | `ValidateTipoDocumento` | presente · max 10 | già colonna. Obbligatorietà da decidere (572 su 778 non ce l'hanno) | da decidere |
+| 11 | `ValidateNumeroDocumento` | min 3 · max 50 | `CHECK` — **da fare** | da fare |
+| 12 | `ValidateDocumentoRilasciatoDa` | min 3 · max 100 | `CHECK` — **da fare** | da fare |
+| 13 | `ValidateDocumentoDataRilascio` | > nascita · < scadenza · **non futura** | `CHECK` `541` per le prime due · la terza nella **funzione CRUD** (`CURRENT_DATE` non è `IMMUTABLE`) | parziale |
+| 14 | `ValidateDocumentoDataScadenza` | > rilascio · **non scaduto** | `CHECK` `541` · il «non scaduto» resta **avviso** | parziale |
+| 15 | `ValidateIban` | formato · max 34 | `CHECK` `541` · già colonna | ✅ |
+| 16 | `ValidatePassengerEmailDifferentFromPilot` | — | **da eliminare**: contraddetto dai dati (le coppie che condividono la casella) | orfano |
+| 17 | `ValidatePassengerEmailUnique` | — | **da eliminare**: stessa famiglia | orfano |
+
+**Bilancio:** 4 già completamente nel database, 5 parziali, 4 da fare, **4 da eliminare**. Le
+lunghezze massime erano già tutte nelle colonne (Parte B): quelle non «si spostano», ci sono già.
+
+### Il caso a parte: il motore del codice fiscale, scritto e mai acceso
+
+`Validation/Fiscal/CodiceFiscaleValidator` non è uno dei 17 ed è il pezzo più prezioso che c'è:
+
+| Metodo | Cosa fa | Chiamanti |
+|---|---|---|
+| `ValidateCodiceFiscale` | controlla la **forma** | `ClienteDialog` |
+| `CalculateExpectedCodiceFiscale` | **calcola il codice atteso** da cognome, nome, data di nascita, sesso e comune | **nessuno** |
+| `ValidateAgainstAnagrafica` | confronta il codice inserito con l'anagrafica | **nessuno** |
+| `CheckOmocodia` | gestisce le sostituzioni per omocodia | **nessuno** |
+
+È lo strumento che avrebbe intercettato **tutti** i casi trovati oggi: i 4 codici fiscali malformati,
+e il doppione di ANTONIO TOLU — il cui codice, `TLONTN77M24G113N`, contiene data (24 agosto 1977),
+sesso e comune (`G113` = Oristano) e li conferma tutti. È scritto per intero, funzionante, **e non lo
+chiama nessuno**.
+
+Il database ha già quello che gli serve per fare lo stesso lavoro: `ana_geo_comuni.comune_codfisc`
+contiene i codici catastali. Portarlo in PL/pgSQL è l'elemento più pesante di tutto lo spostamento —
+ma è anche quello che rende il codice fiscale una **chiave verificabile** invece di una stringa
+qualunque, e con essa il controllo anti-omonimia diventa affidabile.
+
+---
+
 ## Parte G — L'omonimia: il controllo c'è, ma si autodisattiva
 
 Trovato il 2026-08-20 indagando su **due schede di ANTONIO TOLU** nella stessa azienda.
