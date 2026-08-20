@@ -74,7 +74,7 @@ controllo anti-omonimia resta debole e il CRUD non ha su cosa fondare l'identit�
 | Funzione | Scopo |
 |---|---|
 | `fn_cf_calcola(p_cognome, p_nome, p_data_nascita, p_sesso, p_comune_id)` | Il codice atteso. Legge il codice catastale da `ana_geo_comuni.comune_codfisc` |
-| `fn_cf_verifica(p_cf, p_cognome, p_nome, p_data_nascita, p_sesso, p_comune_id)` | Esito completo: forma, carattere di controllo, corrispondenza con l'anagrafica, omocodia |
+| `fn_cf_verifica(p_cf, p_cognome, p_nome, p_data_nascita, p_sesso, p_comune_id)` | Esito completo: forma, carattere di controllo, corrispondenza con l'anagrafica, omocodia, **nome e cognome invertiti** (`547`) |
 | `fn_cf_decodifica(p_cf)` | Da codice a data di nascita, sesso e comune — è ciò che ha permesso di verificare Tolu |
 
 **Da dove si porta il codice:** la versione C# (`Validation/Fiscal/CodiceFiscaleValidator.cs`) è la più

@@ -405,7 +405,7 @@ opposti. E i codici catastali su cui entrambi si appoggiano sono **già qui**, i
 | Funzione | Scopo |
 | :--- | :--- |
 | `fn_cf_calcola(cognome, nome, data_nascita, sesso, comune_id)` | Il codice atteso dall'anagrafica |
-| `fn_cf_verifica(cf, [cognome, nome, data, sesso, comune_id])` | Forma · carattere di controllo · corrispondenza · omocodia. Esito: `MANCANTE`, `FORMA`, `CARATTERE_CONTROLLO`, `FORMA_OK`, `CORRISPONDE`, `OMOCODIA`, `NON_CORRISPONDE` |
+| `fn_cf_verifica(cf, [cognome, nome, data, sesso, comune_id])` | Forma · carattere di controllo · corrispondenza · omocodia · **nome e cognome invertiti**. Esito: `MANCANTE`, `FORMA`, `CARATTERE_CONTROLLO`, `FORMA_OK`, `CORRISPONDE`, `OMOCODIA`, **`INVERTITI`** (`SqlScripts/547`), `NON_CORRISPONDE` |
 | `fn_cf_decodifica(cf)` | Dal codice all'anagrafica: data di nascita, sesso, comune |
 | `fn_cf_omocodia_a_base(cf)` | Riporta a cifre le lettere sostituite per omocodia (posizioni 7, 8, 10, 11, 13, 14, 15) |
 | `fn_cf_normalizza` · `fn_cf_consonanti` · `fn_cf_vocali` · `fn_cf_codice_cognome` · `fn_cf_codice_nome` · `fn_cf_carattere_controllo` | Ausiliarie, `IMMUTABLE` |
@@ -424,6 +424,13 @@ DB, motore Python e codice fiscale memorizzato:
 | Disaccordi fra motore DB e motore Python | **0** |
 | Entrambi ricostruiscono il codice memorizzato | 413 su 426 |
 | Codici che non corrispondono all'anagrafica | **13** — non difetti del motore, incoerenze nei dati |
+
+> **`INVERTITI` (`SqlScripts/547`).** Prima di dichiarare che un codice non corrisponde, la funzione
+> prova a **scambiare cognome e nome**: se cosi' torna, lo dice — *«Nome e cognome sembrano invertiti:
+> il codice fiscale corrisponde leggendo «SCIASCIA» come cognome e «LUCIA» come nome»*. E' un errore
+> di digitazione che nessuno vedeva, perche' le due stringhe sono entrambe plausibili e **solo il
+> codice fiscale sa quale sia quale**. Resta un errore da correggere (`valido = FALSE`), ma con una
+> diagnosi che si risolve in un gesto.
 
 Le 13 in tre famiglie: **3 con nome e cognome invertiti** (dimostrato: scambiando i due campi il
 codice torna esatto), **3 con la data di nascita sbagliata** (il codice dice quale è giusta), **4 con
@@ -1517,6 +1524,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1678,7 +1686,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_cf_decodifica` | p_cf character varying | TABLE(data_nascita date, sesso character, comune_id integer, comune_descrizione character varying, comune_codfisc character varying) |  |
 | `fn_cf_normalizza` | p_testo text | text |  |
 | `fn_cf_omocodia_a_base` | p_cf text | text |  |
-| `fn_cf_verifica` | p_cf character varying, p_cognome character varying DEFAULT NULL::character varying, p_nome character varying DEFAULT NULL::character varying, p_data_nascita date DEFAULT NULL::date, p_sesso character DEFAULT NULL::bpchar, p_comune_id integer DEFAULT NULL::integer | TABLE(valido boolean, esito character varying, messaggio text, cf_atteso character varying) | Verifica completa: forma, carattere di controllo, corrispondenza con l'anagrafica, omocodia. Unico punto di verita' per gestionale e sito. |
+| `fn_cf_verifica` | p_cf character varying, p_cognome character varying DEFAULT NULL::character varying, p_nome character varying DEFAULT NULL::character varying, p_data_nascita date DEFAULT NULL::date, p_sesso character DEFAULT NULL::bpchar, p_comune_id integer DEFAULT NULL::integer | TABLE(valido boolean, esito character varying, messaggio text, cf_atteso character varying) | Verifica completa del codice fiscale. Esiti: MANCANTE, FORMA, CARATTERE_CONTROLLO, FORMA_OK, CORRISPONDE, OMOCODIA, INVERTITI (nome e cognome scambiati, SqlScripts/547), NON_CORRISPONDE. Unico punto di verita' per gestionale e sito. |
 | `fn_cf_vocali` | p_testo text | text |  |
 | `fn_check_email_unique_across_companies` |  | trigger | Garantisce che una email non possa essere usata da aziende diverse. |
 | `La stessa azienda può usare la stessa email per reparti diversi.` |  |  |  |
@@ -1701,8 +1709,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
+ |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
+` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
 | `fn_get_cliente_by_id` | p_cliente_id integer, p_azienda_fk integer | json | DB-First: Get cliente by ID with all related data (azienda, comuni) |
 | `fn_get_cliente_init_data` | p_cliente_id integer DEFAULT NULL::integer | json |  |
