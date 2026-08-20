@@ -248,7 +248,11 @@ DECLARE
     v_codfisc TEXT;
     c_mesi CONSTANT TEXT := 'ABCDEHLMPRST';
 BEGIN
-    IF v_base IS NULL THEN RETURN; END IF;
+    -- Un codice malformato non si decodifica: senza questa guardia il cast della
+    -- coppia giorno andava in errore su stringhe di 16 caratteri qualsiasi.
+    IF v_base IS NULL OR v_base !~ '^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$' THEN
+        RETURN;
+    END IF;
 
     v_mese := strpos(c_mesi, substr(v_base, 9, 1));
     IF v_mese = 0 THEN RETURN; END IF;

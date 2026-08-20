@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `543`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `546`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–543)
+### Elenco ordinato (467–546)
 
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
@@ -200,6 +200,9 @@ ls SqlScripts/*.sql \
 
 | 538 | Create_AnaTitoloPersone | **Re-model anagrafica clienti.** Nuova lookup GLOBALE `ana_titolo_persone` (codice, descrizione, sesso) + `ana_clienti.cliente_titolo_fk` **NOT NULL** + migrazione dei clienti esistenti + trigger che deriva `cliente_sesso` dal titolo. ⚠️ **Prova a secco già fatta su PROD il 2026-08-19** — vedi §2.7 |
 | 539 | TitoloPersone_Compatibilita | Ponte per chi scrive ancora il titolo come testo (**sito di iscrizione**, `sp_ana_clienti_*`, wizard): il trigger ricava la FK dal testo e tiene `cliente_titolo` come specchio. Senza questo, ogni iscrizione dal sito fallirebbe subito |
+| 544 | CodiceFiscale_Motore | **Motore del codice fiscale in PL/pgSQL**: calcolo, verifica (forma, carattere di controllo, corrispondenza con l'anagrafica, omocodia), lettura inversa. Sostituisce le implementazioni duplicate in C# e Python. ✅ **Gia' applicato su PROD il 2026-08-20**: puramente additivo, nessuno lo chiama ancora |
+| 545 | AnaClienti_Bonifica_Da_CodiceFiscale | **Repair dati guidato dal codice fiscale**, idempotente: nome/cognome invertiti, data e comune di nascita allineati a cio' che il codice dichiara. Ogni regola si applica **solo se rende il codice corretto**. ✅ **Gia' eseguito su PROD il 2026-08-20** (11 righe) e in locale (9) |
+| 546 | AnaGeoComuni_Estero_Coerente | Il flag `comune_estero` allineato alla provincia. ✅ **Gia' eseguito** su PROD e in locale (1 riga: BOMBAY). Verificato dopo: **zero comuni italiani senza codice catastale** in entrambi gli ambienti |
 | 543 | AnaClienti_Bonifica_Dati | **Repair dati, idempotente.** Codici fiscali malformati e indirizzi spazzatura → NULL, stringhe vuote → NULL, spazi in testa/coda via. ✅ **Gia' eseguito su PROD il 2026-08-20**: su un DB gia' bonificato e' un no-op (verificato, 12 × `UPDATE 0`). ⚠️ **L'ordine dei passi e' obbligatorio** — prima si sanano i valori non validi, poi si normalizza: i vincoli `NOT VALID` di `542` scattano su qualsiasi update della riga, anche su un semplice `btrim`. ⚠️ `cliente_preftelint` **non** viene toccato: i 447 spazi in coda sono formattazione voluta (`+39 ` + numero), toglierli peggiorerebbe 435 telefoni |
 | 542 | AnaClienti_Vincoli_Gruppo2 | Tre `CHECK`: caratteri del telefono (validato — la regola e' stata allargata a `.` e `/`, che sono separatori veri), lunghezza del codice fiscale e minimo dell'indirizzo, questi due **`NOT VALID`**. ⚠️ `NOT VALID` non e' piu' debole su insert e update: semplicemente non boccia lo storico. Su PROD restano 4 CF e 8 indirizzi non conformi — riaprendo e salvando una di quelle schede il vincolo scatta e il dato va sistemato |
 | 541 | AnaClienti_Vincoli_Invarianti | Sei `CHECK` su `ana_clienti`: formato email, minimi su nome e cognome, coerenza fra le date del documento, forma dell'IBAN. **Zero violazioni misurate su PROD il 2026-08-20**, quindi nessuna bonifica. Primo passo della centralizzazione: valgono anche per il sito di iscrizione |
