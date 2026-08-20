@@ -263,10 +263,17 @@ schede sono datati **2026-04-07**, entrambi allo stesso microsecondo e senza aut
 ripopolamento a posteriori, non la traccia della creazione. Le due schede sono nate a **7 minuti**
 di distanza e non sono **mai** state modificate: la seconda è stata creata con l'email già dentro.
 
-Piste ancora aperte: **(a)** la build installata sulla macchina del cliente il 25 gennaio poteva
-essere anteriore al 2 gennaio — il controllo è nel repository, non necessariamente nell'eseguibile in
-uso *(da confermare: solo il committente sa quando ha consegnato)*; **(b)** una race sulla validazione
-asincrona, difficile da provare.
+> ✅ **Indagine chiusa il 2026-08-20: il controllo non ha mai fallito.**
+> Le consegne a SFT sono state la **1.30 l'8 aprile 2026** e la **1.35 il 3 luglio 2026**. Il
+> controllo è nel repository dal 2 gennaio, ma sulla macchina della segreteria è arrivato solo con la
+> 1.30: il 25 gennaio girava una build più vecchia, che non lo aveva. Tutte e tre le coppie sono
+> quindi anteriori all'arrivo del controllo, e non c'è nessun percorso di fallimento da inseguire.
+>
+> Conferma indipendente: il ripopolamento degli eventi di audit è datato **7 aprile 2026, ore 14:40**
+> — il giorno prima della consegna della 1.30, coerente con la preparazione di un rilascio.
+>
+> *(La conclusione poggia sull'elenco delle consegne fornito dal committente: se fra il 2 e il 25
+> gennaio ci fosse stata una consegna non ricordata, l'indagine andrebbe riaperta.)*
 
 > ⚠️ **Difetto latente trovato durante l'indagine, indipendente da questo caso.**
 > `DashboardAdmin.OpenNewClientDialog` apre il dialog con `AziendaFk = _currentUser?.AziendaId ?? 0`.
