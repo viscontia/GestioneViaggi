@@ -119,6 +119,18 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (467–562)
 
+> **Il blocco `538`–`562` è rigiocabile** (verificato il 2026-08-21). Tutti gli oggetti di schema
+> hanno la loro guardia — `IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, `DROP … IF EXISTS` prima di
+> ricreare — e le funzioni sono `CREATE OR REPLACE`. Le due bonifiche dati (`543`, `545`) sono
+> idempotenti per costruzione: correggono solo ciò che è ancora sbagliato. Rilanciare l'intero
+> blocco dopo un'interruzione a metà non fa danni, e non serve capire dove si era fermato.
+>
+> ⚠️ **`543` ha un ordine interno obbligatorio** (prima si sanano i valori non validi, poi si
+> normalizza): i vincoli `NOT VALID` scattano su qualunque `UPDATE` della riga, quindi normalizzare
+> per primo farebbe fallire la bonifica. Il motivo è scritto dentro lo script — non riordinarlo.
+
+
+
 > ⛔️ **`499_Rollback_EstensioneWeb.sql` NON va MAI applicato in produzione.** Il numero `499` è usato
 > da **due** file: quello da applicare è `499_FnWebTraduzioniApprovaContenuto.sql`. L'altro è il
 > rollback completo dell'estensione (fa `DROP COLUMN` su `ana_clienti`, `ana_viaggi`, `ana_aziende`)
@@ -728,6 +740,53 @@ libero.
 - [ ] **Redirect 301 dal dominio storico** verso quello nuovo, da mantenere per anni: il `.it` ha 10 anni di
       posizionamento e di link esterni. È lavoro di Fase 3 (sito pubblico), ma la decisione sul nome è
       un prerequisito.
+
+---
+
+## 3.7 — La consegna è **un evento solo, con tre componenti**
+
+Fino a luglio 2026 il rilascio era una cosa sola: la nuova versione del gestionale. Dopo la
+centralizzazione dei controlli non lo è più. Le regole di `ana_clienti` e dell'iscrizione ora
+vivono nel database, e **tutti e tre** i pezzi devono arrivare insieme, perché nessuno dei tre
+funziona con gli altri due vecchi.
+
+### L'ordine non è negoziabile
+
+| | Cosa | Perché in questa posizione |
+|---|---|---|
+| 1 | **Script DB** `406` → `562` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
+| 2 | **Flask nuovo** in produzione | Chiama funzioni che prima del passo 1 non esistono |
+| 3 | **MAUI 2.0** consegnata | Idem, e i client vanno aggiornati dopo lo schema |
+
+### La finestra fra il passo 1 e il 2 è il momento pericoloso
+
+Appena applicati gli script, **il sito vecchio smette di funzionare**: chiama
+`fn_wizard_insert_cliente`, `fn_wizard_check_cf_esistenza`, `fn_wizard_get_smtp_config` — funzioni
+che il nuovo assetto ha sostituito. Non degrada: si rompe.
+
+Quindi la finestra va tenuta stretta, e provata **prima** in staging. Se il sito riceve iscrizioni
+in quelle ore, meglio metterlo in manutenzione per la durata del passaggio che lasciarlo rispondere
+con errori a chi si sta iscrivendo.
+
+### Il rischio speculare, che è peggiore
+
+Applicare gli script e **non** aggiornare uno dei due client non dà un errore visibile: dà un
+software che scrive senza i controlli nuovi. È così che sono nati i problemi che questo lavoro ha
+chiuso — una scheda cliente duplicata creata dal sito il 2026-05-13, direttamente su produzione,
+con `created_by` vuoto.
+
+### Prima di dichiarare fatto
+
+- [ ] I due piani di test eseguiti: `Documents/2026-08-20-Piano_Test_MAUI.md` e
+      `Documents/2026-08-20-Piano_Test_Flask.md`
+- [ ] In particolare il **gruppo F** del piano Flask (prova incrociata): la stessa anagrafica
+      sbagliata rifiutata da entrambi i software, con lo stesso messaggio
+- [ ] `GV_SECRET_KEY` presente nell'ambiente di **entrambi** i processi
+- [ ] Verificato nel log del sito: `Flask-Mail inizializzato da DB (…)`
+- [ ] Backfill `cliente_lingua` eseguito (§2.5)
+- [ ] Solo **dopo** che tutto gira: eliminare le funzioni dell'elenco di ritiro
+      (`Documents/Funzioni_DB.md`, sezione «Elenco di ritiro»). Non prima: restano in piedi finché
+      non si è verificato che nessun altro software le usi
 
 ---
 
