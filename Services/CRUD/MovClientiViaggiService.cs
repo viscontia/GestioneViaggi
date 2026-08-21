@@ -1,4 +1,5 @@
 
+using GestioneViaggi.Helpers;
 using GestioneViaggi.Models;
 using GestioneViaggi.Services.Database;
 using Npgsql;
@@ -15,53 +16,89 @@ namespace GestioneViaggi.Services.CRUD
             _connectionManager = connectionManager;
         }
 
-        public async Task<int> AddParticipantAsync(MovClientiViaggi entity)
+        /// <summary>
+        /// I dati dell'iscrizione con i nomi delle colonne come chiavi: e' il formato che
+        /// le funzioni si aspettano, lo stesso che manda il sito. Le chiavi nulle si
+        /// omettono, cosi' in aggiornamento non si spegne un campo che nessuno ha toccato.
+        /// </summary>
+        private static string ComeJson(MovClientiViaggi e)
+        {
+            var d = new Dictionary<string, object?>
+            {
+                ["viaggio_id_fk"] = e.ViaggioIdFk,
+                ["data_viaggio_id_fk"] = e.DataViaggioIdFk,
+                ["cliente_id_fk"] = e.ClienteIdFk,
+                ["tipo_partecipante_id_fk"] = e.TipoPartecipanteIdFk,
+                ["ana_mezzi_id_fk"] = e.AnaMezziIdFk,
+                ["mezzo_modello_id_fk"] = e.MezzoModelloIdFk,
+                ["cliente_pilota_id_fk"] = e.ClientePilotaIdFk,
+                ["mov_cliente_viaggio_scontoval_totale"] = e.MovClienteViaggioScontovalTotale,
+                ["mov_cliente_viaggio_targa_mezzo"] = e.MovClienteViaggioTargaMezzo,
+                ["mov_cliente_viaggio_cane_sino"] = e.MovClienteViaggioCaneSino,
+                ["mov_cliente_viaggio_note"] = e.MovClienteViaggioNote,
+            };
+            foreach (var k in d.Where(x => x.Value is null).Select(x => x.Key).ToList()) d.Remove(k);
+            return System.Text.Json.JsonSerializer.Serialize(d);
+        }
+
+        /// <summary>
+        /// Chiede al database di validare l'iscrizione senza scriverla. Restituisce gli esiti
+        /// con la loro gravita': e' cio' che permette alla form di chiedere l'email mancante
+        /// prima di rifiutare, invece di limitarsi a dire di no.
+        /// </summary>
+        public async Task<List<EsitoValidazione>> ValidaAsync(MovClientiViaggi entity, bool modifica = false)
+        {
+            var esiti = new List<EsitoValidazione>();
+            await using var conn = await _connectionManager.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT gravita, esito, messaggio, riferimento FROM fn_mov_clienti_viaggi_valida(@dati::jsonb, @modifica)", conn);
+            cmd.Parameters.AddWithValue("dati", ComeJson(entity));
+            cmd.Parameters.AddWithValue("modifica", modifica);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                esiti.Add(new EsitoValidazione
+                {
+                    Gravita = reader.GetString(0),
+                    Esito = reader.GetString(1),
+                    Messaggio = reader.GetString(2),
+                    Riferimento = reader.IsDBNull(3) ? null : reader.GetInt32(3)
+                });
+            }
+            return esiti;
+        }
+
+        /// <summary>
+        /// Iscrive un partecipante chiamando <c>fn_mov_clienti_viaggi_insert</c>.
+        ///
+        /// Fino ad agosto 2026 qui si chiamava <c>sp_mov_clienti_viaggi_create</c>, che non
+        /// controllava nulla: l'email obbligatoria per chi guida e i dati del mezzo quando il
+        /// ruolo li richiede erano regole che **solo il sito** applicava. Il gestionale, cioe'
+        /// lo strumento di chi lavora tutti i giorni, ne era scoperto — ed e' cosi' che si sono
+        /// iscritti 11 piloti senza email.
+        /// </summary>
+        public async Task<int> AddParticipantAsync(MovClientiViaggi entity, bool conferme = false)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = "SELECT sp_mov_clienti_viaggi_create(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)";
-                await using var cmd = new NpgsqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
-                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
-                cmd.Parameters.AddWithValue("p_cliente_id", entity.ClienteIdFk);
-                cmd.Parameters.AddWithValue("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
-                cmd.Parameters.AddWithValue("p_ana_mezzi_id", (object?)entity.AnaMezziIdFk ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_mezzo_modello_id", (object?)entity.MezzoModelloIdFk ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_sconto_val_totale", (object?)entity.MovClienteViaggioScontovalTotale ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_targa_mezzo", (object?)entity.MovClienteViaggioTargaMezzo ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_cane_sino", (object?)entity.MovClienteViaggioCaneSino ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_note", (object?)entity.MovClienteViaggioNote ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_cliente_pilota_id", (object?)entity.ClientePilotaIdFk ?? DBNull.Value);
+                await using var cmd = new NpgsqlCommand(
+                    "SELECT fn_mov_clienti_viaggi_insert(@dati::jsonb, @conferme)", conn);
+                cmd.Parameters.AddWithValue("dati", ComeJson(entity));
+                cmd.Parameters.AddWithValue("conferme", conferme);
 
-                await cmd.ExecuteNonQueryAsync();
-                return 1;
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync());
             }
-            catch (PostgresException ex) when (ex.SqlState == "23505")
+            catch (PostgresException ex) when (ex.SqlState == "P0001")
             {
-                // Unique violation - Cliente già presente nel viaggio
-                throw new InvalidOperationException("Questo cliente è già iscritto a questo viaggio. Non è possibile inserirlo nuovamente.", ex);
-            }
-            catch (PostgresException ex) when (ex.SqlState == "23503")
-            {
-                // Foreign key violation - mappa il constraint al campo specifico
-                var fieldName = ex.ConstraintName switch
-                {
-                    "fk_mov_clienti_viaggi_cliente" => "Cliente",
-                    "fk_mov_clienti_viaggi_tipo_part" => "Tipo Partecipante",
-                    "fk_mov_clienti_viaggi_pilota" => "Pilota assegnato",
-                    "fk_mov_clienti_viaggi_viaggio" => "Viaggio",
-                    "fk_mov_clienti_viaggi_data" => "Data Viaggio",
-                    "mov_clienti_viaggi_ana_mezzi_id_fk_fkey" => "Marca Veicolo",
-                    "mov_clienti_viaggi_mezzo_modello_id_fk_fkey" => "Modello Veicolo",
-                    _ => $"campo sconosciuto ({ex.ConstraintName})"
-                };
-                throw new InvalidOperationException($"Impossibile aggiungere il partecipante: il campo '{fieldName}' fa riferimento a un dato non valido o non più presente in archivio.", ex);
+                // Rifiuto deliberato della validazione: il messaggio lo ha scritto il
+                // database, in italiano, ed e' l'unico posto dove la regola vive.
+                throw new InvalidOperationException(ex.MessageText, ex);
             }
             catch (PostgresException ex)
             {
-                // Generic PostgreSQL error
-                throw new InvalidOperationException($"Errore durante l'aggiunta del partecipante: {ex.MessageText}", ex);
+                throw DatabaseExceptionHelper.WrapException(ex, "mov_clienti_viaggi");
             }
             catch (Exception ex)
             {
@@ -69,41 +106,27 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
-        public async Task UpdateParticipantAsync(MovClientiViaggi entity)
+        public async Task UpdateParticipantAsync(MovClientiViaggi entity, bool conferme = false)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = "SELECT sp_mov_clienti_viaggi_update(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_tipo_partecipante_id, @p_ana_mezzi_id, @p_mezzo_modello_id, @p_sconto_val_totale, @p_targa_mezzo, @p_cane_sino, @p_note, @p_cliente_pilota_id)";
-                await using var cmd = new NpgsqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("p_viaggio_id", entity.ViaggioIdFk);
-                cmd.Parameters.AddWithValue("p_data_viaggio_id", entity.DataViaggioIdFk);
-                cmd.Parameters.AddWithValue("p_cliente_id", entity.ClienteIdFk);
-                cmd.Parameters.AddWithValue("p_tipo_partecipante_id", entity.TipoPartecipanteIdFk);
-                cmd.Parameters.AddWithValue("p_ana_mezzi_id", (object?)entity.AnaMezziIdFk ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_mezzo_modello_id", (object?)entity.MezzoModelloIdFk ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_sconto_val_totale", (object?)entity.MovClienteViaggioScontovalTotale ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_targa_mezzo", (object?)entity.MovClienteViaggioTargaMezzo ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_cane_sino", (object?)entity.MovClienteViaggioCaneSino ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_note", (object?)entity.MovClienteViaggioNote ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("p_cliente_pilota_id", (object?)entity.ClientePilotaIdFk ?? DBNull.Value);
+                await using var cmd = new NpgsqlCommand(
+                    "SELECT fn_mov_clienti_viaggi_update(@dati::jsonb, @conferme)", conn);
+                cmd.Parameters.AddWithValue("dati", ComeJson(entity));
+                cmd.Parameters.AddWithValue("conferme", conferme);
 
                 await cmd.ExecuteNonQueryAsync();
             }
-            catch (PostgresException ex) when (ex.SqlState == "23503")
+            catch (PostgresException ex) when (ex.SqlState == "P0001")
             {
-                // Foreign key violation
-                throw new InvalidOperationException("Impossibile modificare il partecipante: alcuni dati riferiti (veicolo, modello o pilota) non sono validi.", ex);
-            }
-            catch (PostgresException ex) when (ex.Message.Contains("Record non trovato"))
-            {
-                // Record not found
-                throw new InvalidOperationException("Il partecipante che stai cercando di modificare non esiste più. Ricarica la pagina.", ex);
+                // Rifiuto deliberato della validazione: il messaggio lo ha scritto il
+                // database, in italiano, ed e' l'unico posto dove la regola vive.
+                throw new InvalidOperationException(ex.MessageText, ex);
             }
             catch (PostgresException ex)
             {
-                // Generic PostgreSQL error
-                throw new InvalidOperationException($"Errore durante la modifica del partecipante: {ex.MessageText}", ex);
+                throw DatabaseExceptionHelper.WrapException(ex, "mov_clienti_viaggi");
             }
             catch (Exception ex)
             {
@@ -116,8 +139,8 @@ namespace GestioneViaggi.Services.CRUD
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                string sql = "SELECT sp_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id)";
-                await using var cmd = new NpgsqlCommand(sql, conn);
+                await using var cmd = new NpgsqlCommand(
+                    "SELECT fn_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id)", conn);
                 cmd.Parameters.AddWithValue("p_viaggio_id", viaggioId);
                 cmd.Parameters.AddWithValue("p_data_viaggio_id", dataId);
                 cmd.Parameters.AddWithValue("p_cliente_id", clienteId);
@@ -126,12 +149,10 @@ namespace GestioneViaggi.Services.CRUD
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
-                // Foreign key violation - probably referenced by alloggi
                 throw new InvalidOperationException("Impossibile rimuovere il partecipante: è collegato ad altri dati (es. alloggi). Rimuovi prima i collegamenti.", ex);
             }
             catch (PostgresException ex)
             {
-                // Generic PostgreSQL error
                 throw new InvalidOperationException($"Errore durante la rimozione del partecipante: {ex.MessageText}", ex);
             }
             catch (Exception ex)

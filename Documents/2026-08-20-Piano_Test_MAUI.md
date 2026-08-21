@@ -91,12 +91,27 @@ lascia il campo Nome. È un giro al database, e il momento utile è quando il no
 
 ## D — Iscrizione al viaggio
 
+Fino al 2026-08-21 il gestionale chiamava ancora la vecchia `sp_mov_clienti_viaggi_create`, che
+**non controllava nulla**: le regole degli script `551` e `553` le applicava soltanto il sito. Cioè
+lo strumento usato tutti i giorni era quello scoperto. Ora entrambe le form di iscrizione
+(`QuickAddParticipantDialog` e il tab Partecipanti) passano da `fn_mov_clienti_viaggi_insert`.
+
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| D1 | Iscrivi come **pilota** una persona senza email | Rifiutato, con il nome della persona da correggere |
-| D2 | Iscrivi la stessa persona come **accompagnatore** | Consentito |
-| D3 | Iscrivi un pilota con un tipo partecipante che richiede i **dati del mezzo**, lasciandoli vuoti | Rifiutato |
-| D4 | Iscrivi due volte la stessa persona allo stesso viaggio e data | Rifiutato |
+| D1 | Iscrivi come **pilota** una persona senza email | Si apre il popup **«Manca l'email»** con il nome della persona |
+| D2 | Nel popup lascia il campo vuoto o premi **Annulla iscrizione** | L'iscrizione **non** avviene; nessuna riga a database |
+| D3 | Nel popup scrivi un'email **malformata** | Il pulsante «Salva e prosegui» resta disabilitato |
+| D4 | Nel popup scrivi un'email valida e conferma | L'email finisce **in anagrafica** (riaprendo la scheda cliente c'è), e l'iscrizione prosegue |
+| D5 | Riapri il popup: il fuoco parte dal campo email? | Sì |
+| D6 | Iscrivi la stessa persona senza email come **accompagnatore** | Consentito, nessun popup |
+| D7 | Ruolo che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato, e il messaggio dice **quali** mancano (marca, modello, targa) |
+| D8 | Iscrivi due volte la stessa persona allo stesso viaggio e data | Rifiutato |
+| D9 | Ripeti D1 e D7 dal **tab Partecipanti** del viaggio, non dall'inserimento rapido | Stesso comportamento: le due form condividono lo stesso codice |
+| D10 | **Modifica** un partecipante esistente cambiandogli ruolo in pilota, se non ha email | Stesso popup |
+
+> Il popup non è una scorciatoia per aggirare il controllo: l'email inserita passa dal salvataggio
+> normale dell'anagrafica, quindi dagli stessi controlli di sempre. Se fosse duplicata o
+> incoerente, il salvataggio lo direbbe e l'iscrizione non proseguirebbe.
 
 ---
 

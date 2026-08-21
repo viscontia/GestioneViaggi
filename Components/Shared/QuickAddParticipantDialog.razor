@@ -2,6 +2,7 @@
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@using GestioneViaggi.Helpers
 @inject IAuthenticationService AuthService
 @inject AnaViaggiService ViaggiService
 @inject MovClientiViaggiService MovClientiService
@@ -153,6 +154,12 @@
             _currentEntity.DataViaggioIdFk = _selectedDataId;
             _currentEntity.ClienteIdFk = _selectedCliente!.ClienteId;
             _currentEntity.MovClienteViaggioCaneSino = _hasDog ? "Y" : "N";
+
+            // La validazione del database prima di scrivere: se manca l'email di chi guida
+            // la chiede e la salva, invece di limitarsi a rifiutare l'iscrizione.
+            if (!await IscrizionePartecipante.PuoProcedereAsync(
+                    _currentEntity, modifica: false, MovClientiService, ClienteService, DialogService, Snackbar))
+                return;
 
             await MovClientiService.AddParticipantAsync(_currentEntity);
 

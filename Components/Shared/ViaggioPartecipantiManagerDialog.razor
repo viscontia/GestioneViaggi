@@ -1,3 +1,4 @@
+@using GestioneViaggi.Helpers
 
 @using GestioneViaggi.Models
 @using GestioneViaggi.Services.CRUD
@@ -794,6 +795,12 @@
             {
                 _currentEntity.ClientePilotaIdFk = null;
             }
+
+            // La validazione del database prima di scrivere: se manca l'email di chi guida
+            // la chiede e la salva, invece di limitarsi a rifiutare l'iscrizione.
+            if (!await IscrizionePartecipante.PuoProcedereAsync(
+                    _currentEntity, _isEditMode, MovClientiService, ClienteService, DialogService, Snackbar))
+                return;
 
             if (_isEditMode)
             {

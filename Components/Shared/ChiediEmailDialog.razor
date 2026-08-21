@@ -1,0 +1,72 @@
+@using GestioneViaggi.Validation.Business
+
+@*
+    Chiede l'email di una persona che sta per essere iscritta come pilota e non ce l'ha.
+
+    Esiste perché rifiutare l'iscrizione e basta sarebbe la risposta peggiore: chi sta
+    lavorando l'email spesso ce l'ha davanti — è nel messaggio con cui la persona si è
+    prenotata — e costringerlo ad aprire l'anagrafica, cercarla, salvarla e ricominciare
+    l'iscrizione è il modo migliore per far nascere l'abitudine di non iscrivere nessuno.
+    Undici piloti senza email sono entrati proprio così.
+
+    L'email inserita qui aggiorna l'anagrafica per davvero, passando dalla validazione
+    normale: non è una scorciatoia per aggirare il controllo, è il controllo che si fa
+    risolvere sul momento.
+*@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.MailOutline" Class="mr-2" />
+            Manca l'email
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">@Messaggio</MudAlert>
+        <MudText Typo="Typo.body2" Class="mb-3">
+            Chi guida deve avere un indirizzo email in anagrafica. Se ce l'hai a portata di mano
+            puoi inserirlo adesso: verrà salvato nella scheda di <b>@NomeCliente</b>.
+        </MudText>
+        <MudTextField @ref="_campo" @bind-Value="_email" Label="Email" Variant="Variant.Outlined"
+                      InputType="InputType.Email" MaxLength="100" Immediate="true"
+                      Validation="@(new Func<string, string?>(Valida))"
+                      HelperText="Lascia vuoto per annullare l'iscrizione" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Annulla">Annulla iscrizione</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="@(Valida(_email) is not null)" OnClick="Conferma">
+            Salva e prosegui
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string Messaggio { get; set; } = string.Empty;
+    [Parameter] public string NomeCliente { get; set; } = string.Empty;
+
+    private MudTextField<string>? _campo;
+    private string _email = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Il fuoco sul campo: chi apre questa finestra ha una cosa sola da fare.
+        if (firstRender && _campo is not null) await _campo.FocusAsync();
+    }
+
+    /// <summary>
+    /// Solo la forma, e la stessa che usa la scheda cliente. Il resto (unicità, coerenza)
+    /// lo dice il database quando l'anagrafica viene salvata.
+    /// </summary>
+    private static string? Valida(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return "Inserisci un'email";
+        var esito = ClienteValidator.ValidateEmail(email.Trim());
+        return esito.IsValid ? null : esito.Message;
+    }
+
+    private void Conferma() => MudDialog.Close(DialogResult.Ok(_email.Trim()));
+    private void Annulla() => MudDialog.Cancel();
+}
