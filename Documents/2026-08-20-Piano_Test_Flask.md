@@ -160,6 +160,20 @@ SELECT cliente_id, cliente_cognome, cliente_nome FROM ana_clienti WHERE cliente_
 
 ---
 
+## Una questione aperta, che non è un test
+
+**Chi spunta il consenso per un passeggero è chi compila l'iscrizione, non il passeggero stesso.**
+
+La spunta c'è per ciascun partecipante, come deciso, e i test del gruppo B lo verificano. Ma resta
+un problema di sostanza che nessun test può chiudere: un consenso dato da altri vale poco. Se il
+passeggero ha un'email propria, la strada pulita è chiederlo a lui — un doppio opt-in, o una
+richiesta separata dopo l'iscrizione.
+
+Va deciso, non collaudato. È annotato qui perché è emerso proprio scrivendo le prove sul consenso,
+ed è il tipo di cosa che si perde se resta in una conversazione.
+
+---
+
 ## Cosa questo piano NON copre
 
 - **PROD.** Il sito non va puntato là finché gli script non sono applicati: scriverebbe su uno
