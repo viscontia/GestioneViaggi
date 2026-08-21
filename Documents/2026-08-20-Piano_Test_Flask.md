@@ -76,6 +76,8 @@ o si raccoglie alla fonte o è perso.
 | B5 | Spuntala e salva | A database: `true`, con **data** e **fonte `SITO_ISCRIZIONE`** |
 | B6 | Aggiungi un **passeggero** e guarda il suo modulo | Ha **la sua** spunta: il consenso è personale, non del capogruppo |
 | B7 | Riapri un cliente esistente che **aveva già** dato il consenso e salva senza toccare la spunta | Il consenso **resta acceso**. Se si spegnesse, si starebbe falsificando un dato |
+| B8 | Completa un'iscrizione **senza** spuntare il consenso | A DB consenso falso, e **nessuna data, nessuna fonte**: non c'è nulla da dimostrare |
+| B9 | Entra con l'email di un cliente **esistente** | Titolo **ritrovato** nella tendina e spunta del consenso **com'era**. ⚠️ Sono le due regressioni chiuse col `557`: senza, il titolo restava vuoto e il consenso si sarebbe spento da solo al primo salvataggio |
 
 ---
 
@@ -105,7 +107,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | D1 | Iscrivi come **pilota** una persona senza email | Rifiutato, con il nome di chi correggere |
 | D2 | Iscrivi la stessa persona come **accompagnatore** | Consentito |
 | D3 | Tipo partecipante che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato |
-| D4 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio |
+| D4 | Iscriviti a un viaggio **a cui sei già iscritto** | Rifiutato. ⚠️ Prima il sito non lo controllava affatto |
+| D5 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio |
 
 ---
 
@@ -141,6 +144,8 @@ Per ciascuna riga: inserisci **la stessa anagrafica sbagliata** da tutte e due l
 | F5 | Titolo `SIG.` con nome `FRANCESCA` | Entrambi mostrano l'avviso, **nessuno dei due blocca** |
 | F6 | Documento scaduto | Avviso in entrambi |
 | F7 | Pilota senza email | Rifiutato in entrambi |
+| F8 | Codice fiscale con **carattere di controllo errato** | Rifiutato in entrambi |
+| F9 | Iscrizione **doppia** allo stesso viaggio e data | Rifiutata in entrambi |
 
 **Se una riga si comporta diversamente nei due software, è un difetto**, non una differenza
 accettabile: dopo questo lavoro le regole sono le stesse righe di codice.

@@ -1,3 +1,20 @@
+> # ⛔️ SUPERATO — non eseguire questo piano
+>
+> **Usa invece i due piani separati**, che il committente ha chiesto divisi per software:
+>
+> - `2026-08-20-Piano_Test_MAUI.md` — il gestionale
+> - `2026-08-20-Piano_Test_Flask.md` — il sito di iscrizione, con in testa l'elenco di ciò che è
+>   già stato verificato via API e che quindi **non va rifatto**
+>
+> **Tutto il contenuto utile di questo documento è stato riportato là** (verificato riga per riga il
+> 2026-08-21): le tre trappole sul consenso sono diventate il gruppo C-bis del piano MAUI, la lingua
+> pure; il ritrovamento del titolo per un cliente esistente e il rifiuto della doppia iscrizione sono
+> nel piano Flask; la prova incrociata è il gruppo F del piano Flask.
+>
+> Resta qui solo come storico: eseguirlo significherebbe rifare prove già coperte, e — peggio —
+> lavorare su un elenco che non conosce le correzioni del 21 agosto (letture nel DB, avviso
+> nome/sesso, popup dell'email mancante, iscrizione che finalmente applica le regole nel gestionale).
+
 # Piano di collaudo — `ana_clienti`: un controllo, un posto solo
 
 > **USO INTERNO.** Sequenza eseguibile per collaudare il lavoro del 2026-08-20 (fasi 0-5 del piano

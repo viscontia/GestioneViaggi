@@ -89,6 +89,22 @@ lascia il campo Nome. È un giro al database, e il momento utile è quando il no
 
 ---
 
+## C-bis — Consenso e lingua: le trappole
+
+Il consenso non è un flag qualunque: le tre colonne (`consenso_marketing`, `_data`, `_fonte`)
+esistono per **dimostrare** che è stato dato. Un aggiornamento che le azzera non perde una
+preferenza, perde una prova — e non è recuperabile con un backfill.
+
+| # | Da dove parti | Cosa fai | Cosa deve succedere |
+|---|---|---|---|
+| Cb1 | Nuovo cliente | Spunta il consenso e salva | A DB: consenso vero, **data valorizzata** e una fonte |
+| Cb2 | Cliente **con** consenso | Riapri, cambia **solo il telefono**, salva | Consenso, data e fonte **invariati**. È la trappola vera: un aggiornamento qualsiasi non deve toccarli |
+| Cb3 | Cliente con consenso | Togli la spunta e salva | Consenso spento, ma **data e fonte restano**: servono a dimostrare che un tempo c'era |
+| Cb4 | Cliente **senza** consenso | Accendilo | **Nuova** data e nuova fonte |
+| Cb5 | Qualsiasi cliente | Cambia la **lingua**, salva, riapri | Il valore è quello scelto. Non passa più da una chiamata separata dopo il salvataggio: è dentro il CRUD |
+
+---
+
 ## D — Iscrizione al viaggio
 
 Fino al 2026-08-21 il gestionale chiamava ancora la vecchia `sp_mov_clienti_viaggi_create`, che
@@ -105,6 +121,7 @@ lo strumento usato tutti i giorni era quello scoperto. Ora entrambe le form di i
 | D5 | Riapri il popup: il fuoco parte dal campo email? | Sì |
 | D6 | Iscrivi la stessa persona senza email come **accompagnatore** | Consentito, nessun popup |
 | D7 | Ruolo che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato, e il messaggio dice **quali** mancano (marca, modello, targa) |
+| D7b | Stesso caso, ma compila **marca e modello** e lascia solo la targa | Il messaggio nomina **solo la targa**: dice cosa manca, non ripete l'elenco intero |
 | D8 | Iscrivi due volte la stessa persona allo stesso viaggio e data | Rifiutato |
 | D9 | Ripeti D1 e D7 dal **tab Partecipanti** del viaggio, non dall'inserimento rapido | Stesso comportamento: le due form condividono lo stesso codice |
 | D10 | **Modifica** un partecipante esistente cambiandogli ruolo in pilota, se non ha email | Stesso popup |
