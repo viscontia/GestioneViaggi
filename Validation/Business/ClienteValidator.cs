@@ -4,12 +4,19 @@ using System.Text.RegularExpressions;
 namespace GestioneViaggi.Validation.Business;
 
 /// <summary>
-/// Validatore per i dati del cliente (anagrafica).
-/// Implementa le validazioni business-level per i campi del cliente.
+/// Controlli di <b>forma</b> sui campi del cliente, usati per dare l'errore mentre si
+/// digita. Non sono la sede delle regole: quella è il database
+/// (<c>fn_ana_clienti_valida</c> e i vincoli), che vale per chiunque scriva — gestionale,
+/// sito di iscrizione, o una query fatta a mano. Qui si <b>anticipa</b>, non si decide.
 ///
-/// Traduzione C# della logica di validazione Python dal progetto Iscrizione-Viaggi-Offroad.
-/// Nota: Le validazioni qui implementate sono quelle NON gestite dal database
-/// (NOT NULL, FK, UNIQUE constraints sono gestiti dal DB).
+/// <para>Nell'agosto 2026 sono stati eliminati nove metodi che <b>nessuno chiamava</b>.
+/// Quattro erano superati (titolo e sesso ora vengono dalla lookup, e il sesso lo impone
+/// un trigger). Due dichiaravano l'esatto contrario di ciò che i dati dicono: vietavano al
+/// passeggero di avere l'email del pilota, mentre condividere la casella è prassi normale
+/// fra coniugi — collegarli avrebbe vietato il caso reale. Gli altri tre pretendevano tipo,
+/// numero ed ente di rilascio del documento: misurato su produzione, avrebbero dichiarato
+/// impossibili <b>572 clienti su 777</b>. Un obbligo mai applicato non si "ricollega": se lo
+/// si vuole davvero, è una decisione, e la sua sede è il database.</para>
 /// </summary>
 public static class ClienteValidator
 {
@@ -107,114 +114,6 @@ public static class ClienteValidator
     }
 
     /// <summary>
-    /// Valida il titolo (es. Sig., Dott., ecc.).
-    /// </summary>
-    /// <param name="titolo">Titolo da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateTitolo(string? titolo)
-    {
-        if (string.IsNullOrWhiteSpace(titolo))
-        {
-            return ValidationResult.Failure("Seleziona un titolo", "titolo_required");
-        }
-
-        var trimmedTitolo = titolo.Trim();
-
-        if (trimmedTitolo.Length > 10)
-        {
-            return ValidationResult.Failure("Il titolo non può superare 10 caratteri", "titolo_too_long");
-        }
-
-        return ValidationResult.Success("Titolo valido");
-    }
-
-    /// <summary>
-    /// Valida il sesso.
-    /// </summary>
-    /// <param name="sesso">Sesso da validare (M/F)</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateSesso(char? sesso)
-    {
-        if (!sesso.HasValue)
-        {
-            return ValidationResult.Failure("Seleziona il sesso", "sesso_required");
-        }
-
-        var sessoUpper = char.ToUpperInvariant(sesso.Value);
-
-        if (sessoUpper != 'M' && sessoUpper != 'F')
-        {
-            return ValidationResult.Failure("Il sesso deve essere M (Maschio) o F (Femmina)", "sesso_invalid");
-        }
-
-        return ValidationResult.Success("Sesso valido");
-    }
-
-    /// <summary>
-    /// Valida l'indirizzo di residenza.
-    /// </summary>
-    /// <param name="indirizzo">Indirizzo da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateIndirizzoResidenza(string? indirizzo)
-    {
-        if (string.IsNullOrWhiteSpace(indirizzo))
-        {
-            return ValidationResult.Failure("L'indirizzo di residenza è obbligatorio", "indirizzo_required");
-        }
-
-        var trimmedIndirizzo = indirizzo.Trim();
-
-        if (trimmedIndirizzo.Length < 5)
-        {
-            return ValidationResult.Failure("L'indirizzo deve contenere almeno 5 caratteri", "indirizzo_too_short");
-        }
-
-        if (trimmedIndirizzo.Length > 100)
-        {
-            return ValidationResult.Failure("L'indirizzo non può superare 100 caratteri", "indirizzo_too_long");
-        }
-
-        return ValidationResult.Success("Indirizzo valido");
-    }
-
-    /// <summary>
-    /// Valida la data di nascita.
-    /// </summary>
-    /// <param name="dataNascita">Data di nascita da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateDataNascita(DateTime? dataNascita)
-    {
-        if (!dataNascita.HasValue)
-        {
-            return ValidationResult.Failure("Inserisci una data di nascita valida", "data_nascita_required");
-        }
-
-        // Il limite era DateTime.Now.AddYears(-90): rifiutava un cliente di 91 anni, cioè un dato vero.
-        // Ora il pavimento è assoluto (1900) e resta comunque stretto abbastanza da fermare i refusi
-        // sull'anno, che è il caso realmente frequente. Vedi Documents/Digitazione_Date.md.
-        var minBirthDate = Semantic.DateValidator.DataMinimaStorica;
-        var maxBirthDate = DateTime.Now.AddDays(-1); // Ieri
-
-        if (dataNascita.Value < minBirthDate)
-        {
-            return ValidationResult.Failure(
-                $"La data di nascita deve essere compresa tra {minBirthDate:dd/MM/yyyy} e {maxBirthDate:dd/MM/yyyy}",
-                "data_nascita_too_old"
-            );
-        }
-
-        if (dataNascita.Value > maxBirthDate)
-        {
-            return ValidationResult.Failure(
-                $"La data di nascita deve essere compresa tra {minBirthDate:dd/MM/yyyy} e {maxBirthDate:dd/MM/yyyy}",
-                "data_nascita_future"
-            );
-        }
-
-        return ValidationResult.Success("Data di nascita valida");
-    }
-
-    /// <summary>
     /// Valida il numero di telefono.
     /// </summary>
     /// <param name="telefono">Telefono da validare</param>
@@ -261,82 +160,6 @@ public static class ClienteValidator
         }
 
         return ValidationResult.Success("Prefisso valido");
-    }
-
-    /// <summary>
-    /// Valida il tipo di documento.
-    /// </summary>
-    /// <param name="tipoDocumento">Tipo documento da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateTipoDocumento(string? tipoDocumento)
-    {
-        if (string.IsNullOrWhiteSpace(tipoDocumento))
-        {
-            return ValidationResult.Failure("Seleziona il tipo di documento", "tipo_documento_required");
-        }
-
-        var trimmedTipo = tipoDocumento.Trim();
-
-        if (trimmedTipo.Length > 10)
-        {
-            return ValidationResult.Failure("Il tipo documento non può superare 10 caratteri", "tipo_documento_too_long");
-        }
-
-        return ValidationResult.Success("Tipo documento valido");
-    }
-
-    /// <summary>
-    /// Valida il numero del documento.
-    /// </summary>
-    /// <param name="numeroDocumento">Numero documento da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateNumeroDocumento(string? numeroDocumento)
-    {
-        if (string.IsNullOrWhiteSpace(numeroDocumento))
-        {
-            return ValidationResult.Failure("Il numero documento è obbligatorio (min 3 caratteri)", "numero_documento_required");
-        }
-
-        var trimmedNumero = numeroDocumento.Trim();
-
-        if (trimmedNumero.Length < 3)
-        {
-            return ValidationResult.Failure("Il numero documento deve contenere almeno 3 caratteri", "numero_documento_too_short");
-        }
-
-        if (trimmedNumero.Length > 50)
-        {
-            return ValidationResult.Failure("Il numero documento non può superare 50 caratteri", "numero_documento_too_long");
-        }
-
-        return ValidationResult.Success("Numero documento valido");
-    }
-
-    /// <summary>
-    /// Valida l'ente di rilascio del documento.
-    /// </summary>
-    /// <param name="rilasciatoDa">Ente rilascio da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateDocumentoRilasciatoDa(string? rilasciatoDa)
-    {
-        if (string.IsNullOrWhiteSpace(rilasciatoDa))
-        {
-            return ValidationResult.Failure("Ente rilascio obbligatorio (min 3 caratteri)", "rilasciato_da_required");
-        }
-
-        var trimmedRilasciatoDa = rilasciatoDa.Trim();
-
-        if (trimmedRilasciatoDa.Length < 3)
-        {
-            return ValidationResult.Failure("L'ente di rilascio deve contenere almeno 3 caratteri", "rilasciato_da_too_short");
-        }
-
-        if (trimmedRilasciatoDa.Length > 100)
-        {
-            return ValidationResult.Failure("L'ente di rilascio non può superare 100 caratteri", "rilasciato_da_too_long");
-        }
-
-        return ValidationResult.Success("Ente rilascio valido");
     }
 
     /// <summary>
@@ -462,56 +285,4 @@ public static class ClienteValidator
         return ValidationResult.Success("IBAN formato valido (validazione completa non implementata)");
     }
 
-    /// <summary>
-    /// Valida che l'email del passeggero sia diversa dall'email del pilota.
-    /// </summary>
-    /// <param name="emailPasseggero">Email passeggero</param>
-    /// <param name="emailPilota">Email pilota</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidatePassengerEmailDifferentFromPilot(string? emailPasseggero, string? emailPilota)
-    {
-        if (string.IsNullOrWhiteSpace(emailPasseggero))
-        {
-            return ValidationResult.Failure("Email passeggero obbligatoria", "email_passeggero_required");
-        }
-
-        if (string.IsNullOrWhiteSpace(emailPilota))
-        {
-            // Non possiamo validare se non abbiamo l'email del pilota
-            return ValidationResult.Success("Email pilota non fornita, skip validazione unicità");
-        }
-
-        if (string.Equals(emailPasseggero.Trim(), emailPilota.Trim(), StringComparison.OrdinalIgnoreCase))
-        {
-            return ValidationResult.Failure("L'email del passeggero non può essere uguale a quella del pilota", "email_same_as_pilot");
-        }
-
-        return ValidationResult.Success("Email passeggero diversa dal pilota");
-    }
-
-    /// <summary>
-    /// Valida che l'email del passeggero sia unica tra tutti i passeggeri.
-    /// </summary>
-    /// <param name="emailPasseggero">Email passeggero da validare</param>
-    /// <param name="altreEmailPasseggeri">Lista delle altre email passeggeri già inserite</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidatePassengerEmailUnique(string? emailPasseggero, IEnumerable<string> altreEmailPasseggeri)
-    {
-        if (string.IsNullOrWhiteSpace(emailPasseggero))
-        {
-            return ValidationResult.Failure("Email passeggero obbligatoria", "email_passeggero_required");
-        }
-
-        var trimmedEmail = emailPasseggero.Trim();
-
-        foreach (var altraEmail in altreEmailPasseggeri)
-        {
-            if (string.Equals(trimmedEmail, altraEmail?.Trim(), StringComparison.OrdinalIgnoreCase))
-            {
-                return ValidationResult.Failure("Questa email è già stata utilizzata per un altro passeggero", "email_passeggero_duplicate");
-            }
-        }
-
-        return ValidationResult.Success("Email passeggero unica");
-    }
 }

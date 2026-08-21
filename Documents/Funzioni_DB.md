@@ -1191,6 +1191,46 @@ e non deve iniziare a portarli (169 clienti pesano 189 kB senza).
 | `fn_cliente_ha_iscrizioni` | Guardia alla cancellazione: il cliente ha iscrizioni a viaggi? Filtra per azienda passando da `ana_clienti` — il C# il parametro lo riceveva e **non lo usava** | `p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` | `Repositories/ClienteRepository.cs` (HasRelatedBookingsAsync) |
 | `fn_cliente_ha_alloggi` | Come sopra per gli alloggi; copre tutte e sei le colonne `cliente_idN_fk` | `p_cliente_id INT, p_azienda_fk INT` | `BOOLEAN` | `Repositories/ClienteRepository.cs` (HasRelatedAccommodationsAsync) |
 
+### 🧭 Avviso nome/sesso (`SqlScripts/561`, `562`)
+
+La regola che segnala «SIG. + FRANCESCA» viveva **solo in C#**, in
+`Validation/Semantic/CoerenzaNomeSessoValidator.cs`, con la lista dei nomi maschili in -a scritta
+nel codice. Chi si registrava dal sito quel controllo non ce l'aveva: la stessa persona, due
+comportamenti diversi a seconda della porta da cui entrava.
+
+| Oggetto | Cosa fa |
+| :--- | :--- |
+| `ana_nomi_maschili_in_a` (tabella, **GLOBALE**) | Le eccezioni: ANDREA, LUCA, NICOLA, ELIA, MATTIA, ENEA, ISAIA, GEREMIA, ZACCARIA, BATTISTA, EVANGELISTA, COSMA + i composti attaccati. È lingua italiana, non politica commerciale: non è per azienda. Sta in tabella e non nel codice della funzione perché è un dato che cambia, e non deve servire un rilascio per aggiungere un nome |
+| `fn_nome_sesso_avviso(p_nome VARCHAR, p_sesso CHAR)` → `TEXT` | Il messaggio d'avviso, o `NULL` se non c'è nulla da segnalare. Guarda **l'ultima parola** del nome: «GIUSEPPE MARIA» è maschile, «MARIA» da sola no |
+| `fn_ana_clienti_valida` (esteso) | Restituisce l'avviso come `AVVISO`/`NOME_SESSO`. È la porta comune: da qui lo ricevono sia il gestionale (`ValidaAsync`) sia il sito (`/api/cliente/valida`) |
+
+Senza la lista l'avviso sarebbe **dannoso**: misurato sui clienti reali scattava 53 volte su 53 a
+torto, e 38 erano Andrea e Luca. Un avviso che sbaglia sempre insegna solo a ignorarlo.
+
+Resta un **avviso**, mai un blocco.
+
+---
+
+### 🗑️ Elenco di ritiro — da eseguire al go-live, non prima
+
+Queste funzioni non hanno più chiamanti, ma restano nel database finché non si è verificato che
+nessun altro software le usi. Eliminarle prima significherebbe rompere qualcosa senza saperlo.
+
+| Oggetto | Sostituito da | Perché resta in piedi |
+| :--- | :--- | :--- |
+| `get_cliente_detail` | `fn_get_cliente_detail` | La vecchia TABLE a 41 colonne, ferma al titolo testuale |
+| `sp_ana_clienti_create` / `_update` / `_delete` | `fn_ana_clienti_insert` / `_update` / `_delete` | Erano scritte e **non collegate a nessuno** già prima di questo lavoro |
+| `fn_wizard_get_smtp_config` | `fn_get_smtp_config_for_email` | Seconda copia rimasta indietro rispetto alla cifratura: leggeva `password_enc->>'value'` su una colonna `bytea`. Era **rotta**, non solo doppia |
+| `fn_wizard_insert_cliente` / `_update_cliente` | il CRUD canonico | Il sito ora chiama le funzioni comuni |
+| `fn_wizard_check_cf_esistenza`, `fn_wizard_find_email_by_anagrafica`, `fn_wizard_find_email_by_cf` | `fn_ana_clienti_verifica_duplicato` | Tre controlli parziali sostituiti da uno a quattro livelli |
+
+**Rimosso invece dal codice C#** (agosto 2026), perché lì il ritiro è immediato e verificabile dal
+compilatore: `CoerenzaNomeSessoValidator` per intero; da `CodiceFiscaleValidator` i tre metodi che
+calcolavano il codice atteso, l'omocodia e il confronto con l'anagrafica (la seconda copia
+dell'algoritmo, ~265 righe); da `ClienteValidator` nove metodi senza chiamanti.
+
+---
+
 **Da ritirare al go-live, non prima:** `get_cliente_detail` (la vecchia TABLE a 41 colonne) resta
 nel database ma non ha piu' chiamanti in MAUI. Va eliminata solo dopo aver verificato che nessun
 altro software la usi. Stessa sorte per `sp_ana_clienti_create/_update/_delete`, sostituite da
@@ -1925,8 +1965,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
+ |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
+` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
 | `fn_get_cliente_by_codice_fiscale` | p_codice_fiscale character varying, p_azienda_fk integer | json |  |
 | `fn_get_cliente_by_email` | p_email character varying, p_azienda_fk integer | json |  |
