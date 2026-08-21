@@ -119,11 +119,22 @@ ls SqlScripts/*.sql \
 
 ### Elenco ordinato (467–562)
 
-> **Il blocco `538`–`562` è rigiocabile** (verificato il 2026-08-21). Tutti gli oggetti di schema
-> hanno la loro guardia — `IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, `DROP … IF EXISTS` prima di
-> ricreare — e le funzioni sono `CREATE OR REPLACE`. Le due bonifiche dati (`543`, `545`) sono
-> idempotenti per costruzione: correggono solo ciò che è ancora sbagliato. Rilanciare l'intero
-> blocco dopo un'interruzione a metà non fa danni, e non serve capire dove si era fermato.
+> **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
+> copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
+> (`fn_cf_verifica` con la gravità, riconoscimento di cognome/nome invertiti, avviso nome/sesso).
+> Rilanciare l'intero blocco dopo un'interruzione a metà non fa danni, e non serve capire dove si
+> era fermato.
+>
+> ⚠️ **Non lo era prima di quella prova.** Un controllo puramente testuale sugli script diceva che
+> andasse tutto bene; rigiocarli ha mostrato che **`544` e `547` fallivano** con
+> `cannot change return type of existing function`. Motivo: entrambi dichiarano `fn_cf_verifica`
+> con `CREATE OR REPLACE`, ma il `548` ne cambia il tipo restituito aggiungendo la gravità — quindi
+> su un database che aveva già visto il `548`, rilanciare dalla testa si fermava al `544` e tutto il
+> resto non partiva. Corretto aggiungendo `DROP FUNCTION IF EXISTS` in entrambi, come il `548` già
+> faceva.
+>
+> La lezione, per gli script futuri: **leggere lo script non basta a sapere se è rigiocabile.**
+> Va rigiocato su una copia. Il difetto si vede solo alla seconda esecuzione.
 >
 > ⚠️ **`543` ha un ordine interno obbligatorio** (prima si sanano i valori non validi, poi si
 > normalizza): i vincoli `NOT VALID` scattano su qualunque `UPDATE` della riga, quindi normalizzare

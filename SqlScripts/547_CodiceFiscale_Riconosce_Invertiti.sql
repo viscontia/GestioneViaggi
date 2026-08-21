@@ -19,6 +19,12 @@
 
 BEGIN;
 
+-- Rigiocabilita': il 548 cambiera' il tipo restituito da questa funzione (aggiunge
+-- la gravita'). Senza il DROP, rilanciare questo script su un database che ha gia'
+-- ricevuto il 548 fallisce con "cannot change return type of existing function", e
+-- l'intero blocco si ferma qui. Scoperto rigiocando la sequenza su una copia.
+DROP FUNCTION IF EXISTS fn_cf_verifica(VARCHAR,VARCHAR,VARCHAR,DATE,CHAR,INTEGER);
+
 CREATE OR REPLACE FUNCTION fn_cf_verifica(
     p_cf            VARCHAR,
     p_cognome       VARCHAR DEFAULT NULL,
