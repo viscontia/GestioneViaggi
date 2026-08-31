@@ -65,6 +65,14 @@
                          </MudItem>
                     </MudGrid>
 
+                    @* Chi guida deve poter descrivere il mezzo: il database lo pretende
+                       (tipo_partecipante_dati_mezzo_obb), e finora questa form non lo chiedeva
+                       nemmeno — cosi' da qui un pilota non si poteva iscrivere. *@
+                    @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
+                    {
+                        <DatiMezzoPartecipante Entity="_currentEntity" />
+                    }
+
                     <MudDivider Class="my-4" />
 
                     <!-- Accommodation -->
@@ -142,6 +150,13 @@
     }
 
     private int _currentAziendaId => _viaggiList.FirstOrDefault(v => v.Id == _selectedViaggioId)?.AziendaId ?? 0;
+
+    /// <summary>
+    /// Il ruolo dice se questa persona guida. Si legge dal dato
+    /// (<c>tipo_partecipante_pilota</c>), non dalla descrizione: «PILOTA MOTO PROPRIA» e
+    /// «GUIDA IN SECONDA» guidano entrambi, e nessuna regola sul testo li tiene insieme.
+    /// </summary>
+    private bool IsPilot(int tipoId) => _tipoPartecipanti.FirstOrDefault(x => x.Id == tipoId)?.Pilota ?? false;
 
     private async Task SaveAsync()
     {

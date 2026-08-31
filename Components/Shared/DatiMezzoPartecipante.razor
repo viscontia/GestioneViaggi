@@ -1,0 +1,63 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+@*
+    Marca, modello e targa del mezzo di chi guida.
+
+    Sta qui e non dentro le form perche' le form sono due — l'Iscrizione Veloce e il tab
+    Partecipanti — e la regola che li rende obbligatori e' una sola, nel database
+    (`ana_tipo_partecipante.tipo_partecipante_dati_mezzo_obb`, letta da
+    `fn_mov_clienti_viaggi_valida`). Averli in una form sola e' il difetto che si sta
+    correggendo: l'Iscrizione Veloce chiedeva un pilota e poi non dava modo di descriverne
+    il mezzo, quindi da li' un pilota non si poteva iscrivere affatto.
+
+    Il componente non decide se mostrarsi: lo decide chi lo usa, che sa gia' quale ruolo
+    e' stato scelto. Qui dentro c'e' solo come si compilano quei tre dati.
+*@
+
+<MudDivider Class="my-3" />
+<div class="d-flex align-center gap-2 mb-2">
+    <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Small" />
+    <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
+</div>
+
+<MudGrid Spacing="2">
+    <MudItem xs="6">
+        <MarcaVeicoloSelect SelectedId="@Entity.AnaMezziIdFk"
+                            SelectedIdChanged="@OnMarcaChanged"
+                            Label="Marca" Required="false" />
+    </MudItem>
+    <MudItem xs="6">
+        <MezzoModelloSelect SelectedId="@Entity.MezzoModelloIdFk"
+                            SelectedIdChanged="@((int? val) => Entity.MezzoModelloIdFk = val)"
+                            SelectedItemChanged="OnModelloChanged"
+                            MarcaId="@Entity.AnaMezziIdFk"
+                            Label="Modello" Required="false" />
+    </MudItem>
+    <MudItem xs="12">
+        <MudTextField @bind-Value="Entity.MovClienteViaggioTargaMezzo"
+                      Label="Targa" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Class="uppercase-input" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    /// <summary>L'iscrizione da compilare. Il componente la modifica direttamente.</summary>
+    [Parameter, EditorRequired] public MovClientiViaggi Entity { get; set; } = default!;
+
+    private void OnMarcaChanged(int? marcaId)
+    {
+        Entity.AnaMezziIdFk = marcaId;
+        // Il modello che c'era apparteneva all'altra marca: tenerlo darebbe una coppia
+        // che non esiste. La tendina dei modelli si ricarica da sola sul nuovo MarcaId.
+        Entity.MezzoModelloIdFk = null;
+    }
+
+    private void OnModelloChanged(MezzoModello? m)
+    {
+        // Si puo' scegliere il modello senza aver scelto la marca: allora la marca la
+        // porta il modello, che la conosce.
+        if (m != null && m.MarcaIdFk != Entity.AnaMezziIdFk)
+            Entity.AnaMezziIdFk = m.MarcaIdFk;
+    }
+}

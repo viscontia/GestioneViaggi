@@ -187,13 +187,16 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 | G10 | Ripeti G1 e G7 dal **tab Partecipanti**, non dall'inserimento rapido | Stesso comportamento: le due form condividono lo stesso codice |
 | G11 | **Modifica** un partecipante cambiandogli ruolo in pilota, se non ha email | Stesso popup |
 
-> 🔴 **Difetto aperto, trovato il 2026-08-31 (G12).** Nell'**Iscrizione Veloce**
+> ✅ **Corretto il 2026-08-31 — da verificare con G12/G13 qui sotto.** Nell'**Iscrizione Veloce**
 > (`QuickAddParticipantDialog.razor`) i campi del mezzo — marca, modello, targa — **non esistono**.
 > Scegliendo un ruolo da pilota il controllo li chiede, giustamente, e non c'è modo di compilarli:
 > da quella form un pilota non si può iscrivere. Il tab Partecipanti invece li ha già, e li mostra
 > solo quando il ruolo è da pilota (`ViaggioPartecipantiManagerDialog.razor:390`, `@if (IsPilot(…))`).
 > Da correggere estraendo quel blocco in un componente condiviso e usandolo in entrambe le form:
 > copiarlo sarebbe la stessa regola in due posti, cioè il difetto che stiamo togliendo da tutto il resto.
+
+| G12 | **Iscrizione Veloce**: scegli un cliente e dagli un ruolo da **pilota** | Compaiono marca, modello e targa. Compilandoli, l'iscrizione va a buon fine |
+| G13 | Nella stessa form riporta il ruolo a **passeggero** | I campi del mezzo spariscono, e l'iscrizione non li chiede più |
 
 > Il popup non è una scorciatoia per aggirare il controllo: l'email inserita passa dal salvataggio
 > normale dell'anagrafica, quindi dagli stessi controlli di sempre. Se fosse duplicata o

@@ -389,31 +389,12 @@
                              <!-- Vehicle Config (Visible only if Pilot) -->
                             @if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
                             {
-                                     <MudDivider Class="my-3" />
-                                     <div class="d-flex align-center gap-2 mb-2">
-                                         <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Color="Color.Primary" Size="Size.Small" />
-                                         <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Dettagli Veicolo</b></MudText>
-                                     </div>
+                                     @* I tre dati del mezzo stanno in un componente condiviso: la stessa
+                                        regola vale anche per l'Iscrizione Veloce, e una regola in due
+                                        copie prima o poi diverge. *@
+                                     <DatiMezzoPartecipante Entity="_currentEntity" />
 
-                                     <MudGrid Spacing="2">
-                                         <MudItem xs="6">
-                                             <MarcaVeicoloSelect SelectedId="@_currentEntity.AnaMezziIdFk"
-                                                                 SelectedIdChanged="@OnMarcaChanged"
-                                                                 Label="Marca" Required="false" />
-                                         </MudItem>
-                                         <MudItem xs="6">
-                                             <MezzoModelloSelect @ref="_modelloSelect"
-                                                                 SelectedId="@_currentEntity.MezzoModelloIdFk"
-                                                                 SelectedIdChanged="@((int? val) => _currentEntity.MezzoModelloIdFk = val)"
-                                                                 SelectedItemChanged="OnMezzoModelloChanged"
-                                                                 MarcaId="@_currentEntity.AnaMezziIdFk"
-                                                                 Label="Modello" Required="false" />
-                                         </MudItem>
-                                         <MudItem xs="6">
-                                             <MudTextField @bind-Value="_currentEntity.MovClienteViaggioTargaMezzo" 
-                                                           Label="Targa" Variant="Variant.Outlined" Margin="Margin.Dense" 
-                                                           Class="uppercase-input" />
-                                         </MudItem>
+                                     <MudGrid Spacing="2" Class="mt-1">
                                          <MudItem xs="6">
                                              <MudNumericField @bind-Value="_currentEntity.MovClienteViaggioScontovalTotale" 
                                                               Label="Sconto Totale (€)" Variant="Variant.Outlined" Margin="Margin.Dense" 
@@ -1023,23 +1004,7 @@
         }
     }
 
-    private MezzoModelloSelect _modelloSelect = default!;
-
-    private void OnMezzoModelloChanged(MezzoModello? m)
-    {
-        if (m != null && m.MarcaIdFk != _currentEntity.AnaMezziIdFk)
-        {
-            _currentEntity.AnaMezziIdFk = m.MarcaIdFk;
-        }
-    }
-
-    private void OnMarcaChanged(int? marcaId)
-    {
-        _currentEntity.AnaMezziIdFk = marcaId;
-        _currentEntity.MezzoModelloIdFk = null; // Reset Model when Brand changes
-                                                // The cascading parameter 'MarcaId' on the child component will trigger a refresh naturally
-                                                // via OnParametersSet, but we ensure the local state is consistent.
-    }
+    // Marca e modello li gestisce ora DatiMezzoPartecipante, insieme al resto del blocco.
 
     private async Task OnRoleChangedAsync(int? newRoleId)
     {

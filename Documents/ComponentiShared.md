@@ -444,6 +444,32 @@ Di seguito l'elenco di tutti i componenti di selezione (Combobox/Autocomplete) d
 
 ---
 
+## Blocchi di form condivisi
+
+### DatiMezzoPartecipante
+
+`DatiMezzoPartecipante.razor` — marca, modello e targa del mezzo di chi guida.
+
+| Parametro | Tipo | Cosa fa |
+| :--- | :--- | :--- |
+| `Entity` | `MovClientiViaggi` (obbligatorio) | L'iscrizione da compilare. Il componente la modifica direttamente |
+
+Nato il 2026-08-31 estraendolo da `ViaggioPartecipantiManagerDialog`, dove viveva inline. Le form
+che iscrivono un partecipante sono **due** — l'Iscrizione Veloce (`QuickAddParticipantDialog`) e il
+tab Partecipanti — e l'Iscrizione Veloce quei campi non li aveva affatto: sceglievi un ruolo da
+pilota, il database chiedeva i dati del mezzo (`tipo_partecipante_dati_mezzo_obb`, verificato da
+`fn_mov_clienti_viaggi_valida`) e non c'era modo di compilarli. Da quella form un pilota non si
+poteva iscrivere.
+
+Il componente **non decide se mostrarsi**: lo decide chi lo usa, con `IsPilot(...)` letto dal dato
+`tipo_partecipante_pilota` e mai dalla descrizione del ruolo — «PILOTA MOTO PROPRIA» e «GUIDA IN
+SECONDA» guidano entrambi, e nessuna regola sul testo li tiene insieme.
+
+Lo sconto totale **non** è entrato nel componente: è del tab Partecipanti, non del mezzo, e
+l'Iscrizione Veloce non lo prevede.
+
+---
+
 ## Componenti Dialog
 
 ### ⚠️ Titolo che dipende da dati caricati in async
