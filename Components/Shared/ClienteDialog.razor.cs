@@ -106,6 +106,16 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     /// </summary>
     private readonly Dictionary<string, (string? Valore, string Messaggio)> _erroriDb = new();
 
+    /// <summary>
+    /// Le segnalazioni non bloccanti del database (AVVISO e CONFERMA), mostrate mentre si
+    /// compila. Restavano invisibili fino al salvataggio: sapere che il codice fiscale non
+    /// corrisponde e' utile mentre si guarda il documento, non quando si e' gia' finito.
+    ///
+    /// Non colorano il campo: rosso vuol dire "non si passa", e qui si passa eccome —
+    /// il codice emesso con nome e cognome invertiti esiste, e va registrabile.
+    /// </summary>
+    private readonly Dictionary<string, string> _avvisiDb = new();
+
     /// <summary>Quale campo illuminare per ogni esito del database. Gli esiti non elencati restano solo a video.</summary>
     private static readonly Dictionary<string, string> CampoPerEsito = new()
     {
@@ -118,6 +128,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         ["FORMA"] = "cf",
         ["CARATTERE_CONTROLLO"] = "cf",
         ["STESSO_CF"] = "cf",
+        // Non bloccanti, ma appartengono al codice fiscale: servono a mostrarli accanto a lui.
+        ["NON_CORRISPONDE"] = "cf",
+        ["INVERTITI"] = "cf",
         // I dati che devono esserci (script 563). Titolo e comuni non sono qui:
         // li segnalano gia' i loro componenti, che hanno un Required proprio.
         ["MANCA_COGNOME"] = "cognome",
@@ -187,6 +200,19 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 _erroriDb[campo] = (ValoreCampo(campo), messaggio);
             else
                 _erroriDb.Remove(campo);
+        }
+
+        // Avvisi e richieste di conferma: si dicono subito, ma senza colorare nulla.
+        var segnalati = esiti.Where(e => !e.Blocca && e.Gravita != "OK")
+                             .Where(e => CampoPerEsito.TryGetValue(e.Esito, out var c) && campi.Contains(c))
+                             .ToDictionary(e => CampoPerEsito[e.Esito], e => e.Messaggio);
+
+        foreach (var campo in campi)
+        {
+            if (segnalati.TryGetValue(campo, out var messaggio))
+                _avvisiDb[campo] = messaggio;
+            else
+                _avvisiDb.Remove(campo);
         }
 
         await RivalidaCampi(campi);
@@ -266,6 +292,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         _confermeAccettate = false;
         _erroriDb.Clear();
+        _avvisiDb.Clear();
 
         List<EsitoValidazione> esiti;
         try
@@ -322,6 +349,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         if (titolo is not null) Entity.Sesso = titolo.Sesso;
         await AggiornaAvvisoNomeSesso();
+        // Il sesso e' una lettera del codice fiscale: cambiando il titolo, la verifica va rifatta.
+        if (!string.IsNullOrWhiteSpace(Entity.CodiceFiscale)) await ControllaAlVolo("cf");
     }
 
     private string? AvvisoNomeSesso;

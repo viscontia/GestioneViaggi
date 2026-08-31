@@ -23,6 +23,17 @@
                     <b>Questa scheda è incompleta e va completata.</b> @_avvisoIncompleta
                 </MudAlert>
             }
+            @* Cio' che il database segnala senza vietare: si dice mentre si compila,
+               e non colora nulla — rosso vuol dire "non si passa", e qui si passa. *@
+            @if (_avvisiDb.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                    @foreach (var a in _avvisiDb.Values)
+                    {
+                        <div>@a</div>
+                    }
+                </MudAlert>
+            }
             <MudForm @ref="_form" Model="@Entity">
                 <MudGrid Spacing="4">
                     <!-- FOTO CLIENTE (Colonna Sinistra) -->
@@ -110,7 +121,7 @@
                                     <MudTextField @ref="_cognomeField" @bind-Value="Entity.Cognome" For="@(() => Entity.Cognome)" Label="Cognome"
                                         Variant="Variant.Outlined" Immediate="true" Required="true"
                                         Validation="@((string v) => ValidateCognome(v))"
-                                        OnBlur="@(async () => await ControllaAlVolo("cognome"))"
+                                        OnBlur="@(async () => await ControllaAlVolo("cognome", "cf"))"
                                         RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input"
                                         Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
                                 </MudItem>
@@ -119,13 +130,13 @@
                                         Variant="Variant.Outlined" Immediate="true" Required="true" 
                                         Validation="@((string v) => ValidateNome(v))"
                                         RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input" 
-                                        OnBlur="@(async () => { await AggiornaAvvisoNomeSesso(); await ControllaAlVolo("nome"); })"
+                                        OnBlur="@(async () => { await AggiornaAvvisoNomeSesso(); await ControllaAlVolo("nome", "cf"); })"
                                         Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_dataNascitaField" Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
-                                        DateChanged="@(async d => { Entity.DataNascita = d; await RivalidaDate(); await ControllaAlVolo("nascita"); })"
+                                        DateChanged="@(async d => { Entity.DataNascita = d; await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
                                         Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataNascita(d))"

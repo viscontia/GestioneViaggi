@@ -110,8 +110,8 @@ tutto quello che c'era ieri.
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
 | C1 | Nuovo cliente | Cognome `ZZTOLU`, nome `ANTONIO`, titolo `SIG.`, nato il **24/08/1977** a **ORISTANO**, CF `ZZTNTN77M24G113N` | Nessuna segnalazione: **corrisponde** |
-| C2 | Stesso caso | Cambia la data di nascita in **24/07/1977** | ⚠️ Chiede conferma: il codice non corrisponde, e dice quale risulterebbe |
-| C3 | Nuovo cliente | Metti `ANTONIO` nel **cognome** e `ZZTOLU` nel **nome**, stesso CF | ⚠️ Chiede conferma: «Nome e cognome sembrano invertiti…», con la proposta di scambio |
+| C2 | Stesso caso | Cambia la data di nascita in **24/07/1977** | ⚠️ Compare **subito** un avviso giallo in cima: il codice non corrisponde, e dice quale risulterebbe. Premendo Salva la stessa cosa diventa una richiesta di conferma |
+| C3 | Nuovo cliente, **ripartendo dai dati di C1** (data 24/08/1977) | Metti `ANTONIO` nel **cognome** e `ZZTOLU` nel **nome**, stesso CF | ⚠️ «Nome e cognome sembrano invertiti…», con la proposta di scambio. ⚠️ Se ti porti dietro la data sbagliata di C2 il messaggio dirà «non corrisponde» invece che «invertiti», ed è giusto così: con due dati sbagliati lo scambio da solo non fa tornare il codice |
 | C4 | Stesso caso | **Conferma** | Si salva. È il caso raro del codice emesso invertito, che deve restare registrabile |
 | C5 | Nuovo cliente | CF `ZZTNTN77M24G113A` (ultimo carattere alterato) | Rifiutato: non supera il controllo dell'ultimo carattere |
 | C6 | Nuovo cliente | CF `ABC` | Rifiutato: forma non valida |
