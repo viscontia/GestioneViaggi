@@ -136,7 +136,8 @@
 
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_dataNascitaField" Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
-                                        DateChanged="@(async d => { Entity.DataNascita = d; await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
+                                        DateChanged="@(d => Entity.DataNascita = d)"
+                                        PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
                                         Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataNascita(d))"
@@ -289,14 +290,16 @@
 
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_docRilDataField" Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
-                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoData = d; await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
+                                        DateChanged="@(d => Entity.DocumentoRilasciatoData = d)"
+                                        PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
                                         Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_docScadenzaField" Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
-                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoScadenza = d; await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
+                                        DateChanged="@(d => Entity.DocumentoRilasciatoScadenza = d)"
+                                        PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
                                         Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataScadenza(d))" />

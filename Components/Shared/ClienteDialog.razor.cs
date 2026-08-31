@@ -288,11 +288,19 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     /// Le regole non sono qui: qui c'e' solo il modo di presentarle. La stessa
     /// validazione la chiama il sito di iscrizione, che le presentera' a modo suo.
     /// </summary>
-    private async Task<bool> ConfermeOttenuteAsync()
+    /// <summary>
+    /// Chiede al database tutte le sue segnalazioni e le riporta sui campi.
+    /// Restituisce false se ce n'e' almeno una bloccante.
+    ///
+    /// Si fa <b>sempre</b>, anche quando la form ha gia' errori suoi: altrimenti i campi
+    /// respinti dal database resterebbero non segnalati fino a quando non si e' corretto
+    /// tutto il resto, e si scoprirebbero un errore alla volta.
+    /// </summary>
+    private async Task<bool> ValidaSuiCampiAsync()
     {
-        _confermeAccettate = false;
         _erroriDb.Clear();
         _avvisiDb.Clear();
+        _esitiUltimaValidazione.Clear();
 
         List<EsitoValidazione> esiti;
         try
@@ -307,21 +315,34 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             return true;
         }
 
-        var errori = esiti.Where(e => e.Blocca).ToList();
-        if (errori.Count > 0)
-        {
-            foreach (var e in errori)
-            {
-                Snackbar.Add(e.Messaggio, Severity.Error);
-                if (CampoPerEsito.TryGetValue(e.Esito, out var campo))
-                    _erroriDb[campo] = (ValoreCampo(campo), e.Messaggio);
-            }
+        _esitiUltimaValidazione.AddRange(esiti);
 
-            // Il messaggio da solo non dice DOVE: senza questo giro il campo respinto
-            // dal database resta indistinguibile da quelli accettati.
-            if (_erroriDb.Count > 0 && _form is not null) await _form.Validate();
-            return false;
+        foreach (var e in esiti.Where(e => !e.Blocca && e.Gravita != "OK"))
+            if (CampoPerEsito.TryGetValue(e.Esito, out var campoAvviso))
+                _avvisiDb[campoAvviso] = e.Messaggio;
+
+        var errori = esiti.Where(e => e.Blocca).ToList();
+        foreach (var e in errori)
+        {
+            Snackbar.Add(e.Messaggio, Severity.Error);
+            if (CampoPerEsito.TryGetValue(e.Esito, out var campo))
+                _erroriDb[campo] = (ValoreCampo(campo), e.Messaggio);
         }
+
+        // Il messaggio da solo non dice DOVE: senza questo giro il campo respinto
+        // dal database resta indistinguibile da quelli accettati.
+        if (_form is not null) await _form.Validate();
+
+        return errori.Count == 0;
+    }
+
+    private readonly List<EsitoValidazione> _esitiUltimaValidazione = new();
+
+    private async Task<bool> ConfermeOttenuteAsync()
+    {
+        _confermeAccettate = false;
+
+        var esiti = _esitiUltimaValidazione;
 
         foreach (var a in esiti.Where(e => e.Gravita == "AVVISO"))
             Snackbar.Add(a.Messaggio, Severity.Info);
@@ -513,55 +534,56 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         try
         {
             _validationRequested = true;
-            await _form.Validate();
 
-            if (!_form.IsValid)
+            // Normalizza i campi prima di ogni verifica: il database giudica i valori
+            // come verranno scritti, non come sono stati digitati.
+            NormalizeEntity();
+
+            // Si chiede al database cosa non va PRIMA di scrivere. E' l'unico modo
+            // per poter chiedere conferma: se si scoprisse solo al salvataggio,
+            // all'utente resterebbe un errore e nessuna via d'uscita.
+            // Lingua e consenso viaggiano CON il cliente, non con due chiamate
+            // dopo il salvataggio: il consenso va registrato nel momento in cui
+            // l'anagrafica nasce, altrimenti la data che lo dimostra non e' quella.
+            Entity.Lingua = string.IsNullOrWhiteSpace(_lingua) ? "IT" : _lingua!.Trim().ToUpperInvariant();
+            Entity.Consenso = _consenso;
+            if (_consenso && !string.IsNullOrWhiteSpace(_consensoFonte))
+                Entity.ConsensoFonte = _consensoFonte;
+
+            // ValidaSuiCampiAsync rivalida gia' la form dopo aver riportato gli esiti:
+            // rifarlo qui vorrebbe dire validare due volte lo stesso stato.
+            var databaseOk = await ValidaSuiCampiAsync();
+
+            if (!_form.IsValid || !databaseOk)
             {
                 // «Ci sono errori» non dice quali: chi salva da una scheda diversa da
                 // quella del campo respinto non ha modo di sapere dove tornare.
-                foreach (var errore in _form.Errors.Distinct().Take(6))
+                foreach (var errore in _form.Errors.Distinct().Take(8))
                     Snackbar.Add(errore, Severity.Error);
-                if (_form.Errors.Length == 0)
+                if (_form.Errors.Length == 0 && databaseOk)
                     Snackbar.Add("Impossibile salvare: ci sono errori di validazione.", Severity.Error);
 
                 _isSaving = false;
                 return;
             }
 
-            if (_form.IsValid)
+            if (!await ConfermeOttenuteAsync())
             {
-                // Normalizza i campi prima del salvataggio
-                NormalizeEntity();
+                _isSaving = false;
+                return;
+            }
 
-                // Si chiede al database cosa non va PRIMA di scrivere. E' l'unico modo
-                // per poter chiedere conferma: se si scoprisse solo al salvataggio,
-                // all'utente resterebbe un errore e nessuna via d'uscita.
-                // Lingua e consenso viaggiano CON il cliente, non con due chiamate
-                // dopo il salvataggio: il consenso va registrato nel momento in cui
-                // l'anagrafica nasce, altrimenti la data che lo dimostra non e' quella.
-                Entity.Lingua = string.IsNullOrWhiteSpace(_lingua) ? "IT" : _lingua!.Trim().ToUpperInvariant();
-                Entity.Consenso = _consenso;
-                if (_consenso && !string.IsNullOrWhiteSpace(_consensoFonte))
-                    Entity.ConsensoFonte = _consensoFonte;
-
-                if (!await ConfermeOttenuteAsync())
-                {
-                    _isSaving = false;
-                    return;
-                }
-
-                if (IsEditMode)
-                {
-                    var updated = await ClienteService.UpdateAsync(Entity, _confermeAccettate);
-                    Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
-                    MudDialog?.Close(DialogResult.Ok(updated));
-                }
-                else
-                {
-                    var created = await ClienteService.CreateAsync(Entity, _confermeAccettate);
-                    Snackbar.Add("Cliente creato con successo", Severity.Success);
-                    MudDialog?.Close(DialogResult.Ok(created));
-                }
+            if (IsEditMode)
+            {
+                var updated = await ClienteService.UpdateAsync(Entity, _confermeAccettate);
+                Snackbar.Add("Cliente aggiornato con successo", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(updated));
+            }
+            else
+            {
+                var created = await ClienteService.CreateAsync(Entity, _confermeAccettate);
+                Snackbar.Add("Cliente creato con successo", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(created));
             }
         }
         catch (UniqueConstraintViolationException ex)

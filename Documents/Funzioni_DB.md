@@ -1798,6 +1798,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -1997,10 +1998,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_ids integer[], p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
 | `fn_get_bilancio_viaggio` | p_azienda_id integer, p_viaggio_id integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_da date DEFAULT NULL::date, p_data_a date DEFAULT NULL::date, p_valuta_target_id integer DEFAULT NULL::integer | TABLE(viaggio_id integer, viaggio_descrizione text, viaggio_data_inizio date, viaggio_data_fine date, viaggio_numero_partecipanti integer, viaggio_numero_mezzi integer, transazione_id integer, data_documento date, data_registrazione date, numero_documento character varying, transazione_descrizione text, controparte_ragione_sociale character varying, categoria_nome character varying, categoria_tipo character varying, importo_netto_eur numeric, importo_iva_eur numeric, importo_lordo_eur numeric, importo_pagato_eur numeric, stato_pagamento character varying) |  |
-| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario.
- |
-| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.
-` |  |  |  |
+| `fn_get_calendar_data` | p_year integer, p_month integer, p_azienda_id integer DEFAULT NULL::integer | TABLE(data_viaggio_id integer, viaggio_id integer, descrizione_viaggio text, data_inizio date, data_fine date, tot_clienti integer, effettuato_sino character, azienda_id integer, azienda_nome text) | Recupera viaggi che intersecano un mese specifico per il calendario. |
+| `Un viaggio viene incluso se: data_inizio <= fine_mese AND data_fine >= inizio_mese.` |  |  |  |
 | `Include conteggio partecipanti e nome azienda per tooltip.` |  |  |  |
 | `fn_get_cliente_by_codice_fiscale` | p_codice_fiscale character varying, p_azienda_fk integer | json |  |
 | `fn_get_cliente_by_email` | p_email character varying, p_azienda_fk integer | json |  |
@@ -2479,7 +2478,6 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 - `fn_mov_clienti_viaggi_guardia`
 - `fn_mov_clienti_viaggi_insert`
 - `fn_mov_clienti_viaggi_update`
-- `fn_mov_clienti_viaggi_valida`
 - `fn_nome_sesso_avviso`
 - `fn_partenza_etichetta`
 - `fn_set_azienda_id`
