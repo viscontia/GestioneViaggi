@@ -83,8 +83,10 @@
                                 <MudItem xs="12" sm="8">
                                     @* Il sesso non si digita piu': lo porta il titolo. Un campo libero
                                        accanto a un titolo di genere e' solo un modo per contraddirlo. *@
+                                    @* Fuori dal giro del TAB: non si digita, lo scrive il titolo.
+                                       Fermarcisi sopra e' un tasto in piu' per non fare niente. *@
                                     <MudTextField T="string" Value="@SessoDescrizione" Label="Sesso"
-                                        Variant="Variant.Outlined" ReadOnly="true"
+                                        Variant="Variant.Outlined" ReadOnly="true" tabindex="-1"
                                         HelperText="Impostato dal titolo: per cambiarlo scegli un altro titolo." />
                                 </MudItem>
 
@@ -99,21 +101,26 @@
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_cognomeField" @bind-Value="Entity.Cognome" For="@(() => Entity.Cognome)" Label="Cognome"
                                         Variant="Variant.Outlined" Immediate="true" Required="true"
+                                        Validation="@((string v) => ValidateCognome(v))"
+                                        OnBlur="@(async () => await ControllaAlVolo("cognome"))"
                                         RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input"
                                         Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_nomeField" @bind-Value="Entity.Nome" For="@(() => Entity.Nome)" Label="Nome"
                                         Variant="Variant.Outlined" Immediate="true" Required="true" 
+                                        Validation="@((string v) => ValidateNome(v))"
                                         RequiredError="Obbligatorio" MaxLength="50" Class="uppercase-input" 
-                                        OnBlur="@(async () => await AggiornaAvvisoNomeSesso())"
+                                        OnBlur="@(async () => { await AggiornaAvvisoNomeSesso(); await ControllaAlVolo("nome"); })"
                                         Adornment="Adornment.End" AdornmentText="*" AdornmentColor="Color.Error" />
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
-                                    <MudDatePicker @ref="_dataNascitaField" @bind-Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
+                                    <MudDatePicker @ref="_dataNascitaField" Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
+                                        DateChanged="@(async d => { Entity.DataNascita = d; await RivalidaDate(); await ControllaAlVolo("nascita"); })"
                                         Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Validation="@((DateTime? d) => ValidateDataNascita(d))"
                                         HelperText="Es: 15/03/1990" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
@@ -126,24 +133,20 @@
                                         </MudItem>
                                         <!-- Dettagli Geografici Nascita -->
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneNascita?.Cap)" Label="CAP" ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="CAP" Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneNascita?.Cap)</MudField>
                                         </MudItem>
                                         <MudItem xs="6">
-                                            <MudTextField Value="@(Entity.ComuneNascita?.RegioneDescrizione)" Label="Regione" ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Regione" Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneNascita?.RegioneDescrizione)</MudField>
                                         </MudItem>
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneNascita?.ProvinciaSigla)" Label="Prov." ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Prov." Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneNascita?.ProvinciaSigla)</MudField>
                                         </MudItem>
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneNascita?.ComuneEstero == true ? "ESTERO" : "IT")" Label="Naz." ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Naz." Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneNascita?.ComuneEstero == true ? "ESTERO" : "IT")</MudField>
                                         </MudItem>
                                     </MudGrid>
                                 </MudItem>
@@ -165,24 +168,20 @@
                                         </MudItem>
                                         <!-- Dettagli Geografici Residenza -->
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneResidenza?.Cap)" Label="CAP" ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="CAP" Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneResidenza?.Cap)</MudField>
                                         </MudItem>
                                         <MudItem xs="6">
-                                            <MudTextField Value="@(Entity.ComuneResidenza?.RegioneDescrizione)" Label="Regione" ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Regione" Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneResidenza?.RegioneDescrizione)</MudField>
                                         </MudItem>
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneResidenza?.ProvinciaSigla)" Label="Prov." ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Prov." Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneResidenza?.ProvinciaSigla)</MudField>
                                         </MudItem>
                                         <MudItem xs="2">
-                                            <MudTextField Value="@(Entity.ComuneResidenza?.ComuneEstero == true ? "ESTERO" : "IT")" Label="Naz." ReadOnly="true"
-                                                          Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
-                                                          Style="pointer-events: none;" />
+                                            <MudField Label="Naz." Variant="Variant.Text" Underline="false" Margin="Margin.Dense"
+                                                      Style="pointer-events: none;">@(Entity.ComuneResidenza?.ComuneEstero == true ? "ESTERO" : "IT")</MudField>
                                         </MudItem>
                                     </MudGrid>
                                 </MudItem>
@@ -200,6 +199,7 @@
                                     <MudTextField @ref="_emailField" @bind-Value="Entity.Email" For="@(() => Entity.Email)" Label="Email"
                                         Variant="Variant.Outlined" InputType="InputType.Email" MaxLength="100"
                                         HelperText="Email principale" Immediate="true" DebounceInterval="800"
+                                        OnBlur="@(async () => await ControllaAlVolo("email"))"
                                         Validation="@(async (string e) => await ValidateEmailAsync(e))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
@@ -261,13 +261,15 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
-                                    <MudDatePicker @ref="_docRilDataField" @bind-Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
+                                    <MudDatePicker @ref="_docRilDataField" Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
+                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoData = d; await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
                                         Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <MudDatePicker @ref="_docScadenzaField" @bind-Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
+                                    <MudDatePicker @ref="_docScadenzaField" Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
+                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoScadenza = d; await RivalidaDate(); })"
                                         Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataScadenza(d))" />
@@ -281,11 +283,14 @@
                                     <MudTextField @ref="_cfField" @bind-Value="Entity.CodiceFiscale" For="@(() => Entity.CodiceFiscale)"
                                         Label="Codice Fiscale" Variant="Variant.Outlined" MaxLength="16" Class="uppercase-input"
                                         Immediate="true" DebounceInterval="800"
+                                        OnBlur="@(async () => await ControllaAlVolo("cf"))"
                                         Validation="@(async (string cf) => await ValidateCodiceFiscaleAsync(cf))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_ibanField" @bind-Value="Entity.Iban" For="@(() => Entity.Iban)" Label="IBAN"
-                                        Variant="Variant.Outlined" MaxLength="34" Class="uppercase-input" />
+                                        Variant="Variant.Outlined" MaxLength="34" Class="uppercase-input"
+                                        Immediate="true" Validation="@((string v) => ValidateIban(v))"
+                                        OnBlur="@(async () => await ControllaAlVolo("iban"))" />
                                 </MudItem>
                             </MudGrid>
                         </MudTabPanel>

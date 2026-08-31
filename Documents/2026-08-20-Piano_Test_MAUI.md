@@ -56,7 +56,7 @@ tutto quello che c'era ieri.
 |---|---|---|
 | A1 | Apri l'**elenco clienti** | Ci sono tutti. Comune di nascita e di residenza **con la provincia**, non vuoti |
 | A2 | Nell'elenco guarda le colonne **viaggi fatti / da fare** | Valorizzate come prima |
-| A3 | Filtra l'elenco **per anno** | Il filtro funziona e riduce le righe |
+| A3 | Dalla **dashboard** clicca il riquadro dei clienti di un anno | Si apre l'elenco filtrato, con il banner «Filtro Attivo: Anno Creazione», e «Mostra Tutto» lo azzera. Nella pagina Clienti non c'è (e non c'è mai stata) una tendina degli anni: il filtro arriva solo di lì, ed è sull'anno di **creazione della scheda** |
 | A4 | **Cerca** per cognome, poi per email, poi per codice fiscale | Trova in tutti e tre i casi; i comuni sono valorizzati anche nei risultati |
 | A5 | Apri un cliente **con foto e documento** | Si vedono entrambi. È il caso più a rischio: viaggiano in base64 e **solo** nel dettaglio |
 | A6 | Apri un cliente e controlla **titolo, lingua e consenso** | Il titolo è quello giusto nella tendina, non vuoto |
@@ -79,13 +79,20 @@ tutto quello che c'era ieri.
 | B1 | Clienti → Nuovo | Compila un cliente valido e salva | Si salva. Il **sesso non è digitabile**: lo mostra derivato dal titolo |
 | B2 | Nuovo cliente | Email `pippo@` (senza dominio) | Errore sul campo **mentre scrivi** |
 | B3 | Nuovo cliente | Cognome `A` (un carattere) | Rifiutato: «Il cognome deve avere almeno 2 caratteri» |
-| B4 | Nuovo cliente | IBAN `XX123` | Rifiutato con la ragione (15-34 caratteri, due lettere iniziali) |
-| B5 | Nuovo cliente | Telefono valorizzato, **prefisso vuoto** | ⚠️ **Chiede conferma**, non blocca. Confermando, si salva |
+| B4 | Nuovo cliente | IBAN `XX123` | Rifiutato con la ragione (15-34 caratteri, due lettere iniziali) e **campo in rosso**. È il caso di riferimento del meccanismo: nessun controllo locale lo intercetta, quindi prova davvero il giro completo fino al database |
+| B5 | Nuovo cliente | Telefono valorizzato, **prefisso vuoto** | **Rifiutato sul campo.** Il database lo classifica `CONFERMA`, il gestionale lo blocca prima: divergenza nota e accettata (2026-08-31), perché un numero senza prefisso è inutilizzabile. Il sito resta più permissivo |
 | B6 | Nuovo cliente | Documento con rilascio **domani** | Rifiutato: la data di rilascio è nel futuro |
 | B7 | Nuovo cliente | Documento con scadenza **passata** | **Avviso**, non blocco |
-| B8 | Nuovo cliente | Data di nascita **domani** | Rifiutato |
+| B8 | Nuovo cliente **estero** (comune di residenza fuori Italia, così il CF non è richiesto) | Data di nascita **domani** | Rifiutato, con la **data di nascita in rosso**. Su un cliente italiano il caso non è isolabile: il codice fiscale codifica la data di nascita, quindi non può esistere un CF valido per una nascita futura |
 | B9 | Nuovo cliente | Lascia l'**email vuota** | Passa. L'obbligo dipende dal ruolo, e si applica all'iscrizione (gruppo G) |
 
+| B12 | Nuovo cliente | Metti una **data di rilascio precedente alla data di nascita**, poi correggi la data di nascita | L'errore sulla data di rilascio **sparisce** senza doverla ritoccare: le tre date si giudicano a vicenda e si ricalcolano insieme |
+| B13 | Nuovo cliente | Scrivi un IBAN sbagliato ed **esci dal campo** senza premere Salva | L'errore compare subito. Le regole del database non aspettano più il salvataggio |
+
+> Gli errori che arrivano dal database (cognome corto, IBAN, date nel futuro, codice fiscale)
+> **illuminano il campo**, non solo la barra dei messaggi: se vedi il messaggio ma nessuna
+> cornice rossa, la mappa `CampoPerEsito` in `ClienteDialog` non conosce quell'esito.
+>
 > I messaggi devono essere in italiano leggibile. Se ne vedi uno che contiene `CONTEXT:` o il nome
 > di una funzione PL/pgSQL, è un difetto: significa che l'errore grezzo del database è arrivato a
 > video con dentro la riga, dati personali compresi.

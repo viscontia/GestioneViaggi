@@ -60,60 +60,6 @@ public static class ClienteValidator
     }
 
     /// <summary>
-    /// Valida il cognome.
-    /// </summary>
-    /// <param name="cognome">Cognome da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateCognome(string? cognome)
-    {
-        if (string.IsNullOrWhiteSpace(cognome))
-        {
-            return ValidationResult.Failure("Il cognome è obbligatorio", "cognome_required");
-        }
-
-        var trimmedCognome = cognome.Trim();
-
-        if (trimmedCognome.Length < 2)
-        {
-            return ValidationResult.Failure("Il cognome deve contenere almeno 2 caratteri", "cognome_too_short");
-        }
-
-        if (trimmedCognome.Length > 50)
-        {
-            return ValidationResult.Failure("Il cognome non può superare 50 caratteri", "cognome_too_long");
-        }
-
-        return ValidationResult.Success("Cognome valido");
-    }
-
-    /// <summary>
-    /// Valida il nome.
-    /// </summary>
-    /// <param name="nome">Nome da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateNome(string? nome)
-    {
-        if (string.IsNullOrWhiteSpace(nome))
-        {
-            return ValidationResult.Failure("Il nome è obbligatorio", "nome_required");
-        }
-
-        var trimmedNome = nome.Trim();
-
-        if (trimmedNome.Length < 2)
-        {
-            return ValidationResult.Failure("Il nome deve contenere almeno 2 caratteri", "nome_too_short");
-        }
-
-        if (trimmedNome.Length > 50)
-        {
-            return ValidationResult.Failure("Il nome non può superare 50 caratteri", "nome_too_long");
-        }
-
-        return ValidationResult.Success("Nome valido");
-    }
-
-    /// <summary>
     /// Valida il numero di telefono.
     /// </summary>
     /// <param name="telefono">Telefono da validare</param>
@@ -224,13 +170,11 @@ public static class ClienteValidator
             return ValidationResult.Failure("La data di scadenza è obbligatoria", "data_scadenza_required");
         }
 
-        // Non può essere nel passato
-        if (dataScadenza.Value < DateTime.Now.Date)
-        {
-            return ValidationResult.Failure("Il documento risulta scaduto", "documento_scaduto");
-        }
+        // Il documento scaduto NON si rifiuta: e' un AVVISO, e lo emette
+        // fn_ana_clienti_valida (DOCUMENTO_SCADUTO) per gestionale e sito insieme.
+        // Qui c'era la copia che lo trasformava in divieto.
 
-        // Un documento che scade nel 2202 passava: il controllo sopra guarda solo il passato.
+        // Un documento che scade nel 2202 non e' scaduto, ma non e' nemmeno una data.
         var annoScadenza = Semantic.DateValidator.CheckAnnoPlausibile(
             dataScadenza, "La data di scadenza", Semantic.DateValidator.AnnoMinimoStorico);
         if (!annoScadenza.IsValid)
@@ -245,44 +189,6 @@ public static class ClienteValidator
         }
 
         return ValidationResult.Success("Data scadenza valida");
-    }
-
-    /// <summary>
-    /// Valida l'IBAN (validazione formato base).
-    /// Nota: Implementazione semplificata, per validazione completa usare libreria specializzata.
-    /// </summary>
-    /// <param name="iban">IBAN da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidateIban(string? iban)
-    {
-        // IBAN è opzionale
-        if (string.IsNullOrWhiteSpace(iban))
-        {
-            return ValidationResult.Success("IBAN non fornito (opzionale)");
-        }
-
-        var trimmedIban = iban.Trim().Replace(" ", "").ToUpperInvariant();
-
-        // Lunghezza minima 15, massima 34 (standard internazionale)
-        if (trimmedIban.Length < 15 || trimmedIban.Length > 34)
-        {
-            return ValidationResult.Failure("Lunghezza IBAN non valida (deve essere tra 15 e 34 caratteri)", "iban_invalid_length");
-        }
-
-        // Formato base: prime due lettere (paese), poi numeri e lettere
-        if (!char.IsLetter(trimmedIban[0]) || !char.IsLetter(trimmedIban[1]))
-        {
-            return ValidationResult.Failure("IBAN deve iniziare con due lettere (codice paese)", "iban_invalid_format");
-        }
-
-        // Validazione algoritmo MOD-97 per IBAN (implementazione completa opzionale)
-        // Per ora: validazione formato base
-        if (!Regex.IsMatch(trimmedIban, @"^[A-Z]{2}[0-9A-Z]+$"))
-        {
-            return ValidationResult.Failure("Formato IBAN non valido", "iban_invalid_format");
-        }
-
-        return ValidationResult.Success("IBAN formato valido (validazione completa non implementata)");
     }
 
 }

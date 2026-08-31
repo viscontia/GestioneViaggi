@@ -63,10 +63,13 @@
                 <MudMenu Label="@GetYearLabel()" Variant="Variant.Outlined"
                     EndIcon="@Icons.Material.Filled.KeyboardArrowDown" FullWidth="true"
                     AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
-                    <MudList T="int" @bind-SelectedValue="_selectedYear" Dense="true"
+                    @* Un canale solo per la scelta dell'anno: con @bind-SelectedValue la lista
+                       aggiornava _selectedYear PRIMA di OnClick, e la guardia "se e' cambiato"
+                       trovava l'anno gia' scritto — quindi non ricaricava mai le statistiche. *@
+                    <MudList T="int" SelectedValue="_selectedYear" SelectedValueChanged="OnYearSelected" Dense="true"
                         Style="max-height: 350px; overflow-y: auto;">
                         @* Anno Corrente *@
-                        <MudListItem Value="@_currentYear" OnClick="() => OnYearSelected(_currentYear)">
+                        <MudListItem Value="@_currentYear">
                             <MudText Typo="Typo.body1"><b>@_currentYear (corrente)</b></MudText>
                         </MudListItem>
 
@@ -77,7 +80,7 @@
                             <NestedList>
                                 @foreach (var year in _pastYears)
                                 {
-                                    <MudListItem Value="@year" OnClick="() => OnYearSelected(year)">@year</MudListItem>
+                                    <MudListItem Value="@year">@year</MudListItem>
                                 }
                             </NestedList>
                         </MudListItem>
@@ -87,7 +90,7 @@
                             <NestedList>
                                 @foreach (var year in _futureYears)
                                 {
-                                    <MudListItem Value="@year" OnClick="() => OnYearSelected(year)">@year</MudListItem>
+                                    <MudListItem Value="@year">@year</MudListItem>
                                 }
                             </NestedList>
                         </MudListItem>

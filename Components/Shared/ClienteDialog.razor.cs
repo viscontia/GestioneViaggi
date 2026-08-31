@@ -96,6 +96,145 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private bool _confermeAccettate;
 
     /// <summary>
+    /// Le segnalazioni bloccanti arrivate dal database, tenute sul campo che le riguarda.
+    ///
+    /// Serve perche' le regole non stanno piu' in C# (script 541-552): il database le
+    /// applica per tutti — gestionale e sito — ma le sue risposte arrivavano solo come
+    /// messaggio a video, e il campo sbagliato restava indistinguibile dagli altri.
+    /// Si spengono da sole appena quel valore cambia: e' il motivo per cui qui si
+    /// conserva anche il valore che le ha prodotte, non il solo messaggio.
+    /// </summary>
+    private readonly Dictionary<string, (string? Valore, string Messaggio)> _erroriDb = new();
+
+    /// <summary>Quale campo illuminare per ogni esito del database. Gli esiti non elencati restano solo a video.</summary>
+    private static readonly Dictionary<string, string> CampoPerEsito = new()
+    {
+        ["COGNOME_MINIMO"] = "cognome",
+        ["NOME_MINIMO"] = "nome",
+        ["EMAIL_FORMATO"] = "email",
+        ["IBAN_FORMATO"] = "iban",
+        ["NASCITA_FUTURA"] = "nascita",
+        ["RILASCIO_FUTURO"] = "rilascio",
+        ["FORMA"] = "cf",
+        ["CARATTERE_CONTROLLO"] = "cf",
+        ["STESSO_CF"] = "cf",
+    };
+
+    private static string? Chiave(DateTime? data) => data?.ToString("yyyy-MM-dd");
+
+    /// <summary>Il valore corrente del campo, per riconoscere quando l'utente ha corretto.</summary>
+    private string? ValoreCampo(string campo) => campo switch
+    {
+        "cognome" => Entity.Cognome,
+        "nome" => Entity.Nome,
+        "email" => Entity.Email,
+        "iban" => Entity.Iban,
+        "cf" => Entity.CodiceFiscale,
+        "nascita" => Chiave(Entity.DataNascita),
+        "rilascio" => Chiave(Entity.DocumentoRilasciatoData),
+        _ => null
+    };
+
+    /// <summary>
+    /// Chiede al database cosa non va e aggiorna l'errore <b>solo</b> dei campi indicati.
+    ///
+    /// Serve a far comparire le segnalazioni quando si lascia il campo, e non piu' soltanto
+    /// premendo Salva: scoprire da un messaggio in fondo che il cognome e' troppo corto, con
+    /// tre schede da riattraversare, non e' un controllo — e' un indovinello.
+    ///
+    /// Aggiorna solo i campi indicati per un motivo preciso: gli esiti arrivano tutti insieme,
+    /// e accendere l'intera scheda dopo il primo campo compilato direbbe all'utente che ha
+    /// sbagliato tutto quando non ha ancora finito di scrivere.
+    /// </summary>
+    private async Task ControllaAlVolo(params string[] campi)
+    {
+        List<EsitoValidazione> esiti;
+        try
+        {
+            esiti = await ClienteService.ValidaAsync(Entity, IsEditMode ? Entity.ClienteId : null);
+        }
+        catch (Exception ex)
+        {
+            // Un controllo anticipato che non riesce non deve impedire di scrivere:
+            // al salvataggio si rifara' comunque, e li' l'esito conta davvero.
+            Console.WriteLine($"Controllo anticipato non riuscito: {ex.Message}");
+            return;
+        }
+
+        var attivi = esiti.Where(e => e.Blocca)
+                          .Where(e => CampoPerEsito.TryGetValue(e.Esito, out var c) && campi.Contains(c))
+                          .ToDictionary(e => CampoPerEsito[e.Esito], e => e.Messaggio);
+
+        foreach (var campo in campi)
+        {
+            if (attivi.TryGetValue(campo, out var messaggio))
+                _erroriDb[campo] = (ValoreCampo(campo), messaggio);
+            else
+                _erroriDb.Remove(campo);
+        }
+
+        await RivalidaCampi(campi);
+    }
+
+    /// <summary>Rivalida i campi indicati, senza toccare quelli che l'utente non ha ancora aperto.</summary>
+    private async Task RivalidaCampi(params string[] campi)
+    {
+        foreach (var campo in campi)
+        {
+            switch (campo)
+            {
+                case "cognome": await RivalidaSeToccato(_cognomeField); break;
+                case "nome": await RivalidaSeToccato(_nomeField); break;
+                case "email": await RivalidaSeToccato(_emailField); break;
+                case "iban": await RivalidaSeToccato(_ibanField); break;
+                case "cf": await RivalidaSeToccato(_cfField); break;
+                case "nascita": await RivalidaSeToccato(_dataNascitaField); break;
+                case "rilascio": await RivalidaSeToccato(_docRilDataField); break;
+            }
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Le tre date si giudicano a vicenda: il rilascio dev'essere dopo la nascita e prima
+    /// della scadenza. MudBlazor pero' rivalida solo il campo che cambia, e cosi' l'errore
+    /// restava acceso sul campo gia' corretto finche' non lo si toccava di nuovo — con la
+    /// causa vera che stava nell'altra data.
+    ///
+    /// Solo i campi gia' toccati: rivalidarli tutti farebbe comparire «obbligatoria» su una
+    /// data che l'utente non ha ancora nemmeno guardato.
+    /// </summary>
+    private async Task RivalidaDate()
+    {
+        await RivalidaSeToccato(_dataNascitaField);
+        await RivalidaSeToccato(_docRilDataField);
+        await RivalidaSeToccato(_docScadenzaField);
+        StateHasChanged();
+    }
+
+    private static async Task RivalidaSeToccato(MudBlazor.MudFormComponent<string, string>? campo)
+    {
+        if (campo is not null && campo.Touched) await campo.Validate();
+    }
+
+    private static async Task RivalidaSeToccato(MudDatePicker? campo)
+    {
+        if (campo is not null && campo.Touched) await campo.Validate();
+    }
+
+    /// <summary>L'errore del database ancora valido per questo campo, oppure null se il valore e' cambiato.</summary>
+    private string? ErroreDb(string campo, string? valoreCorrente)
+    {
+        if (!_erroriDb.TryGetValue(campo, out var e)) return null;
+        if (!string.Equals(e.Valore, valoreCorrente, StringComparison.Ordinal))
+        {
+            _erroriDb.Remove(campo);
+            return null;
+        }
+        return e.Messaggio;
+    }
+
+    /// <summary>
     /// Chiede al database le sue segnalazioni e, dove serve, chiede conferma all'utente.
     /// Restituisce false se il salvataggio non deve proseguire.
     ///
@@ -105,6 +244,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private async Task<bool> ConfermeOttenuteAsync()
     {
         _confermeAccettate = false;
+        _erroriDb.Clear();
 
         List<EsitoValidazione> esiti;
         try
@@ -122,7 +262,16 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         var errori = esiti.Where(e => e.Blocca).ToList();
         if (errori.Count > 0)
         {
-            foreach (var e in errori) Snackbar.Add(e.Messaggio, Severity.Error);
+            foreach (var e in errori)
+            {
+                Snackbar.Add(e.Messaggio, Severity.Error);
+                if (CampoPerEsito.TryGetValue(e.Esito, out var campo))
+                    _erroriDb[campo] = (ValoreCampo(campo), e.Messaggio);
+            }
+
+            // Il messaggio da solo non dice DOVE: senza questo giro il campo respinto
+            // dal database resta indistinguibile da quelli accettati.
+            if (_erroriDb.Count > 0 && _form is not null) await _form.Validate();
             return false;
         }
 
@@ -166,9 +315,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     /// </summary>
     private async Task AggiornaAvvisoNomeSesso()
     {
+        // Maiuscolo qui e non solo a video: il maiuscolo dei campi e' CSS, il valore vero
+        // resta com'e' stato digitato fino a NormalizeEntity, e finiva nel messaggio.
         AvvisoNomeSesso = Entity.TitoloFk == 0
             ? null
-            : await ClienteService.AvvisoNomeSessoAsync(Entity.Nome, Entity.Sesso);
+            : await ClienteService.AvvisoNomeSessoAsync(Entity.Nome?.Trim().ToUpperInvariant(), Entity.Sesso);
         StateHasChanged();
     }
 
@@ -276,7 +427,13 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
             if (!_form.IsValid)
             {
-                Snackbar.Add("Impossibile salvare: ci sono errori di validazione. Controlla i campi evidenziati.", Severity.Error);
+                // «Ci sono errori» non dice quali: chi salva da una scheda diversa da
+                // quella del campo respinto non ha modo di sapere dove tornare.
+                foreach (var errore in _form.Errors.Distinct().Take(6))
+                    Snackbar.Add(errore, Severity.Error);
+                if (_form.Errors.Length == 0)
+                    Snackbar.Add("Impossibile salvare: ci sono errori di validazione.", Severity.Error);
+
                 _isSaving = false;
                 return;
             }
@@ -363,6 +520,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         cf = cf?.Trim() ?? string.Empty;
 
+        var db = ErroreDb("cf", Entity.CodiceFiscale);
+        if (db is not null) return [db];
+
         if (string.IsNullOrWhiteSpace(cf))
         {
             // Verifica se estero (se null, assume italiano per sicurezza)
@@ -405,8 +565,19 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         return [];
     }
 
+    private string? ValidateDataNascita(DateTime? date) => ErroreDb("nascita", Chiave(date));
+
+    private string? ValidateIban(string? iban) => ErroreDb("iban", iban);
+
+    private string? ValidateCognome(string? cognome) => ErroreDb("cognome", cognome);
+
+    private string? ValidateNome(string? nome) => ErroreDb("nome", nome);
+
     private string? ValidateDataRilascio(DateTime? date)
     {
+        var db = ErroreDb("rilascio", Chiave(date));
+        if (db is not null) return db;
+
         if (!date.HasValue)
             return "La data di rilascio è obbligatoria";
 
@@ -490,14 +661,19 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         email = email?.Trim() ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(email))
-            return [];
-
         // Solo la forma: e' immediata e va detta mentre si scrive.
         // L'unicita' NON si controlla piu' qui. E' un AVVISO, non un divieto —
         // condividere la casella e' prassi legittima (moglie e marito) — e un
         // validatore di campo puo' solo dipingere di rosso, cioe' vietare.
         // Il riscontro arriva al salvataggio, con la sua gravita' vera.
+        var db = ErroreDb("email", Entity.Email);
+        if (db is not null) return [db];
+
+        // Vuota si puo': l'obbligo dipende dal ruolo e si applica all'iscrizione
+        // (fn_mov_clienti_viaggi_valida), non all'anagrafica.
+        if (string.IsNullOrWhiteSpace(email))
+            return [];
+
         var formatResult = ClienteValidator.ValidateEmail(email);
         return formatResult.IsValid ? [] : [formatResult.Message];
 

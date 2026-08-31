@@ -80,8 +80,9 @@ public class Cliente : BaseEntity, IAuditable, IValidatableObject
     public string? Telefono { get; set; }
 
     [Column("cliente_email")]
-    [Required(ErrorMessage = "L'email è obbligatoria")]
-    [EmailAddress(ErrorMessage = "Formato email non valido")]
+    // Nessun obbligo qui: l'email e' richiesta dal ruolo al momento dell'iscrizione
+    // (fn_mov_clienti_viaggi_valida), non dall'anagrafica. Il formato lo controlla
+    // fn_ana_clienti_valida, che e' la stessa regola che vede il sito.
     public string? Email { get; set; }
 
     // Documenti Identificativi

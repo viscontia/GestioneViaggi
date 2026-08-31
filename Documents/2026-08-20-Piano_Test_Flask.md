@@ -27,6 +27,40 @@ nella logica.
 
 ---
 
+## 🔴 Da riprodurre per primo: l'inserimento di una nuova anagrafica va in errore
+
+Segnalato da Adriano il **2026-08-31**, mentre collaudava il gestionale: sul sito, oggi,
+**creare una nuova anagrafica finisce in errore**. Non è stato diagnosticato — nessuno è ancora
+entrato nei test del sito — e va riprodotto prima di eseguire qualunque prova di questo piano:
+se l'inserimento non funziona, i gruppi A, B, C e D non sono nemmeno eseguibili.
+
+Da raccogliere alla riproduzione: il messaggio a video, la risposta di `/api/cliente/salva`
+(o dell'endpoint effettivo) nella console di rete, e la riga corrispondente nel log di Flask.
+
+---
+
+## 🔧 Questo piano non basta: il sito va anche riletto e riordinato
+
+Deciso il **2026-08-31**. Il codice del sito è più vecchio del resto e cresciuto per aggiunte
+successive: `Step2Content.jsx` è un unico form da 3.187 righe che serve pilota e passeggero
+attraverso un parametro `mode`, con i controlli replicati campo per campo e tre rami diversi
+(`mode === 'passenger'`, `isExistingClient`, `isEditingEnabled`) che si intrecciano dentro ogni
+singolo validatore. È così che nascono i buchi trovati oggi:
+
+- per il passeggero **nessun campo è obbligatorio**, perché ogni validatore comincia con
+  `if (mode === 'passenger' && !value) return '';`
+- un cliente già riconosciuto **non viene validato affatto**: `triggerValidation()` esce subito
+  con `isValid: true` se non si preme «Modifica Anagrafica»
+- premendo «Modifica Anagrafica» i validatori restituiscono comunque vuoto, rimandando a un
+  controllo «al tentativo di salvataggio» **che non è mai stato scritto**
+
+Quindi le prove di questo piano vanno affiancate da una revisione del codice e da una
+riorganizzazione: i controlli non devono stare in trenta `useCallback` quasi identici, ma
+appoggiarsi alle funzioni del database come fa ora il gestionale. Da pianificare come lavoro a sé,
+non da infilare fra un test e l'altro.
+
+---
+
 ## ⚠️ Prerequisito: `GV_SECRET_KEY`
 
 Il sito legge la configurazione SMTP dell'azienda dal database chiamando
