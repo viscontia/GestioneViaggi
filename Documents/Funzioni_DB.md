@@ -1232,8 +1232,9 @@ dipende dal ruolo, accanto all'email (`PILOTA_SENZA_EMAIL`) e ai dati del mezzo.
 non lascia il proprio numero sta facendo una scelta legittima, non nascondendo un dato.
 
 Il controllo all'iscrizione **non è un doppione** di quello sull'anagrafica: intercetta le schede
-storiche, quelle che nessuno ha più aperto da quando la regola non c'era — 578 su 742 al
-2026-08-31 — e che non sono mai passate da un salvataggio con le regole di oggi.
+storiche, quelle che nessuno ha più aperto da quando la regola non c'era, e che non sono mai passate da un
+salvataggio con le regole di oggi. Sul DB **locale di prova** erano 578 su 742 al 2026-08-31; su
+PROD il numero è da misurare, ed è quello a dire quanto sanamento comporta.
 
 ---
 

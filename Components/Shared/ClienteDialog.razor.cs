@@ -373,7 +373,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     /// <summary>
     /// Le schede nate prima che i dati fossero obbligatori non sono mai passate da un
-    /// salvataggio con le regole di oggi: al 2026-08-31 sono 578 su 742. Chi ne apre una
+    /// salvataggio con le regole di oggi, e sono molte. Chi ne apre una
     /// la trova gia' segnalata, campo per campo, invece di scoprirlo premendo Salva —
     /// o, peggio, alla reception dell'albergo, dove i documenti di tutti gli occupanti
     /// si presentano per legge.

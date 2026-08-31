@@ -16,9 +16,10 @@
 --   2. fn_ana_clienti_valida         — li chiede a chi salva un'anagrafica.
 --   3. fn_mov_clienti_viaggi_valida  — li chiede, bloccando, a chi iscrive.
 --
--- Il punto 3 non e' un doppione del 2: intercetta i clienti storici, quelli
--- che nessuno ha piu' aperto da quando la regola non c'era — 578 su 742 al
--- 2026-08-31 — e che altrimenti arriverebbero incompleti fino al check-in.
+-- Il punto 3 non e' un doppione del 2: intercetta i clienti storici, quelli che
+-- nessuno ha piu' aperto da quando la regola non c'era, e che altrimenti
+-- arriverebbero incompleti fino al check-in. Sul DB locale di prova erano 578 su
+-- 742; il numero che conta e' quello di PROD, non ancora misurato.
 -- =============================================================================
 
 

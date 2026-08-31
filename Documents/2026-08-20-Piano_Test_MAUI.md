@@ -187,6 +187,14 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 | G10 | Ripeti G1 e G7 dal **tab Partecipanti**, non dall'inserimento rapido | Stesso comportamento: le due form condividono lo stesso codice |
 | G11 | **Modifica** un partecipante cambiandogli ruolo in pilota, se non ha email | Stesso popup |
 
+> 🔴 **Difetto aperto, trovato il 2026-08-31 (G12).** Nell'**Iscrizione Veloce**
+> (`QuickAddParticipantDialog.razor`) i campi del mezzo — marca, modello, targa — **non esistono**.
+> Scegliendo un ruolo da pilota il controllo li chiede, giustamente, e non c'è modo di compilarli:
+> da quella form un pilota non si può iscrivere. Il tab Partecipanti invece li ha già, e li mostra
+> solo quando il ruolo è da pilota (`ViaggioPartecipantiManagerDialog.razor:390`, `@if (IsPilot(…))`).
+> Da correggere estraendo quel blocco in un componente condiviso e usandolo in entrambe le form:
+> copiarlo sarebbe la stessa regola in due posti, cioè il difetto che stiamo togliendo da tutto il resto.
+
 > Il popup non è una scorciatoia per aggirare il controllo: l'email inserita passa dal salvataggio
 > normale dell'anagrafica, quindi dagli stessi controlli di sempre. Se fosse duplicata o
 > incoerente, il salvataggio lo direbbe e l'iscrizione non proseguirebbe.
@@ -197,7 +205,7 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| H1 | Apri **dieci clienti storici** a caso | Chi è incompleto lo dichiara **all'apertura**, con un avviso giallo in cima e i campi mancanti in rosso — al 2026-08-31 sono 578 su 742, quindi capiterà quasi sempre. Salvare senza completare è **rifiutato**: è la regola dei documenti obbligatori (script 563), non un difetto |
+| H1 | Apri **dieci clienti storici** a caso | Chi è incompleto lo dichiara **all'apertura**, con un avviso giallo in cima e i campi mancanti in rosso — capiterà spesso (sul DB **locale di prova** erano 578 su 742 al 2026-08-31; il numero vero è quello di PROD, non misurato). Salvare senza completare è **rifiutato**: è la regola dei documenti obbligatori (script 563), non un difetto |
 | H1b | Completa il documento di uno di quei clienti e salva | Si salva, e riaprendolo l'avviso non c'è più |
 | H2 | Griglia clienti: ricerca, ordinamento, paginazione | Invariati |
 | H3 | **Export Excel** dei clienti | La colonna **Titolo** è valorizzata |
