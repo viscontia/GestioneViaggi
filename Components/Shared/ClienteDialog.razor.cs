@@ -353,7 +353,12 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         var parametri = new DialogParameters
         {
             { "Title", "Confermi?" },
-            { "ContentText", string.Join("\n\n", daConfermare.Select(e => e.Messaggio)) }
+            { "ContentText", string.Join("\n\n", daConfermare.Select(e => e.Messaggio)) },
+            // Qui non si cancella niente: il dialogo condiviso nasce per le eliminazioni
+            // e senza questi tre parametri offrirebbe un pulsante rosso «Elimina».
+            { "ButtonText", "Conferma" },
+            { "Color", MudBlazor.Color.Primary },
+            { "Icon", Icons.Material.Filled.Check }
         };
         var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>("Conferma", parametri,
             new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Small });

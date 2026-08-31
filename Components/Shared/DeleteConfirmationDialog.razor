@@ -9,7 +9,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Variant="Variant.Text">Annulla</MudButton>
-        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="@Color" StartIcon="@Icons.Material.Filled.Delete">@ButtonText</MudButton>
+        <MudButton OnClick="Submit" Variant="Variant.Filled" Color="@Color" StartIcon="@Icon">@ButtonText</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -20,6 +20,14 @@
     [Parameter] public string ContentText { get; set; } = "Sei sicuro?";
     [Parameter] public string ButtonText { get; set; } = "Elimina";
     [Parameter] public Color Color { get; set; } = Color.Error;
+
+    /// <summary>
+    /// L'icona del pulsante di conferma. Era cablata sul cestino: chi riusava questo
+    /// dialogo per una conferma qualunque — «i nomi sembrano invertiti, confermi?» —
+    /// si trovava a proporre un pulsante rosso «Elimina» per un'operazione che non
+    /// cancellava niente. Il testo e il colore erano gia' parametrici, l'icona no.
+    /// </summary>
+    [Parameter] public string Icon { get; set; } = Icons.Material.Filled.Delete;
 
     void Submit() => MudDialog.Close(DialogResult.Ok(true));
     void Cancel() => MudDialog.Cancel();
