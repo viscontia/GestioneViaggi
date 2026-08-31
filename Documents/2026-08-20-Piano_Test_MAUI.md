@@ -35,7 +35,13 @@ darebbe alcun errore.
 | Comune ORISTANO | **70582** |
 | Tipo partecipante *pilota mezzo proprio* | **4** |
 | Tipo partecipante *passeggero* | **6** |
-| Codice fiscale di prova coerente | `TLONTN77M24G113N` → TOLU ANTONIO, M, 24/08/1977, ORISTANO |
+| Codice fiscale di prova coerente | `ZZTNTN77M24G113N` → **ZZTOLU** ANTONIO, M, 24/08/1977, ORISTANO |
+
+> ⚠️ **Non usare `TLONTN77M24G113N`**, che questo piano indicava fino al 2026-08-31: è il codice
+> fiscale di **TOLU ANTONIO, cliente 3071 dell'azienda 2**, una persona vera. Il controllo sui
+> duplicati scatta per primo («già registrato su un altro cliente») e nasconde tutto il resto,
+> quindi nessuna prova del gruppo C era eseguibile. Il codice qui sopra è calcolato con
+> `fn_cf_calcola` sugli stessi dati ma con cognome `ZZTOLU`, e non appartiene a nessuno.
 
 > Usa cognomi che iniziano per **`ZZ`** per tutti i clienti di prova: la query di pulizia in fondo
 > li trova così.
@@ -103,11 +109,11 @@ tutto quello che c'era ieri.
 
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| C1 | Nuovo cliente | Cognome `ZZTOLU`, nome `ANTONIO`, titolo `SIG.`, nato il **24/08/1977** a **ORISTANO**, CF `TLONTN77M24G113N` | Nessuna segnalazione: **corrisponde** |
+| C1 | Nuovo cliente | Cognome `ZZTOLU`, nome `ANTONIO`, titolo `SIG.`, nato il **24/08/1977** a **ORISTANO**, CF `ZZTNTN77M24G113N` | Nessuna segnalazione: **corrisponde** |
 | C2 | Stesso caso | Cambia la data di nascita in **24/07/1977** | ⚠️ Chiede conferma: il codice non corrisponde, e dice quale risulterebbe |
 | C3 | Nuovo cliente | Metti `ANTONIO` nel **cognome** e `ZZTOLU` nel **nome**, stesso CF | ⚠️ Chiede conferma: «Nome e cognome sembrano invertiti…», con la proposta di scambio |
 | C4 | Stesso caso | **Conferma** | Si salva. È il caso raro del codice emesso invertito, che deve restare registrabile |
-| C5 | Nuovo cliente | CF `TLONTN77M24G113A` (ultimo carattere alterato) | Rifiutato: non supera il controllo dell'ultimo carattere |
+| C5 | Nuovo cliente | CF `ZZTNTN77M24G113A` (ultimo carattere alterato) | Rifiutato: non supera il controllo dell'ultimo carattere |
 | C6 | Nuovo cliente | CF `ABC` | Rifiutato: forma non valida |
 | C7 | Cliente **nato all'estero** (comune senza codice catastale) | Inserisci un CF formalmente valido | **Passa**: il confronto con l'anagrafica non è possibile, e non è colpa di chi compila |
 
