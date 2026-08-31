@@ -197,7 +197,8 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| H1 | Apri **dieci clienti storici** a caso e salvali senza modifiche | Si salvano. Se qualcuno si rifiuta, guarda il messaggio: probabile dato storico incoerente, non un difetto |
+| H1 | Apri **dieci clienti storici** a caso | Chi è incompleto lo dichiara **all'apertura**, con un avviso giallo in cima e i campi mancanti in rosso — al 2026-08-31 sono 578 su 742, quindi capiterà quasi sempre. Salvare senza completare è **rifiutato**: è la regola dei documenti obbligatori (script 563), non un difetto |
+| H1b | Completa il documento di uno di quei clienti e salva | Si salva, e riaprendolo l'avviso non c'è più |
 | H2 | Griglia clienti: ricerca, ordinamento, paginazione | Invariati |
 | H3 | **Export Excel** dei clienti | La colonna **Titolo** è valorizzata |
 | H4 | Stampa una **rooming list** e una **scheda viaggio** | Invariate |

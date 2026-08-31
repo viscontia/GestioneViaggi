@@ -93,23 +93,21 @@ public class Cliente : BaseEntity, IAuditable, IValidatableObject
     public string? Iban { get; set; }
 
     [Column("cliente_tipodoc_identita")]
-    [Required(ErrorMessage = "Il tipo di documento è obbligatorio")]
+    // I dati del documento sono obbligatori per TUTTI — in albergo si presentano per
+    // legge i documenti di ogni occupante della stanza — ma la regola sta in
+    // fn_ana_clienti_campi_mancanti (script 563), non qui: cosi' vale anche per il sito.
     public string? TipoDocIdentita { get; set; }
 
     [Column("cliente_documento_numero")]
-    [Required(ErrorMessage = "Il numero del documento è obbligatorio")]
     public string? DocumentoNumero { get; set; }
 
     [Column("cliente_documento_rilasciato_da")]
-    [Required(ErrorMessage = "L'ente di rilascio è obbligatorio")]
     public string? DocumentoRilasciatoDa { get; set; }
 
     [Column("cliente_documento_rilasciato_data")]
-    [Required(ErrorMessage = "La data di rilascio è obbligatoria")]
     public DateTime? DocumentoRilasciatoData { get; set; }
 
     [Column("cliente_documento_rilasciato_scadenza")]
-    [Required(ErrorMessage = "La data di scadenza è obbligatoria")]
     public DateTime? DocumentoRilasciatoScadenza { get; set; }
 
     // File Binari - Foto

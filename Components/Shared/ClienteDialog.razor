@@ -15,6 +15,14 @@
     </TitleContent>
     <DialogContent>
         <div style="max-height: 80vh; overflow-y: auto;" class="pr-4">
+            @* Le schede vecchie non sono mai passate dalle regole di oggi: chi ne apre una
+               deve saperlo subito, non al salvataggio. *@
+            @if (_avvisoIncompleta is not null)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                    <b>Questa scheda è incompleta e va completata.</b> @_avvisoIncompleta
+                </MudAlert>
+            }
             <MudForm @ref="_form" Model="@Entity">
                 <MudGrid Spacing="4">
                     <!-- FOTO CLIENTE (Colonna Sinistra) -->
@@ -189,7 +197,9 @@
                                 <MudItem xs="12" sm="6">
                                     <MudTextField @ref="_indirizzoField" @bind-Value="Entity.IndirizzoResidenza" For="@(() => Entity.IndirizzoResidenza)"
                                         Label="Indirizzo" Variant="Variant.Outlined" MaxLength="100"
-                                        Class="uppercase-input" HelperText="Via e numero civico" />
+                                        Class="uppercase-input" HelperText="Via e numero civico"
+                                        Validation="@((string v) => ValidateIndirizzo(v))"
+                                        OnBlur="@(async () => await ControllaAlVolo("indirizzo"))" />
                                 </MudItem>
 
                                 <MudItem xs="12" Class="mt-2">
@@ -242,9 +252,11 @@
                         <MudTabPanel Text="Documenti" Icon="@Icons.Material.Filled.Badge" IconColor="@GetTabColor("Documenti")">
                             <MudGrid Spacing="3" Class="mt-2">
                                 <MudItem xs="12" sm="4">
-                                    <MudSelect T="string" @ref="_tipoDocField" @bind-Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
+                                    <MudSelect T="string" @ref="_tipoDocField" Value="Entity.TipoDocIdentita" For="@(() => Entity.TipoDocIdentita)"
                                         Label="Tipo Doc." Variant="Variant.Outlined" Required="true"
-                                        RequiredError="Obbligatorio">
+                                        RequiredError="Obbligatorio"
+                                        Validation="@((string v) => ValidateTipoDoc(v))"
+                                        ValueChanged="@(async (string v) => { Entity.TipoDocIdentita = v; await ControllaAlVolo("tipodoc"); })">
                                         <MudSelectItem Value="@("CI")">Carta d'Identità</MudSelectItem>
                                         <MudSelectItem Value="@("Passaporto")">Passaporto</MudSelectItem>
                                         <MudSelectItem Value="@("Patente")">Patente</MudSelectItem>
@@ -252,12 +264,16 @@
                                 </MudItem>
                                 <MudItem xs="12" sm="8">
                                     <MudTextField @ref="_docNumeroField" @bind-Value="Entity.DocumentoNumero" For="@(() => Entity.DocumentoNumero)"
-                                        Label="Numero Documento" Variant="Variant.Outlined" MaxLength="50" Class="uppercase-input" />
+                                        Label="Numero Documento" Variant="Variant.Outlined" MaxLength="50" Class="uppercase-input"
+                                        Validation="@((string v) => ValidateDocNumero(v))"
+                                        OnBlur="@(async () => await ControllaAlVolo("docnumero"))" />
                                 </MudItem>
 
                                 <MudItem xs="12">
                                     <MudTextField @ref="_docRilDaField" @bind-Value="Entity.DocumentoRilasciatoDa" For="@(() => Entity.DocumentoRilasciatoDa)"
-                                        Label="Rilasciato Da" Variant="Variant.Outlined" MaxLength="100" Class="uppercase-input" />
+                                        Label="Rilasciato Da" Variant="Variant.Outlined" MaxLength="100" Class="uppercase-input"
+                                        Validation="@((string v) => ValidateDocEnte(v))"
+                                        OnBlur="@(async () => await ControllaAlVolo("docente"))" />
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
@@ -269,7 +285,7 @@
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @ref="_docScadenzaField" Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
-                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoScadenza = d; await RivalidaDate(); })"
+                                        DateChanged="@(async d => { Entity.DocumentoRilasciatoScadenza = d; await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
                                         Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
                                         Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataScadenza(d))" />

@@ -118,6 +118,17 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         ["FORMA"] = "cf",
         ["CARATTERE_CONTROLLO"] = "cf",
         ["STESSO_CF"] = "cf",
+        // I dati che devono esserci (script 563). Titolo e comuni non sono qui:
+        // li segnalano gia' i loro componenti, che hanno un Required proprio.
+        ["MANCA_COGNOME"] = "cognome",
+        ["MANCA_NOME"] = "nome",
+        ["MANCA_DATA_NASCITA"] = "nascita",
+        ["MANCA_INDIRIZZO_RESIDENZA"] = "indirizzo",
+        ["MANCA_DOC_TIPO"] = "tipodoc",
+        ["MANCA_DOC_NUMERO"] = "docnumero",
+        ["MANCA_DOC_ENTE"] = "docente",
+        ["MANCA_DOC_RILASCIO"] = "rilascio",
+        ["MANCA_DOC_SCADENZA"] = "scadenza",
     };
 
     private static string? Chiave(DateTime? data) => data?.ToString("yyyy-MM-dd");
@@ -132,6 +143,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         "cf" => Entity.CodiceFiscale,
         "nascita" => Chiave(Entity.DataNascita),
         "rilascio" => Chiave(Entity.DocumentoRilasciatoData),
+        "scadenza" => Chiave(Entity.DocumentoRilasciatoScadenza),
+        "indirizzo" => Entity.IndirizzoResidenza,
+        "tipodoc" => Entity.TipoDocIdentita,
+        "docnumero" => Entity.DocumentoNumero,
+        "docente" => Entity.DocumentoRilasciatoDa,
         _ => null
     };
 
@@ -190,6 +206,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 case "cf": await RivalidaSeToccato(_cfField); break;
                 case "nascita": await RivalidaSeToccato(_dataNascitaField); break;
                 case "rilascio": await RivalidaSeToccato(_docRilDataField); break;
+                case "scadenza": await RivalidaSeToccato(_docScadenzaField); break;
+                case "indirizzo": await RivalidaSeToccato(_indirizzoField); break;
+                case "tipodoc": await RivalidaSeToccato(_tipoDocField); break;
+                case "docnumero": await RivalidaSeToccato(_docNumeroField); break;
+                case "docente": await RivalidaSeToccato(_docRilDaField); break;
             }
         }
         StateHasChanged();
@@ -342,7 +363,47 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 await Task.Delay(300);
                 await _titoloField.FocusAsync();
             }
+
+            if (IsEditMode) await ControllaAllApertura();
         }
+    }
+
+    /// <summary>Cosa manca a questa scheda, detto all'apertura e non al salvataggio.</summary>
+    private string? _avvisoIncompleta;
+
+    /// <summary>
+    /// Le schede nate prima che i dati fossero obbligatori non sono mai passate da un
+    /// salvataggio con le regole di oggi: al 2026-08-31 sono 578 su 742. Chi ne apre una
+    /// la trova gia' segnalata, campo per campo, invece di scoprirlo premendo Salva —
+    /// o, peggio, alla reception dell'albergo, dove i documenti di tutti gli occupanti
+    /// si presentano per legge.
+    /// </summary>
+    private async Task ControllaAllApertura()
+    {
+        List<EsitoValidazione> esiti;
+        try
+        {
+            esiti = await ClienteService.ValidaAsync(Entity, Entity.ClienteId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Controllo all'apertura non riuscito: {ex.Message}");
+            return;
+        }
+
+        // Solo i dati mancanti: gli altri esiti (duplicati, codice fiscale) riguardano
+        // cio' che c'e' scritto, e vanno detti a chi scrive, non a chi apre.
+        var mancanti = esiti.Where(e => e.Blocca && e.Esito.StartsWith("MANCA_", StringComparison.Ordinal)).ToList();
+        if (mancanti.Count == 0) return;
+
+        foreach (var e in mancanti)
+            if (CampoPerEsito.TryGetValue(e.Esito, out var campo))
+                _erroriDb[campo] = (ValoreCampo(campo), e.Messaggio);
+
+        _avvisoIncompleta = string.Join(" ", mancanti.Select(e => e.Messaggio));
+
+        if (_form is not null) await _form.Validate();
+        StateHasChanged();
     }
 
 
@@ -567,6 +628,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     private string? ValidateDataNascita(DateTime? date) => ErroreDb("nascita", Chiave(date));
 
+    private string? ValidateIndirizzo(string? v) => ErroreDb("indirizzo", v);
+
+    private string? ValidateTipoDoc(string? v) => ErroreDb("tipodoc", v);
+
+    private string? ValidateDocNumero(string? v) => ErroreDb("docnumero", v);
+
+    private string? ValidateDocEnte(string? v) => ErroreDb("docente", v);
+
     private string? ValidateIban(string? iban) => ErroreDb("iban", iban);
 
     private string? ValidateCognome(string? cognome) => ErroreDb("cognome", cognome);
@@ -578,8 +647,10 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         var db = ErroreDb("rilascio", Chiave(date));
         if (db is not null) return db;
 
+        // L'obbligo non si ripete qui: lo dice fn_ana_clienti_campi_mancanti, e vale
+        // anche per il sito. Restano le regole incrociate, che sono solo di questa form.
         if (!date.HasValue)
-            return "La data di rilascio è obbligatoria";
+            return null;
 
         var result = ClienteValidator.ValidateDocumentoDataRilascio(date, Entity.DocumentoRilasciatoScadenza, Entity.DataNascita);
         return result.IsValid ? null : result.Message;
@@ -587,8 +658,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     private string? ValidateDataScadenza(DateTime? date)
     {
+        var db = ErroreDb("scadenza", Chiave(date));
+        if (db is not null) return db;
+
         if (!date.HasValue)
-            return "La data di scadenza è obbligatoria";
+            return null;
 
         var result = ClienteValidator.ValidateDocumentoDataScadenza(date, Entity.DocumentoRilasciatoData);
         return result.IsValid ? null : result.Message;
