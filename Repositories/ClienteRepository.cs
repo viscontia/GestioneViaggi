@@ -61,14 +61,21 @@ public class ClienteRepository(
         }
     }
 
-    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null)
+    /// <param name="searchText">
+    /// Testo cercato, o null per l'elenco intero. La ricerca sta QUI e non in una funzione
+    /// a parte: fn_search_clienti restituiva sedici campi in meno, e chi apriva un cliente
+    /// trovato cercando riceveva una scheda mutilata — con il rischio di azzerarne i dati
+    /// salvandola. Una sola lista di campi, una sola funzione (SqlScripts/573).
+    /// </param>
+    public async Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null, string? searchText = null)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            await using var command = new NpgsqlCommand("SELECT fn_get_all_clienti(@azienda, @anno)", connection);
+            await using var command = new NpgsqlCommand("SELECT fn_get_all_clienti(@azienda, @anno, @cerca::VARCHAR)", connection);
             command.Parameters.Add(new NpgsqlParameter("azienda", NpgsqlTypes.NpgsqlDbType.Integer) { Value = (object?)aziendaFk ?? DBNull.Value });
             command.Parameters.Add(new NpgsqlParameter("anno", NpgsqlTypes.NpgsqlDbType.Integer) { Value = (object?)filterYear ?? DBNull.Value });
+            command.Parameters.Add(new NpgsqlParameter("cerca", NpgsqlTypes.NpgsqlDbType.Varchar) { Value = string.IsNullOrWhiteSpace(searchText) ? DBNull.Value : searchText.Trim() });
 
             var json = await command.ExecuteScalarAsync() as string;
             return DaJson<List<Cliente>>(json) ?? new List<Cliente>();

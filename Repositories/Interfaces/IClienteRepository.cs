@@ -11,7 +11,7 @@ public interface IClienteRepository
     // CRUD Base
     Task<Cliente?> GetByIdAsync(int clienteId, int aziendaFk);
     Task<Cliente?> GetDetailAsync(int clienteId);
-    Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null);
+    Task<List<Cliente>> GetAllAsync(int? aziendaFk, int? filterYear = null, string? searchText = null);
     Task<Cliente> InsertAsync(Cliente cliente, bool conferme = false);
 
     /// <summary>Le segnalazioni del database su questa anagrafica, senza scrivere.</summary>

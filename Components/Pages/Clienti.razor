@@ -309,9 +309,7 @@ else
             // filterId qui non e' mai nullo (i due rami sopra escono prima), ma dirlo al
             // compilatore con un `.Value` secco significherebbe fidarsi di quella lettura
             // anche fra un anno, quando i rami sopra saranno cambiati.
-            _items = string.IsNullOrWhiteSpace(_ricerca) || filterId is null
-                ? await ClienteService.GetAllAsync(filterId, QueryYear)
-                : await ClienteService.SearchAsync(_ricerca, filterId.Value);
+            _items = await ClienteService.GetAllAsync(filterId, QueryYear, _ricerca);
             ApplyFilters();
         }
         catch (Exception ex)

@@ -65,6 +65,7 @@ tutto quello che c'era ieri.
 | A2 | Nell'elenco guarda le colonne **viaggi fatti / da fare** | Valorizzate come prima |
 | A3 | Dalla **dashboard** clicca il riquadro dei clienti di un anno | Si apre l'elenco filtrato, con il banner «Filtro Attivo: Anno Creazione», e «Mostra Tutto» lo azzera. Nella pagina Clienti non c'è (e non c'è mai stata) una tendina degli anni: il filtro arriva solo di lì, ed è sull'anno di **creazione della scheda** |
 | A4 | **Cerca** per cognome, poi per email, poi per codice fiscale | Trova in tutti e tre i casi; i comuni sono valorizzati anche nei risultati |
+| A4b | **Cerca** un cliente, poi **aprilo** dal risultato | La scheda è completa: documento, IBAN, note, comuni. ⚠️ Nessun avviso «scheda incompleta» se i dati ci sono. Il 2026-09-01 la ricerca restituiva sedici campi in meno, e aprendo da lì si sarebbero potuti azzerare salvando |
 | A5 | Apri un cliente **con foto e documento** | Si vedono entrambi. È il caso più a rischio: viaggiano in base64 e **solo** nel dettaglio |
 | A6 | Apri un cliente e controlla **titolo, lingua e consenso** | Il titolo è quello giusto nella tendina, non vuoto |
 | A7 | Apri un cliente, **salva senza modificare**, riaprilo | Titolo, lingua e consenso **invariati**. Se il titolo tornasse vuoto o il consenso si spegnesse, la lettura non porta la chiave |
