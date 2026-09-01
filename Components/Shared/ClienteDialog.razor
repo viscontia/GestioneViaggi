@@ -251,8 +251,13 @@
                                     }
                                     @if (_consensoData.HasValue)
                                     {
+                                        @* La data registrata e' sempre quella della CONCESSIONE: il database la
+                                           scrive solo nel passaggio da spento ad acceso, e la lascia li' quando
+                                           il consenso viene revocato — serve a dimostrare che un tempo c'era.
+                                           Scrivere «Revocato il» accanto a quella data la faceva sembrare la
+                                           data della revoca, che non e' registrata da nessuna parte. *@
                                         <MudText Typo="Typo.caption" Class="d-block mud-text-secondary" Style="margin-left:12px;">
-                                            @(_consenso ? "Concesso il " : "Revocato il ")@_consensoData.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            @(_consenso ? "Concesso il " : "Revocato. Era stato concesso il ")@_consensoData.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                             @(string.IsNullOrWhiteSpace(_consensoFonte) ? "" : $" ({_consensoFonte})")
                                         </MudText>
                                     }
