@@ -3,6 +3,7 @@ using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -42,73 +43,34 @@ public class AziendaService : BaseCrudService<Azienda>
 
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            // Base query con JOIN per provincia REA
-            var sql = @"
-                SELECT
-                    a.azienda_id,
-                    a.ragione_sociale,
-                    a.forma_giuridica,
-                    a.data_costituzione,
-                    a.data_inizio_attivita,
-                    a.capitale_sociale,
-                    a.socio_unico,
-                    a.in_liquidazione,
-                    a.partita_iva,
-                    a.codice_fiscale,
-                    a.rea_provincia_fk,
-                    a.rea_numero,
-                    a.rea_data_iscrizione,
-                    a.codice_destinatario_sdi,
-                    a.pec,
-                    a.sito_web,
-                    a.sito_web_iscrizione,
-                    a.telefono_principale,
-                    a.attivo,
-                    a.regime_fiscale_fk,
-                    a.data_creazione,
-                    a.data_ultima_modifica,
-                    p.provincia_sigla as rea_provincia_sigla,
-                    r.regime_codice as regime_fiscale_codice,
-                    r.regime_descrizione as regime_fiscale_descrizione
-                FROM ana_aziende a
-                LEFT JOIN ana_geo_province p ON a.rea_provincia_fk = p.provincia_id
-                LEFT JOIN ana_regimi_fiscali r ON a.regime_fiscale_fk = r.regime_id
-                WHERE 1=1";
-
-            // Applica filtro tenant se NON SuperAdmin
-            if (currentAziendaId.HasValue)
+            // La query stava qui, con il filtro azienda concatenato nella stringa:
+            //     sql += $" AND a.azienda_id = {currentAziendaId.Value}";
+            // mentre il filtro anno era gia' un parametro. Ora lo sono entrambi, dentro
+            // fn_ana_aziende_get_all (SqlScripts/572).
+            //
+            // Il comportamento non cambia: chi non e' SuperAdmin ha un'azienda e vede
+            // solo quella; il SuperAdmin non ce l'ha, passa NULL e le vede tutte.
+            await using var command = new NpgsqlCommand(
+                "SELECT * FROM fn_ana_aziende_get_all(@azienda, @anno)", connection);
+            command.Parameters.Add(new NpgsqlParameter("azienda", NpgsqlDbType.Integer)
             {
-                sql += $" AND a.azienda_id = {currentAziendaId.Value}";
-                _logger.LogDebug("GetAllAsync: Filtering by AziendaId={AziendaId} (non-SuperAdmin)", currentAziendaId.Value);
-            }
-            else
+                Value = (object?)currentAziendaId ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("anno", NpgsqlDbType.Integer)
             {
-                _logger.LogDebug("GetAllAsync: No tenant filter (SuperAdmin access)");
-            }
-
-            var parameters = new List<NpgsqlParameter>();
-
-            if (filterYear.HasValue)
-            {
-                sql += " AND EXTRACT(YEAR FROM a.data_creazione) = @year";
-                parameters.Add(new NpgsqlParameter("year", filterYear.Value));
-            }
-
-            sql += " ORDER BY a.ragione_sociale ASC";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            foreach (var p in parameters) command.Parameters.Add(p);
+                Value = (object?)filterYear ?? DBNull.Value,
+                IsNullable = true
+            });
 
             await using var reader = await command.ExecuteReaderAsync();
 
-            var aziende = new List<Azienda>();
+            var items = new List<Azienda>();
             while (await reader.ReadAsync())
             {
-                aziende.Add(MapFromReaderWithJoins(reader));
+                items.Add(MapFromReader(reader));
             }
-
-            _logger.LogInformation("GetAllAsync: Returned {Count} aziende (YearFilter: {Year})", aziende.Count, filterYear);
-            return aziende;
+            return items;
         }
         catch (Exception ex)
         {
@@ -117,9 +79,6 @@ public class AziendaService : BaseCrudService<Azienda>
         }
     }
 
-    /// <summary>
-    /// Override GetByIdAsync con validazione tenant access
-    /// </summary>
     public override async Task<Azienda?> GetByIdAsync(int id)
     {
         await ValidateTenantAccessAsync(id);
