@@ -125,6 +125,13 @@ e senza lo script: `~/.zshrc` non viene letto in quel caso. Usa `./avvia-locale.
 È il punto che ha motivato tutta la revisione: il consenso **non è recuperabile con un backfill**,
 o si raccoglie alla fonte o è perso.
 
+> ⚠️ **Nota del 2026-09-01: la spunta del consenso ESISTE.** A fine agosto era stata data per
+> mancante, e l'avevo scritto qui senza aprire il codice: è in `Step2Content.jsx`,
+> `id="consensoMarketing"`, con l'etichetta «Desidero ricevere comunicazioni sui prossimi viaggi a
+> questo indirizzo». Il gruppo B è quindi **eseguibile**, e va eseguito davvero — non dato per
+> buono. Il §2.8.1 della Checklist Go-Live va riletto con questa informazione, perché descrive la
+> raccolta del consenso come interamente da fare.
+
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
 | B1 | Guarda il modulo anagrafico | C'è una spunta per il consenso all'invio di comunicazioni |
@@ -150,6 +157,7 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C1b | Lo stesso, ma con la **scheda incompleta** (solo titolo e nome) | Compaiono **sia** l'avviso giallo **sia** l'elenco dei dati mancanti — in **un solo** messaggio, non nove sovrapposti. ⚠️ Corretto il 2026-09-01: gli avvisi venivano scartati appena c'era un errore, e da quando i documenti sono obbligatori una scheda in compilazione un errore ce l'ha quasi sempre. L'avviso nome/sesso era quindi diventato invisibile |
 | C2 | Titolo **SIG.**, nome **ANDREA** | Nessun avviso |
 | C3 | Inserisci un'**email scritta male** e salva | Messaggio rosso leggibile in italiano. **Non** deve comparire «Esiste già una anagrafica con questo Codice Fiscale», né testo tipo `CONTEXT: PL/pgSQL function…` |
+| C3b | Con l'email scritta male, guarda la spunta del **consenso** | **Non si accende**, e lo dice: «Serve prima un indirizzo email valido». Un consenso dato su un indirizzo malformato è una riga che al primo invio risulta irraggiungibile. Resta però sempre **spegnibile** anche con l'email non valida: una revoca non si nega mai |
 | C4 | Inserisci un **cognome di un carattere** | «Il cognome deve avere almeno 2 caratteri.» |
 | C5 | Digita il codice fiscale mettendo **cognome e nome invertiti** | **Rifiutato** (dal 2026-09-01, script `565`): «Nome e cognome sembrano invertiti: il codice corrisponde leggendo X come cognome e Y come nome. **Scambia i due campi prima di proseguire**». Non c'è più nessuna conferma da accettare, e nessuno scambio automatico da attendersi |
 | C6 | **Scambia davvero** i due campi come dice il messaggio | Il salvataggio va a buon fine. ⚠️ Fino al 2026-08-31 questa prova chiedeva di *confermare* l'incongruenza e salvarla: non è più possibile, per nessuna via |

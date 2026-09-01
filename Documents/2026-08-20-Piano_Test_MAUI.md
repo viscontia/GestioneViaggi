@@ -167,6 +167,7 @@ preferenza, perde una prova — e non è recuperabile con un backfill.
 |---|---|---|---|
 | F1 | Nuovo cliente | Spunta il consenso e salva | A DB: consenso vero, **data valorizzata** e fonte **`GESTIONALE`** (non `NON_DICHIARATA`: la fonte dice dove il consenso è stato raccolto ed è metà della prova). ⚠️ Senza email la spunta **non si accende**, e lo dice: «Serve prima un indirizzo email» |
 | F1b | Cliente **con** consenso e con email | Cancella l'email e salva | Rifiutato: «Il consenso alla newsletter richiede un indirizzo email». La spunta resta però sempre **spegnibile** anche senza email — una revoca non si nega mai |
+| F1c | Nuovo cliente | Scrivi un'email **malformata** (`pippo@`) e guarda la spunta del consenso | **Non si accende**: dal 2026-09-01 non basta che l'email ci sia, deve anche essere valida. Prima `pippo@` bastava |
 | F2 | Cliente **con** consenso | Riapri, cambia **solo il telefono**, salva | Consenso, data e fonte **invariati**. È la trappola vera: un aggiornamento qualsiasi non deve toccarli |
 | F3 | Cliente con consenso | Togli la spunta e salva | Consenso spento, ma **data e fonte restano**: servono a dimostrare che un tempo c'era. Riaprendo, la scheda dice «**Revocato. Era stato concesso il …**» — quella data è la concessione, non la revoca, che non è registrata da nessuna parte |
 | F4 | Cliente **senza** consenso | Accendilo | **Nuova** data e nuova fonte |
