@@ -629,6 +629,15 @@ una scheda alla volta, quando qualcuno la riaprirà — che è esattamente il di
 > anche questa misura, che l'ha contata come imminente); e con le guardie del bug 8 **non è più
 > eliminabile** finché l'anno non viene corretto.
 >
+> ✅ **CORRETTA su PROD il 2026-09-01.** Ora `2026-08-19` → `2026-08-27`, nove giorni, coerente con
+> la durata dichiarata e con le dodici iscrizioni (l'ultima è del 10 agosto, nove giorni prima della
+> partenza). Ricontrollata l'intera tabella: su **150 partenze**, zero anni fuori dal 2000–2100,
+> zero date di fine precedenti all'inizio, zero partenze future segnate come effettuate.
+> ⚠️ La correzione è avvenuta **in due passaggi**: il primo aveva sistemato solo l'anno lasciando il
+> mese di gennaio, e il dato sembrava a posto. Ciò che ha svelato l'errore residuo non è stata una
+> data ma **le iscrizioni**: dieci su dodici registrate fra giugno e agosto, cioè *dopo* una
+> partenza di gennaio. Nessuno si iscrive a un viaggio già fatto.
+>
 > **Date vere accertate il 2026-09-01** (chieste al committente): la partenza è
 > **19–27 agosto 2026**, ed è realmente conclusa — quindi `data_viaggio_effettuato_sino = 'Y'` è
 > corretto e non va toccato. **Il giorno era giusto**: sbagliati sono anno *e* mese, `8202-01`
