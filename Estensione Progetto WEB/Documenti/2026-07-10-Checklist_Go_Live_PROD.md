@@ -629,9 +629,28 @@ una scheda alla volta, quando qualcuno la riaprirà — che è esattamente il di
 > anche questa misura, che l'ha contata come imminente); e con le guardie del bug 8 **non è più
 > eliminabile** finché l'anno non viene corretto.
 >
-> Va corretta **prima** del go-live, e non con un `DELETE`: dodici iscrizioni dipendono da quella
-> riga. Serve capire di quale partenza si tratti davvero — probabilmente `2022`, da confrontare con
-> le date dei movimenti collegati — e riscrivere l'anno.
+> **Date vere accertate il 2026-09-01** (chieste al committente): la partenza è
+> **19–27 agosto 2026**, ed è realmente conclusa — quindi `data_viaggio_effettuato_sino = 'Y'` è
+> corretto e non va toccato. **Il giorno era giusto**: sbagliati sono anno *e* mese, `8202-01`
+> invece di `2026-08`. Correzione da applicare su PROD:
+>
+> ```sql
+> UPDATE ana_date_viaggi
+>    SET data_viaggio_data_inizio = DATE '2026-08-19',
+>        data_viaggio_data_fine   = DATE '2026-08-27'
+>  WHERE data_viaggio_id = 1588
+>    AND data_viaggio_data_inizio = DATE '8202-01-19';   -- guardia: non tocca nulla se già corretta
+> ```
+>
+> ⚠️ **Quello che questo caso insegna vale più della riga da correggere.** Il dato è stato scritto
+> su PROD il **2026-08-31 alle 15:24**, dalla versione 1.35 — cioè *mentre* collaudavamo le difese
+> che lo impediscono. E la forma dell'errore (giorno intatto, anno e mese scambiati e stravolti) è
+> la stessa che si è manifestata in collaudo digitando in fretta in un campo data: il valore viene
+> ricomposto male mentre si scrive. Non è quindi un refuso d'utente isolato come il `262` o il
+> `2202`: è un **difetto della maschera data che in produzione sta corrompendo dati reali**, e il
+> vincolo di plausibilità dell'anno lo intercetta solo quando l'anno finisce fuori scala — qui per
+> fortuna è successo. Un `2026-01-19` al posto di `2026-08-19` sarebbe passato senza che nessuno se
+> ne accorgesse.
 
 ---
 
