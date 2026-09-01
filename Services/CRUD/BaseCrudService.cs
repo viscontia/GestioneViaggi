@@ -80,35 +80,12 @@ public abstract class BaseCrudService<T> : ICrudService<T> where T : BaseEntity,
         return await _tenantContext.GetCurrentAziendaIdAsync();
     }
 
-    /// <summary>
-    /// Genera la clausola WHERE per filtrare per tenant.
-    /// Se TenantColumnName è NULL o user è SuperAdmin, ritorna stringa vuota.
-    /// </summary>
-    protected async Task<string> GetTenantFilterWhereClauseAsync()
-    {
-        if (string.IsNullOrWhiteSpace(TenantColumnName) || _tenantContext == null)
-        {
-            return string.Empty;
-        }
-
-        return await _tenantContext.GetTenantFilterSqlAsync(TenantColumnName, includeWhereKeyword: true);
-    }
-
-    /// <summary>
-    /// Genera la condizione AND per filtrare per tenant (senza WHERE).
-    /// Utile quando ci sono già altre condizioni WHERE.
-    /// </summary>
-    protected async Task<string> GetTenantFilterAndClauseAsync()
-    {
-        if (string.IsNullOrWhiteSpace(TenantColumnName) || _tenantContext == null)
-        {
-            return string.Empty;
-        }
-
-        var filter = await _tenantContext.GetTenantFilterSqlAsync(TenantColumnName, includeWhereKeyword: false);
-        
-        return string.IsNullOrEmpty(filter) ? string.Empty : $"AND {filter}";
-    }
+    // Qui stavano GetTenantFilterWhereClauseAsync e GetTenantFilterAndClauseAsync, che
+    // generavano frammenti di SQL per il filtro azienda ("AND azienda_fk = 2"). Non li
+    // chiamava nessuno, ma erano un invito: chi li trovava pensava fossero il modo
+    // previsto per separare le aziende, ed e' esattamente cio' che e' stato tolto da
+    // ContropartiService e AziendaService (SqlScripts/571, 572). Il filtro azienda si
+    // passa come PARAMETRO a una funzione del database. Rimossi il 2026-09-01.
 
     public virtual async Task<List<T>> GetAllAsync()
     {

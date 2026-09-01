@@ -93,36 +93,11 @@ public class TenantContext : ITenantContext
 
         return canAccess;
     }
-
-    public async Task<string> GetTenantFilterSqlAsync(string columnName = "azienda_id_fk", bool includeWhereKeyword = true)
-    {
-        var isSuperAdmin = await IsSuperAdminAsync();
-        
-        if (isSuperAdmin)
-        {
-            _logger.LogDebug("SuperAdmin - no tenant filter applied");
-            return string.Empty;
-        }
-
-        var aziendaId = await GetCurrentAziendaIdAsync();
-        
-        if (!aziendaId.HasValue)
-        {
-            _logger.LogError("Cannot generate tenant filter - user has no AziendaId");
-            throw new InvalidOperationException("Impossibile determinare il contesto aziendale dell'utente");
-        }
-
-        var filter = $"{columnName} = {aziendaId.Value}";
-        
-        if (includeWhereKeyword)
-        {
-            filter = $"WHERE {filter}";
-        }
-
-        _logger.LogDebug("Generated tenant filter: {Filter}", filter);
-        
-        return filter;
-    }
+    // GetTenantFilterSqlAsync e' stato rimosso il 2026-09-01: costruiva un frammento di
+    // SQL — $"{columnName} = {aziendaId.Value}" — per filtrare per azienda. L'invariante
+    // che tiene separate le aziende non deve dipendere da come si incolla una stringa: si
+    // passa l'azienda come PARAMETRO a una funzione del database (vedi SqlScripts/571 e
+    // 572). A chi serve sapere quale sia, c'e' GetCurrentAziendaIdAsync.
 
     public async Task<UserInfo?> GetCurrentUserAsync()
     {

@@ -31,15 +31,6 @@ public interface ITenantContext
     Task<bool> CanAccessAziendaAsync(int aziendaId);
 
     /// <summary>
-    /// Ottiene la clausola WHERE SQL per filtrare i dati in base al tenant.
-    /// SuperAdmin: stringa vuota (nessun filtro)
-    /// Altri ruoli: "WHERE azienda_id_fk = {aziendaId}"
-    /// </summary>
-    /// <param name="columnName">Nome della colonna FK (default: azienda_id_fk)</param>
-    /// <param name="includeWhereKeyword">Se true, include "WHERE", altrimenti solo la condizione</param>
-    Task<string> GetTenantFilterSqlAsync(string columnName = "azienda_id_fk", bool includeWhereKeyword = true);
-
-    /// <summary>
     /// Restituisce le informazioni dell'utente corrente.
     /// </summary>
     Task<UserInfo?> GetCurrentUserAsync();

@@ -44,7 +44,6 @@ class FakeTenantContext : ITenantContext
     public Task<int?> GetCurrentAziendaIdAsync() => Task.FromResult<int?>(null);
     public Task<GestioneViaggi.Models.UserInfo?> GetCurrentUserAsync() => Task.FromResult<GestioneViaggi.Models.UserInfo?>(null);
     public Task<int> GetRequiredAziendaIdAsync() => Task.FromResult(0);
-    public Task<string> GetTenantFilterSqlAsync(string columnName = "azienda_id_fk", bool includeWhereKeyword = true) => Task.FromResult("");
     public Task<bool> IsSuperAdminAsync() => Task.FromResult(true);
     public Task ValidateAccessAsync(int aziendaId) => Task.CompletedTask;
 }

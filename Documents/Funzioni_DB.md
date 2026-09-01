@@ -1266,10 +1266,10 @@ sessione — ma non è una riga che si vuole trovare in un audit. In entrambe le
 confine nel database.
 
 > Cercati apposta in tutto il gestionale dopo il primo ritrovamento: i punti erano **due**, e sono
-> stati chiusi entrambi. Restano però in `TenantContext.GetTenantFilterSqlAsync` e nei due metodi
-> di `BaseCrudService` che lo avvolgono i **generatori di frammenti SQL per tenant**
-> (`$"{columnName} = {aziendaId.Value}"`): oggi **non li chiama nessuno**, ma chi li trovasse
-> penserebbe che siano il modo giusto di filtrare per azienda.
+> stati chiusi entrambi. Rimossi anche i **generatori di frammenti SQL per tenant**
+> (`TenantContext.GetTenantFilterSqlAsync` e i due metodi di `BaseCrudService` che lo avvolgevano):
+> non li chiamava nessuno, ma erano un invito a rifare la stessa cosa. **Il filtro azienda si passa
+> come parametro a una funzione del database, punto.**
 
 ---
 
