@@ -256,6 +256,13 @@
                                             Serve prima un indirizzo email valido.
                                         </MudText>
                                     }
+                                    @if (EmailCambiataConConsensoAttivo)
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1" Style="font-size:0.8rem;">
+                                            Il consenso era stato dato all'indirizzo <b>@_emailIniziale</b>.
+                                            Verifica che valga anche per quello nuovo.
+                                        </MudAlert>
+                                    }
                                     @if (_consensoData.HasValue)
                                     {
                                         @* La data registrata e' sempre quella della CONCESSIONE: il database la

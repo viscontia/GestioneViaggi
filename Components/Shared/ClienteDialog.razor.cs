@@ -37,6 +37,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private bool _consenso;
     /// <summary>Com'era il consenso all'apertura: distingue «acceso adesso» da «era gia' acceso».</summary>
     private bool _consensoIniziale;
+    /// <summary>L'indirizzo con cui la scheda e' stata aperta: serve a sapere se e' cambiato.</summary>
+    private string? _emailIniziale;
     /// <summary>Data e provenienza dell'ultimo cambio di consenso, mostrate in sola lettura.</summary>
     private DateTime? _consensoData;
     private string? _consensoFonte;
@@ -422,6 +424,21 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     }
 
     /// <summary>
+    /// L'indirizzo e' cambiato sotto un consenso che era gia' attivo.
+    ///
+    /// Non si spegne niente: il consenso lo da' una persona, non una casella, e cambiare
+    /// recapito non revoca nulla. Spegnerlo costringerebbe a riaccenderlo, e riaccenderlo
+    /// riscrive data e fonte — sostituendo la prova vera con una falsa, di oggi.
+    ///
+    /// Si avvisa e basta, perche' il caso da intercettare e' l'altro: un errore di
+    /// digitazione sull'indirizzo, che manderebbe la newsletter a un estraneo con un
+    /// consenso che quell'estraneo non ha mai dato.
+    /// </summary>
+    private bool EmailCambiataConConsensoAttivo =>
+        IsEditMode && _consensoIniziale && _consenso
+        && !string.Equals(Entity.Email?.Trim(), _emailIniziale?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
     /// C'e' un indirizzo, ed e' scritto bene. Non basta che ci sia: un consenso dato su
     /// un'email malformata non e' un consenso, e' una riga che al primo invio risultera'
     /// irraggiungibile. Prima si guardava solo se il campo fosse pieno, quindi «pippo@»
@@ -515,6 +532,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 var consenso = await ClienteConsensoService.GetAsync(Entity.ClienteId);
                 _consenso = consenso.Consenso;
                 _consensoIniziale = consenso.Consenso;
+                _emailIniziale = Entity.Email;
                 _consensoData = consenso.Data;
                 _consensoFonte = consenso.Fonte;
             }

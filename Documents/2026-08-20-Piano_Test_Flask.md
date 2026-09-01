@@ -158,6 +158,7 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C2 | Titolo **SIG.**, nome **ANDREA** | Nessun avviso |
 | C3 | Inserisci un'**email scritta male** e salva | Messaggio rosso leggibile in italiano. **Non** deve comparire «Esiste già una anagrafica con questo Codice Fiscale», né testo tipo `CONTEXT: PL/pgSQL function…` |
 | C3b | Con l'email scritta male, guarda la spunta del **consenso** | **Non si accende**, e lo dice: «Serve prima un indirizzo email valido». Un consenso dato su un indirizzo malformato è una riga che al primo invio risulta irraggiungibile. Resta però sempre **spegnibile** anche con l'email non valida: una revoca non si nega mai |
+| C3c | Riprendi l'iscrizione con un cliente **che ha già il consenso** e cambiagli l'email | Stesso avviso del gestionale, accanto alla spunta. Il consenso resta acceso e la sua data non cambia |
 | C4 | Inserisci un **cognome di un carattere** | «Il cognome deve avere almeno 2 caratteri.» |
 | C5 | Digita il codice fiscale mettendo **cognome e nome invertiti** | **Rifiutato** (dal 2026-09-01, script `565`): «Nome e cognome sembrano invertiti: il codice corrisponde leggendo X come cognome e Y come nome. **Scambia i due campi prima di proseguire**». Non c'è più nessuna conferma da accettare, e nessuno scambio automatico da attendersi |
 | C6 | **Scambia davvero** i due campi come dice il messaggio | Il salvataggio va a buon fine. ⚠️ Fino al 2026-08-31 questa prova chiedeva di *confermare* l'incongruenza e salvarla: non è più possibile, per nessuna via |
