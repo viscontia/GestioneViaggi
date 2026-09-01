@@ -45,11 +45,14 @@ Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoD
 > richiede all'utente di sapere quando un record è nato. Con `OnSearch` il comportamento è uno
 > solo: si cerca, e si trova.
 >
-> **Quale dei due usare.** `OnSearch` dove la lista è grande e la ricerca deve restare mirata
-> (i clienti, con `fn_search_clienti`). **Il solo `OnRefresh` basta per le liste piccole**: la
-> griglia rilegge e filtra da sé a ogni battuta, quindi il comportamento è identico senza dover
-> scrivere una funzione SQL per ogni tabella. Non serve nessuno dei due sulle tabelle di servizio
-> — comuni, province, tipi, valute — che durante il lavoro non cambia nessuno.
+> **Quale dei due usare.** `OnSearch` dove la lista è grande e la ricerca deve trovare anche ciò
+> che è stato scritto altrove (i clienti, con `fn_search_clienti`). `OnRefresh` da solo dà il
+> pulsante di aggiornamento e l'Invio, senza toccare la ricerca.
+>
+> ⚠️ **Non far ricaricare la griglia a ogni battuta.** Provato il 2026-09-01 sulle liste piccole,
+> per dare ovunque il comportamento dei clienti: la ricarica **ricrea la toolbar mentre si scrive**,
+> la lista sparisce e riappare a ogni lettera e il fuoco rientra nel campo a metà parola. Per
+> estendere davvero la ricerca sulla sorgente serve una funzione SQL per tabella.
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
     *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.

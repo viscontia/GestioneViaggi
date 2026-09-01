@@ -89,22 +89,12 @@ namespace GestioneViaggi.Components.Shared
             {
                 _searchString = s;
 
-                if (OnSearch.HasDelegate)
-                {
-                    // La ricerca la fa la sorgente: serve dove la lista e' grande.
-                    await OnSearch.InvokeAsync(s);
-                }
-                else if (OnRefresh.HasDelegate)
-                {
-                    // Liste piccole: si rilegge tutto e si filtra qui. Costa quanto aprire
-                    // la pagina, e vale a dare UN SOLO comportamento — cercare trova sempre,
-                    // anche cio' che ha appena scritto un altro utente o il sito. Senza
-                    // questo la stessa casella troverebbe subito chi era gia' in lista e
-                    // pretenderebbe un gesto in piu' per chi e' arrivato dopo: distinguere
-                    // i due casi richiede di sapere quando un record e' nato, che e'
-                    // l'unica cosa che chi cerca non puo' sapere.
-                    await OnRefresh.InvokeAsync();
-                }
+                // Solo chi ha OnSearch interroga la sorgente. Ricaricare a ogni battuta anche
+                // le liste piccole sembrava dare lo stesso comportamento ovunque, e invece
+                // rompeva la digitazione: la ricarica ricrea la toolbar, la lista sparisce e
+                // riappare, e il fuoco torna nel campo a meta' parola. Provato il 2026-09-01,
+                // ritirato lo stesso giorno.
+                if (OnSearch.HasDelegate) await OnSearch.InvokeAsync(s);
             }));
             builder.AddAttribute(4, nameof(EnterpriseGridToolbar.ChildContent), ToolBarActions);
             builder.AddAttribute(5, nameof(EnterpriseGridToolbar.OnRefresh), OnRefresh);

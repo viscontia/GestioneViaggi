@@ -77,13 +77,15 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Usa FocusAsync nativo di MudBlazor con delay per attendere i re-render della grid
-        if (firstRender || !_hasFocused)
+        // Il fuoco si mette solo su una casella VUOTA. Se c'e' gia' del testo, chi scrive
+        // ce l'ha per conto suo, e riprenderselo dopo mezzo secondo — magari perche' la
+        // pagina si e' ridisegnata — significa spezzare la parola che sta digitando.
+        if ((firstRender || !_hasFocused) && string.IsNullOrEmpty(SearchString))
         {
             _hasFocused = true;
             // Delay per attendere che la grid parent completi il suo StateHasChanged
             await Task.Delay(600);
-            if (_searchField != null)
+            if (_searchField != null && string.IsNullOrEmpty(SearchString))
             {
                 await _searchField.FocusAsync();
             }
