@@ -49,6 +49,13 @@ Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoD
 > che è stato scritto altrove (i clienti, con `fn_search_clienti`). `OnRefresh` da solo dà il
 > pulsante di aggiornamento e l'Invio, senza toccare la ricerca.
 >
+> ⚠️ **Non racchiudere la griglia in `@if (caricamento) { barra } else { griglia }`.** La griglia
+> tiene **al proprio interno** il testo cercato: se il caricamento la toglie dal DOM, al ritorno
+> ricomincia da zero e il testo sparisce. Chi cerca lo vede cancellarsi da solo dopo aver trovato.
+> Si usa il parametro `Loading`, che mostra l'attesa **dentro** la griglia lasciandola viva; la
+> barra al posto di tutto va bene solo al primo caricamento, quando non c'è ancora niente da
+> perdere (`AnaViaggi.razor`, flag `_primoCaricamento`).
+>
 > ⚠️ **Non far ricaricare la griglia a ogni battuta.** Provato il 2026-09-01 sulle liste piccole,
 > per dare ovunque il comportamento dei clienti: la ricarica **ricrea la toolbar mentre si scrive**,
 > la lista sparisce e riappare a ogni lettera e il fuoco rientra nel campo a metà parola. Per

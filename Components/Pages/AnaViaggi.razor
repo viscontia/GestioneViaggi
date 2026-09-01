@@ -27,7 +27,11 @@
         </MudAlert>
     }
 
-    @if (_isLoading)
+    @* La barra al posto della pagina solo al PRIMO caricamento. Rimetterla a ogni
+       ricerca distruggeva la griglia e la ricreava da zero: con lei spariva il testo
+       cercato, che la griglia tiene al proprio interno. Durante le ricerche successive
+       l'attesa la mostra la griglia stessa, con Loading, restando viva. *@
+    @if (_isLoading && _primoCaricamento)
     {
             <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
     }
@@ -85,7 +89,7 @@
                 <!-- RIGHT PANEL: DATA GRID (70%) -->
                 <MudItem xs="12" md="8" lg="9">
                     <MudPaper Elevation="3" Class="pa-4">
-                        <EnterpriseDataGrid T="AnaViaggiEntity" OnSearch="@CercaAsync" OnRefresh="@LoadDataAsync" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
+                        <EnterpriseDataGrid T="AnaViaggiEntity" OnSearch="@CercaAsync" OnRefresh="@LoadDataAsync" Loading="@_isLoading" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
                                            >
 
                             <ToolBarActions>
@@ -197,6 +201,8 @@
 
 @code {
     private bool _isLoading = true;
+    /// <summary>Vero finche' la pagina non ha finito di aprirsi: solo allora la barra sostituisce tutto.</summary>
+    private bool _primoCaricamento = true;
     private List<AnaViaggiEntity> _allItems = new();
     private List<AnaViaggiEntity> _filteredItems = new();
 
@@ -367,6 +373,7 @@
         finally
         {
             _isLoading = false;
+            _primoCaricamento = false;
             StateHasChanged();
         }
     }
