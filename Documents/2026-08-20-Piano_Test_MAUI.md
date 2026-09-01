@@ -244,6 +244,26 @@ e registra gli azzeramenti del valore e i disallineamenti fra identificativo e o
 
 ## Pulizia finale
 
+**Deciso il 2026-09-01: i clienti di prova restano.** Non sono spazzatura da togliere, sono casi
+già pronti per le prove successive — e ricostruirli costa più che tenerli.
+
+| id | cliente | a cosa serve |
+| :--- | :--- | :--- |
+| 4383 | ALESSANDRA PIERO | scheda completa, buona come punto di partenza |
+| 4384 | FORNO RAFFAELLA | **omonimo** di una scheda storica priva di data e codice fiscale: è il caso D4 |
+| 4386 | PIPPO MARCO | ha attraversato tutto il ciclo del consenso (dato, revocato, ridato) |
+
+Nessuno dei tre ha iscrizioni o alloggi collegati.
+
+Da non toccare, benché somigli a un dato di prova: **MAIORCA MARIA** (3327) è un cliente storico,
+ed è l'unico dell'azienda 2 con anagrafica completa e **senza email**. È il solo su cui si possano
+provare i controlli sul pilota senza email (G10, G11) senza che scatti prima il blocco
+sull'anagrafica incompleta. Se qualcuno gliela compila, quel caso di prova non esiste più.
+
+### Se invece si vuole ripulire davvero
+
+
+
 Il prefisso `ZZ` non basta: alcune prove — l'omonimia di D4, per dire — impongono di usare il
 cognome di una scheda esistente, e altre volte capita di inventare un nome sul momento. La data di
 creazione invece non si dimentica:
