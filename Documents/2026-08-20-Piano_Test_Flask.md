@@ -2,7 +2,7 @@
 
 **Data:** 2026-08-20
 **Repository:** `Iscrizione-Viaggi-Offroad PostgreSQL`, ramo `feature/controlli-centralizzati`
-**Ambiente:** `./avvia-locale.sh` (DB Docker locale), script `538`–`562` applicati
+**Ambiente:** `./avvia-locale.sh` (DB Docker locale), script `538`–`569` applicati
 **Chi lo esegue:** Adriano — **serve un browser**, e questi test non sono automatizzabili da qui
 
 ---
@@ -58,6 +58,30 @@ Quindi le prove di questo piano vanno affiancate da una revisione del codice e d
 riorganizzazione: i controlli non devono stare in trenta `useCallback` quasi identici, ma
 appoggiarsi alle funzioni del database come fa ora il gestionale. Da pianificare come lavoro a sé,
 non da infilare fra un test e l'altro.
+
+---
+
+## 🔄 Cambiato sotto il sito il 2026-09-01: leggere prima di eseguire
+
+Il sito non è stato toccato, ma **le regole che eredita dal database sì**, sei volte in un giorno
+(script `563`–`569`, decisi collaudando il gestionale). Il sito le riceve tutte, perché passa dalle
+stesse funzioni. Tre prove di questo piano sono diventate **sbagliate** e vanno eseguite nella
+versione nuova; altre sono da aggiungere.
+
+| Cosa è cambiato | Effetto sul sito |
+| :--- | :--- |
+| `563` **Documento obbligatorio per tutti** | I cinque campi del documento, più data e comune di nascita, comune e indirizzo di residenza, sono ora obbligatori **per ogni persona** — pilota *e* passeggero. Il sito lato suo non li pretende (per il passeggero non pretende nulla), quindi il rifiuto arriverà **dal server** al salvataggio |
+| `564` `565` **Codice fiscale: niente più conferme** | Un codice in disaccordo con i dati è ora un **errore**, nomi invertiti compresi. La richiesta di conferma con la proposta di scambio **non esiste più** |
+| `566` `567` `569` **I duplicati non fanno nomi** | Codice fiscale o email già registrati non rivelano più chi li possiede: il messaggio dice cosa è successo e basta |
+| `568` **Consenso vuole un'email** | Spuntare il consenso senza indirizzo è rifiutato |
+
+> ⚠️ **Cosa aspettarsi davvero.** Il sito ha i controlli lato client **disallineati** da questi
+> (vedi la sezione sul riordino): per il passeggero non chiede nulla, e un cliente già riconosciuto
+> non lo valida affatto. Quindi molte di queste regole si manifesteranno come **errori restituiti dal
+> server dopo aver premuto avanti**, non come campi rossi mentre si compila. Non è un difetto nuovo
+> da segnalare ogni volta: è la misura di quanto il sito sia rimasto indietro, ed è esattamente ciò
+> che il riordino deve chiudere. Va segnalato invece **come** l'errore si presenta: se è leggibile,
+> se dice quale campo, e se il sito resta utilizzabile.
 
 ---
 
@@ -126,11 +150,14 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C2 | Titolo **SIG.**, nome **ANDREA** | Nessun avviso |
 | C3 | Inserisci un'**email scritta male** e salva | Messaggio rosso leggibile in italiano. **Non** deve comparire «Esiste già una anagrafica con questo Codice Fiscale», né testo tipo `CONTEXT: PL/pgSQL function…` |
 | C4 | Inserisci un **cognome di un carattere** | «Il cognome deve avere almeno 2 caratteri.» |
-| C5 | Digita il codice fiscale mettendo **cognome e nome invertiti** | Compare la richiesta di conferma che propone lo scambio; rifiutando **non** si prosegue |
-| C6 | Accetta la conferma del punto C5 | Il salvataggio va a buon fine |
-| C7 | Usa il codice fiscale di una persona **già iscritta** | Bloccato, con l'indicazione dell'email da usare |
+| C5 | Digita il codice fiscale mettendo **cognome e nome invertiti** | **Rifiutato** (dal 2026-09-01, script `565`): «Nome e cognome sembrano invertiti: il codice corrisponde leggendo X come cognome e Y come nome. **Scambia i due campi prima di proseguire**». Non c'è più nessuna conferma da accettare, e nessuno scambio automatico da attendersi |
+| C6 | **Scambia davvero** i due campi come dice il messaggio | Il salvataggio va a buon fine. ⚠️ Fino al 2026-08-31 questa prova chiedeva di *confermare* l'incongruenza e salvarla: non è più possibile, per nessuna via |
+| C7 | Usa il codice fiscale di una persona **già iscritta** | Bloccato con «Questo codice fiscale risulta già registrato». ⚠️ Il messaggio **non dice più di chi sia** (`566`, `569`): verifica che il sito continui a indicare da sé **l'email con cui riprendere** l'iscrizione, perché quell'indicazione è sua e non del database |
 | C8 | Verifica quanto restano a video i messaggi | Errori e avvisi restano **8 secondi**, non un lampo |
 | C9 | Ripeti C1, C3 e C5 **su un passeggero** (Step 3) | Stessi comportamenti: un passeggero non è un cliente di serie B |
+| C10 | ⭐ Iscrivi un **passeggero** lasciando vuoti i dati del documento | **Rifiutato** (`563`): i documenti servono a ogni occupante della stanza, per legge, e il sito oggi al passeggero non chiede niente. Guarda **come** arriva il rifiuto: leggibile? dice quali campi? |
+| C11 | Prosegui con un **cliente già riconosciuto** la cui scheda è incompleta, senza premere «Modifica Anagrafica» | **Rifiutato** all'iscrizione. È il caso che il sito non guarda affatto: `triggerValidation()` esce subito con `isValid: true` |
+| C12 | Spunta il consenso lasciando **vuota l'email** | Rifiutato (`568`). Sul sito l'email è la chiave d'ingresso, quindi potrebbe non essere raggiungibile: se non riesci a produrre il caso, annotalo e passa oltre |
 
 ---
 
@@ -138,7 +165,7 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| D1 | Iscrivi come **pilota** una persona senza email | Rifiutato, con il nome di chi correggere |
+| D1 | Iscrivi come **pilota** una persona senza email | Rifiutato, con il nome di chi correggere. ⚠️ Qui il nome **resta** di proposito: è la persona che stai iscrivendo tu, non un estraneo, e senza quel nome non sapresti di chi si parla iscrivendone più d'uno |
 | D2 | Iscrivi la stessa persona come **accompagnatore** | Consentito |
 | D3 | Tipo partecipante che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato |
 | D4 | Iscriviti a un viaggio **a cui sei già iscritto** | Rifiutato. ⚠️ Prima il sito non lo controllava affatto |
