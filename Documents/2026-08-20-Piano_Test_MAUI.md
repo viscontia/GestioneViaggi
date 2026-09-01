@@ -227,10 +227,25 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 
 ## Pulizia finale
 
+Il prefisso `ZZ` non basta: alcune prove — l'omonimia di D4, per dire — impongono di usare il
+cognome di una scheda esistente, e altre volte capita di inventare un nome sul momento. La data di
+creazione invece non si dimentica:
+
 ```sql
-SELECT cliente_id, cliente_cognome, cliente_nome FROM ana_clienti WHERE cliente_cognome LIKE 'ZZ%';
--- e le eventuali iscrizioni collegate, prima di cancellarli
+-- Tutto cio' che e' nato durante le prove, comunque si chiami
+SELECT cliente_id, cliente_cognome, cliente_nome, created
+FROM ana_clienti
+WHERE created >= DATE '2026-08-31'      -- il giorno in cui sono cominciate
+ORDER BY cliente_id;
+
+-- Chi ha iscrizioni collegate va sciolto prima, o la cancellazione viene rifiutata
+SELECT v.cliente_id_fk, COUNT(*)
+FROM mov_clienti_viaggi v
+WHERE v.cliente_id_fk IN (SELECT cliente_id FROM ana_clienti WHERE created >= DATE '2026-08-31')
+GROUP BY 1;
 ```
+
+⚠️ Da eseguire **sul DB locale di prova**, mai su PROD.
 
 ---
 
