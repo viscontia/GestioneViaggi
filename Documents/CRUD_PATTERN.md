@@ -1262,3 +1262,24 @@ try {
 }
 ```
 Questo è spesso l'unico modo per vedere lo StackTrace di un crash di rendering o di avvio.
+
+---
+
+## Una lista di campi sola (2026-09-01)
+
+Se una griglia deve **cercare** e non solo elencare, la ricerca va aggiunta come **parametro alla
+funzione che già legge la lista**, non messa in una funzione a parte.
+
+Il motivo non è l'eleganza. Il 2026-09-01 la ricerca dei clienti è stata collegata a
+`fn_search_clienti`, che restituiva **sedici campi in meno** di `fn_get_all_clienti`: i cinque del
+documento, gli identificativi dei comuni, IBAN, note. Chi apriva un cliente trovato cercando
+riceveva una scheda mutilata, e **salvandola quei campi sarebbero stati azzerati** — silenziosamente,
+perché una colonna che manca non dà errore: dà `null`, e `null` salvato cancella.
+
+Due funzioni che leggono la stessa entità sono due liste di campi da tenere allineate, e la prossima
+colonna nuova finirà in una sola delle due. Il rimedio non è aggiungere i campi mancanti alla
+seconda: è non avere una seconda funzione.
+
+> **Verifica rapida quando si tocca una lettura:** confrontare le colonne che la funzione restituisce
+> con quelle che il mapper C# legge (o con quelle della tabella, se il dialogo di modifica riceve
+> l'entità dalla griglia e la risalva).
