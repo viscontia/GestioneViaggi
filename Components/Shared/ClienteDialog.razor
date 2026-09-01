@@ -248,12 +248,12 @@
                                     <MudCheckBox @bind-Value="_consenso"
                                                  Label="Consenso newsletter/marketing"
                                                  Color="Color.Primary"
-                                                 Disabled="@(!_consenso && string.IsNullOrWhiteSpace(Entity.Email))"
+                                                 Disabled="@(!_consenso && !EmailUtilizzabile)"
                                                  Class="mt-3" />
-                                    @if (!_consenso && string.IsNullOrWhiteSpace(Entity.Email))
+                                    @if (!_consenso && !EmailUtilizzabile)
                                     {
                                         <MudText Typo="Typo.caption" Class="d-block mud-text-secondary" Style="margin-left:12px;">
-                                            Serve prima un indirizzo email.
+                                            Serve prima un indirizzo email valido.
                                         </MudText>
                                     }
                                     @if (_consensoData.HasValue)

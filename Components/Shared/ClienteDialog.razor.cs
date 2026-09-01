@@ -421,6 +421,15 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         StateHasChanged();
     }
 
+    /// <summary>
+    /// C'e' un indirizzo, ed e' scritto bene. Non basta che ci sia: un consenso dato su
+    /// un'email malformata non e' un consenso, e' una riga che al primo invio risultera'
+    /// irraggiungibile. Prima si guardava solo se il campo fosse pieno, quindi «pippo@»
+    /// bastava ad accendere la spunta.
+    /// </summary>
+    private bool EmailUtilizzabile =>
+        !string.IsNullOrWhiteSpace(Entity.Email) && _emailField?.Error != true;
+
     /// <summary>Sesso a video: vuoto finche' non c'e' un titolo, perche' prima non e' un dato ma un default.</summary>
     private string SessoDescrizione =>
         Entity.TitoloFk == 0 ? string.Empty : (Entity.Sesso == 'F' ? "F — Femminile" : "M — Maschile");
