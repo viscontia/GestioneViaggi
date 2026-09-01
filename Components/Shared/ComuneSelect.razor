@@ -2,12 +2,17 @@
 @using GestioneViaggi.Services.CRUD
 @inject ComuneService ComuneService
 
-<BaseEntitySelect TItem="Comune" Value="_selectedComune" ValueChanged="OnComuneChanged" SearchFunc="SearchComuni"
+<BaseEntitySelect @ref="_campo" TItem="Comune" Value="_selectedComune" ValueChanged="OnComuneChanged" SearchFunc="SearchComuni"
     ToStringFunc="@(c => c?.Nome?.ToUpperInvariant() ?? string.Empty)" Label="@Label" Required="@Required"
     RequiredError="@RequiredError" Disabled="@Disabled" AutoFocus="@AutoFocus" HelperText="@HelperText"
     Class="@($"{Class} uppercase-input")" Validation="@Validation" AdditionalAttributes="@AdditionalAttributes" />
 
 @code {
+    private BaseEntitySelect<Comune>? _campo;
+
+    /// <summary>Porta il fuoco sul campo, per chi apre la scheda su questa tendina.</summary>
+    public ValueTask FocusAsync() => _campo?.FocusAsync() ?? ValueTask.CompletedTask;
+
     private List<Comune> _allComuni = new();
     private Comune? _selectedComune;
     private bool _loaded = false;

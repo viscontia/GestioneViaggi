@@ -223,6 +223,8 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 | H5 | Invia una **newsletter di prova** | Destinatari e telefoni come prima (il prefisso ha ancora lo spazio: `+39 333…`) |
 | H6 | Tabelle → **Titoli persone**: elenco, inserimento, modifica, cancellazione | Funzionano. Cancellare un titolo **in uso** è impedito |
 | H7 | Tabulazione e focus nelle form toccate (cliente, newsletter) | Il focus parte dal primo campo, il TAB segue l'ordine |
+| H7b | Scegli il **titolo** dalla tendina | Il cursore va **da solo** sul Cognome |
+| H7c | Clicca sulle schede **Residenza & Contatti**, **Documenti**, **Altro** | Il cursore si posiziona ogni volta sul primo campo in alto a sinistra: Comune di Residenza, Tipo Documento, Intolleranze. L'intera scheda si compila senza toccare il mouse |
 
 ---
 

@@ -37,6 +37,14 @@
         await ValueChanged.InvokeAsync(value);
     }
 
+    /// <summary>
+    /// Porta il fuoco su questo campo. Serve a chi lo contiene: un dialogo che apre una
+    /// scheda vuole mettere il cursore sul primo campo, e senza questo metodo l'unico
+    /// modo era chiedere all'utente di cliccarci.
+    /// </summary>
+    public ValueTask FocusAsync()
+        => _autocompleteRef is null ? ValueTask.CompletedTask : _autocompleteRef.FocusAsync();
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && AutoFocus && _autocompleteRef != null)

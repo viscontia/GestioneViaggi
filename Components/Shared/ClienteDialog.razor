@@ -182,7 +182,7 @@
                                 <MudItem xs="12" sm="6">
                                     <MudGrid Spacing="1">
                                         <MudItem xs="12">
-                                            <ComuneSelect @bind-SelectedComuneId="ComuneResidenzaIdProxy"
+                                            <ComuneSelect @ref="_comuneResidenzaField" @bind-SelectedComuneId="ComuneResidenzaIdProxy"
                                             @bind-SelectedComune="Entity.ComuneResidenza" Label="Comune di Residenza" Required="true"
                                                 RequiredError="Obbligatorio" Items="@_initData.Comuni" />
                                         </MudItem>

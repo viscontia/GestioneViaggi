@@ -78,6 +78,11 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 Gran parte dei componenti di selezione (Dropdown) sono stati migrati per utilizzare internamente `MudAutocomplete` tramite un componente base comune.
 
 ### BaseEntitySelect
+
+> **`FocusAsync()`** (dal 2026-09-01). Il componente sa portare il fuoco su di sé, e lo espone
+> anche `ComuneSelect`, che lo inoltra. Serve a chi lo contiene: una scheda che si apre su una
+> tendina — il Comune di Residenza aprendo la scheda «Residenza & Contatti» — deve poterci mettere
+> il cursore da sola, senza chiedere all'utente di cliccarci.
 Componente base generico (`Components/Shared/BaseEntitySelect.razor`) che incapsula la logica di `MudAutocomplete`.
 *   **Funzionalità**:
     *   **Ricerca**: Permette di filtrare gli elementi digitando nel campo.

@@ -45,6 +45,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     private MudForm? _form;
     private TitoloPersonaSelect? _titoloField;
+    private ComuneSelect? _comuneResidenzaField;
     private MudTextField<string>? _cognomeField, _nomeField;
     private MudDatePicker? _dataNascitaField;
     
@@ -385,6 +386,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         if (titolo is not null) Entity.Sesso = titolo.Sesso;
         await AggiornaAvvisoNomeSesso();
+
+        // Scelto il titolo non c'e' piu' niente da fare li': il campo dopo e' il cognome,
+        // e chi compila a tastiera non deve prendere il mouse per arrivarci.
+        if (titolo is not null && _cognomeField is not null)
+            await _cognomeField.FocusAsync();
         // Il sesso e' una lettera del codice fiscale: cambiando il titolo, la verifica va rifatta.
         if (!string.IsNullOrWhiteSpace(Entity.CodiceFiscale)) await ControllaAlVolo("cf");
     }
@@ -527,6 +533,28 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         {
             await Task.Delay(200); // Dai tempo al render
             await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation", ".mud-dialog-content", true);
+        }
+        catch { }
+
+        await FuocoSulPrimoCampo(index);
+    }
+
+    /// <summary>
+    /// Il primo campo della scheda appena aperta, senza doverci cliccare sopra.
+    /// L'ordine e' quello che si legge — in alto a sinistra — non quello dei riferimenti
+    /// nel codice: chi compila a tastiera si aspetta di ripartire da dove guarda.
+    /// </summary>
+    private async Task FuocoSulPrimoCampo(int index)
+    {
+        try
+        {
+            switch (index)
+            {
+                case 0: if (_titoloField is not null) await _titoloField.FocusAsync(); break;
+                case 1: if (_comuneResidenzaField is not null) await _comuneResidenzaField.FocusAsync(); break;
+                case 2: if (_tipoDocField is not null) await _tipoDocField.FocusAsync(); break;
+                case 3: if (_intolleranzaField is not null) await _intolleranzaField.FocusAsync(); break;
+            }
         }
         catch { }
     }
