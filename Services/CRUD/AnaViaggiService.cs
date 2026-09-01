@@ -65,12 +65,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         return result;
     }
 
-    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null, bool? futureOnly = null)
+    /// <param name="searchText">
+    /// Testo cercato, oppure null per l'elenco intero. Cercare qui e non filtrare la lista
+    /// gia' letta e' cio' che permette di trovare un viaggio inserito poco fa da un collega:
+    /// in ufficio il gestionale lo usano piu' persone insieme.
+    /// </param>
+    public async Task<List<AnaViaggi>> GetAllAsync(int? aziendaId = null, int? filterYear = null, bool? onlyCompleted = null, bool? futureOnly = null, string? searchText = null)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_ana_viaggi_get_all(@aziendaId, @filterYear, @onlyCompleted, @futureOnly)";
+            var sql = "SELECT * FROM fn_ana_viaggi_get_all(@aziendaId, @filterYear, @onlyCompleted, @futureOnly, @searchText::VARCHAR)";
 
             await using var command = new NpgsqlCommand(sql, connection);
             command.Parameters.Add(new NpgsqlParameter("aziendaId", NpgsqlDbType.Integer)
@@ -91,6 +96,11 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
             command.Parameters.Add(new NpgsqlParameter("futureOnly", NpgsqlDbType.Boolean)
             {
                 Value = (object?)futureOnly ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("searchText", NpgsqlDbType.Varchar)
+            {
+                Value = string.IsNullOrWhiteSpace(searchText) ? DBNull.Value : searchText.Trim(),
                 IsNullable = true
             });
 

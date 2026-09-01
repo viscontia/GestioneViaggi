@@ -85,8 +85,8 @@
                 <!-- RIGHT PANEL: DATA GRID (70%) -->
                 <MudItem xs="12" md="8" lg="9">
                     <MudPaper Elevation="3" Class="pa-4">
-                        <EnterpriseDataGrid T="AnaViaggiEntity" OnRefresh="@LoadDataAsync" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
-                                            SearchFunction="@Search">
+                        <EnterpriseDataGrid T="AnaViaggiEntity" OnSearch="@CercaAsync" OnRefresh="@LoadDataAsync" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
+                                           >
 
                             <ToolBarActions>
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
@@ -303,6 +303,20 @@
 
     private string GetNodeKey(ViaggiTreeItem item) => $"{item.Type}_{item.Title}_{item.RelatedId}";
 
+    /// <summary>Il testo cercato. Vuoto = elenco completo.</summary>
+    private string _ricerca = string.Empty;
+
+    /// <summary>
+    /// La ricerca la fa il database, non un filtro sulla lista gia' letta: in ufficio piu'
+    /// persone inseriscono viaggi nello stesso momento, e cio' che ha appena scritto un
+    /// collega in quella lista non c'e'.
+    /// </summary>
+    private async Task CercaAsync(string testo)
+    {
+        _ricerca = testo ?? string.Empty;
+        await LoadDataAsync();
+    }
+
     private async Task LoadDataAsync()
     {
         _isLoading = true;
@@ -322,7 +336,7 @@
             bool? onlyCompleted = QueryFilter == "completed" ? true : (QueryFilter == "not_done" ? false : null);
             bool? futureOnly = QueryFilter == "future" ? true : null;
 
-            _allItems = await ViaggiService.GetAllAsync(filterAziendaId, QueryYear, onlyCompleted, futureOnly);
+            _allItems = await ViaggiService.GetAllAsync(filterAziendaId, QueryYear, onlyCompleted, futureOnly, _ricerca);
             
             // Filter is now handled by SQL.
             // _allItems contains only visible records.
@@ -520,15 +534,8 @@
     }
 
 
-    private bool Search(AnaViaggiEntity item, string searchString)
-    {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (item.DescrizioneBreve?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.NazioneNome?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.TipoViaggioDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.TipoTrattamentoDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        return false;
-    }
+    // Il filtro in memoria e' stato tolto: cerca fn_ana_viaggi_get_all, sugli stessi campi
+    // (descrizione, nazione, tipo di viaggio, trattamento).
 
     private async Task OnTreeSelectionChanged(ViaggiTreeItem item)
     {
