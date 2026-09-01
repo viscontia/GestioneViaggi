@@ -44,7 +44,7 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Cliente" Items="@_filteredItems" Title="Gestione Anagrafica Clienti" Loading="@_loading" SearchFunction="@Search"
+    <EnterpriseDataGrid T="Cliente" Items="@_filteredItems" Title="Gestione Anagrafica Clienti" Loading="@_loading" SearchFunction="@Search" OnRefresh="@LoadDataAsync"
     @bind-SelectedItem="_selectedItem">
 
     <ToolBarActions>

@@ -1,4 +1,5 @@
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
 
 @if (!string.IsNullOrWhiteSpace(Title))
 {
@@ -17,7 +18,21 @@
               Class="mt-0 mr-4 search-field"
               Immediate="true"
               Clearable="true"
+              OnKeyDown="@AlTasto"
               AutoFocus="true" />
+@* La casella filtra cio' che e' gia' stato letto: se un altro software ha scritto
+   nel frattempo — il sito di iscrizione scrive negli stessi clienti — quel dato non
+   c'e' e nessuna ricerca puo' trovarlo. Questo pulsante e' il modo di dire "rileggi",
+   e lo stesso fa il tasto Invio nella casella. *@
+@if (OnRefresh.HasDelegate)
+{
+    <MudTooltip Text="Rileggi i dati aggiornati (Invio)">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                       Color="Color.Primary"
+                       Class="mr-2"
+                       OnClick="@(() => OnRefresh.InvokeAsync())" />
+    </MudTooltip>
+}
 @ChildContent
 
 @code {
@@ -26,12 +41,21 @@
     [Parameter] public EventCallback<string> SearchStringChanged { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>Rilegge i dati dalla sorgente. Se nessuno lo gestisce, il pulsante non compare.</summary>
+    [Parameter] public EventCallback OnRefresh { get; set; }
+
     private MudTextField<string>? _searchField;
 
     private string? _lastSearchString;
     private string? _lastTitle;
     private bool _shouldRender = true;
     private bool _hasFocused = false;
+
+    private async Task AlTasto(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or "NumpadEnter" && OnRefresh.HasDelegate)
+            await OnRefresh.InvokeAsync();
+    }
 
     protected override void OnParametersSet()
     {

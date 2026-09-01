@@ -16,6 +16,13 @@ namespace GestioneViaggi.Components.Shared
         [Parameter] public Func<T, string, bool>? SearchFunction { get; set; }
         [Parameter] public RenderFragment? ToolBarActions { get; set; }
 
+        /// <summary>
+        /// Rilegge i dati dalla sorgente. La griglia filtra sempre e solo cio' che ha in
+        /// memoria: quando la stessa tabella la scrive anche un altro software, serve un
+        /// modo esplicito per riprendere. Se non lo si passa, il pulsante non compare.
+        /// </summary>
+        [Parameter] public EventCallback OnRefresh { get; set; }
+
         public EnterpriseDataGrid()
         {
             // Default Enterprise settings - CONFIGURAZIONE CORRETTA PER CSS
@@ -69,6 +76,7 @@ namespace GestioneViaggi.Components.Shared
                 _searchString = s;
             }));
             builder.AddAttribute(4, nameof(EnterpriseGridToolbar.ChildContent), ToolBarActions);
+            builder.AddAttribute(5, nameof(EnterpriseGridToolbar.OnRefresh), OnRefresh);
             builder.CloseComponent();
         }
 

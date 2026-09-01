@@ -28,6 +28,14 @@ Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoD
 *   **Avvisa** che foto e mappe della copia restano **gli stessi file** dell'originale: eliminandoli dalla partenza di origine spariscono anche dalla copia.
 
 ### EnterpriseDataGrid
+
+> **`OnRefresh`** (dal 2026-09-01). Se lo si passa, nella toolbar compare un pulsante di rilettura e
+> il tasto **Invio** nella casella di ricerca fa la stessa cosa. Serve perché la casella **non
+> cerca: filtra** ciò che la pagina ha già in memoria — quindi un record scritto nel frattempo da
+> un altro software non può essere trovato da nessuna ricerca, per quante volte la si ripeta.
+> Con il sito di iscrizione che scrive negli stessi clienti, l'anagrafica non ha più un solo autore
+> e la fotografia va potuta riprendere. Chi non lo passa non vede il pulsante: le griglie di sole
+> tabelle di servizio non ne hanno bisogno.
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
     *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.
