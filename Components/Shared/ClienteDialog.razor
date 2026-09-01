@@ -235,10 +235,20 @@
                                     </MudSelect>
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
+                                    @* Senza un indirizzo non c'e' niente a cui inviare: la spunta si
+                                       accende solo quando l'email c'e'. Resta pero' sempre possibile
+                                       SPEGNERLA, anche senza email: una revoca non si nega mai. *@
                                     <MudCheckBox @bind-Value="_consenso"
                                                  Label="Consenso newsletter/marketing"
                                                  Color="Color.Primary"
+                                                 Disabled="@(!_consenso && string.IsNullOrWhiteSpace(Entity.Email))"
                                                  Class="mt-3" />
+                                    @if (!_consenso && string.IsNullOrWhiteSpace(Entity.Email))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="d-block mud-text-secondary" Style="margin-left:12px;">
+                                            Serve prima un indirizzo email.
+                                        </MudText>
+                                    }
                                     @if (_consensoData.HasValue)
                                     {
                                         <MudText Typo="Typo.caption" Class="d-block mud-text-secondary" Style="margin-left:12px;">

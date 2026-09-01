@@ -35,6 +35,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     /// <summary>Consenso marketing (side-field, Blocco 11-B): è il flag che filtra i destinatari newsletter.</summary>
     private bool _consenso;
+    /// <summary>Com'era il consenso all'apertura: distingue «acceso adesso» da «era gia' acceso».</summary>
+    private bool _consensoIniziale;
     /// <summary>Data e provenienza dell'ultimo cambio di consenso, mostrate in sola lettura.</summary>
     private DateTime? _consensoData;
     private string? _consensoFonte;
@@ -142,6 +144,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         ["MANCA_DOC_ENTE"] = "docente",
         ["MANCA_DOC_RILASCIO"] = "rilascio",
         ["MANCA_DOC_SCADENZA"] = "scadenza",
+        ["CONSENSO_SENZA_EMAIL"] = "email",
     };
 
     private static string? Chiave(DateTime? data) => data?.ToString("yyyy-MM-dd");
@@ -490,6 +493,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
                 var consenso = await ClienteConsensoService.GetAsync(Entity.ClienteId);
                 _consenso = consenso.Consenso;
+                _consensoIniziale = consenso.Consenso;
                 _consensoData = consenso.Data;
                 _consensoFonte = consenso.Fonte;
             }
@@ -559,8 +563,14 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             // l'anagrafica nasce, altrimenti la data che lo dimostra non e' quella.
             Entity.Lingua = string.IsNullOrWhiteSpace(_lingua) ? "IT" : _lingua!.Trim().ToUpperInvariant();
             Entity.Consenso = _consenso;
-            if (_consenso && !string.IsNullOrWhiteSpace(_consensoFonte))
-                Entity.ConsensoFonte = _consensoFonte;
+            // La fonte dice DOVE il consenso e' stato raccolto, ed e' meta' della prova:
+            // senza, resta un flag acceso da chissa' chi. Un consenso dato qui adesso
+            // porta il nome di questa porta; uno che c'era gia' conserva la sua origine,
+            // che e' quella vera e non va riscritta a ogni salvataggio.
+            if (_consenso)
+                Entity.ConsensoFonte = _consensoIniziale && !string.IsNullOrWhiteSpace(_consensoFonte)
+                    ? _consensoFonte
+                    : "GESTIONALE";
 
             // ValidaSuiCampiAsync rivalida gia' la form dopo aver riportato gli esiti:
             // rifarlo qui vorrebbe dire validare due volte lo stesso stato.
