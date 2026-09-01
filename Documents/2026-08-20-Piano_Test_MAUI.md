@@ -3,7 +3,7 @@
 **Aggiornato:** 2026-08-21
 **Ambiente:** DB locale Docker (`gestione_viaggi`), script `538`–`562` applicati
 **Chi lo esegue:** Adriano — richiede l'app in esecuzione, non è automatizzabile da CLI
-**Esito:** eseguito integralmente il **2026-08-31 / 2026-09-01**, tutti i gruppi passati. I difetti emersi durante l'esecuzione — dieci — sono documentati nelle Note di Rilascio 2.0 (punti 11–20); le prove che il piano descriveva in modo sbagliato sono state corrette qui (A3, B4, B5, B8, C2, C3, C4, D1, D2, D3, D4, H1)
+**Esito:** eseguito integralmente il **2026-08-31 / 2026-09-01**, tutti i gruppi passati, comprese le undici prove nate durante l'esecuzione (A4b, B12, B13, C1b, F1b–F1d, G12, G13, H1b, H7b, H7c). I difetti emersi durante l'esecuzione — dieci — sono documentati nelle Note di Rilascio 2.0 (punti 11–20); le prove che il piano descriveva in modo sbagliato sono state corrette qui (A3, B4, B5, B8, C2, C3, C4, D1, D2, D3, D4, H1)
 
 ---
 
