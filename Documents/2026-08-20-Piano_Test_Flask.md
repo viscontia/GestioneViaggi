@@ -27,26 +27,15 @@ nella logica.
 
 ---
 
-## 🔴 L'inserimento di una nuova anagrafica va in errore — **ma solo su PROD**
+## 🔴 Da riprodurre per primo: l'inserimento di una nuova anagrafica va in errore
 
-Segnalato il **2026-08-31**. Verificato il **2026-09-01**: in locale, sul ramo
-`feature/controlli-centralizzati` con il DB Docker, **l'inserimento funziona** (nuovo passeggero
-creato e ritrovato a database). Quindi non è un difetto del codice del sito: è qualcosa che esiste
-**solo in produzione**.
+Segnalato da Adriano il **2026-08-31**, mentre collaudava il gestionale: sul sito, oggi,
+**creare una nuova anagrafica finisce in errore**. Non è stato diagnosticato — nessuno è ancora
+entrato nei test del sito — e va riprodotto prima di eseguire qualunque prova di questo piano:
+se l'inserimento non funziona, i gruppi A, B, C e D non sono nemmeno eseguibili.
 
-**L'ipotesi da verificare per prima** è già scritta nella Checklist Go-Live (§1, nota sullo stato di
-PROD): su PROD sono state applicate le funzioni `543`→`555` **ma non** gli script `538`–`542`.
-Il database di produzione ha quindi **23 funzioni nuove senza lo schema che presuppongono** —
-mancano `ana_titolo_persone` e `ana_clienti.cliente_titolo_fk`. Se il sito in produzione chiama
-anche una sola di quelle funzioni, fallisce lì e soltanto lì.
-
-Da raccogliere sul server di produzione: il messaggio a video, la risposta dell'endpoint nella
-console di rete e la riga nel log di Flask. **L'errore atteso in questo scenario nomina un oggetto
-mancante** (`relation "ana_titolo_persone" does not exist`, o una colonna sconosciuta): se è così,
-l'ipotesi è confermata e la cura è il go-live stesso, che applica gli script in ordine.
-
-⚠️ Non applicare `538`–`542` a PROD da soli per "sistemare": la regola della checklist è che a PROD
-non si applica nulla fuori dalla sequenza.
+Da raccogliere alla riproduzione: il messaggio a video, la risposta di `/api/cliente/salva`
+(o dell'endpoint effettivo) nella console di rete, e la riga corrispondente nel log di Flask.
 
 ---
 
@@ -136,18 +125,6 @@ e senza lo script: `~/.zshrc` non viene letto in quel caso. Usa `./avvia-locale.
 È il punto che ha motivato tutta la revisione: il consenso **non è recuperabile con un backfill**,
 o si raccoglie alla fonte o è perso.
 
-> 🔴 **Verificato il 2026-09-01: questo gruppo non è ancora eseguibile.** Nel modulo del sito **la
-> spunta del consenso non esiste**: l'interfaccia non è mai stata modificata. Il *backend* invece è
-> già pronto — il 2026-08-20, chiamando l'API, il consenso si salvava con data e fonte
-> `SITO_ISCRIZIONE` — quindi ciò che manca è solo il campo a video e il suo invio.
->
-> Le prove da B1 a B9 restano scritte come sono perché descrivono **come dovrà comportarsi** una
-> volta fatto: sono la specifica, non il collaudo. Da rieseguire tutte dopo l'intervento.
->
-> È il §2.8.1 della Checklist Go-Live, e resta il **prerequisito più pesante** del rilascio: ogni
-> iscrizione raccolta senza quella spunta è un indirizzo che non si potrà mai usare per la
-> newsletter, e nessuno script potrà rimediare dopo.
-
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
 | B1 | Guarda il modulo anagrafico | C'è una spunta per il consenso all'invio di comunicazioni |
@@ -169,7 +146,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| C1 | Titolo **SIG.**, nome **FRANCESCA**, prosegui | Compare l'avviso giallo nome/sesso, e **si può andare avanti** |
+| C1 | Titolo **SIG.**, nome **FRANCESCA**, **scheda completa**, prosegui | Compare l'avviso giallo nome/sesso, e **si può andare avanti** |
+| C1b | Lo stesso, ma con la **scheda incompleta** (solo titolo e nome) | Compaiono **sia** l'avviso giallo **sia** l'elenco dei dati mancanti — in **un solo** messaggio, non nove sovrapposti. ⚠️ Corretto il 2026-09-01: gli avvisi venivano scartati appena c'era un errore, e da quando i documenti sono obbligatori una scheda in compilazione un errore ce l'ha quasi sempre. L'avviso nome/sesso era quindi diventato invisibile |
 | C2 | Titolo **SIG.**, nome **ANDREA** | Nessun avviso |
 | C3 | Inserisci un'**email scritta male** e salva | Messaggio rosso leggibile in italiano. **Non** deve comparire «Esiste già una anagrafica con questo Codice Fiscale», né testo tipo `CONTEXT: PL/pgSQL function…` |
 | C4 | Inserisci un **cognome di un carattere** | «Il cognome deve avere almeno 2 caratteri.» |
@@ -265,4 +243,3 @@ ed è il tipo di cosa che si perde se resta in una conversazione.
 - **`Step2Content copy.jsx`**: file morto, non collegato a nulla. Non è stato toccato — va
   eliminato, ma è una decisione separata.
 - **Il ricalcolo dei prezzi e la parte pagamenti**, estranei a questo lavoro.
-ok 
