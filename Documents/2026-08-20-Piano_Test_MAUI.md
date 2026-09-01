@@ -3,6 +3,7 @@
 **Aggiornato:** 2026-08-21
 **Ambiente:** DB locale Docker (`gestione_viaggi`), script `538`–`562` applicati
 **Chi lo esegue:** Adriano — richiede l'app in esecuzione, non è automatizzabile da CLI
+**Esito:** eseguito integralmente il **2026-08-31 / 2026-09-01**, tutti i gruppi passati. I difetti emersi durante l'esecuzione — dieci — sono documentati nelle Note di Rilascio 2.0 (punti 11–20); le prove che il piano descriveva in modo sbagliato sono state corrette qui (A3, B4, B5, B8, C2, C3, C4, D1, D2, D3, D4, H1)
 
 ---
 
@@ -225,6 +226,19 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 | H7 | Tabulazione e focus nelle form toccate (cliente, newsletter) | Il focus parte dal primo campo, il TAB segue l'ordine |
 | H7b | Scegli il **titolo** dalla tendina | Il cursore va **da solo** sul Cognome |
 | H7c | Clicca sulle schede **Residenza & Contatti**, **Documenti**, **Altro** | Il cursore si posiziona ogni volta sul primo campo in alto a sinistra: Comune di Residenza, Tipo Documento, Intolleranze. L'intera scheda si compila senza toccare il mouse |
+
+---
+
+## Un difetto rimasto senza spiegazione
+
+Durante le prove il **Comune di Residenza** è andato in errore due volte pur essendo compilato, e
+sempre in presenza di altri errori nella scheda. Non si è più ripresentato dal commit `0f794f9`
+(che ha tolto una doppia validazione della form nel salvataggio), e una traccia lasciata in ascolto
+per due ore di prove non ha registrato nemmeno un'anomalia.
+
+Non è dichiarato risolto, perché **non è stato capito**: una correzione che non si sa spiegare non è
+una diagnosi. Se ricompare, la traccia da rimettere è in `ComuneSelect` (vedi commit `c5031d8`),
+e registra gli azzeramenti del valore e i disallineamenti fra identificativo e oggetto.
 
 ---
 

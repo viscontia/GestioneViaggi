@@ -92,15 +92,6 @@
             _allComuni = Items;
             _loaded = true;
         }
-        // Si registra solo cio' che non torna: il render normale passa di qui quattro o
-        // cinque volte per ogni tasto, e scrivere ogni volta cambierebbe i tempi di cio'
-        // che si sta cercando di osservare.
-        if (SelectedComuneId.HasValue && SelectedComune is null)
-            Traccia($"INCOERENTE: id={SelectedComuneId} ma oggetto NULL " +
-                    $"(_selectedComune={(_selectedComune is null ? "NULL" : _selectedComune.Nome)}, caricati={_allComuni.Count})");
-        else if (SelectedComune is not null && _selectedComune is null)
-            Traccia($"INCOERENTE: oggetto={SelectedComune.Nome} ma _selectedComune NULL");
-
         SyncSelectedComune();
     }
 
@@ -137,9 +128,6 @@
         }
         else
         {
-            if (_selectedComune is not null)
-                Traccia($"AZZERATO da SyncSelectedComune (era {_selectedComune.Nome}/{_selectedComune.Id}); " +
-                        $"SelectedComune=null SelectedComuneId=null");
             _selectedComune = null;
         }
     }
@@ -161,21 +149,9 @@
 
     private async Task OnComuneChanged(Comune? comune)
     {
-        Traccia($"OnComuneChanged ricevuto={(comune is null ? "NULL" : comune.Nome + "/" + comune.Id)}");
         _selectedComune = comune;
         await SelectedComuneIdChanged.InvokeAsync(comune?.Id);
         await SelectedComuneChanged.InvokeAsync(comune);
-    }
-
-    // TEMPORANEA (2026-08-31): perche' il comune risulta vuoto pur essendo scelto.
-    private void Traccia(string testo)
-    {
-        try
-        {
-            System.IO.File.AppendAllText("/tmp/gv_comune.log",
-                $"{DateTime.Now:HH:mm:ss.fff} [{Label}] {testo}\n");
-        }
-        catch { }
     }
 
     private async Task<IEnumerable<Comune>> SearchComuni(string searchText, CancellationToken cancellationToken)
