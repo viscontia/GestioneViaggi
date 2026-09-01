@@ -123,11 +123,11 @@ tutto quello che c'era ieri.
 
 | # | Da dove parti | Cosa fai | Cosa deve succedere |
 |---|---|---|---|
-| D1 | Nuovo cliente | Usa il CF di un cliente esistente su un'altra anagrafica | Rifiutato, e dice **chi** ce l'ha già |
+| D1 | Nuovo cliente | Usa il CF di un cliente esistente su un'altra anagrafica | Rifiutato. **Non** dice di chi sia (deciso il 2026-09-01): chi digita un codice a caso non deve poter scoprire il nome di un cliente altrui. Dice invece come trovarla, quella scheda — cercandola per codice fiscale |
 | D2 | Nuovo cliente | Stessi cognome, nome, **data e comune di nascita** di un esistente, **senza** CF | Rifiutato: esiste già un cliente con questi dati |
 | D3 | Nuovo cliente | Solo **cognome e nome** uguali a un esistente, data diversa | **Avviso**, non blocco: gli omonimi esistono davvero |
 | D4 | ⭐ **Il caso che prima era cieco** | Come D3, ma **senza codice fiscale e senza data di nascita** | **Avviso lo stesso.** Il vecchio controllo qui non vedeva nulla: girava solo sulle schede complete, cioè era cieco sul 42% dei clienti |
-| D5 | Nuovo cliente | Email già usata da un altro cliente | **Avviso**, non blocco — condividere la casella è prassi legittima fra coniugi. ⚠️ Prima diceva «impossibile proseguire» |
+| D5 | Nuovo cliente | Email già usata da un altro cliente | **Avviso**, non blocco — condividere la casella è prassi legittima fra coniugi. Anche qui **senza il nome** dell'altro cliente. ⚠️ Prima diceva «impossibile proseguire» |
 | D6 | **Modifica** di un cliente esistente | Salva senza cambiare nulla | **Nessuna segnalazione**: non deve accusare sé stesso |
 | D7 | Utente di **un'altra azienda** | Crea un cliente col CF di un cliente dell'azienda 2 | **Nessun blocco**: i silos restano silos |
 

@@ -190,9 +190,15 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             return;
         }
 
+        // Piu' esiti possono riguardare lo stesso campo — sul codice fiscale, per dire,
+        // «gia' registrato» e «non corrisponde» arrivano insieme — e un campo puo'
+        // mostrare un messaggio solo: si tiene il primo, che e' il piu' grave nell'ordine
+        // in cui il database li emette. Raggruppare e non indicizzare: con ToDictionary
+        // la seconda segnalazione sullo stesso campo faceva saltare tutto.
         var attivi = esiti.Where(e => e.Blocca)
                           .Where(e => CampoPerEsito.TryGetValue(e.Esito, out var c) && campi.Contains(c))
-                          .ToDictionary(e => CampoPerEsito[e.Esito], e => e.Messaggio);
+                          .GroupBy(e => CampoPerEsito[e.Esito])
+                          .ToDictionary(g => g.Key, g => g.First().Messaggio);
 
         foreach (var campo in campi)
         {
@@ -205,7 +211,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         // Avvisi e richieste di conferma: si dicono subito, ma senza colorare nulla.
         var segnalati = esiti.Where(e => !e.Blocca && e.Gravita != "OK")
                              .Where(e => CampoPerEsito.TryGetValue(e.Esito, out var c) && campi.Contains(c))
-                             .ToDictionary(e => CampoPerEsito[e.Esito], e => e.Messaggio);
+                             .GroupBy(e => CampoPerEsito[e.Esito])
+                             .ToDictionary(g => g.Key, g => g.First().Messaggio);
 
         foreach (var campo in campi)
         {
