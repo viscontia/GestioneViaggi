@@ -604,6 +604,35 @@ consegnare evita che il primo giorno di uso sia una fila di rifiuti.
 > in un secondo momento, dopo il resto della sequenza — gli altri cinque script non dipendono da lui.
 > Quello che **non** si può fare è scoprirlo il lunedì mattina con il cliente al telefono.
 
+#### Misurato su PROD il 2026-09-01 (sola lettura): **si può applicare**
+
+| Partenza | Iscritti | Di cui incompleti |
+| :--- | ---: | ---: |
+| 18/10/2026 | 9 | **0** |
+| 22/10/2026 | 6 | **0** |
+| 29/10/2026 | 1 | **0** |
+| 31/10/2026 | 3 | **0** |
+| 04/12/2026 | 0 | — |
+
+Su **779** clienti in anagrafica ne mancano **575** di numero documento (74%), **580** dell'ente di
+rilascio, **34** della data di nascita e **67** dell'indirizzo. Ma sono **tutti storici**: chi
+viaggia da qui a dicembre ha la scheda a posto, e nessuna iscrizione reale verrebbe rifiutata.
+
+Il `563` si applica quindi **nella sequenza, senza rinvii**. Il sanamento dei 575 avverrà da sé,
+una scheda alla volta, quando qualcuno la riaprirà — che è esattamente il disegno.
+
+> 🔴 **Trovato misurando: la partenza `1588` ha anno `8202`** (19/01/8202 – 27/01/8202,
+> azienda 2) e **12 iscritti veri attaccati**. È il terzo refuso d'anno della stessa famiglia — il
+> `262` del bug 9 e la transazione 72 con `2202` — e stavolta è sfuggito perché il vincolo
+> `chk_data_viaggio_anno_plausibile` è nato **dopo** questo dato. Due conseguenze concrete:
+> risulta **futura per sempre**, quindi falsa ogni conteggio sulle partenze a venire (ha falsato
+> anche questa misura, che l'ha contata come imminente); e con le guardie del bug 8 **non è più
+> eliminabile** finché l'anno non viene corretto.
+>
+> Va corretta **prima** del go-live, e non con un `DELETE`: dodici iscrizioni dipendono da quella
+> riga. Serve capire di quale partenza si tratti davvero — probabilmente `2022`, da confrontare con
+> le date dei movimenti collegati — e riscrivere l'anno.
+
 ---
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
