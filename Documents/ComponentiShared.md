@@ -44,6 +44,12 @@ Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoD
 > in lista, chiedeva un gesto in più per chi era arrivato dopo — e distinguere i due casi
 > richiede all'utente di sapere quando un record è nato. Con `OnSearch` il comportamento è uno
 > solo: si cerca, e si trova.
+>
+> **Quale dei due usare.** `OnSearch` dove la lista è grande e la ricerca deve restare mirata
+> (i clienti, con `fn_search_clienti`). **Il solo `OnRefresh` basta per le liste piccole**: la
+> griglia rilegge e filtra da sé a ogni battuta, quindi il comportamento è identico senza dover
+> scrivere una funzione SQL per ogni tabella. Non serve nessuno dei due sulle tabelle di servizio
+> — comuni, province, tipi, valute — che durante il lavoro non cambia nessuno.
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
     *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.

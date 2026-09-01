@@ -24,7 +24,7 @@
 }
 else
 {
-    <EnterpriseDataGrid T="AnaControparte"
+    <EnterpriseDataGrid T="AnaControparte" OnRefresh="@LoadDataAsync"
                         Items="@_items"
                         Title="Gestione Anagrafica Controparti"
                         SearchFunction="@Search"

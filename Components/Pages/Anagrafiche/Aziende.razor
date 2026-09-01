@@ -39,7 +39,7 @@
 }
 else
 {
-    <EnterpriseDataGrid T="Azienda" 
+    <EnterpriseDataGrid T="Azienda" OnRefresh="@LoadDataAsync" 
                         Items="@_items" 
                         Title="Anagrafica Aziende" 
                         SearchFunction="@((x, s) => Search(x, s))"

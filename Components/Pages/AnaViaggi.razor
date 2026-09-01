@@ -85,7 +85,7 @@
                 <!-- RIGHT PANEL: DATA GRID (70%) -->
                 <MudItem xs="12" md="8" lg="9">
                     <MudPaper Elevation="3" Class="pa-4">
-                        <EnterpriseDataGrid T="AnaViaggiEntity" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
+                        <EnterpriseDataGrid T="AnaViaggiEntity" OnRefresh="@LoadDataAsync" Items="@_filteredItems" Filterable="true" Class="mt-4" Title="Elenco Viaggi"
                                             SearchFunction="@Search">
 
                             <ToolBarActions>

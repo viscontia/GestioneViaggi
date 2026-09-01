@@ -83,7 +83,7 @@
         </MudPaper>
 
 
-        <EnterpriseDataGrid T="MovTransazioni"
+        <EnterpriseDataGrid T="MovTransazioni" OnRefresh="@LoadDataAsync"
                             Title="Gestione Movimenti"
                             Items="@_items"
                             SearchFunction="@Search"

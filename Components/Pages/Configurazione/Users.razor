@@ -10,7 +10,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<EnterpriseDataGrid T="UserInfo" Title="Gestione Utenti" Items="@_users" SearchFunction="@SearchFunc"
+<EnterpriseDataGrid T="UserInfo" OnRefresh="@LoadUsers" Title="Gestione Utenti" Items="@_users" SearchFunction="@SearchFunc"
     @bind-SelectedItem="_selectedItem">
 
     <ToolBarActions>
