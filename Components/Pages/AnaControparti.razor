@@ -24,10 +24,10 @@
 }
 else
 {
-    <EnterpriseDataGrid T="AnaControparte" OnRefresh="@LoadDataAsync"
+    <EnterpriseDataGrid T="AnaControparte" OnSearch="@CercaAsync" OnRefresh="@LoadDataAsync"
                         Items="@_items"
                         Title="Gestione Anagrafica Controparti"
-                        SearchFunction="@Search"
+                       
                         @bind-SelectedItem="_selectedItem">
 
         <ToolBarActions>
@@ -204,7 +204,7 @@ else
             // NOTE: Service.GetAllAsync now returns everything if filter is null for SuperAdmin.
             // If we want "All", pass null. If specific, pass ID.
             
-            _items = (await Service.GetAllAsync(filterId, null, null)).ToList();
+            _items = (await Service.GetAllAsync(filterId, null, null, _ricerca)).ToList();
         }
         catch (Exception ex)
         {
@@ -212,15 +212,18 @@ else
         }
     }
 
-    private bool Search(AnaControparte item, string searchString)
+    /// <summary>Il testo cercato. Vuoto = elenco completo.</summary>
+    private string _ricerca = string.Empty;
+
+    /// <summary>
+    /// La ricerca la fa il database (fn_ana_controparti_get_all): l'inserimento dei
+    /// fornitori lo fanno piu' persone insieme, e chi e' appena stato scritto da un
+    /// collega nella lista gia' letta non c'e'.
+    /// </summary>
+    private async Task CercaAsync(string testo)
     {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (item.RagioneSociale?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.NomeBreve?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.Email?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.PartitaIva?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (item.TipoFornitoreDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        return false;
+        _ricerca = testo ?? string.Empty;
+        await LoadDataAsync();
     }
 
     private async Task OpenCreateDialog()

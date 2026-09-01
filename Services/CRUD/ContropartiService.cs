@@ -3,6 +3,7 @@ using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Session;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace GestioneViaggi.Services.CRUD;
 
@@ -50,53 +51,51 @@ public class ContropartiService : BaseCrudService<AnaControparte>
     /// GetAllAsync con filtro multitenant e JOIN per descrizioni.
     /// Supporta filtro opzionale per tipo (fornitore/cliente).
     /// </summary>
-    public async Task<List<AnaControparte>> GetAllAsync(int? aziendaIdFilter = null, bool? soloFornitori = null, bool? soloClienti = null)
+    /// <param name="searchText">
+    /// Testo cercato, oppure null per l'elenco intero. Cercare nel database e non filtrare
+    /// la lista gia' letta e' cio' che permette di trovare un fornitore appena inserito da
+    /// un altro utente: l'inserimento massivo lo fanno in piu' persone insieme.
+    /// </param>
+    public async Task<List<AnaControparte>> GetAllAsync(int? aziendaIdFilter = null, bool? soloFornitori = null, bool? soloClienti = null, string? searchText = null)
     {
         try
         {
             var currentAziendaId = await GetCurrentAziendaIdAsync();
             await using var connection = await _databaseService.GetConnectionAsync();
 
-            var sql = @"
-                SELECT
-                    c.*,
-                    tf.descrizione as tipo_fornitore_desc,
-                    co.comune_descrizione,
-                    p.provincia_sigla
-                FROM ana_controparti c
-                LEFT JOIN ana_tipo_fornitore tf ON c.tipo_fornitore_fk = tf.tipo_fornitore_id
-                LEFT JOIN ana_geo_comuni co ON c.comune_fk = co.comune_id
-                LEFT JOIN ana_geo_province p ON co.comune_provincia_fk = p.provincia_id
-                WHERE 1=1";
+            // La query stava qui, costruita concatenando stringhe — filtro azienda compreso:
+            //     sql += $" AND c.azienda_fk = {currentAziendaId.Value}";
+            // Il confine fra i silos scritto con un'interpolazione. Ora e' un parametro di
+            // fn_ana_controparti_get_all (SqlScripts/571), dove sta il resto delle regole.
+            //
+            // Un utente normale vede solo la propria azienda; il SuperAdmin passa il filtro
+            // che ha scelto, e NULL vale "tutte".
+            var aziendaDaUsare = currentAziendaId ?? (aziendaIdFilter > 0 ? aziendaIdFilter : null);
 
-            if (currentAziendaId.HasValue)
+            await using var command = new NpgsqlCommand(
+                "SELECT * FROM fn_ana_controparti_get_all(@azienda, @soloFornitori, @soloClienti, @searchText::VARCHAR)",
+                connection);
+            command.Parameters.Add(new NpgsqlParameter("azienda", NpgsqlDbType.Integer)
             {
-                // Normal User: Filter strict by own company
-                sql += $" AND c.azienda_fk = {currentAziendaId.Value}";
-            }
-            else
+                Value = (object?)aziendaDaUsare ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("soloFornitori", NpgsqlDbType.Boolean)
             {
-                // SuperAdmin
-                if (aziendaIdFilter.HasValue && aziendaIdFilter.Value > 0)
-                {
-                    sql += $" AND c.azienda_fk = {aziendaIdFilter.Value}";
-                }
-                // Else (Filter=0 or null) -> Show All (no additional WHERE)
-            }
+                Value = (object?)soloFornitori ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("soloClienti", NpgsqlDbType.Boolean)
+            {
+                Value = (object?)soloClienti ?? DBNull.Value,
+                IsNullable = true
+            });
+            command.Parameters.Add(new NpgsqlParameter("searchText", NpgsqlDbType.Varchar)
+            {
+                Value = string.IsNullOrWhiteSpace(searchText) ? DBNull.Value : searchText.Trim(),
+                IsNullable = true
+            });
 
-            // Filtro opzionale per tipo
-            if (soloFornitori == true)
-            {
-                sql += " AND c.is_fornitore = TRUE";
-            }
-            if (soloClienti == true)
-            {
-                sql += " AND c.is_cliente = TRUE";
-            }
-
-            sql += " ORDER BY c.priorita ASC, c.ragione_sociale ASC";
-
-            await using var command = new NpgsqlCommand(sql, connection);
             await using var reader = await command.ExecuteReaderAsync();
 
             var list = new List<AnaControparte>();
