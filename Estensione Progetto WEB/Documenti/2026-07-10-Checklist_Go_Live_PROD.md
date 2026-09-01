@@ -117,7 +117,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–562)
+### Elenco ordinato (467–568)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -246,6 +246,12 @@ ls SqlScripts/*.sql \
 | 542 | AnaClienti_Vincoli_Gruppo2 | Tre `CHECK`: caratteri del telefono (validato — la regola e' stata allargata a `.` e `/`, che sono separatori veri), lunghezza del codice fiscale e minimo dell'indirizzo, questi due **`NOT VALID`**. ⚠️ `NOT VALID` non e' piu' debole su insert e update: semplicemente non boccia lo storico. Su PROD restano 4 CF e 8 indirizzi non conformi — riaprendo e salvando una di quelle schede il vincolo scatta e il dato va sistemato |
 | 541 | AnaClienti_Vincoli_Invarianti | Sei `CHECK` su `ana_clienti`: formato email, minimi su nome e cognome, coerenza fra le date del documento, forma dell'IBAN. **Zero violazioni misurate su PROD il 2026-08-20**, quindi nessuna bonifica. Primo passo della centralizzazione: valgono anche per il sito di iscrizione |
 | 540 | TitoloPersone_Ordinamento_e_Uso | `SIG.`/`SIG.RA` in testa alla tendina + `fn_ana_titolo_persone_conta_clienti`. Nessun impatto sui dati |
+| 563 | Campi_Obbligatori_Anagrafica | ⚠️ **Il piu' impattante dei sei.** `fn_ana_clienti_campi_mancanti` definisce una volta sola cosa deve esserci in un'anagrafica; `fn_ana_clienti_valida` lo pretende al salvataggio (un errore **per campo**) e `fn_mov_clienti_viaggi_valida` **all'iscrizione**, bloccandola. Obbligatori per tutti: titolo, cognome, nome, data e comune di nascita, comune e indirizzo di residenza, e i **cinque del documento**. Solo per il pilota: prefisso e telefono. **Vedi §2.9: su PROD questo script cambia il lavoro quotidiano dal primo giorno** |
+| 564 | CF_Non_Corrisponde_Errore | Il codice fiscale in disaccordo con i dati anagrafici passa da `CONFERMA` a **`ERRORE`**: quella domanda si risponde «si'» per stanchezza, e nasce una scheda in cui codice e dati si contraddicono senza sapere piu' quale dei due fosse buono |
+| 565 | CF_Invertiti_Errore | Anche i **nomi invertiti** diventano `ERRORE`. Da qui `fn_cf_verifica` non emette piu' alcun `CONFERMA`: o il codice torna con l'anagrafica, o non si salva. Il messaggio dice quale lettura fa tornare il codice, quindi indica gia' la correzione |
+| 566 | Duplicati_Senza_Nome | I messaggi su codice fiscale ed email duplicati **non nominano piu'** il cliente che li possiede: bastava provare codici a caso per farsi dire chi c'e' in anagrafica. Al suo posto, come ritrovare quella scheda |
+| 567 | Duplicati_Nessun_Nome | La regola diventa netta: **nessuna segnalazione sui duplicati fa nomi**, nemmeno quelle in cui il nome era gia' sullo schermo |
+| 568 | Consenso_Vuole_Email | Il consenso alla newsletter senza indirizzo e' rifiutato. Nasce per il gestionale, ma **serve soprattutto al sito**, dove il consenso e' ancora da aggiungere (§2.8.1): quando lo si fara', la regola ci sara' gia' |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -273,7 +279,7 @@ ls SqlScripts/*.sql \
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
 `468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · **revisione del sito di iscrizione, prerequisito (§2.8)** · `491` e `509` vincoli che falliscono su dati sporchi ·
-`499_Rollback` da non eseguire mai.
+`499_Rollback` da non eseguire mai · **`563` campi obbligatori: cambia il lavoro quotidiano dal primo giorno (§2.9)**.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
 
@@ -550,6 +556,53 @@ sono genuinamente di presentazione e nel DB non ci stanno.
 > **Nota:** dopo il re-model del `538`, `ClienteValidator.ValidateTitolo` e `ValidateSesso` non hanno
 > più chiamanti — il titolo è una FK e il sesso è derivato. Non rimossi: vanno riviste insieme a
 > questa verifica, non prima.
+
+---
+
+### 2.9 — Campi obbligatori dell'anagrafica (563): l'unico script che si sente il primo giorno
+
+Deciso il 2026-08-31: i dati del documento d'identità servono a **ogni** partecipante, perché alla
+registrazione in albergo si presentano per legge i documenti di tutti gli occupanti della stanza.
+La regola sta nel database, quindi vale per il gestionale e per il sito insieme.
+
+Tutti gli altri script di questo blocco sono additivi o cambiano messaggi. Questo no: **cambia cosa
+si può fare con i dati che già ci sono**, e su PROD i dati che già ci sono sono tanti.
+
+**Due momenti in cui si fa sentire:**
+
+1. **Aprendo una scheda incompleta** — il gestionale la segnala all'apertura, campo per campo, e non
+   la lascia salvare finché non è completa. Anche per cambiare solo un numero di telefono.
+2. **Iscrivendo un cliente incompleto** — l'iscrizione è **rifiutata** con l'elenco di cosa manca
+   (`ANAGRAFICA_INCOMPLETA`). È il caso che intercetta le schede mai riaperte.
+
+**Da misurare su PROD prima del go-live** (sola lettura, [[db-locale-e-di-test-non-di-riferimento]]):
+
+```sql
+-- Quante anagrafiche sarebbero da completare, e quali dati mancano di più
+SELECT count(*) FILTER (WHERE cliente_documento_numero IS NULL)              AS senza_numero_doc,
+       count(*) FILTER (WHERE cliente_documento_rilasciato_scadenza IS NULL) AS senza_scadenza,
+       count(*) FILTER (WHERE cliente_data_nascita IS NULL)                  AS senza_nascita,
+       count(*) FILTER (WHERE btrim(coalesce(cliente_indirizzo_residenza,'')) = '') AS senza_indirizzo,
+       count(*)                                                              AS totale
+FROM ana_clienti;
+
+-- Quelle che servono davvero adesso: gli iscritti alle partenze future
+SELECT count(DISTINCT c.cliente_id)
+FROM ana_clienti c
+JOIN mov_clienti_viaggi v ON v.cliente_id_fk = c.cliente_id
+JOIN ana_date_viaggi d ON d.data_viaggio_id = v.data_viaggio_id_fk
+WHERE d.data_viaggio_inizio >= CURRENT_DATE
+  AND (c.cliente_documento_numero IS NULL OR c.cliente_documento_rilasciato_scadenza IS NULL);
+```
+
+Il primo numero dice quanto lavoro di sanamento c'è in tutto; **il secondo dice quanto ne serve
+subito**, ed è quello su cui decidere. Sanare le schede delle partenze imminenti *prima* di
+consegnare evita che il primo giorno di uso sia una fila di rifiuti.
+
+> ⚠️ **Se il secondo numero è alto**, le strade sono due, e vanno scelte prima e non durante:
+> completare quelle schede in anticipo (è lavoro d'ufficio, non tecnico), oppure applicare il `563`
+> in un secondo momento, dopo il resto della sequenza — gli altri cinque script non dipendono da lui.
+> Quello che **non** si può fare è scoprirlo il lunedì mattina con il cliente al telefono.
 
 ---
 
