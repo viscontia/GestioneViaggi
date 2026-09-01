@@ -36,6 +36,14 @@ Creazione della scheda web di una partenza (`Components/Shared/WebCreaContenutoD
 > Con il sito di iscrizione che scrive negli stessi clienti, l'anagrafica non ha più un solo autore
 > e la fotografia va potuta riprendere. Chi non lo passa non vede il pulsante: le griglie di sole
 > tabelle di servizio non ne hanno bisogno.
+>
+> **`OnSearch`** (stesso giorno, e va preferito a `OnRefresh` dove i dati hanno più autori).
+> Affida la ricerca a chi usa la griglia, che interroga la sorgente: il filtro in memoria non
+> viene più applicato, e `SearchFunction` diventa inutile. Nasce dalla critica al solo
+> `OnRefresh`: con quello la casella si comportava in **due modi** — trovava subito chi era già
+> in lista, chiedeva un gesto in più per chi era arrivato dopo — e distinguere i due casi
+> richiede all'utente di sapere quando un record è nato. Con `OnSearch` il comportamento è uno
+> solo: si cerca, e si trova.
 Componente che estende `MudDataGrid` (`Components/Shared/EnterpriseDataGrid.cs`).
 *   **Funzionalità**:
     *   **Default**: Selezione singola, ReadOnly, Dense, Striped, Hover.

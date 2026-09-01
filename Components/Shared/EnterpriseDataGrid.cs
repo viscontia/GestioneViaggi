@@ -23,6 +23,17 @@ namespace GestioneViaggi.Components.Shared
         /// </summary>
         [Parameter] public EventCallback OnRefresh { get; set; }
 
+        /// <summary>
+        /// Affida la ricerca a chi usa la griglia, che andra' a interrogare la sorgente.
+        ///
+        /// Senza, la casella filtra soltanto cio' che e' gia' in memoria: un comportamento
+        /// che regge finche' quei dati li scrive un solo software. Quando non e' cosi', la
+        /// stessa casella si comporta in due modi — trova subito chi era gia' in lista,
+        /// non trova affatto chi e' arrivato dopo — ed e' la peggiore delle interfacce,
+        /// perche' chiede all'utente di sapere una cosa che non puo' sapere.
+        /// </summary>
+        [Parameter] public EventCallback<string> OnSearch { get; set; }
+
         public EnterpriseDataGrid()
         {
             // Default Enterprise settings - CONFIGURAZIONE CORRETTA PER CSS
@@ -60,6 +71,9 @@ namespace GestioneViaggi.Components.Shared
 
         private bool QuickFilterFunc(T item)
         {
+            // Chi cerca sulla sorgente ha gia' ricevuto le sole righe giuste: rifiltrarle
+            // qui vorrebbe dire applicare due volte lo stesso criterio, con due codici diversi.
+            if (OnSearch.HasDelegate) return true;
             if (string.IsNullOrWhiteSpace(_searchString)) return true;
             if (SearchFunction != null) return SearchFunction(item, _searchString);
             return true; // If no function provided, ignore filter
@@ -71,9 +85,10 @@ namespace GestioneViaggi.Components.Shared
             builder.SetKey("EnterpriseGridToolbar");
             builder.AddAttribute(1, nameof(EnterpriseGridToolbar.Title), Title);
             builder.AddAttribute(2, nameof(EnterpriseGridToolbar.SearchString), _searchString);
-            builder.AddAttribute(3, nameof(EnterpriseGridToolbar.SearchStringChanged), EventCallback.Factory.Create<string>(this, (s) =>
+            builder.AddAttribute(3, nameof(EnterpriseGridToolbar.SearchStringChanged), EventCallback.Factory.Create<string>(this, async (s) =>
             {
                 _searchString = s;
+                if (OnSearch.HasDelegate) await OnSearch.InvokeAsync(s);
             }));
             builder.AddAttribute(4, nameof(EnterpriseGridToolbar.ChildContent), ToolBarActions);
             builder.AddAttribute(5, nameof(EnterpriseGridToolbar.OnRefresh), OnRefresh);

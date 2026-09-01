@@ -17,16 +17,16 @@
               IconSize="Size.Medium"
               Class="mt-0 mr-4 search-field"
               Immediate="true"
+              DebounceInterval="350"
               Clearable="true"
               OnKeyDown="@AlTasto"
               AutoFocus="true" />
-@* La casella filtra cio' che e' gia' stato letto: se un altro software ha scritto
-   nel frattempo — il sito di iscrizione scrive negli stessi clienti — quel dato non
-   c'e' e nessuna ricerca puo' trovarlo. Questo pulsante e' il modo di dire "rileggi",
-   e lo stesso fa il tasto Invio nella casella. *@
+@* Aggiorna l'elenco. Dove la ricerca interroga la sorgente (OnSearch) questo serve solo
+   a rileggere la lista completa; dove invece la casella filtra la memoria, e' anche il
+   modo di far comparire cio' che nel frattempo ha scritto qualcun altro. *@
 @if (OnRefresh.HasDelegate)
 {
-    <MudTooltip Text="Rileggi i dati aggiornati (Invio)">
+    <MudTooltip Text="Aggiorna l'elenco (Invio)">
         <MudIconButton Icon="@Icons.Material.Filled.Refresh"
                        Color="Color.Primary"
                        Class="mr-2"
