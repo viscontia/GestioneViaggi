@@ -4,9 +4,13 @@
 
 Questo documento descrive la configurazione corretta dei componenti `MudDatePicker` per consentire la **digitazione rapida da tastiera** nelle form gestionali.
 
-> ⚠️ **Leggere prima la sezione "Un anno sbagliato passa senza avvisi"** in fondo. La maschera da sola
-> **non** protegge dai refusi sull'anno: un solo tasto fuori posto produce una data assurda che nessun
-> controllo formale intercetta. Ogni campo data operativo deve avere anche una validazione di plausibilità.
+> 🔴 **La `Mask` non si usa più. Dal 2026-09-01 è stata tolta da tutti e 32 i campi data**, e
+> sostituita da `Helpers/ConvertitoreDataFlessibile`. Non era una scelta di stile: **corrompeva i
+> dati**. Vedi la sezione «Perché la maschera è stata tolta» in fondo.
+>
+> ⚠️ Resta valida la sezione "Un anno sbagliato passa senza avvisi": nessuna scrittura del campo
+> protegge dai refusi sull'anno, e ogni campo data operativo vuole anche una validazione di
+> plausibilità.
 
 ---
 
@@ -22,10 +26,14 @@ Per abilitare la digitazione rapida nei campi data, utilizzare la seguente confi
     Class="mb-3"
     DateFormat="dd/MM/yyyy"
     Editable="true"
-    Mask="@(new DateMask("dd/MM/yyyy"))"
+    Converter="@ConvertitoreDataFlessibile.Standard"
     Placeholder="gg/mm/aaaa"
     HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 ```
+
+Il convertitore accetta `15031990`, `15/03/1990`, `15.03.1990`, `15-3-90`: la digitazione rapida
+resta identica a prima. `ConvertitoreDataFlessibile` è raggiungibile senza `@using` perché
+`GestioneViaggi.Helpers` è in `Components/_Imports.razor`.
 
 ---
 
@@ -307,3 +315,36 @@ Quando si implementa un nuovo campo data, verificare:
 **Ultima modifica:** 2026-08-01
 **Autore:** Adriano Visconti
 **Versione:** 1.1
+
+---
+
+## Perché la maschera è stata tolta (2026-09-01)
+
+`DateMask` **perdeva e riordinava le cifre** quando si digitava in fretta, e non era un fastidio
+estetico: ha scritto dati sbagliati in produzione.
+
+**Il caso che l'ha dimostrato.** Il 2026-08-31 una partenza reale è stata registrata su PROD come
+`8202-01-19` invece di `2026-08-19`, con **dodici iscritti** attaccati. Le cifre non erano casuali:
+`19082026` → `19018202`, cioè **slittate di una posizione, con l'ultima caduta fuori**. È la firma
+di un carattere inserito in un punto che il modello della maschera non conosceva ancora.
+
+**Il meccanismo.** Con `Mask`, `MudTextField` usa `MudMask`, e per ogni tasto:
+
+1. il carattere è intercettato in JavaScript e **impedito** al browser (`preventDown` sulla regex
+   `/^.$/`), poi rispedito a .NET in modo asincrono;
+2. .NET ricalcola il testo, lo riscrive nel DOM,
+3. e **riposiziona il cursore** con un secondo viaggio verso JavaScript (`SetCaretPositionAsync`).
+
+Su MacCatalyst ogni messaggio .NET→JS è una `evaluateJavaScript` separata — ne erano state contate
+**4-8 per singolo tasto** già nella diagnosi dei crash WebKit di agosto. Se il tasto successivo
+arriva prima che il ciclo finisca, entra con il **cursore fermo dov'era**.
+
+**Perché non era stato visto prima.** Nel codice c'era scritto che «in MAUI Blazor Hybrid il
+rendering è client-side, quindi l'esperienza è fluida; il bug MudBlazor #6796 affligge Blazor Server
+con alta latenza». È l'esatto contrario: `RuntimeLocation.IsServerSide` guarda
+`OSDescription != "Browser"`, quindi in MAUI Hybrid MudBlazor **si crede lato server**. Eravamo nel
+caso peggiore mentre il commento ci diceva di stare nel migliore.
+
+**La cura.** La comodità di battere solo le cifre non stava nella maschera: sta nel **convertitore**,
+che legge il testo una volta sola, quando è finito. Nessuna intercettazione, nessun riposizionamento
+del cursore, nessuna corsa fra tasti e round-trip.

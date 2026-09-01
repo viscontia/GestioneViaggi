@@ -47,7 +47,7 @@
                                    RequiredError="Data obbligatoria"
                                    Variant="Variant.Outlined"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
@@ -219,7 +219,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataDocumentoError"
                                    ErrorText="@_dataDocumentoErrorText" />
@@ -242,7 +242,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Required="@_scadenzaObbligatoria"
                                    Error="@_dataScadenzaError"
@@ -254,7 +254,7 @@
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataPagamentoError"
                                    ErrorText="@_dataPagamentoErrorText" />

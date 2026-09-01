@@ -23,14 +23,14 @@
                 <MudItem xs="6">
                     <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" Date="Entity.DataInizio" DateChanged="OnStartDateChanged"
                         Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                         MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Fine" Date="Entity.DataFine" DateChanged="OnEndDateChanged" Required="true"
                         RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                         MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
                         Margin="Margin.Dense"
                         HelperText="@GetDurationHelperText()"

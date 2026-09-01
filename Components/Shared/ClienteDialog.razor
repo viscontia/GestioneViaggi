@@ -135,13 +135,20 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
+                                @* PROVA (2026-09-01): la Data di Nascita e' senza Mask, le altre no.
+                                   La maschera intercetta ogni tasto in JavaScript, lo rimanda a .NET e poi
+                                   riposiziona il cursore con un secondo viaggio: su MacCatalyst sono 4-8
+                                   chiamate per tasto, e digitando in fretta il carattere successivo entra
+                                   con il cursore ancora fermo dove stava. Da qui 19082026 -> 19018202:
+                                   cifre slittate di una posizione e l'ultima caduta fuori. *@
                                     <MudDatePicker @ref="_dataNascitaField" Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
                                         DateChanged="@(d => Entity.DataNascita = d)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
                                         Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
-                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Converter="@ConvertitoreDataFlessibile.Standard"
                                         Validation="@((DateTime? d) => ValidateDataNascita(d))"
-                                        HelperText="Es: 15/03/1990" />
+                                        HelperText="Es: 15/03/1990 oppure 15031990" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudGrid Spacing="1">
@@ -308,7 +315,7 @@
                                         DateChanged="@(d => Entity.DocumentoRilasciatoData = d)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
                                         Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
-                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
@@ -316,7 +323,7 @@
                                         DateChanged="@(d => Entity.DocumentoRilasciatoScadenza = d)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
                                         Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
-                                        Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                         Validation="@((DateTime? d) => ValidateDataScadenza(d))" />
                                 </MudItem>
 

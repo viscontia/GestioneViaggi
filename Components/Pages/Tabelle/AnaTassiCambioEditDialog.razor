@@ -62,8 +62,7 @@
                                    @bind-Date="_dataValidita" 
                                    Variant="Variant.Outlined"
                                    Editable="true"
-                                   Mask="@(new DateMask("dd/MM/yyyy"))"
-                                   DateFormat="dd/MM/yyyy"
+                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
                                    Required="true"
                                    tabindex="4" />
                 </MudItem>

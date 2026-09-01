@@ -68,10 +68,16 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private bool _isSaving = false;
     private bool _validationRequested = false;
 
-    // NOTA: DateMask configurato con formato dd/MM/yyyy
-    // Permette input da tastiera (es: digitare 15031990 auto-formatta in 15/03/1990)
-    // In MAUI Blazor Hybrid, il rendering è client-side quindi l'esperienza è fluida
-    // (il bug #6796 affligge principalmente Blazor Server con alta latenza)
+    // NOTA (2026-09-01): la DateMask e' stata TOLTA da tutti i campi data, sostituita da
+    // ConvertitoreDataFlessibile — si continua a digitare 15031990, ma la conversione avviene
+    // sul testo finito invece che a ogni tasto.
+    //
+    // Il commento che stava qui diceva: «in MAUI Blazor Hybrid il rendering e' client-side
+    // quindi l'esperienza e' fluida, il bug #6796 affligge Blazor Server con alta latenza».
+    // Era proprio il contrario, ed e' per questo che il difetto e' rimasto in piedi: MudBlazor
+    // in MAUI Hybrid si crede LATO SERVER (RuntimeLocation.IsServerSide guarda
+    // OSDescription != "Browser") e su MacCatalyst ogni messaggio verso JS e' una
+    // evaluateJavaScript a se'. Eravamo nel caso peggiore, non in quello migliore.
 
     // Comune helpers per conversione int <-> int?
     private int? ComuneNascitaIdProxy

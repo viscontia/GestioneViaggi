@@ -45,14 +45,14 @@
             <div style="min-width: 160px;">
                 <MudDatePicker Label="Data Doc. Da" @bind-Date="_filterDataDa" Editable="true"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
-                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
                                Placeholder="gg/mm/aaaa" />
             </div>
 
             <div style="min-width: 160px;">
                 <MudDatePicker Label="Data Doc. A" @bind-Date="_filterDataA" Editable="true"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
-                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
                                Placeholder="gg/mm/aaaa" />
             </div>
 

@@ -34,7 +34,7 @@
                                Variant="Variant.Outlined"
                                Required="true"
                                Editable="true"
-                               Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                MaxDate="@DateTime.Today"
                                AnchorOrigin="Origin.BottomCenter" />
             </MudItem>

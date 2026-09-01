@@ -37,7 +37,7 @@
 
             <!-- Data di Nascita -->
             <MudDatePicker Label="Data di Nascita" @bind-Date="User.DataNascita" Variant="Variant.Outlined"
-                Editable="true" Mask="@(new DateMask("dd/MM/yyyy"))" DateFormat="dd/MM/yyyy"
+                Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
                 Culture="@(new System.Globalization.CultureInfo("it-IT"))" Class="mb-3" tabindex="4" />
 
             <!-- Password -->
