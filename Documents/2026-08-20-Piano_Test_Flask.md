@@ -27,12 +27,45 @@ nella logica.
 
 ---
 
-## 🔴 Da riprodurre per primo: l'inserimento di una nuova anagrafica va in errore
+## 📋 Censimento del 2026-09-02: quali regole il sito anticipa e quali no
 
-Segnalato da Adriano il **2026-08-31**, mentre collaudava il gestionale: sul sito, oggi,
-**creare una nuova anagrafica finisce in errore**. Non è stato diagnosticato — nessuno è ancora
-entrato nei test del sito — e va riprodotto prima di eseguire qualunque prova di questo piano:
-se l'inserimento non funziona, i gruppi A, B, C e D non sono nemmeno eseguibili.
+Fatto per non scoprirle una alla volta durante le prove. Il database può emettere **34 esiti**
+(`fn_ana_clienti_valida` e le funzioni che chiama). Rispetto a ciascuno il sito sta così:
+
+| Stato | Esiti |
+| :--- | :--- |
+| **Anticipati mentre si compila** | nome/sesso, cognome e nome minimi, formato email, consenso senza email, i quattro del codice fiscale, data di nascita futura, data di rilascio futura |
+| **Non anticipabili, e va bene** | i quattro su duplicati e omonimi: richiedono comunque il database, il sito li mostra al salvataggio |
+| **Non applicabili** | `IBAN_FORMATO`: il sito l'IBAN non lo raccoglie |
+| 🔴 **Non anticipati** | i tredici **`MANCA_*`** per il **passeggero** e in **modifica** |
+
+L'ultima riga non si chiude con una correzione: ogni validatore contiene tre rami
+(`mode === 'passenger'`, `isExistingClient`, `isEditingEnabled`) che si intrecciano, in trenta
+funzioni quasi identiche. È il perimetro del riordino, ed è ciò che **C10** e **C11** vanno a
+documentare — non a riparare.
+
+---
+
+## 🔴 L'inserimento di una nuova anagrafica va in errore — **ma solo su PROD**
+
+Segnalato il **2026-08-31**. Verificato il **2026-09-01**: in locale, sul ramo
+`feature/controlli-centralizzati` con il DB Docker, **l'inserimento funziona** (nuovo passeggero
+creato e ritrovato a database). Quindi non è un difetto del codice del sito: è qualcosa che esiste
+**solo in produzione**.
+
+**L'ipotesi da verificare per prima** è già scritta nella Checklist Go-Live (§1, nota sullo stato di
+PROD): su PROD sono state applicate le funzioni `543`→`555` **ma non** gli script `538`–`542`.
+Il database di produzione ha quindi **23 funzioni nuove senza lo schema che presuppongono** —
+mancano `ana_titolo_persone` e `ana_clienti.cliente_titolo_fk`. Se il sito in produzione chiama
+anche una sola di quelle funzioni, fallisce lì e soltanto lì.
+
+Da raccogliere sul server di produzione: il messaggio a video, la risposta dell'endpoint nella
+console di rete e la riga nel log di Flask. **L'errore atteso in questo scenario nomina un oggetto
+mancante** (`relation "ana_titolo_persone" does not exist`, o una colonna sconosciuta): se è così,
+l'ipotesi è confermata e la cura è il go-live stesso, che applica gli script in ordine.
+
+⚠️ Non applicare `538`–`542` a PROD da soli per "sistemare": la regola della checklist è che a PROD
+non si applica nulla fuori dalla sequenza.
 
 Da raccogliere alla riproduzione: il messaggio a video, la risposta di `/api/cliente/salva`
 (o dell'endpoint effettivo) nella console di rete, e la riga corrispondente nel log di Flask.
@@ -176,6 +209,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C3c | Riprendi l'iscrizione con un cliente **che ha già il consenso** e cambiagli l'email | Stesso avviso del gestionale, accanto alla spunta. Il consenso resta acceso e la sua data non cambia |
 | C4 | Inserisci un **cognome di un carattere** ed esci dal campo | «Il cognome deve avere almeno 2 caratteri.», **subito sul campo**. ⚠️ Fino al 2026-09-02 il sito non conosceva quella regola — il suo controllo guardava solo che il campo non fosse vuoto — e lasciava proseguire fino al modale «Vuoi salvare le modifiche?», con il rifiuto che arrivava **dopo** la conferma |
 | C4b | Stessa cosa con un **nome** di un carattere | Stesso comportamento |
+| C5b | Metti una **data di rilascio del documento nel futuro** | «La data di rilascio non può essere nel futuro», subito sul campo. ⚠️ Fino al 2026-09-02 il ramo di controllo per le date del documento era **vuoto** — solo commenti — e il rifiuto arrivava dal database al salvataggio |
+| C5c | Metti una **scadenza già passata** | **Passa**, con l'avviso del database al salvataggio: un documento scaduto va registrato lo stesso, semmai rinnovato |
 | C5 | Digita il codice fiscale mettendo **cognome e nome invertiti** | **Rifiutato** (dal 2026-09-01, script `565`): «Nome e cognome sembrano invertiti: il codice corrisponde leggendo X come cognome e Y come nome. **Scambia i due campi prima di proseguire**». Non c'è più nessuna conferma da accettare, e nessuno scambio automatico da attendersi |
 | C6 | **Scambia davvero** i due campi come dice il messaggio | Il salvataggio va a buon fine. ⚠️ Fino al 2026-08-31 questa prova chiedeva di *confermare* l'incongruenza e salvarla: non è più possibile, per nessuna via |
 | C7 | Usa il codice fiscale di una persona **già iscritta** | Bloccato con «Questo codice fiscale risulta già registrato». ⚠️ Il messaggio **non dice più di chi sia** (`566`, `569`): verifica che il sito continui a indicare da sé **l'email con cui riprendere** l'iscrizione, perché quell'indicazione è sua e non del database |
