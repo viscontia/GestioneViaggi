@@ -9,6 +9,13 @@ public class TravelPrintDTO
     public List<ParticipantPrintInfo> Participants { get; set; } = new();
     public CompanyPrintInfo Company { get; set; } = new();
     public List<VehicleGroupInfo> VehicleGroups { get; set; } = new();
+
+    /// <summary>
+    /// Chi parte con un documento che non arriva valido alla fine del viaggio. Finisce in
+    /// una nota in fondo al PDF: chi legge il foglio puo' non essere chi ha lanciato la
+    /// stampa, e l'avviso a schermo a quel punto e' stato chiuso da un pezzo.
+    /// </summary>
+    public List<GestioneViaggi.Models.DocumentoNonValido> DocumentiDaSistemare { get; set; } = new();
 }
 
 public class TravelHeaderInfo
@@ -284,6 +291,14 @@ public class RoomingListPrintDTO
 
     /// <summary>Alcuni abbinati e altri no: si può stampare, ma va detto.</summary>
     public bool AbbinamentiParziali => ClientiNonAbbinati > 0 && ClientiNonAbbinati < TotalParticipants;
+
+    /// <summary>
+    /// Chi parte con un documento che non arriva valido alla fine del viaggio. Finisce in
+    /// una nota in fondo al PDF: chi legge il foglio puo' non essere chi ha lanciato la
+    /// stampa, e l'avviso a schermo a quel punto e' stato chiuso da un pezzo.
+    /// </summary>
+    public List<GestioneViaggi.Models.DocumentoNonValido> DocumentiDaSistemare { get; set; } = new();
+
 }
 
 public class RoomTypeGroup

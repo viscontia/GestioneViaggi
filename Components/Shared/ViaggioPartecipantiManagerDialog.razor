@@ -20,6 +20,7 @@
 @inject Services.Printing.ITravelPrintService TravelPrintService
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 @inject GestioneViaggi.Services.Printing.ControlloDocumentiPrestampa ControlloDocumenti
+@inject GestioneViaggi.Services.CRUD.DocumentiPartecipantiService DocumentiPartecipanti
 
 @* Il titolo NON si disegna qui con <TitleContent>: quel frammento viene reso una volta dal
    contenitore del dialogo e non si aggiorna quando il componente ricarica i dati — per questo
@@ -113,6 +114,19 @@
                                                         ? "background-color: rgba(var(--mud-palette-primary-rgb), 0.04); border-top: 2px solid var(--mud-palette-divider); font-weight: 600;" 
                                                         : "background-color: transparent;";
 
+                                                    // Il documento non arriva valido alla fine del viaggio. Rosso per chi
+                                                    // non puo' partire (mancante o gia' scaduto), giallo per chi scade
+                                                    // DURANTE: sono due telefonate diverse, e con un colore solo si
+                                                    // perderebbe la differenza. Tinte tenui, perche' la riga si deve
+                                                    // ancora leggere: e' un elenco di lavoro, non un allarme.
+                                                    var documento = DocumentiDaSistemare.GetValueOrDefault(participant.ClienteId);
+                                                    if (documento is not null)
+                                                    {
+                                                        rowStyle += documento.Impedisce
+                                                            ? " background-color: rgba(211, 47, 47, 0.16); border-left: 4px solid #d32f2f;"
+                                                            : " background-color: rgba(237, 108, 2, 0.14); border-left: 4px solid #ed6c02;";
+                                                    }
+
                                                     <tr style="@rowStyle">
                                                         <!-- Icona Tipo -->
                                                         <td style="padding: 4px 8px; text-align: center;">
@@ -128,6 +142,15 @@
 
                                                         <!-- Nominativo -->
                                                         <td style="padding: 4px 8px;">
+                                                            @if (documento is not null)
+                                                            {
+                                                                <MudTooltip Text="@documento.Messaggio">
+                                                                    <MudIcon Icon="@Icons.Material.Filled.Badge"
+                                                                             Color="@(documento.Impedisce ? Color.Error : Color.Warning)"
+                                                                             Size="Size.Small" Class="mr-1"
+                                                                             Style="vertical-align: text-bottom;" />
+                                                                </MudTooltip>
+                                                            }
                                                             @if (isPilot)
                                                             {
                                                                 <MudText Typo="Typo.body1" Color="Color.Primary" Style="font-weight: 700;">
@@ -579,6 +602,14 @@
 
     // Lists & Lookups
     private List<ParticipantsViewDTO> _participants = new(); // Mapping from SP result (già ordinati dal DB)
+
+    /// <summary>
+    /// Chi, fra questi partecipanti, ha un documento che non arriva valido alla fine del
+    /// viaggio — indicizzato per cliente, perche' la lista lo chiede riga per riga.
+    /// Si rilegge a ogni caricamento: fra l'iscrizione e la partenza passano mesi, e un
+    /// documento valido allora puo' non esserlo piu' adesso.
+    /// </summary>
+    private Dictionary<int, GestioneViaggi.Models.DocumentoNonValido> DocumentiDaSistemare = new();
     private List<ParticipantsViewDTO> _participantsWithoutRoom = new(); // NEW DB-CENTRIC: Caricati da get_participants_without_accommodation()
     private List<TipoPartecipante> _tipoPartecipanti = new();
     private List<TipoAlloggio> _tipoAlloggi = new();
@@ -696,6 +727,9 @@
 
             _summaryTitle = _initData.SummaryTitle;
             _participants = _initData.Participants;
+
+            var daSistemare = await DocumentiPartecipanti.DaSistemareAsync(DataViaggioId);
+            DocumentiDaSistemare = daSistemare.ToDictionary(d => d.ClienteId);
             _participantsWithoutRoom = _initData.ParticipantsWithoutRoom;
             _participantsCount = _initData.ParticipantsCount;
             _roomsCount = _initData.RoomsCount;

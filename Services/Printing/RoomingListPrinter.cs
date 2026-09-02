@@ -25,7 +25,13 @@ public class RoomingListPrinter
                 page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposeHeader(header, data));
-                page.Content().Element(content => ComposeContent(content, data));
+                page.Content().Column(colonna =>
+                {
+                    colonna.Item().Element(content => ComposeContent(content, data));
+                    // In fondo, e solo se c'e' qualcosa da dire: chi legge il foglio puo'
+                    // non essere chi ha lanciato la stampa.
+                    colonna.Item().Element(nota => NotaDocumentiPdf.Componi(nota, data.DocumentiDaSistemare));
+                });
                 page.Footer().Element(footer => ComposeFooter(footer));
             });
         })

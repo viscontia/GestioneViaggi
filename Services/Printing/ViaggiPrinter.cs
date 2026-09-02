@@ -41,7 +41,11 @@ public class ViaggiPrinter
                 page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposePageHeader(header, data));
-                page.Content().Element(content => ComposeContent(content, data.Participants));
+                page.Content().Column(colonna =>
+                {
+                    colonna.Item().Element(content => ComposeContent(content, data.Participants));
+                    colonna.Item().Element(nota => NotaDocumentiPdf.Componi(nota, data.DocumentiDaSistemare));
+                });
                 page.Footer().Element(footer => ComposeFooter(footer));
             });
 
@@ -453,7 +457,11 @@ public class ViaggiPrinter
                 page.DefaultTextStyle(x => x.FontSize(ReportHeaderHelper.FontSizeBody).FontFamily("Lato").FontColor(ReportHeaderHelper.BrandColors.Text));
 
                 page.Header().Element(header => ComposePageHeader(header, data));
-                page.Content().Element(content => ComposeDetailedContent(content, data.Participants));
+                page.Content().Column(colonna =>
+                {
+                    colonna.Item().Element(content => ComposeDetailedContent(content, data.Participants));
+                    colonna.Item().Element(nota => NotaDocumentiPdf.Componi(nota, data.DocumentiDaSistemare));
+                });
                 page.Footer().Element(footer => ComposeFooter(footer));
             });
         })

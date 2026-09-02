@@ -3,7 +3,8 @@
 **Aggiornato:** 2026-08-21
 **Ambiente:** DB locale Docker (`gestione_viaggi`), script `538`–`562` applicati
 **Chi lo esegue:** Adriano — richiede l'app in esecuzione, non è automatizzabile da CLI
-**Esito:** eseguito integralmente il **2026-08-31 / 2026-09-01**, tutti i gruppi passati, comprese le undici prove nate durante l'esecuzione (A4b, B12, B13, C1b, F1b–F1d, G12, G13, H1b, H7b, H7c). I difetti emersi durante l'esecuzione — dieci — sono documentati nelle Note di Rilascio 2.0 (punti 11–20); le prove che il piano descriveva in modo sbagliato sono state corrette qui (A3, B4, B5, B8, C2, C3, C4, D1, D2, D3, D4, H1)
+**Esito:** gruppi A–H eseguiti integralmente il **2026-08-31 / 2026-09-01**, tutti passati, comprese le undici prove nate durante l'esecuzione (A4b, B12, B13, C1b, F1b–F1d, G12, G13, H1b, H7b, H7c). I difetti emersi durante l'esecuzione — dieci — sono documentati nelle Note di Rilascio 2.0 (punti 11–20); le prove che il piano descriveva in modo sbagliato sono state corrette qui (A3, B4, B5, B8, C2, C3, C4, D1, D2, D3, D4, H1).
+**Da rifare il 2026-09-02**: il gruppo **I** (nuovo, documenti validi per la partenza) e le prove **F1c**, **F1d** sul consenso
 
 ---
 
@@ -212,6 +213,37 @@ senza email. Ora entrambe le form passano da `fn_mov_clienti_viaggi_insert`.
 > Il popup non è una scorciatoia per aggirare il controllo: l'email inserita passa dal salvataggio
 > normale dell'anagrafica, quindi dagli stessi controlli di sempre. Se fosse duplicata o
 > incoerente, il salvataggio lo direbbe e l'iscrizione non proseguirebbe.
+
+---
+
+## I — Documenti validi per la partenza (nuovo, 2026-09-02)
+
+Nessuno controllava che il documento di un partecipante fosse valido **alla data del viaggio**.
+Non è un problema informatico: all'estero non si parte affatto, e in Italia l'albergo può
+rifiutare la registrazione — dove i documenti di tutti gli occupanti si presentano per legge.
+
+Due cose da tenere a mente eseguendo queste prove:
+
+- **non conta «scaduto oggi», conta «scaduto alla fine del viaggio»**: un documento che scade il 20
+  è validissimo adesso e inutile per una partenza che rientra il 24;
+- **la severità dipende dalla destinazione**: all'estero è un errore, in Italia un avviso.
+
+> **Dati di prova.** Sul DB locale molte schede storiche non hanno la data di scadenza, quindi le
+> partenze vecchie mostreranno elenchi lunghi: è lo stato di quei dati, non un difetto. Su PROD le
+> quattro partenze future hanno **zero** casi (misurato il 2026-09-02).
+
+| # | Cosa fai | Cosa deve succedere |
+|---|---|---|
+| I1 | Iscrivi a un viaggio **in Italia** una persona col documento scaduto | **Avviso**, non blocco: «…in albergo i documenti di tutti gli occupanti si presentano per legge» |
+| I2 | Iscrivi la stessa persona a un viaggio **all'estero** | **Rifiutato**: «Il viaggio è all'estero: senza documento valido non si parte» |
+| I3 | Iscrivi qualcuno il cui documento scade **durante** il viaggio (fra partenza e rientro) | Segnalato lo stesso: al rientro quel documento non vale più |
+| I4 | Apri i **partecipanti** di una partenza con qualcuno in queste condizioni | Le righe sono colorate: **rosso** chi non può partire (mancante o scaduto), **giallo** chi scade durante. L'icona ha un suggerimento che spiega quale dei due casi è |
+| I5 | Lancia la **rooming list** di quella partenza | Prima della stampa compare l'elenco con **email e telefono** di chi va avvisato |
+| I6 | Nel riquadro premi **Annulla la stampa** | La stampa non parte |
+| I7 | Rilancia e premi **Ho letto, stampa** | Il PDF esce, e **in fondo** c'è la stessa nota in rosso |
+| I8 | Ripeti I5–I7 con **Stampa Scheda Data Viaggio** e **Stampa Dettaglio Data Viaggio** | Stesso comportamento: sono le tre stampe che si usano prima di partire |
+| I9 | Lancia una stampa **non** di partenza (registro IVA, scadenzario, fatture) | **Nessun avviso e nessuna nota**: non hanno niente a che vedere con chi parte |
+| I10 | Apri una partenza in cui **tutti** hanno il documento valido e stampa | **Nessun riquadro**: chi lavora su partenze a posto non deve imparare a chiudere un dialogo per stampare |
 
 ---
 

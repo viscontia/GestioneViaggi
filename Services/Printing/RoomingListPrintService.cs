@@ -13,12 +13,15 @@ public interface IRoomingListPrintService
 public class RoomingListPrintService : IRoomingListPrintService
 {
     private readonly IDatabaseConnectionManager _connectionManager;
+    private readonly GestioneViaggi.Services.CRUD.DocumentiPartecipantiService _documenti;
     private readonly ILogger<RoomingListPrintService> _logger;
 
-    public RoomingListPrintService(IDatabaseConnectionManager connectionManager, ILogger<RoomingListPrintService> logger)
+    public RoomingListPrintService(IDatabaseConnectionManager connectionManager, ILogger<RoomingListPrintService> logger,
+        GestioneViaggi.Services.CRUD.DocumentiPartecipantiService documenti)
     {
         _connectionManager = connectionManager;
         _logger = logger;
+            _documenti = documenti;
     }
 
     public async Task<RoomingListPrintDTO> GetRoomingListDataAsync(int dataViaggioId)
@@ -128,6 +131,11 @@ public class RoomingListPrintService : IRoomingListPrintService
             // RoomId = 0 significa "nessuna camera assegnata": il dato arrivava gia' cosi' dal DB,
             // mancava solo chi lo contasse.
             data.ClientiNonAbbinati = participants.Count(p => p.RoomId <= 0);
+
+            // Chi parte con un documento che non arriva alla fine del viaggio: finisce
+            // nella nota in fondo al PDF. Il foglio lo leggera' anche chi non ha lanciato
+            // la stampa, e per lui l'avviso a schermo non c'e' mai stato.
+            data.DocumentiDaSistemare = await _documenti.DaSistemareAsync(dataViaggioId);
 
             return data;
         }

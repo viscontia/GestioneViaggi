@@ -12,12 +12,15 @@ public interface ITravelPrintService
 public class TravelPrintService : ITravelPrintService
 {
     private readonly IDatabaseConnectionManager _connectionManager;
+    private readonly GestioneViaggi.Services.CRUD.DocumentiPartecipantiService _documenti;
     private readonly ILogger<TravelPrintService> _logger;
 
-    public TravelPrintService(IDatabaseConnectionManager connectionManager, ILogger<TravelPrintService> logger)
+    public TravelPrintService(IDatabaseConnectionManager connectionManager, ILogger<TravelPrintService> logger,
+        GestioneViaggi.Services.CRUD.DocumentiPartecipantiService documenti)
     {
         _connectionManager = connectionManager;
         _logger = logger;
+            _documenti = documenti;
     }
 
     public async Task<TravelPrintDTO> GetPrintDataAsync(int dataViaggioId)
@@ -78,6 +81,11 @@ public class TravelPrintService : ITravelPrintService
                     .ThenBy(g => g.Modello)
                     .ToList();
             }
+
+            // Chi parte con un documento che non arriva alla fine del viaggio: finisce
+            // nella nota in fondo al PDF. Il foglio lo leggera' anche chi non ha lanciato
+            // la stampa, e per lui l'avviso a schermo non c'e' mai stato.
+            data.DocumentiDaSistemare = await _documenti.DaSistemareAsync(dataViaggioId);
 
             return data;
         }
