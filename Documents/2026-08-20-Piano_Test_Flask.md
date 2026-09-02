@@ -41,6 +41,20 @@ Da raccogliere alla riproduzione: il messaggio a video, la risposta di `/api/cli
 
 ## 🔧 Questo piano non basta: il sito va anche riletto e riordinato
 
+> **Primi due interventi fatti il 2026-09-02**, mentre si correggeva il consenso che non
+> tornava:
+> - rimosse **116 righe morte** (`populateFormStates`): popolava il form da un cliente esistente,
+>   non la chiamava nessuno, ed era un doppione **incompleto** di `populateStateWithData` — non
+>   impostava il consenso. Chi l'avesse collegata credendola equivalente avrebbe rimesso in piedi
+>   il difetto appena chiuso;
+> - `/api/cliente/dati` non ricopia più la risposta **chiave per chiave**: parte da ciò che il DAO
+>   restituisce e trasforma solo le tre cose che deve (rinomina, date in ISO, descrizione del
+>   prefisso). Era lì che `consenso_marketing` e `titolo_fk` si perdevano, pur essendo restituiti
+>   dal database.
+>
+> Il resto del riordino resta da pianificare: sono interventi mirati, non la revisione.
+
+
 Deciso il **2026-08-31**. Il codice del sito è più vecchio del resto e cresciuto per aggiunte
 successive: `Step2Content.jsx` è un unico form da 3.187 righe che serve pilota e passeggero
 attraverso un parametro `mode`, con i controlli replicati campo per campo e tre rami diversi
