@@ -507,6 +507,30 @@ l'Iscrizione Veloce non lo prevede.
 
 ---
 
+### AvvisoDocumentiDialog
+
+Compare **prima** delle stampe di partenza — rooming list, scheda data viaggio, dettaglio data
+viaggio — quando qualcuno parte con un documento che non arriva valido alla fine del viaggio.
+
+| Parametro | Tipo | Cosa fa |
+| :--- | :--- | :--- |
+| `Partecipanti` | `List<DocumentoNonValido>` (obbligatorio) | Chi va sistemato, con email e telefono |
+
+**Non blocca**: si legge, si chiude, la stampa parte. Impedire la rooming list perché un documento
+è scaduto renderebbe impossibile lavorare proprio quando serve preparare il viaggio — e la stampa è
+anche lo strumento con cui ci si accorge del problema. Resta il pulsante «Annulla la stampa» per
+chi preferisce sistemare prima.
+
+Distingue due gravità, perché sono **due telefonate diverse**: rosso per chi non può partire
+(documento mancante o già scaduto), giallo per chi scade *durante* il viaggio e va avvisato di
+rinnovare.
+
+Non lo si invoca a mano: lo usa **`ControlloDocumentiPrestampa.SiPuoStampareAsync(dataViaggioId)`**,
+che è il punto unico da chiamare prima di una stampa di partenza. Se nessuno ha problemi non
+compare nulla — chi lavora su partenze a posto non deve imparare a chiudere un dialogo per stampare.
+
+---
+
 ## Componenti Dialog
 
 ### ⚠️ Titolo che dipende da dati caricati in async

@@ -22,6 +22,7 @@ namespace GestioneViaggi.Services.Printing;
 public sealed class RoomingListStampaService
 {
     private readonly IRoomingListPrintService _dati;
+    private readonly ControlloDocumentiPrestampa _documenti;
     private readonly IPdfOpenerService _pdf;
     private readonly IDialogService _dialoghi;
     private readonly ISnackbar _snackbar;
@@ -29,9 +30,11 @@ public sealed class RoomingListStampaService
 
     public RoomingListStampaService(
         IRoomingListPrintService dati, IPdfOpenerService pdf, IDialogService dialoghi,
-        ISnackbar snackbar, ILogger<RoomingListStampaService> logger)
+        ISnackbar snackbar, ILogger<RoomingListStampaService> logger,
+        ControlloDocumentiPrestampa documenti)
     {
         _dati = dati; _pdf = pdf; _dialoghi = dialoghi; _snackbar = snackbar; _logger = logger;
+        _documenti = documenti;
     }
 
     /// <summary>
@@ -56,6 +59,14 @@ public sealed class RoomingListStampaService
         if (data.TotalParticipants == 0)
         {
             _snackbar.Add("Questa partenza non ha partecipanti: non c'è nulla da stampare.", Severity.Warning);
+            return false;
+        }
+
+        // Chi parte con un documento che non arriva alla fine del viaggio. L'avviso non
+        // blocca — la rooming list e' anche lo strumento con cui ci si accorge del
+        // problema — ma si annulla la stampa se l'utente sceglie di sistemare prima.
+        if (!await _documenti.SiPuoStampareAsync(dataViaggioId))
+        {
             return false;
         }
 

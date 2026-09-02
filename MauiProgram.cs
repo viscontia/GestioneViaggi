@@ -117,6 +117,10 @@ public static class MauiProgram
         // ==========================================================
         builder.Services.AddScoped<IClienteService, ClienteService>();
         builder.Services.AddScoped<Services.CRUD.ClienteLinguaService>();
+        // Chi ha un documento che non arriva alla fine del viaggio: lo chiedono la lista
+        // dei partecipanti, l'avviso prima delle stampe di partenza e le stampe stesse.
+        builder.Services.AddScoped<Services.CRUD.DocumentiPartecipantiService>();
+        builder.Services.AddScoped<Services.Printing.ControlloDocumentiPrestampa>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();

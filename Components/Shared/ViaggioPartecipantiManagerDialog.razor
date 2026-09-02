@@ -19,6 +19,7 @@
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.ITravelPrintService TravelPrintService
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
+@inject GestioneViaggi.Services.Printing.ControlloDocumentiPrestampa ControlloDocumenti
 
 @* Il titolo NON si disegna qui con <TitleContent>: quel frammento viene reso una volta dal
    contenitore del dialogo e non si aggiorna quando il componente ricarica i dati — per questo
@@ -616,6 +617,10 @@
 
     private async Task OnStampaSchedaViaggioClick()
     {
+        // Prima delle opzioni di stampa: chi parte con un documento che non arriva alla
+        // fine del viaggio. Non blocca, ma si puo' annullare per sistemare prima.
+        if (!await ControlloDocumenti.SiPuoStampareAsync(DataViaggioId)) return;
+
         var parameters = new DialogParameters { ["DataViaggioId"] = DataViaggioId };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         await DialogService.ShowAsync<StampaSchedaViaggioDialog>("Opzioni di Stampa", parameters, options);
@@ -628,6 +633,8 @@
             Snackbar.Add("Impossibile stampare: ID Viaggio non valido", Severity.Error);
             return;
         }
+
+        if (!await ControlloDocumenti.SiPuoStampareAsync(DataViaggioId)) return;
 
         try
         {

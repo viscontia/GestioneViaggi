@@ -1,0 +1,96 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+@*
+    L'avviso che compare PRIMA di una stampa di partenza, quando qualcuno parte con un
+    documento che non arriva alla fine del viaggio.
+
+    Non blocca: si legge, si chiude, la stampa parte. Impedire la rooming list perche' un
+    documento e' scaduto renderebbe impossibile lavorare proprio nel momento in cui serve
+    preparare il viaggio — e la stampa e' anche lo strumento con cui ci si accorge del
+    problema.
+
+    Riporta email e telefono perche' il passo successivo e' telefonare a quelle persone,
+    e cercarle una per una in anagrafica sarebbe il modo migliore per non farlo.
+*@
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Error" />
+            <MudText Typo="Typo.h6">Documenti da verificare prima della partenza</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (Impedimenti.Any())
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">
+                <b>@Impedimenti.Count @(Impedimenti.Count == 1 ? "persona non può partire" : "persone non possono partire").</b>
+                @if (Impedimenti.First().ViaggioEstero)
+                {
+                    <text> Il viaggio è all'estero: senza documento valido non si parte.</text>
+                }
+                else
+                {
+                    <text> In albergo i documenti di tutti gli occupanti si presentano per legge.</text>
+                }
+            </MudAlert>
+        }
+        @if (InScadenza.Any())
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                <b>@InScadenza.Count @(InScadenza.Count == 1 ? "persona ha" : "persone hanno") il documento in scadenza durante il viaggio.</b>
+                Partono, ma vanno avvisate di rinnovarlo.
+            </MudAlert>
+        }
+
+        <MudSimpleTable Dense="true" Hover="true" Striped="false">
+            <thead>
+                <tr>
+                    <th>Cognome e nome</th>
+                    <th>Email</th>
+                    <th>Telefono</th>
+                    <th>Documento</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Partecipanti)
+                {
+                    <tr style="@(p.Impedisce ? "background-color:#fdecea;" : "background-color:#fff8e1;")">
+                        <td><b>@p.Nominativo</b></td>
+                        <td>@(string.IsNullOrWhiteSpace(p.Email) ? "—" : p.Email)</td>
+                        <td>@(string.IsNullOrWhiteSpace(p.TelefonoCompleto) ? "—" : p.TelefonoCompleto)</td>
+                        <td>@p.Messaggio</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+
+        @if (Partecipanti.Any(p => string.IsNullOrWhiteSpace(p.Email) && string.IsNullOrWhiteSpace(p.TelefonoCompleto)))
+        {
+            <MudText Typo="Typo.caption" Class="d-block mt-2 mud-text-secondary">
+                Per chi non ha né email né telefono in anagrafica non c'è modo di avvisare:
+                va cercato un recapito prima della partenza.
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog?.Cancel())" Variant="Variant.Outlined">
+            Annulla la stampa
+        </MudButton>
+        <MudButton OnClick="@(() => MudDialog?.Close(DialogResult.Ok(true)))"
+                   Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Print">
+            Ho letto, stampa
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter, EditorRequired] public List<DocumentoNonValido> Partecipanti { get; set; } = new();
+
+    private List<DocumentoNonValido> Impedimenti => Partecipanti.Where(p => p.Impedisce).ToList();
+    private List<DocumentoNonValido> InScadenza => Partecipanti.Where(p => !p.Impedisce).ToList();
+}
