@@ -143,6 +143,7 @@ o si raccoglie alla fonte o è perso.
 | B7 | Riapri un cliente esistente che **aveva già** dato il consenso e salva senza toccare la spunta | Il consenso **resta acceso**. Se si spegnesse, si starebbe falsificando un dato |
 | B8 | Completa un'iscrizione **senza** spuntare il consenso | A DB consenso falso, e **nessuna data, nessuna fonte**: non c'è nulla da dimostrare |
 | B9 | Entra con l'email di un cliente **esistente** | Titolo **ritrovato** nella tendina e spunta del consenso **com'era**. ⚠️ Sono le due regressioni chiuse col `557`: senza, il titolo restava vuoto e il consenso si sarebbe spento da solo al primo salvataggio |
+| B9b | Riprendi con un cliente che **ha il consenso** e apri «Modifica Anagrafica» | La spunta è **segnata**. ⚠️ Fino al 2026-09-02 arrivava sempre spenta: l'endpoint `/api/cliente/dati` costruisce la risposta a mano, chiave per chiave, e `consenso_marketing` non era fra quelle ricopiate — pur essendo restituito dal database e dal DAO (`SqlScripts/557`). Salvando si sarebbe spento un consenso che nessuno aveva revocato |
 
 ---
 
