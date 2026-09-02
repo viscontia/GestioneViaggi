@@ -32,17 +32,30 @@ public static class NotaDocumentiPdf
         var inScadenza = daSistemare.Where(d => !d.Impedisce).ToList();
         var estero = daSistemare.Any(d => d.ViaggioEstero);
 
-        container.PaddingTop(12).Column(colonna =>
+        // La nota non si spezza fra due pagine: spezzata perde di valore, perche' il titolo
+        // resta in fondo a un foglio e i nomi cominciano sul successivo — e chi la legge di
+        // corsa vede solo una delle due meta'.
+        //
+        // Sotto la soglia si tiene unita tutta; sopra, l'elenco e' comunque piu' alto di una
+        // pagina e ShowEntire fallirebbe, quindi si tiene unita almeno la testata (titolo e
+        // riepiloghi) e la tabella prosegue ripetendo la propria intestazione.
+        var unita = daSistemare.Count <= 10
+            ? container.PaddingTop(12).ShowEntire()
+            : container.PaddingTop(12);
+
+        unita.Column(colonna =>
         {
-            colonna.Item().PaddingBottom(4).Text(testo =>
+            colonna.Item().ShowEntire().Column(testata =>
             {
-                testo.Span("DOCUMENTI DA VERIFICARE PRIMA DELLA PARTENZA")
-                     .FontSize(9).Bold().FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
+                testata.Item().PaddingBottom(4).Text(testo =>
+                {
+                    testo.Span("DOCUMENTI DA VERIFICARE PRIMA DELLA PARTENZA")
+                         .FontSize(9).Bold().FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
             });
 
             if (impedimenti.Count > 0)
             {
-                colonna.Item().Text(testo =>
+                testata.Item().Text(testo =>
                 {
                     testo.Span($"{impedimenti.Count} ")
                          .FontSize(8).Bold().FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
@@ -59,7 +72,7 @@ public static class NotaDocumentiPdf
 
             if (inScadenza.Count > 0)
             {
-                colonna.Item().Text(testo =>
+                testata.Item().Text(testo =>
                 {
                     testo.Span($"{inScadenza.Count} ").FontSize(8).Bold().FontColor(QuestPDF.Helpers.Colors.Orange.Darken3);
                     testo.Span(inScadenza.Count == 1
@@ -68,6 +81,8 @@ public static class NotaDocumentiPdf
                          .FontSize(8).FontColor(QuestPDF.Helpers.Colors.Orange.Darken3);
                 });
             }
+
+            });
 
             colonna.Item().PaddingTop(4).Table(tabella =>
             {
