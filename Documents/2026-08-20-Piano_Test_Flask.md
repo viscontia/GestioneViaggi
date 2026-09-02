@@ -2,7 +2,7 @@
 
 **Data:** 2026-08-20
 **Repository:** `Iscrizione-Viaggi-Offroad PostgreSQL`, ramo `feature/controlli-centralizzati`
-**Ambiente:** `./avvia-locale.sh` (DB Docker locale), script `538`–`569` applicati
+**Ambiente:** `./avvia-locale.sh` (DB Docker locale), script `538`–`576` applicati
 **Chi lo esegue:** Adriano — **serve un browser**, e questi test non sono automatizzabili da qui
 
 ---
@@ -231,6 +231,9 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | D2 | Iscrivi la stessa persona come **accompagnatore** | Consentito |
 | D3 | Tipo partecipante che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato |
 | D4 | Iscriviti a un viaggio **a cui sei già iscritto** | Rifiutato. ⚠️ Prima il sito non lo controllava affatto |
+| D6 | Iscrivi a un viaggio **in Italia** una persona col documento scaduto | **Avviso**, non blocco (script `576`). Nuovo dal 2026-09-02: prima nessuno guardava la scadenza |
+| D7 | Iscrivi la stessa persona a un viaggio **all'estero** | **Rifiutato**: senza documento valido non si parte |
+| D8 | Iscrivi qualcuno il cui documento scade **durante** il viaggio | Segnalato lo stesso: non conta se è valido oggi, conta se arriva al rientro |
 | D5 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio |
 
 ---
@@ -252,6 +255,11 @@ La chiave in locale c'è già (vedi il prerequisito): questo gruppo si può eseg
 ---
 
 ## F — La prova che conta: i due software concordano
+
+> Dal 2026-09-02 fra le cose da confrontare c'è anche il **documento valido per la partenza**:
+> la regola sta in `fn_documento_stato_per_viaggio` e la applicano tutti e due. Iscrivendo dal sito
+> e dal gestionale la stessa persona con documento scaduto allo stesso viaggio, la risposta deve
+> essere identica — errore all'estero, avviso in Italia.
 
 È il gruppo più importante di entrambi i piani, e va fatto **per ultimo**, con il gestionale e il
 sito aperti insieme sullo stesso database.
