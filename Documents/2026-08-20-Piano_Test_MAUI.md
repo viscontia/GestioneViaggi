@@ -241,6 +241,8 @@ Due cose da tenere a mente eseguendo queste prove:
 | I5 | Lancia la **rooming list** di quella partenza | Prima della stampa compare l'elenco con **email e telefono** di chi va avvisato |
 | I6 | Nel riquadro premi **Annulla la stampa** | La stampa non parte |
 | I7 | Rilancia e premi **Ho letto, stampa** | Il PDF esce, e **in fondo** c'è la stessa nota in rosso |
+| I7b | Fra i segnalati mettine uno **senza email né telefono** in anagrafica | Nella nota stampata, sotto la tabella, una riga in rosso lo nomina: «non c'è né email né telefono in anagrafica… va trovato un recapito prima della partenza». È il caso peggiore — non parte, e non si sa come dirglielo |
+| I7c | Stampa una partenza con **più di dieci** persone da sistemare | La nota non si spezza a metà: la testata resta unita e la tabella prosegue **ripetendo l'intestazione**. Sotto le dieci resta tutta su una pagina |
 | I8 | Ripeti I5–I7 con **Stampa Scheda Data Viaggio** e **Stampa Dettaglio Data Viaggio** | Stesso comportamento: sono le tre stampe che si usano prima di partire |
 | I9 | Lancia una stampa **non** di partenza (registro IVA, scadenzario, fatture) | **Nessun avviso e nessuna nota**: non hanno niente a che vedere con chi parte |
 | I10 | Apri una partenza in cui **tutti** hanno il documento valido e stampa | **Nessun riquadro**: chi lavora su partenze a posto non deve imparare a chiudere un dialogo per stampare |

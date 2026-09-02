@@ -31,6 +31,12 @@ public static class NotaDocumentiPdf
         var impedimenti = daSistemare.Where(d => d.Impedisce).ToList();
         var inScadenza = daSistemare.Where(d => !d.Impedisce).ToList();
         var estero = daSistemare.Any(d => d.ViaggioEstero);
+        // Chi non ha ne' email ne' telefono: e' il caso peggiore, perche' non parte e non
+        // si sa nemmeno come dirglielo. A schermo l'avvertenza c'era gia'; sul foglio no,
+        // e restavano due trattini che si potevano scambiare per "dato non stampato".
+        var irraggiungibili = daSistemare
+            .Where(d => string.IsNullOrWhiteSpace(d.Email) && string.IsNullOrWhiteSpace(d.TelefonoCompleto))
+            .ToList();
 
         // La nota non si spezza fra due pagine: spezzata perde di valore, perche' il titolo
         // resta in fondo a un foglio e i nomi cominciano sul successivo — e chi la legge di
@@ -120,6 +126,21 @@ public static class NotaDocumentiPdf
                            .Text(p.Messaggio).FontSize(7.5f).FontColor(colore);
                 }
             });
+
+            if (irraggiungibili.Count > 0)
+            {
+                colonna.Item().PaddingTop(3).Text(testo =>
+                {
+                    testo.Span(irraggiungibili.Count == 1
+                            ? "Per 1 di queste persone non c'è né email né telefono in anagrafica: "
+                            : $"Per {irraggiungibili.Count} di queste persone non c'è né email né telefono in anagrafica: ")
+                         .FontSize(7.5f).Bold().FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
+                    testo.Span(string.Join(", ", irraggiungibili.Select(d => d.Nominativo)) + ".")
+                         .FontSize(7.5f).FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
+                    testo.Span(" Va trovato un recapito prima della partenza.")
+                         .FontSize(7.5f).FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
+                });
+            }
         });
     }
 }
