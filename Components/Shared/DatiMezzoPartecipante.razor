@@ -1,8 +1,10 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
 @using MudBlazor
+@inject MezzoModelloService MezzoModelloService
 
 @*
-    Marca, modello e targa del mezzo di chi guida.
+    Tipo, marca, modello e targa del mezzo di chi guida.
 
     Sta qui e non dentro le form perche' le form sono due — l'Iscrizione Veloce e il tab
     Partecipanti — e la regola che li rende obbligatori e' una sola, nel database
@@ -11,8 +13,13 @@
     correggendo: l'Iscrizione Veloce chiedeva un pilota e poi non dava modo di descriverne
     il mezzo, quindi da li' un pilota non si poteva iscrivere affatto.
 
+    Il TIPO viene prima ed e' solo un filtro: non si salva da nessuna parte, perche' il
+    modello lo conosce gia' (`ana_mezzi_modelli.mezzo_modello_tipo_fk`). Senza di lui chi
+    parte con un'auto 4x4 trovava le 27 marche tutte insieme, con quelle delle moto in
+    testa. Sul sito di iscrizione questo passaggio c'era gia': qui mancava.
+
     Il componente non decide se mostrarsi: lo decide chi lo usa, che sa gia' quale ruolo
-    e' stato scelto. Qui dentro c'e' solo come si compilano quei tre dati.
+    e' stato scelto. Qui dentro c'e' solo come si compilano quei dati.
 *@
 
 <MudDivider Class="my-3" />
@@ -22,9 +29,17 @@
 </div>
 
 <MudGrid Spacing="2">
+    <MudItem xs="12">
+        <TipoMezzoSelect SelectedId="@_tipoMezzoId"
+                         SelectedIdChanged="@OnTipoChanged"
+                         Label="Tipo di mezzo"
+                         HelperText="Restringe marche e modelli al tipo scelto"
+                         Required="false" Class="mb-0" />
+    </MudItem>
     <MudItem xs="6">
         <MarcaVeicoloSelect SelectedId="@Entity.AnaMezziIdFk"
                             SelectedIdChanged="@OnMarcaChanged"
+                            TipoMezzoId="@_tipoMezzoId"
                             Label="Marca" Required="false" />
     </MudItem>
     <MudItem xs="6">
@@ -32,6 +47,7 @@
                             SelectedIdChanged="@((int? val) => Entity.MezzoModelloIdFk = val)"
                             SelectedItemChanged="OnModelloChanged"
                             MarcaId="@Entity.AnaMezziIdFk"
+                            TipoMezzoId="@_tipoMezzoId"
                             Label="Modello" Required="false" />
     </MudItem>
     <MudItem xs="12">
@@ -45,19 +61,65 @@
     /// <summary>L'iscrizione da compilare. Il componente la modifica direttamente.</summary>
     [Parameter, EditorRequired] public MovClientiViaggi Entity { get; set; } = default!;
 
+    private int? _tipoMezzoId;
+    private int? _modelloRiconosciuto;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // In modifica il tipo non arriva dall'iscrizione — li' non e' salvato — ma dal
+        // modello che c'e' gia': si riapre la scheda e i tre campi si leggono coerenti.
+        if (Entity.MezzoModelloIdFk.HasValue && _modelloRiconosciuto != Entity.MezzoModelloIdFk)
+        {
+            _modelloRiconosciuto = Entity.MezzoModelloIdFk;
+            _tipoMezzoId = await TipoDelModello(Entity.MezzoModelloIdFk.Value) ?? _tipoMezzoId;
+        }
+    }
+
+    private async Task<int?> TipoDelModello(int modelloId)
+    {
+        try
+        {
+            var modelli = await MezzoModelloService.GetAllAsync();
+            var tipo = modelli.FirstOrDefault(m => m.Id == modelloId)?.TipoMezzoIdFk;
+            return tipo > 0 ? tipo : null;
+        }
+        catch
+        {
+            // Il tipo e' un aiuto alla scelta: se non si riesce a dedurlo, le tendine
+            // restano larghe. Non e' un motivo per fermare l'iscrizione.
+            return null;
+        }
+    }
+
+    private void OnTipoChanged(int? tipoId)
+    {
+        _tipoMezzoId = tipoId;
+
+        // Marca e modello che c'erano possono non appartenere al nuovo tipo: tenerli
+        // darebbe una terna che non esiste. Si azzerano e si ricomincia dal tipo.
+        Entity.AnaMezziIdFk = null;
+        Entity.MezzoModelloIdFk = null;
+        _modelloRiconosciuto = null;
+    }
+
     private void OnMarcaChanged(int? marcaId)
     {
         Entity.AnaMezziIdFk = marcaId;
         // Il modello che c'era apparteneva all'altra marca: tenerlo darebbe una coppia
         // che non esiste. La tendina dei modelli si ricarica da sola sul nuovo MarcaId.
         Entity.MezzoModelloIdFk = null;
+        _modelloRiconosciuto = null;
     }
 
     private void OnModelloChanged(MezzoModello? m)
     {
+        if (m == null) return;
+
         // Si puo' scegliere il modello senza aver scelto la marca: allora la marca la
-        // porta il modello, che la conosce.
-        if (m != null && m.MarcaIdFk != Entity.AnaMezziIdFk)
-            Entity.AnaMezziIdFk = m.MarcaIdFk;
+        // porta il modello, che la conosce. Lo stesso vale per il tipo.
+        if (m.MarcaIdFk != Entity.AnaMezziIdFk) Entity.AnaMezziIdFk = m.MarcaIdFk;
+        if (m.TipoMezzoIdFk > 0 && m.TipoMezzoIdFk != _tipoMezzoId) _tipoMezzoId = m.TipoMezzoIdFk;
+
+        _modelloRiconosciuto = m.Id;
     }
 }

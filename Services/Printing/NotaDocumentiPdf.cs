@@ -7,7 +7,7 @@ namespace GestioneViaggi.Services.Printing;
 
 /// <summary>
 /// La nota in fondo alle stampe di partenza: chi parte con un documento che non arriva
-/// valido alla fine del viaggio.
+/// valido alla fine del viaggio, e chi guida senza lasciare un recapito.
 ///
 /// Sta in fondo e non in testa di proposito: la stampa serve a lavorare, e l'avviso non
 /// deve prendere il posto del contenuto. Ma va sul <b>foglio</b>, non solo a schermo,
@@ -29,13 +29,19 @@ public static class NotaDocumentiPdf
         }
 
         var impedimenti = daSistemare.Where(d => d.Impedisce).ToList();
-        var inScadenza = daSistemare.Where(d => !d.Impedisce).ToList();
+        var senzaRecapito = daSistemare.Where(d => d.SenzaRecapito).ToList();
+        var inScadenza = daSistemare.Where(d => !d.Impedisce && !d.SenzaRecapito).ToList();
         var estero = daSistemare.Any(d => d.ViaggioEstero);
         // Chi non ha ne' email ne' telefono: e' il caso peggiore, perche' non parte e non
         // si sa nemmeno come dirglielo. A schermo l'avvertenza c'era gia'; sul foglio no,
         // e restavano due trattini che si potevano scambiare per "dato non stampato".
+        // Chi ha un problema di DOCUMENTO e per giunta non si sa come contattare. I piloti
+        // senza recapito sono gia' detti sopra per conto loro: ripeterli qui sarebbe la
+        // stessa persona nominata due volte nella stessa nota.
         var irraggiungibili = daSistemare
-            .Where(d => string.IsNullOrWhiteSpace(d.Email) && string.IsNullOrWhiteSpace(d.TelefonoCompleto))
+            .Where(d => !d.SenzaRecapito
+                        && string.IsNullOrWhiteSpace(d.Email)
+                        && string.IsNullOrWhiteSpace(d.TelefonoCompleto))
             .ToList();
 
         // La nota non si spezza fra due pagine: spezzata perde di valore, perche' il titolo
@@ -55,7 +61,7 @@ public static class NotaDocumentiPdf
             {
                 testata.Item().PaddingBottom(4).Text(testo =>
                 {
-                    testo.Span("DOCUMENTI DA VERIFICARE PRIMA DELLA PARTENZA")
+                    testo.Span("DA SISTEMARE PRIMA DELLA PARTENZA")
                          .FontSize(9).Bold().FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
             });
 
@@ -73,6 +79,18 @@ public static class NotaDocumentiPdf
                             ? "Il viaggio è all'estero: senza documento valido non si parte."
                             : "In albergo i documenti di tutti gli occupanti si presentano per legge.")
                          .FontSize(8).FontColor(QuestPDF.Helpers.Colors.Red.Darken2);
+                });
+            }
+
+            if (senzaRecapito.Count > 0)
+            {
+                testata.Item().Text(testo =>
+                {
+                    testo.Span($"{senzaRecapito.Count} ").FontSize(8).Bold().FontColor(QuestPDF.Helpers.Colors.Orange.Darken3);
+                    testo.Span(senzaRecapito.Count == 1
+                            ? "pilota non è raggiungibile: guida e non ha né email né telefono in anagrafica."
+                            : "piloti non sono raggiungibili: guidano e non hanno né email né telefono in anagrafica.")
+                         .FontSize(8).FontColor(QuestPDF.Helpers.Colors.Orange.Darken3);
                 });
             }
 
@@ -102,7 +120,7 @@ public static class NotaDocumentiPdf
 
                 tabella.Header(intestazione =>
                 {
-                    foreach (var titolo in new[] { "Cognome e nome", "Email", "Telefono", "Documento" })
+                    foreach (var titolo in new[] { "Cognome e nome", "Email", "Telefono", "Da sistemare" })
                     {
                         intestazione.Cell().BorderBottom(0.5f).BorderColor(QuestPDF.Helpers.Colors.Grey.Medium)
                                     .PaddingVertical(2)

@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `562`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `579`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -252,6 +252,17 @@ ls SqlScripts/*.sql \
 | 566 | Duplicati_Senza_Nome | I messaggi su codice fiscale ed email duplicati **non nominano piu'** il cliente che li possiede: bastava provare codici a caso per farsi dire chi c'e' in anagrafica. Al suo posto, come ritrovare quella scheda |
 | 567 | Duplicati_Nessun_Nome | La regola diventa netta: **nessuna segnalazione sui duplicati fa nomi**, nemmeno quelle in cui il nome era gia' sullo schermo |
 | 568 | Consenso_Vuole_Email | Il consenso alla newsletter senza indirizzo e' rifiutato. Nasce per il gestionale, ma **serve soprattutto al sito**, dove il consenso e' ancora da aggiungere (§2.8.1): quando lo si fara', la regola ci sara' gia' |
+| 569 | Duplicato_Messaggio_Neutro | Il messaggio sul codice fiscale gia' presente diventa neutro: dice cosa succede, non di chi e' la scheda |
+| 570 | Viaggi_Ricerca_Nel_Database | La ricerca dell'elenco viaggi scende nel DB: **un parametro in piu'** su `fn_ana_viaggi_get_all`, non una seconda funzione. ⚠️ Richiede `DROP FUNCTION` esplicito: con un parametro aggiunto, `CREATE OR REPLACE` crea un **overload** e la chiamata diventa ambigua |
+| 571 | Controparti_Lettura_Nel_Database | `fn_ana_controparti_get_all`: lettura + ricerca. Toglie dal C# una query che concatenava il filtro azienda in una **stringa** — l'invariante dei silos diventa un parametro |
+| 572 | Aziende_Lettura_Nel_Database | `fn_ana_aziende_get_all`: stesso difetto, secondo e ultimo punto dove il confine fra silos era concatenato |
+| 573 | Clienti_Ricerca_Nella_Lettura | La ricerca clienti diventa **un parametro di `fn_get_all_clienti`**. Chiude un difetto grave: `fn_search_clienti` restituiva **16 campi in meno**, e chi apriva un cliente trovato cercando rischiava di azzerarli salvando |
+| 574 | Documenti_Validi_Per_La_Partenza | Primo impianto del controllo sui documenti di chi parte |
+| 575 | Documento_Valido_Regola_Unica | La regola in un posto solo: `fn_documento_stato_per_viaggio` (MANCANTE / SCADUTO / SCADE_DURANTE / VALIDO), chiamata dalla lista partecipanti, dalle stampe **e** dall'iscrizione |
+| 576 | Iscrizione_Controlla_Documento | All'iscrizione la gravita' dipende dalla destinazione: **ERRORE all'estero** (senza documento valido non si parte), AVVISO in Italia (l'albergo puo' rifiutare la registrazione) |
+| 577 | Marche_Filtrate_Per_Tipo_Mezzo | `fn_ana_mezzi_marche_per_tipo`: le marche che hanno almeno un modello di quel tipo. Il tipo sta sul **modello**, non sulla marca. Nessuna modifica di schema |
+| 578 | Partenza_Conclusa_Niente_Iscrizioni | ⚠️ `fn_partenza_conclusa` + rifiuto `PARTENZA_CONCLUSA` in `fn_mov_clienti_viaggi_valida`. **Vale anche per il sito Flask**, che passa dalla stessa funzione. Blocca solo l'INSERIMENTO: modificare un'iscrizione su un viaggio passato resta possibile. **Misurato su PROD il 2026-09-03** (sola lettura): 145 partenze concluse con **1.184 iscrizioni**, 5 partenze aperte con 19. Le 1.184 **non vengono toccate**: la funzione impedisce le nuove, non invalida le esistenti |
+| 579 | Pilota_Senza_Recapito | `fn_partecipanti_documento_non_valido` allargata: segnala anche il **pilota senza email ne' telefono** (stato `SENZA_RECAPITO`). Solo chi guida — per un passeggero il recapito puo' mancare di proposito. ✅ **Misurato su PROD il 2026-09-03** (sola lettura): sulle 5 partenze ancora aperte, **zero** piloti senza recapito. Lo script non fara' emergere nulla il primo giorno — a differenza del `563` |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -279,7 +290,7 @@ ls SqlScripts/*.sql \
 **Riepilogo di cosa NON è un semplice apply** (dettagli in §2/§3):
 `473` grant anon · `475` + `483` segreti e `GV_SECRET_KEY` · `484` + `485` backfill su clienti reali ·
 `468` e `493` re-model con migrazione dati · `538` re-model titolo/sesso clienti (§2.7) · **revisione del sito di iscrizione, prerequisito (§2.8)** · `491` e `509` vincoli che falliscono su dati sporchi ·
-`499_Rollback` da non eseguire mai · **`563` campi obbligatori: cambia il lavoro quotidiano dal primo giorno (§2.9)**.
+`499_Rollback` da non eseguire mai · **`563` campi obbligatori: cambia il lavoro quotidiano dal primo giorno (§2.9)** · `570` da precedere con `DROP FUNCTION` · `578` blocca le iscrizioni su partenze concluse, **da misurare su PROD prima** · `579` misurato su PROD, nessun caso sulle partenze aperte.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
 
@@ -875,7 +886,7 @@ funziona con gli altri due vecchi.
 
 | | Cosa | Perché in questa posizione |
 |---|---|---|
-| 1 | **Script DB** `406` → `562` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
+| 1 | **Script DB** `406` → `579` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
 | 2 | **Flask nuovo** in produzione | Chiama funzioni che prima del passo 1 non esistono |
 | 3 | **MAUI 2.0** consegnata | Idem, e i client vanno aggiornati dopo lo schema |
 

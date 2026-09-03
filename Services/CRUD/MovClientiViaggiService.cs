@@ -42,6 +42,30 @@ namespace GestioneViaggi.Services.CRUD
         }
 
         /// <summary>
+        /// Se la partenza e' conclusa e quindi non accetta piu' iscrizioni.
+        ///
+        /// La definizione di «conclusa» sta in <c>fn_partenza_conclusa</c> (SqlScripts/578),
+        /// la stessa che blocca l'inserimento: l'interfaccia non se la ricalcola per conto
+        /// suo, altrimenti un pulsante attivo prometterebbe cio' che il database rifiuta.
+        /// </summary>
+        public async Task<bool> PartenzaConclusaAsync(int dataViaggioId)
+        {
+            try
+            {
+                await using var conn = await _connectionManager.GetConnectionAsync();
+                await using var cmd = new NpgsqlCommand("SELECT fn_partenza_conclusa(@id)", conn);
+                cmd.Parameters.AddWithValue("id", dataViaggioId);
+                return await cmd.ExecuteScalarAsync() is bool conclusa && conclusa;
+            }
+            catch
+            {
+                // Nel dubbio si lascia lavorare: il blocco vero e' a database, e sbagliare
+                // qui puo' al massimo far comparire un pulsante che poi si rifiuta.
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Chiede al database di validare l'iscrizione senza scriverla. Restituisce gli esiti
         /// con la loro gravita': e' cio' che permette alla form di chiedere l'email mancante
         /// prima di rifiutare, invece di limitarsi a dire di no.

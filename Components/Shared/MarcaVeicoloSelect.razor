@@ -21,6 +21,13 @@
     [Parameter]
     public EventCallback<int?> SelectedIdChanged { get; set; }
 
+    /// <summary>
+    /// Restringe le marche a quelle che hanno almeno un mezzo di questo tipo. Con null
+    /// le mostra tutte. La derivazione la fa il database (SqlScripts/577).
+    /// </summary>
+    [Parameter]
+    public int? TipoMezzoId { get; set; }
+
     [Parameter]
     public string Label { get; set; } = "Marca Veicolo";
 
@@ -45,13 +52,18 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDataAsync();
-    }
+    private int? _tipoCaricato;
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
+        // Cambiato il tipo, l'elenco non e' piu' quello: si rilegge. Il confronto sul tipo
+        // gia' caricato evita di rifare la query a ogni ridisegno del form.
+        if (_tipoCaricato != TipoMezzoId)
+        {
+            _tipoCaricato = TipoMezzoId;
+            await LoadDataAsync();
+        }
+
         UpdateSelection();
     }
 
@@ -76,7 +88,7 @@
     {
         try
         {
-            _items = await MarcaVeicoloService.GetAllAsync();
+            _items = await MarcaVeicoloService.GetByTipoMezzoAsync(TipoMezzoId);
             UpdateSelection();
         }
         catch (Exception ex)

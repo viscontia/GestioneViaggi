@@ -234,6 +234,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | D6 | Iscrivi a un viaggio **in Italia** una persona col documento scaduto | **Avviso**, non blocco (script `576`). Nuovo dal 2026-09-02: prima nessuno guardava la scadenza |
 | D7 | Iscrivi la stessa persona a un viaggio **all'estero** | **Rifiutato**: senza documento valido non si parte |
 | D8 | Iscrivi qualcuno il cui documento scade **durante** il viaggio | Segnalato lo stesso: non conta se è valido oggi, conta se arriva al rientro |
+| D9 | Prova a iscriverti a una partenza **già conclusa** (data di rientro passata) | **Rifiutato**: «Questa partenza si è conclusa: non si possono più aggiungere partecipanti» (script `578`). Nuovo dal 2026-09-03. Il sito passa dalla stessa `fn_mov_clienti_viaggi_valida` del gestionale, quindi la regola arriva **senza toccare il codice Flask** — ed è proprio questo che va verificato |
+| D10 | Guarda se il sito **mostra** partenze concluse fra quelle prenotabili | Se le mostra è un secondo difetto, di interfaccia: il rifiuto arriva solo dopo che la persona ha compilato tutto. Da annotare |
 | D5 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio |
 
 ---

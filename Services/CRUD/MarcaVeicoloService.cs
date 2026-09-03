@@ -40,6 +40,38 @@ public class MarcaVeicoloService : BaseCrudService<MarcaVeicolo>
         }
     }
 
+    /// <summary>
+    /// Le marche che hanno almeno un mezzo del tipo richiesto; con <c>null</c>, tutte.
+    ///
+    /// La derivazione sta nel database (SqlScripts/577): il tipo e' sul modello, non sulla
+    /// marca, e la stessa domanda la fara' il sito di iscrizione.
+    /// </summary>
+    public async Task<List<MarcaVeicolo>> GetByTipoMezzoAsync(int? tipoMezzoId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand(
+                "SELECT * FROM fn_ana_mezzi_marche_per_tipo(@tipo)", connection);
+            command.Parameters.AddWithValue("tipo", (object?)tipoMezzoId ?? DBNull.Value);
+
+            await using var reader = await command.ExecuteReaderAsync();
+
+            var items = new List<MarcaVeicolo>();
+            while (await reader.ReadAsync())
+            {
+                items.Add(MapFromReader(reader));
+            }
+
+            return items;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero delle marche per tipo mezzo {TipoMezzoId}", tipoMezzoId);
+            throw;
+        }
+    }
+
     public override async Task<MarcaVeicolo> CreateAsync(MarcaVeicolo entity)
     {
         return await CreateAsyncInternal(entity, true);

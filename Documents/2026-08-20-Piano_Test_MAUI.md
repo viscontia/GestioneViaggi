@@ -238,14 +238,37 @@ Due cose da tenere a mente eseguendo queste prove:
 | I2 | Iscrivi la stessa persona a un viaggio **all'estero** | **Rifiutato**: «Il viaggio è all'estero: senza documento valido non si parte» |
 | I3 | Iscrivi qualcuno il cui documento scade **durante** il viaggio (fra partenza e rientro) | Segnalato lo stesso: al rientro quel documento non vale più |
 | I4 | Apri i **partecipanti** di una partenza con qualcuno in queste condizioni | Le righe sono colorate: **rosso** chi non può partire (mancante o scaduto), **giallo** chi scade durante. L'icona ha un suggerimento che spiega quale dei due casi è |
+| I4b | Guarda **sotto la tabella** | C'è una **legenda** che spiega i colori, con solo le voci che servono davvero in quella partenza. Su una partenza senza problemi non compare affatto |
 | I5 | Lancia la **rooming list** di quella partenza | Prima della stampa compare l'elenco con **email e telefono** di chi va avvisato |
 | I6 | Nel riquadro premi **Annulla la stampa** | La stampa non parte |
 | I7 | Rilancia e premi **Ho letto, stampa** | Il PDF esce, e **in fondo** c'è la stessa nota in rosso |
-| I7b | Fra i segnalati mettine uno **senza email né telefono** in anagrafica | Nella nota stampata, sotto la tabella, una riga in rosso lo nomina: «non c'è né email né telefono in anagrafica… va trovato un recapito prima della partenza». È il caso peggiore — non parte, e non si sa come dirglielo |
+| I7b | Fra i segnalati **per il documento** mettine uno **senza email né telefono** | Nella nota stampata, sotto la tabella, una riga in rosso lo nomina: «non c'è né email né telefono in anagrafica… va trovato un recapito prima della partenza». È il caso peggiore — non parte, e non si sa come dirglielo. ⚠️ Il cliente dev'essere già segnalato **per il documento**: togliere i recapiti a chi ha il documento valido è il caso I7d, che è un'altra cosa |
+| I7d | Togli email e telefono a un **pilota** il cui documento è **valido**, poi apri partecipanti e stampa | Compare lo stesso, in **giallo**, con «Guida senza email né telefono in anagrafica: non c'è modo di avvisarlo». Prima di questa correzione non lo segnalava nessuno (difetto 46) |
+| I7e | Fai lo stesso su un **passeggero** col documento valido | **Non** compare: per un passeggero il recapito può mancare di proposito — spesso è la compagna del pilota, e il contatto è il suo |
 | I7c | Stampa una partenza con **più di dieci** persone da sistemare | La nota non si spezza a metà: la testata resta unita e la tabella prosegue **ripetendo l'intestazione**. Sotto le dieci resta tutta su una pagina |
 | I8 | Ripeti I5–I7 con **Stampa Scheda Data Viaggio** e **Stampa Dettaglio Data Viaggio** | Stesso comportamento: sono le tre stampe che si usano prima di partire |
+| I8b | Lancia le stesse due stampe dagli **altri punti**: menu laterale, dashboard, elenco date del viaggio | L'avviso compare **da tutti**. Erano sette punti che componevano la stampa a mano, e l'avviso usciva da uno solo (difetto risolto il 2026-09-03: `SchedaViaggioStampaService`) |
 | I9 | Lancia una stampa **non** di partenza (registro IVA, scadenzario, fatture) | **Nessun avviso e nessuna nota**: non hanno niente a che vedere con chi parte |
 | I10 | Apri una partenza in cui **tutti** hanno il documento valido e stampa | **Nessun riquadro**: chi lavora su partenze a posto non deve imparare a chiudere un dialogo per stampare |
+
+---
+
+## J — Iscrizione: partenza conclusa e scelta del mezzo (nuovo, 2026-09-03)
+
+Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
+
+| # | Cosa fai | Cosa deve succedere |
+|---|---|---|
+| J1 | Apri i partecipanti di una partenza **già conclusa** (data di rientro passata) | Il pulsante **Nuovo** è **spento**, e il suggerimento dice perché: «Questa partenza si è conclusa…». Non sparisce: un comando che scompare fa pensare a un guasto |
+| J2 | Apri i partecipanti di una partenza **futura** | Il pulsante **Nuovo** è normale |
+| J3 | Apri una partenza marcata **effettuata** ma con data futura | Il pulsante è **spento** lo stesso: conta anche la spunta, non solo la data |
+| J4 | Prova a **modificare** un'iscrizione esistente su una partenza conclusa | **Si può**: su un viaggio passato serve ancora correggere una targa o un ruolo. Si blocca l'inserimento, non la correzione |
+| J5 | Da **Iscrizione Veloce**, scegli una partenza conclusa (se l'elenco te la fa scegliere) | Compare l'avviso rosso e il pulsante **Inserisci** è spento |
+| J6 | Iscrivi un **pilota** e guarda i Dettagli Veicolo | Sopra marca e modello c'è **Tipo di mezzo**. Scegli «AUTO 4X4 CON RIDUTTORE»: le marche passano da 27 a **12** |
+| J7 | Cambia il tipo dopo aver scelto marca e modello | Marca e modello si **azzerano**: la terna precedente non esisterebbe più |
+| J8 | Scegli un **modello** senza aver scelto né tipo né marca | Marca **e** tipo si compilano da soli: il modello li conosce entrambi |
+| J9 | **Riapri in modifica** un'iscrizione con un mezzo già inserito | Il tipo si legge, dedotto dal modello. Non è salvato da nessuna parte: sta già sul modello |
+| J10 | Apri **Iscrizione Veloce**, scegli il viaggio e premi **TAB** | Il cursore va sulla **tendina della data**. Prima la saltava, perché all'apertura quella tendina è disabilitata e non entrava nella fila |
 
 ---
 

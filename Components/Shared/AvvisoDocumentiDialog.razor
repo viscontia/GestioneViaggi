@@ -18,7 +18,7 @@
     <TitleContent>
         <div class="d-flex align-center gap-2">
             <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Error" />
-            <MudText Typo="Typo.h6">Documenti da verificare prima della partenza</MudText>
+            <MudText Typo="Typo.h6">Da sistemare prima della partenza</MudText>
         </div>
     </TitleContent>
     <DialogContent>
@@ -36,6 +36,14 @@
                 }
             </MudAlert>
         }
+        @if (SenzaRecapito.Any())
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
+                <b>@SenzaRecapito.Count @(SenzaRecapito.Count == 1 ? "pilota non è raggiungibile" : "piloti non sono raggiungibili").</b>
+                Guidano e non hanno né email né telefono in anagrafica: se il programma cambia
+                non c'è modo di avvisarli.
+            </MudAlert>
+        }
         @if (InScadenza.Any())
         {
             <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
@@ -50,7 +58,7 @@
                     <th>Cognome e nome</th>
                     <th>Email</th>
                     <th>Telefono</th>
-                    <th>Documento</th>
+                    <th>Da sistemare</th>
                 </tr>
             </thead>
             <tbody>
@@ -66,7 +74,7 @@
             </tbody>
         </MudSimpleTable>
 
-        @if (Partecipanti.Any(p => string.IsNullOrWhiteSpace(p.Email) && string.IsNullOrWhiteSpace(p.TelefonoCompleto)))
+        @if (Partecipanti.Any(p => !p.SenzaRecapito && string.IsNullOrWhiteSpace(p.Email) && string.IsNullOrWhiteSpace(p.TelefonoCompleto)))
         {
             <MudText Typo="Typo.caption" Class="d-block mt-2 mud-text-secondary">
                 Per chi non ha né email né telefono in anagrafica non c'è modo di avvisare:
@@ -92,5 +100,6 @@
     [Parameter, EditorRequired] public List<DocumentoNonValido> Partecipanti { get; set; } = new();
 
     private List<DocumentoNonValido> Impedimenti => Partecipanti.Where(p => p.Impedisce).ToList();
-    private List<DocumentoNonValido> InScadenza => Partecipanti.Where(p => !p.Impedisce).ToList();
+    private List<DocumentoNonValido> SenzaRecapito => Partecipanti.Where(p => p.SenzaRecapito).ToList();
+    private List<DocumentoNonValido> InScadenza => Partecipanti.Where(p => !p.Impedisce && !p.SenzaRecapito).ToList();
 }

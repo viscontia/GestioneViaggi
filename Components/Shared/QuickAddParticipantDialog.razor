@@ -32,7 +32,7 @@
                     </MudSelect>
 
                     <!-- 2. Select Date -->
-                    <MudSelect T="int" Label="Seleziona Data" @bind-Value="_selectedDataId" 
+                    <MudSelect T="int" Label="Seleziona Data" Value="_selectedDataId" ValueChanged="OnDataChanged"
                                Disabled="@(_selectedViaggioId == 0)" Required="true" 
                                AdornmentIcon="@Icons.Material.Filled.CalendarMonth" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach(var d in _dateList)
@@ -40,10 +40,19 @@
                             <MudSelectItem Value="@d.Id">Dal @d.DataInizio?.ToString("dd/MM/yyyy") al @d.DataFine?.ToString("dd/MM/yyyy")</MudSelectItem>
                         }
                     </MudSelect>
+                    @* L'elenco qui mostra solo partenze future, ma la data puo' essere passata
+                       mentre la finestra era aperta, o la partenza puo' essere stata marcata come
+                       effettuata. Chi guarda deve capire subito perche' non puo' proseguire. *@
+                    @if (_partenzaConclusa)
+                    {
+                        <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
+                            Questa partenza si è conclusa: non si possono più aggiungere partecipanti.
+                        </MudAlert>
+                    }
                 </MudCard>
 
                 <!-- STEP 2: PARTICIPANT DATA -->
-                @if (_selectedDataId > 0)
+                @if (_selectedDataId > 0 && !_partenzaConclusa)
                 {
                     <ClienteSelect @bind-SelectedCliente="@_selectedCliente"
                                    AziendaId="@_currentAziendaId"
@@ -98,7 +107,12 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(!_isValid)">Inserisci</MudButton>
+        <MudTooltip Text="@(_partenzaConclusa
+                ? "Questa partenza si è conclusa: non si possono più aggiungere partecipanti."
+                : "Iscrive il partecipante")">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                       Disabled="@(!_isValid || _partenzaConclusa)">Inserisci</MudButton>
+        </MudTooltip>
     </DialogActions>
 </MudDialog>
 
@@ -126,6 +140,13 @@
     private MudForm _form = default!;
     private bool _isValid;
 
+    /// <summary>
+    /// Se la partenza scelta e' gia' conclusa. Lo dice il database
+    /// (<c>fn_partenza_conclusa</c>, SqlScripts/578), la stessa definizione che rifiuta
+    /// l'inserimento: qui non si riscrive un confronto di date per conto proprio.
+    /// </summary>
+    private bool _partenzaConclusa;
+
     protected override async Task OnInitializedAsync()
     {
          // Load Lookups
@@ -139,10 +160,17 @@
         _viaggiList = allViaggi.OrderBy(x => x.DescrizioneBreve).ToList();
     }
 
+    private async Task OnDataChanged(int dataId)
+    {
+        _selectedDataId = dataId;
+        _partenzaConclusa = dataId > 0 && await MovClientiService.PartenzaConclusaAsync(dataId);
+    }
+
     private async Task OnViaggioChanged(int viaggioId)
     {
         _selectedViaggioId = viaggioId;
         _selectedDataId = 0;
+        _partenzaConclusa = false;
         
         // Load Dates for this Trip
         var dates = await ViaggiService.GetDatesByTripIdAsync(viaggioId, null, false, true); // Future Only

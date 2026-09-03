@@ -121,6 +121,9 @@ public static class MauiProgram
         // dei partecipanti, l'avviso prima delle stampe di partenza e le stampe stesse.
         builder.Services.AddScoped<Services.CRUD.DocumentiPartecipantiService>();
         builder.Services.AddScoped<Services.Printing.ControlloDocumentiPrestampa>();
+        // Flusso unico della scheda viaggio: si lancia da sette punti, e il controllo sui
+        // documenti deve valere per tutti.
+        builder.Services.AddScoped<Services.Printing.SchedaViaggioStampaService>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();

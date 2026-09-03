@@ -24,6 +24,12 @@
     [Parameter]
     public int? MarcaId { get; set; }
 
+    /// <summary>
+    /// Restringe i modelli a questo tipo di mezzo. Con null non filtra.
+    /// </summary>
+    [Parameter]
+    public int? TipoMezzoId { get; set; }
+
     [Parameter]
     public string Label { get; set; } = "Modello Veicolo";
 
@@ -113,6 +119,14 @@
             return Enumerable.Empty<MezzoModello>();
 
         var query = _allMetaItems.AsEnumerable();
+
+        // Il tipo prima della marca: e' la scelta piu' larga, ed e' quella che rende
+        // sensato l'elenco delle marche a fianco. Un modello senza tipo in tabella resta
+        // visibile, per non rendere impossibile un'iscrizione a causa di un dato mancante.
+        if (TipoMezzoId.HasValue && TipoMezzoId.Value > 0)
+        {
+            query = query.Where(x => x.TipoMezzoIdFk == TipoMezzoId.Value || x.TipoMezzoIdFk == 0);
+        }
 
         // Applica SEMPRE il filtro Marca se presente
         if (MarcaId.HasValue && MarcaId.Value > 0)

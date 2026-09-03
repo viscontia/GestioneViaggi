@@ -19,6 +19,7 @@
 @inject Services.Printing.IPdfOpenerService PdfOpenerService
 @inject ISnackbar Snackbar
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
+@inject GestioneViaggi.Services.Printing.SchedaViaggioStampaService SchedaViaggioStampaService
 
 <MudStack Spacing="4" Class="@(_isLoading ? "" : "fade-in-content")">
 
@@ -1347,49 +1348,9 @@
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
         {
-            try 
-            {
-                var data = await PrintService.GetPrintDataAsync(dataViaggioId);
-
-                // STANDARD: Save to Downloads
-                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-
-                // Create descriptive filename
-                var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header);
-                var filePath = Path.Combine(targetFolder, fileName);
-
-                // STANDARD: Overwrite check
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-
-                await GestioneViaggi.Services.Printing.ViaggiPrinter.GeneratePdfAsync(data, filePath);
-
-                // STANDARD: Confirmation and Open
-                bool? confirm = await DialogService.ShowMessageBox(
-                    "Stampa Completata", 
-                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?", 
-                    yesText: "Sì, Apri", cancelText: "No");
-
-                if (confirm == true)
-                {
-                    // STANDARD: Cross-Platform Open
-#if MACCATALYST
-                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
-#else
-                    await Launcher.Default.OpenAsync(new OpenFileRequest
-                    {
-                        Title = "Scheda Viaggio",
-                        File = new ReadOnlyFile(filePath)
-                    });
-#endif
-                }
-            }
-            catch(Exception ex)
-            {
-                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
-            }
+            // Flusso unico in SchedaViaggioStampaService: controllo documenti, generazione e
+            // apertura. Era ripetuto in sette punti, e l'avviso sui documenti compariva da uno solo.
+            await SchedaViaggioStampaService.StampaAsync(dataViaggioId, dettagliata: false);
         }
     }
 
@@ -1408,37 +1369,9 @@
 
         if (result != null && !result.Canceled && result.Data is int dataViaggioId)
         {
-            try 
-            {
-                var data = await PrintService.GetPrintDataAsync(dataViaggioId);
-
-                // STANDARD: Save to Downloads
-                var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-                var fileName = Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
-                var filePath = Path.Combine(targetFolder, fileName);
-
-                if (System.IO.File.Exists(filePath)) System.IO.File.Delete(filePath);
-
-                await GestioneViaggi.Services.Printing.ViaggiPrinter.GenerateDetailedPdfAsync(data, filePath);
-
-                bool? confirm = await DialogService.ShowMessageBox(
-                    "Stampa Completata", 
-                    $"Il file è stato salvato in Downloads:\n{fileName}\n\nVuoi aprirlo?", 
-                    yesText: "Sì, Apri", cancelText: "No");
-
-                if (confirm == true)
-                {
-#if MACCATALYST
-                    System.Diagnostics.Process.Start("open", $"\"{filePath}\"");
-#else
-                    await Launcher.Default.OpenAsync(new OpenFileRequest { Title = "Scheda Dettaglio", File = new ReadOnlyFile(filePath) });
-#endif
-                }
-            }
-            catch(Exception ex)
-            {
-                Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
-            }
+            // Flusso unico in SchedaViaggioStampaService: controllo documenti, generazione e
+            // apertura. Era ripetuto in sette punti, e l'avviso sui documenti compariva da uno solo.
+            await SchedaViaggioStampaService.StampaAsync(dataViaggioId, dettagliata: true);
         }
     }
 

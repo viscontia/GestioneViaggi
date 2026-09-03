@@ -15,11 +15,9 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
-@inject IPdfOpenerService PdfOpenerService
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
-@inject Services.Printing.ITravelPrintService TravelPrintService
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
-@inject GestioneViaggi.Services.Printing.ControlloDocumentiPrestampa ControlloDocumenti
+@inject GestioneViaggi.Services.Printing.SchedaViaggioStampaService SchedaViaggioStampaService
 @inject GestioneViaggi.Services.CRUD.DocumentiPartecipantiService DocumentiPartecipanti
 
 @* Il titolo NON si disegna qui con <TitleContent>: quel frammento viene reso una volta dal
@@ -67,10 +65,19 @@
                                     </MudMenu>
                                 </MudButtonGroup>
 
-                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.Add" OnClick="@(async () => await ResetForm())">
-                                    Nuovo
-                                </MudButton>
+                                @* Su una partenza conclusa non si iscrive piu' nessuno. Il pulsante non
+                                   sparisce, si spegne e dice perche': un comando che scompare lascia
+                                   pensare a un guasto. Il rifiuto vero e' a database (SqlScripts/578). *@
+                                <MudTooltip Text="@(_partenzaConclusa
+                                        ? "Questa partenza si è conclusa: non si possono più aggiungere partecipanti."
+                                        : "Aggiungi un partecipante")">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               Disabled="@_partenzaConclusa"
+                                               OnClick="@(async () => await ResetForm())">
+                                        Nuovo
+                                    </MudButton>
+                                </MudTooltip>
                             </div>
                         </div>
 
@@ -244,6 +251,44 @@
                                             </tbody>
 
                                             </MudSimpleTable>
+
+                                            @* Perche' quelle righe sono colorate. L'icona con il tooltip dice il
+                                               caso singolo, ma va cercata riga per riga: chi apre l'elenco e vede
+                                               due colori vuole sapere subito cosa distingue l'uno dall'altro.
+                                               Compare solo quando serve, altrimenti spiegherebbe il nulla. *@
+                                            @if (DocumentiDaSistemare.Count > 0)
+                                            {
+                                                <div class="d-flex align-center flex-wrap gap-4 mt-2 px-2">
+                                                    <MudText Typo="Typo.caption" Class="mud-text-secondary"><b>Colori:</b></MudText>
+                                                    @if (DocumentiDaSistemare.Values.Any(d => d.Impedisce))
+                                                    {
+                                                        <div class="d-flex align-center gap-2">
+                                                            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background-color:rgba(211,47,47,0.16);border-left:4px solid #d32f2f;"></span>
+                                                            <MudText Typo="Typo.caption">
+                                                                Documento mancante o scaduto: <b>non può partire</b>
+                                                            </MudText>
+                                                        </div>
+                                                    }
+                                                    @if (DocumentiDaSistemare.Values.Any(d => !d.Impedisce && !d.SenzaRecapito))
+                                                    {
+                                                        <div class="d-flex align-center gap-2">
+                                                            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background-color:rgba(237,108,2,0.14);border-left:4px solid #ed6c02;"></span>
+                                                            <MudText Typo="Typo.caption">
+                                                                Documento in scadenza <b>durante</b> il viaggio: parte, ma va avvisato
+                                                            </MudText>
+                                                        </div>
+                                                    }
+                                                    @if (DocumentiDaSistemare.Values.Any(d => d.SenzaRecapito))
+                                                    {
+                                                        <div class="d-flex align-center gap-2">
+                                                            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background-color:rgba(237,108,2,0.14);border-left:4px solid #ed6c02;"></span>
+                                                            <MudText Typo="Typo.caption">
+                                                                Guida <b>senza email né telefono</b>: non c'è modo di avvisarlo
+                                                            </MudText>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
                                         </ChildContent>
                                     </MudTabPanel>
 
@@ -610,6 +655,13 @@
     /// documento valido allora puo' non esserlo piu' adesso.
     /// </summary>
     private Dictionary<int, GestioneViaggi.Models.DocumentoNonValido> DocumentiDaSistemare = new();
+
+    /// <summary>
+    /// Se questa partenza e' gia' conclusa. Lo dice il database (<c>fn_partenza_conclusa</c>),
+    /// non un confronto di date scritto qui: la stessa definizione blocca l'inserimento, e
+    /// due definizioni diverse darebbero un pulsante attivo su cio' che poi viene rifiutato.
+    /// </summary>
+    private bool _partenzaConclusa;
     private List<ParticipantsViewDTO> _participantsWithoutRoom = new(); // NEW DB-CENTRIC: Caricati da get_participants_without_accommodation()
     private List<TipoPartecipante> _tipoPartecipanti = new();
     private List<TipoAlloggio> _tipoAlloggi = new();
@@ -648,10 +700,8 @@
 
     private async Task OnStampaSchedaViaggioClick()
     {
-        // Prima delle opzioni di stampa: chi parte con un documento che non arriva alla
-        // fine del viaggio. Non blocca, ma si puo' annullare per sistemare prima.
-        if (!await ControlloDocumenti.SiPuoStampareAsync(DataViaggioId)) return;
-
+        // Il controllo sui documenti lo fa SchedaViaggioStampaService, dopo la scelta del
+        // tipo di scheda: cosi' vale anche per gli altri sei punti da cui si stampa.
         var parameters = new DialogParameters { ["DataViaggioId"] = DataViaggioId };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
         await DialogService.ShowAsync<StampaSchedaViaggioDialog>("Opzioni di Stampa", parameters, options);
@@ -659,31 +709,9 @@
 
     private async Task OnStampaDettaglioViaggioClick()
     {
-        if (DataViaggioId <= 0)
-        {
-            Snackbar.Add("Impossibile stampare: ID Viaggio non valido", Severity.Error);
-            return;
-        }
-
-        if (!await ControlloDocumenti.SiPuoStampareAsync(DataViaggioId)) return;
-
-        try
-        {
-            // Direct call for detailed sheet as requested by the shortcut menu
-            var data = await TravelPrintService.GetPrintDataAsync(DataViaggioId);
-            
-            var fileName = GestioneViaggi.Services.Printing.PdfFileNameHelper.GetTravelSheetFileName(data.Header, detailed: true);
-            
-            var targetFolder = PdfOpenerService.GetPdfOutputFolder();
-            var outputPath = Path.Combine(targetFolder, fileName);
-
-            await ViaggiPrinter.GenerateDetailedPdfAsync(data, outputPath);
-            await PdfOpenerService.OpenPdfAsync(outputPath, "Stampa Dettagliata Completata");
-        }
-        catch(Exception ex)
-        {
-            Snackbar.Add($"Errore stampa: {ex.Message}", Severity.Error);
-        }
+        // Flusso unico in SchedaViaggioStampaService: controllo documenti, generazione e
+        // apertura. Era ripetuto in sette punti, e l'avviso sui documenti compariva da uno solo.
+        await SchedaViaggioStampaService.StampaAsync(DataViaggioId, dettagliata: true);
     }
 
     private void ShowDevelopmentMessage(string featureName)
@@ -730,6 +758,7 @@
 
             var daSistemare = await DocumentiPartecipanti.DaSistemareAsync(DataViaggioId);
             DocumentiDaSistemare = daSistemare.ToDictionary(d => d.ClienteId);
+            _partenzaConclusa = await MovClientiService.PartenzaConclusaAsync(DataViaggioId);
             _participantsWithoutRoom = _initData.ParticipantsWithoutRoom;
             _participantsCount = _initData.ParticipantsCount;
             _roomsCount = _initData.RoomsCount;

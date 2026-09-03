@@ -1,5 +1,6 @@
 using GestioneViaggi.Models;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 
 namespace GestioneViaggi.Components.Shared;
@@ -7,6 +8,8 @@ namespace GestioneViaggi.Components.Shared;
 public partial class TravelDataSelectorDialog
 {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     [Parameter] public int AziendaId { get; set; }
     [Parameter] public bool IsSuperAdmin { get; set; }
@@ -52,6 +55,32 @@ public partial class TravelDataSelectorDialog
         if (!IsSuperAdmin && _selectedAziendaId > 0)
         {
             await LoadTreeDataAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primoRender)
+    {
+        if (primoRender) await PreparaTabulatore(conFuoco: true);
+    }
+
+    /// <summary>
+    /// Rimette in fila i campi per il tabulatore.
+    ///
+    /// Va rifatto quando la tendina delle date si abilita: l'helper fotografa i campi UNA
+    /// volta, e all'apertura quella tendina e' disabilitata — quindi non entrava nella fila,
+    /// e dal viaggio il tabulatore saltava direttamente oltre. Era l'unico dialogo dei 55 a
+    /// non agganciare l'helper affatto.
+    /// </summary>
+    private async Task PreparaTabulatore(bool conFuoco)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation",
+                                     ".mud-dialog-content", !conFuoco);
+        }
+        catch
+        {
+            // Senza JS il dialogo resta usabile col mouse: non e' un motivo per fermarlo.
         }
     }
 
@@ -121,6 +150,11 @@ public partial class TravelDataSelectorDialog
             {
                 _isLoadingDates = false;
             }
+
+            // La tendina delle date ora esiste ed e' attiva: va rimessa nella fila del
+            // tabulatore. Senza fuoco, che deve restare dov'e' l'utente.
+            StateHasChanged();
+            await PreparaTabulatore(conFuoco: false);
         }
     }
 
