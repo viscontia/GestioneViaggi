@@ -275,7 +275,7 @@
     /// </summary>
     private string Titolo =>
         string.IsNullOrWhiteSpace(Entity?.DescrizioneBreve)
-            ? MudDialog.Title
+            ? MudDialog.Title ?? "Viaggio"
             // Due punti e non un trattino: e' la forma che usano gia' la scheda Azienda
             // («Modifica Azienda: …») e quella Cliente, e non c'e' motivo di averne una terza.
             : $"{MudDialog.Title}: {Entity.DescrizioneBreve}";

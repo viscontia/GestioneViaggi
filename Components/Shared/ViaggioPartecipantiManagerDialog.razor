@@ -397,7 +397,7 @@
                     <MudPaper Elevation="0" Class="pa-3 h-100">
                          <MudText Typo="Typo.h6" Class="mb-3">@(_isEditMode ? "Modifica Partecipante" : "Nuovo Inserimento")</MudText>
 
-                             <MudForm @ref="_form" Model="@_currentEntity" @bind-IsValid="@_isValid">
+                             <MudForm @ref="_form" Model="@_currentEntity">
 
                                  <!-- 1. Selection Cliente -->
                                  <ClienteSelect @bind-SelectedCliente="_selectedCliente"
@@ -619,7 +619,13 @@
                                 {
                                          <MudButton Variant="Variant.Outlined" OnClick="@(async () => await ResetForm())">Annulla Modifica</MudButton>
                                 }
-                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(!_isValid)">
+                                 @* Il pulsante non dipende dalla validita' della form.
+                                    Legarcelo significava lasciare un comando spento senza dire
+                                    perche': in modifica MudForm nasce non valida e ci restava,
+                                    quindi «Aggiorna» era spento su dati corretti e cambiare le
+                                    sole Note non bastava a riaccenderlo. Ora si preme sempre, e
+                                    se manca qualcosa e' il salvataggio a dirlo. *@
+                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
                                     @(_isEditMode ? "Aggiorna" : "Salva e Nuovo")
                                  </MudButton>
                              </div>
@@ -675,7 +681,6 @@
 
     // UI State
     private MudForm _form = default!;
-    private bool _isValid;
     private bool _isLoadingList = true;
     private bool _isEditMode = false;
     private bool _hasDog = false;
@@ -684,16 +689,6 @@
     private int? _selectedExistingRoomId = null; // ID camera esistente selezionata
     private bool _needsTabRefresh = false; // Flag per richiedere refresh Tab navigation dopo render
 
-    /// <summary>
-    /// Chiede di validare la form dopo il prossimo disegno.
-    ///
-    /// Serve aprendo una scheda <b>in modifica</b>: <c>MudForm</c> nasce non valida e lo
-    /// resta finche' qualcuno non tocca un campo che le faccia rifare i conti. Il pulsante
-    /// «Aggiorna» dipende da quello stato, quindi si presentava <b>spento su dati gia'
-    /// corretti</b>, e cambiare le sole Note non bastava a riaccenderlo. In inserimento non
-    /// si vedeva: li' i campi obbligatori si compilano per forza, e la form si valida da se'.
-    /// </summary>
-    private bool _daRivalidare = false;
 
     // DTO for List
     // DTO for List is now in Models.DTOs namespace
@@ -831,7 +826,16 @@
     private async Task SaveAsync()
     {
         await _form.Validate();
-        if (!_form.IsValid) return;
+        if (!_form.IsValid)
+        {
+            // Tornare in silenzio lasciava l'utente davanti a un pulsante che non fa niente,
+            // senza un modo per sapere quale campo lo rifiuta.
+            var mancanti = _form.Errors is { Length: > 0 }
+                ? string.Join(" · ", _form.Errors.Distinct())
+                : "Controllare i campi obbligatori.";
+            Snackbar.Add(mancanti, Severity.Warning);
+            return;
+        }
 
         if (_selectedCliente == null)
         {
@@ -1002,9 +1006,6 @@
             // Fetch Client for Autocomplete
             _selectedCliente = await ClienteService.GetByIdAsync(item.ClienteId, AziendaId);
 
-            // I dati di un'iscrizione che esiste sono gia' passati dai controlli: la form
-            // deve saperlo, o il pulsante resta spento su una scheda a posto.
-            _daRivalidare = true;
 
             _hasDog = _currentEntity.MovClienteViaggioCaneSino == "Y";
 
@@ -1091,14 +1092,6 @@
         {
             _needsTabRefresh = false;
             await RefreshTabNavigationAsync();
-        }
-
-        // Dopo il disegno, non prima: la form deve avere i valori nuovi sotto gli occhi.
-        if (_daRivalidare)
-        {
-            _daRivalidare = false;
-            if (_form is not null) await _form.Validate();
-            StateHasChanged();
         }
     }
 
