@@ -684,6 +684,17 @@
     private int? _selectedExistingRoomId = null; // ID camera esistente selezionata
     private bool _needsTabRefresh = false; // Flag per richiedere refresh Tab navigation dopo render
 
+    /// <summary>
+    /// Chiede di validare la form dopo il prossimo disegno.
+    ///
+    /// Serve aprendo una scheda <b>in modifica</b>: <c>MudForm</c> nasce non valida e lo
+    /// resta finche' qualcuno non tocca un campo che le faccia rifare i conti. Il pulsante
+    /// «Aggiorna» dipende da quello stato, quindi si presentava <b>spento su dati gia'
+    /// corretti</b>, e cambiare le sole Note non bastava a riaccenderlo. In inserimento non
+    /// si vedeva: li' i campi obbligatori si compilano per forza, e la form si valida da se'.
+    /// </summary>
+    private bool _daRivalidare = false;
+
     // DTO for List
     // DTO for List is now in Models.DTOs namespace
 
@@ -991,6 +1002,10 @@
             // Fetch Client for Autocomplete
             _selectedCliente = await ClienteService.GetByIdAsync(item.ClienteId, AziendaId);
 
+            // I dati di un'iscrizione che esiste sono gia' passati dai controlli: la form
+            // deve saperlo, o il pulsante resta spento su una scheda a posto.
+            _daRivalidare = true;
+
             _hasDog = _currentEntity.MovClienteViaggioCaneSino == "Y";
 
             // Fetch existing accommodation for this client
@@ -1076,6 +1091,14 @@
         {
             _needsTabRefresh = false;
             await RefreshTabNavigationAsync();
+        }
+
+        // Dopo il disegno, non prima: la form deve avere i valori nuovi sotto gli occhi.
+        if (_daRivalidare)
+        {
+            _daRivalidare = false;
+            if (_form is not null) await _form.Validate();
+            StateHasChanged();
         }
     }
 

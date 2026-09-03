@@ -263,6 +263,7 @@ Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
 | J2 | Apri i partecipanti di una partenza **futura** | Il pulsante **Nuovo** è normale |
 | J3 | Apri una partenza marcata **effettuata** ma con data futura | Il pulsante è **spento** lo stesso: conta anche la spunta, non solo la data |
 | J4 | Prova a **modificare** un'iscrizione esistente su una partenza conclusa | **Si può**: su un viaggio passato serve ancora correggere una targa o un ruolo. Si blocca l'inserimento, non la correzione |
+| J4b | Apri un'iscrizione in modifica e **guarda subito** il pulsante «Aggiorna» | È **acceso**: i dati ci sono già e sono corretti. Prima nasceva spento, e cambiare le sole **Note** non bastava a riaccenderlo |
 | J5 | Da **Iscrizione Veloce**, scegli una partenza conclusa (se l'elenco te la fa scegliere) | Compare l'avviso rosso e il pulsante **Inserisci** è spento |
 | J6 | Iscrivi un **pilota** e guarda i Dettagli Veicolo | Sopra marca e modello c'è **Tipo di mezzo**. Scegli «AUTO 4X4 CON RIDUTTORE»: le marche passano da 27 a **12** |
 | J7 | Cambia il tipo dopo aver scelto marca e modello | Marca e modello si **azzerano**: la terna precedente non esisterebbe più |
