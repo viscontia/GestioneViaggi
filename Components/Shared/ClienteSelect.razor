@@ -7,7 +7,7 @@
     SearchFunc="@SearchClienti" ToStringFunc="@(x => x == null ? null : $"{x.Cognome} {x.Nome}")"
     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.Search"
     AdornmentColor="Color.Primary" Required="@Required" RequiredError="@RequiredError" Disabled="@Disabled"
-    Class="@Class" Variant="Variant.Outlined" Margin="Margin.Dense">
+    Class="@Class" Variant="Variant.Outlined" Margin="Margin.Dense" InputId="@InputId">
     <ItemTemplate Context="cliente">
         <div class="d-flex align-center gap-3 py-1">
             <!-- Main: Name (Bold) -->
@@ -55,6 +55,13 @@
 
     [Parameter] public Cliente? SelectedCliente { get; set; }
     [Parameter] public EventCallback<Cliente?> SelectedClienteChanged { get; set; }
+
+    /// <summary>
+    /// Id da mettere sull'input. Serve a chi deve posizionarci il cursore: senza, l'unico
+    /// modo era cercare «il primo campo di testo del dialogo», che dipende da come sono
+    /// disposti gli altri campi e si rompe appena qualcuno ne aggiunge uno prima.
+    /// </summary>
+    [Parameter] public string? InputId { get; set; }
 
     [Parameter] public string Label { get; set; } = "Cliente";
     [Parameter] public bool Required { get; set; } = false;

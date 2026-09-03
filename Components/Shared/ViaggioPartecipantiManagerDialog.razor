@@ -402,6 +402,7 @@
                                  <!-- 1. Selection Cliente -->
                                  <ClienteSelect @bind-SelectedCliente="_selectedCliente"
                                                 AziendaId="@AziendaId"
+                                                InputId="campo-cliente-iscrizione"
                                                 Required="true" 
                                                 RequiredError="Selezionare un cliente"
                                                 Disabled="@_isEditMode" 
@@ -1033,6 +1034,10 @@
 
         // Refresh participants list to show newly added pilots
         await LoadListAsync();
+
+        // Stesso comportamento del dopo-salvataggio: la form a fianco e' pronta, e il
+        // cursore sta dove si comincia a scrivere.
+        await SetFocusOnClienteFieldAsync();
     }
 
     private async Task RefreshTabNavigationAsync()
@@ -1047,20 +1052,20 @@
         catch { /* Ignore JS errors */ }
     }
 
+    /// <summary>
+    /// Mette il cursore sul campo Cliente: e' il primo dato da inserire, e chi preme «Nuovo»
+    /// o ha appena salvato vuole ricominciare a digitare, non cercare col mouse dove.
+    ///
+    /// Il campo si cerca per <b>id</b>. Prima si prendeva «il primo input di testo del
+    /// dialogo», che e' vero finche' nessuno aggiunge un campo prima di quello.
+    /// </summary>
     private async Task SetFocusOnClienteFieldAsync()
     {
         try
         {
             // Delay per permettere a Blazor di aggiornare il DOM dopo StateHasChanged
             await Task.Delay(150);
-            // Cerca il primo input del MudAutocomplete (campo Cliente) e setta il focus
-            await JS.InvokeVoidAsync("eval", @"
-                const clienteInput = document.querySelector('.mud-dialog-content input[type=""text""]');
-                if (clienteInput) {
-                    clienteInput.focus();
-                    clienteInput.select();
-                }
-            ");
+            await JS.InvokeVoidAsync("focusHelper.focusSearchField", "#campo-cliente-iscrizione");
         }
         catch { /* Ignore JS errors */ }
     }

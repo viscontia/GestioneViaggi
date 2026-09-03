@@ -11,7 +11,7 @@
        viaggi saltando anche il controllo sulle modifiche non salvate. *@
     <TitleContent>
         <div class="d-flex align-center justify-space-between" style="width:100%;">
-            <MudText Typo="Typo.h6">@MudDialog.Title</MudText>
+            <MudText Typo="Typo.h6">@Titolo</MudText>
             <MudTooltip Text="@(TornaAiContenuti ? "Torna alla scheda Contenuti" : "Chiudi")">
                 <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
                                OnClick="ChiudiDallaX" aria-label="Chiudi" />
@@ -263,6 +263,22 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>
+    /// Il titolo dice <b>di quale viaggio</b> si tratta, non solo che si sta modificando
+    /// un viaggio: aperta la scheda dalle Date e Costi, il nome non compare da nessun'altra
+    /// parte, e chi ne apre due di seguito non ha modo di sapere quale ha davanti.
+    ///
+    /// Si compone qui e non nei quattro punti che aprono il dialogo: il nome puo' anche
+    /// cambiare mentre la scheda e' aperta, e con quattro stringhe scritte da fuori
+    /// resterebbe quello di quando si e' aperta.
+    /// </summary>
+    private string Titolo =>
+        string.IsNullOrWhiteSpace(Entity?.DescrizioneBreve)
+            ? MudDialog.Title
+            // Due punti e non un trattino: e' la forma che usano gia' la scheda Azienda
+            // («Modifica Azienda: …») e quella Cliente, e non c'e' motivo di averne una terza.
+            : $"{MudDialog.Title}: {Entity.DescrizioneBreve}";
 
     [Inject] public AnaViaggiService ViaggiService { get; set; } = default!;
     [Inject] public IDialogService DialogService { get; set; } = default!;

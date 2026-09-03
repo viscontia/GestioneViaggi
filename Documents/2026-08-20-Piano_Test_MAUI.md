@@ -269,6 +269,8 @@ Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
 | J8 | Scegli un **modello** senza aver scelto né tipo né marca | Marca **e** tipo si compilano da soli: il modello li conosce entrambi |
 | J9 | **Riapri in modifica** un'iscrizione con un mezzo già inserito | Il tipo si legge, dedotto dal modello. Non è salvato da nessuna parte: sta già sul modello |
 | J10 | Apri **Iscrizione Veloce**, scegli il viaggio e premi **TAB** | Il cursore va sulla **tendina della data**. Prima la saltava, perché all'apertura quella tendina è disabilitata e non entrava nella fila |
+| J11 | Apri un viaggio in modifica e passa a **Date e Costi** | Il titolo dice «Modifica Viaggio: **NOME**». Prima da quella scheda il nome non compariva da nessuna parte |
+| J12 | Nei partecipanti premi **Nuovo** | Il cursore va **subito sul campo Cliente**, come già faceva dopo un salvataggio |
 
 ---
 
