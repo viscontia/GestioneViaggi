@@ -1,0 +1,92 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject PrefissoTelefonicoService PrefissiService
+
+@*
+    Il prefisso telefonico internazionale, scelto da un elenco invece che digitato.
+
+    Era un campo di testo libero, e il testo libero su un dato codificato produce
+    esattamente quello che si e' trovato nei dati: «+39» in due varianti, con e senza
+    spazi, e prefissi che il sito di iscrizione non sapeva mostrare perche' il suo
+    elenco ne conosceva dieci. La fonte ora e' una sola, nel database (SqlScripts/580),
+    e la usano sia questa scheda sia il sito.
+
+    Si cerca digitando il numero («39») o il nome del paese («sud»), perche' chi
+    compila puo' sapere l'uno o l'altro.
+*@
+
+<MudAutocomplete T="PrefissoTelefonico"
+                 Value="_scelto" ValueChanged="OnScelto"
+                 SearchFunc="Cerca"
+                 ToStringFunc="@(p => p?.Codice)"
+                 Label="@Label" Variant="Variant.Outlined"
+                 Required="@Required" RequiredError="@RequiredError"
+                 Disabled="@Disabled" Clearable="true"
+                 CoerceText="true" ResetValueOnEmptyText="false"
+                 MaxItems="null" Class="@Class">
+    <ItemTemplate Context="p">
+        <div class="d-flex align-center gap-2">
+            <b>@p.Codice</b>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@p.Paese</MudText>
+        </div>
+    </ItemTemplate>
+</MudAutocomplete>
+
+@code {
+    /// <summary>Il prefisso come sta in anagrafica, es. «+39».</summary>
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Prefisso";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string RequiredError { get; set; } = "Il prefisso è obbligatorio";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    private List<PrefissoTelefonico> _elenco = new();
+    private PrefissoTelefonico? _scelto;
+    private string? _valoreRiconosciuto;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _elenco = await PrefissiService.GetAllAsync();
+        Riconosci();
+    }
+
+    protected override void OnParametersSet() => Riconosci();
+
+    private void Riconosci()
+    {
+        if (_valoreRiconosciuto == Value && _scelto is not null) return;
+        _valoreRiconosciuto = Value;
+
+        var cercato = Value?.Trim();
+        if (string.IsNullOrEmpty(cercato)) { _scelto = null; return; }
+
+        // Un prefisso che l'elenco non prevede non si scarta: si mostra com'è. Le
+        // schede storiche vengono da un campo libero, e cancellarne il contenuto
+        // perché non corrisponde sarebbe il modo peggiore di introdurre una regola.
+        _scelto = _elenco.FirstOrDefault(p => p.Codice == cercato)
+                  ?? new PrefissoTelefonico { Codice = cercato, Paese = "(non in elenco)", Descrizione = cercato };
+    }
+
+    private async Task OnScelto(PrefissoTelefonico? p)
+    {
+        _scelto = p;
+        _valoreRiconosciuto = p?.Codice;
+        await ValueChanged.InvokeAsync(p?.Codice);
+    }
+
+    private Task<IEnumerable<PrefissoTelefonico>> Cerca(string? testo, CancellationToken _)
+    {
+        if (string.IsNullOrWhiteSpace(testo))
+            return Task.FromResult<IEnumerable<PrefissoTelefonico>>(_elenco);
+
+        // Il «+» si può digitare o no, e il paese si cerca per pezzi di nome.
+        var t = testo.Trim().TrimStart('+');
+        return Task.FromResult(_elenco.Where(p =>
+            p.Codice.TrimStart('+').StartsWith(t, StringComparison.OrdinalIgnoreCase) ||
+            p.Paese.Contains(t, StringComparison.OrdinalIgnoreCase)));
+    }
+}

@@ -124,6 +124,8 @@ public static class MauiProgram
         // Flusso unico della scheda viaggio: si lancia da sette punti, e il controllo sui
         // documenti deve valere per tutti.
         builder.Services.AddScoped<Services.Printing.SchedaViaggioStampaService>();
+        // I prefissi telefonici: elenco unico dal database, condiviso col sito.
+        builder.Services.AddSingleton<Services.CRUD.PrefissoTelefonicoService>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();

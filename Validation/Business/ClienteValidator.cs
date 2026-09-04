@@ -87,28 +87,6 @@ public static class ClienteValidator
     }
 
     /// <summary>
-    /// Valida il prefisso telefonico internazionale.
-    /// </summary>
-    /// <param name="prefisso">Prefisso da validare</param>
-    /// <returns>ValidationResult con esito validazione</returns>
-    public static ValidationResult ValidatePrefissoTelefono(string? prefisso)
-    {
-        if (string.IsNullOrWhiteSpace(prefisso))
-        {
-            return ValidationResult.Failure("Seleziona il prefisso internazionale", "prefisso_required");
-        }
-
-        var trimmedPrefisso = prefisso.Trim();
-
-        if (trimmedPrefisso.Length > 5)
-        {
-            return ValidationResult.Failure("Il prefisso non può superare 5 caratteri", "prefisso_too_long");
-        }
-
-        return ValidationResult.Success("Prefisso valido");
-    }
-
-    /// <summary>
     /// Valida la data di rilascio del documento (con validazioni cross-field).
     /// </summary>
     /// <param name="dataRilascio">Data rilascio da validare</param>

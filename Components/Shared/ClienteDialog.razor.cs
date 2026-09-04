@@ -52,7 +52,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private MudDatePicker? _dataNascitaField;
     
     // Tab 2
-    private MudTextField<string>? _indirizzoField, _emailField, _prefTelField, _telefonoField;
+    private MudTextField<string>? _indirizzoField, _emailField, _telefonoField;
 
     // Tab 3
     private MudSelect<string>? _tipoDocField;
@@ -833,20 +833,11 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>
-    /// Il prefisso internazionale e' obbligatorio SE c'e' un numero di telefono: senza, il numero
-    /// e' inutilizzabile per un destinatario estero (e la newsletter lo mostra monco).
-    /// Un cliente senza telefono non deve essere bloccato da un campo che non lo riguarda.
-    /// </summary>
-    private IEnumerable<string> ValidatePrefisso(string value)
-    {
-        if (string.IsNullOrWhiteSpace(Entity.Telefono))
-            yield break;
-
-        var result = ClienteValidator.ValidatePrefissoTelefono(value);
-        if (!result.IsValid)
-            yield return result.Message;
-    }
+    // ValidatePrefisso è stato rimosso con il campo digitabile: controllava la FORMA
+    // di ciò che veniva battuto («comincia con +», «solo cifre»), e da un elenco chiuso
+    // quella forma non può più essere sbagliata. La regola su QUANDO il prefisso è
+    // obbligatorio non stava qui e non cambia: è nel database (SqlScripts/563), che lo
+    // pretende per chi guida.
 
     private static IEnumerable<string> ValidateTelefono(string value)
     {
@@ -968,7 +959,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                            || (_validationRequested && ComuneNascitaIdProxy == null);
                 break;
             case "Residenza":
-                hasError = CheckFields(_indirizzoField, _emailField, _prefTelField, _telefonoField)
+                hasError = CheckFields(_indirizzoField, _emailField, _telefonoField)
                            || (_validationRequested && ComuneResidenzaIdProxy == null);
                 break;
             case "Documenti":

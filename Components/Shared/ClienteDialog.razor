@@ -277,9 +277,12 @@
                                     }
                                 </MudItem>
                                 <MudItem xs="4" sm="3">
-                                    <MudTextField @ref="_prefTelField" @bind-Value="Entity.PrefTelInt" For="@(() => Entity.PrefTelInt)"
-                                        Label="Prefisso" Variant="Variant.Outlined" MaxLength="5" Placeholder="+39"
-                                        Immediate="true" Validation="@((string val) => ValidatePrefisso(val))" />
+                                    @* Elenco, non testo libero: vedi PrefissoTelefonicoSelect e SqlScripts/580.
+                                       Il campo digitabile aveva prodotto «+39» in due varianti e prefissi
+                                       che il sito di iscrizione non sapeva mostrare. *@
+                                    <PrefissoTelefonicoSelect Value="@Entity.PrefTelInt"
+                                                              ValueChanged="@(v => Entity.PrefTelInt = v)"
+                                                              Label="Prefisso" />
                                 </MudItem>
                                 <MudItem xs="8" sm="9">
                                     <MudTextField @ref="_telefonoField" @bind-Value="Entity.Telefono" For="@(() => Entity.Telefono)" Label="Telefono"
