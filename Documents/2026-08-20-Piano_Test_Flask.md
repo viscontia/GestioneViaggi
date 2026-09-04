@@ -159,11 +159,11 @@ e senza lo script: `~/.zshrc` non viene letto in quel caso. Usa `./avvia-locale.
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| A1 | Apri l'iscrizione, arriva ai dati anagrafici | La tendina **Titolo** mostra `SIG.` per primo, poi `SIG.RA`, poi gli altri |
-| A2 | Scegli **SIG.RA** | Il campo **Sesso** passa a F **da solo** |
-| A3 | Prova a modificare il campo Sesso a mano | **Non si può**: è disabilitato |
-| A4 | Scegli **SIG.**, poi cambia in **DOTT.SSA** | Il sesso segue: M, poi F |
-| A5 | Riprendi l'iscrizione con l'email di un cliente **già esistente** | Il suo titolo viene **ritrovato e selezionato**, non resta vuoto |
+| A1 | Apri l'iscrizione, arriva ai dati anagrafici | La tendina **Titolo** mostra `SIG.` per primo, poi `SIG.RA`, poi gli altri. ✅ **Passato** il 2026-09-04 |
+| A2 | Scegli **SIG.RA** | Il campo **Sesso** passa a F **da solo**. ✅ **Passato** il 2026-09-04 |
+| A3 | Prova a modificare il campo Sesso a mano | **Non si può**: è disabilitato. ✅ **Passato** il 2026-09-04 |
+| A4 | Scegli **SIG.**, poi cambia in **DOTT.SSA** | Il sesso segue: M, poi F. ✅ **Passato** il 2026-09-04 |
+| A5 | Riprendi l'iscrizione con l'email di un cliente **già esistente** | Il suo titolo viene **ritrovato e selezionato**, non resta vuoto. ✅ **Passato** il 2026-09-04 |
 
 ---
 
