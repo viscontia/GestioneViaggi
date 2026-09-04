@@ -181,9 +181,9 @@ o si raccoglie alla fonte o è perso.
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| B1 | Guarda il modulo anagrafico | C'è una spunta per il consenso all'invio di comunicazioni |
-| B2 | Osservala all'apertura | **Non è pre-spuntata** |
-| B3 | Confrontala con l'accettazione delle condizioni | Sono **due spunte distinte**: sono due consensi diversi |
+| B1 | Guarda il modulo anagrafico | C'è una spunta per il consenso all'invio di comunicazioni. ✅ **Passato** il 2026-09-04 |
+| B2 | Osservala all'apertura | **Non è pre-spuntata**. ✅ **Passato** il 2026-09-04 |
+| B3 | Verifica che il consenso alle comunicazioni **non sia mescolato** con l'accettazione dell'informativa | La spunta del modulo riguarda **solo** le comunicazioni. L'informativa privacy si accetta a parte, nel riepilogo finale, con la formula «inviando questo modulo dichiaro di aver letto…» — che è un **testo**, non una seconda spunta. ⚠️ **La prova era scritta male** (2026-09-04): cercava «due spunte distinte», ma la seconda non esiste e non deve esistere. Il trattamento dei dati **per eseguire l'iscrizione** non si basa sul consenso — si basa sul contratto — quindi non va chiesto un permesso che non serve: serve l'**informativa**, che c'è ed è collegata. La sostanza del controllo resta: i due piani non devono confondersi, e con una sola spunta, che parla solo di comunicazioni, non possono. ✅ **Verificato nel codice** il 2026-09-04: l'informativa (`static/informativa_privacy.html`) **non nomina** marketing o newsletter, quindi accettarla non tira dentro il consenso commerciale |
 | B4 | Compila **senza** spuntarla e salva | Si salva; a database `consenso_marketing` resta `false` |
 | B5 | Spuntala e salva | A database: `true`, con **data** e **fonte `SITO_ISCRIZIONE`** |
 | B6 | Aggiungi un **passeggero** e guarda il suo modulo | Ha **la sua** spunta: il consenso è personale, non del capogruppo |
