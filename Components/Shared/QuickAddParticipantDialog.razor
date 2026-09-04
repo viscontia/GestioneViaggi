@@ -46,7 +46,7 @@
                     @if (_partenzaConclusa)
                     {
                         <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">
-                            Questa partenza si è conclusa: non si possono più aggiungere partecipanti.
+                            @_motivoNonIscrivibile
                         </MudAlert>
                     }
                 </MudCard>
@@ -107,9 +107,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annulla</MudButton>
-        <MudTooltip Text="@(_partenzaConclusa
-                ? "Questa partenza si è conclusa: non si possono più aggiungere partecipanti."
-                : "Iscrive il partecipante")">
+        <MudTooltip Text="@(_motivoNonIscrivibile ?? "Iscrive il partecipante")">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
                        Disabled="@(!_isValid || _partenzaConclusa)">Inserisci</MudButton>
         </MudTooltip>
@@ -145,7 +143,8 @@
     /// (<c>fn_partenza_conclusa</c>, SqlScripts/578), la stessa definizione che rifiuta
     /// l'inserimento: qui non si riscrive un confronto di date per conto proprio.
     /// </summary>
-    private bool _partenzaConclusa;
+    private string? _motivoNonIscrivibile;
+    private bool _partenzaConclusa => _motivoNonIscrivibile is not null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,14 +162,14 @@
     private async Task OnDataChanged(int dataId)
     {
         _selectedDataId = dataId;
-        _partenzaConclusa = dataId > 0 && await MovClientiService.PartenzaConclusaAsync(dataId);
+        _motivoNonIscrivibile = dataId > 0 ? await MovClientiService.MotivoNonIscrivibileAsync(dataId) : null;
     }
 
     private async Task OnViaggioChanged(int viaggioId)
     {
         _selectedViaggioId = viaggioId;
         _selectedDataId = 0;
-        _partenzaConclusa = false;
+        _motivoNonIscrivibile = null;
         
         // Load Dates for this Trip
         var dates = await ViaggiService.GetDatesByTripIdAsync(viaggioId, null, false, true); // Future Only

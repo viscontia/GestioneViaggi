@@ -68,9 +68,10 @@
                                 @* Su una partenza conclusa non si iscrive piu' nessuno. Il pulsante non
                                    sparisce, si spegne e dice perche': un comando che scompare lascia
                                    pensare a un guasto. Il rifiuto vero e' a database (SqlScripts/578). *@
-                                <MudTooltip Text="@(_partenzaConclusa
-                                        ? "Questa partenza si è conclusa: non si possono più aggiungere partecipanti."
-                                        : "Aggiungi un partecipante")">
+                                @* Il motivo lo dice il database: «conclusa», «già iniziata» o
+                                   «già effettuata» sono situazioni diverse, e chi legge deve
+                                   riconoscere la propria. *@
+                                <MudTooltip Text="@(_motivoNonIscrivibile ?? "Aggiungi un partecipante")">
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                                StartIcon="@Icons.Material.Filled.Add"
                                                Disabled="@_partenzaConclusa"
@@ -668,7 +669,8 @@
     /// non un confronto di date scritto qui: la stessa definizione blocca l'inserimento, e
     /// due definizioni diverse darebbero un pulsante attivo su cio' che poi viene rifiutato.
     /// </summary>
-    private bool _partenzaConclusa;
+    private string? _motivoNonIscrivibile;
+    private bool _partenzaConclusa => _motivoNonIscrivibile is not null;
     private List<ParticipantsViewDTO> _participantsWithoutRoom = new(); // NEW DB-CENTRIC: Caricati da get_participants_without_accommodation()
     private List<TipoPartecipante> _tipoPartecipanti = new();
     private List<TipoAlloggio> _tipoAlloggi = new();
@@ -765,7 +767,7 @@
 
             var daSistemare = await DocumentiPartecipanti.DaSistemareAsync(DataViaggioId);
             DocumentiDaSistemare = daSistemare.ToDictionary(d => d.ClienteId);
-            _partenzaConclusa = await MovClientiService.PartenzaConclusaAsync(DataViaggioId);
+            _motivoNonIscrivibile = await MovClientiService.MotivoNonIscrivibileAsync(DataViaggioId);
             _participantsWithoutRoom = _initData.ParticipantsWithoutRoom;
             _participantsCount = _initData.ParticipantsCount;
             _roomsCount = _initData.RoomsCount;

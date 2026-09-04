@@ -283,6 +283,9 @@ Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
 | J4b | Apri un'iscrizione in modifica, cambia **solo le Note** e premi «Aggiorna» | Il pulsante è **sempre premibile** e le note si salvano. Prima era spento e non c'era modo di capire perché |
 | J4c | In inserimento, premi «Salva e Nuovo» **lasciando vuoto** un campo obbligatorio | Compare un messaggio che dice **quale** campo manca. Prima il pulsante era spento e basta, e premendolo (quando ci si arrivava) non succedeva nulla |
 | J5 | Da **Iscrizione Veloce**, scegli una partenza conclusa (se l'elenco te la fa scegliere) | Compare l'avviso rosso e il pulsante **Inserisci** è spento |
+| J5b | Apri i partecipanti di una partenza **in corso** (iniziata ieri, finisce domani) | «Nuovo» è **spento**, e il motivo dice «è già iniziata il …», non «si è conclusa» (difetto 76) |
+| J5c | Nelle **Date del viaggio**, prova a spuntare «effettuato» su una partenza **futura** | **Rifiutato**: «Non si può segnare come effettuata una partenza che deve ancora cominciare». La spunta si mette dal primo giorno in avanti |
+| J5d | Spunta «effettuato» su una partenza **già iniziata** | Accettata |
 | J6 | Iscrivi un **pilota** e guarda i Dettagli Veicolo | Sopra marca e modello c'è **Tipo di mezzo**. Scegli «AUTO 4X4 CON RIDUTTORE»: le marche passano da 27 a **12** |
 | J7 | Cambia il tipo dopo aver scelto marca e modello | Marca e modello si **azzerano**: la terna precedente non esisterebbe più |
 | J8 | Scegli un **modello** senza aver scelto né tipo né marca | Marca **e** tipo si compilano da soli: il modello li conosce entrambi |

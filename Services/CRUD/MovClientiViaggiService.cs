@@ -42,26 +42,33 @@ namespace GestioneViaggi.Services.CRUD
         }
 
         /// <summary>
-        /// Se la partenza e' conclusa e quindi non accetta piu' iscrizioni.
+        /// Perche' a questa partenza non ci si puo' iscrivere, o <c>null</c> se si puo'.
         ///
-        /// La definizione di «conclusa» sta in <c>fn_partenza_conclusa</c> (SqlScripts/578),
-        /// la stessa che blocca l'inserimento: l'interfaccia non se la ricalcola per conto
-        /// suo, altrimenti un pulsante attivo prometterebbe cio' che il database rifiuta.
+        /// La regola sta in <c>fn_partenza_iscrivibile</c> (SqlScripts/584), la stessa che
+        /// rifiuta l'inserimento e che decide cosa il sito propone: l'interfaccia non se la
+        /// ricalcola per conto suo, altrimenti un pulsante attivo prometterebbe cio' che il
+        /// database rifiuta.
+        ///
+        /// Il MOTIVO arriva dal database e non si compone qui: a un viaggio gia' cominciato
+        /// non ci si iscrive, ma «si e' concluso» sarebbe falso — e chi legge un messaggio
+        /// che non riconosce pensa a un guasto.
         /// </summary>
-        public async Task<bool> PartenzaConclusaAsync(int dataViaggioId)
+        public async Task<string?> MotivoNonIscrivibileAsync(int dataViaggioId)
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
-                await using var cmd = new NpgsqlCommand("SELECT fn_partenza_conclusa(@id)", conn);
+                await using var cmd = new NpgsqlCommand(
+                    "SELECT fn_partenza_motivo_non_iscrivibile(@id)", conn);
                 cmd.Parameters.AddWithValue("id", dataViaggioId);
-                return await cmd.ExecuteScalarAsync() is bool conclusa && conclusa;
+                var esito = await cmd.ExecuteScalarAsync();
+                return esito as string;
             }
             catch
             {
                 // Nel dubbio si lascia lavorare: il blocco vero e' a database, e sbagliare
                 // qui puo' al massimo far comparire un pulsante che poi si rifiuta.
-                return false;
+                return null;
             }
         }
 
