@@ -40,9 +40,25 @@
 
                 <!-- Stato -->
                 <MudItem xs="12">
-                    <MudCheckBox T="bool" Label="Viaggio Effettuato" Value="@(Entity.EffettuatoSino == "Y")"
-                        ValueChanged="@(v => Entity.EffettuatoSino = v ? "Y" : "N")" Color="Color.Success">
-                    </MudCheckBox>
+                    @* La spunta descrive un fatto avvenuto: prima del primo giorno non c'e'
+                       niente da descrivere, e il database la rifiuta (SqlScripts/584). Qui si
+                       spegne invece di lasciarla premere e far arrivare l'errore dopo il
+                       salvataggio: un rifiuto che si poteva prevedere non si fa scoprire a
+                       cose fatte. *@
+                    <MudTooltip Text="@(PartenzaNonAncoraIniziata
+                            ? $"Il viaggio parte il {Entity.DataInizio:dd/MM/yyyy}: si può segnare come effettuato dal primo giorno in avanti."
+                            : "Segna il viaggio come effettuato")">
+                        <MudCheckBox T="bool" Label="Viaggio Effettuato" Value="@(Entity.EffettuatoSino == "Y")"
+                            ValueChanged="@(v => Entity.EffettuatoSino = v ? "Y" : "N")" Color="Color.Success"
+                            Disabled="@PartenzaNonAncoraIniziata">
+                        </MudCheckBox>
+                    </MudTooltip>
+                    @if (PartenzaNonAncoraIniziata)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block" Style="margin-left: 2.2rem;">
+                            Si potrà spuntare dal @Entity.DataInizio?.ToString("dd/MM/yyyy"), primo giorno di viaggio.
+                        </MudText>
+                    }
                 </MudItem>
 
                 <MudItem xs="12">
@@ -98,6 +114,17 @@
 </MudDialog>
 
 @code {
+    /// <summary>
+    /// Se il viaggio deve ancora cominciare, e quindi non lo si puo' dire effettuato.
+    ///
+    /// Si guarda la data che c'e' NEL DIALOGO e non quella salvata: chi sposta la partenza
+    /// in avanti e nello stesso momento la spunta deve vedere la casella spegnersi subito.
+    /// La regola vera resta nel database (trigger, SqlScripts/584): questa e' solo la sua
+    /// faccia visibile.
+    /// </summary>
+    private bool PartenzaNonAncoraIniziata =>
+        Entity.DataInizio.HasValue && Entity.DataInizio.Value.Date > DateTime.Today;
+
     // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
     // e condividerla farebbe comparire l'errore di un campo sugli altri.
     private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
