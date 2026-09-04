@@ -249,10 +249,11 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | D7b | Ripeti su un viaggio **in Italia** | **Avviso**, e si prosegue: in Italia il documento scaduto non impedisce di partire, ma l'albergo può rifiutare la registrazione |
 | D7c | Iscriviti a un viaggio all'estero con un documento **valido** | Nessuna segnalazione: non si disturba chi è a posto |
 | D7d | Premi **«Avanti» tre volte** su una scheda che produce un avviso | **Un solo messaggio**, non tre copie impilate (difetto 73). ⚠️ Vale ovunque, non solo qui: se trovi un messaggio che si duplica in un altro punto, è una regressione di quella correzione |
-| D8 | Iscrivi qualcuno il cui documento scade **durante** il viaggio | Segnalato lo stesso: non conta se è valido oggi, conta se arriva al rientro |
-| D9 | Prova a iscriverti a una partenza **già conclusa** (data di rientro passata) | **Rifiutato**: «Questa partenza si è conclusa: non si possono più aggiungere partecipanti» (script `578`). Nuovo dal 2026-09-03. Il sito passa dalla stessa `fn_mov_clienti_viaggi_valida` del gestionale, quindi la regola arriva **senza toccare il codice Flask** — ed è proprio questo che va verificato |
-| D10 | Guarda se il sito **mostra** partenze concluse fra quelle prenotabili | Se le mostra è un secondo difetto, di interfaccia: il rifiuto arriva solo dopo che la persona ha compilato tutto. Da annotare |
-| D5 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio |
+| D8 | Iscrivi qualcuno il cui documento scade **durante** il viaggio | Segnalato lo stesso: non conta se è valido oggi, conta se arriva al rientro. ✅ **Passato** il 2026-09-04 |
+| D9 | Prova a iscriverti a una partenza **già conclusa** | **Non è eseguibile dall'interfaccia, ed è la risposta giusta**: l'elenco del primo passo propone solo partenze aperte, quindi una conclusa non si può nemmeno scegliere. La regola nel database resta necessaria come rete — la partenza può concludersi *mentre* qualcuno compila — e come tale è collaudata dal **gestionale** (prova J1 del piano MAUI) |
+| D10 | Verifica che il sito **non mostri** partenze concluse fra quelle prenotabili | Non ne mostra. ⚠️ **Fino al 2026-09-04 il filtro era sbagliato** (difetto 75): escludeva le partenze con `effettuato_sino != 'S'`, ma **`'S'` non esiste** — il vincolo ammette solo `Y`, `N`, `P` — quindi non escludeva nulla. Una partenza futura marcata come effettuata (un viaggio annullato, per dire) sarebbe stata proposta e poi rifiutata dopo che la persona aveva compilato tutto |
+| D10b | Nel gestionale marca **effettuata** una partenza futura, poi ricarica l'elenco del sito | Quel viaggio **sparisce** dalle proposte, se non ha altre partenze aperte. È la prova che il sito e il database usano la stessa definizione di «conclusa» |
+| D5 | Completa un'iscrizione **dall'inizio alla fine** | Arriva a database: cliente, iscrizione, alloggio. ✅ **Passato** il 2026-09-04 |
 
 ---
 

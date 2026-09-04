@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `581`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `583`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -265,6 +265,8 @@ ls SqlScripts/*.sql \
 | 579 | Pilota_Senza_Recapito | `fn_partecipanti_documento_non_valido` allargata: segnala anche il **pilota senza email ne' telefono** (stato `SENZA_RECAPITO`). Solo chi guida — per un passeggero il recapito puo' mancare di proposito. ✅ **Misurato su PROD il 2026-09-03** (sola lettura): sulle 5 partenze ancora aperte, **zero** piloti senza recapito. Lo script non fara' emergere nulla il primo giorno — a differenza del `563` |
 | 580 | Prefissi_Telefonici_Internazionali | ⚠️ **Crea una tabella e tocca i dati.** `ana_tel_pref_int` con i 249 prefissi ITU-E.164 (uno per paese, FK a `eba_countries`) + `fn_ana_tel_pref_int_get_all`. Sostituisce il campo di testo libero del gestionale e la lista di dieci voci scritta in Python nel sito. **Contiene un UPDATE sui clienti**: toglie gli spazi da `cliente_preftelint` — in locale ha toccato 443 righe, su PROD il numero sara' diverso ma l'effetto e' lo stesso (`+39 ` e `+39` tornano un valore solo). Da verificare dopo l'esecuzione: `SELECT DISTINCT cliente_preftelint FROM ana_clienti` non deve piu' contenere varianti con spazi |
 | 581 | Consenso_Registra_Anche_Il_Rifiuto | Due colonne su `ana_clienti` (`consenso_marketing_chiesto_data`/`_fonte`) + `fn_consenso_da_chiedere` e `fn_consenso_registra_risposta`. Servono a chiedere il consenso newsletter durante l'iscrizione **senza richiederlo a chi ha gia' rifiutato**: oggi `consenso_marketing = FALSE` significa sia «mai chiesto» sia «ha detto no». Solo DDL e funzioni, nessun dato modificato |
+| 582 | Documento_Esito_Chiedibile_Prima | `fn_documento_esito_per_partenza`: la severita' del documento (ERRORE all'estero, AVVISO in Italia) estratta da `fn_mov_clienti_viaggi_valida`, che ora la chiama. Serve al sito per fermare PRIMA chi non potrebbe partire, invece di rifiutarlo alla conferma finale |
+| 583 | Sito_Mostra_Solo_Partenze_Aperte | `fn_wizard_get_viaggi_disponibili` usa `fn_partenza_conclusa` invece di un criterio suo. Il filtro precedente confrontava con `'S'`, un valore che il CHECK sulla colonna non ammette: non escludeva nulla. Solo funzione, nessun dato toccato |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -888,7 +890,7 @@ funziona con gli altri due vecchi.
 
 | | Cosa | Perché in questa posizione |
 |---|---|---|
-| 1 | **Script DB** `406` → `581` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
+| 1 | **Script DB** `406` → `583` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
 | 2 | **Flask nuovo** in produzione | Chiama funzioni che prima del passo 1 non esistono |
 | 3 | **MAUI 2.0** consegnata | Idem, e i client vanno aggiornati dopo lo schema |
 
