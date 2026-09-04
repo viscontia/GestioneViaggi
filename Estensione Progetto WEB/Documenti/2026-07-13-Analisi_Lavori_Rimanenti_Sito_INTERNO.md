@@ -97,6 +97,29 @@ Proposta tecnica **approvata dal cliente**.
 - **Pagamenti online Stripe + promemoria/solleciti + fatturazione automatica** (Fase 4): regole **per-azienda** già predisposte a DB (`web_pagamenti_config`/regole); logica di incasso, job schedulato reminder, fattura auto da implementare. *(Nel doc cliente: solo "fase successiva", senza tempi né difficoltà.)*
 - **Blog / diario** (predisposto tecnicamente).
 
+### Area riservata clienti — **IDEA, FUORI PROGETTO**
+*(Annotata il 2026-09-04 su richiesta di Adriano, che l'ha definita «bello ma futuribile».)*
+
+> ⚠️ **Non fa parte di questo progetto né delle sue fasi**, e non va conteggiata in nessun
+> preventivo o pianificazione. È scritta qui solo perché un'idea buona non vada perduta.
+
+L'idea: ogni cliente ha un proprio accesso dal quale iscriversi ai viaggi, vedere quelli a cui
+è registrato, aggiungere o togliere passeggeri, cancellare la propria iscrizione, e scambiare
+messaggi con gli altri partecipanti alla stessa partenza.
+
+**Perché è fuori progetto, e non solo «più avanti»:** cambierebbe la natura del sistema. Oggi
+il sito è una vetrina più un modulo di iscrizione; quella sarebbe un'**applicazione con
+account**, e porta con sé cose che oggi non esistono da nessuna parte — identità e password dei
+clienti, recupero credenziali, permessi su chi può modificare cosa, e una chat, che significa
+contenuti scritti da utenti: moderazione, conservazione, segnalazioni. Ognuna di queste è un
+progetto suo.
+
+**Cosa invece è già pronto**, se un giorno se ne parlasse: i dati ci sono tutti — chi è iscritto
+a cosa (`mov_clienti_viaggi`), i passeggeri agganciati al pilota, gli alloggi — e le regole che
+governano iscrizioni e cancellazioni **stanno già nel database**, quindi un'eventuale area
+riservata le erediterebbe senza riscriverne nessuna. È il lavoro fatto in questi mesi a rendere
+l'idea realizzabile in futuro.
+
 ## D. Dipendenze dal cliente (da sollecitare — determinanti)
 - **Materiale fotografico curato** per i tour di punta e **almeno 1 video hero** di qualità: la vetrina "premium" vive o muore su questo → **martellare** costantemente. *(Il cliente ci sta lavorando.)*
 - **Schede Google/TripAdvisor** (Place ID / URL) per collegare le recensioni.
