@@ -240,8 +240,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 
 | # | Cosa fai | Cosa deve succedere |
 |---|---|---|
-| D1 | Iscrivi come **pilota** una persona senza email | Rifiutato, con il nome di chi correggere. ⚠️ Qui il nome **resta** di proposito: è la persona che stai iscrivendo tu, non un estraneo, e senza quel nome non sapresti di chi si parla iscrivendone più d'uno |
-| D2 | Iscrivi la stessa persona come **accompagnatore** | Consentito |
+| D1 | Verifica che sul sito **non si possa** iscrivere un pilota senza email | **Non è eseguibile, ed è la risposta giusta**: l'email è la chiave d'ingresso dello Step 1, quindi senza non si arriva nemmeno all'anagrafica. La regola `PILOTA_SENZA_EMAIL` esiste comunque nel database ed è collaudata dal **gestionale** (prova D1 del piano MAUI), dove un pilota senza email si può creare davvero. ⚠️ **La prova era scritta male** (corretta il 2026-09-04): chiedeva di produrre una situazione che il sito rende impossibile per costruzione |
+| D2 | Iscrivi un **passeggero** lasciando vuota la sua email | **Consentito**: l'email è obbligatoria solo per chi guida (`SqlScripts/563`), perché è a lui che vanno convocazione e variazioni di programma. Un passeggero che non lascia il proprio indirizzo sta esercitando una scelta legittima. ⚠️ **La prova era scritta male**: diceva «iscrivi la stessa persona come accompagnatore», ma pilota e passeggero **sono due persone diverse** — non si può essere entrambi |
 | D3 | Tipo partecipante che richiede i **dati del mezzo**, lasciali vuoti | Rifiutato |
 | D4 | Iscriviti a un viaggio **a cui sei già iscritto** | Rifiutato. ⚠️ Prima il sito non lo controllava affatto |
 | D6 | Iscrivi a un viaggio **in Italia** una persona col documento scaduto | **Avviso**, non blocco (script `576`). Nuovo dal 2026-09-02: prima nessuno guardava la scadenza |
