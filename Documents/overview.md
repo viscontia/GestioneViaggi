@@ -80,7 +80,51 @@ Documento di riferimento completo: `Documents/ComponentiShared.md`.
 4. **BackdropClick=false**: tutte le modali devono avere `new DialogOptions { BackdropClick = false }` per impedire chiusure accidentali.
 5. **Errore ⇒ restare nella form (MANDATORIO)**: il salvataggio si fa **dentro il dialog** (che inietta il service e chiama `CreateAsync`/`UpdateAsync`), NON in pagina dopo la chiusura. Il dialog si chiude **solo** a esito positivo (`MudDialog.Close(Ok(entitàSalvata))`); su errore — di validazione client **o di vincolo DB** — mostra il messaggio (es. `MudAlert` in cima al form) e **resta aperto**, senza perdere i dati inseriti. Mai chiudere la form e poi mostrare l'errore fuori. I messaggi degli errori DB sono tradotti in ITA da `Helpers/DatabaseExceptionHelper` (estendere lì i constraint noti — vedi `Gestione_check.md` — mai traduzioni inline nei componenti). Pattern di riferimento: `WebTipoViaggioDescrizioneDialog`.
 
-### 3.4 VALIDAZIONE
+### 3.4 CAMPI DATA (ASSOLUTA, finché si resta su MudBlazor 8.x)
+
+**Le date si digitano con le barre: `15/03/1990`.** La forma a sole cifre non è ammessa.
+
+Ogni `MudDatePicker` digitabile vuole **tutte e quattro** queste cose. Se ne manca una il campo
+nasce rotto, e il difetto è di quelli che non si notano: *il dato entra giusto, ma sullo schermo se
+ne legge un altro*.
+
+```razor
+<MudDatePicker @bind-Date="Entity.Prop" For="@(() => Entity.Prop)"
+    Editable="true"
+    Class="mb-3 campo-data"                  @* 1. filtro tastiera: solo cifre e barra *@
+    TextUpdateSuppression="false"            @* 2. senza, il testo non viene mai riscritto *@
+    Converter="@_convProp"                   @* 3. UN'ISTANZA PER CAMPO, mai condivisa *@
+    DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" HelperText="Es: 15/03/1990" />
+```
+```csharp
+private readonly ConvertitoreDataFlessibile _convProp = new();
+```
+
+4. Se al campo sono agganciati controlli (validazione DB, ricalcoli), vanno richiamati **anche su
+   `TextChanged`** e non solo su `PickerClosed`: chi digita la data ed esce col tabulatore non apre
+   mai il calendario, e si porterebbe dietro l'esito precedente.
+
+⚠️ **Non usare `Mask`** (corrompeva i dati: difetto 35) e **non esiste** un'istanza condivisa del
+convertitore: `ConvertitoreDataFlessibile.Standard` è stata rimossa perché il convertitore **ha
+stato** — ricorda se l'ultima conversione è fallita — e condividerla fa comparire l'errore di un
+campo sugli altri.
+
+⚠️ **Regola generale che ne discende, valida oltre le date:** un convertitore che non riesce a
+leggere un valore deve **dichiararlo** con `UpdateGetError(...)`, non restituire `null` in silenzio.
+Un valore nullo è indistinguibile da un campo vuoto, e su un campo vuoto non c'è niente da
+segnalare: nessun avviso può comparire, per costruzione.
+
+**Perché tutto questo:** MudBlazor, in MAUI Hybrid, si crede un'applicazione Blazor Server (guarda
+`OSDescription != "Browser"`) e in quella modalità non riscrive il testo di un campo che ha il fuoco.
+È un difetto noto della libreria ([#9090](https://github.com/MudBlazor/MudBlazor/issues/9090),
+[#11217](https://github.com/MudBlazor/MudBlazor/issues/11217)), **corretto solo nella serie 9.x**.
+L'aggiornamento a MudBlazor 9 è previsto **dopo il go-live** — riscrive il sistema dei convertitori e
+tocca 3.419 usi di componenti Mud, con cambiamenti che il compilatore non intercetta — e quando sarà
+fatto **questa sezione va rivista**, perché parte di queste accortezze non servirà più.
+
+Dettaglio completo: `Documents/Digitazione_Date.md`.
+
+### 3.5 VALIDAZIONE
 Il sistema di validazione è centralizzato in `Validation/`. Non scrivere regole inline nei componenti. Usare/estendere i validator già presenti. Vedi `Documents/Gestione_check.md` per il catalogo completo.
 
 ---
@@ -368,6 +412,7 @@ Classi in `Statistics/`:
 | `Funzioni_DB.md` | **Single source of truth** per tutte le function PostgreSQL. Parte curata a mano (sopra il marker `AUTO-GENERATED-START`) + appendice finale auto-generata da `pg_catalog` via `deploy_sql.sh`/`generate_db_functions_doc.sh` (non modificare a mano l'appendice, viene sovrascritta ad ogni deploy). Aggiornare SEMPRE la parte curata dopo ogni modifica DB. |
 | `ComponentiShared.md` | **Single source of truth** per tutti i componenti shared. Aggiornare SEMPRE dopo ogni modifica. |
 | `Gestione_check.md` | Architettura validazione, catalogo validatori, DbErrorTranslator |
+| `Digitazione_Date.md` | **Come si scrive un campo data** (§3.4). Le quattro accortezze obbligatorie, perché la `Mask` è vietata, e come un convertitore dichiara di non aver capito un valore |
 | `DataBaseLocale.md` | Credenziali e comandi Docker per sviluppo locale |
 | `Multi_Tenancy_Architecture.md` | Design multi-tenant |
 | `CRUD_PATTERN.md` | Pattern standard per CRUD services |
