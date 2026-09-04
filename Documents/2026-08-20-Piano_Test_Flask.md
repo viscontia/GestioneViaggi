@@ -226,6 +226,9 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C11d | Ripeti fermando il container e **guarda l'indicatore di stato del database** | Diventa **rosso alla prima chiamata che fallisce**, non al giro successivo del controllo periodico (difetto 56). Il messaggio del tooltip dice «Database non raggiungibile». ✅ **Passato** il 2026-09-04 |
 | C11e | Riavvia il container e continua a usare il sito | L'icona **torna verde** alla prima chiamata riuscita, senza aspettare i 30 secondi. ✅ **Passato** il 2026-09-04: il pulsante «Avanti» torna cliccabile da sé |
 | C11f | Con il database **attivo**, provoca un errore applicativo qualsiasi (es. un codice fiscale duplicato) | L'icona **resta verde**: 404, 409 e 500 applicativi non sono problemi di connessione, e farla lampeggiare a ogni rifiuto la renderebbe inutile. ✅ **Passato** il 2026-09-04 |
+| C13 | Apri l'anagrafica **in modifica** e svuota un campo obbligatorio (es. il comune di residenza), poi esci dal campo | L'errore compare **subito, accanto al campo**. Prima le segnalazioni erano spente in modifica e arrivavano tutte insieme al salvataggio (difetto 62) |
+| C13b | Compila un **passeggero** (Step 3) lasciando vuoti comune di nascita, residenza e i campi del documento | Ogni campo si segnala **mentre compili**. Il telefono e il prefisso invece **non** sono obbligatori per un passeggero: quella è la regola, non una svista |
+| C13c | Nella scheda di un **pilota** in modifica, cancella il telefono | Segnalato: chi guida deve restare raggiungibile anche quando modifica la propria scheda |
 | C12 | Spunta il consenso lasciando **vuota l'email** | Rifiutato (`568`). Sul sito l'email è la chiave d'ingresso, quindi potrebbe non essere raggiungibile: se non riesci a produrre il caso, annotalo e passa oltre. ✅ **Passato** il 2026-09-04: l'errore viene dato e non si procede |
 
 ---
