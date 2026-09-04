@@ -1018,6 +1018,25 @@ sito non è in `ana_clienti` — non ha mai comprato un viaggio — e quindi ogg
 con `stato = 'attivo'`, `consenso = true` e un `token_disiscrizione` generato per ciascuno (il
 token serve al link di disiscrizione: senza, quella persona non può cancellarsi).
 
+> **Confermato da Antonio (2026-09-04): quelle persone si erano iscritte espressamente alla
+> newsletter dal vecchio sito.** È il motivo per cui si caricano con `consenso = true` senza
+> chiedere niente a nessuno: il consenso l'hanno già dato, e ricominciare da capo sarebbe un
+> favore fatto a nessuno. ⚠️ Va però conservata la **prova**: nella colonna della fonte si
+> scrive da dove vengono (es. `sito_precedente`), e se Antonio ha una data di iscrizione la
+> si porta dietro. Un consenso senza traccia di dove è stato raccolto vale poco il giorno in
+> cui qualcuno lo contesta.
+
+⚠️ **Da non confondere con il consenso dei clienti.** Sono due insiemi distinti e due tabelle
+diverse:
+
+| | Chi sono | Dove stanno | Al go-live |
+|---|---|---|---|
+| **Iscritti newsletter** | si sono iscritti dal vecchio sito, non hanno mai comprato un viaggio | `web_newsletter_iscritti` | si **caricano** con consenso già dato |
+| **Clienti** | hanno viaggiato; SFT ne ha **206, di cui 198 con email** | `ana_clienti.consenso_marketing` | partono **tutti a zero**: la colonna non esiste ancora su PROD, e il consenso non gliel'ha mai chiesto nessuno |
+
+I secondi si raccolgono uno alla volta, iscrizione dopo iscrizione (§ Sezione 3-A delle Note di
+Rilascio 2.0). I primi sono già acquisiti e vanno solo importati.
+
 > **Conseguenza da tenere a mente per gli invii selettivi.** Gli iscritti dal sito hanno solo
 > email, nome e lingua: **non hanno anagrafica**. Nessun filtro che guardi data di inserimento,
 > residenza, nazione o viaggi fatti può riguardarli, e attivando uno di quei filtri restano

@@ -50,6 +50,31 @@ Proposta tecnica **approvata dal cliente**.
 
 ---
 
+### A.5 Pagina pubblica di iscrizione alla newsletter (con link condivisibile)
+*(Deciso il 2026-09-04.)*
+
+- **Il caso reale**: molte persone scrivono ad Antonio per email o WhatsApp per chiedere
+  informazioni su un viaggio. Sono contatti caldi — hanno alzato la mano da soli — e oggi
+  finiscono nel nulla: nessuno chiede loro il consenso, e la conversazione si chiude lì.
+- **Cosa serve**: una pagina pubblica, con un **indirizzo stabile e corto**, che permetta
+  l'iscrizione alla newsletter. Antonio incolla quel link a mano in fondo alla risposta —
+  «se ti va di restare aggiornato, iscriviti qui» — e chi vuole si iscrive da sé.
+- **Perché funziona meglio di una spunta**: chi arriva da quel link si sta iscrivendo di
+  **propria iniziativa**. È la forma di consenso più solida che esista, e non richiede ad
+  Antonio nient'altro che incollare un indirizzo.
+- **Vincolo tecnico, non negoziabile**: la pagina **non scrive nel database per conto suo**.
+  Passa dalle stesse funzioni che usano il gestionale e il sito di iscrizione
+  (`fn_consenso_registra_risposta` e le `fn_web_newsletter_*`), con una **fonte propria**
+  (es. `pagina_iscrizione`) per sapere sempre da dove viene ogni consenso. Se la si scrive
+  da zero si ricrea la divergenza che tutto questo lavoro sta chiudendo.
+- **Da decidere in fase realizzativa**: se chi si iscrive da lì e **risulta già cliente** debba
+  aggiornare `ana_clienti.consenso_marketing` invece di creare un iscritto separato. Va deciso,
+  altrimenti la stessa persona finisce in due elenchi e riceve tutto due volte.
+- **Doppia conferma (double opt-in)**: da valutare. Rende il consenso inattaccabile ma perde
+  per strada chi non apre la mail di conferma. È una scelta di merito, non tecnica.
+
+---
+
 ## B. Sito web pubblico (Fase 3) — Next.js SEO-first
 - **Stack**: Next.js (App Router, React), ISR + revalidation on-demand, `@supabase/ssr`, Cloudflare. Legge lo **strato pubblico** (`fn_web_tour_pubblicati` + funzioni web_* + le aggiunte §A) via RLS anon.
 - **Pagine**: Home (hero video/foto + Tour Finder + evidenza + prossime partenze + **mappa interattiva nazioni**), Catalogo (griglia + filtri), **Scheda tour per-edizione** (foto+prezzo da, colpo d'occhio, galleria, itinerario, mappa OSM, **incluso/escluso**, **recensioni Google/TripAdvisor**, **posti rimasti**, "Iscriviti" sticky), **Tour giornalieri** (condizionale), Chi siamo, Galleria/Video, FAQ, Contatti (form+WhatsApp+social), Newsletter, Privacy.
