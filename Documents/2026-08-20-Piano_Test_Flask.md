@@ -218,7 +218,8 @@ gestionale invoca da `ValidaAsync`. Qui si verifica che i messaggi arrivino davv
 | C8 | Verifica quanto restano a video i messaggi | Errori e avvisi restano **8 secondi**, non un lampo |
 | C9 | Ripeti C1, C3 e C5 **su un passeggero** (Step 3) | Stessi comportamenti: un passeggero non è un cliente di serie B |
 | C10 | ⭐ Iscrivi un **passeggero** lasciando vuoti i dati del documento | **Rifiutato** (`563`): i documenti servono a ogni occupante della stanza, per legge, e il sito oggi al passeggero non chiede niente. Guarda **come** arriva il rifiuto: leggibile? dice quali campi? |
-| C11 | Prosegui con un **cliente già riconosciuto** la cui scheda è incompleta, senza premere «Modifica Anagrafica» | **Rifiutato** all'iscrizione. È il caso che il sito non guarda affatto: `triggerValidation()` esce subito con `isValid: true` |
+| C11 | Prosegui con un **cliente già riconosciuto** la cui scheda è incompleta, senza premere «Modifica Anagrafica» | **Rifiutato subito**, con l'elenco di ciò che manca — non alla fine del wizard. ⚠️ Eseguito il 2026-09-04 con **BATTISTELLA NICOLA** (`nicolabattistella93@gmail.com`, mancano tutti e cinque i campi del documento): **falliva**, il sito lo lasciava passare senza dire niente. Corretto lo stesso giorno (difetto 51). Da rifare |
+| C11b | Ripeti C11 con **ARRIGONI ANDREA** (`arrigoni.andrea10@gmail.com`), cui manca **solo** l'indirizzo di residenza | Rifiutato lo stesso. È la prova che conta di più: la scheda che sembra a posto |
 | C12 | Spunta il consenso lasciando **vuota l'email** | Rifiutato (`568`). Sul sito l'email è la chiave d'ingresso, quindi potrebbe non essere raggiungibile: se non riesci a produrre il caso, annotalo e passa oltre |
 
 ---
