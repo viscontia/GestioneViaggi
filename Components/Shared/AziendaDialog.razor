@@ -99,7 +99,7 @@
             <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
                 Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Class="mb-3"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataCostituzione))"
-                DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv1" Placeholder="gg/mm/aaaa"
                 HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
             <!-- Data Inizio Attività - Opzionale -->
@@ -107,7 +107,7 @@
                 Label="Data Inizio Attività (opzionale)"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataInizioAttivita))"
                 Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Class="mb-3"
-                DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv2" Placeholder="gg/mm/aaaa"
                 HelperText="Digitare la data (es: 15031990) o selezionare dal calendario (deve essere >= Costituzione)" />
 
             <!-- Capitale Sociale - Opzionale -->
@@ -132,7 +132,7 @@
             <MudDatePicker @bind-Date="Entity.ReaDataIscrizione" For="@(() => Entity.ReaDataIscrizione)"
                 Label="Data Iscrizione REA (opzionale)"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateReaData))" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima"
-                Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                Class="mb-3" DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv3" Placeholder="gg/mm/aaaa"
                 HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
             <MudDivider Class="my-4" />
@@ -241,7 +241,7 @@
                         <MudDatePicker @bind-Date="Entity.DataCostituzione" For="@(() => Entity.DataCostituzione)"
                             Label="Data Costituzione (opzionale)" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Class="mb-3"
                 Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataCostituzione))"
-                            DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                            DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv4" Placeholder="gg/mm/aaaa"
                             HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
                         <!-- Data Inizio Attività -->
@@ -249,7 +249,7 @@
                             Label="Data Inizio Attività (opzionale)"
                             Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateDataInizioAttivita))"
                             Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Class="mb-3"
-                            DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                            DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv5" Placeholder="gg/mm/aaaa"
                             HelperText="Digitare la data (es: 15031990) o selezionare dal calendario (deve essere >= Costituzione)" />
 
                         <!-- Capitale Sociale -->
@@ -271,7 +271,7 @@
                             Label="Data Iscrizione REA (opzionale)"
                             Validation="@(new Func<DateTime?, IEnumerable<string>>(ValidateReaData))"
                             Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Class="mb-3"
-                            DateFormat="dd/MM/yyyy" Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" Placeholder="gg/mm/aaaa"
+                            DateFormat="dd/MM/yyyy" Editable="true" TextUpdateSuppression="false" Converter="@_conv6" Placeholder="gg/mm/aaaa"
                             HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
 
                         <MudDivider Class="my-4" />
@@ -356,6 +356,15 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv3 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv4 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv5 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv6 = new();
+
     private MudForm? _form;
     private MudTextField<string>? _firstField;
     private List<AnaRegimeFiscale> _regimi = new();

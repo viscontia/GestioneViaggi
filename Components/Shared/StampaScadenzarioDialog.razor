@@ -51,12 +51,12 @@
                     <MudDatePicker @ref="_firstField" Label="Data Scadenza Da" @bind-Date="_dataScadenzaDa"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
                                    Error="@_errorDataScadenza" ErrorText="Data Da deve essere <= Data A"
-                                   Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false" Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Data Scadenza A" @bind-Date="_dataScadenzaA"
                                    Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false" Converter="@_conv2" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
 
                 @* RIGA 4: Viaggio *@
@@ -97,6 +97,11 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private MudForm _form = default!;

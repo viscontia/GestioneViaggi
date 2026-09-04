@@ -61,8 +61,8 @@
                     <MudDatePicker Label="Data Validità" 
                                    @bind-Date="_dataValidita" 
                                    Variant="Variant.Outlined"
-                                   Editable="true"
-                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                   Converter="@_conv1" DateFormat="dd/MM/yyyy"
                                    Required="true"
                                    tabindex="4" />
                 </MudItem>
@@ -98,6 +98,10 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public AnaTassiCambio Tasso { get; set; } = new();
 

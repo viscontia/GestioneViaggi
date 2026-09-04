@@ -33,12 +33,12 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Periodo Da" @bind-Date="_periodoDa"
                                    Variant="Variant.Outlined" Clearable="false" AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false" Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Periodo A" @bind-Date="_periodoA"
                                    Variant="Variant.Outlined" Clearable="false" AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false" Converter="@_conv2" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa" />
                 </MudItem>
 
                 @* Credito IVA periodo precedente *@
@@ -79,6 +79,11 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
 
     private MudForm _form = default!;

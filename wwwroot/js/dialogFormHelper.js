@@ -151,6 +151,58 @@ window.dialogFormHelper = {
         console.log('Phone input filter attached');
     },
 
+    // Nei campi data si battono solo cifre e barre
+    //
+    // Il campo accetta la sola forma gg/mm/aaaa (vedi ConvertitoreDataFlessibile), quindi
+    // tutto il resto verrebbe rifiutato dopo: meglio non farlo nemmeno digitare.
+    //
+    // UN SOLO ascoltatore su tutto il documento, non uno per campo. Vale cosi' per i
+    // dialoghi e per le pagine, per i 26 campi che esistono oggi e per quelli che
+    // verranno aggiunti domani — basta che abbiano la classe `campo-data`.
+    //
+    // Il filtro sta QUI, in JavaScript, e non torna a .NET per ogni tasto: e' la
+    // differenza con la vecchia DateMask, che rimandava ogni battuta al codice C# e
+    // riposizionava il cursore con un secondo viaggio — su MacCatalyst 4-8 chiamate per
+    // tasto, e digitando in fretta le cifre slittavano, fino a scrivere in produzione una
+    // data che nessuno aveva battuto. Qui il tasto non ammesso viene semplicemente
+    // ignorato dal browser, e nessun altro ne sa niente.
+    _filtroDateInstallato: false,
+
+    installaFiltroDate: function () {
+        if (this._filtroDateInstallato) return;
+        this._filtroDateInstallato = true;
+
+        const dentroUnCampoData = (elemento) =>
+            elemento && elemento.tagName === 'INPUT' && elemento.closest('.campo-data');
+
+        document.addEventListener('keydown', function (e) {
+            if (!dentroUnCampoData(e.target)) return;
+
+            // Le combinazioni di sistema (copia, incolla, seleziona tutto) e i tasti di
+            // spostamento non si toccano: filtrarli renderebbe il campo inutilizzabile
+            // per chi lavora di tastiera.
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            if (e.key.length > 1) return;   // Backspace, Tab, frecce, Invio…
+
+            if (!/[0-9/]/.test(e.key)) e.preventDefault();
+        }, true);
+
+        document.addEventListener('paste', function (e) {
+            if (!dentroUnCampoData(e.target)) return;
+
+            // Chi copia «18-04-2036» da un'altra parte non deve ritrovarselo dentro in
+            // una forma che il campo non sa leggere: si incolla ripulito.
+            const testo = (e.clipboardData || window.clipboardData)?.getData('text') ?? '';
+            if (/[^0-9/]/.test(testo)) {
+                e.preventDefault();
+                const pulito = testo.replace(/[^0-9/]/g, '');
+                if (pulito) document.execCommand('insertText', false, pulito);
+            }
+        }, true);
+
+        console.log('Filtro campi data installato (cifre e barra)');
+    },
+
     // Setup filtro per tutti i campi telefono in un dialog
     setupPhoneFilters: function (dialogSelector = '.mud-dialog-content') {
         const trySetup = (attempts = 0) => {

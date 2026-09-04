@@ -293,6 +293,26 @@ Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
 
 ---
 
+## K — Campi data: si scrivono con le barre (nuovo, 2026-09-04)
+
+Il difetto 74 riguardava **tutti e 33** i campi data dell'applicazione, quindi le prove vanno fatte
+in punti diversi — non basta l'anagrafica cliente.
+
+| # | Cosa fai | Cosa deve succedere |
+|---|---|---|
+| K1 | In anagrafica cliente digita `18042036` nella scadenza documento ed esci col tabulatore | Compare subito **«Data non valida. Scrivila con le barre, per esempio 18/04/2036»**. ⚠️ Prima veniva accettata in silenzio: il dato entrava giusto ma il campo mostrava le cifre attaccate |
+| K2 | Correggi in `18/04/2036` ed esci | Accettata, nessun messaggio residuo. ⚠️ È la prova che l'errore precedente si spegne: senza, il valore buono veniva scartato e il database si lamentava di una data mancante |
+| K3 | Prova a digitare **lettere** o punti nel campo | Non compaiono affatto: si battono solo cifre e barra |
+| K4 | **Incolla** `18-04-2036` copiato da un'altra applicazione | Entra ripulito, senza i trattini |
+| K5 | Usa **copia, incolla, seleziona tutto, frecce e Backspace** nel campo | Funzionano tutti: il filtro non deve rendere il campo inutilizzabile da tastiera |
+| K6 | Scegli una data dal **calendario** invece di digitarla | Funziona come prima |
+| K7 | Ripeti K1 e K2 in **Viaggi → Date e Costi** (inizio e fine partenza) | Stesso comportamento. È il campo che il 2026-08-31 scrisse `8202-01-19` in produzione |
+| K8 | Ripeti in **scheda Azienda** (costituzione, inizio attività, REA) e in una **finestra di stampa** con filtri per data | Stesso comportamento. Nelle stampe una data non letta darebbe un elenco vuoto invece di un errore |
+| K9 | In un dialogo con **più date** (es. Date e Costi), sbaglia la prima e guarda la seconda | La seconda **non** eredita l'errore della prima. ⚠️ Prima le 33 date condividevano un solo convertitore, che tiene l'esito dell'ultima conversione |
+
+
+---
+
 ## H — Non regressione
 
 | # | Cosa fai | Cosa deve succedere |

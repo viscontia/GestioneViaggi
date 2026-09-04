@@ -33,8 +33,8 @@
                                Label="Data Pagamento"
                                Variant="Variant.Outlined"
                                Required="true"
-                               Editable="true"
-                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                               Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                               Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                MaxDate="@DateTime.Today"
                                AnchorOrigin="Origin.BottomCenter" />
             </MudItem>
@@ -64,6 +64,10 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public MovTransazioni Item { get; set; } = new();
 

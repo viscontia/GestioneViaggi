@@ -442,3 +442,27 @@ Ogni validatore avrà corrispondente test unitario con:
 **Data:** 2024-12-24  
 **Autore:** Architecture Team  
 **Status:** 🟢 Approved - Ready for Implementation
+
+---
+
+## Campi data: quattro accortezze, o nascono rotti
+
+*(2026-09-04, dopo sette tentativi sbagliati — vedi `Digitazione_Date.md` per il dettaglio.)*
+
+Ogni `MudDatePicker` digitabile vuole **tutte e quattro** queste cose:
+
+1. `Class="campo-data"` — il filtro della tastiera (solo cifre e barra) è un unico ascoltatore
+   installato all'avvio: basta la classe;
+2. `TextUpdateSuppression="false"` — senza, MudBlazor non riscrive il testo del campo, perché in
+   MAUI Hybrid si crede un'applicazione Blazor Server;
+3. **un'istanza del convertitore per campo** — `ConvertitoreDataFlessibile` ha stato (l'esito
+   dell'ultima conversione), e condividerla fa comparire l'errore di un campo sugli altri;
+4. se ci sono controlli agganciati al campo, **rivalidare anche su `TextChanged`** e non solo su
+   `PickerClosed`: chi digita ed esce col tabulatore non apre mai il calendario.
+
+**Le date si scrivono con le barre**: `15/03/1990`. La forma a sole cifre è stata tolta perché il
+campo non la sapeva riformattare, e mostrava una cosa diversa da quella che aveva capito.
+
+⚠️ **La regola generale, che vale oltre le date**: un convertitore che non sa leggere un valore
+deve **dichiararlo** (`UpdateGetError`), non restituire `null` in silenzio. Un valore nullo è
+indistinguibile da un campo vuoto, e su un campo vuoto non c'è niente da segnalare.

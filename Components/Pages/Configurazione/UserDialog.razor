@@ -37,8 +37,8 @@
 
             <!-- Data di Nascita -->
             <MudDatePicker Label="Data di Nascita" @bind-Date="User.DataNascita" Variant="Variant.Outlined"
-                Editable="true" Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
-                Culture="@(new System.Globalization.CultureInfo("it-IT"))" Class="mb-3" tabindex="4" />
+                Editable="true" TextUpdateSuppression="false" Converter="@_conv1" DateFormat="dd/MM/yyyy"
+                Culture="@(new System.Globalization.CultureInfo("it-IT"))" Class="mb-3 campo-data" tabindex="4" />
 
             <!-- Password -->
             <MudTextField @bind-Value="_password"
@@ -90,6 +90,10 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+
     private MudForm? _form;
     private MudTextField<string>? _firstField;
     private string? _password;

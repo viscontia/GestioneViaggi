@@ -4,9 +4,16 @@
 
 Questo documento descrive la configurazione corretta dei componenti `MudDatePicker` per consentire la **digitazione rapida da tastiera** nelle form gestionali.
 
-> 🔴 **La `Mask` non si usa più. Dal 2026-09-01 è stata tolta da tutti e 32 i campi data**, e
+> 🔴 **La `Mask` non si usa più. Dal 2026-09-01 è stata tolta da tutti e 33 i campi data**, e
 > sostituita da `Helpers/ConvertitoreDataFlessibile`. Non era una scelta di stile: **corrompeva i
 > dati**. Vedi la sezione «Perché la maschera è stata tolta» in fondo.
+>
+> 🔴 **Dal 2026-09-04 i separatori sono OBBLIGATORI: si scrive `15/03/1990`, non `15031990`.**
+> Non è un capriccio: MudBlazor in MAUI Hybrid **non riscrive il testo** del campo dopo la
+> conversione, quindi digitando le sole cifre la data veniva letta e salvata correttamente ma nel
+> campo restava `15031990` — il programma accettava in silenzio qualcosa di diverso da ciò che
+> mostrava. Chiedendo le barre, il testo digitato è **già** nella forma definitiva e il problema
+> non si pone. Vedi «Le quattro cose che un campo data deve avere» qui sotto.
 >
 > ⚠️ Resta valida la sezione "Un anno sbagliato passa senza avvisi": nessuna scrittura del campo
 > protegge dai refusi sull'anno, e ogni campo data operativo vuole anche una validazione di
@@ -23,17 +30,77 @@ Per abilitare la digitazione rapida nei campi data, utilizzare la seguente confi
     For="@(() => Entity.PropertyName)"
     Label="Etichetta Campo"
     Variant="Variant.Outlined"
-    Class="mb-3"
+    Class="mb-3 campo-data"
     DateFormat="dd/MM/yyyy"
     Editable="true"
-    Converter="@ConvertitoreDataFlessibile.Standard"
+    TextUpdateSuppression="false"
+    Converter="@_convPropertyName"
     Placeholder="gg/mm/aaaa"
-    HelperText="Digitare la data (es: 15031990) o selezionare dal calendario" />
+    HelperText="Es: 15/03/1990" />
+```
+```csharp
+// Nel blocco @code: UN'ISTANZA PER CAMPO, mai condivisa.
+private readonly ConvertitoreDataFlessibile _convPropertyName = new();
 ```
 
-Il convertitore accetta `15031990`, `15/03/1990`, `15.03.1990`, `15-3-90`: la digitazione rapida
-resta identica a prima. `ConvertitoreDataFlessibile` è raggiungibile senza `@using` perché
-`GestioneViaggi.Helpers` è in `Components/_Imports.razor`.
+Il convertitore accetta `15/03/1990` e `15/3/90`: lo zero iniziale è facoltativo e l'anno si può
+abbreviare, perché sono comodità che **non cambiano ciò che si legge nel campo**.
+`ConvertitoreDataFlessibile` è raggiungibile senza `@using` perché `GestioneViaggi.Helpers` è in
+`Components/_Imports.razor`.
+
+---
+
+## Le quattro cose che un campo data deve avere
+
+Trovate una per una il 2026-09-04, con **sette tentativi sbagliati** prima di arrivarci. Se ne
+manca una, il campo nasce rotto e il difetto è di quelli che non si notano: il dato entra giusto,
+ma sullo schermo se ne legge un altro.
+
+| # | Cosa | Se manca |
+|---|---|---|
+| 1 | **`Class="campo-data"`** | Nel campo si possono battere lettere e simboli che verranno rifiutati dopo. Il filtro è un **unico ascoltatore** installato all'avvio (`dialogFormHelper.installaFiltroDate`), quindi basta la classe: nessun aggancio da scrivere |
+| 2 | **`TextUpdateSuppression="false"`** | MudBlazor in MAUI Hybrid si crede un'applicazione **Blazor Server** (guarda `OSDescription != "Browser"`) e in quella modalità non riscrive il testo di un campo che ha il fuoco |
+| 3 | **Un'istanza del convertitore PER CAMPO** | Il convertitore **ha stato**: si ricorda se l'ultima conversione è fallita, ed è così che il campo mostra «data non valida». Condividendo un'istanza, l'errore di un campo comparirebbe sugli altri. Per questo `ConvertitoreDataFlessibile.Standard` **è stato rimosso**: era una trappola |
+| 4 | **Rivalidare all'uscita dal campo**, se ci sono controlli agganciati | Gli agganci scritti su `PickerClosed` scattano solo chiudendo il **calendario**. Chi digita la data ed esce col tabulatore non ci passa mai, e si porta dietro l'esito precedente — «manca la data» su una data appena scritta. Serve **anche** `TextChanged` |
+
+> **Il difetto sottostante non è nostro**: MudBlazor non riscrive il testo dei picker dopo
+> l'inserimento da tastiera nelle applicazioni Blazor Server ([#9090](https://github.com/MudBlazor/MudBlazor/issues/9090),
+> [#11217](https://github.com/MudBlazor/MudBlazor/issues/11217)), ed è corretto solo nella serie
+> **9.x**. Siamo sulla **8.15**: passare alla 9 comporta la riscrittura del sistema dei convertitori
+> e 45 rinomini di `ShowMessageBox`, ma soprattutto **cambiamenti che il compilatore non intercetta**
+> su 3.419 usi di componenti Mud. È annotato come lavoro **post go-live**, da fare rieseguendo il
+> piano di test MAUI come collaudo.
+
+---
+
+## Come si dichiara un errore di conversione
+
+Il pezzo che mancava per sei tentativi, e che vale per **qualunque** convertitore personalizzato.
+
+Un convertitore che non riesce a leggere il testo **non deve restituire `null` e basta**: per
+MudBlazor quel campo risulta semplicemente *non compilato*, indistinguibile da uno lasciato in
+bianco — e un campo vuoto non ha niente da segnalare. Nessun avviso può comparire, per costruzione.
+
+```csharp
+private DateTime? Leggi(string? testo)
+{
+    GetError = false;                        // 1. l'esito precedente si azzera SEMPRE, per primo
+    if (string.IsNullOrEmpty(testo)) return null;
+
+    if (DateTime.TryParseExact(...)) return data;
+
+    UpdateGetError("Data non valida. …");    // 2. il fallimento si DICHIARA
+    return null;
+}
+```
+
+⚠️ **Il punto 1 non è una formalità.** Senza, un errore rimasto acceso fa scartare a MudBlazor
+anche il valore buono digitato subito dopo: si corregge `18042036` in `18/04/2036` e il campo
+continua a risultare vuoto. È lo stesso schema visto altrove — *uno stato in cui si entra e non
+si esce* — e chi accende un indicatore deve sapere anche dove si spegne.
+
+⚠️ `UpdateGetError(null)` **non si può usare**: il messaggio è una chiave di traduzione, e null
+solleva `Value cannot be null. (Parameter 'key')`. Per azzerare si assegna `GetError = false`.
 
 ---
 
@@ -42,12 +109,13 @@ resta identica a prima. `ConvertitoreDataFlessibile` è raggiungibile senza `@us
 ### 1. **Editable="true"**
 Abilita la digitazione manuale nel campo.
 
-### 2. **Mask="@(new DateMask("dd/MM/yyyy"))"**
-Applica la maschera di input che formatta automaticamente la data durante la digitazione.
+### 2. ~~**Mask**~~ — **NON si usa** (vedi l'avviso in testa)
+Toglieva il controllo sui dati: intercettava ogni tasto, lo rimandava a .NET e riposizionava il
+cursore con un secondo viaggio. Su MacCatalyst sono 4-8 chiamate per battuta, e digitando in fretta
+le cifre slittavano — il 2026-08-31 è costata una partenza reale registrata come `8202-01-19`.
 
-**IMPORTANTE:**
-- Utilizzare `DateMask` con il formato `"dd/MM/yyyy"` (NON usare pattern numerici come `"00/00/0000"`)
-- La sintassi corretta è: `new DateMask("dd/MM/yyyy")`
+Il filtro sui caratteri ammessi c'è ancora, ma è **tutto in JavaScript** e non torna mai a .NET:
+vedi il punto 1 della tabella qui sopra.
 
 ### 3. **DateFormat="dd/MM/yyyy"** — obbligatorio, non cosmetico
 Deve corrispondere al formato della maschera.

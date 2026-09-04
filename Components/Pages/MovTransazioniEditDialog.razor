@@ -46,8 +46,8 @@
                                    Required="true"
                                    RequiredError="Data obbligatoria"
                                    Variant="Variant.Outlined"
-                                   Editable="true"
-                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                   Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    AnchorOrigin="Origin.BottomCenter" />
                 </MudItem>
                 <MudItem xs="6">
@@ -218,8 +218,8 @@
                                    @bind-Date="_dataDocumento"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true"
-                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                   Converter="@_conv2" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataDocumentoError"
                                    ErrorText="@_dataDocumentoErrorText" />
@@ -241,8 +241,8 @@
                                    @bind-Date="_dataScadenza"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true"
-                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                   Converter="@_conv3" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Required="@_scadenzaObbligatoria"
                                    Error="@_dataScadenzaError"
@@ -253,8 +253,8 @@
                                    @bind-Date="_dataPagamento"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
-                                   Editable="true"
-                                   Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                   Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                   Converter="@_conv4" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                    Clearable="true"
                                    Error="@_dataPagamentoError"
                                    ErrorText="@_dataPagamentoErrorText" />
@@ -301,6 +301,13 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv3 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv4 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public MovTransazioni Transazione { get; set; } = new();
     [Parameter] public int AziendaId { get; set; }

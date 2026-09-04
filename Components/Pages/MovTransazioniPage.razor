@@ -63,8 +63,8 @@
                                DateChanged="@(EventCallback.Factory.Create<DateTime?>(this, OnDataTransazioneFilterChanged))"
                                Clearable="true"
                                Variant="Variant.Outlined" 
-                               Editable="true"
-                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                               Editable="true" TextUpdateSuppression="false"
+                               Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                                Adornment="Adornment.End" 
                                AdornmentIcon="@Icons.Material.Filled.Event" />
             </div>
@@ -208,6 +208,10 @@
 </MudContainer>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+
     private List<MovTransazioni> _items = new();
     private MovTransazioni? _selectedItem;
     private bool _isSuperAdmin;

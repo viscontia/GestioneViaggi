@@ -10,6 +10,7 @@ using GestioneViaggi.Validation.Fiscal;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Components.Forms;
 using GestioneViaggi.Validation.Semantic;
+using GestioneViaggi.Helpers;
 
 namespace GestioneViaggi.Components.Shared;
 
@@ -58,6 +59,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private MudSelect<string>? _tipoDocField;
     private MudTextField<string>? _docNumeroField, _docRilDaField, _cfField, _ibanField;
     private MudDatePicker? _docRilDataField, _docScadenzaField;
+
+
 
     // Tab 4
     private MudTextField<string>? _intolleranzaField, _noteField;
@@ -760,7 +763,10 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         return [];
     }
 
-    private string? ValidateDataNascita(DateTime? date) => ErroreDb("nascita", Chiave(date));
+    private string? ValidateDataNascita(DateTime? date)
+    {
+        return ErroreDb("nascita", Chiave(date));
+    }
 
     private string? ValidateIndirizzo(string? v) => ErroreDb("indirizzo", v);
 

@@ -22,15 +22,15 @@
                    MinDate/MaxDate limitano il calendario; il testo digitato lo controlla Submit(). *@
                 <MudItem xs="6">
                     <MudDatePicker @ref="_startDatePicker" Label="Data Inizio" Date="Entity.DataInizio" DateChanged="OnStartDateChanged"
-                        Required="true" RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        Required="true" RequiredError="Campo obbligatorio" Editable="true" Class="campo-data" TextUpdateSuppression="false" Variant="Variant.Outlined"
+                        Converter="@_conv1" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                         MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
                         Margin="Margin.Dense" />
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Fine" Date="Entity.DataFine" DateChanged="OnEndDateChanged" Required="true"
-                        RequiredError="Campo obbligatorio" Editable="true" Variant="Variant.Outlined"
-                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                        RequiredError="Campo obbligatorio" Editable="true" Class="campo-data" TextUpdateSuppression="false" Variant="Variant.Outlined"
+                        Converter="@_conv2" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
                         MinDate="@DateValidator.DataMinima" MaxDate="@DateValidator.DataMassima"
                         Margin="Margin.Dense"
                         HelperText="@GetDurationHelperText()"
@@ -98,6 +98,11 @@
 </MudDialog>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
     [Inject] IJSRuntime JS { get; set; } = default!;

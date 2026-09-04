@@ -141,14 +141,14 @@
                                    chiamate per tasto, e digitando in fretta il carattere successivo entra
                                    con il cursore ancora fermo dove stava. Da qui 19082026 -> 19018202:
                                    cifre slittate di una posizione e l'ultima caduta fuori. *@
-                                    <MudDatePicker @ref="_dataNascitaField" Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
-                                        DateChanged="@(d => Entity.DataNascita = d)"
+                                    <MudDatePicker @ref="_dataNascitaField" @bind-Date="Entity.DataNascita" For="@(() => Entity.DataNascita)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
-                                        Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
+                                        TextChanged="@(async _ => { await RivalidaDate(); await ControllaAlVolo("nascita", "cf"); })"
+                                        Label="Data di Nascita" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true" Class="campo-data" TextUpdateSuppression="false"
                                         DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
-                                        Converter="@ConvertitoreDataFlessibile.Standard"
+                                        Converter="@_conv1"
                                         Validation="@((DateTime? d) => ValidateDataNascita(d))"
-                                        HelperText="Es: 15/03/1990 oppure 15031990" />
+                                        HelperText="Es: 15/03/1990" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudGrid Spacing="1">
@@ -321,20 +321,24 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
-                                    <MudDatePicker @ref="_docRilDataField" Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
-                                        DateChanged="@(d => Entity.DocumentoRilasciatoData = d)"
+                                    <MudDatePicker @ref="_docRilDataField" @bind-Date="Entity.DocumentoRilasciatoData" For="@(() => Entity.DocumentoRilasciatoData)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
-                                        Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
-                                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
-                                        Validation="@((DateTime? d) => ValidateDataRilascio(d))" />
+                                        TextChanged="@(async _ => { await RivalidaDate(); await ControllaAlVolo("rilascio"); })"
+                                        Label="Data Rilascio" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                        DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Converter="@_conv2"
+                                        Validation="@((DateTime? d) => ValidateDataRilascio(d))"
+                                        HelperText="Es: 18/04/2026" />
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
-                                    <MudDatePicker @ref="_docScadenzaField" Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
-                                        DateChanged="@(d => Entity.DocumentoRilasciatoScadenza = d)"
+                                    <MudDatePicker @ref="_docScadenzaField" @bind-Date="Entity.DocumentoRilasciatoScadenza" For="@(() => Entity.DocumentoRilasciatoScadenza)"
                                         PickerClosed="@(async () => { await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
-                                        Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true"
-                                        Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
-                                        Validation="@((DateTime? d) => ValidateDataScadenza(d))" />
+                                        TextChanged="@(async _ => { await RivalidaDate(); await ControllaAlVolo("scadenza"); })"
+                                        Label="Data Scadenza" Variant="Variant.Outlined" MinDate="@DateValidator.DataMinimaStorica" MaxDate="@DateValidator.DataMassima" Editable="true" Class="campo-data" TextUpdateSuppression="false"
+                                        DateFormat="dd/MM/yyyy" Placeholder="gg/mm/aaaa"
+                                        Converter="@_conv3"
+                                        Validation="@((DateTime? d) => ValidateDataScadenza(d))"
+                                        HelperText="Es: 18/04/2026" />
                                 </MudItem>
 
                                 <MudItem xs="12">
@@ -396,3 +400,11 @@
         </MudButton>
     </DialogActions>
 </MudDialog>
+
+@code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv3 = new();
+}

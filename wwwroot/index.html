@@ -68,6 +68,13 @@
     <script src="js/themeHelper.js"></script>
     <script src="js/login.js"></script>
     <script src="js/dialogFormHelper.js"></script>
+    <script>
+        // Il filtro dei campi data si installa una volta, all'avvio: un solo ascoltatore
+        // per tutta l'applicazione, che vale per ogni campo con la classe «campo-data».
+        document.addEventListener('DOMContentLoaded', function () {
+            window.dialogFormHelper?.installaFiltroDate();
+        });
+    </script>
     <script src="js/focusHelper.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/newsletterPreview.js"></script>

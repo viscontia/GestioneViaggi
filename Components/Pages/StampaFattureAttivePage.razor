@@ -43,16 +43,16 @@
             </div>
 
             <div style="min-width: 160px;">
-                <MudDatePicker Label="Data Doc. Da" @bind-Date="_filterDataDa" Editable="true"
+                <MudDatePicker Label="Data Doc. Da" @bind-Date="_filterDataDa" Editable="true" Class="campo-data" TextUpdateSuppression="false"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
-                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
+                               Converter="@_conv1" DateFormat="dd/MM/yyyy"
                                Placeholder="gg/mm/aaaa" />
             </div>
 
             <div style="min-width: 160px;">
-                <MudDatePicker Label="Data Doc. A" @bind-Date="_filterDataA" Editable="true"
+                <MudDatePicker Label="Data Doc. A" @bind-Date="_filterDataA" Editable="true" Class="campo-data" TextUpdateSuppression="false"
                                Variant="Variant.Outlined" Margin="Margin.Dense"
-                               Converter="@ConvertitoreDataFlessibile.Standard" DateFormat="dd/MM/yyyy"
+                               Converter="@_conv2" DateFormat="dd/MM/yyyy"
                                Placeholder="gg/mm/aaaa" />
             </div>
 
@@ -181,6 +181,11 @@
 </MudContainer>
 
 @code {
+    // Un'istanza per campo: il convertitore tiene l'esito dell'ultima conversione,
+    // e condividerla farebbe comparire l'errore di un campo sugli altri.
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv1 = new();
+    private readonly GestioneViaggi.Helpers.ConvertitoreDataFlessibile _conv2 = new();
+
     private List<FatturaAttivaListItem> _items = new();
     private bool _isSuperAdmin;
     private int? _currentAziendaId;
