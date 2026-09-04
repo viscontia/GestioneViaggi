@@ -157,4 +157,15 @@ dei controlli. Sono documentati qui perché la loro gravità non dipende da quan
 
 ---
 
+
+---
+
+## Sezione 3 — Aggiunte decise durante i test
+
+| # | Cosa | Perché | Come |
+|---|---|---|---|
+| A | **Il consenso alla newsletter si chiede a chi si iscrive** | Deciso il 2026-09-04 per ragioni commerciali: la newsletter esiste (Blocco 11) ma **737 clienti su 744 non hanno il consenso — e nessuno gliel'ha mai chiesto**. L'iscrizione a un viaggio è il momento naturale per porre la domanda. | Un popup dedicato durante l'iscrizione, per chi è **già conosciuto**: la sua scheda non viene ricompilata, quindi la spunta del modulo non la vede mai. ⚠️ **Prima è stato necessario aggiungere un dato**: `consenso_marketing = FALSE` significava due cose diverse — «non gliel'ho mai chiesto» e «ha detto no» — perché le colonne esistenti registrano solo i *cambi di stato*, e un rifiuto non lo è. Nuova colonna `consenso_marketing_chiesto_data` (`SqlScripts/581`): quando la domanda è stata posta, quale che sia stata la risposta. Le tre colonne del consenso non si toccano: restano la prova di quando è stato concesso e revocato. **Regole decise**: si chiede a chi non ha mai risposto e ai clienti nuovi; **a chi ha rifiutato non si richiede più** («essere insistenti non paga mai»); **al passeggero non si chiede affatto** — nove volte su dieci è la compagna del pilota, e il consenso lo deve dare la persona interessata, non chi la sta iscrivendo. ⚠️ Il popup **non è mai pre-spuntato**, **non condiziona l'iscrizione** (chi rifiuta prosegue identico: se rifiutare costasse qualcosa il consenso non sarebbe libero, e quindi non varrebbe) ed è **separato** dalle condizioni di viaggio. Se qualcosa va storto — domanda non ponibile, risposta non registrabile — si prosegue comunque: un consenso non raccolto è un peccato, un'iscrizione persa per un popup è un danno. ✅ Anche la risposta del **cliente nuovo** viene registrata, spunta o non spunta: così alla prossima iscrizione non gli viene riproposta. |
+
+---
+
 *Documento da completare/rivedere fino al go-live. Per la sequenza tecnica di deploy in produzione vedi `Estensione Progetto WEB/Documenti/2026-07-10-Checklist_Go_Live_PROD.md`.*

@@ -298,6 +298,30 @@ accettabile: dopo questo lavoro le regole sono le stesse righe di codice.
 
 ---
 
+## G — Il consenso alla newsletter chiesto durante l'iscrizione (nuovo, 2026-09-04)
+
+Nasce da una decisione commerciale: la newsletter esiste, ma **737 clienti su 744 non
+hanno il consenso e nessuno gliel'ha mai chiesto**. L'iscrizione è il momento naturale
+per porre la domanda — a patto di porla bene.
+
+> **Le tre cose da guardare in ogni prova**: il popup non deve essere pre-spuntato, non
+> deve condizionare l'iscrizione, e non deve ricomparire a chi ha già risposto.
+
+| # | Cosa fai | Cosa deve succedere |
+|---|---|---|
+| G1 | Iscrivi un cliente **già conosciuto** che non ha mai risposto | Superati i controlli della scheda, compare il popup: «Vuoi restare aggiornato?». Nessuna risposta è preselezionata |
+| G2 | Rispondi **No, grazie** | L'iscrizione **prosegue identica**. In `ana_clienti` il consenso resta `false`, ma `consenso_marketing_chiesto_data` e `_fonte` sono valorizzate |
+| G3 | Rifai l'iscrizione con lo **stesso cliente** | Il popup **non compare più**. È la regola decisa: a chi ha rifiutato non si richiede |
+| G4 | Iscrivi un altro cliente e rispondi **Sì** | Consenso `true`, con data e fonte `iscrizione_web`. Il popup non ricompare |
+| G5 | Iscrivi un cliente che ha **già** il consenso | Nessun popup: non si chiede ciò che è già stato dato |
+| G6 | Iscrivi un cliente che aveva dato il consenso e poi l'ha **revocato** | Nessun popup. ⚠️ È il caso insidioso: per lui la colonna «chiesto» è vuota, ma una risposta l'ha data eccome |
+| G7 | Iscrivi un **passeggero** | **Nessun popup**, mai. Il consenso lo deve dare la persona interessata, non il pilota che la sta iscrivendo |
+| G8 | Iscrivi un **cliente nuovo** lasciando la spunta del consenso **vuota** | L'iscrizione va a buon fine, e alla **seconda** iscrizione il popup non compare: la sua risposta era già stata registrata |
+| G9 | Iscrivi un cliente nuovo **spuntando** il consenso | Consenso `true` con fonte `iscrizione_web` |
+| G10 | Ferma il database e prova a iscriverti | Il popup non compare e **l'iscrizione non si blocca per causa sua**: un consenso non raccolto è un peccato, un'iscrizione persa per un popup è un danno |
+
+---
+
 ## Pulizia finale
 
 ```sql
