@@ -67,11 +67,22 @@ Proposta tecnica **approvata dal cliente**.
   (`fn_consenso_registra_risposta` e le `fn_web_newsletter_*`), con una **fonte propria**
   (es. `pagina_iscrizione`) per sapere sempre da dove viene ogni consenso. Se la si scrive
   da zero si ricrea la divergenza che tutto questo lavoro sta chiudendo.
-- **Da decidere in fase realizzativa**: se chi si iscrive da lì e **risulta già cliente** debba
-  aggiornare `ana_clienti.consenso_marketing` invece di creare un iscritto separato. Va deciso,
-  altrimenti la stessa persona finisce in due elenchi e riceve tutto due volte.
-- **Doppia conferma (double opt-in)**: da valutare. Rende il consenso inattaccabile ma perde
-  per strada chi non apre la mail di conferma. È una scelta di merito, non tecnica.
+- **Chi è già cliente aggiorna la propria scheda** *(deciso il 2026-09-04)*. L'email inserita
+  si cerca prima in `ana_clienti`: se c'è, si scrive `consenso_marketing` **su quella scheda**
+  (con `fn_consenso_registra_risposta`, fonte `pagina_iscrizione`) e **non** si crea un iscritto
+  in `web_newsletter_iscritti`. Solo chi non è cliente diventa un iscritto separato.
+  ⚠️ Senza questa regola la stessa persona finirebbe in due elenchi e riceverebbe ogni invio
+  **due volte** — con due link di disiscrizione diversi, di cui uno che non la disiscrive
+  davvero. È il difetto che si nota solo dopo il primo invio, quando qualcuno se ne lamenta.
+  ⚠️ Attenzione al caso della **stessa email su più aziende**: esiste già nei dati (VISCONTI
+  ADRIANO ha due schede, azienda 2 e 6). La pagina è per azienda, quindi si aggiorna la scheda
+  **dell'azienda a cui la pagina appartiene**, non «la scheda con quella email».
+- **Doppia conferma (double opt-in): NO** *(deciso il 2026-09-04)*. Chi arriva da un link
+  incollato da Antonio in una risposta personale sta già rispondendo a una conversazione in
+  corso: l'attrito di una seconda email costerebbe più iscritti di quanti ne renda sicuri.
+  ⚠️ Ne discende un obbligo pratico: siccome la conferma non c'è, la **prova** del consenso
+  è tutta nel dato — data, fonte e indirizzo IP se disponibile vanno scritti sempre, e il link
+  di disiscrizione dev'essere in ogni invio e funzionare al primo colpo.
 
 ---
 
