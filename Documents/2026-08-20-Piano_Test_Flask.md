@@ -184,13 +184,13 @@ o si raccoglie alla fonte o è perso.
 | B1 | Guarda il modulo anagrafico | C'è una spunta per il consenso all'invio di comunicazioni. ✅ **Passato** il 2026-09-04 |
 | B2 | Osservala all'apertura | **Non è pre-spuntata**. ✅ **Passato** il 2026-09-04 |
 | B3 | Verifica che il consenso alle comunicazioni **non sia mescolato** con l'accettazione dell'informativa | La spunta del modulo riguarda **solo** le comunicazioni. L'informativa privacy si accetta a parte, nel riepilogo finale, con la formula «inviando questo modulo dichiaro di aver letto…» — che è un **testo**, non una seconda spunta. ⚠️ **La prova era scritta male** (2026-09-04): cercava «due spunte distinte», ma la seconda non esiste e non deve esistere. Il trattamento dei dati **per eseguire l'iscrizione** non si basa sul consenso — si basa sul contratto — quindi non va chiesto un permesso che non serve: serve l'**informativa**, che c'è ed è collegata. La sostanza del controllo resta: i due piani non devono confondersi, e con una sola spunta, che parla solo di comunicazioni, non possono. ✅ **Verificato nel codice** il 2026-09-04: l'informativa (`static/informativa_privacy.html`) **non nomina** marketing o newsletter, quindi accettarla non tira dentro il consenso commerciale |
-| B4 | Compila **senza** spuntarla e salva | Si salva; a database `consenso_marketing` resta `false` |
-| B5 | Spuntala e salva | A database: `true`, con **data** e **fonte `SITO_ISCRIZIONE`** |
-| B6 | Aggiungi un **passeggero** e guarda il suo modulo | Ha **la sua** spunta: il consenso è personale, non del capogruppo |
-| B7 | Riapri un cliente esistente che **aveva già** dato il consenso e salva senza toccare la spunta | Il consenso **resta acceso**. Se si spegnesse, si starebbe falsificando un dato |
-| B8 | Completa un'iscrizione **senza** spuntare il consenso | A DB consenso falso, e **nessuna data, nessuna fonte**: non c'è nulla da dimostrare |
-| B9 | Entra con l'email di un cliente **esistente** | Titolo **ritrovato** nella tendina e spunta del consenso **com'era**. ⚠️ Sono le due regressioni chiuse col `557`: senza, il titolo restava vuoto e il consenso si sarebbe spento da solo al primo salvataggio |
-| B9b | Riprendi con un cliente che **ha il consenso** e apri «Modifica Anagrafica» | La spunta è **segnata**. ⚠️ Fino al 2026-09-02 arrivava sempre spenta: l'endpoint `/api/cliente/dati` costruisce la risposta a mano, chiave per chiave, e `consenso_marketing` non era fra quelle ricopiate — pur essendo restituito dal database e dal DAO (`SqlScripts/557`). Salvando si sarebbe spento un consenso che nessuno aveva revocato |
+| B4 | Compila **senza** spuntarla e salva | Si salva; a database `consenso_marketing` resta `false`. ✅ **Passato** il 2026-09-04, verificato anche sul gestionale |
+| B5 | Spuntala e salva | A database: `true`, con **data** e **fonte `SITO_ISCRIZIONE`**. ✅ **Passato** il 2026-09-04 (cliente PIPPONE PIPPO: `true`, fonte `SITO_ISCRIZIONE`, con data) |
+| B6 | Aggiungi un **passeggero** e guarda il suo modulo | Ha **la sua** spunta: il consenso è personale, non del capogruppo. ✅ **Passato** il 2026-09-04 (passeggero PIPPONA PIPPA) |
+| B7 | Riapri un cliente esistente che **aveva già** dato il consenso e salva senza toccare la spunta | Il consenso **resta acceso**. Se si spegnesse, si starebbe falsificando un dato. ✅ **Passato** il 2026-09-04 |
+| B8 | Completa un'iscrizione **senza** spuntare il consenso | A DB consenso falso, e **nessuna data, nessuna fonte**: non c'è nulla da dimostrare. ✅ **Passato** il 2026-09-04 |
+| B9 | Entra con l'email di un cliente **esistente** | Titolo **ritrovato** nella tendina e spunta del consenso **com'era**. ⚠️ Sono le due regressioni chiuse col `557`: senza, il titolo restava vuoto e il consenso si sarebbe spento da solo al primo salvataggio. ✅ **Passato** il 2026-09-04 |
+| B9b | Riprendi con un cliente che **ha il consenso** e apri «Modifica Anagrafica» | La spunta è **segnata**. ⚠️ Fino al 2026-09-02 arrivava sempre spenta: l'endpoint `/api/cliente/dati` costruisce la risposta a mano, chiave per chiave, e `consenso_marketing` non era fra quelle ricopiate — pur essendo restituito dal database e dal DAO (`SqlScripts/557`). Salvando si sarebbe spento un consenso che nessuno aveva revocato. ✅ **Passato** il 2026-09-04 |
 
 ---
 
@@ -316,6 +316,7 @@ per porre la domanda — a patto di porla bene.
 | G5 | Iscrivi un cliente che ha **già** il consenso | Nessun popup: non si chiede ciò che è già stato dato |
 | G6 | Iscrivi un cliente che aveva dato il consenso e poi l'ha **revocato** | Nessun popup. ⚠️ È il caso insidioso: per lui la colonna «chiesto» è vuota, ma una risposta l'ha data eccome |
 | G7 | Iscrivi un **passeggero** | **Nessun popup**, mai. Il consenso lo deve dare la persona interessata, non il pilota che la sta iscrivendo |
+| G7b | Dopo aver iscritto un passeggero, guarda la sua scheda a database | `consenso_marketing_chiesto_data` **vuota**: a lui non ha chiesto nessuno. ⚠️ Fino al 2026-09-04 veniva segnato come già interpellato (difetto 70), e iscrivendosi in prima persona non gli sarebbe più stato chiesto niente |
 | G8 | Iscrivi un **cliente nuovo** lasciando la spunta del consenso **vuota** | L'iscrizione va a buon fine, e alla **seconda** iscrizione il popup non compare: la sua risposta era già stata registrata |
 | G9 | Iscrivi un cliente nuovo **spuntando** il consenso | Consenso `true` con fonte `iscrizione_web` |
 | G10 | Ferma il database e prova a iscriverti | Il popup non compare e **l'iscrizione non si blocca per causa sua**: un consenso non raccolto è un peccato, un'iscrizione persa per un popup è un danno |

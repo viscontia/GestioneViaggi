@@ -157,6 +157,7 @@ dei controlli. Sono documentati qui perché la loro gravità non dipende da quan
 
 ---
 
+| 70 | **Sito — il passeggero risultava «già interpellato» sul consenso senza che nessuno gli avesse chiesto niente** | *(Difetto introdotto e chiuso il 2026-09-04, mai rilasciato.)* Emerso dal test B6, guardando la scheda del passeggero PIPPONA PIPPA: `consenso_marketing_chiesto_fonte` valorizzata. La registrazione della risposta era stata agganciata all'inserimento di **qualunque** cliente nuovo, passeggeri compresi — ma la scheda di un passeggero **la compila il pilota**, quindi la spunta del consenso la vede e la decide lui. Segnare quella persona come già interpellata significa toglierle la domanda il giorno in cui si iscriverà di persona: il popup non le comparirebbe più, per una risposta che non ha mai dato. | Il salvataggio di un passeggero lo dichiara (`e_passeggero`), e la risposta non viene registrata. È la stessa ragione per cui al passeggero non si mostra il popup: **il consenso lo dà la persona interessata, non chi la sta iscrivendo**. ⚠️ La spunta nel modulo del passeggero **resta** — è prevista dal test B6 e serve al caso in cui i due siano insieme davanti allo schermo; quello che non si registra è la *domanda posta*. |
 
 ---
 
