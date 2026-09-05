@@ -92,7 +92,15 @@ nessuna stima e non condiziona nessuna scelta di adesso.
 
 ---
 
-## 0. ⚠️ BLOCCO GO-LIVE — chi non ha l'email non può iscriversi sul sito
+## 0. Chi non ha l'email non poteva iscriversi sul sito — **RISOLTO il 2026-09-05**
+
+Fatto con `SqlScripts/593` (difetto 91): il sito riconosce la persona, le aggancia l'email
+che sta fornendo e prosegue sulla sua scheda. ⚠️ Resta da sanare a mano **GENDUSO
+FRANCESCA**, che senza data di nascita nessuna regola può riconoscere (checklist
+§3.0-quater-bis).
+
+Quello che segue è il testo com'era quando è stato trovato.
+
 
 **Trovato dall'utente il 2026-09-05, test F7.** Il sito identifica le persone
 **dall'email**: è la prima cosa che chiede, ed è la chiave con cui ritrova la scheda
