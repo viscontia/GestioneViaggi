@@ -38,7 +38,7 @@ spendere la sua identità altrove.
 | `/api/cliente/dati-per-email?email=` | 24 campi, 12 personali | `Step3Content.jsx` — apre la scheda del passeggero |
 | `/api/session/cliente_esistente?email=` | 2 campi, nessuno personale | ok |
 | `/api/cliente/verifica-registrazione-viaggio` | 1 campo | ok |
-| `/api/debug/session` | l'intera sessione | ⚠️ **endpoint di debug raggiungibile in produzione**: con una sessione attiva restituisce tutto ciò che contiene. Va tolto o chiuso |
+| ~~`/api/debug/session`~~ | l'intera sessione | ✅ **TOLTO il 2026-09-05.** Era raggiungibile in produzione e nessuna pagina lo chiamava più |
 
 ⚠️ **Nessuno dei due endpoint principali ha un limite di tentativi.** Chi possiede una
 lista di indirizzi — quella del club, una qualunque — li può interrogare tutti.
@@ -175,7 +175,7 @@ autocorrettivo della conferma di iscrizione: se non è stato lui, se ne accorge 
 |---|---|
 | `app.py` — `/api/cliente/dati` e `/api/cliente/dati-per-email` | Smettono di restituire i 12 campi personali. Rispondono: `esiste`, `cognome`, `nome`, `titolo`, `cliente_id`, e i **verdetti** (documento valido per la partenza sì/no, quali campi obbligatori mancano — i **nomi**, non i valori) |
 | `app.py` — nuovi endpoint | `/api/cliente/otp/richiedi` (POST, con limite di frequenza) e `/api/cliente/otp/verifica` (POST). Dopo verifica riuscita, la sessione porta un segno che abilita `/api/cliente/scheda` — l'unico endpoint che restituisce i dati completi |
-| `app.py` — `/api/debug/session` | **Va tolto**, o chiuso dietro una variabile d'ambiente assente in produzione |
+| ~~`app.py` — `/api/debug/session`~~ | ✅ **fatto**: tolto del tutto, non chiuso dietro una variabile — ⚠️ un endpoint che espone lo stato interno resta pericoloso quanto la disciplina di chi configura l'ambiente, e oggi quella disciplina è già stata smentita (`MAIL_DIROTTA_A`) |
 | `Classi_Tabelle_DB/cliente.py` | Un metodo per la scheda completa (solo dopo OTP) e uno per il profilo ridotto |
 | Limite di frequenza | Sugli endpoint che accettano un'email: senza, restano enumerabili |
 
@@ -229,7 +229,7 @@ autocorrettivo della conferma di iscrizione: se non è stato lui, se ne accorge 
 1. **Chiudere il rubinetto** — gli endpoint smettono di restituire i campi personali, il
    modulo lavora sui verdetti. ⚠️ Da solo blocca i 27 con la scheda incompleta: va quindi
    fatto insieme al punto 3.
-2. **Togliere `/api/debug/session`** — indipendente, immediato.
+2. ~~Togliere `/api/debug/session`~~ — ✅ **fatto il 2026-09-05**.
 3. **L'OTP** — database, endpoint, interfaccia.
 4. **Il completamento dei campi vuoti** senza OTP, con avviso via email al cliente.
 5. **La bonifica delle 7 schede** da parte di Antonio (in parallelo, non blocca).
