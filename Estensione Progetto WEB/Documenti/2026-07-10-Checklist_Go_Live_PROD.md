@@ -752,6 +752,17 @@ prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
 
 ---
 
+## 3.0-quater-bis — ⚠️ DA FARE A MANO: GENDUSO FRANCESCA non ha la data di nascita
+
+Cliente `3023` dell'azienda 2, **senza email e senza data di nascita**. Lo script 593
+risolve il caso di chi è riconoscibile, ma lei non lo è: senza data di nascita la regola
+di riconoscimento (`STESSA_ANAGRAFICA`) non scatta, quindi presentandosi sul sito
+creerebbe una **scheda doppia**.
+
+☐ Completare la sua scheda dal gestionale (data di nascita, e l'email se la si ha).
+
+---
+
 ## 3.0-quater — ⚠️ DA FARE A MANO PRIMA DEL GO-LIVE: MAIORCA MARIA è doppia
 
 Nell'azienda 2 ci sono **due schede MAIORCA MARIA**, stessa data di nascita:
