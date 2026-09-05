@@ -1013,6 +1013,40 @@ pulsanti abbiano il colore e l'icona del social.
 
 ---
 
+---
+
+## Bonifica dati PROD: quattro anomalie che il software non può sanare da solo
+
+*(Misurate il 2026-09-05 su Supabase, in sola lettura. Il database locale mostra gli stessi
+numeri: **non è "sporco", rispecchia PROD** — le anomalie sono reali, non artefatti di test.)*
+
+Le anomalie di **forma** sono a zero: nessuna email malformata, nessun codice fiscale di
+lunghezza sbagliata, nessuno spazio in testa o coda, nessun prefisso o tipo documento fuori
+tabella (chiusi dagli script `580` e `585`). Restano quattro anomalie **di merito**.
+
+| # | Anomalia | Righe | Perché non si sana con uno script |
+|---|---|---|---|
+| 1 | Partenze **concluse ma non marcate effettuate** | **50** | Marcarle tutte significherebbe dichiarare *fatti* viaggi che forse non si sono fatti. O il viaggio c'è stato e manca la spunta, o è stato annullato: lo sa solo chi c'era |
+| 2 | Iscrizioni con **mezzo obbligatorio incompleto** | **18** | Manca marca, modello o targa. Inventarli è falsificare. Sono iscrizioni entrate *prima* che la regola esistesse (`SqlScripts/551`) |
+| 3 | **Passeggeri senza pilota** assegnato | **11** | ⚠️ Verificato: **tutti e 11 sono su partenze con più piloti** (7 e 4). Non si può indovinare a quale appartengano |
+| 4 | **Piloti senza email** | **9** | È il caso storico che ha motivato la regola (`551`). Un'email non si inventa: va chiesta alla persona |
+
+**Nessuna blocca il go-live**, e nessuna peggiora applicando gli script: le regole nuove valgono
+sui dati *nuovi*, e questi restano leggibili e stampabili. Il punto 1 in particolare non ha effetti
+pratici — quelle 50 partenze hanno comunque la data passata, quindi `fn_partenza_iscrivibile` le
+esclude lo stesso.
+
+**Come affrontarle**, quando ci sarà tempo e con Antonio a fianco:
+- il **punto 1** si chiude in un pomeriggio scorrendo l'elenco delle partenze passate e spuntando
+  quelle davvero effettuate — è anche l'occasione per accorgersi di viaggi mai realizzati che
+  risultano ancora in archivio;
+- i **punti 2 e 4** si sanano da soli col tempo: alla prossima iscrizione di quelle persone il
+  software chiede i dati mancanti e non lascia proseguire;
+- il **punto 3** va guardato caso per caso, ed è il meno urgente: riguarda viaggi già fatti.
+
+⚠️ **Da non fare**: uno script che "sistemi" questi numeri. Sono dati che raccontano una storia,
+e riscriverli a tavolino significherebbe perdere l'unica traccia di cosa è andato storto.
+
 ## Iscritti alla sola newsletter: la lista esistente va caricata
 
 `web_newsletter_iscritti` in PROD nasce **vuota**. Chi si è iscritto alla newsletter dal vecchio
