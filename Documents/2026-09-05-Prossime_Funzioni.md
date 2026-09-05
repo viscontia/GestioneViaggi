@@ -138,6 +138,46 @@ regola automatica può riconoscerla.
 
 ---
 
+## 0-bis. Il sito pretende l'email anche dal passeggero, il database no
+
+**Esito del test F7, 2026-09-05.** Il gestionale permette di creare un cliente senza
+email; il sito la pretende **sempre**, per il pilota e per ogni passeggero
+(`Step3Content.jsx`: «Il campo email è obbligatorio»).
+
+⚠️ Il punto non è che i due software divergano: è che **il sito è più severo della
+regola**. La regola canonica sta in `fn_mov_clienti_viaggi_valida` e dice un'altra cosa —
+l'email serve **a chi guida**, perché è a lui che vanno convocazione, variazioni di
+programma e istruzioni. Al passeggero no: *«un passeggero che non lascia il proprio numero
+non sta nascondendo un dato, sta esercitando una scelta legittima»* (script 563).
+
+### Cosa costa oggi
+
+Su PROD (azienda 2), dei **88 passeggeri** mai iscritti a un viaggio, **12 non hanno un
+indirizzo email** — il 14%. Sono le mogli, le compagne, i figli: le stesse persone di cui
+si è detto parlando del consenso, *«nove volte su dieci è la moglie del pilota»*.
+
+Oggi il pilota che vuole iscrivere online la propria compagna senza casella ha due strade,
+entrambe cattive:
+
+1. **Inventarle un indirizzo**, o riusare il proprio. ⚠️ È la peggiore: sporca
+   l'anagrafica con un recapito falso, e crea una scheda che il sito ritroverà con
+   l'email sbagliata la prossima volta.
+2. **Rinunciare a iscriverla online** e scrivere in segreteria — che è quello che il sito
+   stesso suggerisce oggi in fondo alla pagina dei passeggeri. Cioè: la funzione esiste ma
+   per il 14% dei casi si torna al telefono.
+
+### La direzione
+
+Rendere l'email del passeggero **facoltativa**, allineando il sito alla regola che il
+database già applica. ⚠️ Ha una conseguenza da pensare prima: senza email quel passeggero
+non è più ritrovabile dal sito alla prossima iscrizione, e va riconosciuto per nome e data
+di nascita — lo stesso meccanismo del difetto 91, con le stesse cautele (nessuna conferma
+accettata, identità non modificabile).
+
+Da decidere prima del go-live.
+
+---
+
 ## 1-bis. ⚠️ Lo step 5 chiede la camera nell'ordine sbagliato — **da analizzare in PIANIFICAZIONE**
 
 **Segnalato dall'utente il 2026-09-05**, subito dopo il gruppo G: *«così come è oggi mi
