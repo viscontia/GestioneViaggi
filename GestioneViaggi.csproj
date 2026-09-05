@@ -39,6 +39,30 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.19041.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+
+        <!--
+            MUD0002 — «attributo illegale» sui MudDatePicker. Verificato il 2026-09-05:
+            e' un falso positivo, e lo e' in tutte e 33 le sue segnalazioni.
+
+            L'analizzatore dice che `TextUpdateSuppression` non esiste su MudDatePicker.
+            E' vero: quel parametro e' dichiarato su MudBaseInput, quindi su MudTextField
+            (verificato per riflessione sul MudBlazor.dll 8.15.0). ⚠️ Ma `MudPicker.razor`
+            fa `@attributes="UserAttributes"` ANCHE sul MudTextField interno, e in Blazor
+            lo splatting su un componente si aggancia ai [Parameter] dichiarati: quindi
+            l'attributo arriva e funziona. E' cio' che impedisce alla libreria di
+            riscrivere il testo mentre lo si digita — il perno della digitazione delle
+            date (Documents/Digitazione_Date.md, sette tentativi per arrivarci).
+
+            L'analizzatore non puo' saperlo: conosce i parametri dichiarati sul
+            componente, non quelli che il componente inoltra a runtime. E la regola non e'
+            sopprimibile per file: il diagnostico nasce sul .cs generato, non sul .razor,
+            quindi un .editorconfig sui .razor non lo intercetta (provato).
+
+            ⚠️⚠️ NON togliere quegli attributi per far sparire i warning: si riaprirebbe
+            il difetto delle date. La destinazione giusta e' un componente condiviso
+            `CampoData` — allora questa soppressione potra' sparire.
+        -->
+        <NoWarn>$(NoWarn);MUD0002</NoWarn>
     </PropertyGroup>
 
     <!-- Entitlements per MacCatalyst Debug (senza sandbox) -->

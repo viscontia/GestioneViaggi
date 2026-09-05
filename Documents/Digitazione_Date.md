@@ -416,3 +416,37 @@ caso peggiore mentre il commento ci diceva di stare nel migliore.
 **La cura.** La comodità di battere solo le cifre non stava nella maschera: sta nel **convertitore**,
 che legge il testo una volta sola, quando è finito. Nessuna intercettazione, nessun riposizionamento
 del cursore, nessuna corsa fra tasti e round-trip.
+
+---
+
+## ⚠️ I 33 warning MUD0002 sono un falso positivo — NON togliere quegli attributi
+
+Verificato il 2026-09-05. L'analizzatore di MudBlazor segnala
+`TextUpdateSuppression` come «attributo illegale» su `MudDatePicker`, 33 volte.
+
+Ha ragione sulla premessa: quel parametro **non** è dichiarato su `MudDatePicker`
+né su `MudPicker`. È dichiarato su `MudBaseInput`, quindi su `MudTextField`
+(verificato per riflessione sul `MudBlazor.dll` 8.15.0).
+
+Ma `MudPicker.razor` fa `@attributes="UserAttributes"` **anche sul `MudTextField`
+interno**, e in Blazor lo splatting su un *componente* si aggancia ai `[Parameter]`
+dichiarati. **L'attributo quindi arriva, e funziona**: è ciò che impedisce alla
+libreria di riscrivere il testo mentre lo si digita. L'analizzatore non può
+saperlo — conosce i parametri dichiarati sul componente, non quelli che il
+componente inoltra a runtime.
+
+⚠️⚠️ **Non togliere quegli attributi per far sparire i warning**: si riaprirebbe
+il difetto delle date, quello dei sette tentativi.
+
+La regola non è sopprimibile per file — il diagnostico nasce sul `.cs` generato,
+non sul `.razor`, quindi un `.editorconfig` sui `.razor` non lo intercetta
+(provato). È quindi soppressa nel `.csproj` con `NoWarn`, con la spiegazione
+accanto. ⚠️ Attenzione a **dove**: messa nel `PropertyGroup` di Release non ha
+alcun effetto sulla build di sviluppo, che è Debug — deve stare in quello senza
+condizioni.
+
+**La destinazione giusta** è un componente condiviso `CampoData` che incapsuli
+picker, convertitore, classe CSS e questo attributo: allora la soppressione
+potrebbe sparire, i 33 punti diventerebbero uno, e la regola sui campi data
+starebbe in un file solo come vuole `ComponentiShared.md`. Da fare fuori dal
+piano di test.

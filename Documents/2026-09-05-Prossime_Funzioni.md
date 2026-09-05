@@ -122,6 +122,7 @@ se l'avessero dato qui.
 | Cosa | Perché aspetta |
 |---|---|
 | **Passaggio a MudBlazor 9** | Risolverebbe alla radice i difetti #9090 e #11217 della libreria, aggirati a mano nei campi data (vedi `Documents/Digitazione_Date.md`). È un cambio di versione maggiore: **dopo** il go-live, mai durante un collaudo. |
+| **Componente condiviso `CampoData`** | I campi data ripetono in 33 punti picker + convertitore + classe CSS + `TextUpdateSuppression`. Incapsularli in un componente solo è quanto chiede `ComponentiShared.md`, e farebbe sparire la soppressione di MUD0002 dal `.csproj` (vedi `Documents/Digitazione_Date.md`). Rimandato: tocca 33 punti di chiamata, non durante un collaudo. |
 | **Ristrutturazione di `Step2Content.jsx`** | Il file è cresciuto troppo e concentra troppe responsabilità. Rimandato di proposito a fine test: rifarlo mentre lo si sta collaudando vanifica il collaudo. |
 | **Analisi iscrizioni e assegnazione camere** | Controlli probabilmente doppi e divergenti fra MAUI e Flask, come lo erano per `ana_clienti`. Stesso metodo: misurare su PROD prima di scrivere. Vedi `Documents/2026-08-20-Analisi_Validazioni_e_CRUD_AnaClienti.md`. |
 
