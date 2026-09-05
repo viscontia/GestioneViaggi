@@ -76,21 +76,68 @@ e una volta ottenuta la lista delle soluzioni valide è breve e si può mostrare
 
 ---
 
-## 4. Il modello dei dati regge già: la capienza è esatta
+## 4. ⚠️ Il sito non deve far scegliere il tipo di camera
 
-Nella tabella dei tipi, **`CAMERA DOPPIA USO SINGOLA` ha `numero_occupanti = 1`**, non 2.
-Cioè il modello codifica già «doppia pagata da uno solo» come una camera da **una** persona
-con supplemento.
+**Questa sezione sostituisce quella precedente**, che dava per buona la regola «capienza =
+persone». È caduta il 2026-09-05, e l'ha smontata un fatto di mestiere.
 
-⚠️ Questo semplifica tutto: la regola non è «capienza ≥ persone», è **capienza = persone**.
-Un gruppo di 1 prende un tipo di capienza 1 (SINGOLA, DOPPIA USO SINGOLA); un gruppo di 2
-un tipo di capienza 2; e così via. Nessuna aritmetica di supplementi da inventare nel
-codice: il supplemento è già un attributo del tipo scelto.
+### Cosa è successo davvero con le sei doppie a un occupante
 
-Le sei righe «sotto capienza» del capitolo 2 sono l'unica cosa che contraddice il modello,
-e vanno chiarite prima.
+Antonio, interpellato a suo tempo: **quell'albergo non offriva camere singole** — e succede
+spesso. L'unica opzione era la doppia. Quindi non ha sbagliato tipo: ha registrato **la
+verità fisica**. Il motociclista ha avuto una doppia a due letti, da solo, e non era un
+«uso singola» perché la singola in quella struttura **non esiste**.
 
----
+### Il catalogo mescola due assi
+
+| Tipo | Cos'è |
+|---|---|
+| `CAMERA DOPPIA USO SINGOLA` (capienza 1, suppl. Y) | un **prodotto commerciale**: una doppia venduta a una persona, col supplemento |
+| `CAMERA DOPPIA LETTI SINGOLI` (capienza 2, suppl. N) | una **stanza fisica** |
+
+Sono la stessa stanza con due trattamenti diversi. Finché stanno nello stesso elenco come
+alternative pari, il modello non può esprimere «doppia occupata da uno perché non c'erano
+singole».
+
+E il modello è più debole di così:
+
+- `tipo_alloggio_supplemento` è un **Y/N sul tipo**, non un importo e non per partenza:
+  ⚠️ **l'importo del supplemento non esiste da nessuna parte** nel sistema;
+- i costi della partenza sono per **categoria di persona** — pilota, passeggero, bambini —
+  mai per tipo di camera;
+- **nessuna tabella lega un alloggio a un viaggio o a una partenza**: non esistono
+  disponibilità né prezzi per struttura;
+- `ana_tipo_alloggio.tipo_alloggio_fk` è un riferimento a se stessa **mai valorizzato** —
+  sembra nato proprio per dire «questa è una variante di quella», che è la relazione
+  mancante fra doppia e doppia-uso-singola.
+
+### La conseguenza, che semplifica il passo 5
+
+**Quale stanza tocchi dipende dall'albergo — che SFT conosce e chi si iscrive no.** Nessuno
+che prenota può sapere se quella struttura ha le singole. Quindi il sito **non deve far
+scegliere il tipo**: deve raccogliere l'**intenzione**.
+
+| Il sito chiede | SFT decide dopo |
+|---|---|
+| dormite insieme o separati? | matrimoniale o due letti singoli |
+| chi con chi (solo quando serve, vedi §5) | tripla con matrimoniale o tre singoli |
+| a qualcuno non serve la camera perché dorme nel proprio mezzo? | doppia uso singola oppure doppia, secondo cosa offre l'albergo |
+
+Il passo 5 passa da **tredici tipi da interpretare** a **una domanda sola** — che è anche
+l'unica cosa a cui chi si iscrive sa rispondere con certezza.
+
+⚠️ **Una cosa va detta in chiaro nell'interfaccia**: chi vuole dormire da solo non può
+ricevere una promessa di prezzo. La formulazione onesta è *«camera per te solo — a seconda
+della struttura può comportare un supplemento»*. Non è un peggioramento: **oggi il
+supplemento non è calcolato comunque**, perché l'importo non esiste nel sistema. Cambia
+solo che lo si dice, invece di lasciarlo scoprire dopo.
+
+### Cosa resta da modellare, ma non adesso
+
+Il legame **tipo ↔ struttura ↔ partenza**, con disponibilità e importo del supplemento. È
+ciò che permetterebbe di dire a chi prenota quanto costa dormire da solo. ⚠️ È un lavoro
+molto più grande della riscrittura del passo 5 e **non va infilato dentro**: qui basta
+smettere di chiedere una cosa che l'utente non può sapere.
 
 ## 5. L'elenco completo delle combinazioni
 
@@ -154,16 +201,31 @@ si va mai (la camera più grande a catalogo tiene 5, e `mov_clienti_alloggi` 6 p
 
 Una volta scelta la **forma**, serve sapere **chi** va dove — ma solo quando è ambiguo:
 
-| Forma | Serve chiedere chi? |
-|---|---|
-| tutti insieme | **no** |
-| tutti separati | **no** |
-| gruppi tutti uguali (es. due coppie) | **sì** |
-| gruppi diversi (es. 2 + 1) | **sì** |
+**La regola esatta:** si chiede **solo se almeno un gruppo ha 2 o più persone E i gruppi
+sono più di uno.** In tutti gli altri casi la risposta è una sola e chiederla è un
+passaggio a vuoto.
 
-⚠️ Con 2 persone non si chiede **mai**: le due forme sono «insieme» e «separati», e in
-entrambe la domanda di chi-con-chi non ha risposte alternative. È il motivo per cui il caso
-più frequente diventa **una schermata sola**.
+| Persone | Forma | Serve chiedere chi? |
+|---|---|---|
+| 1 | sola | no |
+| 2 | insieme | **no** — un gruppo solo |
+| 2 | separati | **no** — due gruppi da uno: chi va dove non cambia niente |
+| 3 | tutti insieme | no |
+| 3 | **due insieme + uno solo** | **SÌ** — quali due? |
+| 3 | tutti separati | no |
+| 4 | tutti insieme | no |
+| 4 | **tre insieme + uno solo** | **SÌ** — chi resta solo? |
+| 4 | **due coppie** | **SÌ** — chi con chi? |
+| 4 | **una coppia + due soli** | **SÌ** — quali due stanno insieme? |
+| 4 | tutti separati | no |
+
+⚠️ **Con 2 persone non si chiede mai.** Ed è il caso dominante — 59 su 131 — quindi la
+coppia in matrimoniale diventa **una schermata sola**: una domanda, una risposta, avanti.
+
+⚠️ **Precisazione su una intuizione dell'utente**, che è giusta al 90%: non è vero che la
+domanda resta solo con 4 persone. Sopravvive anche con **3 in forma 2+1** — una coppia più
+un amico, e bisogna sapere quali due sono la coppia. Sono in tutto **4 forme su 11**: una
+di tre e tre di quattro.
 
 ### La scelta del tipo
 
