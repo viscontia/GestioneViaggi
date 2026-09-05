@@ -583,7 +583,25 @@ registrazione in albergo si presentano per legge i documenti di tutti gli occupa
 La regola sta nel database, quindi vale per il gestionale e per il sito insieme.
 
 Tutti gli altri script di questo blocco sono additivi o cambiano messaggi. Questo no: **cambia cosa
-si può fare con i dati che già ci sono**, e su PROD i dati che già ci sono sono tanti.
+si può fare con i dati che già ci sono**.
+
+> 🟢 **Ridimensionato il 2026-09-05: l'impatto è molto minore del previsto.** Le misure fatte ad
+> agosto guardavano **tutte le aziende** (779 clienti, di cui 575 senza numero documento: il 74%).
+> Ma l'azienda che lavora davvero è la **2 — SFT**, e lì i clienti sono **206** con numeri
+> tutt'altri:
+>
+> | manca | clienti SFT | su 206 |
+> |---|---|---|
+> | ente che ha rilasciato il documento | 21 | 10% |
+> | numero documento | 16 | 8% |
+> | data di scadenza | 15 | 7% |
+> | indirizzo di residenza | 8 | 4% |
+> | email | 8 | 4% |
+> | data di nascita | 2 | 1% |
+>
+> Il grosso dei 575 sta nell'**azienda 6**, che non opera. Il go-live si sente quindi su qualche
+> decina di schede, non su centinaia: si completano man mano che quelle persone si riscrivono a
+> un viaggio, senza bisogno di una bonifica preventiva.
 
 **Due momenti in cui si fa sentire:**
 
@@ -1020,26 +1038,29 @@ pulsanti abbiano il colore e l'icona del social.
 *(Misurate il 2026-09-05 su Supabase, in sola lettura. Il database locale mostra gli stessi
 numeri: **non è "sporco", rispecchia PROD** — le anomalie sono reali, non artefatti di test.)*
 
+⚠️ **I numeri che contano sono quelli dell'azienda 2 (SFT)**: è l'unica che opera davvero, e
+guardare il totale gonfia il problema. Sotto sono riportati entrambi.
+
 Le anomalie di **forma** sono a zero: nessuna email malformata, nessun codice fiscale di
 lunghezza sbagliata, nessuno spazio in testa o coda, nessun prefisso o tipo documento fuori
 tabella (chiusi dagli script `580` e `585`). Restano quattro anomalie **di merito**.
 
-| # | Anomalia | Righe | Perché non si sana con uno script |
-|---|---|---|---|
-| 1 | Partenze **concluse ma non marcate effettuate** | **50** | Marcarle tutte significherebbe dichiarare *fatti* viaggi che forse non si sono fatti. O il viaggio c'è stato e manca la spunta, o è stato annullato: lo sa solo chi c'era |
-| 2 | Iscrizioni con **mezzo obbligatorio incompleto** | **18** | Manca marca, modello o targa. Inventarli è falsificare. Sono iscrizioni entrate *prima* che la regola esistesse (`SqlScripts/551`) |
-| 3 | **Passeggeri senza pilota** assegnato | **11** | ⚠️ Verificato: **tutti e 11 sono su partenze con più piloti** (7 e 4). Non si può indovinare a quale appartengano |
-| 4 | **Piloti senza email** | **9** | È il caso storico che ha motivato la regola (`551`). Un'email non si inventa: va chiesta alla persona |
+| # | Anomalia | **SFT** | tutte | Perché non si sana con uno script |
+|---|---|---|---|---|
+| 1 | Partenze **concluse ma non marcate effettuate** | **8** | 50 | Marcarle tutte significherebbe dichiarare *fatti* viaggi che forse non si sono fatti. O il viaggio c'è stato e manca la spunta, o è stato annullato: lo sa solo chi c'era |
+| 2 | Iscrizioni con **mezzo obbligatorio incompleto** | **9** | 18 | Manca marca, modello o targa. Inventarli è falsificare. Sono iscrizioni entrate *prima* che la regola esistesse (`SqlScripts/551`) |
+| 3 | **Passeggeri senza pilota** assegnato | **0** | 11 | 🟢 Su SFT non ce n'è nessuno. Gli 11 sono dell'azienda 6, e sono tutti su partenze con più piloti — non ricostruibili |
+| 4 | **Piloti senza email** | **0** | 9 | 🟢 Su SFT non ce n'è nessuno. È il caso storico che motivò la regola (`551`), ma riguarda l'altra azienda |
 
 **Nessuna blocca il go-live**, e nessuna peggiora applicando gli script: le regole nuove valgono
 sui dati *nuovi*, e questi restano leggibili e stampabili. Il punto 1 in particolare non ha effetti
 pratici — quelle 50 partenze hanno comunque la data passata, quindi `fn_partenza_iscrivibile` le
 esclude lo stesso.
 
-**Come affrontarle**, quando ci sarà tempo e con Antonio a fianco:
-- il **punto 1** si chiude in un pomeriggio scorrendo l'elenco delle partenze passate e spuntando
-  quelle davvero effettuate — è anche l'occasione per accorgersi di viaggi mai realizzati che
-  risultano ancora in archivio;
+**Come affrontarle**, quando ci sarà tempo e con Antonio a fianco. ⚠️ Sono **17 righe in tutto**
+su SFT (8 + 9), non le decine che sembravano: è mezz'ora di lavoro, non un cantiere.
+- il **punto 1** si chiude scorrendo le **8** partenze passate non spuntate — è anche l'occasione
+  per accorgersi di viaggi mai realizzati che risultano ancora in archivio;
 - i **punti 2 e 4** si sanano da soli col tempo: alla prossima iscrizione di quelle persone il
   software chiede i dati mancanti e non lascia proseguire;
 - il **punto 3** va guardato caso per caso, ed è il meno urgente: riguarda viaggi già fatti.
