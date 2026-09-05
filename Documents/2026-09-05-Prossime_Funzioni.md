@@ -92,6 +92,52 @@ nessuna stima e non condiziona nessuna scelta di adesso.
 
 ---
 
+## 0. ⚠️ BLOCCO GO-LIVE — chi non ha l'email non può iscriversi sul sito
+
+**Trovato dall'utente il 2026-09-05, test F7.** Il sito identifica le persone
+**dall'email**: è la prima cosa che chiede, ed è la chiave con cui ritrova la scheda
+(`fn_wizard_verifica_cliente`). Nel gestionale invece l'email **non è obbligatoria** — e
+non deve esserlo, perché la passeggera che non lascia il proprio indirizzo sta esercitando
+una scelta legittima.
+
+Le due regole non coincidono, e la conseguenza è che **un cliente già in anagrafica senza
+email non si può iscrivere dal sito**.
+
+### Cosa succede davvero, misurato su PROD (azienda 2)
+
+Su 206 clienti, **8 non hanno email**. Non finiscono tutti allo stesso modo:
+
+| | quanti | esito |
+|---|---|---|
+| Riconosciuti e **bloccati** | **7** | `ERRORE / STESSA_ANAGRAFICA` — non possono iscriversi |
+| ⚠️ **Non riconosciuti → doppione** | **1** | GENDUSO FRANCESCA (id 3023): **non ha la data di nascita**, e senza quella la regola non scatta |
+
+Le sette bloccate sono CAMBIAGIO PIERANGELA, COLOMBO ROBERTA, DENARI MARIA ADELAIDE,
+DONATI BARBARA, MAIORCA MARIA, MELIS GIORGIA, MEZZALAMA BIANCA. ⚠️ Sono **tutte donne**,
+il che conferma da dove vengono: passeggere iscritte da altri, senza un indirizzo proprio.
+
+**Il disastro temuto — la scheda doppia — è quasi sempre già evitato**, e da lavoro fatto
+in questo stesso ciclo: `fn_ana_clienti_verifica_duplicato` riconosce la stessa persona da
+cognome, nome, data di nascita e comune di nascita, e risponde ERRORE. Ma «non si crea un
+doppione» qui significa «non si iscrive nessuno»: la persona resta fuori, e in un caso su
+otto il doppione si crea lo stesso perché i dati non bastano a riconoscerla.
+
+### La direzione, da decidere
+
+La regola che manca è la stessa già decisa per la pagina pubblica della newsletter — *«chi
+si iscrive da quel link ed è già cliente: aggiornare la sua scheda»*. Applicata qui: quando
+il sito riconosce la stessa anagrafica e **quella scheda non ha email**, invece di rifiutare
+dovrebbe **attaccare l'email alla scheda esistente** e proseguire con quel cliente.
+
+⚠️ È una decisione di prodotto, non tecnica: significa accettare che cognome, nome, data e
+comune di nascita bastino a dire «questa è la stessa persona» e a legarle un indirizzo
+email. Va decisa prima di scriverla.
+
+⚠️ Resta comunque da sanare a mano il caso GENDUSO FRANCESCA: senza data di nascita nessuna
+regola automatica può riconoscerla.
+
+---
+
 ## 1-bis. ⚠️ Lo step 5 chiede la camera nell'ordine sbagliato — **da analizzare in PIANIFICAZIONE**
 
 **Segnalato dall'utente il 2026-09-05**, subito dopo il gruppo G: *«così come è oggi mi
