@@ -6,6 +6,83 @@
 
 ---
 
+## 0. La sequenza, in ordine di esecuzione
+
+⚠️ **Questo è il documento che si segue mentre il cliente aspetta.** Le sezioni sotto sono
+in ordine di esecuzione: si va dall'alto verso il basso. Dove l'ordine è vincolante è
+scritto perché — e sono i punti in cui un'inversione fa danno, non fastidio.
+
+### Prima del giorno del go-live (senza fretta, si può fare in anticipo)
+
+| | Cosa | Dove |
+|---|---|---|
+| ☐ | Passata sui dati scritti dentro il codice | §0.1 |
+| ☐ | Sanare MAIORCA MARIA (scheda doppia) | §2.10 |
+| ☐ | Completare GENDUSO FRANCESCA (manca la data di nascita) | §2.11 |
+| ☐ | Elenco delle 27 schede incomplete consegnato ad Antonio, e deciso come procedere | §2.12 |
+| ☐ | MCP di Supabase configurato | §7 |
+| ☐ | Domini e deliverability verificati | §3.6 |
+| ☐ | Capitolo del manuale sugli stati dei contenuti web scritto | §3.4 |
+
+### Il giorno del go-live, nell'ordine
+
+| | Cosa | Dove | ⚠️ |
+|---|---|---|---|
+| ☐ | 1. Backup di PROD | §1 | senza questo non si comincia |
+| ☐ | 2. Script `406`→`466` | §1 | |
+| ☐ | 3. Voci ad attenzione manuale della prima fascia (RLS, Storage, backfill lingua) | §2.1–§2.6 | |
+| ☐ | 4. Script `467`→`596` | §1 | **587→588→589→592 in quest'ordine**, §1.6 |
+| ☐ | 5. `GV_SECRET_KEY` in PROD e segreti re-inseriti | §3.1 | senza, la posta non parte |
+| ☐ | 6. `MAIL_DIROTTA_A` **assente** dall'ambiente | §3.8 | se c'è, nessun cliente riceve nulla |
+| ☐ | 7. Resto della configurazione applicativa | §3.2 | |
+| ☐ | 8. Contenuti da caricare a parte (newsletter, iscritti, `eba_countries`) | §6 | |
+| ☐ | 9. Verifiche post-applicazione | §4 | |
+| ☐ | 10. La consegna: **un evento solo, tre componenti** | §3.7 | l'ordine non è negoziabile |
+
+### Le tre verifiche che dicono se è andata
+
+```sql
+-- 1. nessun movimento attraversa il confine fra aziende
+SELECT count(*) FROM fn_silos_movimenti_fuori_azienda();          -- atteso: 0
+
+-- 2. nessuno occupa un letto senza essere iscritto
+SELECT count(*) FROM mov_clienti_alloggi a
+CROSS JOIN LATERAL unnest(ARRAY[a.cliente_id1_fk,a.cliente_id2_fk,a.cliente_id3_fk,
+                                a.cliente_id4_fk,a.cliente_id5_fk,a.cliente_id6_fk]) AS u(cli)
+WHERE u.cli IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM mov_clienti_viaggi m
+  WHERE m.cliente_id_fk = u.cli AND m.data_viaggio_id_fk = a.data_viaggio_id_fk);  -- atteso: 0
+
+-- 3. i codici dei documenti sono tornati tre
+SELECT DISTINCT cliente_tipodoc_identita FROM ana_clienti;        -- atteso: CI, PAS, PAT, vuoto
+```
+
+---
+
+## 0.1 — PRIMA DEL PASSAGGIO A PROD: passata sui dati scritti dentro il codice
+**Deciso il 2026-09-05.** Nel giro di una sola giornata sono emersi quattro difetti dello
+**stesso ceppo**: un dato che dipende dall'**azienda** o dall'**ambiente**, scritto dentro
+il programma invece che nella configurazione.
+
+| Difetto | Cosa era cablato |
+|---|---|
+| 80 | I destinatari della posta: in sviluppo si spediva ai clienti veri |
+| 83 | L'appartenenza all'azienda, mai controllata nei movimenti |
+| — (§1.7) | Il consenso, chiesto e scritto senza sapere per quale azienda |
+| — (§2-bis prossime funzioni) | L'indirizzo del sito SFT nel bottone «Esci» |
+
+⚠️ Continuare a trovarli uno alla volta, per caso, è il modo peggiore: ognuno è costato
+un'indagine, e quelli non ancora incontrati usciranno **in produzione**, dove costano di
+più. Prima del passaggio a PROD va fatta **una passata mirata solo su questo**, su
+entrambi i software: cercare indirizzi, identificativi di azienda, destinatari, URL e
+percorsi scritti a mano, e portarli dove stanno già gli altri — configurazione
+dell'azienda o variabili d'ambiente.
+
+Non è un lavoro di rifinitura: un dato cablato che riguarda l'azienda **funziona sempre in
+prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
+
+---
+
 ## 1. Migrazione DB — script da applicare in ordine
 
 > ## ⚠️ L'azienda dell'Estensione Web è la **2**
@@ -117,7 +194,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–568)
+### Elenco ordinato (467–596)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -269,6 +346,17 @@ ls SqlScripts/*.sql \
 | 583 | Sito_Mostra_Solo_Partenze_Aperte | `fn_wizard_get_viaggi_disponibili` usa `fn_partenza_conclusa` invece di un criterio suo. Il filtro precedente confrontava con `'S'`, un valore che il CHECK sulla colonna non ammette: non escludeva nulla. Solo funzione, nessun dato toccato |
 | 584 | Partenza_Iscrivibile_Regole_Nette | `fn_partenza_iscrivibile` + trigger che vieta di marcare effettuata una partenza non ancora iniziata + vincolo ristretto a `Y`/`N`. **Misurato su PROD il 2026-09-04**: zero righe violano i nuovi vincoli |
 | 585 | Tipo_Documento_Una_Tabella_Sola | ⚠️ **Tocca i dati.** Crea `ana_tipo_documento` e **normalizza i codici**: su PROD sono cinque (`CID` 144, `CI` 38, `PAT` 17, `PAS` 7, `PASSAPORTO` 1) e diventano tre. L'`UPDATE` riguarda ~145 righe — cambia la scrittura, non il documento. Verifica dopo: `SELECT DISTINCT cliente_tipodoc_identita FROM ana_clienti` deve dare solo `CI`, `PAS`, `PAT` e il vuoto |
+| 586 | Cancellazione_Si_Porta_Dietro_Cio_Che_Dipende | ⚠️ **Tocca i dati.** Cancellare un partecipante ora si porta dietro i passeggeri del pilota e libera i posti letto (`fn_mov_clienti_viaggi_cancellazione_effetti`, `fn_mov_clienti_alloggi_togli_cliente`). Lo script **ripulisce anche i dati già sporchi**: chi occupa un letto su una partenza a cui non risulta iscritto. Su PROD 1 caso in azienda 2 e 5 in azienda 6 — vedi §1.5. **Le iscrizioni non vengono toccate** |
+| 587 | Silos_Rimappare_I_Clienti_Fuori_Azienda | Le funzioni del riallineamento (`fn_cliente_gemello_in_azienda`, `fn_silos_movimenti_fuori_azienda`, `fn_silos_rimappa_movimenti`) + il rimappaggio dove il gemello esiste già. Vedi §1.6 — **l'ordine 587→588→589 non è negoziabile** |
+| 588 | Silos_Creare_Le_Anagrafiche_Mancanti | ⚠️ **Crea 24 anagrafiche nuove in azienda 2**, copiate dall'azienda 6, e rimappa i movimenti. Riconoscibili da `created_by = 'migrazione_silos'`. **Il consenso al marketing NON viene copiato**: è stato dato a un'altra azienda |
+| 589 | Silos_Il_Confine_Viene_Imposto | Trigger `trg_silo_azienda` su `mov_clienti_viaggi` e `mov_clienti_alloggi`: rifiuta i movimenti in cui il cliente appartiene a un'azienda diversa da quella del viaggio. ⚠️ **Va DOPO 587 e 588**: prima, le righe esistenti lo violerebbero e ogni loro modifica fallirebbe |
+| 590 | Consenso_Solo_Sui_Clienti_Della_Propria_Azienda | ⚠️ **Sostituisce le firme** di `fn_consenso_da_chiedere` e `fn_consenso_registra_risposta` (DROP + CREATE): vogliono l'azienda. **Va applicato insieme al codice Flask** che passa il nuovo parametro, altrimenti il popup del consenso smette di funzionare. Vedi §1.7 |
+| 591 | Consenso_Revocato_E_Una_Risposta | `fn_consenso_da_chiedere` riconosce anche la **revoca** come risposta: chi ha concesso e poi disdetto non viene più interpellato. Solo funzione, nessun dato toccato |
+| 592 | Codice_Fiscale_Unico_Per_Azienda | Indice unico su (azienda, codice fiscale) per le schede che ne hanno uno. ⚠️ **Per azienda e non globale**: la stessa persona vive legittimamente in due anagrafiche, e lo script 588 ne crea 24 così. **Va quindi DOPO il 588**. Misurato su PROD: nessuna violazione, in nessuna azienda |
+| 593 | Agganciare_L_Email_A_Chi_Non_Ce_L_Ha | `fn_ana_clienti_aggancia_email`: completa con un'email la scheda di chi ne è privo, e **solo** in quel caso. Serve agli 8 clienti dell'azienda 2 senza indirizzo, che altrimenti dal sito non potrebbero iscriversi. Non sovrascrive mai un recapito esistente |
+| 594 | Nascita_Si_Cambia_Solo_Col_Codice_Fiscale | `fn_ana_clienti_nascita_modificata` + rilievo `CONFERMA / NASCITA_SENZA_CF` in `fn_ana_clienti_valida`. Data e comune di nascita si cambiano insieme al codice fiscale, che li conferma, oppure la modifica va dichiarata. ⚠️ **Riempire un campo vuoto non conta**: completare una scheda resta libero |
+| 595 | Rileggere_Una_Controparte_Sola | `fn_ana_controparti_get_by_id`. Solo lettura: serve al gestionale per riaprire una scheda com'è adesso e non com'era al caricamento dell'elenco |
+| 596 | Rileggere_Una_Partenza_Sola | `fn_ana_date_viaggi_get_by_id`, riga intera. Solo lettura, stessa ragione del 595. ⚠️ Riga intera e non il DTO di riepilogo: quello ha sei campi su diciannove |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -299,6 +387,76 @@ ls SqlScripts/*.sql \
 `499_Rollback` da non eseguire mai · **`563` campi obbligatori: cambia il lavoro quotidiano dal primo giorno (§2.9)** · `570` da precedere con `DROP FUNCTION` · `578` blocca le iscrizioni su partenze concluse, **da misurare su PROD prima** · `579` misurato su PROD, nessun caso sulle partenze aperte · `580` crea una tabella e normalizza i prefissi esistenti.
 
 > La verità sulle *funzioni* DB resta `Documents/Funzioni_DB.md` (rigenerato da `deploy_sql.sh`). Questo documento traccia il **deploy**, non la definizione.
+
+---
+
+### 1.5 — `SqlScripts/586` modifica dati esistenti (posti letto)
+Oltre alle funzioni, lo script **libera i posti letto occupati da chi non risulta
+iscritto** a quella partenza (difetto 82). Misurato su PROD il 2026-09-05:
+
+| Azienda | Camere coinvolte | Posti da liberare |
+|---|---|---|
+| 2 (SFT) | 1 | 1 |
+| 6 | 5 | 5 |
+
+Le camere in cui **nessun** occupante risulta iscritto vengono eliminate; le altre
+perdono solo il posto di chi non è iscritto. ⚠️ **Le iscrizioni non vengono toccate**:
+togliere qualcuno da un viaggio è una decisione dell'azienda, non una pulizia.
+
+Controllo dopo l'applicazione — deve dare 0:
+
+```sql
+SELECT count(*) FROM mov_clienti_alloggi a
+CROSS JOIN LATERAL unnest(ARRAY[a.cliente_id1_fk,a.cliente_id2_fk,a.cliente_id3_fk,
+                                a.cliente_id4_fk,a.cliente_id5_fk,a.cliente_id6_fk]) AS u(cli)
+WHERE u.cli IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM mov_clienti_viaggi m
+  WHERE m.cliente_id_fk = u.cli AND m.data_viaggio_id_fk = a.data_viaggio_id_fk);
+```
+
+---
+
+### 1.6 — `SqlScripts/587-588-589` rimettono in ordine i silos (**in quest'ordine**)
+Residuo dell'importazione da Oracle: clienti di un'azienda risultano iscritti ai viaggi
+di un'altra. Misura su PROD del 2026-09-05:
+
+| | |
+|---|---|
+| Righe da rimappare (iscrizioni, riferimenti al pilota, posti letto) | **81** |
+| Persone coinvolte | **26** |
+| **Anagrafiche da creare nell'azienda del viaggio** | **24** |
+
+- **587** — le funzioni (`fn_cliente_gemello_in_azienda`, `fn_silos_movimenti_fuori_azienda`,
+  `fn_silos_rimappa_movimenti`) e il rimappaggio dove il gemello esiste già.
+- **588** — ⚠️ **crea 24 anagrafiche nuove nell'azienda 2**, copiate dall'azienda 6, e
+  rimappa il resto. Le nuove schede si riconoscono da `created_by = 'migrazione_silos'`.
+  **Il consenso al marketing NON viene copiato**: è stato dato a un'altra azienda e vale
+  verso chi lo ha raccolto. Le schede nascono come «mai chiesto», così le regole del
+  consenso lo chiederanno alla prima occasione utile.
+- **589** — la guardia che impedisce di rifarlo. ⚠️ **Va dopo gli altri due**: prima, i
+  dati esistenti la violerebbero e ogni modifica di quelle righe fallirebbe.
+
+Controllo dopo l'applicazione — deve dare 0 righe:
+
+```sql
+SELECT * FROM fn_silos_movimenti_fuori_azienda();
+```
+
+⚠️ **Effetto da sapere prima**: le 24 persone entrano nel perimetro dell'azienda 2, quindi
+nei conteggi clienti e nel bacino potenziale della newsletter (senza consenso, che andrà
+chiesto).
+
+---
+
+### 1.7 — `SqlScripts/590`: il consenso solo sui propri clienti
+Le due funzioni del consenso non guardavano l'azienda, e i loro endpoint leggono
+l'identificativo del cliente **direttamente dalla richiesta**: bastava cambiare un numero
+per registrare un consenso — o un rifiuto — a nome di chiunque. Ora richiedono l'azienda
+e su un cliente che non è suo non rispondono e non scrivono.
+
+⚠️ Lo script **sostituisce le firme** (`DROP FUNCTION` + `CREATE`): va applicato insieme
+al codice Flask che passa il nuovo parametro, altrimenti il popup del consenso smette di
+funzionare.
 
 ---
 
@@ -698,62 +856,35 @@ una scheda alla volta, quando qualcuno la riaprirà — che è esattamente il di
 
 ---
 
-## 3. Configurazione applicativa PROD (fuori dal DB)
+### 2.10 — DA FARE A MANO: MAIORCA MARIA è doppia
+Nell'azienda 2 ci sono **due schede MAIORCA MARIA**, stessa data di nascita:
 
-> ⚠️ **Questa sezione è quella che fa fallire una consegna.** Il DB può essere perfetto: se l'eseguibile parte sulla macchina del cliente senza queste configurazioni, le schede che toccano segreti (Traduzioni, SMTP) si presentano con le funzioni disabilitate. Prima di consegnare, eseguire la **§3.3 Prova di consegna**.
-
-### 3.1 — `GV_SECRET_KEY` (master key dei segreti) — la voce più insidiosa
-
-Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**ambiente del processo** dell'app: `Environment.GetEnvironmentVariable("GV_SECRET_KEY")`.
-
-**Regole non negoziabili:**
-- **La stessa identica stringa** su tutte le installazioni che condividono il DB. Chiavi diverse = segreti scritti da una postazione illeggibili dall'altra (`Wrong key or corrupt data`).
-- **Non** finisce in git né dentro il pacchetto dell'app: è configurazione d'ambiente, non un file dell'applicativo.
-- Cambiarla dopo aver salvato dei segreti li rende **irrecuperabili**: vanno re-inseriti dalle form.
-
-**Come impostarla, per sistema operativo:**
-
-| Ambiente | Comando | Ambito |
+| id | email | creata |
 |---|---|---|
-| **Windows 11** (macchina cliente) | `setx GV_SECRET_KEY "<valore>" /M` da **prompt come amministratore** | tutte le utenze della macchina |
-| Windows 11 (solo utente corrente) | `setx GV_SECRET_KEY "<valore>"` | utente corrente |
-| macOS — avvio da terminale | `export` in `~/.zshrc`, oppure il file locale caricato da `run_maui.sh` | shell |
-| macOS — avvio da Finder/IDE | `launchctl setenv GV_SECRET_KEY "<valore>"` | app grafiche, **fino al riavvio** |
+| 3324 | mariamaio1@hotmail.it | 07/06/2025 |
+| 3327 | *(nessuna)* | 08/06/2025 |
 
-⚠️ **Trappola verificata sul campo (2026-07-27):** su macOS un'app lanciata da **Finder o dall'IDE non eredita** gli `export` di `~/.zshrc` — la variabile risulta assente e le funzioni sui segreti si disabilitano. Per questo `run_maui.sh` carica da sé la master key. Su **Windows** vale lo stesso principio con una differenza importante: `setx` **non tocca i processi già avviati**, quindi dopo averla impostata bisogna **chiudere e riaprire** il prompt (o fare logout/login) prima di lanciare l'app, altrimenti sembra che non abbia funzionato.
+Non c'entra con i silos: le ha inserite la segreteria a un giorno di distanza. **Adriano
+la sistema a mano** (deciso il 2026-09-05) — nessuno script la tocca, perché fondere due
+anagrafiche significa decidere quale storia tenere, e quella decisione è dell'azienda.
 
-**Come verificare che l'app la veda davvero** (non basta che il sistema la conosca):
-- Windows: `echo %GV_SECRET_KEY%` in un prompt **nuovo**; poi avviare l'app e aprire una scheda **Traduzioni**.
-- macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
-- **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
-
-### 3.0-zero — ⚠️ PRIMA DEL PASSAGGIO A PROD: passata sui dati scritti dentro il codice
-
-**Deciso il 2026-09-05.** Nel giro di una sola giornata sono emersi quattro difetti dello
-**stesso ceppo**: un dato che dipende dall'**azienda** o dall'**ambiente**, scritto dentro
-il programma invece che nella configurazione.
-
-| Difetto | Cosa era cablato |
-|---|---|
-| 80 | I destinatari della posta: in sviluppo si spediva ai clienti veri |
-| 83 | L'appartenenza all'azienda, mai controllata nei movimenti |
-| — (§3.0-quinquies) | Il consenso, chiesto e scritto senza sapere per quale azienda |
-| — (§2-bis prossime funzioni) | L'indirizzo del sito SFT nel bottone «Esci» |
-
-⚠️ Continuare a trovarli uno alla volta, per caso, è il modo peggiore: ognuno è costato
-un'indagine, e quelli non ancora incontrati usciranno **in produzione**, dove costano di
-più. Prima del passaggio a PROD va fatta **una passata mirata solo su questo**, su
-entrambi i software: cercare indirizzi, identificativi di azienda, destinatari, URL e
-percorsi scritti a mano, e portarli dove stanno già gli altri — configurazione
-dell'azienda o variabili d'ambiente.
-
-Non è un lavoro di rifinitura: un dato cablato che riguarda l'azienda **funziona sempre in
-prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
+☐ Fatto — verifica: `SELECT count(*) FROM ana_clienti WHERE azienda_fk = 2
+AND upper(btrim(cliente_cognome))='MAIORCA' AND upper(btrim(cliente_nome))='MARIA';`
+deve dare 1.
 
 ---
 
-## 3.0-quater-ter — ⚠️ 27 clienti su 206 non potranno essere iscritti finché non si completano
+### 2.11 — DA FARE A MANO: GENDUSO FRANCESCA non ha la data di nascita
+Cliente `3023` dell'azienda 2, **senza email e senza data di nascita**. Lo script 593
+risolve il caso di chi è riconoscibile, ma lei non lo è: senza data di nascita la regola
+di riconoscimento (`STESSA_ANAGRAFICA`) non scatta, quindi presentandosi sul sito
+creerebbe una **scheda doppia**.
 
+☐ Completare la sua scheda dal gestionale (data di nascita, e l'email se la si ha).
+
+---
+
+### 2.12 — 27 clienti su 206 non potranno iscriversi finché non si completano
 Misurato su PROD (azienda 2) il 2026-09-05. Le regole di completezza dell'anagrafica
 (`fn_ana_clienti_campi_mancanti`, script 563) sono **nuove**: nascono in questo ciclo. I
 clienti inseriti prima non le hanno mai attraversate.
@@ -788,128 +919,36 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
-## 3.0-quater-bis — ⚠️ DA FARE A MANO: GENDUSO FRANCESCA non ha la data di nascita
+## 3. Configurazione applicativa PROD (fuori dal DB)
 
-Cliente `3023` dell'azienda 2, **senza email e senza data di nascita**. Lo script 593
-risolve il caso di chi è riconoscibile, ma lei non lo è: senza data di nascita la regola
-di riconoscimento (`STESSA_ANAGRAFICA`) non scatta, quindi presentandosi sul sito
-creerebbe una **scheda doppia**.
+> ⚠️ **Questa sezione è quella che fa fallire una consegna.** Il DB può essere perfetto: se l'eseguibile parte sulla macchina del cliente senza queste configurazioni, le schede che toccano segreti (Traduzioni, SMTP) si presentano con le funzioni disabilitate. Prima di consegnare, eseguire la **§3.3 Prova di consegna**.
 
-☐ Completare la sua scheda dal gestionale (data di nascita, e l'email se la si ha).
+### 3.1 — `GV_SECRET_KEY` (master key dei segreti) — la voce più insidiosa
 
----
+Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**ambiente del processo** dell'app: `Environment.GetEnvironmentVariable("GV_SECRET_KEY")`.
 
-## 3.0-quater — ⚠️ DA FARE A MANO PRIMA DEL GO-LIVE: MAIORCA MARIA è doppia
+**Regole non negoziabili:**
+- **La stessa identica stringa** su tutte le installazioni che condividono il DB. Chiavi diverse = segreti scritti da una postazione illeggibili dall'altra (`Wrong key or corrupt data`).
+- **Non** finisce in git né dentro il pacchetto dell'app: è configurazione d'ambiente, non un file dell'applicativo.
+- Cambiarla dopo aver salvato dei segreti li rende **irrecuperabili**: vanno re-inseriti dalle form.
 
-Nell'azienda 2 ci sono **due schede MAIORCA MARIA**, stessa data di nascita:
+**Come impostarla, per sistema operativo:**
 
-| id | email | creata |
+| Ambiente | Comando | Ambito |
 |---|---|---|
-| 3324 | mariamaio1@hotmail.it | 07/06/2025 |
-| 3327 | *(nessuna)* | 08/06/2025 |
+| **Windows 11** (macchina cliente) | `setx GV_SECRET_KEY "<valore>" /M` da **prompt come amministratore** | tutte le utenze della macchina |
+| Windows 11 (solo utente corrente) | `setx GV_SECRET_KEY "<valore>"` | utente corrente |
+| macOS — avvio da terminale | `export` in `~/.zshrc`, oppure il file locale caricato da `run_maui.sh` | shell |
+| macOS — avvio da Finder/IDE | `launchctl setenv GV_SECRET_KEY "<valore>"` | app grafiche, **fino al riavvio** |
 
-Non c'entra con i silos: le ha inserite la segreteria a un giorno di distanza. **Adriano
-la sistema a mano** (deciso il 2026-09-05) — nessuno script la tocca, perché fondere due
-anagrafiche significa decidere quale storia tenere, e quella decisione è dell'azienda.
+⚠️ **Trappola verificata sul campo (2026-07-27):** su macOS un'app lanciata da **Finder o dall'IDE non eredita** gli `export` di `~/.zshrc` — la variabile risulta assente e le funzioni sui segreti si disabilitano. Per questo `run_maui.sh` carica da sé la master key. Su **Windows** vale lo stesso principio con una differenza importante: `setx` **non tocca i processi già avviati**, quindi dopo averla impostata bisogna **chiudere e riaprire** il prompt (o fare logout/login) prima di lanciare l'app, altrimenti sembra che non abbia funzionato.
 
-☐ Fatto — verifica: `SELECT count(*) FROM ana_clienti WHERE azienda_fk = 2
-AND upper(btrim(cliente_cognome))='MAIORCA' AND upper(btrim(cliente_nome))='MARIA';`
-deve dare 1.
+**Come verificare che l'app la veda davvero** (non basta che il sistema la conosca):
+- Windows: `echo %GV_SECRET_KEY%` in un prompt **nuovo**; poi avviare l'app e aprire una scheda **Traduzioni**.
+- macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
+- **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
----
-
-## 3.0-ter — `SqlScripts/587-588-589` rimettono in ordine i silos (**in quest'ordine**)
-
-Residuo dell'importazione da Oracle: clienti di un'azienda risultano iscritti ai viaggi
-di un'altra. Misura su PROD del 2026-09-05:
-
-| | |
-|---|---|
-| Righe da rimappare (iscrizioni, riferimenti al pilota, posti letto) | **81** |
-| Persone coinvolte | **26** |
-| **Anagrafiche da creare nell'azienda del viaggio** | **24** |
-
-- **587** — le funzioni (`fn_cliente_gemello_in_azienda`, `fn_silos_movimenti_fuori_azienda`,
-  `fn_silos_rimappa_movimenti`) e il rimappaggio dove il gemello esiste già.
-- **588** — ⚠️ **crea 24 anagrafiche nuove nell'azienda 2**, copiate dall'azienda 6, e
-  rimappa il resto. Le nuove schede si riconoscono da `created_by = 'migrazione_silos'`.
-  **Il consenso al marketing NON viene copiato**: è stato dato a un'altra azienda e vale
-  verso chi lo ha raccolto. Le schede nascono come «mai chiesto», così le regole del
-  consenso lo chiederanno alla prima occasione utile.
-- **589** — la guardia che impedisce di rifarlo. ⚠️ **Va dopo gli altri due**: prima, i
-  dati esistenti la violerebbero e ogni modifica di quelle righe fallirebbe.
-
-Controllo dopo l'applicazione — deve dare 0 righe:
-
-```sql
-SELECT * FROM fn_silos_movimenti_fuori_azienda();
-```
-
-⚠️ **Effetto da sapere prima**: le 24 persone entrano nel perimetro dell'azienda 2, quindi
-nei conteggi clienti e nel bacino potenziale della newsletter (senza consenso, che andrà
-chiesto).
-
----
-
-## 3.0-bis — `SqlScripts/586` modifica dati esistenti
-
-Oltre alle funzioni, lo script **libera i posti letto occupati da chi non risulta
-iscritto** a quella partenza (difetto 82). Misurato su PROD il 2026-09-05:
-
-| Azienda | Camere coinvolte | Posti da liberare |
-|---|---|---|
-| 2 (SFT) | 1 | 1 |
-| 6 | 5 | 5 |
-
-Le camere in cui **nessun** occupante risulta iscritto vengono eliminate; le altre
-perdono solo il posto di chi non è iscritto. ⚠️ **Le iscrizioni non vengono toccate**:
-togliere qualcuno da un viaggio è una decisione dell'azienda, non una pulizia.
-
-Controllo dopo l'applicazione — deve dare 0:
-
-```sql
-SELECT count(*) FROM mov_clienti_alloggi a
-CROSS JOIN LATERAL unnest(ARRAY[a.cliente_id1_fk,a.cliente_id2_fk,a.cliente_id3_fk,
-                                a.cliente_id4_fk,a.cliente_id5_fk,a.cliente_id6_fk]) AS u(cli)
-WHERE u.cli IS NOT NULL AND NOT EXISTS (
-  SELECT 1 FROM mov_clienti_viaggi m
-  WHERE m.cliente_id_fk = u.cli AND m.data_viaggio_id_fk = a.data_viaggio_id_fk);
-```
-
----
-
-## 3.0-quinquies — `SqlScripts/590`: il consenso solo sui propri clienti
-
-Le due funzioni del consenso non guardavano l'azienda, e i loro endpoint leggono
-l'identificativo del cliente **direttamente dalla richiesta**: bastava cambiare un numero
-per registrare un consenso — o un rifiuto — a nome di chiunque. Ora richiedono l'azienda
-e su un cliente che non è suo non rispondono e non scrivono.
-
-⚠️ Lo script **sostituisce le firme** (`DROP FUNCTION` + `CREATE`): va applicato insieme
-al codice Flask che passa il nuovo parametro, altrimenti il popup del consenso smette di
-funzionare.
-
----
-
-## 3.1-bis — `MAIL_DIROTTA_A` NON deve esistere in produzione
-
-In sviluppo tutta la posta viene dirottata su un solo indirizzo (`.env.local`), perché il
-database locale è di test ma **il server di posta e i destinatari sono quelli veri**: il
-2026-09-05 una prova di iscrizione ha mandato una conferma a un cliente reale e la notifica
-alla segreteria (difetto 80).
-
-⚠️ **Se quella variabile finisce in produzione, nessun cliente riceve più niente** — e non
-se ne accorgerebbe nessuno subito, perché gli invii risultano riusciti. Verificare che
-l'ambiente del processo Flask in PROD **non** la contenga:
-
-```bash
-# sul server, prima di dichiarare fatto il go-live
-grep -c MAIL_DIROTTA_A .env    # deve dare 0
-```
-
----
-
-## 3.2 — Resto della configurazione
+### 3.2 — Resto della configurazione
 
 - [ ] **Supabase**: connection string PROD, `Service Key` (Storage), eventuale `anon key`.
 - [ ] **Geoapify** API key (Blocco 9, generazione mappe statiche). Senza, il tab Mappa avvisa e disabilita la generazione.
@@ -943,7 +982,7 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 
 ---
 
-## 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
+### 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
 
 Durante i test è emerso che il comportamento dei contenuti web è **corretto ma non ovvio**: diverse regole,
 prese singolarmente, sembrano difetti del programma finché non si conosce il motivo. Vanno raccolte e
@@ -993,7 +1032,7 @@ Argomenti che il capitolo deve coprire:
 
 ---
 
-## 3.5 — Verifica date su PROD (fatta il 2026-08-01, sola lettura)
+### 3.5 — Verifica date su PROD (fatta il 2026-08-01, sola lettura)
 
 Controllo eseguito su Supabase dopo aver scoperto il refuso sull'anno (bug 9 delle note di rilascio).
 Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cercando anni fuori da 1900–2100.
@@ -1033,7 +1072,7 @@ Sono state esaminate **tutte le 108 colonne data/ora** dello schema `public` cer
 
 ---
 
-## 3.6 — Domini, brand e deliverability email (verificato il 2026-08-06)
+### 3.6 — Domini, brand e deliverability email (verificato il 2026-08-06)
 
 > Nessuno script SQL coinvolto, ma tocca **due voci di configurazione già in §3.2** (`sito_web` azienda,
 > SMTP per-azienda) e può invalidare newsletter **già spedite**. Va deciso **prima** del go-live, non dopo.
@@ -1081,7 +1120,7 @@ libero.
 
 ---
 
-## 3.7 — La consegna è **un evento solo, con tre componenti**
+### 3.7 — La consegna è **un evento solo, con tre componenti**
 
 Fino a luglio 2026 il rilascio era una cosa sola: la nuova versione del gestionale. Dopo la
 centralizzazione dei controlli non lo è più. Le regole di `ana_clienti` e dell'iscrizione ora
@@ -1128,6 +1167,23 @@ con `created_by` vuoto.
 
 ---
 
+### 3.8 — `MAIL_DIROTTA_A` NON deve esistere in produzione
+In sviluppo tutta la posta viene dirottata su un solo indirizzo (`.env.local`), perché il
+database locale è di test ma **il server di posta e i destinatari sono quelli veri**: il
+2026-09-05 una prova di iscrizione ha mandato una conferma a un cliente reale e la notifica
+alla segreteria (difetto 80).
+
+⚠️ **Se quella variabile finisce in produzione, nessun cliente riceve più niente** — e non
+se ne accorgerebbe nessuno subito, perché gli invii risultano riusciti. Verificare che
+l'ambiente del processo Flask in PROD **non** la contenga:
+
+```bash
+# sul server, prima di dichiarare fatto il go-live
+grep -c MAIL_DIROTTA_A .env    # deve dare 0
+```
+
+---
+
 ## 4. Checklist finale di rilascio
 
 - [ ] Applicati in ordine i **114** script 406–524 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
@@ -1169,18 +1225,12 @@ con `created_by` vuoto.
 
 ---
 
-## 5. Manutenzione di questo documento
+## 6. Dati e contenuti da portare in PROD
 
-Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 510) o un nuovo requisito di configurazione:
-1. aggiungere la riga in §1 (con eventuale ⚠️ e rimando a §2 se serve azione manuale);
-2. se comporta backfill/segreti/config, aggiungere la voce in §2/§3 e la spunta in §4;
-2bis. se introduce o cambia una **regola di comportamento** visibile all'utente (stati, pubblicabilità, cancellazioni, automatismi), aggiungere la voce da spiegare in §3.4: il manuale si scrive alla fine, ma l'elenco di cosa spiegare si costruisce strada facendo;
-3. aggiornare la data in testa.
+Contenuti che non arrivano con gli script: vanno caricati a parte, e nessuno se ne
+accorge se restano indietro — il software funziona lo stesso, solo senza contenuti.
 
----
-
-## Modelli di newsletter da portare in PROD
-
+### 6.1 — Modelli di newsletter da portare in PROD
 Oltre agli script, vanno **copiati i dati**: i modelli di newsletter composti qui in locale
 servono ad Antonio come base di partenza, invece di farlo ricominciare da una pagina bianca.
 
@@ -1215,8 +1265,7 @@ pulsanti abbiano il colore e l'icona del social.
 
 ---
 
-## Bonifica dati PROD: quattro anomalie che il software non può sanare da solo
-
+### 6.2 — Bonifica dati PROD: quattro anomalie che il software non può sanare da solo
 *(Misurate il 2026-09-05 su Supabase, in sola lettura. Il database locale mostra gli stessi
 numeri: **non è "sporco", rispecchia PROD** — le anomalie sono reali, non artefatti di test.)*
 
@@ -1250,8 +1299,7 @@ su SFT (8 + 9), non le decine che sembravano: è mezz'ora di lavoro, non un cant
 ⚠️ **Da non fare**: uno script che "sistemi" questi numeri. Sono dati che raccontano una storia,
 e riscriverli a tavolino significherebbe perdere l'unica traccia di cosa è andato storto.
 
-## Iscritti alla sola newsletter: la lista esistente va caricata
-
+### 6.3 — Iscritti alla sola newsletter: la lista esistente va caricata
 `web_newsletter_iscritti` in PROD nasce **vuota**. Chi si è iscritto alla newsletter dal vecchio
 sito non è in `ana_clienti` — non ha mai comprato un viaggio — e quindi oggi non riceverebbe nulla.
 
@@ -1286,8 +1334,7 @@ Rilascio 2.0). I primi sono già acquisiti e vanno solo importati.
 
 ---
 
-## Tabella `eba_countries`: va portata in PROD
-
+### 6.4 — Tabella `eba_countries`: va portata in PROD
 Serve al filtro «clienti residenti in…» degli invii selettivi, attraverso la catena
 `ana_clienti → ana_geo_comuni → ana_geo_province → ana_geo_regioni_ita → eba_countries`.
 
@@ -1314,8 +1361,7 @@ ad Antonio.
 
 ---
 
-## Configurazione MCP di Supabase — da completare **prima** del go-live
-
+## 7. Configurazione MCP di Supabase — da completare **prima** del go-live
 Il server MCP di Supabase è registrato nel **profilo utente** (non nel repository: era in
 `.mcp.json` nella radice del progetto e faceva fallire la build MAUI — vedi l'esclusione nel
 `.csproj`). Risulta però ancora **`! Needs authentication`**.
@@ -1339,3 +1385,29 @@ claude mcp list | grep supabase
 # atteso dopo l'autenticazione: ✔ Connected
 ```
 
+## 8. Manutenzione di questo documento
+
+Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 510) o un nuovo requisito di configurazione:
+1. aggiungere la riga in §1 (con eventuale ⚠️ e rimando a §2 se serve azione manuale);
+2. se comporta backfill/segreti/config, aggiungere la voce in §2/§3 e la spunta in §4;
+2bis. se introduce o cambia una **regola di comportamento** visibile all'utente (stati, pubblicabilità, cancellazioni, automatismi), aggiungere la voce da spiegare in §3.4: il manuale si scrive alla fine, ma l'elenco di cosa spiegare si costruisce strada facendo;
+3. aggiornare la data in testa.
+
+---
+
+⚠️ **Aggiunto il 2026-09-05, dopo la rilettura.** Il documento si era disordinato in un
+modo preciso: ogni voce nuova veniva appesa dove capitava, con numeri come `3.0-quater-ter`
+per infilarla fra due esistenti. Sette sezioni in un giorno solo, e gli script `586`–`596`
+**non erano nemmeno nell'elenco delle migrazioni** — la sequenza di go-live non li avrebbe
+applicati.
+
+**Quando si aggiunge qualcosa qui:**
+
+- uno script nuovo va **nella tabella di §1**, sempre, anche se sembra minore;
+- una voce da fare a mano va in **§2**, con il numero successivo;
+- una variabile o un parametro d'ambiente va in **§3**;
+- un contenuto da caricare va in **§6**;
+- e se è un passo del giorno del go-live, va **anche nella sequenza di §0** — che è
+  l'unica parte che qualcuno leggerà davvero mentre il cliente aspetta.
+
+Niente numeri con i suffissi latini: se serve infilare una voce in mezzo, si rinumera.
