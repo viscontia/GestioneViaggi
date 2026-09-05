@@ -752,6 +752,42 @@ prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
 
 ---
 
+## 3.0-quater-ter — ⚠️ 27 clienti su 206 non potranno essere iscritti finché non si completano
+
+Misurato su PROD (azienda 2) il 2026-09-05. Le regole di completezza dell'anagrafica
+(`fn_ana_clienti_campi_mancanti`, script 563) sono **nuove**: nascono in questo ciclo. I
+clienti inseriti prima non le hanno mai attraversate.
+
+| Cosa manca | Clienti |
+|---|---|
+| Documento incompleto (tipo, numero, ente, rilascio o scadenza) | **21** |
+| Indirizzo di residenza | **8** |
+| Data di nascita | **2** |
+| **Almeno una di queste** | **27 su 206 (13%)** |
+
+⚠️ **Conseguenza operativa da dire ad Antonio prima del go-live**: `fn_mov_clienti_viaggi_valida`
+rifiuta l'iscrizione di chi ha l'anagrafica incompleta — **dal gestionale e dal sito**.
+Quelle 27 persone non si potranno iscrivere a un viaggio finché qualcuno non completa la
+loro scheda. Non è un difetto: è la regola dei documenti obbligatori per legge che entra in
+vigore su dati raccolti quando non c'era. Ma se nessuno lo sa in anticipo, il giorno del
+go-live sembra che il software si sia rotto.
+
+☐ Elenco delle 27 schede consegnato ad Antonio
+☐ Deciso se completarle prima del go-live o man mano che si iscrivono
+
+Query per l'elenco:
+
+```sql
+SELECT cliente_id, cliente_cognome, cliente_nome,
+       string_agg(m.etichetta, ', ') AS cosa_manca
+FROM ana_clienti c
+CROSS JOIN LATERAL fn_ana_clienti_campi_mancanti(to_jsonb(c), FALSE) m
+WHERE c.azienda_fk = 2
+GROUP BY 1,2,3 ORDER BY 2,3;
+```
+
+---
+
 ## 3.0-quater-bis — ⚠️ DA FARE A MANO: GENDUSO FRANCESCA non ha la data di nascita
 
 Cliente `3023` dell'azienda 2, **senza email e senza data di nascita**. Lo script 593
