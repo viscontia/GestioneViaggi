@@ -27,7 +27,7 @@
 > *(L'unico «azienda 6» che resta legittimo in questo documento è nella scheda della transazione 72,
 > più sotto: è il resoconto di una riga sbagliata già corretta su PROD, non un'istruzione di copia.)*
 
-L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `583`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
+L'Estensione Web + hardening introducono gli script **`SqlScripts/406` → `585`** (i numeri **445–449 non esistono**; il numero **499 è usato da due file** — vedi l'avviso in testa all'elenco 467–524). Su un DB PROD che non li ha mai visti, il deploy = applicarli **tutti, in ordine numerico crescente**. Sono per la maggior parte idempotenti (function `CREATE OR REPLACE`, `IF NOT EXISTS`), ma **alcuni richiedono attenzione manuale**: le note riga per riga stanno nelle due tabelle qui sotto, i dettagli operativi in §2 e §3.
 
 > **Blocco 13 (467–474)** — re-model contenuti web **per edizione** (viaggio+data): `467` `ana_viaggi.viaggio_difficolta`; `468` `web_tour_contenuti` +`data_viaggio_id_fk`/−difficoltà/CRUD; `469–471` figlie ri-ancorate a `web_tour_contenuti_id_fk` (BIGINT); `472` public per-edizione + `fn_web_prezzo_da_data`; `473` RLS anon per-contenuto; `474` `fn_web_tour_contenuti_clona`. ⚠️ `468`+`469–471` cambiano colonne/vincoli su tabelle **presunte vuote** (nessun contenuto web esistente): su PROD applicare **prima** che esistano contenuti.
 
@@ -267,6 +267,8 @@ ls SqlScripts/*.sql \
 | 581 | Consenso_Registra_Anche_Il_Rifiuto | Due colonne su `ana_clienti` (`consenso_marketing_chiesto_data`/`_fonte`) + `fn_consenso_da_chiedere` e `fn_consenso_registra_risposta`. Servono a chiedere il consenso newsletter durante l'iscrizione **senza richiederlo a chi ha gia' rifiutato**: oggi `consenso_marketing = FALSE` significa sia «mai chiesto» sia «ha detto no». Solo DDL e funzioni, nessun dato modificato |
 | 582 | Documento_Esito_Chiedibile_Prima | `fn_documento_esito_per_partenza`: la severita' del documento (ERRORE all'estero, AVVISO in Italia) estratta da `fn_mov_clienti_viaggi_valida`, che ora la chiama. Serve al sito per fermare PRIMA chi non potrebbe partire, invece di rifiutarlo alla conferma finale |
 | 583 | Sito_Mostra_Solo_Partenze_Aperte | `fn_wizard_get_viaggi_disponibili` usa `fn_partenza_conclusa` invece di un criterio suo. Il filtro precedente confrontava con `'S'`, un valore che il CHECK sulla colonna non ammette: non escludeva nulla. Solo funzione, nessun dato toccato |
+| 584 | Partenza_Iscrivibile_Regole_Nette | `fn_partenza_iscrivibile` + trigger che vieta di marcare effettuata una partenza non ancora iniziata + vincolo ristretto a `Y`/`N`. **Misurato su PROD il 2026-09-04**: zero righe violano i nuovi vincoli |
+| 585 | Tipo_Documento_Una_Tabella_Sola | ⚠️ **Tocca i dati.** Crea `ana_tipo_documento` e **normalizza i codici**: su PROD sono cinque (`CID` 144, `CI` 38, `PAT` 17, `PAS` 7, `PASSAPORTO` 1) e diventano tre. L'`UPDATE` riguarda ~145 righe — cambia la scrittura, non il documento. Verifica dopo: `SELECT DISTINCT cliente_tipodoc_identita FROM ana_clienti` deve dare solo `CI`, `PAS`, `PAT` e il vuoto |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -890,7 +892,7 @@ funziona con gli altri due vecchi.
 
 | | Cosa | Perché in questa posizione |
 |---|---|---|
-| 1 | **Script DB** `406` → `583` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
+| 1 | **Script DB** `406` → `585` su Supabase, in ordine numerico | Le funzioni devono esistere prima che qualcuno le chiami |
 | 2 | **Flask nuovo** in produzione | Chiama funzioni che prima del passo 1 non esistono |
 | 3 | **MAUI 2.0** consegnata | Idem, e i client vanno aggiornati dopo lo schema |
 

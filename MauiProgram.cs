@@ -126,6 +126,8 @@ public static class MauiProgram
         builder.Services.AddScoped<Services.Printing.SchedaViaggioStampaService>();
         // I prefissi telefonici: elenco unico dal database, condiviso col sito.
         builder.Services.AddSingleton<Services.CRUD.PrefissoTelefonicoService>();
+        // I tipi di documento: elenco unico dal database, condiviso col sito.
+        builder.Services.AddSingleton<Services.CRUD.TipoDocumentoService>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();

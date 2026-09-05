@@ -21,6 +21,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     [Inject] public IClienteService ClienteService { get; set; } = default!;
     [Inject] public ComuneService ComuneService { get; set; } = default!;
+    [Inject] public TipoDocumentoService TipoDocumentoService { get; set; } = default!;
     [Inject] public ISnackbar Snackbar { get; set; } = default!;
     [Inject] public IDialogService DialogService { get; set; } = default!;
     [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
@@ -57,6 +58,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     // Tab 3
     private MudSelect<string>? _tipoDocField;
+
+    /// <summary>I tipi di documento, dal database: vedi TipoDocumentoService.</summary>
+    private List<(string Codice, string Descrizione)> _tipiDocumento = new();
     private MudTextField<string>? _docNumeroField, _docRilDaField, _cfField, _ibanField;
     private MudDatePicker? _docRilDataField, _docScadenzaField;
 
@@ -518,6 +522,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     {
         try
         {
+            _tipiDocumento = await TipoDocumentoService.GetAllAsync();
+
             // FAT INIT: Carica comuni, aziende e dettagli geografici in un unico colpo
             _initData = await ClienteService.GetClienteInitDataAsync(IsEditMode ? Entity.ClienteId : null);
 

@@ -301,9 +301,14 @@
                                         RequiredError="Obbligatorio"
                                         Validation="@((string v) => ValidateTipoDoc(v))"
                                         ValueChanged="@(async (string v) => { Entity.TipoDocIdentita = v; await ControllaAlVolo("tipodoc"); })">
-                                        <MudSelectItem Value="@("CI")">Carta d'Identità</MudSelectItem>
-                                        <MudSelectItem Value="@("Passaporto")">Passaporto</MudSelectItem>
-                                        <MudSelectItem Value="@("Patente")">Patente</MudSelectItem>
+                                        @* Le voci vengono dal database (SqlScripts/585), non piu' scritte qui.
+                                           Erano tre elenchi diversi — questo, quello del sito e quello dei
+                                           dati — e questo salvava «Passaporto» per esteso mentre i dati
+                                           usano «PAS»: cosi' non si leggevano nemmeno le schede esistenti. *@
+                                        @foreach (var (codice, descrizione) in _tipiDocumento)
+                                        {
+                                            <MudSelectItem Value="@codice">@descrizione</MudSelectItem>
+                                        }
                                     </MudSelect>
                                 </MudItem>
                                 <MudItem xs="12" sm="8">
