@@ -342,10 +342,33 @@ catena completa fino a `ISRG Root YR` — ma **.NET su questa macchina non conos
 quella radice** e riporta `RemoteCertificateChainErrors`. Togliendo il callback e basta,
 l'invio smette di funzionare: provato.
 
-Quindi non è una riga da cancellare. Va sostituita con una validazione che accetti *quella*
-catena e nient'altro (radice fissata per impronta), oppure aspettando che la radice entri
-nell'archivio di sistema. ⚠️ **Non durante il piano di test**: si rischia di spegnere la
-posta, e la posta è appena stata collaudata (gruppo E).
+### ⚠️ Il pezzo che mancava: il sito invece il certificato lo verifica
+
+Verificato il 2026-09-05 collegandosi davvero al server di posta dal Python del sito:
+
+```
+SMTP_SSL senza context → CONNESSO, certificato VERIFICATO
+```
+
+`smtplib.SMTP_SSL` senza un contesto esplicito usa `ssl.create_default_context()`, che
+**valida la catena** — e la connessione riesce. Quindi:
+
+| | verifica il certificato? | funziona? |
+|---|---|---|
+| **Sito (Python)** | **sì** | sì |
+| **Gestionale (.NET)** | **no** (`callback => true`) | sì, ma solo perché non verifica |
+
+⚠️ **Questo cambia la diagnosi.** Il certificato non è il problema: Python lo accetta senza
+alcun aiuto. Il problema è che **l'archivio delle radici che usa .NET su quella macchina non
+contiene `ISRG Root YR`**, mentre quello di Python sì. Non serve quindi fissare una radice
+per impronta — soluzione fragile, che va aggiornata a ogni rinnovo: serve far vedere a .NET
+le radici che il sistema già conosce.
+
+E c'è la solita morale della giornata: **due programmi che parlano con lo stesso server e la
+pensano in modo diverso**. Uno dei due si sbaglia, e non è quello che rifiuta.
+
+**Non durante il piano di test**: si rischia di spegnere la posta, e la posta è appena stata
+collaudata (gruppo E).
 
 ---
 
