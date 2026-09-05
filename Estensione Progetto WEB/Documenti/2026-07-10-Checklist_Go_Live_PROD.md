@@ -727,7 +727,32 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
 - **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
-### 3.0-quater — ⚠️ DA FARE A MANO PRIMA DEL GO-LIVE: MAIORCA MARIA è doppia
+### 3.0-zero — ⚠️ PRIMA DEL PASSAGGIO A PROD: passata sui dati scritti dentro il codice
+
+**Deciso il 2026-09-05.** Nel giro di una sola giornata sono emersi quattro difetti dello
+**stesso ceppo**: un dato che dipende dall'**azienda** o dall'**ambiente**, scritto dentro
+il programma invece che nella configurazione.
+
+| Difetto | Cosa era cablato |
+|---|---|
+| 80 | I destinatari della posta: in sviluppo si spediva ai clienti veri |
+| 83 | L'appartenenza all'azienda, mai controllata nei movimenti |
+| — (§3.0-quinquies) | Il consenso, chiesto e scritto senza sapere per quale azienda |
+| — (§2-bis prossime funzioni) | L'indirizzo del sito SFT nel bottone «Esci» |
+
+⚠️ Continuare a trovarli uno alla volta, per caso, è il modo peggiore: ognuno è costato
+un'indagine, e quelli non ancora incontrati usciranno **in produzione**, dove costano di
+più. Prima del passaggio a PROD va fatta **una passata mirata solo su questo**, su
+entrambi i software: cercare indirizzi, identificativi di azienda, destinatari, URL e
+percorsi scritti a mano, e portarli dove stanno già gli altri — configurazione
+dell'azienda o variabili d'ambiente.
+
+Non è un lavoro di rifinitura: un dato cablato che riguarda l'azienda **funziona sempre in
+prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
+
+---
+
+## 3.0-quater — ⚠️ DA FARE A MANO PRIMA DEL GO-LIVE: MAIORCA MARIA è doppia
 
 Nell'azienda 2 ci sono **due schede MAIORCA MARIA**, stessa data di nascita:
 
