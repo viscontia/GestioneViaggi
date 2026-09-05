@@ -289,6 +289,7 @@ Due difetti trovati durante il gruppo I, entrambi vecchi quanto il programma.
 | J5d | Spunta «effettuato» su una partenza **già iniziata** | Accettata. ✅ **Passato** il 2026-09-04 |
 | J6 | Iscrivi un **pilota** e guarda i Dettagli Veicolo | Sopra marca e modello c'è **Tipo di mezzo**. Scegli «AUTO 4X4 CON RIDUTTORE»: le marche passano da 27 a **12** |
 | J7 | Cambia il tipo dopo aver scelto marca e modello | Marca e modello si **azzerano**: la terna precedente non esisterebbe più |
+| J7b | **Riseleziona la stessa marca** (apri la tendina e scegli quella che c'era già) | Il modello **resta**. ⚠️ Prima si azzerava (difetto 79), come sul sito col tipo documento |
 | J8 | Scegli un **modello** senza aver scelto né tipo né marca | Marca **e** tipo si compilano da soli: il modello li conosce entrambi |
 | J9 | **Riapri in modifica** un'iscrizione con un mezzo già inserito | Il tipo si legge, dedotto dal modello. Non è salvato da nessuna parte: sta già sul modello |
 | J10 | Apri **Iscrizione Veloce**, scegli il viaggio e premi **TAB** | Il cursore va sulla **tendina della data**. Prima la saltava, perché all'apertura quella tendina è disabilitata e non entrava nella fila |

@@ -93,6 +93,12 @@
 
     private void OnTipoChanged(int? tipoId)
     {
+        // Solo se il tipo e' DAVVERO cambiato. Aprire la tendina e richiuderla sulla
+        // stessa voce non deve costare marca e modello: il selettore chiama questo
+        // gestore anche allora, e chi guarda per curiosita' si ritroverebbe i campi
+        // vuoti senza aver deciso niente.
+        if (tipoId == _tipoMezzoId) return;
+
         _tipoMezzoId = tipoId;
 
         // Marca e modello che c'erano possono non appartenere al nuovo tipo: tenerli
@@ -104,6 +110,10 @@
 
     private void OnMarcaChanged(int? marcaId)
     {
+        // Vedi OnTipoChanged: riselezionare la stessa marca non e' un cambiamento, e
+        // non deve azzerare il modello.
+        if (marcaId == Entity.AnaMezziIdFk) return;
+
         Entity.AnaMezziIdFk = marcaId;
         // Il modello che c'era apparteneva all'altra marca: tenerlo darebbe una coppia
         // che non esiste. La tendina dei modelli si ricarica da sola sul nuovo MarcaId.
