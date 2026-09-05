@@ -92,6 +92,67 @@ nessuna stima e non condiziona nessuna scelta di adesso.
 
 ---
 
+## 1-bis. ⚠️ Lo step 5 chiede la camera nell'ordine sbagliato — **da analizzare in PIANIFICAZIONE**
+
+**Segnalato dall'utente il 2026-09-05**, subito dopo il gruppo G: *«così come è oggi mi
+sembra complicato per l'utente e foriero di errori»*.
+
+### Come funziona adesso
+
+Per un'iscrizione con **1 o 2 persone** (Modalità A) il sito mostra una fila di card di
+tipi camera **per ciascun partecipante**. Una coppia deve quindi scegliere «CAMERA
+MATRIMONIALE» **due volte** — una per il pilota e una per il passeggero. Solo *dopo*, e
+solo se le due scelte coincidono e la camera ha almeno due posti, compare la domanda:
+**«dormite nella stessa camera?»**
+
+Con **3 o più persone** (Modalità B) l'interazione cambia del tutto: un mini-wizard che
+compone una camera alla volta. Due modi diversi di fare la stessa cosa, a seconda di
+quanti si è.
+
+### Il problema
+
+⚠️ **La domanda arriva alla fine, quando invece è quella che dovrebbe guidare tutto.**
+«Dormite nella stessa camera?» è la prima cosa che una coppia sa di sé, e se la si
+chiedesse subito indirizzerebbe la scelta invece di doverla convalidare a posteriori.
+Così com'è, si chiede alla persona di esprimere due volte una scelta che è una sola, e poi
+le si chiede se intendeva davvero quello che ha appena fatto.
+
+**Una precisazione sul rischio, verificata nel codice** (`handleModeAConfirm`): rispondendo
+**no** non si ottengono due matrimoniali. Il sito rifiuta con un messaggio — «Non puoi
+assegnare una camera da più posti a una sola persona» — e fa ricominciare. Quindi
+l'assegnazione sbagliata *non* viene registrata, ed è già qualcosa. ⚠️ Ma il costo resta:
+la persona ha compiuto tre scelte, ne ha sbagliata una che non sapeva di poter sbagliare, e
+deve rifare tutto. Il difetto è di percorso, non di dato.
+
+### Cosa dovrà considerare l'analisi
+
+Va fatta **entrando in modalità di pianificazione**, com'è stato chiesto, prima del
+passaggio in produzione. I casi da coprire, tutti reali per un'iscrizione fino a quattro
+persone:
+
+| Caso | Cosa deve poter esprimere |
+|---|---|
+| Una persona sola | Singola, o doppia uso singola (con supplemento) |
+| Coppia che dorme insieme | Una camera per due — matrimoniale o due letti |
+| Due persone che dormono separate | Due camere da una persona ciascuna |
+| Tre persone | Una tripla, oppure una doppia + una singola |
+| Quattro persone | Due doppie, doppia + due singole, quadrupla… |
+| Genitore con minore | Chi sta con chi non è deducibile dai dati |
+
+⚠️ Da tenere presente in ogni ipotesi:
+
+- **Il costo cambia**: le camere con `supplemento = 'Y'` costano di più, quindi un errore
+  di assegnazione non è solo un fastidio — si traduce in un preventivo sbagliato.
+- **La capienza è un vincolo del database**: `ana_tipo_alloggio.tipo_alloggio_numero_occupanti`,
+  e le assegnazioni stanno in `mov_clienti_alloggi` (sei posti per riga).
+- **Le due modalità andrebbero riconciliate**: se una via funziona per quattro persone,
+  probabilmente funziona anche per due, e si toglie di mezzo un secondo percorso da
+  mantenere e da collaudare.
+- **La domanda giusta viene prima**: prima *chi sta con chi*, poi *in che tipo di camera*.
+  È l'ordine in cui la gente pensa alla propria sistemazione.
+
+---
+
 ## 2-bis. L'indirizzo del sito SFT è scritto dentro il codice
 
 **Annotato il 2026-09-05** durante il test G4. Il bottone **Esci** dell'ultima modale del
