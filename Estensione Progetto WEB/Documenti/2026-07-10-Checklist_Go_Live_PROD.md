@@ -727,7 +727,25 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
 - **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
-### 3.2 — Resto della configurazione
+### 3.1-bis — `MAIL_DIROTTA_A` NON deve esistere in produzione
+
+In sviluppo tutta la posta viene dirottata su un solo indirizzo (`.env.local`), perché il
+database locale è di test ma **il server di posta e i destinatari sono quelli veri**: il
+2026-09-05 una prova di iscrizione ha mandato una conferma a un cliente reale e la notifica
+alla segreteria (difetto 80).
+
+⚠️ **Se quella variabile finisce in produzione, nessun cliente riceve più niente** — e non
+se ne accorgerebbe nessuno subito, perché gli invii risultano riusciti. Verificare che
+l'ambiente del processo Flask in PROD **non** la contenga:
+
+```bash
+# sul server, prima di dichiarare fatto il go-live
+grep -c MAIL_DIROTTA_A .env    # deve dare 0
+```
+
+---
+
+## 3.2 — Resto della configurazione
 
 - [ ] **Supabase**: connection string PROD, `Service Key` (Storage), eventuale `anon key`.
 - [ ] **Geoapify** API key (Blocco 9, generazione mappe statiche). Senza, il tab Mappa avvisa e disabilita la generazione.
