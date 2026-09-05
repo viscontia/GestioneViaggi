@@ -320,58 +320,59 @@ se l'avessero dato qui.
 
 ---
 
-## 5-bis. ⚠️ Il gestionale accetta QUALUNQUE certificato TLS dal server di posta
+## 5-bis. Il gestionale accettava QUALUNQUE certificato TLS — **RISOLTO il 2026-09-05**
 
-**Trovato il 2026-09-05** verificando l'aggiornamento di MailKit.
-`Services/Email/SmtpEmailSender.cs` (righe 75 e 157) fa:
+`Services/Email/SmtpEmailSender.cs` faceva `(s, c, h, e) => true`: qualunque certificato
+andava bene. Un intermediario con un certificato inventato sarebbe stato accettato, e con
+lui **utenza e password della casella**. ⚠️ Era l'esatto contrario della vulnerabilità
+chiusa aggiornando MailKit (difetto 84).
 
-```csharp
-client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-```
+**La diagnosi è cambiata due volte, e solo la terza era giusta.** Vale la pena scriverlo,
+perché le prime due sembravano ragionevoli:
 
-Cioè: qualunque certificato va bene. Un intermediario che si mettesse in mezzo con un
-certificato inventato verrebbe accettato, e con lui **utenza e password della casella**.
-
-⚠️ È l'esatto contrario della vulnerabilità appena chiusa aggiornando MailKit
-(CVE-2026-41319, un attacco dell'uomo in mezzo su STARTTLS): finché la validazione è
-disattivata, la correzione della libreria protegge molto meno.
-
-**Perché quel callback c'è, però, ha una ragione vera.** Misurato lo stesso giorno: il
-certificato del server *è* valido — OpenSSL lo verifica con `Verify return code: 0 (ok)`,
-catena completa fino a `ISRG Root YR` — ma **.NET su questa macchina non conosce ancora
-quella radice** e riporta `RemoteCertificateChainErrors`. Togliendo il callback e basta,
-l'invio smette di funzionare: provato.
-
-### ⚠️ Il pezzo che mancava: il sito invece il certificato lo verifica
-
-Verificato il 2026-09-05 collegandosi davvero al server di posta dal Python del sito:
+1. *«Il certificato del server è valido, ma .NET non conosce la radice `ISRG Root YR`.»*
+   Plausibile — OpenSSL validava, .NET no. **Sbagliato.**
+2. *«Serve fissare la radice per impronta.»* Conseguenza della prima. Sarebbe stata una
+   soluzione fragile, da aggiornare a ogni rinnovo. **Sbagliata anche questa.**
+3. **Quella vera**, ottenuta stampando la catena che .NET costruisce davvero:
 
 ```
-SMTP_SSL senza context → CONNESSO, certificato VERIFICATO
+elementi della catena costruita da .NET: 4
+  CN=sardegnafuoritraccia.it
+      ⚠️ RevocationStatusUnknown: An incomplete certificate revocation check occurred.
+  CN=YR1, O=Let's Encrypt
+  CN=Root YR, O=ISRG
+  CN=ISRG Root X1, O=Internet Security Research Group
 ```
 
-`smtplib.SMTP_SSL` senza un contesto esplicito usa `ssl.create_default_context()`, che
-**valida la catena** — e la connessione riesce. Quindi:
+.NET la catena la costruisce **per intero**, fino a `ISRG Root X1` che macOS conosce
+benissimo. L'unico rilievo è che **non riesce a completare il controllo di revoca** — cosa
+comune da quando Let's Encrypt ha dismesso OCSP. Il certificato è valido, la catena è
+attendibile: mancava solo un'informazione accessoria.
 
-| | verifica il certificato? | funziona? |
+⚠️ La lezione: ho dedotto due volte una diagnosi da un sintomo («.NET rifiuta») invece di
+chiedere al programma *perché* rifiutava. La risposta era a una `Console.WriteLine` di
+distanza.
+
+### La cura
+
+Nuovo `Services/Email/CertificatoServerPosta.cs`: si valida tutto e si tollera **solo**
+l'impossibilità di verificare la revoca. Nome che non corrisponde, certificato scaduto,
+catena che non arriva a una radice attendibile, firma non valida — tutto il resto è
+rifiutato. E quando si accetta per la revoca, **lo si scrive nel registro**: se un giorno
+quel messaggio cambia, si vede.
+
+Provato contro server veri e ostili:
+
+| Server | Esito | Perché |
 |---|---|---|
-| **Sito (Python)** | **sì** | sì |
-| **Gestionale (.NET)** | **no** (`callback => true`) | sì, ma solo perché non verifica |
-
-⚠️ **Questo cambia la diagnosi.** Il certificato non è il problema: Python lo accetta senza
-alcun aiuto. Il problema è che **l'archivio delle radici che usa .NET su quella macchina non
-contiene `ISRG Root YR`**, mentre quello di Python sì. Non serve quindi fissare una radice
-per impronta — soluzione fragile, che va aggiornata a ogni rinnovo: serve far vedere a .NET
-le radici che il sistema già conosce.
-
-E c'è la solita morale della giornata: **due programmi che parlano con lo stesso server e la
-pensano in modo diverso**. Uno dei due si sbaglia, e non è quello che rifiuta.
-
-**Non durante il piano di test**: si rischia di spegnere la posta, e la posta è appena stata
-collaudata (gruppo E).
+| `mail.sardegnafuoritraccia.it` | ✅ accettato | `RevocationStatusUnknown` |
+| `smtp.gmail.com` | ✅ accettato | certificato valido per sé |
+| `expired.badssl.com` | ⛔️ rifiutato | `NotTimeValid` |
+| `self-signed.badssl.com` | ⛔️ rifiutato | catena non attendibile |
+| `wrong.host.badssl.com` | ⛔️ rifiutato | nome che non corrisponde |
 
 ---
-
 ## 5. Debiti tecnici già individuati
 
 | Cosa | Perché aspetta |

@@ -72,7 +72,7 @@ public class SmtpEmailSender : IEmailSender
             // Invia tramite MailKit
             using var client = new SmtpClient();
             client.Timeout = 30_000;
-            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            client.ServerCertificateValidationCallback = CertificatoServerPosta.Validatore(_logger, config.Host);
 
             var secureSocketOptions = config.SecurityMethod?.ToLower() switch
             {
@@ -154,7 +154,7 @@ public class SmtpEmailSender : IEmailSender
 
             using var client = new SmtpClient();
             client.Timeout = 30_000; // 30 secondi max per connessione/autenticazione/invio
-            client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            client.ServerCertificateValidationCallback = CertificatoServerPosta.Validatore(_logger, config.Host);
             var secureSocketOptions = config.SecurityMethod?.ToLower() switch
             {
                 "ssl" or "tls" => SecureSocketOptions.SslOnConnect,
