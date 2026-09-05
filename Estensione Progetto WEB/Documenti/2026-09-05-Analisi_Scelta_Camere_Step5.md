@@ -201,15 +201,58 @@ camere (`NESSUNA CAMERA` è una scelta a parte, non un tipo di stanza).
 
 ## 8. Casi limite e decisioni aperte
 
+### Decise il 2026-09-05
+
+**2 — Le varianti DISABILI si mostrano SEMPRE.** ⚠️ Non dietro una domanda preliminare del
+tipo «ti serve una camera accessibile?»: per rispetto verso chi la userà, e per non
+obbligare nessuno a **dichiararsi disabile** per vedere un'opzione. Stanno in elenco come
+tutte le altre.
+
+**3 — Il tipo di pernottamento del viaggio esiste già, e basta collegarlo.** Non serve
+inventare un legame tipo↔viaggio: `ana_viaggi.viaggio_tipo_pernottamento_fk` c'è, e la
+tabella `ana_tipo_pernottamento` contiene esattamente le categorie descritte dall'utente:
+
+| Tipo | Con albergo | Viaggi SFT |
+|---|---|---|
+| ALBERGO | Y | **18** |
+| ALBERGO CON QUALCHE CAMPO TENDATO | Y | 0 |
+| SOLO CAMPI TENDATI | N | **2** |
+| NESSUNO | N | 0 |
+
+Il sito già usa il flag `con_albergo`: `StepWizard.jsx` **salta il passo 5** quando vale
+`N`. ⚠️ Ma è un interruttore acceso/spento — non filtra i **tipi di camera** offerti.
+Il collegamento che manca è quello: un viaggio in albergo non deve proporre tende, uno con
+solo campi tendati non deve proporre matrimoniali. Il dato per farlo c'è già.
+
+⚠️ Nota da verificare prima: il caso **ALBERGO CON QUALCHE CAMPO TENDATO** ha `con_albergo = Y`
+ma non è mai stato usato. Con il misto, la sistemazione può cambiare **da una notte
+all'altra** — e il modello attuale associa una camera alla *partenza*, non alla singola
+notte. È il limite da conoscere prima di promettere il misto.
+
+**4 — Le sei doppie con un occupante: NON sono un caso di prassi da modellare.** L'elenco
+mostra che si tratta di **motociclisti soli** iscritti a MAXI ENDURO TOUR GPX e GRAN TOUR
+ENDURO FEBBRAIO, più due casi isolati: gente che viaggia da sola e a cui è stata assegnata
+una doppia. Tutte inserite **dal gestionale** (`segreteria@`), che non ha il controllo del
+sito. La lettura più semplice è che sia una **doppia pagata a uso singolo registrata come
+doppia** invece che con il tipo apposito, che esiste (`CAMERA DOPPIA USO SINGOLA`,
+capienza 1, con supplemento). ☐ **Da confermare con Antonio**: se è così sono dati da
+normalizzare, e «capienza = persone» resta la regola giusta.
+
+**5 — «Passiamo dalla casa di mia zia e quella sera dormo da lei»: fuori dal software.** Si
+gestisce a mano — la persona lo scrive nelle note o telefona per prendere accordi. ⚠️ Non
+per pigrizia: *«molto spesso queste richieste hanno solo lo scopo di farsi abbassare il
+costo del viaggio»*, quindi vanno negoziate da una persona, non concesse da un modulo. Il
+caso esiste ed è reale, ma è raro, e modellarlo significherebbe legare la sistemazione alla
+singola notte per servire l'eccezione.
+
+### Ancora da decidere
+
 | # | Caso | Da decidere |
 |---|---|---|
-| 1 | **`NESSUNA CAMERA`** | Come si offre? Una spunta «non mi serve la camera» per singola persona, prima delle forme — non come un tipo di stanza fra gli altri |
-| 2 | **Varianti DISABILI** | Si mostrano sempre, o solo su richiesta («mi serve una camera accessibile»)? Mostrarle sempre allunga l'elenco a tutti; nasconderle le rende invisibili a chi ne ha bisogno |
-| 3 | **Tende** | Hanno senso solo su alcuni viaggi. ⚠️ Oggi il catalogo dei tipi è **globale**: non c'è modo di dire «questo viaggio non prevede tende». Serve un legame tipo↔viaggio, o si accetta di mostrarle sempre |
-| 4 | **Le 6 doppie con un occupante** | Sono errori o una prassi? La risposta cambia il modello: se è prassi, «capienza = persone» non è la regola giusta |
-| 5 | **Gruppi misti** | Un genitore con un minore: chi sta con chi non è deducibile dai dati, va chiesto — e l'ordine delle domande deve renderlo naturale |
-| 6 | **Il costo** | Le camere con supplemento costano di più. ⚠️ La combinazione scelta dovrebbe mostrare **quanto cambia**, altrimenti si sceglie al buio e il preventivo arriva dopo |
-| 7 | **Modifica successiva** | Se una persona viene aggiunta o tolta dall'iscrizione, la combinazione scelta può diventare invalida. Va ricalcolata, e la persona avvisata |
+| 1 | **`NESSUNA CAMERA`** | Come si offre? Una spunta «non mi serve la camera» per singola persona, prima delle forme — non come un tipo di stanza fra gli altri. ⚠️ Diverso dal caso 5: qui si tratta di chi **dorme nel proprio mezzo**, non di chi si sposta a casa di parenti |
+| 2 | **Gruppi misti** | Un genitore con un minore: chi sta con chi non è deducibile dai dati, va chiesto — e l'ordine delle domande deve renderlo naturale |
+| 3 | **Il costo** | Le camere con supplemento costano di più. ⚠️ La combinazione scelta dovrebbe mostrare **quanto cambia**, altrimenti si sceglie al buio e il preventivo arriva dopo |
+| 4 | **Modifica successiva** | Se una persona viene aggiunta o tolta dall'iscrizione, la combinazione scelta può diventare invalida. Va ricalcolata, e la persona avvisata |
 
 ---
 
