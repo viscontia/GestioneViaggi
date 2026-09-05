@@ -127,47 +127,12 @@ se l'avessero dato qui.
 
 ---
 
-## 6. ⚠️ Clienti iscritti ai viaggi di un'altra azienda — **in attesa di una decisione**
+## 6. Clienti iscritti ai viaggi di un'altra azienda — **RISOLTO il 2026-09-05**
 
-**Trovato il 2026-09-05.** Il caso PROD del difetto 81 — ROSSATO LORENZA, passeggera di
-ZANETTI LUCA su ICHNUSA TOUR del 25/04/2026 — **non era un pilota cancellato**: esistono
-due anagrafiche ZANETTI LUCA, la `1163` nell'azienda 6 e la `4347` nell'azienda 2. Sul
-viaggio è iscritta la 4347, ma il riferimento al pilota punta alla 1163.
+Era il residuo dell'importazione da Oracle. Scelta la strada di creare le anagrafiche
+mancanti nell'azienda del viaggio (`SqlScripts/587-588-589`), e aggiunta la guardia che
+impedisce di rifarlo. Vedi il **difetto 83** nelle note di rilascio.
 
-Il fenomeno è più ampio, e l'origine è nota: **l'importazione da Oracle** (confermato
-dall'utente il 2026-09-05). Su PROD:
-
-| | |
-|---|---|
-| Iscrizioni su viaggi dell'azienda 2 con cliente di un'altra azienda | **26** (25 persone), dal 29/10/2024 al 18/05/2026 |
-| Riferimenti al pilota fuori silo | **29** |
-
-`SqlScripts/587` mette gli strumenti: `fn_cliente_gemello_in_azienda` (la stessa persona
-nell'altra anagrafica, per codice fiscale oppure cognome+nome+data di nascita, **solo se
-il candidato è uno e uno solo** — su un'anagrafica si preferisce non fare, che fare a
-caso) e `fn_silos_movimenti_fuori_azienda`, che referta ogni riga come RIMAPPABILE,
-GEMELLO_ASSENTE o GEMELLO_GIA_ISCRITTO. Il rimappaggio agisce **solo sul RIMAPPABILE**.
-
-### ⚠️ Il punto che blocca il resto
-
-La richiesta era «attribuire a ogni cliente non in azienda 2 il suo codice di azienda 2,
-verificato che esista». **Su PROD esiste per 1 persona su 25** (MAZZOLENI ALESSANDRO, e
-solo per cognome+nome+data di nascita: le due schede hanno email diverse). Per le altre 24
-l'anagrafica nell'azienda 2 **non c'è affatto**: non è un riferimento sbagliato da
-correggere, è una scheda mai creata.
-
-Le due strade, nessuna delle quali è una pulizia tecnica:
-
-1. **Creare le 24 anagrafiche nell'azienda 2** copiandole dall'azienda 6, poi rimappare.
-   È la lettura più fedele al modello a silos: chi ha viaggiato con SFT è un cliente di
-   SFT. ⚠️ Porta 24 persone dentro il perimetro SFT, con effetti su conteggi, consenso
-   marketing e newsletter: è una decisione dell'azienda, non del software.
-2. **Lasciarle come sono**, accettando che i movimenti storici importati da Oracle
-   attraversino il confine, e imporlo solo da qui in avanti.
-
-⚠️ Finché non si decide **non ha senso mettere un vincolo** che vieti i riferimenti fuori
-silo: lo violerebbero 70 righe già presenti.
-
-Elenco delle 25 persone e dei loro viaggi: eseguire `SELECT * FROM
-fn_silos_movimenti_fuori_azienda();`.
-
+⚠️ **Resta aperto, ma è un'altra cosa**: l'azienda 6 in produzione non ha ragione di
+esistere (parole dell'utente, 2026-09-05). Va affrontato separatamente — qui si è solo
+fatto in modo che il confine fra le due aziende sia reale finché ce ne sono due.

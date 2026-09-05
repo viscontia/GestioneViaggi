@@ -727,7 +727,40 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
 - **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
-### 3.0-bis — `SqlScripts/586` modifica dati esistenti
+### 3.0-ter — `SqlScripts/587-588-589` rimettono in ordine i silos (**in quest'ordine**)
+
+Residuo dell'importazione da Oracle: clienti di un'azienda risultano iscritti ai viaggi
+di un'altra. Misura su PROD del 2026-09-05:
+
+| | |
+|---|---|
+| Righe da rimappare (iscrizioni, riferimenti al pilota, posti letto) | **81** |
+| Persone coinvolte | **26** |
+| **Anagrafiche da creare nell'azienda del viaggio** | **24** |
+
+- **587** — le funzioni (`fn_cliente_gemello_in_azienda`, `fn_silos_movimenti_fuori_azienda`,
+  `fn_silos_rimappa_movimenti`) e il rimappaggio dove il gemello esiste già.
+- **588** — ⚠️ **crea 24 anagrafiche nuove nell'azienda 2**, copiate dall'azienda 6, e
+  rimappa il resto. Le nuove schede si riconoscono da `created_by = 'migrazione_silos'`.
+  **Il consenso al marketing NON viene copiato**: è stato dato a un'altra azienda e vale
+  verso chi lo ha raccolto. Le schede nascono come «mai chiesto», così le regole del
+  consenso lo chiederanno alla prima occasione utile.
+- **589** — la guardia che impedisce di rifarlo. ⚠️ **Va dopo gli altri due**: prima, i
+  dati esistenti la violerebbero e ogni modifica di quelle righe fallirebbe.
+
+Controllo dopo l'applicazione — deve dare 0 righe:
+
+```sql
+SELECT * FROM fn_silos_movimenti_fuori_azienda();
+```
+
+⚠️ **Effetto da sapere prima**: le 24 persone entrano nel perimetro dell'azienda 2, quindi
+nei conteggi clienti e nel bacino potenziale della newsletter (senza consenso, che andrà
+chiesto).
+
+---
+
+## 3.0-bis — `SqlScripts/586` modifica dati esistenti
 
 Oltre alle funzioni, lo script **libera i posti letto occupati da chi non risulta
 iscritto** a quella partenza (difetto 82). Misurato su PROD il 2026-09-05:

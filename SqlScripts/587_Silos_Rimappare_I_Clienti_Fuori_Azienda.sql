@@ -145,25 +145,55 @@ creerebbe un doppione). Referto: non modifica niente.';
 -- ⚠️ Si tocca SOLO cio' che e' RIMAPPABILE. GEMELLO_ASSENTE e GEMELLO_GIA_ISCRITTO
 -- restano come sono: creare un'anagrafica o fondere due iscrizioni sono decisioni
 -- dell'azienda, non pulizie.
-UPDATE mov_clienti_viaggi m SET cliente_id_fk = s.gemello_id
-FROM fn_silos_movimenti_fuori_azienda() s
-WHERE s.tabella = 'mov_clienti_viaggi.cliente_id_fk' AND s.rimediabile = 'RIMAPPABILE'
-  AND m.data_viaggio_id_fk = s.partenza AND m.cliente_id_fk = s.cliente_id;
+--
+-- E' una funzione e non tre UPDATE sciolti perche' la chiama anche lo script 588,
+-- dopo aver creato le anagrafiche mancanti. Una copia sola, quindi non possono
+-- divergere.
+CREATE OR REPLACE FUNCTION fn_silos_rimappa_movimenti()
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE v_tot INTEGER := 0; v_n INTEGER;
+BEGIN
+    UPDATE mov_clienti_viaggi m SET cliente_id_fk = s.gemello_id
+    FROM fn_silos_movimenti_fuori_azienda() s
+    WHERE s.tabella = 'mov_clienti_viaggi.cliente_id_fk' AND s.rimediabile = 'RIMAPPABILE'
+      AND m.data_viaggio_id_fk = s.partenza AND m.cliente_id_fk = s.cliente_id;
+    GET DIAGNOSTICS v_n = ROW_COUNT; v_tot := v_tot + v_n;
 
-UPDATE mov_clienti_viaggi m SET cliente_pilota_id_fk = s.gemello_id
-FROM fn_silos_movimenti_fuori_azienda() s
-WHERE s.tabella = 'mov_clienti_viaggi.cliente_pilota_id_fk' AND s.rimediabile = 'RIMAPPABILE'
-  AND m.data_viaggio_id_fk = s.partenza AND m.cliente_pilota_id_fk = s.cliente_id;
+    UPDATE mov_clienti_viaggi m SET cliente_pilota_id_fk = s.gemello_id
+    FROM fn_silos_movimenti_fuori_azienda() s
+    WHERE s.tabella = 'mov_clienti_viaggi.cliente_pilota_id_fk' AND s.rimediabile = 'RIMAPPABILE'
+      AND m.data_viaggio_id_fk = s.partenza AND m.cliente_pilota_id_fk = s.cliente_id;
+    GET DIAGNOSTICS v_n = ROW_COUNT; v_tot := v_tot + v_n;
 
-UPDATE mov_clienti_alloggi a SET
-    cliente_id1_fk = CASE WHEN a.cliente_id1_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id1_fk END,
-    cliente_id2_fk = CASE WHEN a.cliente_id2_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id2_fk END,
-    cliente_id3_fk = CASE WHEN a.cliente_id3_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id3_fk END,
-    cliente_id4_fk = CASE WHEN a.cliente_id4_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id4_fk END,
-    cliente_id5_fk = CASE WHEN a.cliente_id5_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id5_fk END,
-    cliente_id6_fk = CASE WHEN a.cliente_id6_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id6_fk END
-FROM fn_silos_movimenti_fuori_azienda() s
-WHERE s.tabella = 'mov_clienti_alloggi' AND s.rimediabile = 'RIMAPPABILE'
-  AND a.data_viaggio_id_fk = s.partenza
-  AND s.cliente_id IN (a.cliente_id1_fk, a.cliente_id2_fk, a.cliente_id3_fk,
-                       a.cliente_id4_fk, a.cliente_id5_fk, a.cliente_id6_fk);
+    -- In una camera possono esserci PIU' occupanti fuori silo, e un UPDATE con FROM
+    -- ne sistema uno solo per riga: i compagni di stanza resterebbero indietro.
+    -- Si ripete finche' non cambia piu' niente.
+    LOOP
+        UPDATE mov_clienti_alloggi a SET
+            cliente_id1_fk = CASE WHEN a.cliente_id1_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id1_fk END,
+            cliente_id2_fk = CASE WHEN a.cliente_id2_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id2_fk END,
+            cliente_id3_fk = CASE WHEN a.cliente_id3_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id3_fk END,
+            cliente_id4_fk = CASE WHEN a.cliente_id4_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id4_fk END,
+            cliente_id5_fk = CASE WHEN a.cliente_id5_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id5_fk END,
+            cliente_id6_fk = CASE WHEN a.cliente_id6_fk = s.cliente_id THEN s.gemello_id ELSE a.cliente_id6_fk END
+        FROM fn_silos_movimenti_fuori_azienda() s
+        WHERE s.tabella = 'mov_clienti_alloggi' AND s.rimediabile = 'RIMAPPABILE'
+          AND a.data_viaggio_id_fk = s.partenza
+          AND s.cliente_id IN (a.cliente_id1_fk, a.cliente_id2_fk, a.cliente_id3_fk,
+                               a.cliente_id4_fk, a.cliente_id5_fk, a.cliente_id6_fk);
+        GET DIAGNOSTICS v_n = ROW_COUNT;
+        EXIT WHEN v_n = 0;
+        v_tot := v_tot + v_n;
+    END LOOP;
+
+    RETURN v_tot;
+END;
+$$;
+
+COMMENT ON FUNCTION fn_silos_rimappa_movimenti() IS
+'Fa puntare i movimenti al cliente dell''azienda del viaggio, dove il gemello esiste ed e''
+uno solo. Lascia intatto cio'' che e'' GEMELLO_ASSENTE o GEMELLO_GIA_ISCRITTO.';
+
+SELECT fn_silos_rimappa_movimenti() AS righe_rimappate;
