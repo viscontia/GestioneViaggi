@@ -117,6 +117,35 @@ se l'avessero dato qui.
 
 ---
 
+## 5-bis. ⚠️ Il gestionale accetta QUALUNQUE certificato TLS dal server di posta
+
+**Trovato il 2026-09-05** verificando l'aggiornamento di MailKit.
+`Services/Email/SmtpEmailSender.cs` (righe 75 e 157) fa:
+
+```csharp
+client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+```
+
+Cioè: qualunque certificato va bene. Un intermediario che si mettesse in mezzo con un
+certificato inventato verrebbe accettato, e con lui **utenza e password della casella**.
+
+⚠️ È l'esatto contrario della vulnerabilità appena chiusa aggiornando MailKit
+(CVE-2026-41319, un attacco dell'uomo in mezzo su STARTTLS): finché la validazione è
+disattivata, la correzione della libreria protegge molto meno.
+
+**Perché quel callback c'è, però, ha una ragione vera.** Misurato lo stesso giorno: il
+certificato del server *è* valido — OpenSSL lo verifica con `Verify return code: 0 (ok)`,
+catena completa fino a `ISRG Root YR` — ma **.NET su questa macchina non conosce ancora
+quella radice** e riporta `RemoteCertificateChainErrors`. Togliendo il callback e basta,
+l'invio smette di funzionare: provato.
+
+Quindi non è una riga da cancellare. Va sostituita con una validazione che accetti *quella*
+catena e nient'altro (radice fissata per impronta), oppure aspettando che la radice entri
+nell'archivio di sistema. ⚠️ **Non durante il piano di test**: si rischia di spegnere la
+posta, e la posta è appena stata collaudata (gruppo E).
+
+---
+
 ## 5. Debiti tecnici già individuati
 
 | Cosa | Perché aspetta |
