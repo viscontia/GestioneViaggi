@@ -8,6 +8,7 @@
 @using GestioneViaggi.Services.Shared
 @using GestioneViaggi.Components.Shared
 @using MudBlazor
+@using Microsoft.Extensions.Logging
 @inject IClienteService ClienteService
 @inject IClienteExportService ClienteExportService
 @inject IExcelExportService ExcelExportService
@@ -17,6 +18,7 @@
 @inject IStatusBarService StatusBarService
 @inject ITenantContext TenantContext
 @inject NavigationManager Navigation
+@inject ILogger<Clienti> Logger
 @attribute [Authorize]
 @implements IDisposable
 
@@ -388,8 +390,40 @@ else
 
     private async Task OpenEditDialog(Cliente item)
     {
+        // La riga in elenco e' una fotografia del momento in cui la lista e' stata
+        // caricata, e nel frattempo la scheda puo' essere cambiata — dal sito di
+        // iscrizione, o da un altro utente del gestionale. Aprendo la modifica su
+        // quella fotografia si vedono dati vecchi senza alcun segnale, e si rischia
+        // di salvarli sopra a quelli nuovi.
+        //
+        // Segnalato il 2026-09-05: una cliente si era iscritta dal sito, che le
+        // aveva completato la scheda, e in modifica i campi risultavano ancora
+        // vuoti. Bastava premere Aggiorna per vederli comparire — ma nessuno ha
+        // motivo di premerlo se non sa che c'e' qualcosa da aggiornare.
+        var daModificare = item;
+        try
+        {
+            var fresco = await ClienteService.GetByIdAsync(item.ClienteId, item.AziendaFk);
+            if (fresco != null)
+            {
+                daModificare = fresco;
+
+                // Anche la riga in elenco si allinea: chi chiude senza salvare deve
+                // ritrovare in lista quello che ha appena visto nella scheda.
+                var i = _items.FindIndex(c => c.ClienteId == fresco.ClienteId);
+                if (i >= 0) _items[i] = fresco;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Una rilettura fallita non e' un buon motivo per impedire la modifica:
+            // si prosegue con la copia in elenco, dicendo pero' che e' quella.
+            Logger.LogWarning(ex, "Rilettura del cliente {Id} non riuscita: si apre la copia in elenco", item.ClienteId);
+            Snackbar.Add("Non è stato possibile rileggere la scheda: stai vedendo i dati caricati con l'elenco.", Severity.Warning);
+        }
+
         // Clone entity to avoid modifying the original during editing
-        var cloned = item.Clone<Cliente>();
+        var cloned = daModificare.Clone<Cliente>();
 
         var parameters = new DialogParameters<ClienteDialog>
 {
@@ -406,7 +440,7 @@ else
                 FullWidth = true
             };
 
-        var dialog = await DialogService.ShowAsync<ClienteDialog>($"Modifica Cliente: {item.Cognome} {item.Nome}", parameters,
+        var dialog = await DialogService.ShowAsync<ClienteDialog>($"Modifica Cliente: {daModificare.Cognome} {daModificare.Nome}", parameters,
         options);
         var result = await dialog.Result;
 
