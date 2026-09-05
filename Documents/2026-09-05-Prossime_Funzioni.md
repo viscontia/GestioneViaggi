@@ -42,15 +42,50 @@ l'operatore che risponde NO ha già avvisato il cliente in altro modo — l'ha a
 sentito al telefono, gli ha risposto su WhatsApp — e una seconda conferma automatica
 sarebbe rumore. La macchina toglie il lavoro ripetitivo, non la decisione.
 
-### Domande aperte (da sciogliere quando si farà, non prima)
+### Le regole, decise il 2026-09-05
 
-| Nodo | Perché non è ovvio |
+| Caso | Regola |
 |---|---|
-| **A chi si scrive quando si cancella un passeggero** | Il passeggero spesso **non ha un indirizzo suo** — nove volte su dieci è la compagna del pilota, e in anagrafica la mail manca. Il riferimento naturale è il pilota (`mov_clienti_viaggi.cliente_pilota_id_fk`). Probabile regola: si scrive a chi ha un indirizzo, e per il passeggero senza indirizzo si scrive al suo pilota. |
-| **Cancellare un pilota che ha passeggeri** | Se il pilota salta, i suoi passeggeri restano senza mezzo. Vanno avvisati? Vanno cancellati? È una regola di prodotto, non una scelta tecnica: la risposta è di Antonio. |
-| **Cambio camera: chi è «coinvolto»** | Di sicuro chi si sposta. Ma anche gli altri occupanti della camera che lascia e di quella in cui entra? Cambiare compagno di stanza è un'informazione che li riguarda — avvisarli tutti può però diventare invadente. |
-| **In quale lingua** | `ana_clienti.cliente_lingua` esiste già (Blocco 10, backfill con `SqlScripts/465`). La conferma deve seguirla, come fa la newsletter: scrivere in italiano a un cliente straniero è peggio che non scrivere. |
-| **Che traccia resta** | Se l'invio non viene registrato, la segreteria non sa se è partito e richiama lo stesso — cioè la funzione non elimina il lavoro che voleva eliminare. Serve una registrazione di *quando* e *a chi*, leggibile dal gestionale. |
+| **Si cancella un passeggero** | Si scrive **a lui se ha un indirizzo**; altrimenti **al suo pilota**. |
+| **Si cancella un pilota che ha passeggeri** | I passeggeri **si cancellano tutti**, e **si avvisano tutti quelli che hanno un indirizzo**. Senza pilota non hanno un mezzo: restare iscritti non avrebbe senso. |
+| **Si cambia camera** | Sono coinvolti **tutti gli occupanti di quella camera**, e nessun altro. |
+| **In che lingua** | Nella **lingua del cliente** (`ana_clienti.cliente_lingua`, già popolata dal Blocco 10 e da `SqlScripts/465`). |
+| **Che traccia resta** | **Copia alla segreteria** di ogni mail inviata. Nessuna tabella nuova: la casella della segreteria diventa il registro, ed è il posto dove chi risponde al telefono guarda comunque. |
+
+### ⚠️ Cosa succede oggi cancellando un pilota: nulla di ciò che dovrebbe
+
+Verificato il 2026-09-05 sul database locale, eseguendo la cancellazione vera dentro una
+transazione annullata. **Il pilota sparisce e i suoi passeggeri restano dov'erano**: nella
+prova, tre passeggeri sono rimasti iscritti con `cliente_pilota_id_fk` che punta a una
+persona non più sul viaggio. Nessun errore, nessun avviso, nessuna domanda all'operatore.
+
+Il motivo è nella struttura: `cliente_pilota_id_fk` è un vincolo verso **`ana_clienti`**,
+cioè verso l'anagrafica — non verso l'iscrizione. Cancellare l'iscrizione del pilota non
+viola quindi niente. `fn_mov_clienti_viaggi_delete` fa una `DELETE` di una riga sola e
+non guarda nessun altro.
+
+Lo stesso vale per il letto. La cancellazione dal gestionale passa da
+`chk_room_consistency_on_delete`, che **si ferma solo se nella camera restano altri
+occupanti** in numero insufficiente. Se invece il cancellato era **l'unico occupante**,
+non c'è violazione, la cancellazione procede — e **la camera resta con dentro il suo
+nome**, perché nessuna funzione la ripulisce. ⚠️ Il commento nel codice
+(`ViaggioPartecipantiManagerDialog.razor`, «DB procedure updated to be safe and clean old
+rooms») **dice il falso**: quella procedura le camere non le tocca.
+
+Non è teoria, i dati lo confermano:
+
+| | locale (test) | **PROD, azienda 2** |
+|---|---|---|
+| Passeggeri agganciati a un pilota non più iscritto | 1 | **1** |
+| Persone assegnate a una camera ma non iscritte al viaggio | 7 | **1** |
+
+Su PROD sono numeri piccoli, ma non sono zero: succede davvero, e in silenzio. Una persona
+che occupa un letto senza essere iscritta falsa il conto dei posti verso l'albergo.
+
+**Da decidere:** questi due sono **difetti pre-esistenti**, non parte della nuova funzione.
+Si possono correggere subito (una funzione di cancellazione che si porta dietro passeggeri
+e letto, con la domanda all'operatore) oppure insieme alla mail di conferma, che comunque
+la stessa cancellazione dovrà attraversare.
 
 ### Prerequisito tecnico, e non è piccolo
 
