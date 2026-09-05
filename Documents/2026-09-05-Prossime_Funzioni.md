@@ -92,6 +92,38 @@ nessuna stima e non condiziona nessuna scelta di adesso.
 
 ---
 
+## 0-bis. 🔴 IL SITO CONSEGNA I DATI PERSONALI A CHIUNQUE — **da fare prima del go-live**
+
+**Deciso il 2026-09-05.** Analisi operativa completa in
+`Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Protezione_Dati_Personali_Sito.md`.
+
+Una richiesta senza autenticazione, conoscendo **solo l'email** di un cliente, restituisce
+codice fiscale, indirizzo, telefono, data e comune di nascita, **numero del documento con
+ente e scadenza**. ⚠️ Non nascerà al go-live: è così **da circa due anni**, in produzione.
+
+### La decisione
+
+| | |
+|---|---|
+| **Rubinetto** | Gli endpoint smettono di mandare i campi personali al browser. Il modulo lavora su **verdetti** («il tuo documento è valido per questo viaggio») invece che su dati — la funzione esiste già, è `fn_documento_esito_per_partenza` |
+| **Saluto sì, scheda no** | Nome e cognome restano: sapere che una persona è cliente di SFT non è un dato da proteggere. Il contenuto della scheda sì |
+| **OTP** | Codice via email per **vedere e modificare** i propri dati: 5 minuti, uso singolo, 3 tentativi, richiesto premendo un bottone |
+| **Non è un cancello** | Chi non fa l'OTP ridigita i suoi dati e si iscrive lo stesso: il riconoscimento per anagrafica lo aggancia alla sua scheda senza doppioni |
+| **Chi non ha email** | Gliela si chiede e si aggancia alla scheda (`fn_ana_clienti_aggancia_email`). ⚠️ Ma su quelle schede l'OTP **non prova nulla** — il codice va all'indirizzo che il richiedente ha appena digitato: sblocca il **completare**, non il **vedere** |
+| **Completare ≠ modificare** | Riempire un campo vuoto non richiede OTP (è già la regola dello script 594), ma manda un **avviso al cliente**: se non è stato lui se ne accorge |
+
+### Perché tutto insieme e non in due tempi
+
+Il rubinetto da solo bloccherebbe i **27 clienti con la scheda incompleta**: senza vedere
+cosa manca non possono completarla, e senza completarla non si iscrivono. E l'OTP da solo
+non basta, perché **7 di quei 27 non hanno un'email** a cui mandare il codice. Le tre parti
+— rubinetto, OTP, completamento — si reggono a vicenda.
+
+⚠️ **Comporta un altro giro di test**, messo in conto dall'utente: da rifare i gruppi C, D
+e F del piano Flask, più un gruppo **H** nuovo sulla protezione dei dati.
+
+---
+
 ## 0. Chi non ha l'email non poteva iscriversi sul sito — **RISOLTO il 2026-09-05**
 
 Fatto con `SqlScripts/593` (difetto 91): il sito riconosce la persona, le aggancia l'email
