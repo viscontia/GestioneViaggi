@@ -165,6 +165,37 @@ namespace GestioneViaggi.Services.CRUD
             }
         }
 
+        /// <summary>
+        /// Chi esce dal viaggio se si cancella questo partecipante: lui, e — se è un
+        /// pilota — i suoi passeggeri, che senza di lui non hanno un mezzo.
+        /// Da chiamare PRIMA di cancellare: l'operatore deve sapere chi altro sta per
+        /// togliere, non scoprirlo dopo.
+        /// DB Function: fn_mov_clienti_viaggi_cancellazione_effetti
+        /// </summary>
+        public async Task<List<(int ClienteId, string Nominativo, string? Ruolo, string Motivo, string? Email)>>
+            GetCancellazioneEffettiAsync(int dataViaggioId, int clienteId)
+        {
+            var esito = new List<(int, string, string?, string, string?)>();
+
+            await using var conn = await _connectionManager.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT * FROM fn_mov_clienti_viaggi_cancellazione_effetti(@p_data, @p_cliente)", conn);
+            cmd.Parameters.AddWithValue("p_data", dataViaggioId);
+            cmd.Parameters.AddWithValue("p_cliente", clienteId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                esito.Add((
+                    reader.GetInt32(reader.GetOrdinal("cliente_id")),
+                    reader.GetString(reader.GetOrdinal("nominativo")),
+                    reader.IsDBNull(reader.GetOrdinal("ruolo")) ? null : reader.GetString(reader.GetOrdinal("ruolo")),
+                    reader.GetString(reader.GetOrdinal("motivo")),
+                    reader.IsDBNull(reader.GetOrdinal("email")) ? null : reader.GetString(reader.GetOrdinal("email"))));
+            }
+            return esito;
+        }
+
         public async Task RemoveParticipantAsync(int viaggioId, int dataId, int clienteId)
         {
             try
@@ -180,7 +211,7 @@ namespace GestioneViaggi.Services.CRUD
             }
             catch (PostgresException ex) when (ex.SqlState == "23503")
             {
-                throw new InvalidOperationException("Impossibile rimuovere il partecipante: è collegato ad altri dati (es. alloggi). Rimuovi prima i collegamenti.", ex);
+                throw new InvalidOperationException("Impossibile rimuovere il partecipante: è collegato ad altri dati. Rimuovi prima i collegamenti.", ex);
             }
             catch (PostgresException ex)
             {

@@ -52,40 +52,17 @@ sarebbe rumore. La macchina toglie il lavoro ripetitivo, non la decisione.
 | **In che lingua** | Nella **lingua del cliente** (`ana_clienti.cliente_lingua`, già popolata dal Blocco 10 e da `SqlScripts/465`). |
 | **Che traccia resta** | **Copia alla segreteria** di ogni mail inviata. Nessuna tabella nuova: la casella della segreteria diventa il registro, ed è il posto dove chi risponde al telefono guarda comunque. |
 
-### ⚠️ Cosa succede oggi cancellando un pilota: nulla di ciò che dovrebbe
+### La cancellazione è già stata corretta (2026-09-05)
 
-Verificato il 2026-09-05 sul database locale, eseguendo la cancellazione vera dentro una
-transazione annullata. **Il pilota sparisce e i suoi passeggeri restano dov'erano**: nella
-prova, tre passeggeri sono rimasti iscritti con `cliente_pilota_id_fk` che punta a una
-persona non più sul viaggio. Nessun errore, nessun avviso, nessuna domanda all'operatore.
+I due difetti che questa funzione avrebbe attraversato — passeggeri lasciati indietro,
+letto non liberato — sono stati corretti subito con `SqlScripts/586`, per non rimettere
+le mani sulla stessa cancellazione due volte. Vedi i **difetti 81 e 82** nelle note di
+rilascio.
 
-Il motivo è nella struttura: `cliente_pilota_id_fk` è un vincolo verso **`ana_clienti`**,
-cioè verso l'anagrafica — non verso l'iscrizione. Cancellare l'iscrizione del pilota non
-viola quindi niente. `fn_mov_clienti_viaggi_delete` fa una `DELETE` di una riga sola e
-non guarda nessun altro.
-
-Lo stesso vale per il letto. La cancellazione dal gestionale passa da
-`chk_room_consistency_on_delete`, che **si ferma solo se nella camera restano altri
-occupanti** in numero insufficiente. Se invece il cancellato era **l'unico occupante**,
-non c'è violazione, la cancellazione procede — e **la camera resta con dentro il suo
-nome**, perché nessuna funzione la ripulisce. ⚠️ Il commento nel codice
-(`ViaggioPartecipantiManagerDialog.razor`, «DB procedure updated to be safe and clean old
-rooms») **dice il falso**: quella procedura le camere non le tocca.
-
-Non è teoria, i dati lo confermano:
-
-| | locale (test) | **PROD, azienda 2** |
-|---|---|---|
-| Passeggeri agganciati a un pilota non più iscritto | 1 | **1** |
-| Persone assegnate a una camera ma non iscritte al viaggio | 7 | **1** |
-
-Su PROD sono numeri piccoli, ma non sono zero: succede davvero, e in silenzio. Una persona
-che occupa un letto senza essere iscritta falsa il conto dei posti verso l'albergo.
-
-**Da decidere:** questi due sono **difetti pre-esistenti**, non parte della nuova funzione.
-Si possono correggere subito (una funzione di cancellazione che si porta dietro passeggeri
-e letto, con la domanda all'operatore) oppure insieme alla mail di conferma, che comunque
-la stessa cancellazione dovrà attraversare.
+Resta quindi da fare **solo la mail**: la cancellazione ora sa già *chi* esce dal viaggio
+(`fn_mov_clienti_viaggi_cancellazione_effetti` restituisce nome, ruolo, motivo e
+indirizzo di ognuno), che è esattamente l'elenco dei destinatari. Chi la realizzerà
+troverà il lavoro di raccolta già fatto.
 
 ### Prerequisito tecnico, e non è piccolo
 
@@ -147,3 +124,33 @@ se l'avessero dato qui.
 | **Passaggio a MudBlazor 9** | Risolverebbe alla radice i difetti #9090 e #11217 della libreria, aggirati a mano nei campi data (vedi `Documents/Digitazione_Date.md`). È un cambio di versione maggiore: **dopo** il go-live, mai durante un collaudo. |
 | **Ristrutturazione di `Step2Content.jsx`** | Il file è cresciuto troppo e concentra troppe responsabilità. Rimandato di proposito a fine test: rifarlo mentre lo si sta collaudando vanifica il collaudo. |
 | **Analisi iscrizioni e assegnazione camere** | Controlli probabilmente doppi e divergenti fra MAUI e Flask, come lo erano per `ana_clienti`. Stesso metodo: misurare su PROD prima di scrivere. Vedi `Documents/2026-08-20-Analisi_Validazioni_e_CRUD_AnaClienti.md`. |
+
+---
+
+## 6. ⚠️ Clienti iscritti ai viaggi di un'altra azienda — **da analizzare**
+
+**Trovato il 2026-09-05** cercando i riferimenti dei casi PROD del difetto 81. Il caso
+segnalato — ROSSATO LORENZA, passeggera di ZANETTI LUCA su ICHNUSA TOUR del 25/04/2026 —
+**non era un pilota cancellato**: era un'altra cosa.
+
+Esistono **due anagrafiche ZANETTI LUCA**, stessa email e stessa data di nascita: la
+`1163` nell'azienda 6 e la `4347` nell'azienda 2. Sul viaggio (azienda 2) è iscritta la
+`4347`, ma il riferimento al pilota della passeggera punta alla `1163`. Da qui l'apparente
+«pilota non iscritto».
+
+Guardando più in là, il fenomeno è più ampio:
+
+| | |
+|---|---|
+| Iscrizioni su viaggi dell'azienda 2 fatte da clienti dell'azienda 6 | **26** (25 persone), dal 29/10/2024 al 18/05/2026 |
+| Riferimenti al pilota che escono dal silo dell'azienda | **29** |
+
+⚠️ Contraddice l'invariante di multi-tenancy: le aziende sono silos rigidi, e gli unici
+dati condivisi sono `ana_tipo_viaggi` e `web_tipi_viaggio_descrizioni`. Qui invece
+clienti di un'azienda risultano iscritti ai viaggi dell'altra.
+
+**Non è stato toccato**: non si sa ancora se sia un residuo della migrazione da Oracle,
+una prassi voluta fra le due aziende, o un difetto del gestionale che permette di
+selezionare un cliente fuori silo. Sono tre cose diverse con tre rimedi diversi, e va
+capito **prima** di scrivere qualunque correzione — come è stato fatto per `ana_clienti`.
+Si lega all'analisi già prevista su iscrizioni e camere (voce 5).

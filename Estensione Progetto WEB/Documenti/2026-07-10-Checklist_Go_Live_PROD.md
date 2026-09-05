@@ -727,7 +727,34 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
 - **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
-### 3.1-bis — `MAIL_DIROTTA_A` NON deve esistere in produzione
+### 3.0-bis — `SqlScripts/586` modifica dati esistenti
+
+Oltre alle funzioni, lo script **libera i posti letto occupati da chi non risulta
+iscritto** a quella partenza (difetto 82). Misurato su PROD il 2026-09-05:
+
+| Azienda | Camere coinvolte | Posti da liberare |
+|---|---|---|
+| 2 (SFT) | 1 | 1 |
+| 6 | 5 | 5 |
+
+Le camere in cui **nessun** occupante risulta iscritto vengono eliminate; le altre
+perdono solo il posto di chi non è iscritto. ⚠️ **Le iscrizioni non vengono toccate**:
+togliere qualcuno da un viaggio è una decisione dell'azienda, non una pulizia.
+
+Controllo dopo l'applicazione — deve dare 0:
+
+```sql
+SELECT count(*) FROM mov_clienti_alloggi a
+CROSS JOIN LATERAL unnest(ARRAY[a.cliente_id1_fk,a.cliente_id2_fk,a.cliente_id3_fk,
+                                a.cliente_id4_fk,a.cliente_id5_fk,a.cliente_id6_fk]) AS u(cli)
+WHERE u.cli IS NOT NULL AND NOT EXISTS (
+  SELECT 1 FROM mov_clienti_viaggi m
+  WHERE m.cliente_id_fk = u.cli AND m.data_viaggio_id_fk = a.data_viaggio_id_fk);
+```
+
+---
+
+## 3.1-bis — `MAIL_DIROTTA_A` NON deve esistere in produzione
 
 In sviluppo tutta la posta viene dirottata su un solo indirizzo (`.env.local`), perché il
 database locale è di test ma **il server di posta e i destinatari sono quelli veri**: il

@@ -1171,10 +1171,33 @@
 
     private async Task ConfirmAndDeleteParticipant(ParticipantsViewDTO item)
     {
+        // Cancellare un pilota toglie dal viaggio anche i suoi passeggeri, che senza
+        // mezzo non possono partire. Chi lo sta facendo deve saperlo PRIMA: la
+        // domanda elenca chi altro esce, invece di limitarsi al nome che ha cliccato.
+        List<(int ClienteId, string Nominativo, string? Ruolo, string Motivo, string? Email)> effetti;
+        try
+        {
+            effetti = await MovClientiService.GetCancellazioneEffettiAsync(item.DataId, item.ClienteId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Impossibile verificare gli effetti della cancellazione: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        var trascinati = effetti.Where(e => e.Motivo == "PASSEGGERO_DEL_PILOTA").ToList();
+
+        string domanda = trascinati.Count == 0
+            ? $"Rimuovere {item.Nominativo} dal viaggio?"
+            : $"{item.Nominativo} è il pilota di {(trascinati.Count == 1 ? "un passeggero" : $"{trascinati.Count} passeggeri")}.\n\n" +
+              $"Rimuovendolo esce dal viaggio anche:\n" +
+              string.Join("\n", trascinati.Select(t => $"• {t.Nominativo}")) +
+              "\n\nSenza pilota non hanno un mezzo. Procedere?";
+
         bool? result = await DialogService.ShowMessageBox(
-           "Conferma Eliminazione",
-           $"Rimuovere {item.Nominativo} dal viaggio?",
-           yesText: "Rimuovi", cancelText: "Annulla");
+           "Conferma Eliminazione", domanda,
+           yesText: trascinati.Count == 0 ? "Rimuovi" : $"Rimuovi tutti ({effetti.Count})",
+           cancelText: "Annulla");
 
         if (result != true) return;
 
@@ -1209,10 +1232,14 @@
                 return; // Blocca l'eliminazione
             }
 
-            // 3. Eliminazione Finale (DB procedure updated to be safe and clean old rooms)
+            // 3. Eliminazione. La funzione a DB si porta dietro i passeggeri del
+            // pilota e libera i posti letto: qui non si ripete niente di tutto cio',
+            // altrimenti sarebbero due regole da tenere allineate.
             await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
-            
-            Snackbar.Add($"{item.Nominativo} rimosso dal viaggio", Severity.Success);
+
+            Snackbar.Add(trascinati.Count == 0
+                ? $"{item.Nominativo} rimosso dal viaggio"
+                : $"{item.Nominativo} e {trascinati.Count} passeggero/i rimossi dal viaggio", Severity.Success);
             await LoadListAsync();
             StateHasChanged(); 
         }
