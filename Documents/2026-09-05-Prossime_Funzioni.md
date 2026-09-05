@@ -127,30 +127,47 @@ se l'avessero dato qui.
 
 ---
 
-## 6. ⚠️ Clienti iscritti ai viaggi di un'altra azienda — **da analizzare**
+## 6. ⚠️ Clienti iscritti ai viaggi di un'altra azienda — **in attesa di una decisione**
 
-**Trovato il 2026-09-05** cercando i riferimenti dei casi PROD del difetto 81. Il caso
-segnalato — ROSSATO LORENZA, passeggera di ZANETTI LUCA su ICHNUSA TOUR del 25/04/2026 —
-**non era un pilota cancellato**: era un'altra cosa.
+**Trovato il 2026-09-05.** Il caso PROD del difetto 81 — ROSSATO LORENZA, passeggera di
+ZANETTI LUCA su ICHNUSA TOUR del 25/04/2026 — **non era un pilota cancellato**: esistono
+due anagrafiche ZANETTI LUCA, la `1163` nell'azienda 6 e la `4347` nell'azienda 2. Sul
+viaggio è iscritta la 4347, ma il riferimento al pilota punta alla 1163.
 
-Esistono **due anagrafiche ZANETTI LUCA**, stessa email e stessa data di nascita: la
-`1163` nell'azienda 6 e la `4347` nell'azienda 2. Sul viaggio (azienda 2) è iscritta la
-`4347`, ma il riferimento al pilota della passeggera punta alla `1163`. Da qui l'apparente
-«pilota non iscritto».
-
-Guardando più in là, il fenomeno è più ampio:
+Il fenomeno è più ampio, e l'origine è nota: **l'importazione da Oracle** (confermato
+dall'utente il 2026-09-05). Su PROD:
 
 | | |
 |---|---|
-| Iscrizioni su viaggi dell'azienda 2 fatte da clienti dell'azienda 6 | **26** (25 persone), dal 29/10/2024 al 18/05/2026 |
-| Riferimenti al pilota che escono dal silo dell'azienda | **29** |
+| Iscrizioni su viaggi dell'azienda 2 con cliente di un'altra azienda | **26** (25 persone), dal 29/10/2024 al 18/05/2026 |
+| Riferimenti al pilota fuori silo | **29** |
 
-⚠️ Contraddice l'invariante di multi-tenancy: le aziende sono silos rigidi, e gli unici
-dati condivisi sono `ana_tipo_viaggi` e `web_tipi_viaggio_descrizioni`. Qui invece
-clienti di un'azienda risultano iscritti ai viaggi dell'altra.
+`SqlScripts/587` mette gli strumenti: `fn_cliente_gemello_in_azienda` (la stessa persona
+nell'altra anagrafica, per codice fiscale oppure cognome+nome+data di nascita, **solo se
+il candidato è uno e uno solo** — su un'anagrafica si preferisce non fare, che fare a
+caso) e `fn_silos_movimenti_fuori_azienda`, che referta ogni riga come RIMAPPABILE,
+GEMELLO_ASSENTE o GEMELLO_GIA_ISCRITTO. Il rimappaggio agisce **solo sul RIMAPPABILE**.
 
-**Non è stato toccato**: non si sa ancora se sia un residuo della migrazione da Oracle,
-una prassi voluta fra le due aziende, o un difetto del gestionale che permette di
-selezionare un cliente fuori silo. Sono tre cose diverse con tre rimedi diversi, e va
-capito **prima** di scrivere qualunque correzione — come è stato fatto per `ana_clienti`.
-Si lega all'analisi già prevista su iscrizioni e camere (voce 5).
+### ⚠️ Il punto che blocca il resto
+
+La richiesta era «attribuire a ogni cliente non in azienda 2 il suo codice di azienda 2,
+verificato che esista». **Su PROD esiste per 1 persona su 25** (MAZZOLENI ALESSANDRO, e
+solo per cognome+nome+data di nascita: le due schede hanno email diverse). Per le altre 24
+l'anagrafica nell'azienda 2 **non c'è affatto**: non è un riferimento sbagliato da
+correggere, è una scheda mai creata.
+
+Le due strade, nessuna delle quali è una pulizia tecnica:
+
+1. **Creare le 24 anagrafiche nell'azienda 2** copiandole dall'azienda 6, poi rimappare.
+   È la lettura più fedele al modello a silos: chi ha viaggiato con SFT è un cliente di
+   SFT. ⚠️ Porta 24 persone dentro il perimetro SFT, con effetti su conteggi, consenso
+   marketing e newsletter: è una decisione dell'azienda, non del software.
+2. **Lasciarle come sono**, accettando che i movimenti storici importati da Oracle
+   attraversino il confine, e imporlo solo da qui in avanti.
+
+⚠️ Finché non si decide **non ha senso mettere un vincolo** che vieti i riferimenti fuori
+silo: lo violerebbero 70 righe già presenti.
+
+Elenco delle 25 persone e dei loro viaggi: eseguire `SELECT * FROM
+fn_silos_movimenti_fuori_azienda();`.
+
