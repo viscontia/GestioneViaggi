@@ -92,6 +92,22 @@ nessuna stima e non condiziona nessuna scelta di adesso.
 
 ---
 
+## 2-bis. L'indirizzo del sito SFT è scritto dentro il codice
+
+**Annotato il 2026-09-05** durante il test G4. Il bottone **Esci** dell'ultima modale del
+sito di iscrizione porta a `https://www.sardegnafuoritraccia.it/it`, scritto a mano dentro
+`static/js/components/SimpleSummaryModal.jsx`.
+
+È il sito **attuale**. Quando andrà online quello nuovo, chi si è appena iscritto verrebbe
+mandato sul vecchio — e nessuno se ne accorgerebbe, perché la pagina esiste ed è di SFT.
+
+⚠️ Non è solo un indirizzo da cambiare: **non dovrebbe stare nel codice**. L'indirizzo
+della segreteria e i parametri SMTP arrivano già dalla configurazione dell'azienda; questo
+no, ed è per azienda tanto quanto gli altri. Va spostato lì, così il giorno del cambio si
+aggiorna un dato invece di ricompilare il sito.
+
+---
+
 ## 3. Pagina pubblica di iscrizione alla newsletter (Fase 3)
 
 **Decisa il 2026-09-04.** Serve un indirizzo condivisibile — su WhatsApp, sui social, in
