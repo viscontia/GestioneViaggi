@@ -132,12 +132,22 @@ della struttura può comportare un supplemento»*. Non è un peggioramento: **og
 supplemento non è calcolato comunque**, perché l'importo non esiste nel sistema. Cambia
 solo che lo si dice, invece di lasciarlo scoprire dopo.
 
-### Cosa resta da modellare, ma non adesso
+### Il legame tipo ↔ struttura ↔ partenza: **scartato**, non rimandato
 
-Il legame **tipo ↔ struttura ↔ partenza**, con disponibilità e importo del supplemento. È
-ciò che permetterebbe di dire a chi prenota quanto costa dormire da solo. ⚠️ È un lavoro
-molto più grande della riscrittura del passo 5 e **non va infilato dentro**: qui basta
-smettere di chiedere una cosa che l'utente non può sapere.
+Sarebbe ciò che permetterebbe di dire a chi prenota quanto costa dormire da solo. **Non si
+fa**, deciso dall'utente il 2026-09-05, e la ragione è di mestiere più che tecnica:
+
+> comporterebbe l'anagrafica degli **alberghi**, i **tipi di camera** che ciascuno offre e i
+> **prezzi aggiornati** — ⚠️ e i supplementi «possono cambiare quando vogliono e non
+> comunicarlo».
+
+Un dato che il fornitore cambia senza avvisare non si può tenere allineato: il sistema
+direbbe una cifra e l'albergo ne farebbe un'altra, il che è peggio che non dire niente.
+
+**Conseguenza da accettare consapevolmente**: il supplemento resta un `Y/N` senza importo, e
+chi si iscrive non saprà mai dal sito quanto costa dormire da solo. L'interfaccia deve dirlo
+onestamente — *«può comportare un supplemento»* — e la cifra la fa SFT, che parla con
+l'albergo.
 
 ## 5. L'elenco completo delle combinazioni
 
