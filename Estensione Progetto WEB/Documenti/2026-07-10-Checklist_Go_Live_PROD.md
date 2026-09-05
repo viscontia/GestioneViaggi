@@ -83,6 +83,23 @@ prova e sbaglia bersaglio in produzione**, che è esattamente il caso peggiore.
 
 ---
 
+### Raccolta del 2026-09-05 — cosa è emerso davvero
+
+| Dove | Cosa | Stato |
+|---|---|---|
+| `Classi_Tabelle_DB/lista_viaggi.py` | `AZIENDA_ID` con ripiego **`'6'`** mentre altrove è `'2'` | ✅ **fatto** — difetto 95, ora `azienda_corrente()` senza ripiego |
+| `SimpleSummaryModal.jsx` | `https://www.sardegnafuoritraccia.it/it` nel bottone «Esci» | ☐ da fare |
+| `Step1Content.jsx`, `Step3Content.jsx` | `segreteria@sardegnafuoritraccia.it` nei messaggi d'errore | ☐ da fare |
+| `static/informativa_privacy.html` | `info@sardegnafuoritraccia.it`, 4 volte | ☐ da fare |
+| `Manuale_Utente/manuale_utente.html` | indirizzo del sito, email, e **mermaid caricato da `unpkg.com`** — un CDN esterno in una pagina consegnata al cliente | ☐ da fare |
+| `SmtpEmailSender.cs` (gestionale) | accetta qualunque certificato TLS | ☐ vedi §5-bis delle prossime funzioni |
+
+⚠️ **Gli indirizzi hanno tutti la stessa cura**: quelli di posta stanno già nella
+configurazione dell'azienda; manca solo un campo per l'indirizzo del sito pubblico, e poi si
+leggono da lì. **Il giorno del rebrand** — OFFTRACE è in valutazione — cambiano dominio e
+caselle: se restano nel codice, il rebrand diventa una ricompilazione invece di una riga di
+configurazione.
+
 ## 1. Migrazione DB — script da applicare in ordine
 
 > ## ⚠️ L'azienda dell'Estensione Web è la **2**
