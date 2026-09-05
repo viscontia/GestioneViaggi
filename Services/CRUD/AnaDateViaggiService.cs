@@ -1,3 +1,4 @@
+using GestioneViaggi.Models;
 using GestioneViaggi.Models.DTOs;
 using GestioneViaggi.Services.Database;
 using Microsoft.Extensions.Logging;
@@ -14,6 +15,56 @@ public class AnaDateViaggiService
     {
         _dbService = dbService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Una partenza sola, riga intera, riletta dal database.
+    ///
+    /// ⚠️ Serve la RIGA INTERA e non il <see cref="DataViaggioDTO"/> di riepilogo:
+    /// quello ha sei campi mentre l'entità ne ha diciannove, e riaprire la scheda
+    /// con il DTO azzererebbe costi e note.
+    /// DB Function: fn_ana_date_viaggi_get_by_id (SqlScripts/596)
+    /// </summary>
+    public async Task<AnaDataViaggio?> GetByIdAsync(int dataViaggioId)
+    {
+        try
+        {
+            await using var conn = await _dbService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT * FROM fn_ana_date_viaggi_get_by_id(@id)", conn);
+            cmd.Parameters.AddWithValue("id", dataViaggioId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (!await reader.ReadAsync()) return null;
+
+            object? Leggi(string c) { var i = reader.GetOrdinal(c); return reader.IsDBNull(i) ? null : reader.GetValue(i); }
+
+            return new AnaDataViaggio
+            {
+                Id           = (int)reader.GetValue(reader.GetOrdinal("data_viaggio_id")),
+                ViaggioIdFk  = (int)reader.GetValue(reader.GetOrdinal("viaggio_id_fk")),
+                DataInizio   = (DateTime?)Leggi("data_viaggio_data_inizio"),
+                DataFine     = (DateTime?)Leggi("data_viaggio_data_fine"),
+                EffettuatoSino = (string?)Leggi("data_viaggio_effettuato_sino") ?? "N",
+                CostoPilota  = (decimal?)Leggi("data_viaggio_costo_pilota"),
+                CostoPasseggero = (decimal?)Leggi("data_viaggio_costo_passeggero"),
+                CostoPasseggeroAutoGuida = (decimal?)Leggi("data_viaggio_costo_passeggero_auto_guida"),
+                CostoBambino02 = (decimal?)Leggi("data_viaggio_costo_bambino_0_2"),
+                CostoBambino26 = (decimal?)Leggi("data_viaggio_costo_bambino_2_6"),
+                CostoBambino612 = (decimal?)Leggi("data_viaggio_costo_bambino_6_12"),
+                Note         = (string?)Leggi("data_viaggio_note"),
+                AziendaId    = (int?)Leggi("azienda_id") ?? 0,
+                CreatedBy    = (string?)Leggi("created_by"),
+                Created      = (DateTime?)Leggi("created"),
+                UpdatedBy    = (string?)Leggi("updated_by"),
+                Updated      = (DateTime?)Leggi("updated")
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Rilettura della partenza {Id} non riuscita", dataViaggioId);
+            throw;
+        }
     }
 
     /// <summary>

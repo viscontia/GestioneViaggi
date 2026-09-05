@@ -288,20 +288,12 @@ public class ContropartiService : BaseCrudService<AnaControparte>
             // Validazione tenant: verifica accesso all'azienda
             await ValidateTenantAccessAsync((int)aziendaFk);
 
-            // Ora posso fare la query completa con i JOIN
-            var sql = @"
-                SELECT
-                    c.*,
-                    tf.descrizione as tipo_fornitore_desc,
-                    co.comune_descrizione,
-                    p.provincia_sigla
-                FROM ana_controparti c
-                LEFT JOIN ana_tipo_fornitore tf ON c.tipo_fornitore_fk = tf.tipo_fornitore_id
-                LEFT JOIN ana_geo_comuni co ON c.comune_fk = co.comune_id
-                LEFT JOIN ana_geo_province p ON co.comune_provincia_fk = p.provincia_id
-                WHERE c.controparte_id = @id";
-
-            await using var command = new NpgsqlCommand(sql, connection);
+            // La query stava scritta qui, con i suoi tre join. Ora e'
+            // fn_ana_controparti_get_by_id (SqlScripts/595), che riusa la forma di
+            // fn_ana_controparti_get_all: una riga di controparte e' descritta in un
+            // posto solo, e le due letture non possono piu' tornare colonne diverse.
+            await using var command = new NpgsqlCommand(
+                "SELECT * FROM fn_ana_controparti_get_by_id(@id)", connection);
             command.Parameters.AddWithValue("id", id);
 
             await using var reader = await command.ExecuteReaderAsync();

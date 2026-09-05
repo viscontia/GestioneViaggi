@@ -266,6 +266,28 @@ else
 
     private async Task OpenEditDialog(AnaControparte item)
     {
+        // La riga in elenco e' una fotografia del momento del caricamento. Con piu'
+        // persone che lavorano sullo stesso gestionale invecchia in fretta, e aprire
+        // la modifica su di essa significa rischiare di salvare dati vecchi sopra a
+        // quelli di un collega. Si rilegge.
+        try
+        {
+            var fresco = await Service.GetByIdAsync(item.Id);
+            if (fresco != null)
+            {
+                item = fresco;
+                var i = _items.FindIndex(c => c.Id == fresco.Id);
+                if (i >= 0) _items[i] = fresco;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Una rilettura fallita non impedisce di lavorare: si prosegue sulla copia
+            // in elenco, dicendo pero' che e' quella.
+            Console.WriteLine($"Rilettura controparte {item.Id} non riuscita: {ex.Message}");
+            Snackbar.Add("Non è stato possibile rileggere la scheda: stai vedendo i dati caricati con l'elenco.", Severity.Warning);
+        }
+
         var editEntity = new AnaControparte
         {
             Id = item.Id,

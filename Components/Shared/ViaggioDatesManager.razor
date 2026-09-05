@@ -8,6 +8,7 @@
 
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 @inject IPdfOpenerService PdfOpenerService
+@inject GestioneViaggi.Services.CRUD.AnaDateViaggiService DateViaggiService
 
 <MudDataGrid T="AnaDataViaggio" Items="@Dates" Dense="true" Hover="true" Bordered="true" Striped="true">
     <ToolBarContent>
@@ -349,6 +350,31 @@
 
     private async Task OpenDialog(AnaDataViaggio date, bool isNew)
     {
+        // La scheda di un viaggio resta aperta a lungo, e nel frattempo una partenza
+        // puo' essere cambiata da un collega. ⚠️ Qui non si tratta di vedere un dato
+        // vecchio: su una partenza si toccano i COSTI, e risalvarci sopra valori
+        // superati fa partire un preventivo sbagliato.
+        if (!isNew && IsLiveMode && date.Id > 0)
+        {
+            try
+            {
+                var fresca = await DateViaggiService.GetByIdAsync(date.Id);
+                if (fresca != null)
+                {
+                    date = fresca;
+                    var i = Dates.FindIndex(d => d.Id == fresca.Id);
+                    if (i >= 0) Dates[i] = fresca;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Una rilettura mancata non impedisce di lavorare: si prosegue con
+                // quello che si ha, dicendolo.
+                Snackbar.Add("Non è stato possibile rileggere la partenza: stai vedendo i dati caricati con la scheda.", Severity.Warning);
+                Console.WriteLine($"Rilettura partenza {date.Id} non riuscita: {ex.Message}");
+            }
+        }
+
         // Clone for edit to avoid dirty state on cancel
         var model = date.Clone<AnaDataViaggio>();
 
