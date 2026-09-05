@@ -727,7 +727,26 @@ Cifra e decifra SMTP, ESP e chiave Claude (pgcrypto, §2.2). Va letta dall'**amb
 - macOS: `ps eww <pid-app> | tr ' ' '\n' | grep GV_SECRET_KEY` sul processo dell'app in esecuzione.
 - **Prova che vale per entrambi:** aprire la scheda **Traduzioni** di un tour. Se compare l'avviso *"Master key dei segreti non disponibile"*, l'app **non** la sta vedendo, comunque sia configurato il sistema.
 
-### 3.0-ter — `SqlScripts/587-588-589` rimettono in ordine i silos (**in quest'ordine**)
+### 3.0-quater — ⚠️ DA FARE A MANO PRIMA DEL GO-LIVE: MAIORCA MARIA è doppia
+
+Nell'azienda 2 ci sono **due schede MAIORCA MARIA**, stessa data di nascita:
+
+| id | email | creata |
+|---|---|---|
+| 3324 | mariamaio1@hotmail.it | 07/06/2025 |
+| 3327 | *(nessuna)* | 08/06/2025 |
+
+Non c'entra con i silos: le ha inserite la segreteria a un giorno di distanza. **Adriano
+la sistema a mano** (deciso il 2026-09-05) — nessuno script la tocca, perché fondere due
+anagrafiche significa decidere quale storia tenere, e quella decisione è dell'azienda.
+
+☐ Fatto — verifica: `SELECT count(*) FROM ana_clienti WHERE azienda_fk = 2
+AND upper(btrim(cliente_cognome))='MAIORCA' AND upper(btrim(cliente_nome))='MARIA';`
+deve dare 1.
+
+---
+
+## 3.0-ter — `SqlScripts/587-588-589` rimettono in ordine i silos (**in quest'ordine**)
 
 Residuo dell'importazione da Oracle: clienti di un'azienda risultano iscritti ai viaggi
 di un'altra. Misura su PROD del 2026-09-05:
@@ -784,6 +803,19 @@ WHERE u.cli IS NOT NULL AND NOT EXISTS (
   SELECT 1 FROM mov_clienti_viaggi m
   WHERE m.cliente_id_fk = u.cli AND m.data_viaggio_id_fk = a.data_viaggio_id_fk);
 ```
+
+---
+
+## 3.0-quinquies — `SqlScripts/590`: il consenso solo sui propri clienti
+
+Le due funzioni del consenso non guardavano l'azienda, e i loro endpoint leggono
+l'identificativo del cliente **direttamente dalla richiesta**: bastava cambiare un numero
+per registrare un consenso — o un rifiuto — a nome di chiunque. Ora richiedono l'azienda
+e su un cliente che non è suo non rispondono e non scrivono.
+
+⚠️ Lo script **sostituisce le firme** (`DROP FUNCTION` + `CREATE`): va applicato insieme
+al codice Flask che passa il nuovo parametro, altrimenti il popup del consenso smette di
+funzionare.
 
 ---
 
