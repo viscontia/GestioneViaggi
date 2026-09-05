@@ -328,6 +328,73 @@ singola notte per servire l'eccezione.
 
 ---
 
+## 8-bis. ⚠️ Anche le tende vanno composte — da discutere il 2026-09-06
+
+**Sollevato dall'utente il 2026-09-05**, e i dati gli danno ragione:
+
+> *«Anche nei campeggi vogliono la composizione della tenda, come se fosse una camera.
+> Quindi anche un viaggio in tenda come i Pirenei obbliga a indicare le "camere", ovvero le
+> tende.»*
+
+### Cosa dicono i dati (PROD, azienda 2)
+
+| Viaggio | Pernottamento | Righe di alloggio | Tipi usati |
+|---|---|---|---|
+| **PIRENEI IN FUORISTRADA** | SOLO CAMPI TENDATI | **1** | ⚠️ `NESSUNA CAMERA` |
+| BARBAGIA WILD TOUR | SOLO CAMPI TENDATI | 0 | — |
+| MAXI ENDURO TOUR DEI 2 MARI | ALBERGO | 7 | fra cui `NESSUNA CAMERA` |
+
+Tre fatti che si incastrano:
+
+1. **Il sito salta del tutto il passo 5** quando `con_albergo = 'N'` (`StepWizard.jsx`).
+   Per i viaggi in tenda, quindi, **nessuno compone niente**.
+2. Sui Pirenei però una riga c'è, ed è `NESSUNA CAMERA`: qualcuno **aveva bisogno di
+   registrare qualcosa** e ha usato l'unica cosa disponibile. È il segno che il bisogno
+   esiste e che manca lo strumento.
+3. ⚠️ **`TENDA 2 POSTI NOLEGGIATA` e `TENDA 4 POSTI NOLEGGIATA` esistono in anagrafica e non
+   sono state usate mai.** Ci sono, ma il flusso non le offre a nessuno.
+
+### Il difetto di fondo: `con_albergo` risponde alla domanda sbagliata
+
+`ana_tipo_pernottamento_con_albergo` significa **«è un albergo?»**, ma viene usato per
+decidere **«c'è qualcosa da comporre?»**. Per i campi tendati le due risposte divergono: non
+è un albergo, **ma i posti letto vanno assegnati lo stesso** — e li vuole il campeggio,
+esattamente come l'albergo vuole i documenti.
+
+### La proposta dell'utente, e come la vedo
+
+> *«Credo ci manchi un flag in `ana_tipo_alloggio` che indichi se è una camera d'albergo o
+> una tenda, in combinata con `ana_tipo_pernottamento`.»*
+
+È giusta, e diventano **due assi indipendenti**:
+
+| | Valori | Sta su |
+|---|---|---|
+| **Che pernottamento prevede il viaggio** | albergo · tende · misto · nessuno | `ana_tipo_pernottamento` (c'è già) |
+| **Che tipo di unità è** | camera · tenda · nessuna | ⚠️ **manca** — il flag nuovo su `ana_tipo_alloggio` |
+
+E la regola diventa una sola: **si offrono le unità del genere che il viaggio prevede** — il
+misto le offre entrambe. Il passo 5 non si salta più per i viaggi in tenda: si salta solo
+per `NESSUNO`.
+
+### Le due cose da decidere domani
+
+1. **La tenda propria.** A catalogo ci sono solo tende **NOLEGGIATE**, con supplemento. Ma
+   chi arriva con la tenda sul tetto della macchina va comunque registrato — il campeggio
+   vuole sapere chi dorme dove — **senza pagare un noleggio**. Serve un tipo «tenda
+   propria» con supplemento `N`. ⚠️ Costa poco e **non riapre** il modello dei prezzi che
+   abbiamo appena scartato: è una riga in anagrafica, non un listino.
+2. **La riga `NESSUNA CAMERA` sui Pirenei.** Una volta che le tende si possono comporre,
+   quella riga descrive ancora la realtà o va corretta? Domanda per Antonio.
+
+### Perché conviene farlo insieme al resto
+
+Tocca le stesse cose: la funzione che offre i tipi, il salto del passo 5, e l'interfaccia
+della composizione. ⚠️ Farlo dopo significherebbe **riaprire il passo 5 una terza volta** —
+e rifarne i test una terza volta.
+
+---
+
 ## 9. Impatto sui test
 
 | Gruppo del piano Flask | Da rifare? |
