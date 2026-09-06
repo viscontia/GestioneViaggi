@@ -12,6 +12,36 @@
 
 ---
 
+## ⚠️ Integrità referenziale: le quattro domande, prima di scrivere codice
+
+**Aggiunto il 2026-09-06** dopo un'osservazione dell'utente — *«questi controlli di
+integrità referenziale devono essere nel tuo DNA»* — arrivata quando aveva già dovuto
+chiedere **due volte** cosa succedesse ai dati esistenti.
+
+Ogni volta che si aggiunge una tabella, una colonna che punta a qualcosa, o una regola che
+mette in relazione due entità, vanno risposte **tutte e quattro** queste domande **prima**
+di considerare il lavoro finito. Non sono un ripasso finale: sono parte del disegno.
+
+| | Domanda | Cosa è successo quando è stata saltata |
+|---|---|---|
+| 1 | **Se cancello il riferito, cosa succede?** | `ana_viaggi.viaggio_tipo_pernottamento_fk` non aveva **nessuna chiave esterna**, né in sviluppo né su PROD: l'integrità dipendeva solo da un trigger — e un trigger si disattiva (script 597) |
+| 2 | **Se lo modifico, cosa diventa incoerente?** | Cambiare il genere di CAMERA MATRIMONIALE avrebbe invalidato **219 assegnazioni** in silenzio (604). Togliere un genere ammesso da un pernottamento, **414** (605) |
+| 3 | **Chi altro lo riferisce?** | La guardia sui generi contava i tipi di sistemazione e **non** i pernottamenti che li ammettono: il dato era protetto dalla chiave esterna, ma il messaggio era quello grezzo di PostgreSQL (606) |
+| 4 | **Il rifiuto dice cosa fare?** | «Impossibile eliminare» senza il numero e senza i nomi costringe a cercare a mano ciò che il database sa già |
+
+### Due regole che ne discendono
+
+⚠️ **Il criterio non è «se è usato» ma «se lo rende incoerente».** Vietare ogni modifica a
+un elemento in uso è più semplice e sbagliato: impedirebbe di **correggere una
+classificazione errata**, che è proprio il caso in cui la modifica serve. Si guarda
+l'effetto — con il valore nuovo, ciò che è già registrato resta valido?
+
+⚠️ **Una chiave esterna non basta e un trigger nemmeno, da soli.** La chiave protegge il
+dato ma parla in inglese di vincoli; il trigger spiega, ma si può disattivare. Servono
+entrambi: il vincolo come rete, la funzione come spiegazione.
+
+---
+
 ## 🎯 Principi Architetturali
 
 ### Obiettivi

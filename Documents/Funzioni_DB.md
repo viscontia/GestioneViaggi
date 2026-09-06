@@ -1943,6 +1943,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2000,8 +2002,9 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_ana_aliquote_iva_get_active` | p_azienda_id integer | SETOF ana_aliquote_iva | Recupera solo le aliquote IVA attive per azienda (per dropdown UI) |
 | `fn_ana_aliquote_iva_get_all` | p_azienda_id integer | SETOF ana_aliquote_iva | Recupera tutte le aliquote IVA per azienda, ordinate per ordinamento e descrizione |
 | `fn_ana_aliquote_iva_get_default` | p_azienda_id integer | ana_aliquote_iva | Recupera l'aliquota IVA default per azienda (preselezionata in UI) |
-| `fn_ana_alloggio_generi_delete` | p_id integer | integer | Elimina un genere solo se nessun tipo di sistemazione lo usa. Il messaggio dice quanti sono: |
-| `«impossibile eliminare» senza il numero costringerebbe a cercarli a mano.` |  |  |  |
+| `fn_ana_alloggio_generi_delete` | p_id integer | integer | Elimina un genere solo se nessuno lo riferisce — ne' i tipi di sistemazione ne' i tipi di |
+| `pernottamento che lo ammettono. Il messaggio dice CHI lo usa: un rifiuto senza il motivo` |  |  |  |
+| `lascia l'operatore bloccato senza sapere dove guardare.` |  |  |  |
 | `fn_ana_alloggio_generi_get_all` | p_solo_attivi boolean DEFAULT false | TABLE(genere_id integer, codice character varying, descrizione character varying, ordine smallint, attivo boolean) |  |
 | `fn_ana_alloggio_generi_upsert` | p_id integer, p_codice character varying, p_descrizione character varying, p_ordine smallint, p_attivo boolean | integer |  |
 | `fn_ana_api_config_get_all` |  | SETOF ana_api_config | Recupera tutte le configurazioni API ordinate per servizio e ordine di visualizzazione. Usato dalla griglia principale. |
