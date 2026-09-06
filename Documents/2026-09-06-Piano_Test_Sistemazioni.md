@@ -29,7 +29,12 @@ generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non 
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **610** applicati. Verifica:
+Il database locale deve avere gli script fino al **610** applicati.
+
+⚠️ **Dal 2026-09-06 la tendina delle sistemazioni è UN componente solo**
+(`TipoAlloggioSelect`), usato da tutte e tre le schede. Prima erano tre copie: se una prova
+di D o E fallisce in una scheda sola, è un difetto del componente o di come quella scheda lo
+usa — non più «una delle tre copie è rimasta indietro». Verifica:
 
 ```sql
 SELECT count(*) FROM ana_alloggio_generi;                 -- atteso: 3
@@ -123,6 +128,23 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 ---
 
 ## F — Il suggerimento del tipo
+
+> ⛔️ **GRUPPO SOSPESO — la funzione non esiste** (accertato il 2026-09-06).
+>
+> `SuggestAccommodationType` c'era in **due copie**, nella gestione alloggi e nella scheda
+> Partecipanti, ⚠️ **e nessuna delle due veniva mai chiamata**: codice mai eseguito, ora
+> tolto. Ho scritto queste quattro prove dando per scontato che il suggerimento
+> funzionasse, senza verificare che qualcuno lo invocasse — l'errore è mio.
+>
+> Le due copie erano anche già divergenti: una cercava «MATRIMONIALE» dentro la
+> descrizione e accettava una capienza **maggiore** del gruppo, l'altra no. ⚠️ La
+> correzione che avevo fatto il 5 settembre riguardava una di quelle due: era reale, ma
+> non cambiava niente per chi usa il programma.
+>
+> **Decisione da prendere:** se il suggerimento serve va scritto (una volta sola, nel
+> servizio, con capienza *uguale* al gruppo e senza riconoscere i tipi dal nome); se non
+> serve, questo gruppo va tolto dal piano. F1–F4 restano qui sotto come specifica di cosa
+> dovrebbe fare, non come prove eseguibili.
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
