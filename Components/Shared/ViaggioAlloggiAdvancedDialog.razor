@@ -194,6 +194,47 @@
     [Parameter] public string ViaggioTitle { get; set; } = "";
 
     // Room ViewModel
+    /// <summary>
+    /// Per ogni sistemazione da cui qualcuno se ne sta andando e che NON resta vuota, chiede
+    /// che cosa diventa. Torna il JSON da passare al database, o <c>null</c> se l'operatore
+    /// ha annullato — e allora non si salva niente.
+    ///
+    /// ⚠️ Si chiede PRIMA di scrivere: dopo sarebbe tardi, e una scelta fatta dal programma
+    /// non lascia traccia di non essere stata fatta da una persona.
+    /// </summary>
+    private async Task<string?> ChiediSistemazioniResidueAsync(int cameraDestinazionePk, List<int> clientiInArrivo)
+    {
+        var scelte = new List<object>();
+
+        foreach (var altra in _rooms.Where(r => r.AlloggioPk != cameraDestinazionePk))
+        {
+            var restano = altra.Occupanti.Where(o => !clientiInArrivo.Contains(o.ClienteId)).ToList();
+            if (restano.Count == altra.Occupanti.Count) continue;   // da qui non se ne va nessuno
+            if (restano.Count == 0) continue;                       // resta vuota: si elimina, niente da chiedere
+
+            var parameters = new DialogParameters<SistemazioneResiduaDialog>
+            {
+                { x => x.DataViaggioId, DataViaggioId },
+                { x => x.Descrizione, altra.TipoDescrizione },
+                { x => x.Chi, string.Join(", ", altra.Occupanti
+                        .Where(o => clientiInArrivo.Contains(o.ClienteId))
+                        .Select(o => o.Nominativo)) },
+                { x => x.Restano, restano.Select(o => o.Nominativo).ToList() }
+            };
+
+            var dialog = await DialogService.ShowAsync<SistemazioneResiduaDialog>(
+                "La sistemazione di chi resta", parameters,
+                new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+            var esito = await dialog.Result;
+            if (esito!.Canceled || esito.Data is not int tipoId || tipoId <= 0) return null;
+
+            scelte.Add(new { alloggio_pk = altra.AlloggioPk, tipo_id = tipoId });
+        }
+
+        return System.Text.Json.JsonSerializer.Serialize(scelte);
+    }
+
     public class RoomViewModel
     {
         public int AlloggioPk { get; set; }
@@ -479,9 +520,15 @@
             // fra l'una e l'altra — la rete, PgBouncer, l'app che va giù — lascerebbe una
             // persona in due camere o una camera vuota mai eliminata. Nessuna delle due dà
             // errore: sono dati che sembrano buoni, e si scoprono in albergo.
+            // ⛔️ Chi si sposta lascia una sistemazione con meno persone dentro: che cosa
+            // diventa lo sceglie l'operatore, una per una. Il programma non lo decide —
+            // «rischi di mettere in matrimoniale due amici che vogliono letti separati».
+            var adeguamenti = await ChiediSistemazioniResidueAsync(room.MovClientiAlloggioPk, occupantiIds);
+            if (adeguamenti is null) return;   // ha annullato: non si salva niente
+
             var eraNuova = room.MovClientiAlloggioPk <= 0;
             room.MovClientiAlloggioPk =
-                await AlloggiService.SalvaCameraAsync(room, occupantiIds);
+                await AlloggiService.SalvaCameraAsync(room, occupantiIds, adeguamenti);
 
             Snackbar.Add(eraNuova ? "Camera creata con successo" : "Camera aggiornata con successo",
                          Severity.Success);

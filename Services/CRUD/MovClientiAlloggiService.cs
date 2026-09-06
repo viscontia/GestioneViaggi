@@ -31,18 +31,22 @@ namespace GestioneViaggi.Services.CRUD
         /// scoprirebbero in albergo davanti al cliente.
         /// DB Function: fn_alloggi_salva_camera (SqlScripts/612)
         /// </summary>
-        public async Task<int> SalvaCameraAsync(MovClientiAlloggi entity, IEnumerable<int> occupanti)
+        public async Task<int> SalvaCameraAsync(MovClientiAlloggi entity, IEnumerable<int> occupanti,
+                                               string adeguamentiJson = "[]")
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
                 await using var cmd = new NpgsqlCommand(
-                    "SELECT fn_alloggi_salva_camera(@pk, @viaggio, @partenza, @tipo, @clienti)", conn);
+                    "SELECT fn_alloggi_salva_camera(@pk, @viaggio, @partenza, @tipo, @clienti, @adeguamenti::jsonb)", conn);
                 cmd.Parameters.AddWithValue("pk", entity.MovClientiAlloggioPk);
                 cmd.Parameters.AddWithValue("viaggio", entity.ViaggioIdFk);
                 cmd.Parameters.AddWithValue("partenza", entity.DataViaggioIdFk);
                 cmd.Parameters.AddWithValue("tipo", entity.TipoAlloggioIdFk);
                 cmd.Parameters.AddWithValue("clienti", occupanti.ToArray());
+                // ⛔️ Che cosa diventa una sistemazione da cui qualcuno se ne va lo decide chi
+                // lavora, non il programma: qui arriva già scelto. Senza, il database rifiuta.
+                cmd.Parameters.AddWithValue("adeguamenti", adeguamentiJson);
 
                 return Convert.ToInt32(await cmd.ExecuteScalarAsync());
             }

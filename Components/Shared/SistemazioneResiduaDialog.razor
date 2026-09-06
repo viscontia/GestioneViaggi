@@ -1,0 +1,62 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+@*
+    Chiede che cosa diventa una sistemazione da cui qualcuno se n'è andato.
+
+    ⚠️ Esiste perché il programma NON deve deciderlo: «rischi di mettere in matrimoniale due
+    amici che vogliono letti separati» (Adriano, 2026-09-06). Prima il tipo si adeguava da
+    solo alla capienza rimasta, in silenzio, su una camera che l'operatore non stava nemmeno
+    guardando — e in albergo non ci sarebbe stato modo di sapere che l'aveva scelto il
+    software.
+
+    La capienza resta rigorosa: l'elenco mostra solo le sistemazioni della capienza giusta.
+    Si sceglie fra quelle, non se rispettarla.
+*@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">La sistemazione di chi resta</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            Spostando @Chi, in <b>@Descrizione</b> @(Restano.Count == 1 ? "resta" : "restano")
+            @string.Join(", ", Restano) — @Restano.Count @(Restano.Count == 1 ? "persona" : "persone").
+            Con quale sistemazione va sostituita?
+        </MudAlert>
+
+        <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
+                            CapienzaEsatta="@Restano.Count"
+                            PersoneDaSistemare="@Restano.Count"
+                            @bind-SelectedId="_tipoScelto"
+                            Label="Diventa"
+                            Required="true" />
+    </DialogContent>
+    <DialogActions>
+        @* Il tasto sicuro è Annulla, e non si procede senza aver scelto. *@
+        <MudButton OnClick="@(() => MudDialog!.Cancel())" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton OnClick="@(() => MudDialog!.Close(DialogResult.Ok(_tipoScelto)))"
+                   Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_tipoScelto <= 0)">
+            Conferma
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>La partenza: decide quali sistemazioni sono ammesse.</summary>
+    [Parameter, EditorRequired] public int DataViaggioId { get; set; }
+
+    /// <summary>Descrizione della sistemazione da cui qualcuno se ne va.</summary>
+    [Parameter, EditorRequired] public string Descrizione { get; set; } = string.Empty;
+
+    /// <summary>Chi si sta spostando via, per dire di cosa stiamo parlando.</summary>
+    [Parameter, EditorRequired] public string Chi { get; set; } = string.Empty;
+
+    /// <summary>I nomi di chi rimane dentro.</summary>
+    [Parameter, EditorRequired] public List<string> Restano { get; set; } = new();
+
+    private int _tipoScelto;
+}
