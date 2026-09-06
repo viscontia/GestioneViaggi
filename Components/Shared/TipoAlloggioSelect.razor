@@ -72,6 +72,17 @@
     /// </summary>
     [Parameter] public EventCallback<TipoAlloggio?> SelectedItemChanged { get; set; }
 
+    /// <summary>
+    /// Quante persone vanno sistemate. Se è nota e nessuno ha ancora scelto, il componente
+    /// **propone** il tipo adatto (<see cref="TipoAlloggioService.Suggerisci"/>).
+    ///
+    /// ⚠️ Una proposta, non una decisione: resta cambiabile, e se l'utente sceglie a mano
+    /// il componente non ci torna più sopra. Ma finché il valore è quello proposto da noi,
+    /// e il gruppo cresce, la proposta si aggiorna — altrimenti chi aggiunge la seconda
+    /// persona resterebbe con la singola scelta per la prima, che la validazione rifiuta.
+    /// </summary>
+    [Parameter] public int PersoneDaSistemare { get; set; }
+
     [Parameter] public string Label { get; set; } = "Tipo Sistemazione";
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? RequiredError { get; set; }
@@ -83,6 +94,10 @@
     private List<TipoAlloggio> _tipi = new();
     private int _partenzaCaricata = -1;
 
+    /// L'ultimo id che abbiamo proposto noi. Serve a distinguere «lo ha scelto lui» da
+    /// «gliel'abbiamo messo noi»: solo il secondo si può sostituire.
+    private int _proposto;
+
     private string? HelperTextCorrente =>
         DataViaggioId <= 0 ? "Scegli prima la partenza"
         : _tipi.Count == 0 ? "Questo viaggio non prevede sistemazioni da comporre"
@@ -90,7 +105,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (DataViaggioId == _partenzaCaricata) return;
+        if (DataViaggioId == _partenzaCaricata)
+        {
+            // La partenza è la stessa, ma il gruppo può essere cresciuto: si rivede solo
+            // la proposta, senza rileggere l'elenco.
+            await ProponiSeServe();
+            await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == SelectedId));
+            return;
+        }
         _partenzaCaricata = DataViaggioId;
 
         _tipi = DataViaggioId > 0
@@ -105,11 +127,32 @@
             await SelectedIdChanged.InvokeAsync(0);
         }
 
+        await ProponiSeServe();
         await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == SelectedId));
+    }
+
+    /// <summary>
+    /// Mette la proposta se nessuno ha scelto, o se il valore attuale è ancora quello che
+    /// avevamo proposto noi e il gruppo nel frattempo è cambiato.
+    /// </summary>
+    private async Task ProponiSeServe()
+    {
+        if (PersoneDaSistemare <= 0 || _tipi.Count == 0) return;
+        if (SelectedId != 0 && SelectedId != _proposto) return;   // scelto a mano: non si tocca
+
+        var proposta = TipoAlloggioService.Suggerisci(_tipi, PersoneDaSistemare);
+        // Niente di adatto: si lascia com'è. Proporre una capienza sbagliata sarebbe peggio
+        // che non proporre, perché poi il salvataggio la rifiuta.
+        if (proposta == null || proposta.Id == SelectedId) return;
+
+        _proposto = proposta.Id;
+        SelectedId = proposta.Id;
+        await SelectedIdChanged.InvokeAsync(proposta.Id);
     }
 
     private async Task OnValueChanged(int id)
     {
+        _proposto = 0;   // da qui in poi il valore è suo, e non si sovrascrive
         SelectedId = id;
         await SelectedIdChanged.InvokeAsync(id);
         await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == id));

@@ -25,6 +25,7 @@
             <TipoAlloggioSelect DataViaggioId="@Room.DataViaggioIdFk"
                                 @bind-SelectedId="Room.TipoAlloggioIdFk"
                                 SelectedItemChanged="@(t => _tipoScelto = t)"
+                                PersoneDaSistemare="@Occupants.Count"
                                 Required="true"
                                 Class="mb-4" />
 

@@ -129,29 +129,35 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 
 ## F — Il suggerimento del tipo
 
-> ⛔️ **GRUPPO SOSPESO — la funzione non esiste** (accertato il 2026-09-06).
+> **Scritto il 2026-09-06**, dopo aver accertato che non esisteva: c'erano due copie del
+> calcolo, già divergenti fra loro, e ⚠️ **nessuna delle due veniva mai chiamata**. Ora la
+> regola è una sola (`TipoAlloggioService.Suggerisci`) e la applica `TipoAlloggioSelect`.
 >
-> `SuggestAccommodationType` c'era in **due copie**, nella gestione alloggi e nella scheda
-> Partecipanti, ⚠️ **e nessuna delle due veniva mai chiamata**: codice mai eseguito, ora
-> tolto. Ho scritto queste quattro prove dando per scontato che il suggerimento
-> funzionasse, senza verificare che qualcuno lo invocasse — l'errore è mio.
+> **La regola:** capienza **uguale** al gruppo (non «almeno»: una doppia con uno solo è una
+> «doppia uso singola», tipo suo con supplemento suo); a parità, quello **senza
+> supplemento**; a parità anche di quello, il più vecchio.
 >
-> Le due copie erano anche già divergenti: una cercava «MATRIMONIALE» dentro la
-> descrizione e accettava una capienza **maggiore** del gruppo, l'altra no. ⚠️ La
-> correzione che avevo fatto il 5 settembre riguardava una di quelle due: era reale, ma
-> non cambiava niente per chi usa il programma.
->
-> **Decisione da prendere:** se il suggerimento serve va scritto (una volta sola, nel
-> servizio, con capienza *uguale* al gruppo e senza riconoscere i tipi dal nome); se non
-> serve, questo gruppo va tolto dal piano. F1–F4 restano qui sotto come specifica di cosa
-> dovrebbe fare, non come prove eseguibili.
+> È una **proposta**, non una decisione: si può sempre cambiare, e appena scegli a mano il
+> programma non ci torna più sopra.
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| F1 | Componi una camera per **2 persone** su un viaggio in albergo | Propone un tipo da **2 posti esatti**, preferendo quello **senza supplemento** |
-| F2 | Componi per **1 persona** | Propone un tipo da **1 posto** (singola, non una doppia) |
-| F3 | Componi per **2 persone** su un viaggio **in tenda** | ⚠️ Propone una **tenda** da 2 posti. Prima cercava «MATRIMONIALE» nel nome e non avrebbe trovato niente |
-| F4 | Su un viaggio in tenda, guarda quale tenda propone fra «di proprietà» e «noleggiata» | Quella **di proprietà**: non ha supplemento |
+| F1 | Viaggio in **albergo**, componi una camera e aggiungi **1** occupante | Propone **CAMERA SINGOLA** |
+| F2 | Aggiungi il **secondo** occupante | ⚠️ La proposta si **aggiorna** a CAMERA MATRIMONIALE: finché non hai scelto tu, segue il gruppo |
+| F3 | Aggiungi il **terzo**, poi il **quarto** | CAMERA TRIPLA (TRE LETTI SINGOLI), poi CAMERA QUADRUPLA (…4P) |
+| F4 | Con 2 occupanti, **cambia a mano** in CAMERA DOPPIA LETTI SINGOLI, poi aggiungi il terzo | ⚠️ **Resta quella che hai scelto tu**: la proposta non sovrascrive una scelta. La capienza sbagliata la segnala la validazione (E2) |
+| F5 | Viaggio **in tenda**, gruppo di **2** | Propone **TENDA 2 POSTI DI PROPRIETA'** — non quella noleggiata, che ha supplemento |
+| F6 | Stesso viaggio, gruppo di **3** | ⚠️ **Nessuna proposta**, la tendina resta vuota: ci sono solo tende da 2 e da 4. Meglio non proporre che proporre una capienza che poi il salvataggio rifiuta |
+| F7 | **Iscrizione Veloce**: scegli un viaggio in albergo, una data, e chiedi la sistemazione | Propone CAMERA SINGOLA: lì si iscrive una persona per volta |
+| F8 | Scheda **Partecipanti**: apri un **pilota con 2 passeggeri** e chiedi la sistemazione | Propone un tipo da **3 posti**: il pilota porta con sé i suoi passeggeri |
+| F9 | Stessa scheda, apri un **passeggero** | Propone un tipo da **1 posto**: un passeggero sta per conto suo |
+
+⚠️ **Una cosa da sapere, che nessuna prova qui copre.** Per una persona sola in albergo
+esistono tre tipi da 1 posto, tutti con supplemento: CAMERA SINGOLA, CAMERA DOPPIA USO
+SINGOLA e **CAMERA SINGOLA DISABILI**. Il dato non dice quale sia quella normale né quale sia
+riservata a chi ha esigenze particolari: oggi esce CAMERA SINGOLA solo perché è la più
+vecchia delle tre — **per fortuna, non per regola**. Una camera per disabili non dovrebbe mai
+essere proposta da sola. ⛔️ Riconoscerla dal nome non si fa: servirebbe una colonna.
 
 ---
 

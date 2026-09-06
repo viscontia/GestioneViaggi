@@ -561,6 +561,7 @@
                                                      <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
                                                                          @bind-SelectedId="_currentAlloggio.TipoAlloggioIdFk"
                                                                          SelectedItemChanged="@(t => _tipoScelto = t)"
+                                                                         PersoneDaSistemare="@DimensioneGruppo()"
                                                                          Required="true" />
 
                                             @if (_currentAlloggio.TipoAlloggioIdFk > 0)
@@ -1358,6 +1359,24 @@
     }
 
 
+
+    /// <summary>
+    /// Quante persone vanno sistemate insieme a questa: un pilota porta con sé i suoi
+    /// passeggeri, un passeggero sta per conto suo. Serve a <see cref="TipoAlloggioSelect"/>
+    /// per proporre il tipo della capienza giusta.
+    ///
+    /// ⚠️ Chi guida si riconosce dal dato (<c>tipo_partecipante_pilota</c>) tramite
+    /// <c>IsPilot</c>, non dalla descrizione: «PILOTA MOTO PROPRIA» e «GUIDA IN SECONDA»
+    /// guidano entrambi, e nessuna regola sul testo li tiene insieme.
+    /// </summary>
+    private int DimensioneGruppo()
+    {
+        if (!_isEditMode || _currentEntity.ClienteIdFk <= 0) return 1;
+        if (!IsPilot(_currentEntity.TipoPartecipanteIdFk)) return 1;
+
+        return 1 + _participants.Count(p => p.GroupingKey == _currentEntity.ClienteIdFk
+                                         && p.ClienteId != _currentEntity.ClienteIdFk);
+    }
 
     // Helper class for room visualization
     public class RoomCardViewModel
