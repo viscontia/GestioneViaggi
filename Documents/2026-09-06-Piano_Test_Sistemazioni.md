@@ -15,9 +15,9 @@ Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere
 | **A** — La pagina dei Generi di Sistemazione | ✅ **superato** (2026-09-06) |
 | **B** — Il genere sui tipi di sistemazione | ✅ **superato** (2026-09-06) |
 | **C** — Le sistemazioni previste da un pernottamento | ✅ **superato** (2026-09-06), dopo gli script `607`→`609` e la correzione dei messaggi |
-| **D** — Quel che si può assegnare dipende dal viaggio | ☐ da fare |
+| **D** — Quel che si può assegnare dipende dal viaggio | ✅ **superato** (2026-09-06), dopo `610`, `611`, la tendina unica e la correzione del blocco |
 | **E** — La validazione al salvataggio | ☐ da fare |
-| **F** — Il suggerimento del tipo | ☐ da fare |
+| **F** — Il suggerimento del tipo | ☐ da fare — ⚠️ **riscritto**: prima collaudava una funzione che non esisteva |
 | **G** — Che le due strade dicano la stessa cosa | ☐ da fare |
 
 I difetti trovati durante A–C e corretti: la domanda di conferma al posto del rifiuto
