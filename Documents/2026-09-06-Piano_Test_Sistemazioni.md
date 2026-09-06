@@ -215,7 +215,11 @@ dai generi.
 | G1b | Scrivi a mano una **tenda** sullo stesso viaggio | Passa |
 | G1c | Scrivi a mano «nessuna camera» sullo stesso viaggio | Passa: vale sempre |
 | G1d | Prendi una riga valida e **modificale il tipo** verso uno non ammesso | Rifiutata: il vincolo vale anche in modifica, non solo in inserimento |
-| G1e | Scrivi a mano una **doppia con un occupante solo** | ⚠️ **Oggi passa** — il trigger non guarda la capienza (`SqlScripts/602`). ⛔️ **Ma questa attesa è in contraddizione con la decisione del 2026-09-06**: «le camere vanno assegnate in modo rigoroso sul rapporto persone/capienza e non ci devono essere scappatoie; le eccezioni con l'albergo restano offline». Da decidere se il controllo scende nel database — vedi la nota sotto |
+| G1e | Scrivi a mano una **doppia con un occupante solo** | ⛔️ **Rifiutata** (`SqlScripts/616`): «ospita 2 persone, ne è stata indicata 1». Il controllo è nella guardia, quindi vale anche fuori dalle due interfacce |
+| G3 | Cancella un partecipante che divide la camera con altri | ⚠️ Prima di cancellare compare **«La sistemazione di chi resta»**: senza risposta il database rifiuta, perché lascerebbe una camera con la capienza sbagliata |
+| G3b | Annulla quella domanda | ⚠️ **Non si cancella niente**: né l'iscrizione né la camera |
+| G4 | Cancella un partecipante che era **solo** nella sua camera | Nessuna domanda: la camera si elimina, non c'è niente da decidere |
+| G5 | Cancella un **pilota con passeggeri** che dividono camere con altri | ⚠️ Prima l'elenco di chi se ne va, **poi una domanda per ogni camera** che resta abitata |
 | G2 | Sulla partenza PIRENEI, chiedi la validazione dell'assegnazione vuota | Elenca **tutti** i partecipanti senza sistemazione |
 
 ### Esito, eseguito il 2026-09-06 sul database locale (transazione annullata)
@@ -243,22 +247,21 @@ FROM fn_alloggi_assegnazione_valida(
 
 ---
 
-## ⚠️ In sospeso: la capienza rigorosa anche a database
+## ✅ Risolto: la capienza rigorosa anche a database
 
-Il 2026-09-06 Adriano ha deciso: **capienza rigorosa, nessuna scappatoia**. Oggi la regola
-la applica solo la scheda; il trigger `trg_alloggio_coerente` (`SqlScripts/602`) guarda il
-genere, non la capienza — di proposito, per la storia della «doppia pagata a uso singola».
+Chiuso il 2026-09-06 con `SqlScripts/616`. Il controllo sta nella guardia di
+`mov_clienti_alloggi`, quindi vale per chiunque scriva. ⚠️ Il genere `NESSUNA` resta escluso —
+capienza 0 con un occupante è il modo in cui si registra chi dorme nel proprio mezzo, non
+un'eccezione alla regola.
 
-Misurato su PROD (azienda 2, sola lettura, 2026-09-06): **131 assegnazioni, 122 esatte**.
-Le altre 9:
+⚠️ **La cancellazione ha dovuto cambiare.** Togliere una persona da una camera condivisa
+lascia la camera sotto capienza: con il controllo attivo, quella cancellazione sarebbe stata
+rifiutata. Ora chiede con quale sistemazione sostituirla, come per lo spostamento (F13a7), e
+scrive tipo e occupanti nella stessa operazione.
 
-| Caso | Quante | Che cosa sono |
-|---|---|---|
-| `NESSUNA CAMERA` con 1 occupante | 2 | ⚠️ **Non sono un errore**: è il modo in cui si registra chi dorme nel proprio mezzo. Capienza 0 e un occupante è il funzionamento normale — una regola `occupanti = capienza` secca le romperebbe tutte |
-| Doppie con un occupante solo | 7 | Le «doppie uso singola registrate col tipo sbagliato» di cui parlava Antonio. Una è su una partenza **futura** (MAXI ENDURO TOUR DEI 2 MARI, 22/10/2026) |
-
-Portare il controllo a database significa: escludere il genere `NESSUNA`, e sistemare
-quelle 7 righe **prima**, altrimenti non saranno più modificabili. Decisione aperta.
+⚠️ **Restano 7 righe storiche su PROD** (azienda 2) con la capienza sbagliata. Non vengono
+toccate, ma da ora **non sono più modificabili** finché non si sistemano: il rapporto è in
+`SqlScripts/617`, con la correzione commentata perché cambia dati veri.
 
 ---
 
