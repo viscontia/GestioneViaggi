@@ -2,7 +2,14 @@
 -- 617 — Le sistemazioni storiche con la capienza sbagliata — RAPPORTO, non lavoro
 -- =============================================================================
 --
--- ⛔️ **NON C'E' NIENTE DA FARE, e non e' un rinvio: e' un accertamento.**
+-- ⛔️ **DECISO IL 2026-09-06: NON SI TOCCANO.** «Lasciamole li' che non fanno male a
+-- nessuno e fanno storia soprattutto» (Adriano). Non e' un rinvio: e' una decisione.
+--
+-- Il motivo per cui non conviene correggerle: sono tutte doppie con un occupante solo,
+-- e il tipo che l'automatismo propone e' CAMERA SINGOLA — ⚠️ ma quelle singole
+-- l'albergo non le aveva. Scrivere CAMERA SINGOLA su un viaggio gia' fatto riscrive
+-- che cosa e' stato prenotato e pagato. Il dato com'e' racconta la verita': una doppia
+-- occupata da uno.
 --
 -- Rilievo di Adriano il 2026-09-06: «guarda che per viaggi gia' conclusi non cambia
 -- nulla». Misurato subito dopo, e ha ragione in pieno:
