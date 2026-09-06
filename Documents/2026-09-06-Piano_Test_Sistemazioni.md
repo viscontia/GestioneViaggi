@@ -124,7 +124,7 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 > sta iscrivendo: una persona, un posto. Una matrimoniale con uno dentro non è uno stato
 > ammesso, quindi non si può nemmeno cominciare a costruirla.
 >
-> **Dal tab Alloggi** («Nuova Camera») il tipo è libero: si sceglie la sistemazione e poi la
+> **Dal tab Alloggi**, pulsante «Componi le sistemazioni» → «Nuova Camera», il tipo è libero: si sceglie la sistemazione e poi la
 > si riempie, e il salvataggio è permesso solo quando è piena. È lì che si compongono le
 > camere da più posti.
 >
@@ -133,7 +133,8 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| E1 | Iscritte due persone **senza sistemazione**, vai in **Alloggi → Nuova Camera**, scegli CAMERA MATRIMONIALE e aggiungi tutti e due | Si salva. ⚠️ Da qui il tipo è **libero**: si sceglie la sistemazione e poi si riempie, e «Aggiungi Occupante» resta finché non è piena |
+| E0 | Vai nel tab **Alloggi** | ⚠️ In alto a destra c'è **«Componi le sistemazioni»**. Prima la gestione alloggi si apriva **solo dalla matita di una camera esistente**: con zero camere non ci si arrivava affatto |
+| E1 | Iscritte due persone **senza sistemazione**: «Componi le sistemazioni» → **Nuova Camera** → CAMERA MATRIMONIALE → aggiungi tutti e due | Si salva. ⚠️ Da lì il tipo è **libero**: si sceglie la sistemazione e poi si riempie, e «Aggiungi Occupante» resta finché non è piena |
 | E1b | Prova a fare la stessa cosa **iscrivendo** una persona (Crea nuova camera) | ⚠️ La matrimoniale **non c'è in elenco**, ed è voluto: lì stai sistemando UNA persona, e una camera da due con uno dentro non è uno stato ammesso. Per dormire in due si usa «aggiungi a camera esistente» |
 | E2 | Crea una **matrimoniale** con **un solo** occupante | ⚠️ Rifiutato: «ospita 2 persone, ne è stata indicata 1». Una doppia con uno solo si chiama «doppia uso singola» ed è un tipo suo |
 | E3 | Crea una **camera singola** con 1 occupante | Si salva |
