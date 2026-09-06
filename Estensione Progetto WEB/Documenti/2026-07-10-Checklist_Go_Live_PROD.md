@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–598)
+### Elenco ordinato (467–600)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -376,6 +376,8 @@ ls SqlScripts/*.sql \
 | 596 | Rileggere_Una_Partenza_Sola | `fn_ana_date_viaggi_get_by_id`, riga intera. Solo lettura, stessa ragione del 595. ⚠️ Riga intera e non il DTO di riepilogo: quello ha sei campi su diciannove |
 | 597 | Ana_Tipo_Alloggio_Allineata_A_Produzione | Porta il catalogo degli alloggi **intero**, con le chiavi di produzione. ⚠️ **Su PROD non cambia nulla**: è da lì che i valori sono stati letti, ed è l'ambiente di sviluppo che si era disallineato (13 tipi contro 15, mancavano le tende di proprietà). Va applicato lo stesso, così i due restano uguali se un domani è PROD a cambiare. ⚠️ Spegne `ana_tipo_alloggio_trg1` per la durata dell'inserimento — vedi 598 — e rimette la sequenza dopo l'ultima chiave |
 | 598 | Trigger_Delle_Chiavi_Tutti_Prudenti | ⚠️ **Corregge quattro trigger che sovrascrivevano la chiave a ogni inserimento**, rendendo inutile ogni `ON CONFLICT`: `ana_tipo_alloggio`, `ana_geo_capoluogo`, `ana_geo_ita_ripgeo`, `ana_geo_regioni_ita`. Al posto di un aggiornamento arrivava un duplicato, **in silenzio**. Ora assegnano la chiave solo se chi scrive non l'ha data (`NULL` o zero). Nessun dato modificato, solo quattro funzioni. **Va DOPO il 597**, che si appoggia ancora al comportamento vecchio spegnendo il trigger |
+| 599 | Generi_Di_Alloggio_E_Coerenza_Col_Viaggio | ⚠️ **Tabelle nuove e colonna nuova.** `ana_alloggio_generi` (ALBERGO · TENDA · NESSUNA, estensibile), `ana_tipo_alloggio.genere_fk` **NOT NULL**, e `ana_tipo_pernottamento_generi` (molti a molti). Il genere dei 15 tipi e le associazioni dei 4 pernottamenti vengono dedotti **una volta sola** dai dati esistenti: da lì in poi sono un dato, non una parola da interpretare. ⚠️ Va **dopo il 597**, che allinea il catalogo: su un catalogo diverso il genere finirebbe sulle righe sbagliate |
+| 600 | Alloggi_Tipi_Ammessi_E_Combinazioni | Le tre funzioni che sito e gestionale chiamano **entrambi**: `fn_alloggi_tipi_ammessi` (cosa si può assegnare su questa partenza), `fn_alloggi_combinazioni` (in che forme dividere N persone, e se serve chiedere chi sta con chi), `fn_alloggi_assegnazione_valida` (tipi ammessi, capienza, nessuno ripetuto, nessuno dimenticato). Nessun dato modificato. ⚠️ Va **dopo il 599** |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
