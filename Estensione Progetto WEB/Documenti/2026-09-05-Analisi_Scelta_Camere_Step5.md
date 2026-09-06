@@ -30,6 +30,12 @@ compone una camera alla volta.
 
 ### Un quarto difetto, tecnico
 
+⚠️ **Confermato il 2026-09-06 dalla prova D2**: lo stesso difetto c'era anche sul gestionale,
+in `fn_get_viaggio_partecipanti_init_data` — su PIRENEI IN FUORISTRADA offriva le camere
+d'albergo. Corretto con `SqlScripts/610`, che chiama `fn_alloggi_tipi_ammessi`. ⚠️ La
+riscrittura del passo 5 deve usare **quella stessa funzione**: due elenchi costruiti in due
+posti divergono, ed è il difetto che stiamo togliendo, non uno nuovo.
+
 `fn_wizard_get_all_tipi_alloggio` restituisce **tutti** i tipi senza filtro, compresi
 `NESSUNA CAMERA` (capienza **0**), le varianti `DISABILI` e le tende. Il front-end poi
 filtra con «capienza ≤ persone da assegnare»: ⚠️ con capienza 0 la condizione è sempre

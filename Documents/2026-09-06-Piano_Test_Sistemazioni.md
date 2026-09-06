@@ -29,7 +29,7 @@ generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non 
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **609** applicati. Verifica:
+Il database locale deve avere gli script fino al **610** applicati. Verifica:
 
 ```sql
 SELECT count(*) FROM ana_alloggio_generi;                 -- atteso: 3
@@ -102,7 +102,7 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
 | D1 | Apri un viaggio **in ALBERGO** → tab Partecipanti → gestione alloggi → nuova camera | Nella tendina dei tipi ci sono **le camere e «nessuna camera»**, ⚠️ **nessuna tenda** |
-| D2 | Apri un viaggio **SOLO CAMPI TENDATI** → stessa strada | Ci sono **le tende e «nessuna camera»**, ⚠️ **nessuna camera d'albergo** |
+| D2 | Apri un viaggio **SOLO CAMPI TENDATI** (PIRENEI IN FUORISTRADA) → stessa strada | Ci sono **le tende e «nessuna camera»**, ⚠️ **nessuna camera d'albergo**. ⚠️ Provalo dalla scheda **Partecipanti** assegnando un passeggero: è la strada che sbagliava (`SqlScripts/610`), e le altre già funzionavano |
 | D3 | Apri un viaggio con pernottamento **NESSUNO** | ⚠️ L'unica voce è **«nessuna camera»** |
 | D4 | **Iscrizione veloce**: scegli un viaggio in albergo e una data, poi guarda la tendina della sistemazione | Solo camere |
 | D5 | Sempre in iscrizione veloce, **cambia la data** scegliendo una partenza di un viaggio in tenda | ⚠️ La tendina si **ricarica** e mostra le tende |
