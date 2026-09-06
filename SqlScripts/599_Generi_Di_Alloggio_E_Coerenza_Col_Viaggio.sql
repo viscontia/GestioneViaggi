@@ -50,9 +50,12 @@ vale su qualunque viaggio senza comparire fra i generi ammessi — «non mi serv
 sistemazione» e'' legittimo ovunque.';
 
 INSERT INTO ana_alloggio_generi (genere_codice, genere_descrizione, genere_ordine) VALUES
-    ('ALBERGO', 'Camera in struttura ricettiva', 1),
-    ('TENDA',   'Tenda in campo tendato',        2),
-    ('NESSUNA', 'Nessuna sistemazione',          9)
+    -- Maiuscolo: e' la convenzione del progetto (CAMERA MATRIMONIALE, SOLO CAMPI
+    -- TENDATI). Scritte in minuscolo qui, comparivano minuscole in elenco e maiuscole
+    -- nella scheda, che le maiuscolizzava da sola — segnalato in collaudo il 2026-09-06.
+    ('ALBERGO', 'CAMERA IN STRUTTURA RICETTIVA', 1),
+    ('TENDA',   'TENDA IN CAMPO TENDATO',        2),
+    ('NESSUNA', 'NESSUNA SISTEMAZIONE',          9)
 ON CONFLICT (genere_codice) DO UPDATE
     SET genere_descrizione = EXCLUDED.genere_descrizione,
         genere_ordine      = EXCLUDED.genere_ordine;
