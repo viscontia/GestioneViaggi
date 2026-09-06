@@ -32,6 +32,39 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
         return esito;
     }
 
+    /// <summary>
+    /// I tipi assegnabili su una PARTENZA: quelli del genere che il viaggio prevede, più
+    /// «nessuna sistemazione» che vale sempre.
+    ///
+    /// ⚠️ Da usare al posto di <see cref="GetAllAsync"/> ovunque si stia componendo una
+    /// sistemazione. Offrire l'elenco intero è ciò che ha prodotto le 17 assegnazioni
+    /// incoerenti trovate in produzione — camere d'albergo su viaggi senza albergo — e il
+    /// gestionale è il posto da cui sono nate.
+    /// DB Function: fn_alloggi_tipi_ammessi (SqlScripts/600)
+    /// </summary>
+    public async Task<List<TipoAlloggio>> GetAmmessiPerPartenzaAsync(int dataViaggioId)
+    {
+        var esito = new List<TipoAlloggio>();
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT * FROM fn_alloggi_tipi_ammessi(@dataViaggioId)", connection);
+        command.Parameters.AddWithValue("dataViaggioId", dataViaggioId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            esito.Add(new TipoAlloggio
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("tipo_id")),
+                Descrizione = reader.GetString(reader.GetOrdinal("descrizione")),
+                NumeroOccupanti = reader.GetInt32(reader.GetOrdinal("posti")),
+                SupplementoDb = reader.GetBoolean(reader.GetOrdinal("supplemento")) ? "Y" : "N",
+                GenereDescrizione = reader.GetString(reader.GetOrdinal("genere"))
+            });
+        }
+        return esito;
+    }
+
     public override async Task<TipoAlloggio> CreateAsync(TipoAlloggio entity) => await SalvaAsync(entity);
 
     public override async Task<TipoAlloggio> UpdateAsync(TipoAlloggio entity) => await SalvaAsync(entity);

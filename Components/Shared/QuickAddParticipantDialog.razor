@@ -150,7 +150,8 @@
     {
          // Load Lookups
         _tipoPartecipanti = (await TipoPartecipanteService.GetAllAsync()).ToList();
-        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
+        // I tipi di sistemazione NON si caricano qui: dipendono dalla partenza, che
+        // l'utente sceglie dopo. Si leggono in OnDataChanged.
 
         // Load Future Viaggi (Optimized)
         // SECURITY: Filter by user's company
@@ -163,6 +164,20 @@
     {
         _selectedDataId = dataId;
         _motivoNonIscrivibile = dataId > 0 ? await MovClientiService.MotivoNonIscrivibileAsync(dataId) : null;
+
+        // ⚠️ Le sistemazioni proponibili dipendono dalla PARTENZA, non sono un catalogo
+        // fisso: un viaggio in albergo non deve offrire tende, uno in tenda non deve
+        // offrire matrimoniali. Si rileggono a ogni cambio di data — e la scelta fatta
+        // prima si azzera, perche' potrebbe non essere piu' ammessa su questa partenza.
+        _tipoAlloggi = dataId > 0
+            ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(dataId)
+            : new List<TipoAlloggio>();
+
+        if (_currentAlloggio.TipoAlloggioIdFk > 0
+            && !_tipoAlloggi.Any(t => t.Id == _currentAlloggio.TipoAlloggioIdFk))
+        {
+            _currentAlloggio.TipoAlloggioIdFk = 0;
+        }
     }
 
     private async Task OnViaggioChanged(int viaggioId)

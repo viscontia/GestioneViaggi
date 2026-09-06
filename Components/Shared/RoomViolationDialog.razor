@@ -79,6 +79,15 @@
     protected override async Task OnInitializedAsync()
     {
         // Carica tipi alloggio per il dropdown
+        // ⚠️ Questo e' l'UNICO punto rimasto che offre il catalogo INTERO invece dei soli
+        // tipi ammessi dalla partenza (`GetAmmessiPerPartenzaAsync`). Non e' stato
+        // convertito perche' questa finestra **non e' aperta da nessuna parte**: nessun
+        // file la richiama (verificato il 2026-09-06). Convertirla richiederebbe un
+        // parametro con la partenza che oggi nessuno passerebbe, e un parametro a zero
+        // farebbe comparire un elenco vuoto — un difetto nuovo al posto di uno inerte.
+        //
+        // Se un domani questa finestra viene collegata, la prima cosa da fare e' darle la
+        // partenza e passare a GetAmmessiPerPartenzaAsync.
         _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).OrderBy(x => x.Descrizione).ToList();
         
         // Pre-seleziona un tipo alloggio logico se possibile (es. Singola se rimane 1 persona)

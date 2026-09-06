@@ -254,7 +254,11 @@
 
     private async Task LoadLookupsAsync()
     {
-        _tipoAlloggi = (await TipoAlloggioService.GetAllAsync()).ToList();
+        // ⚠️ Solo i tipi ammessi da QUESTA partenza, non il catalogo intero: un viaggio in
+        // albergo non deve proporre tende, uno in tenda non deve proporre matrimoniali.
+        // Offrire tutto e' cio' che ha prodotto le 17 assegnazioni incoerenti trovate in
+        // produzione, e venivano proprio da qui.
+        _tipoAlloggi = await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId);
     }
 
     private async Task LoadDataAsync()
