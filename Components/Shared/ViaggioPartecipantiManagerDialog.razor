@@ -305,32 +305,12 @@
                                             <!-- Warning Partecipanti Senza Camera -->
                                         @if (_participantsWithoutRoom.Any())
                                         {
-                                                    @* ⚠️ Non basta dire CHI manca: da qui si deve poter rimediare.
-                                                       L'avviso elencava i nomi e si fermava lì, e per abbinare
-                                                       qualcuno bisognava aprire la finestra avanzata dalla matita di
-                                                       una camera — che è il posto dove nessuno pensa di cercare
-                                                       (Adriano, 2026-09-06). *@
-                                                    <MudPaper Outlined="true" Class="pa-2 mb-2"
-                                                              Style="background-color: var(--mud-palette-warning-lighten);">
-                                                        <MudText Typo="Typo.body2" Class="mb-1">
-                                                            <b>⚠️ @_participantsWithoutRoom.Count senza camera</b>
-                                                        </MudText>
-                                                        @foreach (var p in _participantsWithoutRoom)
-                                                        {
-                                                            <div class="d-flex align-center justify-space-between mb-1">
-                                                                <div class="d-flex align-center gap-2">
-                                                                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Warning" />
-                                                                    <MudText Typo="Typo.body2">@p.Nominativo</MudText>
-                                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Ruolo</MudText>
-                                                                </div>
-                                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                                                           StartIcon="@Icons.Material.Filled.Hotel"
-                                                                           OnClick="@(() => AssegnaSenzaCamera(p))">
-                                                                    Assegna
-                                                                </MudButton>
-                                                            </div>
-                                                        }
-                                                    </MudPaper>
+                                                    @* L'elenco con i pulsanti sta nella linguetta «Partecipanti senza
+                                                       camere», che si vede appena si entra. Qui basta il richiamo: due
+                                                       posti con lo stesso pulsante sono due posti da tenere allineati. *@
+                                                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Style="padding: 8px;">
+                                                        <b>⚠️ @_participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", _participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(_participantsWithoutRoom.Count > 3 ? $" +{_participantsWithoutRoom.Count - 3} altri" : "")
+                                                    </MudAlert>
                                         }
 
                                             <!-- Sezione Alloggi Assegnati - Raggruppata per Tipo -->
@@ -410,6 +390,59 @@
                                         }
                                         </ChildContent>
                                     </MudTabPanel>
+
+                                    @* ⚠️ TAB 3: chi non ha una sistemazione, e da qui si rimedia.
+                                       Compare SOLO se ce n'è qualcuno: una linguetta «(0)» sempre
+                                       accesa insegna a non guardarla. Sta accanto agli altri due e
+                                       non dentro gli Alloggi perché il problema si deve vedere
+                                       ENTRANDO, senza dover aprire il tab giusto — chiesto da
+                                       Adriano il 2026-09-06: «così si vede subito immediatamente
+                                       che ci sono delle situazioni anomale». *@
+                                    @if (_participantsWithoutRoom.Any())
+                                    {
+                                        <MudTabPanel>
+                                            <TabContent>
+                                                <div class="d-flex align-center gap-1">
+                                                    <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Color="Color.Warning" />
+                                                    <MudText Typo="Typo.body2">
+                                                        Partecipanti senza camere (@_participantsWithoutRoom.Count)
+                                                    </MudText>
+                                                </div>
+                                            </TabContent>
+                                            <ChildContent>
+                                                <MudSimpleTable Dense="true" Hover="true" Striped="true" Bordered="true"
+                                                                FixedHeader="true" Style="font-size: 15px;">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="padding: 4px 8px; min-width: 180px;">Nominativo</th>
+                                                            <th style="padding: 4px 8px; min-width: 150px;">Ruolo</th>
+                                                            <th style="padding: 4px 8px; min-width: 200px;">Veicolo</th>
+                                                            <th style="padding: 4px 8px; width: 130px; text-align: center;">Azioni</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var senza in _participantsWithoutRoom)
+                                                        {
+                                                            <tr>
+                                                                <td style="padding: 4px 8px;"><b>@senza.Nominativo</b></td>
+                                                                <td style="padding: 4px 8px;">
+                                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@senza.Ruolo</MudChip>
+                                                                </td>
+                                                                <td style="padding: 4px 8px;">@senza.MezzoDettagli</td>
+                                                                <td style="padding: 4px 8px; text-align: center;">
+                                                                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                                               StartIcon="@Icons.Material.Filled.Hotel"
+                                                                               OnClick="@(() => AssegnaSenzaCamera(senza))">
+                                                                        Assegna
+                                                                    </MudButton>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    </tbody>
+                                                </MudSimpleTable>
+                                            </ChildContent>
+                                        </MudTabPanel>
+                                    }
 
                                 </MudTabs>
                         }
