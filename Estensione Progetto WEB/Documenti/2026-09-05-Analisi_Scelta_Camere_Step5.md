@@ -405,7 +405,7 @@ contenerlo, perché il dato non c'è.
    2026-09-06: `TENDA 2 POSTI DI PROPRIETA'` (id 34) e `TENDA 4 POSTI DI PROPRIETA'` (id 36),
    entrambe con supplemento `N`. ⚠️ **Mancavano al database di sviluppo**, che aveva 13 tipi
    contro i 15 di produzione: l'affermazione «a catalogo ci sono solo tende noleggiate» era
-   vera in locale e falsa in produzione. Allineato con `SqlScripts/597`. **Non c'è niente da
+   vera in locale e falsa in produzione. Allineato con `SqlScripts/597`, che porta la tabella **intera** con le chiavi di produzione (⚠️ un trigger `BEFORE INSERT` sovrascrive gli identificativi e rende inutile ogni `ON CONFLICT`: vedi difetto 97). **Non c'è niente da
    progettare qui: il modello è già giusto, manca solo il flusso che lo usa.**
 2. **La riga `NESSUNA CAMERA` sui Pirenei.** Una volta che le tende si possono comporre,
    quella riga descrive ancora la realtà o va corretta? Domanda per Antonio.
