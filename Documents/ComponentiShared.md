@@ -106,6 +106,36 @@ Componente per la paginazione (`Components/Shared/EnterprisePager.razor`).
 
 ---
 
+## ⛔️ La trappola che congela il programma
+
+**Non chiamare un `EventCallback` dentro `OnParametersSet`/`OnParametersSetAsync` senza prima
+verificare che qualcosa sia davvero cambiato.**
+
+Invocare un callback fa ridisegnare il componente **padre**, che ci ripassa i parametri, che
+ci fanno richiamare il callback. Il giro non finisce: la finestra resta ferma e tutta
+l'applicazione sembra bloccata. Non c'è eccezione, non c'è niente nel registro — sembra un
+blocco del sistema, ed è invece un anello di tre righe.
+
+Il modo giusto è ricordare l'ultimo valore comunicato e tacere se non è cambiato:
+
+```csharp
+private int _idNotificato;
+
+private async Task NotificaSeCambiato()
+{
+    if (SelectedId == _idNotificato) return;
+    _idNotificato = SelectedId;
+    await SelectedItemChanged.InvokeAsync(...);
+}
+```
+
+⚠️ **È già successo tre volte.** `DataViaggioSelect` e `DataViaggioBilancioSelect` portano la
+chiamata commentata con la nota «REMOVED: … to prevent infinite loop», e `TipoAlloggioSelect`
+ha bloccato l'apertura della scheda Partecipanti il 2026-09-06, il giorno stesso in cui è
+nato. Chi scrive il prossimo componente legga questa riga prima di aggiungere un callback.
+
+---
+
 ## Componenti Select (Autocomplete)
 Gran parte dei componenti di selezione (Dropdown) sono stati migrati per utilizzare internamente `MudAutocomplete` tramite un componente base comune.
 

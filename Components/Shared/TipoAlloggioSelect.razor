@@ -98,6 +98,10 @@
     /// «gliel'abbiamo messo noi»: solo il secondo si può sostituire.
     private int _proposto;
 
+    /// L'ultimo id già comunicato a chi ci contiene. Senza, si riparte a ogni render e il
+    /// programma si blocca — vedi NotificaSeCambiato.
+    private int _idNotificato;
+
     private string? HelperTextCorrente =>
         DataViaggioId <= 0 ? "Scegli prima la partenza"
         : _tipi.Count == 0 ? "Questo viaggio non prevede sistemazioni da comporre"
@@ -105,29 +109,42 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (DataViaggioId == _partenzaCaricata)
+        // Solo se la partenza è davvero cambiata si rilegge l'elenco: chi ci contiene
+        // ridisegna in continuazione, e una lettura per render sarebbe una query per render.
+        if (DataViaggioId != _partenzaCaricata)
         {
-            // La partenza è la stessa, ma il gruppo può essere cresciuto: si rivede solo
-            // la proposta, senza rileggere l'elenco.
-            await ProponiSeServe();
-            await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == SelectedId));
-            return;
-        }
-        _partenzaCaricata = DataViaggioId;
+            _partenzaCaricata = DataViaggioId;
 
-        _tipi = DataViaggioId > 0
-            ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId)
-            : new List<TipoAlloggio>();
+            _tipi = DataViaggioId > 0
+                ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId)
+                : new List<TipoAlloggio>();
 
-        // La scelta fatta su un'altra partenza può non essere ammessa su questa: si azzera,
-        // altrimenti resterebbe un valore che la tendina non mostra nemmeno più.
-        if (SelectedId > 0 && _tipi.All(t => t.Id != SelectedId))
-        {
-            SelectedId = 0;
-            await SelectedIdChanged.InvokeAsync(0);
+            // La scelta fatta su un'altra partenza può non essere ammessa su questa: si
+            // azzera, altrimenti resterebbe un valore che la tendina non mostra nemmeno più.
+            if (SelectedId > 0 && _tipi.All(t => t.Id != SelectedId))
+            {
+                SelectedId = 0;
+                await SelectedIdChanged.InvokeAsync(0);
+            }
         }
 
         await ProponiSeServe();
+        await NotificaSeCambiato();
+    }
+
+    /// <summary>
+    /// Avvisa chi ci contiene SOLO quando la scelta è davvero cambiata.
+    ///
+    /// ⛔️ Avvisarlo a ogni passaggio di parametri congela il programma, e non è un modo di
+    /// dire: chiamare un <c>EventCallback</c> fa ridisegnare il componente padre, che ci
+    /// ripassa i parametri, che ci fanno richiamare il callback. Il giro non finisce mai e
+    /// la finestra resta ferma. È il difetto che ha bloccato l'apertura dei partecipanti il
+    /// 2026-09-06, introdotto insieme a questo componente.
+    /// </summary>
+    private async Task NotificaSeCambiato()
+    {
+        if (SelectedId == _idNotificato) return;
+        _idNotificato = SelectedId;
         await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == SelectedId));
     }
 
@@ -155,6 +172,6 @@
         _proposto = 0;   // da qui in poi il valore è suo, e non si sovrascrive
         SelectedId = id;
         await SelectedIdChanged.InvokeAsync(id);
-        await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == id));
+        await NotificaSeCambiato();
     }
 }
