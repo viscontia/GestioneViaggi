@@ -612,7 +612,15 @@
             // un letto. Prima lo diceva un avviso giallo, che si può ignorare: e il buco si
             // scopre in albergo. Ora si fa la domanda vera, che è una sola e ha due risposte.
             var daSistemare = await ChiediChiEscePerSempreAsync(usciti);
+
             await LoadDataAsync();
+
+            // ⚠️ DOPO aver riletto, non prima: la scheda che si apre deve vedere le camere
+            // come sono adesso, altrimenti offrirebbe di aggiungerlo a una che non c'è più.
+            foreach (var chi in daSistemare)
+            {
+                await CreateNewRoom(chi);
+            }
         }
         catch (Exception ex)
         {
