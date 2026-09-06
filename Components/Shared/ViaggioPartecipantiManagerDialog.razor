@@ -999,46 +999,12 @@
                 Snackbar.Add("Alloggio rimosso", Severity.Info);
             }
 
-            // 3. Reset for next entry (if not editing)
-            if (_isEditMode)
-            {
-                await ResetForm();
-            }
-            else
-            {
-                // Reset COMPLETO del form per nuovo inserimento
-                _selectedCliente = null;
-                
-                // CRITICAL: Reset di TUTTI i campi dell'entità (incluso il ruolo)
-                _currentEntity = new MovClientiViaggi
-                {
-                    ViaggioIdFk = 0,
-                    DataViaggioIdFk = 0,
-                    ClienteIdFk = 0,
-                    TipoPartecipanteIdFk = 0, // Reset anche il ruolo
-                    AnaMezziIdFk = null,
-                    MezzoModelloIdFk = null,
-                    MovClienteViaggioScontovalTotale = null,
-                    MovClienteViaggioTargaMezzo = null,
-                    MovClienteViaggioCaneSino = "N",
-                    MovClienteViaggioNote = null,
-                    ClientePilotaIdFk = null
-                };
-                
-                _currentAlloggio = new MovClientiAlloggi();
-                _hasDog = false;
-                _wantsAccommodation = true; // Reset al default
-                _assignToExistingRoom = false;
-                _selectedExistingRoomId = null;
-                _ingrandimento = null;
-                _ingrandimentoId = 0;
-            }
-
-            await LoadListAsync(); // Refresh Grid
-            StateHasChanged(); // Force UI refresh
-            
-            // Setta il focus sul campo Cliente per continuare l'inserimento
-            await SetFocusOnClienteFieldAsync();
+            // ⚠️ UNA sola svuotata, la stessa del pulsante «Nuovo». Qui c'era una SECONDA
+            // copia, scritta a mano campo per campo: due copie divergono sempre, e chi ne
+            // aggiunge uno nuovo lo mette in una delle due. «Salva e Nuovo» deve lasciare la
+            // scheda esattamente come la lascia «Nuovo».
+            await ResetForm();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
