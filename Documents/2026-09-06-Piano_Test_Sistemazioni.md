@@ -112,7 +112,11 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| G1 | Prova a scrivere a mano nel database una camera d'albergo su un viaggio in tenda | Il database la accetta (non c'è ancora un vincolo), ⚠️ ma `fn_alloggi_assegnazione_valida` la segnala. **Da decidere**: se serva anche un vincolo che la rifiuta |
+| G1 | Prova a scrivere **a mano nel database** una camera d'albergo su un viaggio in tenda | ⚠️ **Rifiutata dal database** (`SqlScripts/602`), con un messaggio che dice il tipo, il pernottamento del viaggio e quali generi sarebbero ammessi |
+| G1b | Scrivi a mano una **tenda** sullo stesso viaggio | Passa |
+| G1c | Scrivi a mano «nessuna camera» sullo stesso viaggio | Passa: vale sempre |
+| G1d | Prendi una riga valida e **modificale il tipo** verso uno non ammesso | Rifiutata: il vincolo vale anche in modifica, non solo in inserimento |
+| G1e | Scrivi a mano una **doppia con un occupante solo** | ⚠️ **Passa**, ed è voluto: quando l'albergo non ha singole è una situazione reale. La capienza resta un rilievo della validazione, che blocca l'interfaccia ma non la mano di chi sa cosa sta facendo |
 | G2 | Sulla partenza PIRENEI, chiedi la validazione dell'assegnazione vuota | Elenca **tutti** i partecipanti senza sistemazione |
 
 ```sql

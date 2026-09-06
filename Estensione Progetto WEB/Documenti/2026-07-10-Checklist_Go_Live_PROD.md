@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–601)
+### Elenco ordinato (467–602)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -379,6 +379,7 @@ ls SqlScripts/*.sql \
 | 599 | Generi_Di_Alloggio_E_Coerenza_Col_Viaggio | ⚠️ **Tabelle nuove e colonna nuova.** `ana_alloggio_generi` (ALBERGO · TENDA · NESSUNA, estensibile), `ana_tipo_alloggio.genere_fk` **NOT NULL**, e `ana_tipo_pernottamento_generi` (molti a molti). Il genere dei 15 tipi e le associazioni dei 4 pernottamenti vengono dedotti **una volta sola** dai dati esistenti: da lì in poi sono un dato, non una parola da interpretare. ⚠️ Va **dopo il 597**, che allinea il catalogo: su un catalogo diverso il genere finirebbe sulle righe sbagliate |
 | 600 | Alloggi_Tipi_Ammessi_E_Combinazioni | Le tre funzioni che sito e gestionale chiamano **entrambi**: `fn_alloggi_tipi_ammessi` (cosa si può assegnare su questa partenza), `fn_alloggi_combinazioni` (in che forme dividere N persone, e se serve chiedere chi sta con chi), `fn_alloggi_assegnazione_valida` (tipi ammessi, capienza, nessuno ripetuto, nessuno dimenticato). Nessun dato modificato. ⚠️ Va **dopo il 599** |
 | 601 | Crud_Generi_E_Tipi_Alloggio | Le letture e scritture che servono alle pagine del gestionale: generi (elenco, salvataggio, cancellazione con guardia se sono usati), tipi di alloggio col genere, e i generi ammessi da un pernottamento. ⚠️ **`ana_tipo_pernottamento_con_albergo` non è più una scelta ma una conseguenza**: `fn_ana_tipo_pernottamento_generi_set` lo riallinea da solo in base ai generi. Il sito lo usa ancora per saltare il passo 5, quindi non si può togliere oggi — ma tenerlo come dato indipendente significherebbe due fonti che si contraddicono. ⚠️ Va **dopo il 599** |
+| 602 | Sistemazione_Coerente_Col_Viaggio | Trigger `trg_alloggio_coerente` su `mov_clienti_alloggi`: rifiuta una sistemazione di un genere che il viaggio non prevede — una tenda su un viaggio in albergo, una camera su uno in campo tendato. ⚠️ **Non controlla la capienza**, di proposito: una doppia con un occupante solo è reale quando l'albergo non ha singole (parola di Antonio, 2026-09-06), e una regola rigida spingerebbe chi lavora ad annotarla fuori dal sistema. ⚠️ **Su PROD ci sono 17 righe che lo violano, tutte nell'azienda 6**: SFT ne ha zero. Restano come sono — il trigger guarda solo inserimenti e modifiche — ma toccarne una la farà rifiutare. ⚠️ Va **dopo il 599** |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
