@@ -153,6 +153,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F8 | Scheda **Partecipanti**: apri un **pilota con 2 passeggeri** e chiedi la sistemazione | Propone un tipo da **3 posti**: il pilota porta con sé i suoi passeggeri |
 | F9 | Stessa scheda, apri un **passeggero** | Propone un tipo da **1 posto**: un passeggero sta per conto suo |
 
+| F13 | Iscrivi un **pilota** con una CAMERA SINGOLA, poi aggiungi una **passeggera** abbinata a lui e chiedi «aggiungi a camera esistente» | ⚠️ Non c'è nessuna camera libera, ed è giusto. Ma il messaggio ora **nomina la situazione**: «X ha una CAMERA SINGOLA, già al completo. Se devono stare insieme, cambia quella camera con la matita — creandone una seconda si pagano due sistemazioni» |
+| F14 | Dalla matita sulla camera del pilota, cambiala in **MATRIMONIALE** e aggiungi la passeggera | Si salva: due occupanti su due posti |
+| F15 | In alternativa, crea per lei una **seconda singola** e salva | ⚠️ **Passa, ed è voluto**: due singole con un occupante ciascuna sono valide quanto una matrimoniale, e a volte è proprio quello che si vuole. Il programma non lo vieta — avvisa, e la scelta resta di chi lavora |
 | F10 | Viaggio in albergo, gruppo di **1**: apri la tendina e guarda l'elenco | ⚠️ **CAMERA SINGOLA DISABILI c'è**, si può scegliere — ma **non è quella proposta**: esce CAMERA SINGOLA |
 | F11 | Menu → **Tipologie Alloggi**: guarda la colonna «Mai proposta» | Il segno c'è sulle due righe DISABILI e su nessun'altra |
 | F12 | Modifica una sistemazione qualunque e spunta «Non proporre mai d'ufficio», poi rifai F1 | Sparisce dalle proposte ma **resta in elenco**. ⚠️ È una scelta dell'operatore, non una cosa che posso cambiare solo io con una UPDATE a mano |

@@ -550,9 +550,29 @@
                                             }
                                             else
                                             {
-                                                             <MudAlert Severity="Severity.Warning" Dense="true">
-                                                                 Nessuna camera disponibile con posti liberi. Crea una nuova camera.
-                                                             </MudAlert>
+                                                var cameraDelPilota = CameraDelPilotaScelto();
+                                                @if (cameraDelPilota != null)
+                                                {
+                                                                 @* ⚠️ «Crea una nuova camera» qui e' un consiglio che costa: per una
+                                                                    coppia produce DUE camere e DUE supplementi, e nessuno lo impedisce —
+                                                                    due singole con un occupante ciascuna sono valide quanto una
+                                                                    matrimoniale. Se il pilota a cui si sta abbinando ha una camera piena,
+                                                                    la strada giusta e' quasi sempre cambiare QUELLA. *@
+                                                                 <MudAlert Severity="Severity.Warning" Dense="true">
+                                                                     <b>@cameraDelPilota.OccupantNames.FirstOrDefault()</b> ha una
+                                                                     <b>@cameraDelPilota.RoomType</b>, già al completo
+                                                                     (@cameraDelPilota.StatusText).<br/>
+                                                                     Se devono stare <b>insieme</b>, cambia quella camera con la matita
+                                                                     qui sopra — creandone una seconda si pagano due sistemazioni.
+                                                                 </MudAlert>
+                                                }
+                                                else
+                                                {
+                                                                 <MudAlert Severity="Severity.Warning" Dense="true">
+                                                                     Nessuna camera con posti liberi: qui puoi solo crearne una nuova,
+                                                                     oppure fare spazio in una di quelle che ci sono.
+                                                                 </MudAlert>
+                                                }
                                             }
                                         }
                                         else
@@ -1379,6 +1399,25 @@
     }
 
     // Helper class for room visualization
+    /// <summary>
+    /// La camera del pilota a cui si sta abbinando questo passeggero, se ne ha una piena.
+    /// Serve a dire la cosa giusta quando non ci sono posti liberi: il caso normale non è
+    /// «servono due camere», è «quella che c'è va cambiata».
+    ///
+    /// ⚠️ Nasce dal caso portato da Adriano il 2026-09-06: iscritto lui come pilota con una
+    /// CAMERA SINGOLA, poi aggiunta la moglie come passeggera. Il programma diceva «crea una
+    /// nuova camera» — cioè due singole e due supplementi per una coppia — e il database non
+    /// avrebbe avuto niente da obiettare: due singole con un occupante ciascuna sono valide
+    /// esattamente quanto una matrimoniale.
+    /// </summary>
+    private RoomCardViewModel? CameraDelPilotaScelto()
+    {
+        var pilotaId = _currentEntity.ClientePilotaIdFk;
+        if (pilotaId is null or <= 0) return null;
+
+        return _existingRooms.FirstOrDefault(r => r.IsFull && r.OccupantIds.Contains(pilotaId.Value));
+    }
+
     public class RoomCardViewModel
     {
         public int RoomId { get; set; }
