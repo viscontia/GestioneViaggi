@@ -377,13 +377,36 @@ E la regola diventa una sola: **si offrono le unità del genere che il viaggio p
 misto le offre entrambe. Il passo 5 non si salta più per i viaggi in tenda: si salta solo
 per `NESSUNO`.
 
+### ⚠️ La misura che dice quanto costa oggi
+
+Verificato su PROD il 2026-09-06, partenza **PIRENEI IN FUORISTRADA del 19/08/2026**:
+
+| | |
+|---|---|
+| Iscritti | **12** |
+| Righe di alloggio | **1** (`NESSUNA CAMERA`) |
+
+**Undici persone su dodici non hanno alcuna sistemazione registrata**, su un viaggio dove il
+campeggio la composizione la chiede. L'utente conferma: **le tende sono state assegnate
+fuori dal sistema** — su carta, a voce, in un messaggio.
+
+⚠️ Non è un dato mancante per distrazione: è il software che non ha mai offerto il posto
+dove metterlo. Il sito salta il passo 5 perché `con_albergo = 'N'`, e il gestionale non ha
+un percorso che chieda la composizione delle tende. Il lavoro descritto qui sopra serve
+esattamente a questo, e **il caso è già successo**.
+
+E c'è una conseguenza sui dati che nessuno vede finché non serve: alla partenza, chi ha in
+mano l'elenco degli occupanti per il campeggio? Nessun documento stampato dal gestionale può
+contenerlo, perché il dato non c'è.
+
 ### Le due cose da decidere domani
 
-1. **La tenda propria.** A catalogo ci sono solo tende **NOLEGGIATE**, con supplemento. Ma
-   chi arriva con la tenda sul tetto della macchina va comunque registrato — il campeggio
-   vuole sapere chi dorme dove — **senza pagare un noleggio**. Serve un tipo «tenda
-   propria» con supplemento `N`. ⚠️ Costa poco e **non riapre** il modello dei prezzi che
-   abbiamo appena scartato: è una riga in anagrafica, non un listino.
+1. ~~**La tenda propria** serve come tipo nuovo~~ — ✅ **esiste già su PROD**, verificato il
+   2026-09-06: `TENDA 2 POSTI DI PROPRIETA'` (id 34) e `TENDA 4 POSTI DI PROPRIETA'` (id 36),
+   entrambe con supplemento `N`. ⚠️ **Mancavano al database di sviluppo**, che aveva 13 tipi
+   contro i 15 di produzione: l'affermazione «a catalogo ci sono solo tende noleggiate» era
+   vera in locale e falsa in produzione. Allineato con `SqlScripts/597`. **Non c'è niente da
+   progettare qui: il modello è già giusto, manca solo il flusso che lo usa.**
 2. **La riga `NESSUNA CAMERA` sui Pirenei.** Una volta che le tende si possono comporre,
    quella riga descrive ancora la realtà o va corretta? Domanda per Antonio.
 
