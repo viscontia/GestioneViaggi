@@ -47,6 +47,34 @@
                     </MudButton>
                 </div>
 
+                @* ⚠️ Chi non ha una sistemazione va ELENCATO e va potuto sistemare da qui.
+                   Prima c'era solo il conteggio nell'etichetta qui sopra: per abbinare
+                   qualcuno bisognava partire dalla camera e trovarcelo dentro, e per metterlo
+                   con un altro bisognava prima cambiare il tipo di quella camera — perché con
+                   la capienza rigorosa ogni sistemazione valida è piena. Un giro che nessuno
+                   indovina (Adriano, 2026-09-06). *@
+                @if (_unassignedParticipants.Any())
+                {
+                    <MudPaper Outlined="true" Class="pa-2 mt-3" Style="background-color: var(--mud-palette-warning-lighten);">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Senza sistemazione</MudText>
+                        @foreach (var p in _unassignedParticipants)
+                        {
+                            <div class="d-flex align-center justify-space-between mb-1">
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Warning" />
+                                    <MudText Typo="Typo.body2">@p.Nominativo</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Ruolo</MudText>
+                                </div>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Hotel"
+                                           OnClick="@(() => AssegnaPartecipante(p))">
+                                    Assegna
+                                </MudButton>
+                            </div>
+                        }
+                    </MudPaper>
+                }
+
                 @if (_isLoadingRooms)
                 {
                     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
@@ -293,6 +321,77 @@
         return daSistemare;
     }
 
+    /// <summary>
+    /// Sistema una persona che non ha un letto: o gliene si dà uno suo, o si mette con
+    /// qualcuno che ce l'ha già — e in quel caso la sua sistemazione cambia in una che li
+    /// contiene tutti, perché con la capienza rigorosa non esistono camere con posti liberi.
+    /// </summary>
+    private async Task AssegnaPartecipante(ParticipantsViewDTO chi)
+    {
+        var occupante = new OccupantViewModel
+        {
+            ClienteId = chi.ClienteId,
+            Nominativo = chi.Nominativo,
+            Ruolo = chi.Ruolo
+        };
+
+        var conAltri = await DialogService.ShowMessageBox(
+            $"Dove dorme {chi.Nominativo}?",
+            "Può avere una sistemazione tutta sua, oppure stare con qualcuno che ne ha già una.",
+            yesText: "Con qualcun altro",
+            noText: "Una sistemazione sua");
+
+        if (conAltri is null) return;   // finestra chiusa: non si fa niente
+
+        if (conAltri == false)
+        {
+            await CreateNewRoom(occupante);
+            return;
+        }
+
+        var camere = _rooms.Select(r => new AbbinaACameraDialog.CameraScelta(
+            r.AlloggioPk, r.TipoDescrizione,
+            r.Occupanti.Select(o => o.Nominativo).ToList(),
+            r.Occupanti.Select(o => o.ClienteId).ToList())).ToList();
+
+        var parameters = new DialogParameters<AbbinaACameraDialog>
+        {
+            { x => x.DataViaggioId, DataViaggioId },
+            { x => x.Chi, chi.Nominativo },
+            { x => x.Camere, camere }
+        };
+
+        var dialog = await DialogService.ShowAsync<AbbinaACameraDialog>(
+            $"Con chi dorme {chi.Nominativo}?", parameters,
+            new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var esito = await dialog.Result;
+        if (esito!.Canceled || esito.Data is not ValueTuple<int, int> scelta) return;
+
+        var (cameraPk, tipoId) = scelta;
+        var dentro = camere.First(c => c.Pk == cameraPk).OccupantiIds.Append(chi.ClienteId);
+
+        try
+        {
+            // Una chiamata sola: cambio di tipo e nuovo occupante insieme.
+            await AlloggiService.SalvaCameraAsync(
+                new MovClientiAlloggi
+                {
+                    MovClientiAlloggioPk = cameraPk,
+                    ViaggioIdFk = ViaggioId,
+                    DataViaggioIdFk = DataViaggioId,
+                    TipoAlloggioIdFk = tipoId
+                }, dentro);
+
+            Snackbar.Add($"{chi.Nominativo} sistemato insieme agli altri occupanti", Severity.Success);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+    }
+
     public class RoomViewModel
     {
         public int AlloggioPk { get; set; }
@@ -321,7 +420,6 @@
 
     private int _roomsCount = 0; // DB: get_rooms_count() - più efficiente di _rooms.Count
 
-    private Dictionary<int, bool> _selectedParticipantIds = new();
     private string _viaggioTitle = "";
 
     [Parameter] public int? AutoOpenRoomId { get; set; }
@@ -463,7 +561,6 @@
         _unassignedParticipants = _allParticipants.Where(p => !assignedClientIds.Contains(p.ClienteId)).ToList();
 
         // Update selection dictionary
-        _selectedParticipantIds = _unassignedParticipants.ToDictionary(p => p.ClienteId, p => false);
     }
 
     /// <summary>

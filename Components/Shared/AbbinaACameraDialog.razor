@@ -1,0 +1,88 @@
+@using GestioneViaggi.Models
+@using MudBlazor
+
+@*
+    Mette una persona senza sistemazione INSIEME a chi ce l'ha già.
+
+    ⚠️ Con la capienza rigorosa ogni sistemazione valida è piena per definizione: non si
+    "aggiunge un occupante a una camera libera", perché camere libere non ne esistono. Si
+    sceglie la sistemazione, e quella CAMBIA in una che li contiene tutti.
+
+    ⚠️ Quale diventa lo sceglie chi lavora, non il programma: due persone possono volere una
+    matrimoniale o due letti singoli, e da qui non si sa (Adriano, 2026-09-06).
+*@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Con chi dorme @Chi?</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Camere.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true">
+                Non c'è ancora nessuna sistemazione su questa partenza: puoi solo creargliene una.
+            </MudAlert>
+        }
+        else
+        {
+            <MudSelect T="int?" Label="Sistemazione" @bind-Value="_cameraScelta"
+                       @bind-Value:after="OnCameraCambiata"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Required="true" Class="mb-3">
+                @foreach (var c in Camere)
+                {
+                    <MudSelectItem T="int?" Value="@c.Pk">
+                        @c.Descrizione — @string.Join(", ", c.Occupanti)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (_cameraScelta is not null && _postiNuovi > 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Diventeranno in @_postiNuovi: la sistemazione va cambiata di conseguenza.
+                </MudAlert>
+
+                <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
+                                    CapienzaEsatta="@_postiNuovi"
+                                    PersoneDaSistemare="@_postiNuovi"
+                                    @bind-SelectedId="_tipoScelto"
+                                    Label="La sistemazione diventa"
+                                    Required="true" />
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog!.Cancel())" Variant="Variant.Text">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_cameraScelta is null || _tipoScelto <= 0)"
+                   OnClick="@(() => MudDialog!.Close(DialogResult.Ok((_cameraScelta!.Value, _tipoScelto))))">
+            Conferma
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter, EditorRequired] public int DataViaggioId { get; set; }
+
+    /// <summary>Chi si sta sistemando, per dire di chi stiamo parlando.</summary>
+    [Parameter, EditorRequired] public string Chi { get; set; } = string.Empty;
+
+    /// <summary>Le sistemazioni esistenti su questa partenza.</summary>
+    [Parameter, EditorRequired] public List<CameraScelta> Camere { get; set; } = new();
+
+    private int? _cameraScelta;
+    private int _tipoScelto;
+    private int _postiNuovi;
+
+    private void OnCameraCambiata()
+    {
+        // La sistemazione precedente valeva per un'altra capienza: si ricomincia.
+        _tipoScelto = 0;
+        _postiNuovi = Camere.FirstOrDefault(c => c.Pk == _cameraScelta)?.Occupanti.Count + 1 ?? 0;
+    }
+
+    /// <summary>Una sistemazione fra cui scegliere, con dentro chi c'è già.</summary>
+    public record CameraScelta(int Pk, string Descrizione, List<string> Occupanti, List<int> OccupantiIds);
+}

@@ -169,6 +169,11 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F13a11 | Rifai e rispondi **«Sì, sistemazione indipendente»** | Salva regolarmente: capita che due che viaggiano insieme dormano separati, e non è un divieto |
 | F13a12 | Iscrivi un **pilota** (non un passeggero) con camera nuova | ⚠️ **Nessuna domanda**: chi guida non viaggia «con» qualcun altro |
 | F13a13 | Iscrivi un passeggero scegliendo **«aggiungi a camera esistente»** | ⚠️ **Nessuna domanda**: lì la scelta di stare insieme l'hai già fatta. Un avviso che compare quando non serve insegna a ignorarlo |
+| F15a | Apri **Alloggi** su una partenza dove qualcuno non ha sistemazione | ⚠️ C'è un riquadro **«Senza sistemazione»** con l'elenco dei nomi e un pulsante **Assegna** per ciascuno. Prima c'era solo il numero in un'etichetta, e non si poteva fare niente da lì |
+| F15b | Premi **Assegna** e scegli **«Una sistemazione sua»** | Si apre «Dove dorme X» con lui già dentro: scegli il tipo e salvi |
+| F15c | Premi **Assegna** e scegli **«Con qualcun altro»** | ⚠️ Si sceglie la sistemazione fra quelle esistenti — **tutte, anche se piene**, perché con la capienza rigorosa non ce ne sono con posti liberi — e poi con quale sostituirla: «Diventeranno in 2» |
+| F15d | Conferma | La sistemazione cambia tipo e accoglie la persona, in una sola operazione. Il riquadro «Senza sistemazione» si svuota |
+| F15e | Ripeti su una partenza **senza nessuna camera** e scegli «Con qualcun altro» | ⚠️ «Non c'è ancora nessuna sistemazione su questa partenza: puoi solo creargliene una» — invece di una tendina vuota senza spiegazione |
 | F14a | **Il buco.** Da una matrimoniale con due persone togline una e accetta la singola proposta per chi resta | ⚠️ Compare **«Partecipa ancora al viaggio?»**: «X è rimasto senza sistemazione. Se parte, va messo in una camera; se non parte più, va tolto anche dall'iscrizione» |
 | F14b | Rispondi **«Parte: gli assegno una sistemazione»** | ⚠️ Si apre subito **«Dove dorme X»**, con la persona **già dentro** come occupante: manca solo il tipo. Non una scheda di nuovo inserimento — l'iscrizione c'è già |
 | F14b2 | In quella scheda scegli il tipo e salva | La persona ha la sua sistemazione, e sparisce dai «senza camera» |
