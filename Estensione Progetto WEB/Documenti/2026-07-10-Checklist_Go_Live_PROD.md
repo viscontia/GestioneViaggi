@@ -1351,6 +1351,16 @@ Rilascio 2.0). I primi sono già acquisiti e vanno solo importati.
 
 ---
 
+### 6.5 — ⚠️ `ESTERO - FRANCIA` è una riga di prova, NON va portata
+
+`ana_geo_regioni_ita` ha 41 righe in sviluppo e 40 su PROD. La differenza è
+`488 | ESTERO - FRANCIA`, **inserita dall'utente per fare delle prove** (2026-09-06).
+
+☐ **Non propagarla.** È annotata qui solo perché la prossima volta che qualcuno confronta i
+due cataloghi la ritrovi già spiegata, invece di riaprire l'indagine.
+
+---
+
 ### 6.4 — Tabella `eba_countries`: va portata in PROD
 Serve al filtro «clienti residenti in…» degli invii selettivi, attraverso la catena
 `ana_clienti → ana_geo_comuni → ana_geo_province → ana_geo_regioni_ita → eba_countries`.
