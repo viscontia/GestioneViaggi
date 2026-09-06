@@ -17,8 +17,8 @@ Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere
 | **C** — Le sistemazioni previste da un pernottamento | ✅ **superato** (2026-09-06), dopo gli script `607`→`609` e la correzione dei messaggi |
 | **D** — Quel che si può assegnare dipende dal viaggio | ✅ **superato** (2026-09-06), dopo `610`, `611`, la tendina unica e la correzione del blocco |
 | **E** — La validazione al salvataggio | ☐ da fare |
-| **F** — Il suggerimento del tipo | ☐ da fare — ⚠️ **riscritto**: prima collaudava una funzione che non esisteva |
-| **G** — Che le due strade dicano la stessa cosa | ☐ da fare |
+| **F** — Il suggerimento del tipo | ✅ **superato** (2026-09-06), dopo `610`–`615`, la tendina unica, lo spostamento atomico e la linguetta «senza camere» |
+| **G** — Che le due strade dicano la stessa cosa | ✅ **superato** (2026-09-06), eseguito in locale su transazione annullata. ⚠️ G1e resta come atteso ma in contraddizione con la decisione sulla capienza — vedi la nota in fondo |
 
 I difetti trovati durante A–C e corretti: la domanda di conferma al posto del rifiuto
 (`609`), «NESSUNO» modificabile (`609`), le descrizioni minuscole (`603`), le guardie
@@ -217,6 +217,19 @@ dai generi.
 | G1d | Prendi una riga valida e **modificale il tipo** verso uno non ammesso | Rifiutata: il vincolo vale anche in modifica, non solo in inserimento |
 | G1e | Scrivi a mano una **doppia con un occupante solo** | ⚠️ **Oggi passa** — il trigger non guarda la capienza (`SqlScripts/602`). ⛔️ **Ma questa attesa è in contraddizione con la decisione del 2026-09-06**: «le camere vanno assegnate in modo rigoroso sul rapporto persone/capienza e non ci devono essere scappatoie; le eccezioni con l'albergo restano offline». Da decidere se il controllo scende nel database — vedi la nota sotto |
 | G2 | Sulla partenza PIRENEI, chiedi la validazione dell'assegnazione vuota | Elenca **tutti** i partecipanti senza sistemazione |
+
+### Esito, eseguito il 2026-09-06 sul database locale (transazione annullata)
+
+Partenza usata: **WILD TOUR SARDEGNA IN 4X4** del 17/06/2025, pernottamento SOLO CAMPI TENDATI.
+
+| # | Esito |
+|---|---|
+| G1 | ✅ **Rifiutata**: «CAMERA MATRIMONIALE non è una sistemazione prevista da questo viaggio (pernottamento: SOLO CAMPI TENDATI). Ammesse: TENDA IN CAMPO TENDATO» — il messaggio dice tipo, pernottamento e cosa sarebbe ammesso |
+| G1b | ✅ La tenda da 2 passa |
+| G1c | ✅ «Nessuna camera» passa: vale sempre |
+| G1d | ✅ **Rifiutata anche in modifica**, non solo in inserimento |
+| G1e | ⚠️ **Passa**, come previsto: il trigger guarda il genere, non la capienza. ⛔️ In contraddizione con la decisione «nessuna scappatoia» — la scrittura a mano aggira `fn_alloggi_salva_camera`, che invece la rifiuta |
+| G2 | ✅ 5 iscritti sulla partenza, **5 avvisi**: nessuno dimenticato |
 
 ```sql
 -- G2, da eseguire sul database locale
