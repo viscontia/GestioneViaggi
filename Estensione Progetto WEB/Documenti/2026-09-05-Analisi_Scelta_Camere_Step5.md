@@ -399,6 +399,82 @@ E c'è una conseguenza sui dati che nessuno vede finché non serve: alla partenz
 mano l'elenco degli occupanti per il campeggio? Nessun documento stampato dal gestionale può
 contenerlo, perché il dato non c'è.
 
+### Il disegno proposto: due assi, e un controllo che oggi non esiste
+
+**Domanda dell'utente (2026-09-06):** *«Manca un flag in `ana_tipo_alloggio` che indichi se
+è una camera d'albergo o una tenda, oppure può reggere anche così? Al momento non abbiamo
+nessun controllo incrociato fra la definizione di un viaggio "solo tende" e la coerenza col
+tipo di alloggio.»*
+
+**Non regge, e non è un rischio teorico.** Misurato su PROD il 2026-09-06: esistono già
+**17 assegnazioni incoerenti**, tutte camere d'albergo su viaggi con pernottamento
+`NESSUNO` — 10 matrimoniali, 4 singole, 2 doppie, 1 quadrupla. Nessuno se n'è accorto,
+perché **non c'è niente che guardi**. Il controllo incrociato non manca solo per le tende:
+manca del tutto.
+
+#### Perché serve un flag e non basta il nome
+
+Senza, l'unico modo di sapere se un tipo è una tenda sarebbe leggere la descrizione
+(`ILIKE '%TENDA%'`) o cablare gli identificativi `30, 32, 34, 36`. ⚠️ Entrambe sono la
+forma di difetto tolta quattro volte il 2026-09-05. E il catalogo **è modificabile dal
+gestionale** (`TipoAlloggioPage`): la classificazione dipenderebbe da come qualcuno scrive
+un'etichetta — si chiama una riga «CASA MOBILE» o «IGLOO» e il controllo smette di
+funzionare, in silenzio. È lo stesso ceppo dei tipi documento, dove cinque codici scritti a
+mano descrivevano tre documenti.
+
+#### I due assi
+
+⚠️ **Un flag solo non basta**: anche il lato viaggio è povero. `ana_tipo_pernottamento` ha
+solo `con_albergo` Y/N, che **non sa esprimere il misto** — `ALBERGO CON QUALCHE CAMPO
+TENDATO` ha `con_albergo = 'Y'`, quindi un controllo che si fidasse di quel flag
+escluderebbe le tende **proprio sul viaggio che le prevede entrambe**.
+
+| Dove | Cosa aggiungere | Valori |
+|---|---|---|
+| `ana_tipo_alloggio` | **`genere`** | `ALBERGO` · `TENDA` · `NESSUNA` |
+| `ana_tipo_pernottamento` | **`con_tenda`**, accanto a `con_albergo` | `Y`/`N` |
+
+I quattro tipi di pernottamento diventano leggibili senza interpretazioni:
+
+| | con_albergo | con_tenda |
+|---|---|---|
+| ALBERGO | Y | N |
+| ALBERGO CON QUALCHE CAMPO TENDATO | Y | **Y** |
+| SOLO CAMPI TENDATI | **N** | **Y** |
+| NESSUNO | N | N |
+
+**La regola diventa una riga:** un tipo si può assegnare se il suo `genere` è fra quelli che
+il viaggio prevede. ⚠️ E **`NESSUNA` vale sempre**, su qualunque viaggio, senza bisogno di
+un flag che lo autorizzi: «non mi serve una sistemazione» è legittimo ovunque — chi dorme
+nel proprio mezzo, chi si ferma da parenti. Infatti nei dati è già usato sia su ALBERGO sia
+su SOLO CAMPI TENDATI, ed è coerente in entrambi.
+
+Da qui discendono tre cose che oggi non ci sono: il sito offre solo i tipi giusti, il passo
+5 si salta solo per `NESSUNO`, e una funzione di validazione rifiuta l'incoerenza invece di
+lasciarla passare diciassette volte.
+
+#### ⚠️ Il caso misto resta scoperto, e va detto
+
+I due booleani **sanno descrivere** il viaggio misto — albergo e tende insieme, più
+`NESSUNA` che vale sempre. Ma descriverlo non è servirlo: **la sistemazione è legata alla
+PARTENZA, non alla singola notte.** Un viaggio che dorme tre notti in albergo e due in
+tenda non ha modo di dire chi sta dove **in quale notte**: la riga di `mov_clienti_alloggi`
+è una sola per tutta la partenza.
+
+Non a caso `ALBERGO CON QUALCHE CAMPO TENDATO` **non è mai stato usato**: il modello non lo
+regge, e chi inserisce lo evita.
+
+Quindi il disegno qui proposto:
+
+- ✅ **risolve** albergo puro, tende pure, e chi non ha bisogno di sistemazione;
+- ✅ **rende impossibili** le incoerenze come le 17 trovate;
+- ⚠️ **non risolve** il misto vero, che richiede di legare la sistemazione alla notte — un
+  lavoro molto più grande, dello stesso ordine di quello scartato per i prezzi.
+
+Il misto va quindi **dichiarato fuori portata per ora**, non lasciato ambiguo: se un domani
+serve davvero, si affronta il modello per notte. Nel frattempo un viaggio misto si gestisce
+scegliendo il pernottamento prevalente e annotando il resto — che è ciò che si fa già.
+
 ### Le due cose da decidere domani
 
 1. ~~**La tenda propria** serve come tipo nuovo~~ — ✅ **esiste già su PROD**, verificato il
