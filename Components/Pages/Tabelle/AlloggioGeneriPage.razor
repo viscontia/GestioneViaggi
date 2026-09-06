@@ -1,0 +1,171 @@
+@page "/tabelle/generi-alloggio"
+@using Microsoft.AspNetCore.Authorization
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.UI
+@using MudBlazor
+@using GestioneViaggi.Components.Shared
+@inject AlloggioGenereService Service
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStatusBarService StatusBarService
+@attribute [Authorize]
+@implements IDisposable
+
+@*
+    I generi di sistemazione: albergo, tenda, nessuna — e domani cio' che servira'.
+
+    Esiste come pagina, e non come elenco scritto nel programma, per una ragione precisa:
+    le condizioni di alloggio cambiano (bungalow, case mobili, rifugi) e aggiungerne una
+    deve costare una riga in tabella, non una modifica al codice. ⚠️ Una tabella che si
+    puo' cambiare solo con una INSERT scritta a mano e' una tabella che nessuno cambiera'.
+*@
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="my-2">
+        <MudText Typo="Typo.h6">ERRORE:</MudText>
+        <MudText>@_errorMessage</MudText>
+    </MudAlert>
+}
+else
+{
+    <EnterpriseDataGrid T="AlloggioGenere"
+                        Items="@_items"
+                        Title="Generi di Sistemazione"
+                        SearchFunction="@Search"
+                        @bind-SelectedItem="_selectedItem">
+
+        <ToolBarActions>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuovo
+            </MudButton>
+        </ToolBarActions>
+
+        <Columns>
+            <PropertyColumn Property="x => x.Codice" Title="Codice" />
+            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+            <PropertyColumn Property="x => x.Ordine" Title="Ordine"
+                            HeaderStyle="text-align: right; justify-content: end; min-width: 100px;"
+                            CellStyle="text-align: right; justify-content: end; min-width: 100px;" />
+
+            <TemplateColumn Title="Attivo" SortBy="x => x.Attivo">
+                <CellTemplate>
+                    <MudCheckBox Value="@context.Item.Attivo" ReadOnly="true" Color="Color.Primary" Dense="true" />
+                </CellTemplate>
+            </TemplateColumn>
+
+            <EnterpriseActionsColumn T="AlloggioGenere"
+                                     OnEdit="@OpenEditDialog"
+                                     OnDelete="@DeleteItem" />
+        </Columns>
+    </EnterpriseDataGrid>
+}
+
+@code {
+    private List<AlloggioGenere> _items = new();
+    private AlloggioGenere? _selectedItem;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StatusBarService.SetCurrentTable("ana_alloggio_generi");
+        await LoadDataAsync();
+    }
+
+    public void Dispose() => StatusBarService.SetCurrentTable(null);
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            _errorMessage = string.Empty;
+            _items = await Service.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Errore durante il caricamento: {ex.Message}";
+        }
+    }
+
+    private bool Search(AlloggioGenere item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        return item.Codice.Contains(searchString, StringComparison.OrdinalIgnoreCase)
+            || item.Descrizione.Contains(searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task OpenCreateDialog() => await ApriDialogo(new AlloggioGenere(), false);
+
+    private async Task OpenEditDialog(AlloggioGenere item) => await ApriDialogo(new AlloggioGenere
+    {
+        Id = item.Id, Codice = item.Codice, Descrizione = item.Descrizione,
+        Ordine = item.Ordine, Attivo = item.Attivo
+    }, true);
+
+    private async Task ApriDialogo(AlloggioGenere entity, bool modifica)
+    {
+        var parameters = new DialogParameters<AlloggioGenereDialog>
+        {
+            { x => x.Entity, entity },
+            { x => x.IsEditMode, modifica }
+        };
+        var options = new DialogOptions
+        {
+            BackdropClick = false, CloseButton = true,
+            MaxWidth = MaxWidth.Small, FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<AlloggioGenereDialog>(
+            modifica ? "Modifica Genere" : "Nuovo Genere", parameters, options);
+        var result = await dialog.Result;
+
+        if (result!.Canceled || result.Data is not AlloggioGenere salvato) return;
+
+        try
+        {
+            await Service.SalvaAsync(salvato);
+            await LoadDataAsync();
+            Snackbar.Add(modifica ? "Aggiornato con successo" : "Creato con successo", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Il messaggio arriva dal database, dove vive la regola: si mostra com'e'.
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteItem(AlloggioGenere item)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ContentText", $"Eliminare il genere «{item.Descrizione}»?" },
+            { "ButtonText", "Elimina" },
+            { "Color", Color.Error }
+        };
+        var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>(
+            "Conferma Eliminazione", parameters,
+            new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall });
+
+        var result = await dialog.Result;
+        if (result!.Canceled) return;
+
+        try
+        {
+            await Service.EliminaAsync(item.Id);
+            await LoadDataAsync();
+            Snackbar.Add("Eliminato con successo", Severity.Success);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // ⚠️ Il database rifiuta se il genere e' usato da qualche tipo, e dice
+            // quanti sono: il messaggio va mostrato intero, non riassunto.
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

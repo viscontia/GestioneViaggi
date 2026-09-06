@@ -160,6 +160,7 @@ public static class MauiProgram
         builder.Services.AddScoped<AnaTitoloPersoneService>();
         builder.Services.AddScoped<TipoTrattamentoService>();
         builder.Services.AddScoped<TipoAlloggioService>();
+        builder.Services.AddScoped<AlloggioGenereService>();
         builder.Services.AddScoped<TipoPernottamentoService>();
         builder.Services.AddScoped<TipoMezzoService>();
         builder.Services.AddScoped<MarcaVeicoloService>();

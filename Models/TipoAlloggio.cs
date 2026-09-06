@@ -21,6 +21,20 @@ public class TipoAlloggio : BaseEntity
     [Column("TIPO_ALLOGGIO_SUPPLEMENTO")]
     public string SupplementoDb { get; set; } = "N";
 
+    /// <summary>
+    /// Di che genere è questa sistemazione: albergo, tenda, nessuna.
+    /// ⚠️ Obbligatorio: senza, non si può sapere su quali viaggi è ammessa — ed è da lì
+    /// che sono nate le 17 assegnazioni incoerenti trovate in produzione (camere d'albergo
+    /// su viaggi con pernottamento «nessuno»).
+    /// </summary>
+    [Column("GENERE_FK")]
+    [Range(1, int.MaxValue, ErrorMessage = "Il genere è obbligatorio")]
+    public int GenereFk { get; set; }
+
+    /// <summary>Descrizione del genere, per l'elenco. Non si scrive.</summary>
+    [NotMapped]
+    public string? GenereDescrizione { get; set; }
+
     [NotMapped]
     public bool Supplemento
     {

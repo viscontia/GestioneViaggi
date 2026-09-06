@@ -15,68 +15,56 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
     {
     }
 
-    public override async Task<TipoAlloggio> CreateAsync(TipoAlloggio entity)
+    // ⚠️ La SQL stava scritta qui dentro, contro la regola del progetto («tutta la SQL
+    // vive in funzioni PostgreSQL»). Aggiungendo il genere quelle query andavano
+    // comunque toccate: si e' colta l'occasione per portarle dove sta il resto
+    // (SqlScripts/601). Cosi' la stessa regola vale anche per il sito di iscrizione.
+
+    /// <summary>Tutti i tipi, con la descrizione del genere per l'elenco.</summary>
+    public new async Task<List<TipoAlloggio>> GetAllAsync()
+    {
+        var esito = new List<TipoAlloggio>();
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand("SELECT * FROM fn_ana_tipo_alloggio_get_all()", connection);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync()) esito.Add(MapFromReader(reader));
+        return esito;
+    }
+
+    public override async Task<TipoAlloggio> CreateAsync(TipoAlloggio entity) => await SalvaAsync(entity);
+
+    public override async Task<TipoAlloggio> UpdateAsync(TipoAlloggio entity) => await SalvaAsync(entity);
+
+    private async Task<TipoAlloggio> SalvaAsync(TipoAlloggio entity)
     {
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                INSERT INTO ana_tipo_alloggio (tipo_alloggio_descrizione, tipo_alloggio_numero_occupanti, tipo_alloggio_supplemento)
-                VALUES (@descrizione, @numero_occupanti, @supplemento)
-                RETURNING tipo_alloggio_id, tipo_alloggio_descrizione, tipo_alloggio_numero_occupanti, tipo_alloggio_supplemento";
-
-            await using var command = new NpgsqlCommand(sql, connection);
+            await using var command = new NpgsqlCommand(
+                "SELECT fn_ana_tipo_alloggio_upsert(@id, @descrizione, @occupanti, @supplemento, @genere)", connection);
+            command.Parameters.AddWithValue("id", entity.Id);
             command.Parameters.AddWithValue("descrizione", entity.Descrizione);
-            command.Parameters.AddWithValue("numero_occupanti", entity.NumeroOccupanti);
+            command.Parameters.AddWithValue("occupanti", entity.NumeroOccupanti);
             command.Parameters.AddWithValue("supplemento", entity.SupplementoDb);
+            command.Parameters.AddWithValue("genere", entity.GenereFk);
 
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapFromReader(reader);
-            }
-
-            throw new Exception("Impossibile creare il tipo di alloggio");
+            entity.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
+            return entity;
         }
-        catch (Exception ex)
+        catch (PostgresException ex)
         {
-            _logger.LogError(ex, "Errore durante la creazione del tipo di alloggio");
-            throw;
+            // Il messaggio lo scrive il database: e' li' che vive la regola.
+            _logger.LogWarning(ex, "Tipo di alloggio non salvato: {Messaggio}", ex.MessageText);
+            throw new InvalidOperationException(ex.MessageText, ex);
         }
     }
 
-    public override async Task<TipoAlloggio> UpdateAsync(TipoAlloggio entity)
+    private static bool HasColumn(NpgsqlDataReader reader, string nome)
     {
-        try
-        {
-            await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = @"
-                UPDATE ana_tipo_alloggio
-                SET tipo_alloggio_descrizione = @descrizione,
-                    tipo_alloggio_numero_occupanti = @numero_occupanti,
-                    tipo_alloggio_supplemento = @supplemento
-                WHERE tipo_alloggio_id = @id
-                RETURNING tipo_alloggio_id, tipo_alloggio_descrizione, tipo_alloggio_numero_occupanti, tipo_alloggio_supplemento";
-
-            await using var command = new NpgsqlCommand(sql, connection);
-            command.Parameters.AddWithValue("id", entity.Id);
-            command.Parameters.AddWithValue("descrizione", entity.Descrizione);
-            command.Parameters.AddWithValue("numero_occupanti", entity.NumeroOccupanti);
-            command.Parameters.AddWithValue("supplemento", entity.SupplementoDb);
-
-            await using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                return MapFromReader(reader);
-            }
-
-            throw new Exception($"Tipo di alloggio con ID {entity.Id} non trovato");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Errore durante l'aggiornamento del tipo di alloggio");
-            throw;
-        }
+        for (var i = 0; i < reader.FieldCount; i++)
+            if (string.Equals(reader.GetName(i), nome, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
     }
 
     protected override TipoAlloggio MapFromReader(NpgsqlDataReader reader)
@@ -86,7 +74,10 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
             Id = ReadInt(reader, "tipo_alloggio_id"),
             Descrizione = reader.GetString(reader.GetOrdinal("tipo_alloggio_descrizione")),
             NumeroOccupanti = reader.GetInt32(reader.GetOrdinal("tipo_alloggio_numero_occupanti")),
-            SupplementoDb = reader.GetString(reader.GetOrdinal("tipo_alloggio_supplemento"))
+            SupplementoDb = reader.GetString(reader.GetOrdinal("tipo_alloggio_supplemento")),
+            GenereFk = ReadInt(reader, "genere_fk"),
+            GenereDescrizione = HasColumn(reader, "genere_descrizione")
+                ? reader.GetString(reader.GetOrdinal("genere_descrizione")) : null
         };
     }
 }

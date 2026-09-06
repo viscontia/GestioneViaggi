@@ -1,4 +1,6 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AlloggioGenereService GenereService
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
@@ -39,10 +41,32 @@
                              tabindex="2"
                              Class="mb-3" />
 
+            <MudSelect T="int"
+                       @bind-Value="Entity.GenereFk"
+                       For="@(() => Entity.GenereFk)"
+                       Label="Genere"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       RequiredError="Il genere è obbligatorio"
+                       tabindex="3"
+                       Class="mb-3"
+                       Adornment="Adornment.End"
+                       AdornmentText="*"
+                       AdornmentColor="Color.Error">
+                @foreach (var g in _generi)
+                {
+                    <MudSelectItem T="int" Value="@g.Id">@g.Descrizione</MudSelectItem>
+                }
+            </MudSelect>
+            <MudText Typo="Typo.caption" Class="mb-3 d-block mud-text-secondary">
+                Il genere decide su quali viaggi questa sistemazione è proponibile:
+                una tenda non compare su un viaggio in albergo, e viceversa.
+            </MudText>
+
             <MudCheckBox @bind-Value="Entity.Supplemento"
                          Label="Supplemento"
                          Color="Color.Primary"
-                         tabindex="3"
+                         tabindex="4"
                          Class="mb-3" />
         </MudForm>
     </DialogContent>
@@ -57,6 +81,15 @@
 </MudDialog>
 
 @code {
+    private List<AlloggioGenere> _generi = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Solo i generi attivi: uno disattivato non deve poter essere scelto di nuovo,
+        // ma resta sui tipi che ce l'hanno gia'.
+        _generi = await GenereService.GetAllAsync(soloAttivi: true);
+    }
+
     private MudForm? _form;
     private MudTextField<string>? _firstField;
 

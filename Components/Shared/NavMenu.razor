@@ -122,6 +122,11 @@
                 <MudText Typo="Typo.body1">Tipologie Alloggi</MudText>
             </MudNavLink>
 
+            <MudNavLink Icon="@Icons.Material.Filled.Category"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/generi-alloggio", "Generi di Sistemazione", "table"))">
+                <MudText Typo="Typo.body1">Generi di Sistemazione</MudText>
+            </MudNavLink>
+
             <MudNavLink Icon="@Icons.Material.Filled.Restaurant"
                         OnClick="@(() => OpenTabAndNotify("/tabelle/tipologie-trattamento-alberghiero", "Tipologie Tratt. Alberghiero", "table"))">
                 <MudText Typo="Typo.body1">Tipologie Tratt. Alberghiero</MudText>

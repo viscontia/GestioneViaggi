@@ -38,6 +38,8 @@ else
 
         <Columns>
             <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+
+            <PropertyColumn Property="x => x.GenereDescrizione" Title="Genere" />
             
             <PropertyColumn Property="x => x.NumeroOccupanti" Title="N. Occupanti" HeaderStyle="text-align: right; justify-content: end; min-width: 120px;" CellStyle="text-align: right; justify-content: end; min-width: 120px;" />
 
@@ -88,6 +90,9 @@ else
     {
         if (string.IsNullOrWhiteSpace(searchString)) return true;
         if (item.Descrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        // Anche il genere: chi cerca «tenda» si aspetta di trovarle tutte, comprese
+        // quelle che nella descrizione la parola non ce l'hanno.
+        if (item.GenereDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         return false;
     }
 
@@ -112,8 +117,10 @@ else
         {
             try
             {
-                var created = await Service.CreateAsync(newItem);
-                _items.Add(created);
+                await Service.CreateAsync(newItem);
+                // Si rilegge invece di aggiungere in memoria: la descrizione del genere
+                // la compone il database, e una riga senza non si legge.
+                await LoadDataAsync();
                 Snackbar.Add("Creato con successo", Severity.Success);
                 StateHasChanged();
             }
@@ -132,7 +139,9 @@ else
                 Id = item.Id,
                 Descrizione = item.Descrizione,
                 NumeroOccupanti = item.NumeroOccupanti,
-                SupplementoDb = item.SupplementoDb
+                SupplementoDb = item.SupplementoDb,
+                GenereFk = item.GenereFk,
+                GenereDescrizione = item.GenereDescrizione
             } },
             { x => x.IsEditMode, true }
         };
@@ -150,12 +159,9 @@ else
         {
             try
             {
-                var updated = await Service.UpdateAsync(updatedItem);
-                var index = _items.FindIndex(c => c.Id == updated.Id);
-                if (index >= 0)
-                {
-                    _items[index] = updated;
-                }
+                await Service.UpdateAsync(updatedItem);
+                // Come nella creazione: la descrizione del genere la compone il database.
+                await LoadDataAsync();
                 Snackbar.Add("Aggiornato con successo", Severity.Success);
                 StateHasChanged();
             }
