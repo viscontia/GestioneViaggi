@@ -228,13 +228,6 @@
                             Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
                             HelperText="URL completo (es: https://www.esempio.it)" Immediate="true" />
 
-                        <!-- Sito Web Iscrizione -->
-                        <MudTextField @bind-Value="Entity.SitoWebIscrizione" For="@(() => Entity.SitoWebIscrizione)"
-                            Label="Sito Web Iscrizione (opzionale)"
-                            Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWebIscrizione))"
-                            Variant="Variant.Outlined" MaxLength="255" Class="mb-3"
-                            HelperText="URL del programma di iscrizione clienti dal web" Immediate="true" />
-
                         <MudDivider Class="my-4" />
 
                         <!-- Data Costituzione -->
@@ -339,6 +332,30 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="Funzioni Web" Icon="@Icons.Material.Filled.Language">
+                    @*
+                        L'indirizzo del sito di iscrizione sta qui e non piu' in «Dati
+                        Generali»: e' configurazione del web, ed e' qui che uno lo cerca.
+                        ⚠️ E' il dato che il bottone «Iscrizione WEB» della dashboard apre:
+                        senza, quel bottone resta spento — con il suo motivo scritto nel
+                        suggerimento — e per un'altra azienda basta compilarlo.
+                    *@
+                    <MudPaper Elevation="0" Class="pa-2 mb-2">
+                        <MudText Typo="Typo.subtitle1" Class="mb-1">Sito di iscrizione ai viaggi</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            L'indirizzo che il pulsante «Iscrizione WEB» della dashboard apre nel browser.
+                            Lasciandolo vuoto, il pulsante resta disabilitato.
+                        </MudText>
+                        <div style="max-width:680px;">
+                            <MudTextField @bind-Value="Entity.SitoWebIscrizione" For="@(() => Entity.SitoWebIscrizione)"
+                                Label="Indirizzo del sito di iscrizione"
+                                Validation="@(new Func<string, IEnumerable<string>>(ValidateSitoWebIscrizione))"
+                                Variant="Variant.Outlined" MaxLength="255"
+                                HelperText="URL completo, es: https://iscrizioni.esempio.it/" Immediate="true" />
+                        </div>
+                    </MudPaper>
+
+                    <MudDivider Class="my-3" />
+
                     <AziendaTabFunzioniWeb AziendaId="@Entity.Id" />
                 </MudTabPanel>
             </MudTabs>
