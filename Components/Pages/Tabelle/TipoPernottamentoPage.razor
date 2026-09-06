@@ -6,6 +6,7 @@
 @using MudBlazor
 @using GestioneViaggi.Components.Shared
 @inject TipoPernottamentoService Service
+@inject AlloggioGenereService GenereService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStatusBarService StatusBarService
@@ -39,6 +40,19 @@ else
         <Columns>
             <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
 
+            <TemplateColumn Title="Sistemazioni previste">
+                <CellTemplate>
+                    @if (_generiPerPernottamento.TryGetValue(context.Item.Id, out var gg) && gg.Count > 0)
+                    {
+                        <MudText Typo="Typo.body2">@string.Join(" · ", gg)</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">nessuna</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
             <TemplateColumn Title="Con Albergo" SortBy="x => x.ConAlbergo">
                 <CellTemplate>
                     <MudCheckBox Value="@context.Item.ConAlbergo" ReadOnly="true" Color="Color.Primary" Dense="true" />
@@ -69,12 +83,23 @@ else
         StatusBarService.SetCurrentTable(null);
     }
 
+    // Le sistemazioni previste da ciascun pernottamento, per l'elenco.
+    private Dictionary<int, List<string>> _generiPerPernottamento = new();
+
     private async Task LoadDataAsync()
     {
         try
         {
             _errorMessage = string.Empty;
             _items = await Service.GetAllAsync();
+
+            _generiPerPernottamento = new Dictionary<int, List<string>>();
+            foreach (var item in _items)
+            {
+                var stato = await GenereService.GeneriDelPernottamentoAsync(item.Id);
+                _generiPerPernottamento[item.Id] =
+                    stato.Where(x => x.Ammesso).Select(x => x.Descrizione).ToList();
+            }
         }
         catch (Exception ex)
         {
@@ -111,7 +136,11 @@ else
             try
             {
                 var created = await Service.CreateAsync(newItem);
-                _items.Add(created);
+                // I generi stanno in una tabella a parte: si salvano dopo, con la chiave
+                // appena assegnata. ⚠️ E' anche la chiamata che riallinea `con_albergo`,
+                // che ora e' una conseguenza e non una scelta.
+                await GenereService.ImpostaGeneriDelPernottamentoAsync(created.Id, newItem.GeneriAmmessi);
+                await LoadDataAsync();
                 Snackbar.Add("Creato con successo", Severity.Success);
                 StateHasChanged();
             }
@@ -130,8 +159,8 @@ else
                 { 
                     Id = item.Id, 
                     Descrizione = item.Descrizione,
-                    ConAlbergoDb = item.ConAlbergoDb 
-                } 
+                    ConAlbergoDb = item.ConAlbergoDb
+                }
             },
             { x => x.IsEditMode, true }
         };
@@ -150,11 +179,9 @@ else
             try
             {
                 var updated = await Service.UpdateAsync(updatedItem);
-                var index = _items.FindIndex(c => c.Id == updated.Id);
-                if (index >= 0)
-                {
-                    _items[index] = updated;
-                }
+                await GenereService.ImpostaGeneriDelPernottamentoAsync(updated.Id, updatedItem.GeneriAmmessi);
+                // Si rilegge: i generi e il flag derivato li compone il database.
+                await LoadDataAsync();
                 Snackbar.Add("Aggiornato con successo", Severity.Success);
                 StateHasChanged();
             }

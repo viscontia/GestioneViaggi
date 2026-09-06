@@ -1,4 +1,6 @@
 @using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@inject AlloggioGenereService GenereService
 @using MudBlazor
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
@@ -30,11 +32,33 @@
                           AdornmentColor="Color.Error"
                           OnKeyDown="@HandleKeyDown" />
 
-            <MudCheckBox @bind-Value="Entity.ConAlbergo"
-                         Label="Con Albergo"
-                         Color="Color.Primary"
-                         tabindex="2"
-                         Class="mb-3" />
+            @*
+                La spunta «Con Albergo» non c'e' piu': era una scelta separata che poteva
+                contraddire i generi ammessi, ed e' il difetto tolto quattro volte fra il 5
+                e il 6 settembre — due fonti per la stessa informazione. Ora la si DERIVA:
+                se fra i generi c'e' ALBERGO, il flag vale 'Y'. Lo fa il database.
+            *@
+            <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">Sistemazioni previste</MudText>
+            <MudText Typo="Typo.caption" Class="mb-2 d-block mud-text-secondary">
+                Decide che cosa si potrà assegnare ai partecipanti di questi viaggi.
+                Senza nessuna spunta, il viaggio non prevede sistemazioni da comporre.
+            </MudText>
+
+            @foreach (var g in _generi)
+            {
+                <MudCheckBox T="bool"
+                             Value="@_scelti.Contains(g.Id)"
+                             ValueChanged="@((bool v) => CambiaGenere(g.Id, v))"
+                             Label="@g.Descrizione"
+                             Color="Color.Primary"
+                             Dense="true"
+                             Class="ml-2" />
+            }
+
+            <MudText Typo="Typo.caption" Class="mt-2 d-block mud-text-secondary">
+                «Nessuna sistemazione» non compare in elenco perché vale sempre:
+                chi dorme nel proprio mezzo può indicarlo su qualunque viaggio.
+            </MudText>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -48,6 +72,31 @@
 </MudDialog>
 
 @code {
+    private List<AlloggioGenere> _generi = new();
+    private HashSet<int> _scelti = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Solo gli attivi: un genere disattivato non deve poter essere scelto di nuovo.
+        _generi = await GenereService.GetAllAsync(soloAttivi: true);
+        // NESSUNA non si configura: vale sempre.
+        _generi = _generi.Where(g => g.Codice != "NESSUNA").ToList();
+
+        if (Entity.Id > 0)
+        {
+            var stato = await GenereService.GeneriDelPernottamentoAsync(Entity.Id);
+            _scelti = stato.Where(x => x.Ammesso).Select(x => x.Id).ToHashSet();
+        }
+        Entity.GeneriAmmessi = _scelti.ToList();
+    }
+
+    private void CambiaGenere(int genereId, bool scelto)
+    {
+        if (scelto) _scelti.Add(genereId); else _scelti.Remove(genereId);
+        Entity.GeneriAmmessi = _scelti.ToList();
+        StateHasChanged();
+    }
+
     private MudForm? _form;
     private MudTextField<string>? _firstField;
 

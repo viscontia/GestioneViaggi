@@ -23,4 +23,15 @@ public class TipoPernottamento : BaseEntity
         get => ConAlbergoDb == "Y";
         set => ConAlbergoDb = value ? "Y" : "N";
     }
+
+    /// <summary>
+    /// I generi di sistemazione che questo pernottamento ammette.
+    ///
+    /// ⚠️ Non è una colonna: sta in <c>ana_tipo_pernottamento_generi</c>, molti a molti,
+    /// perché il misto esiste — un viaggio può prevedere albergo E tende. Un booleano per
+    /// genere è già fallito una volta con <c>ConAlbergo</c>, che all'arrivo delle tende
+    /// non ha saputo dire niente.
+    /// </summary>
+    [NotMapped]
+    public List<int> GeneriAmmessi { get; set; } = new();
 }

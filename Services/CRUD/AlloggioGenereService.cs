@@ -81,4 +81,47 @@ public class AlloggioGenereService
             throw new InvalidOperationException(ex.MessageText, ex);
         }
     }
+
+    /// <summary>
+    /// I generi con la spunta su quelli ammessi da questo pernottamento.
+    /// ⚠️ Torna TUTTI i generi, non solo quelli già scelti: la scheda deve mostrare le
+    /// possibilità, non lo stato. <c>NESSUNA</c> non compare — vale sempre, ed è una
+    /// regola, non una configurazione.
+    /// </summary>
+    public async Task<List<(int Id, string Codice, string Descrizione, bool Ammesso)>>
+        GeneriDelPernottamentoAsync(int pernottamentoId)
+    {
+        var esito = new List<(int, string, string, bool)>();
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT * FROM fn_ana_tipo_pernottamento_generi_get(@id)", conn);
+        cmd.Parameters.AddWithValue("id", pernottamentoId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            esito.Add((
+                reader.GetInt32(reader.GetOrdinal("genere_id")),
+                reader.GetString(reader.GetOrdinal("codice")),
+                reader.GetString(reader.GetOrdinal("descrizione")),
+                reader.GetBoolean(reader.GetOrdinal("ammesso"))));
+        }
+        return esito;
+    }
+
+    /// <summary>
+    /// Imposta i generi ammessi, sostituendo i precedenti.
+    /// ⚠️ Un elenco vuoto è legittimo: è il pernottamento «nessuno», dove non c'è niente
+    /// da comporre. E il flag <c>con_albergo</c> viene riallineato dal database: non è più
+    /// una scelta separata, è una conseguenza.
+    /// </summary>
+    public async Task ImpostaGeneriDelPernottamentoAsync(int pernottamentoId, IEnumerable<int> generi)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT fn_ana_tipo_pernottamento_generi_set(@id, @generi)", conn);
+        cmd.Parameters.AddWithValue("id", pernottamentoId);
+        cmd.Parameters.AddWithValue("generi", generi.ToArray());
+        await cmd.ExecuteNonQueryAsync();
+    }
 }

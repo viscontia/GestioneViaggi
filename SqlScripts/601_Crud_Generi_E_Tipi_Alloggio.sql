@@ -148,6 +148,22 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     GET DIAGNOSTICS v_quanti = ROW_COUNT;
+
+    -- ⚠️ `con_albergo` resta allineato, ma smette di essere una scelta separata: lo si
+    -- DERIVA dai generi ammessi. Il sito lo usa ancora per decidere se saltare il passo
+    -- 5 (`StepWizard.jsx`), quindi non si puo' togliere oggi — ma tenerlo come dato
+    -- indipendente significherebbe avere due fonti che prima o poi si contraddicono, che
+    -- e' il difetto tolto quattro volte fra il 5 e il 6 settembre. Una fonte sola:
+    -- l'associazione. Il flag e' una sua conseguenza.
+    UPDATE ana_tipo_pernottamento p
+       SET ana_tipo_pernottamento_con_albergo =
+           CASE WHEN EXISTS (
+                    SELECT 1 FROM ana_tipo_pernottamento_generi pg
+                    JOIN ana_alloggio_generi g ON g.genere_id = pg.genere_fk
+                    WHERE pg.pernottamento_fk = p_pernottamento_id AND g.genere_codice = 'ALBERGO')
+                THEN 'Y' ELSE 'N' END
+     WHERE p.ana_tipo_pernottamento_id = p_pernottamento_id;
+
     RETURN v_quanti;
 END;
 $$;
