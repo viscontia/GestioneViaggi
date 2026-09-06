@@ -18,6 +18,41 @@ namespace GestioneViaggi.Services.CRUD
             _logger = logger;
         }
 
+        /// <summary>
+        /// Salva una sistemazione e, nella STESSA transazione, toglie i suoi occupanti dalle
+        /// altre sistemazioni della stessa partenza, eliminando quelle che restano vuote.
+        /// Torna la chiave della sistemazione salvata.
+        ///
+        /// ⚠️ È una chiamata sola di proposito. Farne due — scrivi la camera nuova, poi
+        /// libera quella vecchia — significa che fra l'una e l'altra può succedere qualcosa
+        /// che non dipende dal codice: la rete che cade, PgBouncer che chiude, l'app che va
+        /// giù. Si resterebbe con una persona in due camere, o con una camera vuota mai
+        /// eliminata: nessuna delle due dà errore, sono dati che sembrano buoni, e si
+        /// scoprirebbero in albergo davanti al cliente.
+        /// DB Function: fn_alloggi_salva_camera (SqlScripts/612)
+        /// </summary>
+        public async Task<int> SalvaCameraAsync(MovClientiAlloggi entity, IEnumerable<int> occupanti)
+        {
+            try
+            {
+                await using var conn = await _connectionManager.GetConnectionAsync();
+                await using var cmd = new NpgsqlCommand(
+                    "SELECT fn_alloggi_salva_camera(@pk, @viaggio, @partenza, @tipo, @clienti)", conn);
+                cmd.Parameters.AddWithValue("pk", entity.MovClientiAlloggioPk);
+                cmd.Parameters.AddWithValue("viaggio", entity.ViaggioIdFk);
+                cmd.Parameters.AddWithValue("partenza", entity.DataViaggioIdFk);
+                cmd.Parameters.AddWithValue("tipo", entity.TipoAlloggioIdFk);
+                cmd.Parameters.AddWithValue("clienti", occupanti.ToArray());
+
+                return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            }
+            catch (PostgresException ex)
+            {
+                // Il messaggio lo scrive il database: è lì che vive la regola.
+                throw new InvalidOperationException(ex.MessageText, ex);
+            }
+        }
+
         public async Task<int> AddAccommodationAsync(MovClientiAlloggi entity)
         {
             try
