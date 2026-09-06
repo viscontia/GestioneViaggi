@@ -429,29 +429,51 @@ solo `con_albergo` Y/N, che **non sa esprimere il misto** — `ALBERGO CON QUALC
 TENDATO` ha `con_albergo = 'Y'`, quindi un controllo che si fidasse di quel flag
 escluderebbe le tende **proprio sul viaggio che le prevede entrambe**.
 
-| Dove | Cosa aggiungere | Valori |
-|---|---|---|
-| `ana_tipo_alloggio` | **`genere`** | `ALBERGO` · `TENDA` · `NESSUNA` |
-| `ana_tipo_pernottamento` | **`con_tenda`**, accanto a `con_albergo` | `Y`/`N` |
+⚠️ **E i valori non si scrivono nel codice.** Domanda posta all'utente il 2026-09-06 —
+*«tre valori bastano?»* — e risposta: *«no, un domani potrebbero esserci condizioni di
+alloggio totalmente diverse che oggi non sono state prese in considerazione»*. Bungalow,
+case mobili, rifugi, barche. Un elenco fisso a tre voci andrebbe riaperto ogni volta, e con
+lui tutti i controlli che nel frattempo ci si appoggiano.
 
-I quattro tipi di pernottamento diventano leggibili senza interpretazioni:
+Quindi **il genere è una tabella, non un enumerato**, e il legame col pernottamento è una
+tabella di associazione:
 
-| | con_albergo | con_tenda |
-|---|---|---|
-| ALBERGO | Y | N |
-| ALBERGO CON QUALCHE CAMPO TENDATO | Y | **Y** |
-| SOLO CAMPI TENDATI | **N** | **Y** |
-| NESSUNO | N | N |
+| Oggetto | Cosa contiene |
+|---|---|
+| `ana_alloggio_generi` | i generi: `ALBERGO`, `TENDA`, `NESSUNA` — e domani quello che serve. Codice, descrizione, ordine, attivo |
+| `ana_tipo_alloggio.genere_fk` | di che genere è questo tipo di sistemazione |
+| `ana_tipo_pernottamento_generi` | quali generi ammette ciascun tipo di pernottamento — **molti a molti** |
 
-**La regola diventa una riga:** un tipo si può assegnare se il suo `genere` è fra quelli che
-il viaggio prevede. ⚠️ E **`NESSUNA` vale sempre**, su qualunque viaggio, senza bisogno di
-un flag che lo autorizzi: «non mi serve una sistemazione» è legittimo ovunque — chi dorme
-nel proprio mezzo, chi si ferma da parenti. Infatti nei dati è già usato sia su ALBERGO sia
-su SOLO CAMPI TENDATI, ed è coerente in entrambi.
+Costa una tabella in più di quanto sembri necessario oggi, e la ragione è precisa:
+⚠️ **l'alternativa — un booleano per genere — è esattamente ciò che ha già fallito.**
+`con_albergo` è nato così, e il giorno in cui sono comparse le tende non ha saputo dire
+niente: si sarebbe dovuto aggiungere `con_tenda`, poi `con_bungalow`, ognuno con il suo
+controllo da scrivere. Con l'associazione, aggiungere un genere è **una riga in una tabella
+e nessuna riga di codice**.
+
+Il pernottamento oggi si tradurrebbe così:
+
+| Pernottamento | Generi ammessi |
+|---|---|
+| ALBERGO | ALBERGO |
+| ALBERGO CON QUALCHE CAMPO TENDATO | ALBERGO, TENDA |
+| SOLO CAMPI TENDATI | TENDA |
+| NESSUNO | *(nessuno)* |
+
+**La regola diventa una riga:** un tipo si può assegnare se il suo genere è fra quelli
+ammessi dal viaggio. ⚠️ E **`NESSUNA` vale sempre**, su qualunque viaggio, senza comparire
+nell'associazione: «non mi serve una sistemazione» è legittimo ovunque — chi dorme nel
+proprio mezzo, chi si ferma da parenti. Nei dati è già usato sia su ALBERGO sia su SOLO
+CAMPI TENDATI, coerente in entrambi.
+
+⚠️ **Cosa fare di `con_albergo`.** Oggi il sito lo usa per una cosa sola: saltare il passo 5
+(`StepWizard.jsx`). Con questo modello quella decisione si **deduce** — si salta il passo 5
+se il viaggio non ammette alcun genere — e il flag può sparire invece di essere mantenuto
+accanto a un'informazione più ricca che lo contraddirebbe.
 
 Da qui discendono tre cose che oggi non ci sono: il sito offre solo i tipi giusti, il passo
-5 si salta solo per `NESSUNO`, e una funzione di validazione rifiuta l'incoerenza invece di
-lasciarla passare diciassette volte.
+5 si salta solo quando davvero non c'è nulla da comporre, e una funzione di validazione
+rifiuta l'incoerenza invece di lasciarla passare diciassette volte.
 
 #### ⚠️ Il caso misto resta scoperto, e va detto
 
