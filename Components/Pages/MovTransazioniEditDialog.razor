@@ -782,35 +782,6 @@
         StateHasChanged();
     }
 
-    // =========================================
-    // Evento: Cambio Aliquota IVA
-    // =========================================
-    private async Task OnAliquotaIvaChanged(int? aliquotaId)
-    {
-        Transazione.TransazioneAliquotaIvaFk = aliquotaId;
-
-        if (aliquotaId.HasValue)
-        {
-            // Recupera la percentuale IVA dai dati init
-            var aliquota = _initData.AliquoteIva.FirstOrDefault(a => a.IvaId == aliquotaId.Value);
-            if (aliquota != null)
-            {
-                Transazione.AliquotaIvaPercentuale = aliquota.IvaPercentuale;
-                // _aliquotaPercentuale = aliquota.IvaPercentuale; // Old logic
-                // CalcolaIvaReattivo(); // Old logic
-            }
-        }
-        else
-        {
-            // _aliquotaPercentuale = null; // Old logic
-            Transazione.AliquotaIvaPercentuale = null;
-            Transazione.TransazioneImponibileEur = null;
-            Transazione.TransazioneIvaEur = null;
-            Transazione.TransazioneLordoEur = null;
-        }
-
-        StateHasChanged();
-    }
 
     // =========================================
     // Gestione Righe di Dettaglio

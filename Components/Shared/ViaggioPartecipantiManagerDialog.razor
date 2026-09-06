@@ -714,11 +714,6 @@
         await SchedaViaggioStampaService.StampaAsync(DataViaggioId, dettagliata: true);
     }
 
-    private void ShowDevelopmentMessage(string featureName)
-    {
-        Snackbar.Add($"Funzionalità in corso di sviluppo", Severity.Info);
-    }
-
     private async Task OnStampaRoomingListClick()
     {
         if (DataViaggioId <= 0)
@@ -804,16 +799,6 @@
             IsInitiallyExpanded = true,
             Selector = (e) => e.GroupingKey
         };
-
-    private string RowStyleHelper(ParticipantsViewDTO item, int index)
-    {
-        // Hide row if it's the Pilot (Grouping Key matches Client ID)
-        if (item.GroupingKey > 0 && item.GroupingKey == item.ClienteId)
-        {
-            return "display:none;";
-        }
-        return "";
-    }
 
     private async Task SaveAsync()
     {
@@ -1363,31 +1348,6 @@
         }
     }
 
-    // ============================================
-    // ACCOMMODATION HELPER METHODS
-    // ============================================
-
-    private int GetCurrentGroupSize()
-    {
-        // Conta pilota + passeggeri già associati
-        if (_isEditMode && _currentEntity.ClienteIdFk > 0)
-        {
-            // In edit mode: conta il gruppo esistente
-            if (IsPilot(_currentEntity.TipoPartecipanteIdFk))
-            {
-                // Se è un pilota, conta se stesso + i suoi passeggeri
-                return 1 + _participants.Count(p => p.GroupingKey == _currentEntity.ClienteIdFk && p.ClienteId != _currentEntity.ClienteIdFk);
-            }
-            else
-            {
-                // Se è un passeggero, conta solo se stesso
-                return 1;
-            }
-        }
-
-        // In insert mode: solo il cliente corrente
-        return 1;
-    }
 
     private string GetDisplayRole(string role)
     {
@@ -1395,11 +1355,6 @@
         if (role.Contains("PASSEGGERO", StringComparison.OrdinalIgnoreCase))
             return "PASSEGGERO";
         return role;
-    }
-
-    private string GetRoleDescription(int tipoPartecipanteId)
-    {
-        return _tipoPartecipanti.FirstOrDefault(t => t.Id == tipoPartecipanteId)?.Descrizione ?? "?";
     }
 
 

@@ -100,18 +100,4 @@ public class StatisticCountClienti : StatisticBase
         if (current > 0) return 100;
         return 0;
     }
-
-    private async Task<long> GetYearCountAsync(int year, int? aziendaId)
-    {
-        string sql = "SELECT COUNT(*) FROM ana_clienti WHERE EXTRACT(YEAR FROM created) = @year";
-        var parameters = new List<(string Name, object? Value)> { ("year", year) };
-
-        if (aziendaId.HasValue)
-        {
-            sql += " AND azienda_fk = @aziendaId";
-            parameters.Add(("aziendaId", aziendaId.Value));
-        }
-
-        return await ExecuteScalarCountAsync(sql, parameters.ToArray());
-    }
 }
