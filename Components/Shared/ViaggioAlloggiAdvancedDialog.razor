@@ -235,6 +235,53 @@
         return System.Text.Json.JsonSerializer.Serialize(scelte);
     }
 
+    /// <summary>
+    /// Per chi è rimasto senza sistemazione fa la domanda che conta: partecipa ancora al
+    /// viaggio? Se sì non si fa nulla — gli si assegnerà un letto — se no si cancella anche
+    /// l'iscrizione, perché un iscritto senza letto è un buco che si scopre in albergo.
+    ///
+    /// ⚠️ Chiesto da Adriano il 2026-09-06: «l'utente rischia di non fare nulla e lasciare un
+    /// buco». L'avviso giallo diceva il problema ma non obbligava a risolverlo.
+    ///
+    /// ⚠️ Cancellando un pilota se ne vanno anche i suoi passeggeri (SqlScripts/586): si
+    /// elencano PRIMA, perché chi decide deve sapere chi altro sta togliendo.
+    /// </summary>
+    private async Task ChiediChiEscePerSempreAsync(List<OccupantViewModel> usciti)
+    {
+        foreach (var chi in usciti)
+        {
+            var resta = await DialogService.ShowMessageBox(
+                "Partecipa ancora al viaggio?",
+                $"{chi.Nominativo} è rimasto senza sistemazione. Se parte, va messo in una camera; " +
+                "se non parte più, va tolto anche dall'iscrizione.",
+                yesText: "Parte: gli assegno una sistemazione",
+                noText: "Non parte più: cancella l'iscrizione");
+
+            if (resta != false) continue;   // «parte» o finestra chiusa: si lascia com'è
+
+            var effetti = await MovClientiService.GetCancellazioneEffettiAsync(DataViaggioId, chi.ClienteId);
+            var altri = effetti.Where(e => e.ClienteId != chi.ClienteId).ToList();
+
+            if (altri.Count > 0)
+            {
+                var elenco = string.Join(", ", altri.Select(a => a.Nominativo));
+                var conferma = await DialogService.ShowMessageBox(
+                    "Se ne vanno anche altri",
+                    $"{chi.Nominativo} guida, e senza di lui restano senza mezzo: {elenco}. " +
+                    "Cancellando lui si cancellano anche loro.",
+                    yesText: "Cancella tutti",
+                    cancelText: "Annulla");
+
+                if (conferma != true) continue;
+            }
+
+            await MovClientiService.RemoveParticipantAsync(ViaggioId, DataViaggioId, chi.ClienteId);
+            Snackbar.Add($"{chi.Nominativo} tolto dal viaggio" +
+                         (altri.Count > 0 ? $" insieme a {altri.Count} passeggero/i" : ""),
+                         Severity.Info);
+        }
+    }
+
     public class RoomViewModel
     {
         public int AlloggioPk { get; set; }
@@ -526,12 +573,26 @@
             var adeguamenti = await ChiediSistemazioniResidueAsync(room.MovClientiAlloggioPk, occupantiIds);
             if (adeguamenti is null) return;   // ha annullato: non si salva niente
 
+            // Chi esce da QUESTA sistemazione e non ne ha un'altra: si guarda prima di
+            // scrivere, perché dopo la sistemazione vecchia non c'è più.
+            var usciti = (_rooms.FirstOrDefault(r => r.AlloggioPk == room.MovClientiAlloggioPk)?.Occupanti
+                          ?? new List<OccupantViewModel>())
+                .Where(o => !occupantiIds.Contains(o.ClienteId))
+                .Where(o => !_rooms.Any(r => r.AlloggioPk != room.MovClientiAlloggioPk
+                                          && r.Occupanti.Any(x => x.ClienteId == o.ClienteId)))
+                .ToList();
+
             var eraNuova = room.MovClientiAlloggioPk <= 0;
             room.MovClientiAlloggioPk =
                 await AlloggiService.SalvaCameraAsync(room, occupantiIds, adeguamenti);
 
             Snackbar.Add(eraNuova ? "Camera creata con successo" : "Camera aggiornata con successo",
                          Severity.Success);
+
+            // ⚠️ Chi è uscito da questa sistemazione e non ne ha un'altra resta iscritto SENZA
+            // un letto. Prima lo diceva un avviso giallo, che si può ignorare: e il buco si
+            // scopre in albergo. Ora si fa la domanda vera, che è una sola e ha due risposte.
+            await ChiediChiEscePerSempreAsync(usciti);
             await LoadDataAsync();
         }
         catch (Exception ex)
