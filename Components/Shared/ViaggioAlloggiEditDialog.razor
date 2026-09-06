@@ -3,7 +3,6 @@
 @using GestioneViaggi.Models.DTOs
 @using MudBlazor
 @inject MovClientiAlloggiService AlloggiService
-@inject TipoAlloggioService TipoAlloggioService
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -23,30 +22,14 @@
     </TitleContent>
     <DialogContent>
         <MudContainer Class="pa-0">
-            <MudSelect T="int" Label="Tipo Camera"
-                       @bind-Value="Room.TipoAlloggioIdFk"
-                       Variant="Variant.Outlined"
-                       Margin="Margin.Dense"
-                       Required="true"
-                       Class="mb-4">
-                @foreach (var tipo in TipoAlloggi)
-                {
-                    <MudSelectItem Value="@tipo.Id">
-                        <div class="d-flex align-center justify-space-between width-100">
-                            <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
-                            @if (tipo.Supplemento)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
-                                    + Supplemento
-                                </MudChip>
-                            }
-                        </div>
-                    </MudSelectItem>
-                }
-            </MudSelect>
+            <TipoAlloggioSelect DataViaggioId="@Room.DataViaggioIdFk"
+                                @bind-SelectedId="Room.TipoAlloggioIdFk"
+                                SelectedItemChanged="@(t => _tipoScelto = t)"
+                                Required="true"
+                                Class="mb-4" />
 
             @{
-                var selectedTipo = TipoAlloggi.FirstOrDefault(t => t.Id == Room.TipoAlloggioIdFk);
+                var selectedTipo = _tipoScelto;
                 var currentOccupantsCount = Occupants.Count;
             }
 
@@ -160,7 +143,13 @@
 
     [Parameter] public MovClientiAlloggi Room { get; set; } = new();
     [Parameter] public List<ViaggioAlloggiAdvancedDialog.OccupantViewModel> Occupants { get; set; } = new();
-    [Parameter] public List<TipoAlloggio> TipoAlloggi { get; set; } = new();
+    /// <summary>
+    /// Il tipo attualmente scelto, che <see cref="TipoAlloggioSelect"/> comunica quando
+    /// cambia (e al caricamento). ⚠️ Prima questa scheda riceveva l'elenco INTERO dalla
+    /// scheda che la apriva e ci cercava dentro: un secondo elenco, che poteva non essere
+    /// quello giusto per la partenza.
+    /// </summary>
+    private TipoAlloggio? _tipoScelto;
     [Parameter] public List<ParticipantsViewDTO> AllParticipants { get; set; } = new();
     // Pass existing rooms to check for conflicts
     [Parameter] public List<ViaggioAlloggiAdvancedDialog.RoomViewModel> ExistingRooms { get; set; } = new();
@@ -207,8 +196,7 @@
     {
         if (Room.TipoAlloggioIdFk <= 0) return false;
         if (!Occupants.Any()) return false;
-        var selectedTipo = TipoAlloggi.FirstOrDefault(t => t.Id == Room.TipoAlloggioIdFk);
-        return selectedTipo != null && Occupants.Count <= selectedTipo.NumeroOccupanti;
+        return _tipoScelto != null && Occupants.Count <= _tipoScelto.NumeroOccupanti;
     }
 
     private void Save()

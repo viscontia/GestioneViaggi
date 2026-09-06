@@ -8,7 +8,6 @@
 @inject MovClientiViaggiService MovClientiService
 @inject MovClientiAlloggiService AlloggiService
 @inject TipoPartecipanteService TipoPartecipanteService
-@inject TipoAlloggioService TipoAlloggioService
 @inject IClienteService ClienteService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -92,13 +91,10 @@
 
                     @if (_wantsAccommodation)
                     {
-                         <MudSelect T="int" Label="Tipo Sistemazione" @bind-Value="_currentAlloggio.TipoAlloggioIdFk" 
-                                    Required="@_wantsAccommodation" Margin="Margin.Dense" Variant="Variant.Outlined" Class="mb-3">
-                             @foreach(var t in _tipoAlloggi)
-                             {
-                                 <MudSelectItem Value="@t.Id">@t.Descrizione</MudSelectItem>
-                             }
-                         </MudSelect>
+                         <TipoAlloggioSelect DataViaggioId="@_selectedDataId"
+                                             @bind-SelectedId="_currentAlloggio.TipoAlloggioIdFk"
+                                             Required="@_wantsAccommodation"
+                                             Class="mb-3" />
                     }
                 }
 
@@ -121,7 +117,6 @@
     private List<GestioneViaggi.Models.AnaViaggi> _viaggiList = new();
     private List<GestioneViaggi.Models.AnaDataViaggio> _dateList = new();
     private List<TipoPartecipante> _tipoPartecipanti = new();
-    private List<TipoAlloggio> _tipoAlloggi = new();
 
     // Selection
     private int _selectedViaggioId;
@@ -165,19 +160,9 @@
         _selectedDataId = dataId;
         _motivoNonIscrivibile = dataId > 0 ? await MovClientiService.MotivoNonIscrivibileAsync(dataId) : null;
 
-        // ⚠️ Le sistemazioni proponibili dipendono dalla PARTENZA, non sono un catalogo
-        // fisso: un viaggio in albergo non deve offrire tende, uno in tenda non deve
-        // offrire matrimoniali. Si rileggono a ogni cambio di data — e la scelta fatta
-        // prima si azzera, perche' potrebbe non essere piu' ammessa su questa partenza.
-        _tipoAlloggi = dataId > 0
-            ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(dataId)
-            : new List<TipoAlloggio>();
-
-        if (_currentAlloggio.TipoAlloggioIdFk > 0
-            && !_tipoAlloggi.Any(t => t.Id == _currentAlloggio.TipoAlloggioIdFk))
-        {
-            _currentAlloggio.TipoAlloggioIdFk = 0;
-        }
+        // ⚠️ Rileggere le sistemazioni ammesse e azzerare quella non piu' valida non si fa
+        // piu' qui: lo fa TipoAlloggioSelect quando gli cambia la partenza sotto. Era una
+        // regola scritta in questa scheda sola, e le altre due non ce l'avevano.
     }
 
     private async Task OnViaggioChanged(int viaggioId)

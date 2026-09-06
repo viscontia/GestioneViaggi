@@ -373,7 +373,6 @@
         {
             { "Room", new MovClientiAlloggi { ViaggioIdFk = ViaggioId, DataViaggioIdFk = DataViaggioId, TipoAlloggioIdFk = 0 } },
             { "Occupants", new List<OccupantViewModel>() },
-            { "TipoAlloggi", _tipoAlloggi },
             { "AllParticipants", _allParticipants },
             { "ExistingRooms", _rooms }
         };
@@ -406,7 +405,6 @@
         {
             { "Room", entity },
             { "Occupants", occupants },
-            { "TipoAlloggi", _tipoAlloggi },
             { "AllParticipants", _allParticipants },
             { "ExistingRooms", _rooms }
         };
@@ -495,29 +493,6 @@
         }
     }
 
-    /// <summary>
-    /// Propone un tipo per un gruppo di questa dimensione.
-    ///
-    /// ⚠️ Prima cercava «MATRIMONIALE» dentro la descrizione: riconoscere una camera dal
-    /// suo nome e' lo stesso difetto tolto dai generi — basta che qualcuno rinomini una
-    /// riga e il suggerimento smette di funzionare, in silenzio.
-    ///
-    /// ⚠️ E cercava una capienza MAGGIORE O UGUALE alle persone. Non e' la regola: una
-    /// doppia con una persona sola si chiama «doppia uso singola» ed e' un tipo suo, con
-    /// il suo supplemento. La capienza deve corrispondere.
-    /// </summary>
-    private int SuggestAccommodationType(int participantsCount)
-    {
-        var adatti = _tipoAlloggi
-            .Where(t => t.NumeroOccupanti == participantsCount)
-            // A parita' di capienza si propone quello senza supplemento: e' il piu'
-            // economico per chi viaggia, e resta comunque cambiabile.
-            .OrderBy(t => t.Supplemento ? 1 : 0)
-            .ThenBy(t => t.Descrizione)
-            .ToList();
-
-        return adatti.FirstOrDefault()?.Id ?? 0;
-    }
 
     private Color GetRoomStatusColor(RoomViewModel room)
     {

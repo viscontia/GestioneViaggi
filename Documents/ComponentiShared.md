@@ -126,6 +126,31 @@ Componente base generico (`Components/Shared/BaseEntitySelect.razor`) che incaps
     *   `SearchFunc`: Funzione di ricerca `Func<string, CancellationToken, Task<IEnumerable<TItem>>>`.
     *   `ToStringFunc`: Funzione per visualizzare il testo dell'item.
 
+### TipoAlloggioSelect
+
+La tendina delle sistemazioni (`Components/Shared/TipoAlloggioSelect.razor`). ⚠️ **Non è un
+`BaseEntitySelect`**: è un `MudSelect`, perché ogni voce mostra posti e supplemento, e gli
+elenchi sono corti (una quindicina). L'autocomplete qui toglierebbe informazione senza dare
+niente in cambio.
+
+⚠️ **Nato il 2026-09-06 da un difetto.** Prima la tendina era disegnata a mano in **tre**
+schede — Iscrizione Veloce, scheda Partecipanti, gestione alloggi — ognuna col suo elenco e
+con **due nomi diversi** per la stessa cosa («Tipo Sistemazione» e «Tipo Camera»). Alla
+domanda «l'elenco è filtrato sul viaggio?» le tre rispondevano diversamente: due sì, una no,
+e quella offriva le camere d'albergo su un viaggio in tenda (prova D2).
+
+*   **Parametri chiave**:
+    *   `DataViaggioId` (obbligatorio): la **partenza** decide cosa si può assegnare. Senza,
+        la tendina è vuota e disabilitata — mai il catalogo intero.
+    *   `SelectedId` / `@bind-SelectedId`: il tipo scelto.
+    *   `SelectedItemChanged`: il tipo per intero, per chi deve mostrarne capienza o
+        supplemento. Arriva anche al caricamento.
+*   **Cosa fa da solo**: legge da `fn_alloggi_tipi_ammessi`; se la partenza cambia rilegge
+    l'elenco e **azzera** la scelta non più ammessa. Prima questa regola stava in una scheda
+    sola.
+*   **Il nome è «sistemazione», non «camera»**: da quando esistono le tende, «camera» è falso
+    metà delle volte.
+
 ### CountrySelect
 Componente per la selezione di paesi (`Components/Shared/CountrySelect.razor`).
 *   **Funzionalità**:

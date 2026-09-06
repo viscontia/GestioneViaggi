@@ -558,29 +558,14 @@
                                         else
                                         {
                                                      <!-- Opzione 2: Crea Nuova Camera -->
-                                                     <MudSelect T="int" Label="Tipo Camera"
-                                            @bind-Value="_currentAlloggio.TipoAlloggioIdFk"
-                                                               Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                               Required="true">
-                                                @foreach (var tipo in _tipoAlloggi)
-                                                {
-                                                                 <MudSelectItem Value="@tipo.Id">
-                                                                     <div class="d-flex align-center justify-space-between width-100">
-                                                                         <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
-                                                            @if (tipo.Supplemento)
-                                                            {
-                                                                                 <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
-                                                                                     + Supplemento
-                                                                                 </MudChip>
-                                                            }
-                                                                     </div>
-                                                                 </MudSelectItem>
-                                                }
-                                                     </MudSelect>
+                                                     <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
+                                                                         @bind-SelectedId="_currentAlloggio.TipoAlloggioIdFk"
+                                                                         SelectedItemChanged="@(t => _tipoScelto = t)"
+                                                                         Required="true" />
 
                                             @if (_currentAlloggio.TipoAlloggioIdFk > 0)
                                             {
-                                                var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
+                                                var selectedTipo = _tipoScelto;
                                                 @if (selectedTipo != null)
                                                 {
                                                                      <MudAlert Severity="Severity.Success" Dense="true" Class="mt-2">
@@ -673,7 +658,13 @@
     private bool _partenzaConclusa => _motivoNonIscrivibile is not null;
     private List<ParticipantsViewDTO> _participantsWithoutRoom = new(); // NEW DB-CENTRIC: Caricati da get_participants_without_accommodation()
     private List<TipoPartecipante> _tipoPartecipanti = new();
-    private List<TipoAlloggio> _tipoAlloggi = new();
+    /// <summary>
+    /// Il tipo scelto, comunicato da <see cref="TipoAlloggioSelect"/>. ⚠️ Al posto della
+    /// lista `_tipoAlloggi` che questa scheda si portava dal blocco iniziale: quella lista
+    /// conteneva TUTTO il catalogo, e su un viaggio in tenda offriva le camere d'albergo
+    /// (prova D2). Ora l'elenco lo tiene il componente, che lo prende dalla partenza.
+    /// </summary>
+    private TipoAlloggio? _tipoScelto;
     private List<RoomCardViewModel> _existingRooms = new(); // Camere già create per questo viaggio
     private GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData _initData = new();
 
@@ -754,7 +745,6 @@
             {
                 _headerTitle = _initData.HeaderTitle;
                 _tipoPartecipanti = _initData.TipoPartecipanti;
-                _tipoAlloggi = _initData.TipoAlloggi;
             }
 
             // Il titolo va aggiornato esplicitamente: il contenitore del dialogo non lo rilegge da solo.
@@ -929,8 +919,7 @@
                         await AlloggiService.AddAccommodationAsync(_currentAlloggio);
                     }
 
-                    var selectedTipo = _tipoAlloggi.FirstOrDefault(t => t.Id == _currentAlloggio.TipoAlloggioIdFk);
-                    var msg = selectedTipo?.Supplemento == true
+                    var msg = _tipoScelto?.Supplemento == true
                         ? "Nuova camera creata (con supplemento)"
                         : "Nuova camera creata";
                     Snackbar.Add(msg, Severity.Success);
@@ -1413,25 +1402,6 @@
         return _tipoPartecipanti.FirstOrDefault(t => t.Id == tipoPartecipanteId)?.Descrizione ?? "?";
     }
 
-    private int SuggestAccommodationType(int participantsCount)
-    {
-        // Caso speciale: 2 persone → Matrimoniale
-        if (participantsCount == 2)
-        {
-            var matrimoniale = _tipoAlloggi
-                .FirstOrDefault(t => t.Descrizione.Contains("MATRIMONIALE", StringComparison.OrdinalIgnoreCase));
-            if (matrimoniale != null) return matrimoniale.Id;
-        }
-
-        // Caso generale: Trova il più piccolo che contiene tutti
-        var suitable = _tipoAlloggi
-            .Where(t => t.NumeroOccupanti >= participantsCount)
-            .OrderBy(t => t.NumeroOccupanti)
-            .ThenBy(t => t.Supplemento ? 1 : 0) // Preferisci senza supplemento
-            .FirstOrDefault();
-
-        return suitable?.Id ?? 0;
-    }
 
 
     // Helper class for room visualization

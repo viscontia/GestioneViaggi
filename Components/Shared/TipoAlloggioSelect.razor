@@ -1,0 +1,117 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using MudBlazor
+@inject TipoAlloggioService TipoAlloggioService
+
+@*
+    La tendina delle sistemazioni. Una sola, per tutto il gestionale.
+
+    ⚠️ Prima erano TRE, disegnate a mano nell'Iscrizione Veloce, nella scheda Partecipanti e
+    nella gestione alloggi, ognuna col suo elenco e persino con due nomi diversi per la stessa
+    cosa («Tipo Sistemazione» e «Tipo Camera»). Tre copie vogliono dire tre fonti, e alla
+    domanda «la tendina e' filtrata sul viaggio?» rispondevano in modo diverso: due si'
+    e una no — quella dei Partecipanti, che offriva le camere d'albergo su un viaggio in
+    tenda (prova D2, 2026-09-06).
+
+    Qui dentro c'e' tutto quello che quella domanda richiede, in un posto solo:
+
+    1. L'elenco viene da `fn_alloggi_tipi_ammessi`, che sa cosa la PARTENZA ammette. Non e'
+       un catalogo fisso: un viaggio in albergo non offre tende, uno in tenda non offre
+       matrimoniali.
+    2. Cambiando partenza l'elenco si rilegge, e la scelta fatta prima **si azzera** se su
+       quella nuova non e' piu' ammessa. Prima questa regola stava in una scheda sola.
+    3. Posti e supplemento si vedono sempre allo stesso modo.
+
+    Il nome e' «sistemazione», non «camera»: da quando esistono le tende, «camera» e' falso
+    meta' delle volte.
+*@
+
+<MudSelect T="int"
+           Label="@Label"
+           Value="@SelectedId"
+           ValueChanged="@OnValueChanged"
+           Variant="Variant.Outlined"
+           Margin="Margin.Dense"
+           Required="@Required"
+           RequiredError="@(RequiredError ?? "La sistemazione è obbligatoria")"
+           Disabled="@(Disabled || _tipi.Count == 0)"
+           HelperText="@HelperTextCorrente"
+           Class="@Class"
+           @attributes="AdditionalAttributes">
+    @foreach (var tipo in _tipi)
+    {
+        <MudSelectItem Value="@tipo.Id">
+            <div class="d-flex align-center justify-space-between width-100">
+                <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
+                @if (tipo.Supplemento)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                        + Supplemento
+                    </MudChip>
+                }
+            </div>
+        </MudSelectItem>
+    }
+</MudSelect>
+
+@code {
+    /// <summary>
+    /// La partenza su cui si sta lavorando: è lei a decidere cosa si può assegnare.
+    /// ⚠️ Senza (zero), la tendina resta vuota e disabilitata — non si mostra il catalogo
+    /// intero: se non si sa su quale partenza si lavora, un elenco completo sarebbe una
+    /// risposta inventata, ed è da lì che nascono le assegnazioni incoerenti.
+    /// </summary>
+    [Parameter, EditorRequired] public int DataViaggioId { get; set; }
+
+    [Parameter] public int SelectedId { get; set; }
+    [Parameter] public EventCallback<int> SelectedIdChanged { get; set; }
+
+    /// <summary>
+    /// Il tipo scelto per intero, per chi deve mostrarne la capienza o il supplemento.
+    /// Arriva anche al caricamento, così chi riapre una scheda già compilata lo ha subito.
+    /// </summary>
+    [Parameter] public EventCallback<TipoAlloggio?> SelectedItemChanged { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Tipo Sistemazione";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? RequiredError { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private List<TipoAlloggio> _tipi = new();
+    private int _partenzaCaricata = -1;
+
+    private string? HelperTextCorrente =>
+        DataViaggioId <= 0 ? "Scegli prima la partenza"
+        : _tipi.Count == 0 ? "Questo viaggio non prevede sistemazioni da comporre"
+        : HelperText;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (DataViaggioId == _partenzaCaricata) return;
+        _partenzaCaricata = DataViaggioId;
+
+        _tipi = DataViaggioId > 0
+            ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId)
+            : new List<TipoAlloggio>();
+
+        // La scelta fatta su un'altra partenza può non essere ammessa su questa: si azzera,
+        // altrimenti resterebbe un valore che la tendina non mostra nemmeno più.
+        if (SelectedId > 0 && _tipi.All(t => t.Id != SelectedId))
+        {
+            SelectedId = 0;
+            await SelectedIdChanged.InvokeAsync(0);
+        }
+
+        await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == SelectedId));
+    }
+
+    private async Task OnValueChanged(int id)
+    {
+        SelectedId = id;
+        await SelectedIdChanged.InvokeAsync(id);
+        await SelectedItemChanged.InvokeAsync(_tipi.FirstOrDefault(t => t.Id == id));
+    }
+}
