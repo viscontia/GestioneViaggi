@@ -100,10 +100,12 @@
                         {
                             <MudSelectItem Value="@((int?)participant.ClienteId)">
                                 @participant.Nominativo
-                                @if (IsParticipantInAnotherRoom(participant.ClienteId))
+                                @if (CameraAttualeDi(participant.ClienteId) is { } daDove)
                                 {
+                                    @* Si dice DA DOVE arriva: «già assegnato» non bastava a
+                                       capire cosa sarebbe successo scegliendolo. *@
                                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text" Class="ml-2">
-                                        Già assegnato
+                                        si sposta da @daDove
                                     </MudChip>
                                 }
                             </MudSelectItem>
@@ -181,10 +183,23 @@
         _selectedOccupantToAdd = null;
     }
 
-    private IEnumerable<ParticipantsViewDTO> AvailableParticipants => 
-        AllParticipants.Where(p => 
-            !Occupants.Any(o => o.ClienteId == p.ClienteId) && // Not already in THIS room
-            !IsParticipantInAnotherRoom(p.ClienteId));         // Not in OTHER rooms (optional: allow stealing?)
+    /// <summary>
+    /// Chi si può mettere in questa sistemazione: tutti i partecipanti tranne quelli che ci
+    /// sono già.
+    ///
+    /// ⚠️ Chi è in un'ALTRA camera compare, segnalato. Prima veniva escluso — con il commento
+    /// «optional: allow stealing?», cioè la domanda era stata posta e lasciata lì — e il
+    /// risultato era un vicolo cieco senza uscita, trovato da Adriano il 2026-09-06: pilota
+    /// in camera singola, passeggera aggiunta dopo. Non potendo entrare nella sua camera,
+    /// lei finiva in una singola propria; cambiata poi la camera del pilota in matrimoniale,
+    /// lei non compariva più fra gli assegnabili perché una camera ce l'aveva. Da lì non si
+    /// usciva più: nessuna delle due strade portava a una matrimoniale in due.
+    ///
+    /// Che una persona non stia in due camere resta vero — ma si ottiene SPOSTANDOLA, non
+    /// nascondendola.
+    /// </summary>
+    private IEnumerable<ParticipantsViewDTO> AvailableParticipants =>
+        AllParticipants.Where(p => !Occupants.Any(o => o.ClienteId == p.ClienteId));
 
     private bool IsParticipantInAnotherRoom(int clienteId)
     {
@@ -192,6 +207,11 @@
             r.AlloggioPk != Room.MovClientiAlloggioPk && 
             r.Occupanti.Any(o => o.ClienteId == clienteId));
     }
+
+    /// <summary>La sistemazione in cui questa persona sta adesso, se è in un'altra.</summary>
+    private string? CameraAttualeDi(int clienteId) =>
+        ExistingRooms.FirstOrDefault(r => r.AlloggioPk != Room.MovClientiAlloggioPk
+                                       && r.Occupanti.Any(o => o.ClienteId == clienteId))?.TipoDescrizione;
 
     private bool CanSave()
     {

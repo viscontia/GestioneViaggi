@@ -194,6 +194,42 @@
     [Parameter] public string ViaggioTitle { get; set; } = "";
 
     // Room ViewModel
+    /// <summary>
+    /// Toglie dalle altre sistemazioni le persone che stanno entrando in questa. Una
+    /// sistemazione che resta senza nessuno viene eliminata: una camera vuota non è una
+    /// camera, è una prenotazione che qualcuno pagherebbe.
+    /// </summary>
+    private async Task LiberaLeCamereDiProvenienza(int cameraDestinazionePk, List<int> clientiInArrivo)
+    {
+        if (clientiInArrivo.Count == 0) return;
+
+        foreach (var altra in _rooms.Where(r => r.AlloggioPk != cameraDestinazionePk).ToList())
+        {
+            var restano = altra.Occupanti.Where(o => !clientiInArrivo.Contains(o.ClienteId)).ToList();
+            if (restano.Count == altra.Occupanti.Count) continue;   // nessuno se ne va da qui
+
+            if (restano.Count == 0)
+            {
+                await AlloggiService.RemoveAccommodationAsync(altra.AlloggioPk);
+                continue;
+            }
+
+            await AlloggiService.UpdateAccommodationAsync(new MovClientiAlloggi
+            {
+                MovClientiAlloggioPk = altra.AlloggioPk,
+                ViaggioIdFk = ViaggioId,
+                DataViaggioIdFk = DataViaggioId,
+                TipoAlloggioIdFk = altra.TipoAlloggioIdFk,
+                ClienteId1Fk = restano.ElementAtOrDefault(0)?.ClienteId,
+                ClienteId2Fk = restano.ElementAtOrDefault(1)?.ClienteId,
+                ClienteId3Fk = restano.ElementAtOrDefault(2)?.ClienteId,
+                ClienteId4Fk = restano.ElementAtOrDefault(3)?.ClienteId,
+                ClienteId5Fk = restano.ElementAtOrDefault(4)?.ClienteId,
+                ClienteId6Fk = restano.ElementAtOrDefault(5)?.ClienteId
+            });
+        }
+    }
+
     public class RoomViewModel
     {
         public int AlloggioPk { get; set; }
@@ -481,9 +517,19 @@
             }
             else
             {
-                await AlloggiService.AddAccommodationAsync(room);
+                room.MovClientiAlloggioPk = await AlloggiService.AddAccommodationAsync(room);
                 Snackbar.Add("Camera creata con successo", Severity.Success);
             }
+
+            // ⚠️ DOPO aver scritto, non prima. Chi arriva da un'altra sistemazione ne esce —
+            // altrimenti resterebbe in due, che è proprio ciò che la validazione vieta, e qui
+            // non se ne accorgerebbe: controlla la camera che stiamo salvando, non le altre.
+            //
+            // ⚠️ L'ordine conta. Liberando prima, un rifiuto del database sulla camera nuova
+            // lascerebbe la persona senza né l'una né l'altra: si sarebbe svuotata una camera
+            // per una che poi non è nata. Stare un istante in due camere non rompe niente —
+            // nessun vincolo lo impedisce — restare in zero sì.
+            await LiberaLeCamereDiProvenienza(room.MovClientiAlloggioPk, occupantiIds);
 
             await LoadDataAsync();
         }
