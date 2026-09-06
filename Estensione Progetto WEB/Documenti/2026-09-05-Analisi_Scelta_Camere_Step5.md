@@ -516,6 +516,54 @@ e rifarne i test una terza volta.
 
 ---
 
+## 8-ter. Il lavoro riguarda ENTRAMBI i software — deciso il 2026-09-06
+
+> *«Dobbiamo anche fare questa parte su MAUI. Non vedo altre possibilità, quindi bisogna
+> assolutamente procedere anche su MAUI, e le tabelle nuove devono essere anche a menu,
+> cioè devono avere la loro interfaccia di gestione.»*
+
+⚠️ Non è un'estensione del lavoro: è la condizione perché funzioni. Le regole stanno a
+database e valgono per chiunque scriva — ma se il gestionale continua a offrire tutti i
+tipi senza guardare il pernottamento, **le incoerenze continuano a nascere da lì**, ed è
+esattamente da lì che sono nate le 17 già trovate.
+
+### Cosa serve nel gestionale
+
+| Dove | Cosa |
+|---|---|
+| **Nuova pagina** `ana_alloggio_generi` | CRUD dei generi, sul modello di `TipoAlloggioPage`. ⚠️ **Con voce di menu**: una tabella che si può cambiare solo con una `INSERT` a mano è una tabella che nessuno cambierà |
+| `TipoAlloggioPage` | nuovo campo **genere** in elenco e nella scheda |
+| `TipoPernottamentoPage` | i **generi ammessi** da ciascun pernottamento. ⚠️ Non una pagina a sé: l'associazione si gestisce **dentro** la scheda del pernottamento, con una selezione multipla — è lì che uno la cerca |
+| `ViaggioAlloggiAdvancedDialog`, `ViaggioAlloggiEditDialog`, `QuickAddParticipantDialog` | offrono solo i tipi ammessi dal viaggio, invece dell'elenco intero |
+| Composizione delle camere | le stesse combinazioni del sito: **una regola sola, due interfacce** |
+
+Il menu è in `Components/Shared/NavMenu.razor`, dove le tabelle di appoggio stanno già in
+gruppo (`/tabelle/tipologie-alloggi`, `/tabelle/tipologie-partecipanti`, …): la voce nuova
+va accanto a quelle, non altrove.
+
+### Il principio che tiene insieme le due parti
+
+⚠️ **Le regole non si scrivono due volte.** `fn_alloggi_tipi_ammessi(partenza)`,
+`fn_alloggi_combinazioni(partenza, persone)` e `fn_alloggi_assegnazione_valida(...)` stanno
+a database e le chiamano **entrambi** i software — è la stessa scelta che ha fatto
+funzionare il consenso, i documenti obbligatori e i controlli sull'anagrafica.
+
+Il sito e il gestionale possono avere interfacce diverse — il primo guida chi si iscrive,
+il secondo serve chi lavora e deve poter correggere — ma **non possono avere idee diverse su
+cosa sia valido**. È il difetto che abbiamo passato due giorni a togliere in quattro forme
+diverse.
+
+### Cosa questo aggiunge al lavoro
+
+- Una pagina CRUD nuova e due esistenti da estendere.
+- Tre dialoghi del gestionale da allineare.
+- ⚠️ **Il gruppo di test del gestionale sulle camere va rifatto**, non solo quello del sito:
+  è un'interfaccia diversa sulle stesse regole, e le prove che contano sono quelle
+  incrociate — la stessa combinazione deve essere accettata o rifiutata **allo stesso modo**
+  dai due software.
+
+---
+
 ## 9. Impatto sui test
 
 | Gruppo del piano Flask | Da rifare? |
@@ -525,6 +573,7 @@ e rifarne i test una terza volta.
 | E — la posta | no |
 | F — i due software concordano | **sì**, se il gestionale userà le stesse funzioni |
 | **Nuovo gruppo** — combinazioni camere | **sì**: una prova per ciascuna forma di 1, 2, 3 e 4 persone, più `NESSUNA CAMERA`, più il ricalcolo quando cambia il numero di partecipanti |
+| **Gruppo camere del piano MAUI** | **sì** — vedi §8-ter: il gestionale usa le stesse regole con un'altra interfaccia, e le prove che contano sono quelle **incrociate** |
 
 ⚠️ Si somma al giro già previsto per la protezione dei dati personali
 (`2026-09-05-Analisi_Protezione_Dati_Personali_Sito.md`). **Entrambi toccano il passo 5 e
