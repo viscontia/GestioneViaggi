@@ -196,16 +196,54 @@ namespace GestioneViaggi.Services.CRUD
             return esito;
         }
 
-        public async Task RemoveParticipantAsync(int viaggioId, int dataId, int clienteId)
+        /// <summary>
+        /// Le sistemazioni che resterebbero con meno persone cancellando questo partecipante
+        /// (e, se guida, i suoi passeggeri). ⚠️ Da chiedere PRIMA: con la capienza rigorosa la
+        /// cancellazione viene rifiutata se non le si dice che cosa diventano.
+        /// DB Function: fn_mov_clienti_viaggi_cancellazione_camere (SqlScripts/616)
+        /// </summary>
+        public async Task<List<(int AlloggioPk, string Tipo, string? ChiEsce, string? Restano, int QuantiRestano)>>
+            GetCamereDaRisistemareAsync(int dataViaggioId, int clienteId)
+        {
+            var esito = new List<(int, string, string?, string?, int)>();
+
+            await using var conn = await _connectionManager.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT * FROM fn_mov_clienti_viaggi_cancellazione_camere(@p_data, @p_cliente)", conn);
+            cmd.Parameters.AddWithValue("p_data", dataViaggioId);
+            cmd.Parameters.AddWithValue("p_cliente", clienteId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                esito.Add((
+                    reader.GetInt32(reader.GetOrdinal("alloggio_pk")),
+                    reader.GetString(reader.GetOrdinal("tipo_descrizione")),
+                    reader.IsDBNull(reader.GetOrdinal("chi_esce")) ? null : reader.GetString(reader.GetOrdinal("chi_esce")),
+                    reader.IsDBNull(reader.GetOrdinal("restano")) ? null : reader.GetString(reader.GetOrdinal("restano")),
+                    reader.GetInt32(reader.GetOrdinal("quanti_restano"))));
+            }
+            return esito;
+        }
+
+        /// <summary>
+        /// Toglie un partecipante dal viaggio, con i suoi passeggeri se guida.
+        /// ⚠️ <paramref name="adeguamentiJson"/> dice che cosa diventano le sistemazioni che
+        /// restano con meno persone: senza, il database rifiuta, perché lascerebbe indietro
+        /// una camera con la capienza sbagliata. La scelta è dell'operatore, non del software.
+        /// </summary>
+        public async Task RemoveParticipantAsync(int viaggioId, int dataId, int clienteId,
+                                                 string adeguamentiJson = "[]")
         {
             try
             {
                 await using var conn = await _connectionManager.GetConnectionAsync();
                 await using var cmd = new NpgsqlCommand(
-                    "SELECT fn_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id)", conn);
+                    "SELECT fn_mov_clienti_viaggi_delete(@p_viaggio_id, @p_data_viaggio_id, @p_cliente_id, @p_adeguamenti::jsonb)", conn);
                 cmd.Parameters.AddWithValue("p_viaggio_id", viaggioId);
                 cmd.Parameters.AddWithValue("p_data_viaggio_id", dataId);
                 cmd.Parameters.AddWithValue("p_cliente_id", clienteId);
+                cmd.Parameters.AddWithValue("p_adeguamenti", adeguamentiJson);
 
                 await cmd.ExecuteNonQueryAsync();
             }

@@ -1392,7 +1392,9 @@
             // 3. Eliminazione. La funzione a DB si porta dietro i passeggeri del
             // pilota e libera i posti letto: qui non si ripete niente di tutto cio',
             // altrimenti sarebbero due regole da tenere allineate.
-            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
+            var adeguamenti = await ChiediSistemazioniDiChiRestaAsync(item.DataId, item.ClienteId);
+            if (adeguamenti is null) return;   // ha annullato: non si cancella niente
+            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId, adeguamenti);
 
             Snackbar.Add(trascinati.Count == 0
                 ? $"{item.Nominativo} rimosso dal viaggio"
@@ -1413,7 +1415,9 @@
             // Elimina prima la camera, poi il partecipante
             // Se la seconda operazione fallisce, il DB avrà già fatto rollback della prima
             await AlloggiService.RemoveAccommodationAsync(room.RoomId);
-            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId);
+            var adeguamenti = await ChiediSistemazioniDiChiRestaAsync(item.DataId, item.ClienteId);
+            if (adeguamenti is null) return;   // ha annullato: non si cancella niente
+            await MovClientiService.RemoveParticipantAsync(item.ViaggioId, item.DataId, item.ClienteId, adeguamenti);
 
             Snackbar.Add($"{item.Nominativo} e camera {room.RoomType} eliminati", Severity.Success);
             await LoadListAsync();
@@ -1481,7 +1485,9 @@
                 // Poi elimina tutti i partecipanti della camera
                 foreach (var occupantId in room.OccupantIds)
                 {
-                    await MovClientiService.RemoveParticipantAsync(ViaggioId, DataViaggioId, occupantId);
+                    var adeguamentiOcc = await ChiediSistemazioniDiChiRestaAsync(DataViaggioId, occupantId);
+                    if (adeguamentiOcc is null) return;   // ha annullato: non si cancella niente
+                    await MovClientiService.RemoveParticipantAsync(ViaggioId, DataViaggioId, occupantId, adeguamentiOcc);
                 }
 
                 Snackbar.Add($"Camera {room.RoomType} e {room.OccupantIds.Count} partecipanti eliminati dal viaggio", Severity.Success);
@@ -1541,6 +1547,45 @@
     }
 
 
+
+    /// <summary>
+    /// Chiede che cosa diventano le sistemazioni che, cancellando questa persona (e i suoi
+    /// passeggeri se guida), resterebbero con meno gente dentro. Torna il JSON da passare
+    /// alla cancellazione, o <c>null</c> se l'operatore ha annullato.
+    ///
+    /// ⚠️ Senza risposta il database RIFIUTA la cancellazione: con la capienza rigorosa una
+    /// doppia con un occupante non è uno stato ammesso. E il tipo non lo sceglie il software —
+    /// «rischi di mettere in matrimoniale due amici che vogliono letti separati».
+    /// </summary>
+    private async Task<string?> ChiediSistemazioniDiChiRestaAsync(int dataViaggioId, int clienteId)
+    {
+        var camere = await MovClientiService.GetCamereDaRisistemareAsync(dataViaggioId, clienteId);
+        if (camere.Count == 0) return "[]";
+
+        var scelte = new List<object>();
+
+        foreach (var c in camere)
+        {
+            var parameters = new DialogParameters<SistemazioneResiduaDialog>
+            {
+                { x => x.DataViaggioId, dataViaggioId },
+                { x => x.Descrizione, c.Tipo },
+                { x => x.Chi, c.ChiEsce ?? "chi esce" },
+                { x => x.Restano, (c.Restano ?? "").Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList() }
+            };
+
+            var dialog = await DialogService.ShowAsync<SistemazioneResiduaDialog>(
+                "La sistemazione di chi resta", parameters,
+                new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+
+            var esito = await dialog.Result;
+            if (esito!.Canceled || esito.Data is not int tipoId || tipoId <= 0) return null;
+
+            scelte.Add(new { alloggio_pk = c.AlloggioPk, tipo_id = tipoId });
+        }
+
+        return System.Text.Json.JsonSerializer.Serialize(scelte);
+    }
 
     /// <summary>
     /// Porta ad assegnare una sistemazione a chi non ce l'ha, senza uscire da questa scheda.

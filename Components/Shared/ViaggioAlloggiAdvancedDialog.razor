@@ -312,7 +312,33 @@
                 if (conferma != true) continue;
             }
 
-            await MovClientiService.RemoveParticipantAsync(ViaggioId, DataViaggioId, chi.ClienteId);
+            // ⚠️ Anche qui: se restano persone in una sistemazione, va detto che cosa diventa,
+            // altrimenti il database rifiuta la cancellazione (SqlScripts/616).
+            var camere = await MovClientiService.GetCamereDaRisistemareAsync(DataViaggioId, chi.ClienteId);
+            var scelte = new List<object>();
+            var annullato = false;
+
+            foreach (var c in camere)
+            {
+                var par = new DialogParameters<SistemazioneResiduaDialog>
+                {
+                    { x => x.DataViaggioId, DataViaggioId },
+                    { x => x.Descrizione, c.Tipo },
+                    { x => x.Chi, c.ChiEsce ?? chi.Nominativo },
+                    { x => x.Restano, (c.Restano ?? "").Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList() }
+                };
+                var d = await DialogService.ShowAsync<SistemazioneResiduaDialog>(
+                    "La sistemazione di chi resta", par,
+                    new DialogOptions { BackdropClick = false, MaxWidth = MaxWidth.Small, FullWidth = true });
+                var e = await d.Result;
+                if (e!.Canceled || e.Data is not int tipoId || tipoId <= 0) { annullato = true; break; }
+                scelte.Add(new { alloggio_pk = c.AlloggioPk, tipo_id = tipoId });
+            }
+
+            if (annullato) continue;
+
+            await MovClientiService.RemoveParticipantAsync(ViaggioId, DataViaggioId, chi.ClienteId,
+                System.Text.Json.JsonSerializer.Serialize(scelte));
             Snackbar.Add($"{chi.Nominativo} tolto dal viaggio" +
                          (altri.Count > 0 ? $" insieme a {altri.Count} passeggero/i" : ""),
                          Severity.Info);
