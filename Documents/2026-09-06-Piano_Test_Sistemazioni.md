@@ -74,7 +74,7 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | C9c | Modifica «ALBERGO CON QUALCHE CAMPO TENDATO» togliendo TENDA (che nessuna assegnazione usa) | Salva, **senza avvisi**: togliere un genere che nessuno sta usando non rompe niente |
 | C10 | Modifica «ALBERGO» **aggiungendo** TENDA senza togliere nulla | Passa: aggiungere non scopre niente |
 | C11 | Prova a **eliminare** il pernottamento «ALBERGO» | ⚠️ Rifiutato, con il conto di ciò che è collegato: viaggi, date e prenotazioni |
-| C12 | Apri un **viaggio in albergo** con camere assegnate e cambiane il pernottamento a «SOLO CAMPI TENDATI» | ⚠️ **Rifiutato**: «le sistemazioni già assegnate su questo viaggio non sarebbero più ammesse. Vanno cambiate prima» |
+| C12 | Apri un **viaggio in albergo** con camere assegnate e cambiane il pernottamento a «SOLO CAMPI TENDATI» | ⚠️ **Rifiutato**, con il messaggio **per esteso**: «Con il pernottamento «SOLO CAMPI TENDATI» 37 sistemazioni già assegnate su questo viaggio non sarebbero più ammesse. Vanno cambiate prima». ⚠️ Il numero dev'esserci: un rifiuto generico («un valore non rispetta le regole di validità») non dice cosa fare |
 
 ---
 

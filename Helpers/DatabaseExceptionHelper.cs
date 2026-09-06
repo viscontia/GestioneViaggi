@@ -21,6 +21,23 @@ public static class DatabaseExceptionHelper
 
     private static GestioneViaggiException TranslatePostgresException(PostgresException ex, string? entityName)
     {
+        // ⚠️ PRIMA di tradurre: il messaggio potrebbe essere GIA' scritto per l'operatore.
+        //
+        // Le nostre guardie (trigger e funzioni) sollevano `RAISE EXCEPTION` con un testo
+        // pensato per chi legge — «le sistemazioni già assegnate su questo viaggio non
+        // sarebbero più ammesse. Vanno cambiate prima» — e spesso con il conto di quante
+        // righe sono coinvolte e su quali viaggi. Tradurlo in un generico «un valore non
+        // rispetta le regole di validità» butta via l'unica cosa utile: cosa fare adesso.
+        //
+        // Si riconoscono dal fatto che NON portano il nome di un vincolo: PostgreSQL lo
+        // valorizza sempre quando a fallire è un CHECK vero, mai su un RAISE nostro.
+        // Provato il 2026-09-06: `RAISE EXCEPTION … USING ERRCODE='check_violation'`
+        // arriva con ConstraintName vuoto.
+        if (string.IsNullOrEmpty(ex.ConstraintName) && ScrittoDaNoi(ex.SqlState))
+        {
+            return new GestioneViaggiException(SenzaPrefissoTecnico(ex.MessageText), ex.SqlState, ex.TableName);
+        }
+
         string message = "Si è verificato un errore imprevisto nel database.";
         // entityName è il nome tecnico della tabella: contestualizzalo sempre in italiano
         // (GetItalianPrefixFor si aspetta l'etichetta tradotta, non il nome grezzo).
@@ -93,6 +110,28 @@ public static class DatabaseExceptionHelper
 
         return new GestioneViaggiException(message, ex.SqlState, ex.TableName) { };
     }
+
+    /// <summary>
+    /// Toglie il codice tecnico che alcune guardie premettono al messaggio
+    /// (<c>NOT_FOUND: Causale con ID 5 non trovata</c> → <c>Causale con ID 5 non trovata</c>).
+    /// Serve solo per chi legge: quei prefissi erano per chi programma.
+    /// </summary>
+    private static string SenzaPrefissoTecnico(string messaggio)
+    {
+        var match = Regex.Match(messaggio, @"^[A-Z][A-Z0-9_]{2,}:\s*(?<testo>.+)$", RegexOptions.Singleline);
+        return match.Success ? match.Groups["testo"].Value : messaggio;
+    }
+
+    /// <summary>
+    /// I codici che una nostra guardia può sollevare deliberatamente.
+    ///
+    /// <c>P0001</c> è il codice di un <c>RAISE EXCEPTION</c> senza <c>ERRCODE</c>: PostgreSQL
+    /// non lo usa mai per conto suo, quindi il messaggio è per forza nostro.
+    /// <c>23514</c> lo usiamo di proposito dove il rifiuto È una regola di validità — ma lì
+    /// serve il controllo sul nome del vincolo, perché un CHECK vero usa lo stesso codice.
+    /// </summary>
+    private static bool ScrittoDaNoi(string sqlState) =>
+        sqlState is "P0001" or "23514";
 
     private static string ExtractTableNameFromDetail(string? detail)
     {
