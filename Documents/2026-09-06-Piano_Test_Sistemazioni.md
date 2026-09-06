@@ -50,6 +50,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | B5 | Crea «CAMERA QUINTUPLA», 5 posti, genere ALBERGO | Si crea, e in elenco **compare subito il genere** (non una cella vuota) |
 | B6 | Modifica quella riga: cambia solo la descrizione e salva | Il genere **resta** quello scelto, non si azzera |
 | B7 | Elimina «CAMERA QUINTUPLA» | Si elimina |
+| B8 | Modifica CAMERA MATRIMONIALE e prova a portarne il genere a **Tenda** | ⚠️ **Rifiutato**: «con questo genere 219 assegnazioni già registrate diventerebbero incoerenti, su: …». Cambiare il genere di un tipo in uso invaliderebbe la storia in silenzio |
+| B9 | Modifica CAMERA MATRIMONIALE cambiando **solo la descrizione** | Passa: il controllo guarda il genere, non ogni modifica |
+| B10 | Cambia il genere di **TENDA 4 POSTI NOLEGGIATA** (mai usata) verso Albergo | ⚠️ **Passa**, ed è voluto: nessuna assegnazione ne resta invalidata, e vietarlo impedirebbe di correggere una classificazione sbagliata |
 
 ---
 
