@@ -303,19 +303,6 @@
                                         </TabContent>
                                         <ChildContent>
                                             <!-- Warning Partecipanti Senza Camera -->
-                                            @* ⚠️ Senza questo pulsante, la gestione alloggi si apriva SOLO dalla
-                                               matita di una camera esistente: con zero camere non ci si arrivava
-                                               affatto, e comporre una sistemazione da piu' posti era impossibile
-                                               dall'interfaccia. «Questa funzionalita' forse esiste a codice, ma
-                                               nella interfaccia non esiste» (Adriano, 2026-09-06). *@
-                                            <div class="d-flex justify-end mb-2">
-                                                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                                           StartIcon="@Icons.Material.Filled.Hotel"
-                                                           OnClick="@(() => OpenAdvancedAccommodation())">
-                                                    Componi le sistemazioni
-                                                </MudButton>
-                                            </div>
-
                                         @if (_participantsWithoutRoom.Any())
                                         {
                                                     @* L'elenco con i pulsanti sta nella linguetta «Partecipanti senza
