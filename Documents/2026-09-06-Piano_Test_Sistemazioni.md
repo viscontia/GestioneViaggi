@@ -169,7 +169,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F13a11 | Rifai e rispondi **«Sì, sistemazione indipendente»** | Salva regolarmente: capita che due che viaggiano insieme dormano separati, e non è un divieto |
 | F13a12 | Iscrivi un **pilota** (non un passeggero) con camera nuova | ⚠️ **Nessuna domanda**: chi guida non viaggia «con» qualcun altro |
 | F13a13 | Iscrivi un passeggero scegliendo **«aggiungi a camera esistente»** | ⚠️ **Nessuna domanda**: lì la scelta di stare insieme l'hai già fatta. Un avviso che compare quando non serve insegna a ignorarlo |
-| F15a | Apri **Alloggi** su una partenza dove qualcuno non ha sistemazione | ⚠️ C'è un riquadro **«Senza sistemazione»** con l'elenco dei nomi e un pulsante **Assegna** per ciascuno. Prima c'era solo il numero in un'etichetta, e non si poteva fare niente da lì |
+| F15a | Nella scheda partecipanti, **tab Alloggi**, con qualcuno senza sistemazione | ⚠️ L'avviso giallo ora **elenca i nomi con un pulsante Assegna** per ciascuno. Prima diceva solo chi mancava e si fermava lì: per rimediare bisognava aprire la finestra avanzata dalla matita di una camera |
+| F15a2 | Premi **Assegna** | Si apre la gestione alloggi **già puntata su quella persona**, con la domanda «Dove dorme X?» |
+| F15a3 | Guarda «Tipo Sistemazione» su una scheda di inserimento vuota | ⚠️ È **vuoto**, non scrive «0». Prima, senza scelta fatta, il campo mostrava lo zero del valore interno |
 | F15b | Premi **Assegna** e scegli **«Una sistemazione sua»** | Si apre «Dove dorme X» con lui già dentro: scegli il tipo e salvi |
 | F15c | Premi **Assegna** e scegli **«Con qualcun altro»** | ⚠️ Si sceglie la sistemazione fra quelle esistenti — **tutte, anche se piene**, perché con la capienza rigorosa non ce ne sono con posti liberi — e poi con quale sostituirla: «Diventeranno in 2» |
 | F15d | Conferma | La sistemazione cambia tipo e accoglie la persona, in una sola operazione. Il riquadro «Senza sistemazione» si svuota |

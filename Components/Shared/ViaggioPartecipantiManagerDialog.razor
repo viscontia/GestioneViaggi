@@ -305,9 +305,32 @@
                                             <!-- Warning Partecipanti Senza Camera -->
                                         @if (_participantsWithoutRoom.Any())
                                         {
-                                                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2" Style="padding: 8px;">
-                                                        <b>⚠️ @_participantsWithoutRoom.Count senza camera:</b> @string.Join(", ", _participantsWithoutRoom.Select(p => p.Nominativo).Take(3))@(_participantsWithoutRoom.Count > 3 ? $" +{_participantsWithoutRoom.Count - 3} altri" : "")
-                                                    </MudAlert>
+                                                    @* ⚠️ Non basta dire CHI manca: da qui si deve poter rimediare.
+                                                       L'avviso elencava i nomi e si fermava lì, e per abbinare
+                                                       qualcuno bisognava aprire la finestra avanzata dalla matita di
+                                                       una camera — che è il posto dove nessuno pensa di cercare
+                                                       (Adriano, 2026-09-06). *@
+                                                    <MudPaper Outlined="true" Class="pa-2 mb-2"
+                                                              Style="background-color: var(--mud-palette-warning-lighten);">
+                                                        <MudText Typo="Typo.body2" Class="mb-1">
+                                                            <b>⚠️ @_participantsWithoutRoom.Count senza camera</b>
+                                                        </MudText>
+                                                        @foreach (var p in _participantsWithoutRoom)
+                                                        {
+                                                            <div class="d-flex align-center justify-space-between mb-1">
+                                                                <div class="d-flex align-center gap-2">
+                                                                    <MudIcon Icon="@Icons.Material.Filled.PersonOff" Size="Size.Small" Color="Color.Warning" />
+                                                                    <MudText Typo="Typo.body2">@p.Nominativo</MudText>
+                                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@p.Ruolo</MudText>
+                                                                </div>
+                                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                                           StartIcon="@Icons.Material.Filled.Hotel"
+                                                                           OnClick="@(() => AssegnaSenzaCamera(p))">
+                                                                    Assegna
+                                                                </MudButton>
+                                                            </div>
+                                                        }
+                                                    </MudPaper>
                                         }
 
                                             <!-- Sezione Alloggi Assegnati - Raggruppata per Tipo -->
@@ -1485,6 +1508,29 @@
     }
 
 
+
+    /// <summary>
+    /// Porta ad assegnare una sistemazione a chi non ce l'ha, senza uscire da questa scheda.
+    /// Apre la finestra degli alloggi già puntata su quella persona: lì può avere una
+    /// sistemazione sua o stare con qualcuno che ce l'ha già.
+    /// </summary>
+    private async Task AssegnaSenzaCamera(ParticipantsViewDTO chi)
+    {
+        var parameters = new DialogParameters<ViaggioAlloggiAdvancedDialog>
+        {
+            { x => x.ViaggioId, ViaggioId },
+            { x => x.DataViaggioId, DataViaggioId },
+            { x => x.DaSistemareClienteId, chi.ClienteId }
+        };
+
+        var dialog = await DialogService.ShowAsync<ViaggioAlloggiAdvancedDialog>(
+            "Gestione Alloggi", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false });
+
+        await dialog.Result;
+        await LoadListAsync();
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Quante persone vanno sistemate insieme a questa: un pilota porta con sé i suoi

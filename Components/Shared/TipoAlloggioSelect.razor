@@ -26,9 +26,12 @@
     meta' delle volte.
 *@
 
-<MudSelect T="int"
+@* ⚠️ Il valore viaggia come int? e non come int: con int, «nessuna scelta» vale 0, e
+   MudSelect non trovando nessuna voce con quel valore scriveva nel campo «0». Su una scheda
+   appena aperta si leggeva «Tipo Sistemazione: 0», che non vuol dire niente. *@
+<MudSelect T="int?"
            Label="@Label"
-           Value="@SelectedId"
+           Value="@(SelectedId > 0 ? SelectedId : null)"
            ValueChanged="@OnValueChanged"
            Variant="Variant.Outlined"
            Margin="Margin.Dense"
@@ -40,7 +43,7 @@
            @attributes="AdditionalAttributes">
     @foreach (var tipo in _tipi)
     {
-        <MudSelectItem Value="@tipo.Id">
+        <MudSelectItem T="int?" Value="@tipo.Id">
             <div class="d-flex align-center justify-space-between width-100">
                 <span>@tipo.Descrizione (@tipo.NumeroOccupanti posti)</span>
                 @if (tipo.Supplemento)
@@ -201,11 +204,11 @@
         await SelectedIdChanged.InvokeAsync(proposta.Id);
     }
 
-    private async Task OnValueChanged(int id)
+    private async Task OnValueChanged(int? id)
     {
         _proposto = 0;   // da qui in poi il valore è suo, e non si sovrascrive
-        SelectedId = id;
-        await SelectedIdChanged.InvokeAsync(id);
+        SelectedId = id ?? 0;
+        await SelectedIdChanged.InvokeAsync(SelectedId);
         await NotificaSeCambiato();
     }
 }

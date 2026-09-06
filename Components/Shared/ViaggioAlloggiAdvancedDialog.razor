@@ -424,6 +424,14 @@
 
     [Parameter] public int? AutoOpenRoomId { get; set; }
     private RoomViewModel? _pendingAutoOpenRoom;
+
+    /// <summary>
+    /// Chi va sistemato subito: la finestra si apre già sulla sua assegnazione, senza che
+    /// l'operatore debba cercarlo. Lo passa la scheda partecipanti dal riquadro «senza
+    /// camera», dove il difetto era proprio che da lì non si poteva fare niente.
+    /// </summary>
+    [Parameter] public int? DaSistemareClienteId { get; set; }
+    private bool _daSistemareFatto;
     private bool _autoOpenHandled = false;
 
     protected override async Task OnInitializedAsync()
@@ -435,6 +443,19 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // ⚠️ Una volta sola: OnAfterRender gira a ogni disegno, e senza la guardia la finestra
+        // dell'assegnazione si riaprirebbe all'infinito.
+        if (DaSistemareClienteId is > 0 && !_daSistemareFatto && _allParticipants.Count > 0)
+        {
+            _daSistemareFatto = true;
+            var chi = _allParticipants.FirstOrDefault(p => p.ClienteId == DaSistemareClienteId.Value);
+            if (chi is not null)
+            {
+                await Task.Delay(50);
+                await AssegnaPartecipante(chi);
+            }
+        }
+
         if (_pendingAutoOpenRoom != null)
         {
             var room = _pendingAutoOpenRoom;
