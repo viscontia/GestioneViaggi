@@ -259,9 +259,12 @@ lascia la camera sotto capienza: con il controllo attivo, quella cancellazione s
 rifiutata. Ora chiede con quale sistemazione sostituirla, come per lo spostamento (F13a7), e
 scrive tipo e occupanti nella stessa operazione.
 
-⚠️ **Restano 7 righe storiche su PROD** (azienda 2) con la capienza sbagliata. Non vengono
-toccate, ma da ora **non sono più modificabili** finché non si sistemano: il rapporto è in
-`SqlScripts/617`, con la correzione commentata perché cambia dati veri.
+✅ **Le 7 righe storiche su PROD non sono un lavoro da fare.** Rilievo di Adriano: «per viaggi
+già conclusi non cambia nulla». Misurato: sono **tutte su partenze già finite** — la più
+recente del 18/05/2026 — e su partenze **future** ce ne sono **zero**. Il controllo scatta
+solo su inserimento e modifica, e le camere di un viaggio già fatto nessuno le tocca.
+`SqlScripts/617` resta come rapporto da rilanciare: se il conto sulle future non fosse più
+zero, vorrebbe dire che qualcosa scrive aggirando le funzioni.
 
 ---
 

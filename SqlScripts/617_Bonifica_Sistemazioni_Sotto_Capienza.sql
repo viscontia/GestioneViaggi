@@ -1,8 +1,27 @@
 -- =============================================================================
--- 617 — Le sistemazioni storiche con la capienza sbagliata
+-- 617 — Le sistemazioni storiche con la capienza sbagliata — RAPPORTO, non lavoro
 -- =============================================================================
 --
--- ⛔️ **NON si applica insieme agli altri.** Cambia dati veri — il TIPO di sistemazioni
+-- ⛔️ **NON C'E' NIENTE DA FARE, e non e' un rinvio: e' un accertamento.**
+--
+-- Rilievo di Adriano il 2026-09-06: «guarda che per viaggi gia' conclusi non cambia
+-- nulla». Misurato subito dopo, e ha ragione in pieno:
+--
+--   • in locale, 11 righe incoerenti — TUTTE su partenze concluse (fn_partenza_conclusa);
+--   • su PROD azienda 2, 7 righe — TUTTE su partenze gia' finite, la piu' recente del
+--     18/05/2026 (misurato in sola lettura il 2026-09-06);
+--   • su partenze FUTURE: ZERO, in entrambi gli ambienti.
+--
+-- Il controllo dello script 616 scatta solo su inserimento e modifica. Nessuno modifica
+-- le camere di un viaggio gia' fatto, quindi quelle righe non incontreranno mai la
+-- guardia: restano dove sono, come testimonianza di com'e' andata.
+--
+-- ⚠️ Questo file resta come RAPPORTO da rilanciare quando serve: se un domani il conto
+-- non fosse piu' zero sulle partenze future, vorrebbe dire che qualcosa scrive
+-- aggirando le funzioni, e allora sarebbe un difetto da cercare.
+--
+-- ⛔️ La correzione qui sotto e' COMMENTATA e va lasciata tale finche' non serve. Cambia
+-- dati veri — il TIPO di sistemazioni
 -- gia' registrate, che ha un prezzo e un supplemento — e la decisione e' di Adriano,
 -- riga per riga se serve.
 --
@@ -36,6 +55,7 @@ SELECT a.mov_clienti_alloggio_pk        AS chiave,
        v.azienda_id                     AS azienda,
        v.viaggio_descrizione_breve      AS viaggio,
        dv.data_viaggio_data_inizio      AS partenza,
+       fn_partenza_conclusa(dv.data_viaggio_id) AS gia_conclusa,
        t.tipo_alloggio_descrizione      AS tipo_ora,
        t.tipo_alloggio_numero_occupanti AS capienza,
        (SELECT count(*) FROM unnest(ARRAY[a.cliente_id1_fk, a.cliente_id2_fk, a.cliente_id3_fk,
