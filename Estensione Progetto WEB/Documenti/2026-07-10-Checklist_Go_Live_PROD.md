@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–612)
+### Elenco ordinato (467–613)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -390,6 +390,7 @@ ls SqlScripts/*.sql \
 | 610 | Init_Partecipanti_Solo_Sistemazioni_Ammesse | ⚠️ **La quinta strada.** `fn_get_viaggio_partecipanti_init_data` costruisce in un colpo solo tutto ciò che serve alla scheda dei partecipanti, e l'elenco delle sistemazioni lo leggeva da `ana_tipo_alloggio` **per intero, senza guardare il viaggio**: su un viaggio in tenda offriva le camere d'albergo. Le altre tre schede chiamavano già `fn_alloggi_tipi_ammessi`; questa no, ed è la più usata. Trovato con la prova D2 su PIRENEI IN FUORISTRADA. ⚠️ Su PROD la definizione era **identica** a quella locale (md5 verificato in sola lettura), quindi si applica senza sorprese. Nessun dato modificato. ⚠️ Va **dopo il 600** |
 | 611 | Tenda_Singola_E_Sistemazioni_Mai_Proposte | ⚠️ **Colonna nuova** `ana_tipo_alloggio.tipo_alloggio_mai_proposta`, `TRUE` sulle due righe DISABILI: restano in elenco e scegliibili, ma il programma non le propone mai d'ufficio. Prima non uscivano solo perché create più tardi delle altre — per fortuna, non per regola. ⚠️ **Le due tende da 1 posto (id 38 e 40) le ha inserite Adriano direttamente su PROD** il 2026-09-06: l'INSERT qui è idempotente e **su PROD non fa nulla**, serve al locale e a chi ricostruisca un ambiente. Le chiavi sono le sue, non generate. ⚠️ Cambia la firma di `fn_ana_tipo_alloggio_upsert` (sesto parametro) e il tracciato di `fn_ana_tipo_alloggio_get_all` e `fn_alloggi_tipi_ammessi`: va applicato **insieme al gestionale**. ⚠️ Va **dopo il 599** (usa `genere_fk`) e **dopo il 600** |
 | 612 | Spostare_Una_Persona_Di_Camera_E_Atomico | `fn_alloggi_salva_camera`: salva una sistemazione e, **nella stessa transazione**, toglie i suoi occupanti dalle altre sistemazioni della stessa partenza, eliminando quelle che restano vuote. ⚠️ Nasce da un rilievo di Adriano: lo spostamento era **due** chiamate, e fra l'una e l'altra ci sta tutto ciò che non dipende dal codice — la rete, PgBouncer che chiude, l'app che va giù (ed è successo davvero). Si sarebbe restati con una persona in due camere o una camera vuota mai eliminata: ⚠️ **nessuna delle due dà errore**, sono dati che sembrano buoni e si scoprono in albergo. Nessun dato modificato, solo la funzione. ⚠️ Va **insieme al gestionale** |
+| 613 | Le_Camere_Portano_Anche_L_Id_Del_Tipo | `get_rooms_with_occupants` e `fn_get_viaggio_partecipanti_init_data` espongono anche `tipo_alloggio_id`, non solo la descrizione. Serve a far **crescere** una sistemazione quando qualcuno si aggiunge dopo (il pilota iscritto da solo, la moglie che decide di venire più tardi): senza l'id, il gestionale dovrebbe risalire al tipo dal nome — ⛔️ la strada che non si prende. Sola lettura, nessun dato modificato. ⚠️ Va **insieme al gestionale** |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché

@@ -29,7 +29,7 @@ generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non 
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **612** applicati.
+Il database locale deve avere gli script fino al **613** applicati.
 
 ⚠️ **Dal 2026-09-06 la tendina delle sistemazioni è UN componente solo**
 (`TipoAlloggioSelect`), usato da tutte e tre le schede. Prima erano tre copie: se una prova
@@ -153,6 +153,8 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F8 | Scheda **Partecipanti**: apri un **pilota con 2 passeggeri** e chiedi la sistemazione | Propone un tipo da **3 posti**: il pilota porta con sé i suoi passeggeri |
 | F9 | Stessa scheda, apri un **passeggero** | Propone un tipo da **1 posto**: un passeggero sta per conto suo |
 
+| F13a | **Il caso vero.** Iscritto un pilota da solo con CAMERA SINGOLA, iscrivi ora una passeggera abbinata a lui e scegli «aggiungi a camera esistente» | ⚠️ La camera del pilota **compare anche se piena** (1/1). Scegliendola: «CAMERA SINGOLA è al completo. Salvando diventa **CAMERA MATRIMONIALE** (2 posti) con VISCONTI ADRIANO e la persona che stai iscrivendo». Salvi e finisce lì: ⛔️ **nessuna registrazione finta in una singola** |
+| F13a2 | Stessa prova su un gruppo di **4**: scegli una quadrupla già piena | ⚠️ «per 5 persone questo viaggio non prevede nessuna sistemazione»: non si sfonda la capienza, si dice che non si può |
 | F13b | **Il vicolo cieco.** Iscrivi un pilota con CAMERA SINGOLA; aggiungi una passeggera abbinata a lui, dandole una singola sua; poi cambia la camera del pilota in **MATRIMONIALE** e prova ad aggiungerci la passeggera | ⚠️ Lei **compare** fra gli assegnabili, con il segno «**si sposta da CAMERA SINGOLA**». Salvando, entra nella matrimoniale e **la sua singola sparisce da sola**. Prima non compariva affatto — aveva già una camera — e da lì non si usciva più |
 | F13c | Rifai F13b ma con una camera di partenza da **2 posti occupata da due persone**: sposta solo una delle due | La camera di partenza **resta**, con l'altra persona dentro. Si elimina solo quando rimane vuota |
 | F13d | Rifai F13b e, subito dopo il salvataggio, **riapri la gestione alloggi** | La camera di lei non c'è più e la matrimoniale ha due occupanti. ⚠️ Le due cose avvengono in **una sola** operazione del database (`fn_alloggi_salva_camera`): non esiste un istante in cui lei risulta in due camere o in nessuna |
@@ -183,7 +185,7 @@ dai generi.
 | G1b | Scrivi a mano una **tenda** sullo stesso viaggio | Passa |
 | G1c | Scrivi a mano «nessuna camera» sullo stesso viaggio | Passa: vale sempre |
 | G1d | Prendi una riga valida e **modificale il tipo** verso uno non ammesso | Rifiutata: il vincolo vale anche in modifica, non solo in inserimento |
-| G1e | Scrivi a mano una **doppia con un occupante solo** | ⚠️ **Passa**, ed è voluto: quando l'albergo non ha singole è una situazione reale. La capienza resta un rilievo della validazione, che blocca l'interfaccia ma non la mano di chi sa cosa sta facendo |
+| G1e | Scrivi a mano una **doppia con un occupante solo** | ⚠️ **Oggi passa** — il trigger non guarda la capienza (`SqlScripts/602`). ⛔️ **Ma questa attesa è in contraddizione con la decisione del 2026-09-06**: «le camere vanno assegnate in modo rigoroso sul rapporto persone/capienza e non ci devono essere scappatoie; le eccezioni con l'albergo restano offline». Da decidere se il controllo scende nel database — vedi la nota sotto |
 | G2 | Sulla partenza PIRENEI, chiedi la validazione dell'assegnazione vuota | Elenca **tutti** i partecipanti senza sistemazione |
 
 ```sql
@@ -195,6 +197,25 @@ FROM fn_alloggi_assegnazione_valida(
         WHERE v.viaggio_descrizione_breve ILIKE '%PIRENEI%' LIMIT 1),
        '[]'::jsonb);
 ```
+
+---
+
+## ⚠️ In sospeso: la capienza rigorosa anche a database
+
+Il 2026-09-06 Adriano ha deciso: **capienza rigorosa, nessuna scappatoia**. Oggi la regola
+la applica solo la scheda; il trigger `trg_alloggio_coerente` (`SqlScripts/602`) guarda il
+genere, non la capienza — di proposito, per la storia della «doppia pagata a uso singola».
+
+Misurato su PROD (azienda 2, sola lettura, 2026-09-06): **131 assegnazioni, 122 esatte**.
+Le altre 9:
+
+| Caso | Quante | Che cosa sono |
+|---|---|---|
+| `NESSUNA CAMERA` con 1 occupante | 2 | ⚠️ **Non sono un errore**: è il modo in cui si registra chi dorme nel proprio mezzo. Capienza 0 e un occupante è il funzionamento normale — una regola `occupanti = capienza` secca le romperebbe tutte |
+| Doppie con un occupante solo | 7 | Le «doppie uso singola registrate col tipo sbagliato» di cui parlava Antonio. Una è su una partenza **futura** (MAXI ENDURO TOUR DEI 2 MARI, 22/10/2026) |
+
+Portare il controllo a database significa: escludere il genere `NESSUNA`, e sistemare
+quelle 7 righe **prima**, altrimenti non saranno più modificabili. Decisione aperta.
 
 ---
 

@@ -507,12 +507,18 @@
                                         @if (_assignToExistingRoom)
                                         {
                                                      <!-- Opzione 1: Seleziona Camera Esistente -->
-                                            var availableRooms = _existingRooms.Where(r => r.HasSpace).ToList();
+                                            @* ⚠️ Anche le camere PIENE: chi arriva dopo — la moglie che prima
+                                               aveva detto di no — deve poter dormire con chi c'è già. Prima
+                                               qui comparivano solo quelle con posti liberi, e per una coppia
+                                               non ce n'erano mai: l'unica via era registrarla in una singola
+                                               finta e poi riabbinarla. Un giro che si dimentica. *@
+                                            var availableRooms = _existingRooms.ToList();
 
                                             @if (availableRooms.Any())
                                             {
                                                              <MudSelect T="int?" Label="Seleziona Camera"
                                                 @bind-Value="_selectedExistingRoomId"
+                                                @bind-Value:after="RicalcolaIngrandimentoAsync"
                                                                        Variant="Variant.Outlined" Margin="Margin.Dense"
                                                                        Required="true">
                                                     @foreach (var room in availableRooms)
@@ -531,7 +537,35 @@
                                                 @if (_selectedExistingRoomId.HasValue)
                                                 {
                                                     var selectedRoom = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId.Value);
-                                                    @if (selectedRoom != null)
+                                                    @if (selectedRoom != null && selectedRoom.IsFull)
+                                                    {
+                                                        @* La capienza resta rigorosa: non si aggiunge una persona a una
+                                                           camera piena, si CAMBIA la camera con una che li contiene. *@
+                                                        @if (_ingrandimento != null)
+                                                        {
+                                                                             <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                                                                                 <b>@selectedRoom.RoomType</b> è al completo
+                                                                                 (@selectedRoom.StatusText).<br/>
+                                                                                 Salvando diventa <b>@_ingrandimento.Descrizione</b>
+                                                                                 (@_ingrandimento.NumeroOccupanti posti) con
+                                                                                 @string.Join(", ", selectedRoom.OccupantNames) e la persona che stai iscrivendo.
+                                                                                 @if (_ingrandimento.Supplemento)
+                                                                                 {
+                                                                                     <br/><text>💡 Questa sistemazione prevede un supplemento.</text>
+                                                                                 }
+                                                                             </MudAlert>
+                                                        }
+                                                        else
+                                                        {
+                                                                             <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+                                                                                 <b>@selectedRoom.RoomType</b> è al completo, e per
+                                                                                 @(selectedRoom.CurrentOccupants + 1) persone questo viaggio
+                                                                                 non prevede nessuna sistemazione. Scegline un'altra
+                                                                                 o crea una camera nuova.
+                                                                             </MudAlert>
+                                                        }
+                                                    }
+                                                    else if (selectedRoom != null)
                                                     {
                                                                              <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
                                                                                  Camera: <b>@selectedRoom.RoomType</b><br/>
@@ -686,6 +720,13 @@
     /// (prova D2). Ora l'elenco lo tiene il componente, che lo prende dalla partenza.
     /// </summary>
     private TipoAlloggio? _tipoScelto;
+
+    /// <summary>
+    /// Con che tipo diventerebbe la camera piena scelta, per farci stare anche la persona
+    /// che si sta iscrivendo. <c>null</c> se per quel numero di persone il viaggio non
+    /// prevede nessuna sistemazione.
+    /// </summary>
+    private TipoAlloggio? _ingrandimento;
     private List<RoomCardViewModel> _existingRooms = new(); // Camere già create per questo viaggio
     private GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData _initData = new();
 
@@ -783,6 +824,7 @@
             {
                 RoomId = dto.AlloggioPk,
                 RoomType = dto.TipoAlloggio,
+                RoomTypeId = dto.TipoAlloggioId,
                 MaxOccupants = dto.MaxOccupants,
                 CurrentOccupants = dto.CurrentOccupants,
                 OccupantNames = dto.OccupantNames.ToList(),
@@ -887,20 +929,34 @@
                     var existingRoom = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId.Value);
                     if (existingRoom != null)
                     {
-                        // DB: sp_assign_to_first_free_slot(p_alloggio_pk, p_cliente_id)
-                        // → Returns: TRUE se assegnato con successo, FALSE se camera piena
-                        // → Gestisce atomicamente: find first free slot + update + validation capacity
-                        bool success = await AlloggiService.AssignToFirstFreeSlotAsync(_selectedExistingRoomId.Value, _selectedCliente.ClienteId);
-
-                        if (success)
+                        // ⚠️ Se la camera è piena non ci si infila dentro: la si CAMBIA con una
+                        // che contiene tutti. La capienza resta rigorosa — le eccezioni con
+                        // l'albergo restano fuori dal sistema (decisione del 2026-09-06).
+                        if (existingRoom.IsFull && _ingrandimento == null)
                         {
-                            Snackbar.Add($"Partecipante aggiunto alla camera {existingRoom.RoomType}", Severity.Success);
-                        }
-                        else
-                        {
-                            Snackbar.Add("Errore: camera già piena!", Severity.Error);
+                            Snackbar.Add($"«{existingRoom.RoomType}» è al completo e per " +
+                                         $"{existingRoom.CurrentOccupants + 1} persone questo viaggio non prevede " +
+                                         "nessuna sistemazione.", Severity.Error);
                             return;
                         }
+
+                        // Una chiamata sola: cambio di tipo e nuovo occupante insieme, o tutto
+                        // o niente. Prima erano due strade diverse — assegna a uno slot libero
+                        // oppure aggiorna la camera — e la seconda non esisteva affatto.
+                        await AlloggiService.SalvaCameraAsync(
+                            new MovClientiAlloggi
+                            {
+                                MovClientiAlloggioPk = existingRoom.RoomId,
+                                ViaggioIdFk = ViaggioId,
+                                DataViaggioIdFk = DataViaggioId,
+                                TipoAlloggioIdFk = _ingrandimento?.Id ?? existingRoom.RoomTypeId
+                            },
+                            existingRoom.OccupantIds.Append(_selectedCliente.ClienteId));
+
+                        Snackbar.Add(_ingrandimento != null
+                            ? $"Camera cambiata in {_ingrandimento.Descrizione}, con {existingRoom.CurrentOccupants + 1} occupanti"
+                            : $"Partecipante aggiunto alla camera {existingRoom.RoomType}",
+                            Severity.Success);
                     }
                 }
                 else if (!_assignToExistingRoom && _currentAlloggio.TipoAlloggioIdFk > 0)
@@ -969,6 +1025,7 @@
                 _wantsAccommodation = true; // Reset al default
                 _assignToExistingRoom = false;
                 _selectedExistingRoomId = null;
+                _ingrandimento = null;
             }
 
             await LoadListAsync(); // Refresh Grid
@@ -1043,6 +1100,7 @@
         _wantsAccommodation = true;
         _assignToExistingRoom = false;
         _selectedExistingRoomId = null;
+        _ingrandimento = null;
         _currentAlloggio = new MovClientiAlloggi();
 
         // Refresh participants list to show newly added pilots
@@ -1109,6 +1167,26 @@
         _needsTabRefresh = true;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Ricalcola con che tipo la camera scelta dovrebbe crescere per contenere una persona
+    /// in più. ⚠️ La capienza resta rigorosa: non si aggiunge nessuno a una camera piena, si
+    /// cambia la camera. Le eccezioni con l'albergo — una matrimoniale pagata a uso singola —
+    /// restano fuori dal sistema, come deciso il 2026-09-06.
+    ///
+    /// Usa la stessa regola del suggerimento (<c>TipoAlloggioService.Suggerisci</c>), quindi
+    /// rispetta anche le sistemazioni «mai proposte».
+    /// </summary>
+    private async Task RicalcolaIngrandimentoAsync()
+    {
+        _ingrandimento = null;
+
+        var camera = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId);
+        if (camera is null || !camera.IsFull) return;
+
+        var ammessi = await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId);
+        _ingrandimento = TipoAlloggioService.Suggerisci(ammessi, camera.CurrentOccupants + 1);
     }
 
     private Task OnAssignToExistingRoomChangedAsync()
@@ -1422,6 +1500,7 @@
     {
         public int RoomId { get; set; }
         public string RoomType { get; set; } = "";
+        public int RoomTypeId { get; set; }
         public int MaxOccupants { get; set; }
         public int CurrentOccupants { get; set; }
         public List<string> OccupantNames { get; set; } = new();

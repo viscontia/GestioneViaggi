@@ -9,6 +9,13 @@ public class RoomWithOccupantsDTO
 {
     public int AlloggioPk { get; set; }
     public string TipoAlloggio { get; set; } = string.Empty;
+
+    /// <summary>
+    /// L'id del tipo. ⚠️ Serve per far crescere una sistemazione quando arriva qualcuno
+    /// dopo: senza, il gestionale avrebbe solo la descrizione, e ⛔️ risalire al tipo dal
+    /// nome è il difetto tolto dai generi e dal suggerimento.
+    /// </summary>
+    public int TipoAlloggioId { get; set; }
     public int MaxOccupants { get; set; }
     public int CurrentOccupants { get; set; }
     public string[] OccupantNames { get; set; } = Array.Empty<string>();
