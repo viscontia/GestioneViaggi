@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–596)
+### Elenco ordinato (467–598)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -374,6 +374,8 @@ ls SqlScripts/*.sql \
 | 594 | Nascita_Si_Cambia_Solo_Col_Codice_Fiscale | `fn_ana_clienti_nascita_modificata` + rilievo `CONFERMA / NASCITA_SENZA_CF` in `fn_ana_clienti_valida`. Data e comune di nascita si cambiano insieme al codice fiscale, che li conferma, oppure la modifica va dichiarata. ⚠️ **Riempire un campo vuoto non conta**: completare una scheda resta libero |
 | 595 | Rileggere_Una_Controparte_Sola | `fn_ana_controparti_get_by_id`. Solo lettura: serve al gestionale per riaprire una scheda com'è adesso e non com'era al caricamento dell'elenco |
 | 596 | Rileggere_Una_Partenza_Sola | `fn_ana_date_viaggi_get_by_id`, riga intera. Solo lettura, stessa ragione del 595. ⚠️ Riga intera e non il DTO di riepilogo: quello ha sei campi su diciannove |
+| 597 | Ana_Tipo_Alloggio_Allineata_A_Produzione | Porta il catalogo degli alloggi **intero**, con le chiavi di produzione. ⚠️ **Su PROD non cambia nulla**: è da lì che i valori sono stati letti, ed è l'ambiente di sviluppo che si era disallineato (13 tipi contro 15, mancavano le tende di proprietà). Va applicato lo stesso, così i due restano uguali se un domani è PROD a cambiare. ⚠️ Spegne `ana_tipo_alloggio_trg1` per la durata dell'inserimento — vedi 598 — e rimette la sequenza dopo l'ultima chiave |
+| 598 | Trigger_Delle_Chiavi_Tutti_Prudenti | ⚠️ **Corregge quattro trigger che sovrascrivevano la chiave a ogni inserimento**, rendendo inutile ogni `ON CONFLICT`: `ana_tipo_alloggio`, `ana_geo_capoluogo`, `ana_geo_ita_ripgeo`, `ana_geo_regioni_ita`. Al posto di un aggiornamento arrivava un duplicato, **in silenzio**. Ora assegnano la chiave solo se chi scrive non l'ha data (`NULL` o zero). Nessun dato modificato, solo quattro funzioni. **Va DOPO il 597**, che si appoggia ancora al comportamento vecchio spegnendo il trigger |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -1438,3 +1440,32 @@ applicati.
   l'unica parte che qualcuno leggerà davvero mentre il cliente aspetta.
 
 Niente numeri con i suffissi latini: se serve infilare una voce in mezzo, si rinumera.
+
+### ⚠️ Il controllo che non dipende dal ricordarsene
+
+La regola qui sopra è stata scritta il 2026-09-05 e **violata il 2026-09-06**: gli script
+`597` e `598` sono nati e non sono finiti nella tabella di §1. Non per distrazione — perché
+una regola che vive solo in un documento viene applicata finché qualcuno se ne ricorda.
+
+Da eseguire **prima del go-live**, dalla cartella del progetto: elenca gli script che
+esistono e non sono citati qui.
+
+```bash
+# Solo dal 406 in su: gli script precedenti sono lo schema storico, in PROD da tempo
+# e fuori dal perimetro di questo documento.
+for f in SqlScripts/*.sql; do
+  n=$(basename "$f" | grep -oE '^[0-9]+' | sed 's/^0*//')
+  [ -z "$n" ] || [ "$n" -lt 406 ] && continue
+  grep -q "^| $n |" "Estensione Progetto WEB/Documenti/2026-07-10-Checklist_Go_Live_PROD.md" \
+    || echo "MANCA in checklist: $(basename "$f")"
+done
+```
+
+Se stampa qualcosa, la sequenza di go-live **non applicherebbe quegli script**: è esattamente
+com'era il 2026-09-05, quando gli undici script del giorno non erano nell'elenco e nessuno
+se ne era accorto.
+
+⚠️ **Un'eccezione nota e legittima**: `999_Verify_Azienda_RegimeFiscale_Integrity.sql` non è
+una migrazione, è una **verifica** — stampa lo stato dei regimi fiscali e non modifica
+niente. Non va nell'elenco delle migrazioni e non va applicata in sequenza. Se il controllo
+segnala solo quello, va bene così.
