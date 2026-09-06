@@ -635,12 +635,19 @@
                                                         controllo di capienza: quello vive nella gestione alloggi.
                                                         Per dormire con qualcun altro non si crea una camera piu' grande
                                                         vuota a meta': si sceglie «aggiungi a camera esistente». *@
+                                                     @* ⚠️ Nessuna proposta finché non si sa PER CHI: su una scheda appena
+                                                        svuotata compariva già CAMERA SINGOLA, con sotto un riquadro verde
+                                                        che diceva «Primo occupante: …» perché non c'era nessuno. Una
+                                                        proposta prima della persona non è un aiuto: sembra un residuo
+                                                        dell'inserimento precedente, ed è indistinguibile da uno. *@
                                                      <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
                                                                          @bind-SelectedId="_currentAlloggio.TipoAlloggioIdFk"
                                                                          SelectedItemChanged="@(t => _tipoScelto = t)"
                                                                          CapienzaEsatta="@DimensioneGruppo()"
-                                                                         PersoneDaSistemare="@DimensioneGruppo()"
-                                                                         HelperText="@($"Per {DimensioneGruppo()} persona/e. Per dormire con altri, scegli «aggiungi a camera esistente»")"
+                                                                         PersoneDaSistemare="@(_selectedCliente is null ? 0 : DimensioneGruppo())"
+                                                                         HelperText="@(_selectedCliente is null
+                                                                             ? "Si compila da sé quando scegli la persona"
+                                                                             : $"Per {DimensioneGruppo()} persona/e. Per dormire con altri, scegli «aggiungi a camera esistente»")"
                                                                          Required="true" />
 
                                             @if (_currentAlloggio.TipoAlloggioIdFk > 0)
