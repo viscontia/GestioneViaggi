@@ -8,11 +8,28 @@ Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere
 
 ⚠️ **Segnala solo ciò che non funziona.** Dove serve un dato da cercare, chiedi.
 
+### Stato
+
+| Gruppo | Esito |
+|---|---|
+| **A** — La pagina dei Generi di Sistemazione | ✅ **superato** (2026-09-06) |
+| **B** — Il genere sui tipi di sistemazione | ✅ **superato** (2026-09-06) |
+| **C** — Le sistemazioni previste da un pernottamento | ✅ **superato** (2026-09-06), dopo gli script `607`→`609` e la correzione dei messaggi |
+| **D** — Quel che si può assegnare dipende dal viaggio | ☐ da fare |
+| **E** — La validazione al salvataggio | ☐ da fare |
+| **F** — Il suggerimento del tipo | ☐ da fare |
+| **G** — Che le due strade dicano la stessa cosa | ☐ da fare |
+
+I difetti trovati durante A–C e corretti: la domanda di conferma al posto del rifiuto
+(`609`), «NESSUNO» modificabile (`609`), le descrizioni minuscole (`603`), le guardie
+incomplete sui generi (`606`), e ⚠️ **il messaggio del database sostituito da una frase
+generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non solo C12.
+
 ---
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **601** applicati. Verifica:
+Il database locale deve avere gli script fino al **609** applicati. Verifica:
 
 ```sql
 SELECT count(*) FROM ana_alloggio_generi;                 -- atteso: 3
