@@ -957,6 +957,51 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
+### 2.13 — DA SCRIVERE PRIMA DELLA CONSEGNA: il manuale di cosa è cambiato
+
+⛔️ **Non è documentazione di cortesia: senza, l'operatore fa danni.** Deciso da Adriano il
+2026-09-06, dopo aver visto lui stesso quanto è facile prendere la strada sbagliata.
+
+Il 5 e 6 settembre la gestione delle sistemazioni è cambiata da cima a fondo: capienza
+rigorosa, generi di sistemazione, spostamento fra camere, cancellazione che chiede cosa
+diventa la camera di chi resta. ⚠️ **Chi usa il programma non ha modo di dedurre da solo il
+percorso giusto**, e quello sbagliato non dà errori — porta a camere singole create e poi
+cambiate, con stati intermedi che sembrano corretti.
+
+Destinatari: Antonio oggi, e chi verrà dopo di lui.
+
+**Cosa il manuale deve spiegare, come minimo:**
+
+1. ⚠️ **Come si iscrive una coppia** — questa è la parte che serve davvero.
+   La strada giusta: **spegnere «Assegna camera»**, iscrivere tutti e due, poi dalla linguetta
+   **«Partecipanti senza camere» → Assegna** comporre **una sola** matrimoniale.
+   La strada sbagliata (che viene naturale): iscrivere il primo con una singola e poi
+   correggere. Funziona, ⛔️ **ma nel mezzo il database dice che lui ha una singola** — e se in
+   quel momento qualcuno stampa la rooming list per l'albergo, quella singola ci finisce
+   dentro. Un dato sbagliato che sembra giusto è peggio di uno mancante, che almeno è
+   segnalato in giallo.
+   Regola pratica da scrivere in grassetto: **quando sai già che dormiranno insieme, non
+   assegnare la camera al momento dell'iscrizione.**
+
+2. **La capienza deve corrispondere**: non esistono camere «a metà». Le eccezioni con
+   l'albergo — una doppia pagata a uso singola — si gestiscono fuori dal programma
+   (decisione del 2026-09-06).
+
+3. **Le due porte per comporre le sistemazioni**: la **matita** su una camera che c'è già,
+   **Assegna** su chi non ce l'ha. Non ce ne sono altre, e non servono.
+
+4. **Cosa succede togliendo qualcuno da una camera**: la domanda «partecipa ancora al
+   viaggio?», e perché non si può rimandare la risposta.
+
+5. **Il genere della sistemazione**: perché su un viaggio in tenda non compaiono le camere
+   d'albergo, e dove si configura (Tipologie di Pernottamento → sistemazioni previste).
+
+6. **Le sistemazioni che non si propongono da sole** (camere attrezzate per disabili): ci sono
+   in elenco, non vengono suggerite, e perché.
+
+⚠️ Da scrivere **al momento della consegna**, non prima: fino ad allora il comportamento può
+ancora cambiare, e un manuale che non corrisponde è peggio di nessun manuale.
+
 ## 3. Configurazione applicativa PROD (fuori dal DB)
 
 > ⚠️ **Questa sezione è quella che fa fallire una consegna.** Il DB può essere perfetto: se l'eseguibile parte sulla macchina del cliente senza queste configurazioni, le schede che toccano segreti (Traduzioni, SMTP) si presentano con le funzioni disabilitate. Prima di consegnare, eseguire la **§3.3 Prova di consegna**.
