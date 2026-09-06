@@ -34,4 +34,15 @@ public class TipoPernottamento : BaseEntity
     /// </summary>
     [NotMapped]
     public List<int> GeneriAmmessi { get; set; } = new();
+
+    /// <summary>
+    /// La riga ha un significato per il programma e non si configura: «NESSUNO» vuol dire
+    /// che il viaggio non prevede pernottamento, quindi non può ammettere sistemazioni.
+    ///
+    /// ⚠️ È una colonna e non un confronto sulla descrizione: riconoscere una riga speciale
+    /// dal testo è il difetto tolto quattro volte fra il 5 e il 6 settembre — basta che
+    /// qualcuno la rinomini e la protezione sparisce in silenzio.
+    /// </summary>
+    [Column("ANA_TIPO_PERNOTTAMENTO_DI_SISTEMA")]
+    public bool DiSistema { get; set; }
 }

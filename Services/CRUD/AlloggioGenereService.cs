@@ -116,35 +116,25 @@ public class AlloggioGenereService
     /// una scelta separata, è una conseguenza.
     /// </summary>
     public async Task ImpostaGeneriDelPernottamentoAsync(
-        int pernottamentoId, IEnumerable<int> generi, bool conferma = false)
+        int pernottamentoId, IEnumerable<int> generi)
     {
         try
         {
             await using var conn = await _db.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_ana_tipo_pernottamento_generi_set(@id, @generi, @conferma)", conn);
+                "SELECT fn_ana_tipo_pernottamento_generi_set(@id, @generi)", conn);
             cmd.Parameters.AddWithValue("id", pernottamentoId);
             cmd.Parameters.AddWithValue("generi", generi.ToArray());
-            cmd.Parameters.AddWithValue("conferma", conferma);
             await cmd.ExecuteNonQueryAsync();
         }
         catch (PostgresException ex) when (ex.SqlState == "23514")
         {
-            // Il database ha visto che la scelta lascia scoperte assegnazioni già
-            // registrate. ⚠️ Non è un errore da mostrare e basta: è una domanda, e chi
-            // sa cosa sta facendo deve poter rispondere — altrimenti si resta chiusi
-            // fuori da uno stato in cui si era appena entrati.
-            throw new SistemazioniScoperteException(ex.MessageText, ex);
+            // ⛔️ Si RIFIUTA, non si chiede. Prima si chiedeva «vuoi procedere lo stesso?»,
+            // e un solo clic poteva scoprire 414 assegnazioni già registrate: chi vuole
+            // cambiare la configurazione sistema prima quelle, poi la cambia.
+            // Il messaggio arriva dal database e dice quante sono e su quali viaggi.
+            _logger.LogWarning(ex, "Generi non impostati: {Messaggio}", ex.MessageText);
+            throw new InvalidOperationException(ex.MessageText, ex);
         }
     }
-}
-
-/// <summary>
-/// La scelta dei generi lascerebbe scoperte assegnazioni già registrate.
-/// Non è un errore: è una domanda a cui l'operatore può rispondere.
-/// </summary>
-public class SistemazioniScoperteException : Exception
-{
-    public SistemazioniScoperteException(string messaggio, Exception inner)
-        : base(messaggio, inner) { }
 }

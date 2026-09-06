@@ -60,17 +60,18 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| C1 | Menu → **Tipologie Pernottamento** | C'è la colonna **Sistemazioni previste**: ALBERGO per «ALBERGO», «Camera… · Tenda…» per il misto, «Tenda…» per SOLO CAMPI TENDATI, **«nessuna»** per NESSUNO |
+| C1 | Menu → **Tipologie Pernottamento** | C'è la colonna **Sistemazioni previste**: ALBERGO per «ALBERGO», «Camera… · Tenda…» per il misto, «Tenda…» per SOLO CAMPI TENDATI, **NESSUNA** per NESSUNO. Accanto a «NESSUNO» c'è un **lucchetto** |
 | C2 | **Modifica** «ALBERGO» | ⚠️ La spunta «Con Albergo» **non c'è più**. Ci sono le spunte delle sistemazioni previste, con ALBERGO spuntato |
 | C3 | Spunta anche TENDA e salva | In elenco la riga mostra entrambe |
 | C4 | Guarda la colonna «Con Albergo» | ⚠️ È ancora `Y`, **senza che tu l'abbia toccata**: ora è una conseguenza dei generi, non una scelta |
 | C5 | Modifica «SOLO CAMPI TENDATI»: **togli** TENDA, **metti** ALBERGO, salva | La colonna «Con Albergo» passa da vuota a spuntata **da sola** |
 | C6 | Rimetti TENDA e togli ALBERGO | «Con Albergo» torna vuota |
-| C7 | Modifica «NESSUNO»: spunta qualcosa, salva, poi riapri e **togli tutto** | ⚠️ Compare una **domanda** — «17 assegnazioni già registrate resterebbero scoperte… vuoi procedere?» — perché quelle 17 righe storiche dell'azienda 6 erano già incoerenti prima. Rispondendo **Procedi** salva con «NESSUNA». ⚠️ Rispondendo Annulla non cambia nulla |
+| C7 | Prova a **modificare** «NESSUNO» | ⚠️ **Non si apre nemmeno**: «è una configurazione di sistema… non si può modificare né cancellare». Non è più possibile spuntargli dei generi — ed era proprio quel gesto a creare la trappola da cui non si tornava indietro |
+| C7b | Prova a **eliminare** «NESSUNO» | ⚠️ Stesso avviso, stesso rifiuto |
 | C8 | In una qualunque scheda, cerca la voce «Nessuna sistemazione» fra le spunte | ⚠️ **Non c'è**, ed è giusto: vale sempre, su qualunque viaggio, e non si configura |
-| C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⚠️ Compare la **domanda**: «414 assegnazioni oggi valide non lo sarebbero più… vuoi procedere?». Rispondi **Annulla**: qui si romperebbe davvero |
-| C9b | Riapri «ALBERGO» e **risalva senza cambiare niente** | ⚠️ **Nessuna domanda**: se non peggiora nulla, non si chiede |
-| C9c | Modifica «ALBERGO CON QUALCHE CAMPO TENDATO» togliendo TENDA (che nessuna assegnazione usa) | ⚠️ **Nessuna domanda**: togliere un genere che nessuno sta usando non rompe niente |
+| C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⛔️ **RIFIUTATO**, senza domande: «Non si può: 414 assegnazioni oggi valide non lo sarebbero più, su: …. Vanno cambiate prima quelle assegnazioni». Non c'è nessun «Procedi»: un clic non deve poter rompere 414 righe |
+| C9b | Riapri «ALBERGO» e **risalva senza cambiare niente** | Salva, **senza avvisi**: se non si rompe nulla non si dice nulla. ⚠️ È la prova che il controllo non è rumoroso — un avviso che compare quando non serve insegna a ignorarlo |
+| C9c | Modifica «ALBERGO CON QUALCHE CAMPO TENDATO» togliendo TENDA (che nessuna assegnazione usa) | Salva, **senza avvisi**: togliere un genere che nessuno sta usando non rompe niente |
 | C10 | Modifica «ALBERGO» **aggiungendo** TENDA senza togliere nulla | Passa: aggiungere non scopre niente |
 | C11 | Prova a **eliminare** il pernottamento «ALBERGO» | ⚠️ Rifiutato, con il conto di ciò che è collegato: viaggi, date e prenotazioni |
 | C12 | Apri un **viaggio in albergo** con camere assegnate e cambiane il pernottamento a «SOLO CAMPI TENDATI» | ⚠️ **Rifiutato**: «le sistemazioni già assegnate su questo viaggio non sarebbero più ammesse. Vanno cambiate prima» |

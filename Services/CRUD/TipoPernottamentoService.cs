@@ -82,7 +82,11 @@ public class TipoPernottamentoService : BaseCrudService<TipoPernottamento>
         {
             Id = ReadInt(reader, "ana_tipo_pernottamento_id"),
             Descrizione = reader.GetString(reader.GetOrdinal("ana_tipo_pernottamento_descrizione")),
-            ConAlbergoDb = reader.GetString(reader.GetOrdinal("ana_tipo_pernottamento_con_albergo"))
+            ConAlbergoDb = reader.GetString(reader.GetOrdinal("ana_tipo_pernottamento_con_albergo")),
+            // Create e Update tornano solo le colonne che scrivono: la natura di sistema
+            // non c'e' fra quelle, e leggerla d'ufficio farebbe fallire il salvataggio.
+            DiSistema = HasColumn(reader, "ana_tipo_pernottamento_di_sistema")
+                        && reader.GetBoolean(reader.GetOrdinal("ana_tipo_pernottamento_di_sistema"))
         };
     }
 }

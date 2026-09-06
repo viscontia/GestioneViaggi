@@ -38,7 +38,20 @@ else
         </ToolBarActions>
 
         <Columns>
-            <PropertyColumn Property="x => x.Descrizione" Title="Descrizione" />
+            <TemplateColumn Title="Descrizione" SortBy="x => x.Descrizione">
+                <CellTemplate>
+                    <div class="d-flex align-center gap-1">
+                        <MudText Typo="Typo.body2">@context.Item.Descrizione</MudText>
+                        @if (context.Item.DiSistema)
+                        {
+                            @* Si dice PRIMA che non si tocca, non dopo aver cliccato. *@
+                            <MudTooltip Text="Configurazione di sistema: il viaggio non prevede pernottamento. Non si modifica né si cancella.">
+                                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Class="mud-text-secondary" />
+                            </MudTooltip>
+                        }
+                    </div>
+                </CellTemplate>
+            </TemplateColumn>
 
             <TemplateColumn Title="Sistemazioni previste">
                 <CellTemplate>
@@ -84,36 +97,22 @@ else
     }
 
     /// <summary>
-    /// Salva i generi, e se il database segnala che così resterebbero scoperte
-    /// assegnazioni già registrate, lo chiede invece di limitarsi a rifiutare.
+    /// Avvisa che la riga è di sistema e non si tocca, e dice perché.
+    /// Torna true se l'operazione va fermata qui.
     ///
-    /// ⚠️ Serve perché i dati storici possono essere già incoerenti: senza la domanda,
-    /// spuntare un genere diventa irreversibile — si entra in uno stato e non si torna
-    /// più indietro, nemmeno per annullare la propria modifica.
+    /// ⚠️ È solo la buona educazione della scheda: il divieto vero sta nel database
+    /// (<c>trg_pernottamento_di_sistema</c>), perché il sito e chiunque altro non passano
+    /// di qui. Nascondere un pulsante non è un controllo.
     /// </summary>
-    private async Task SalvaGeneriChiedendoConferma(int pernottamentoId, List<int> generi)
+    private bool FermatoPerchéDiSistema(TipoPernottamento item)
     {
-        try
-        {
-            await GenereService.ImpostaGeneriDelPernottamentoAsync(pernottamentoId, generi);
-        }
-        catch (SistemazioniScoperteException ex)
-        {
-            var parameters = new DialogParameters
-            {
-                { "ContentText", ex.Message + "\n\nVuoi procedere lo stesso?" },
-                { "ButtonText", "Procedi" },
-                { "Color", Color.Warning }
-            };
-            var dialog = await DialogService.ShowAsync<DeleteConfirmationDialog>(
-                "Assegnazioni scoperte", parameters,
-                new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small });
+        if (!item.DiSistema) return false;
 
-            var result = await dialog.Result;
-            if (result!.Canceled) throw new OperationCanceledException();
-
-            await GenereService.ImpostaGeneriDelPernottamentoAsync(pernottamentoId, generi, conferma: true);
-        }
+        Snackbar.Add(
+            $"«{item.Descrizione}» è una configurazione di sistema: significa che il viaggio " +
+            "non prevede pernottamento, e non si può modificare né cancellare.",
+            Severity.Info);
+        return true;
     }
 
     // Le sistemazioni previste da ciascun pernottamento, per l'elenco.
@@ -172,7 +171,7 @@ else
                 // I generi stanno in una tabella a parte: si salvano dopo, con la chiave
                 // appena assegnata. ⚠️ E' anche la chiamata che riallinea `con_albergo`,
                 // che ora e' una conseguenza e non una scelta.
-                await SalvaGeneriChiedendoConferma(created.Id, newItem.GeneriAmmessi);
+                await GenereService.ImpostaGeneriDelPernottamentoAsync(created.Id, newItem.GeneriAmmessi);
                 await LoadDataAsync();
                 Snackbar.Add("Creato con successo", Severity.Success);
                 StateHasChanged();
@@ -186,6 +185,8 @@ else
 
     private async Task OpenEditDialog(TipoPernottamento item)
     {
+        if (FermatoPerchéDiSistema(item)) return;
+
         var parameters = new DialogParameters<TipoPernottamentoDialog>
         {
             { x => x.Entity, new TipoPernottamento 
@@ -212,7 +213,7 @@ else
             try
             {
                 var updated = await Service.UpdateAsync(updatedItem);
-                await SalvaGeneriChiedendoConferma(updated.Id, updatedItem.GeneriAmmessi);
+                await GenereService.ImpostaGeneriDelPernottamentoAsync(updated.Id, updatedItem.GeneriAmmessi);
                 // Si rilegge: i generi e il flag derivato li compone il database.
                 await LoadDataAsync();
                 Snackbar.Add("Aggiornato con successo", Severity.Success);
@@ -227,6 +228,8 @@ else
 
     private async Task DeleteItem(TipoPernottamento item)
     {
+        if (FermatoPerchéDiSistema(item)) return;
+
         var parameters = new DialogParameters
         {
             { "Title", "Attenzione" },
