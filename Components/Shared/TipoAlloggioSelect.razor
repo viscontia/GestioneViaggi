@@ -83,6 +83,16 @@
     /// </summary>
     [Parameter] public int PersoneDaSistemare { get; set; }
 
+    /// <summary>
+    /// Se maggiore di zero, l'elenco mostra SOLO le sistemazioni di questa capienza.
+    ///
+    /// ⚠️ Serve dove il numero di persone è già deciso e la capienza deve corrispondere:
+    /// per due persone si sceglie fra matrimoniale e due letti singoli, non fra tutte e
+    /// quindici. La scelta resta di chi lavora — «chi ha deciso che deve essere
+    /// matrimoniale?» (Adriano, 2026-09-06) — ma solo fra quelle che stanno in piedi.
+    /// </summary>
+    [Parameter] public int CapienzaEsatta { get; set; }
+
     [Parameter] public string Label { get; set; } = "Tipo Sistemazione";
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? RequiredError { get; set; }
@@ -91,8 +101,11 @@
     [Parameter] public string? HelperText { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
 
+    /// Tutte le sistemazioni ammesse dalla partenza, prima del filtro di capienza.
+    private List<TipoAlloggio> _ammessi = new();
     private List<TipoAlloggio> _tipi = new();
     private int _partenzaCaricata = -1;
+    private int _capienzaApplicata = -1;
 
     /// L'ultimo id che abbiamo proposto noi. Serve a distinguere «lo ha scelto lui» da
     /// «gliel'abbiamo messo noi»: solo il secondo si può sostituire.
@@ -104,6 +117,8 @@
 
     private string? HelperTextCorrente =>
         DataViaggioId <= 0 ? "Scegli prima la partenza"
+        : _tipi.Count == 0 && CapienzaEsatta > 0
+            ? $"Questo viaggio non prevede sistemazioni da {CapienzaEsatta} posti"
         : _tipi.Count == 0 ? "Questo viaggio non prevede sistemazioni da comporre"
         : HelperText;
 
@@ -115,9 +130,10 @@
         {
             _partenzaCaricata = DataViaggioId;
 
-            _tipi = DataViaggioId > 0
+            _ammessi = DataViaggioId > 0
                 ? await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId)
                 : new List<TipoAlloggio>();
+            _capienzaApplicata = -1;   // il filtro va rifatto sull'elenco nuovo
 
             // La scelta fatta su un'altra partenza può non essere ammessa su questa: si
             // azzera, altrimenti resterebbe un valore che la tendina non mostra nemmeno più.
@@ -128,8 +144,26 @@
             }
         }
 
+        ApplicaFiltroCapienza();
         await ProponiSeServe();
         await NotificaSeCambiato();
+    }
+
+    /// <summary>
+    /// Restringe l'elenco alla capienza richiesta, se ne è stata chiesta una. Si rifà solo
+    /// quando cambia: gira a ogni render, e rifiltrare per niente costa a ogni disegno.
+    /// </summary>
+    private void ApplicaFiltroCapienza()
+    {
+        if (CapienzaEsatta == _capienzaApplicata) return;
+        _capienzaApplicata = CapienzaEsatta;
+
+        _tipi = CapienzaEsatta > 0
+            ? _ammessi.Where(t => t.NumeroOccupanti == CapienzaEsatta).ToList()
+            : _ammessi.ToList();
+
+        // Quello che era scelto può non essere più in elenco.
+        if (SelectedId > 0 && _tipi.All(t => t.Id != SelectedId)) SelectedId = 0;
     }
 
     /// <summary>

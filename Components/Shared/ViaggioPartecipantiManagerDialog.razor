@@ -518,7 +518,7 @@
                                             {
                                                              <MudSelect T="int?" Label="Seleziona Camera"
                                                 @bind-Value="_selectedExistingRoomId"
-                                                @bind-Value:after="RicalcolaIngrandimentoAsync"
+                                                @bind-Value:after="ScegliCameraEsistente"
                                                                        Variant="Variant.Outlined" Margin="Margin.Dense"
                                                                        Required="true">
                                                     @foreach (var room in availableRooms)
@@ -540,30 +540,28 @@
                                                     @if (selectedRoom != null && selectedRoom.IsFull)
                                                     {
                                                         @* La capienza resta rigorosa: non si aggiunge una persona a una
-                                                           camera piena, si CAMBIA la camera con una che li contiene. *@
-                                                        @if (_ingrandimento != null)
-                                                        {
+                                                           camera piena, si CAMBIA la camera con una che li contiene.
+                                                           ⚠️ Ma QUALE si sceglie qui: due persone possono volere una
+                                                           matrimoniale o due letti singoli, e non è il programma a
+                                                           deciderlo — «chi ha deciso che deve essere matrimoniale?»
+                                                           (Adriano, 2026-09-06). L'elenco è ristretto alla capienza
+                                                           giusta, la scelta dentro è di chi lavora. *@
                                                                              <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
                                                                                  <b>@selectedRoom.RoomType</b> è al completo
-                                                                                 (@selectedRoom.StatusText).<br/>
-                                                                                 Salvando diventa <b>@_ingrandimento.Descrizione</b>
-                                                                                 (@_ingrandimento.NumeroOccupanti posti) con
-                                                                                 @string.Join(", ", selectedRoom.OccupantNames) e la persona che stai iscrivendo.
-                                                                                 @if (_ingrandimento.Supplemento)
-                                                                                 {
-                                                                                     <br/><text>💡 Questa sistemazione prevede un supplemento.</text>
-                                                                                 }
+                                                                                 (@selectedRoom.StatusText). Per stare insieme a
+                                                                                 @string.Join(", ", selectedRoom.OccupantNames)
+                                                                                 la camera va cambiata:
                                                                              </MudAlert>
-                                                        }
-                                                        else
-                                                        {
-                                                                             <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
-                                                                                 <b>@selectedRoom.RoomType</b> è al completo, e per
-                                                                                 @(selectedRoom.CurrentOccupants + 1) persone questo viaggio
-                                                                                 non prevede nessuna sistemazione. Scegline un'altra
-                                                                                 o crea una camera nuova.
-                                                                             </MudAlert>
-                                                        }
+
+                                                                             <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
+                                                                                                 CapienzaEsatta="@(selectedRoom.CurrentOccupants + 1)"
+                                                                                                 PersoneDaSistemare="@(selectedRoom.CurrentOccupants + 1)"
+                                                                                                 SelectedId="@_ingrandimentoId"
+                                                                                                 SelectedIdChanged="@OnIngrandimentoChanged"
+                                                                                                 SelectedItemChanged="@(t => _ingrandimento = t)"
+                                                                                                 Label="La camera diventa"
+                                                                                                 Required="true"
+                                                                                                 Class="mt-2" />
                                                     }
                                                     else if (selectedRoom != null)
                                                     {
@@ -727,6 +725,9 @@
     /// prevede nessuna sistemazione.
     /// </summary>
     private TipoAlloggio? _ingrandimento;
+    private int _ingrandimentoId;
+
+    private void OnIngrandimentoChanged(int id) => _ingrandimentoId = id;
     private List<RoomCardViewModel> _existingRooms = new(); // Camere già create per questo viaggio
     private GestioneViaggi.Models.DTOs.ViaggioPartecipantiInitData _initData = new();
 
@@ -934,9 +935,9 @@
                         // l'albergo restano fuori dal sistema (decisione del 2026-09-06).
                         if (existingRoom.IsFull && _ingrandimento == null)
                         {
-                            Snackbar.Add($"«{existingRoom.RoomType}» è al completo e per " +
-                                         $"{existingRoom.CurrentOccupants + 1} persone questo viaggio non prevede " +
-                                         "nessuna sistemazione.", Severity.Error);
+                            Snackbar.Add($"«{existingRoom.RoomType}» è al completo: scegli con quale " +
+                                         $"sistemazione da {existingRoom.CurrentOccupants + 1} posti sostituirla.",
+                                         Severity.Error);
                             return;
                         }
 
@@ -1026,6 +1027,7 @@
                 _assignToExistingRoom = false;
                 _selectedExistingRoomId = null;
                 _ingrandimento = null;
+                _ingrandimentoId = 0;
             }
 
             await LoadListAsync(); // Refresh Grid
@@ -1101,6 +1103,7 @@
         _assignToExistingRoom = false;
         _selectedExistingRoomId = null;
         _ingrandimento = null;
+        _ingrandimentoId = 0;
         _currentAlloggio = new MovClientiAlloggi();
 
         // Refresh participants list to show newly added pilots
@@ -1170,23 +1173,14 @@
     }
 
     /// <summary>
-    /// Ricalcola con che tipo la camera scelta dovrebbe crescere per contenere una persona
-    /// in più. ⚠️ La capienza resta rigorosa: non si aggiunge nessuno a una camera piena, si
-    /// cambia la camera. Le eccezioni con l'albergo — una matrimoniale pagata a uso singola —
-    /// restano fuori dal sistema, come deciso il 2026-09-06.
-    ///
-    /// Usa la stessa regola del suggerimento (<c>TipoAlloggioService.Suggerisci</c>), quindi
-    /// rispetta anche le sistemazioni «mai proposte».
+    /// Azzera la proposta di ingrandimento quando si cambia camera: quella di prima valeva
+    /// per un'altra capienza. La ricalcola <see cref="TipoAlloggioSelect"/>, che propone e
+    /// lascia scegliere fra le sistemazioni di quella capienza.
     /// </summary>
-    private async Task RicalcolaIngrandimentoAsync()
+    private void ScegliCameraEsistente()
     {
         _ingrandimento = null;
-
-        var camera = _existingRooms.FirstOrDefault(r => r.RoomId == _selectedExistingRoomId);
-        if (camera is null || !camera.IsFull) return;
-
-        var ammessi = await TipoAlloggioService.GetAmmessiPerPartenzaAsync(DataViaggioId);
-        _ingrandimento = TipoAlloggioService.Suggerisci(ammessi, camera.CurrentOccupants + 1);
+        _ingrandimentoId = 0;
     }
 
     private Task OnAssignToExistingRoomChangedAsync()
