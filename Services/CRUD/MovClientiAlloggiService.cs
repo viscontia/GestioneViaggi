@@ -300,6 +300,38 @@ namespace GestioneViaggi.Services.CRUD
     
     // --- Room Consistency & Violation Handling ---
 
+    /// <summary>Un rilievo della validazione di una sistemazione.</summary>
+    public record EsitoAlloggio(string Gravita, string Esito, string Messaggio);
+
+    /// <summary>
+    /// Verifica un'assegnazione con le stesse regole che usa il sito di iscrizione:
+    /// tipo ammesso dal viaggio, capienza rispettata, nessuno ripetuto, nessuno dimenticato.
+    ///
+    /// ⚠️ Esiste anche se l'interfaccia impedisce già di sbagliare: l'interfaccia è il modo
+    /// comodo di rispettare la regola, non la regola. È la stessa funzione chiamata dal
+    /// sito — una regola sola, due interfacce.
+    /// DB Function: fn_alloggi_assegnazione_valida (SqlScripts/600)
+    /// </summary>
+    public async Task<List<EsitoAlloggio>> ValidaAssegnazioneAsync(int dataViaggioId, string assegnazioniJson)
+    {
+        var esiti = new List<EsitoAlloggio>();
+        await using var conn = await _connectionManager.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT * FROM fn_alloggi_assegnazione_valida(@dataViaggioId, @dati::jsonb)", conn);
+        cmd.Parameters.AddWithValue("dataViaggioId", dataViaggioId);
+        cmd.Parameters.AddWithValue("dati", assegnazioniJson);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            esiti.Add(new EsitoAlloggio(
+                reader.GetString(reader.GetOrdinal("gravita")),
+                reader.GetString(reader.GetOrdinal("esito")),
+                reader.GetString(reader.GetOrdinal("messaggio"))));
+        }
+        return esiti;
+    }
+
     public class RoomConsistencyCheckResult
     {
         public bool ViolationDetected { get; set; }

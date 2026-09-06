@@ -456,6 +456,26 @@
             room.ClienteId5Fk = occupants.ElementAtOrDefault(4)?.ClienteId;
             room.ClienteId6Fk = occupants.ElementAtOrDefault(5)?.ClienteId;
 
+            // ⚠️ Si chiede al database se questa sistemazione sta in piedi, PRIMA di
+            // scriverla: tipo ammesso dal viaggio, capienza rispettata, nessuno ripetuto.
+            // E' la stessa funzione che usa il sito di iscrizione — una regola sola, due
+            // interfacce, altrimenti tornano a divergere.
+            var occupantiIds = occupants.Where(o => o?.ClienteId > 0)
+                                        .Select(o => o!.ClienteId).ToList();
+            var payload = System.Text.Json.JsonSerializer.Serialize(new[]
+            {
+                new { tipo_id = room.TipoAlloggioIdFk, clienti = occupantiIds }
+            });
+
+            var rilievi = await AlloggiService.ValidaAssegnazioneAsync(DataViaggioId, payload);
+            var bloccanti = rilievi.Where(r => r.Gravita == "ERRORE").ToList();
+            if (bloccanti.Count > 0)
+            {
+                // Un messaggio per riga: due frasi di seguito su una riga sola si leggono male.
+                foreach (var b in bloccanti) Snackbar.Add(b.Messaggio, Severity.Error);
+                return;
+            }
+
             if (room.MovClientiAlloggioPk > 0)
             {
                 await AlloggiService.UpdateAccommodationAsync(room);
@@ -475,22 +495,28 @@
         }
     }
 
+    /// <summary>
+    /// Propone un tipo per un gruppo di questa dimensione.
+    ///
+    /// ⚠️ Prima cercava «MATRIMONIALE» dentro la descrizione: riconoscere una camera dal
+    /// suo nome e' lo stesso difetto tolto dai generi — basta che qualcuno rinomini una
+    /// riga e il suggerimento smette di funzionare, in silenzio.
+    ///
+    /// ⚠️ E cercava una capienza MAGGIORE O UGUALE alle persone. Non e' la regola: una
+    /// doppia con una persona sola si chiama «doppia uso singola» ed e' un tipo suo, con
+    /// il suo supplemento. La capienza deve corrispondere.
+    /// </summary>
     private int SuggestAccommodationType(int participantsCount)
     {
-        if (participantsCount == 2)
-        {
-            var matrimoniale = _tipoAlloggi
-                .FirstOrDefault(t => t.Descrizione.Contains("MATRIMONIALE", StringComparison.OrdinalIgnoreCase));
-            if (matrimoniale != null) return matrimoniale.Id;
-        }
+        var adatti = _tipoAlloggi
+            .Where(t => t.NumeroOccupanti == participantsCount)
+            // A parita' di capienza si propone quello senza supplemento: e' il piu'
+            // economico per chi viaggia, e resta comunque cambiabile.
+            .OrderBy(t => t.Supplemento ? 1 : 0)
+            .ThenBy(t => t.Descrizione)
+            .ToList();
 
-        var suitable = _tipoAlloggi
-            .Where(t => t.NumeroOccupanti >= participantsCount)
-            .OrderBy(t => t.NumeroOccupanti)
-            .ThenBy(t => t.Supplemento ? 1 : 0)
-            .FirstOrDefault();
-
-        return suitable?.Id ?? 0;
+        return adatti.FirstOrDefault()?.Id ?? 0;
     }
 
     private Color GetRoomStatusColor(RoomViewModel room)
