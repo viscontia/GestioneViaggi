@@ -38,6 +38,33 @@
     }
 
     /// <summary>
+    /// Quando chi ci contiene azzera il valore — svuotando una scheda dopo un salvataggio —
+    /// il campo deve tornare vuoto anche a vedersi.
+    ///
+    /// ⚠️ Senza questo, il VALORE è già nullo ma il TESTO scritto resta: la scheda sembra
+    /// ancora compilata («GUIDA» nel ruolo dopo «Salva e Nuovo», 2026-09-06) e chi salva di
+    /// nuovo crede di aver scelto qualcosa che non è più selezionato. <c>CoerceText</c> da
+    /// solo non basta: allinea il testo al valore quando il campo perde il fuoco, e un campo
+    /// azzerato da fuori il fuoco non ce l'ha mai avuto.
+    ///
+    /// ⚠️ Non fa un giro infinito: <c>ClearAsync</c> rilancia il valore nullo, ma al passaggio
+    /// successivo <c>_avevaValore</c> è già falso e non si rientra.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        var haValore = Value is not null;
+
+        if (_avevaValore && !haValore && _autocompleteRef is not null)
+        {
+            await _autocompleteRef.ClearAsync();
+        }
+
+        _avevaValore = haValore;
+    }
+
+    private bool _avevaValore;
+
+    /// <summary>
     /// Porta il fuoco su questo campo. Serve a chi lo contiene: un dialogo che apre una
     /// scheda vuole mettere il cursore sul primo campo, e senza questo metodo l'unico
     /// modo era chiedere all'utente di cliccarci.
