@@ -68,7 +68,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | C6 | Rimetti TENDA e togli ALBERGO | «Con Albergo» torna vuota |
 | C7 | Modifica «NESSUNO»: spunta qualcosa, salva, poi riapri e **togli tutto** | ⚠️ Compare una **domanda** — «17 assegnazioni già registrate resterebbero scoperte… vuoi procedere?» — perché quelle 17 righe storiche dell'azienda 6 erano già incoerenti prima. Rispondendo **Procedi** salva con «NESSUNA». ⚠️ Rispondendo Annulla non cambia nulla |
 | C8 | In una qualunque scheda, cerca la voce «Nessuna sistemazione» fra le spunte | ⚠️ **Non c'è**, ed è giusto: vale sempre, su qualunque viaggio, e non si configura |
-| C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⚠️ **Rifiutato**: «414 assegnazioni già registrate resterebbero scoperte, su: …» |
+| C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⚠️ Compare la **domanda**: «414 assegnazioni oggi valide non lo sarebbero più… vuoi procedere?». Rispondi **Annulla**: qui si romperebbe davvero |
+| C9b | Riapri «ALBERGO» e **risalva senza cambiare niente** | ⚠️ **Nessuna domanda**: se non peggiora nulla, non si chiede |
+| C9c | Modifica «ALBERGO CON QUALCHE CAMPO TENDATO» togliendo TENDA (che nessuna assegnazione usa) | ⚠️ **Nessuna domanda**: togliere un genere che nessuno sta usando non rompe niente |
 | C10 | Modifica «ALBERGO» **aggiungendo** TENDA senza togliere nulla | Passa: aggiungere non scopre niente |
 | C11 | Prova a **eliminare** il pernottamento «ALBERGO» | ⚠️ Rifiutato, con il conto di ciò che è collegato: viaggi, date e prenotazioni |
 | C12 | Apri un **viaggio in albergo** con camere assegnate e cambiane il pernottamento a «SOLO CAMPI TENDATI» | ⚠️ **Rifiutato**: «le sistemazioni già assegnate su questo viaggio non sarebbero più ammesse. Vanno cambiate prima» |

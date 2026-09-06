@@ -1946,6 +1946,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2072,10 +2073,10 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_ana_tipo_documento_get_all` |  | TABLE(codice character varying, descrizione character varying) | I tipi di documento selezionabili. Unica fonte: il gestionale e il sito leggono questa, |
 | `e non possono piu' proporre elenchi diversi.` |  |  |  |
 | `fn_ana_tipo_pernottamento_generi_get` | p_pernottamento_id integer | TABLE(genere_id integer, codice character varying, descrizione character varying, ammesso boolean) |  |
-| `fn_ana_tipo_pernottamento_generi_set` | p_pernottamento_id integer, p_generi integer[], p_conferma boolean DEFAULT false | integer | Imposta i generi ammessi da un pernottamento. ⚠️ Se la scelta lascia scoperte assegnazioni |
-| `gia' registrate lo dice e si ferma; con `p_conferma` procede. Il punto non e' impedirlo —` |  |  |  |
-| `a volte i dati sono gia' sporchi e bisogna poter tornare indietro — ma che non succeda di` |  |  |  |
-| `nascosto.` |  |  |  |
+| `fn_ana_tipo_pernottamento_generi_set` | p_pernottamento_id integer, p_generi integer[], p_conferma boolean DEFAULT false | integer | Imposta i generi ammessi da un pernottamento. ⚠️ Chiede conferma solo se il cambio |
+| `PEGGIORA: assegnazioni oggi valide che smetterebbero di esserlo. Cio' che era gia'` |  |  |  |
+| `incoerente non fa scattare la domanda — un controllo che grida quando non succede niente` |  |  |  |
+| `insegna a rispondere senza leggere.` |  |  |  |
 | `fn_ana_tipo_viaggi_create` | p_tipo character varying, p_descrizione character varying, p_breve boolean DEFAULT false | SETOF ana_tipo_viaggi |  |
 | `fn_ana_tipo_viaggi_update` | p_id integer, p_tipo character varying, p_descrizione character varying, p_descrizione_web_fk bigint, p_breve boolean | SETOF ana_tipo_viaggi |  |
 | `fn_ana_titolo_persone_conta_clienti` | p_cod integer | integer | Quanti clienti portano un titolo. Serve alla pagina per avvisare PRIMA di chiedere conferma dell'eliminazione: il rifiuto di fn_ana_titolo_persone_delete resta la guardia autoritativa. |
