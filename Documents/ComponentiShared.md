@@ -146,13 +146,6 @@ Gran parte dei componenti di selezione (Dropdown) sono stati migrati per utilizz
 > tendina — il Comune di Residenza aprendo la scheda «Residenza & Contatti» — deve poterci mettere
 > il cursore da sola, senza chiedere all'utente di cliccarci.
 Componente base generico (`Components/Shared/BaseEntitySelect.razor`) che incapsula la logica di `MudAutocomplete`.
-> **Si svuota davvero** (dal 2026-09-06). Quando chi lo contiene azzera il valore — una
-> scheda ripulita dopo «Salva e Nuovo» — il campo torna vuoto anche a vedersi. ⚠️ Prima il
-> valore era già nullo ma il **testo restava**: la scheda sembrava ancora compilata, e chi
-> salvava credeva di aver scelto qualcosa che non era più selezionato. `CoerceText` da solo
-> non basta — allinea il testo al valore quando il campo perde il fuoco, e un campo azzerato
-> da fuori il fuoco non ce l'ha mai avuto.
-
 *   **Funzionalità**:
     *   **Ricerca**: Permette di filtrare gli elementi digitando nel campo.
     *   **Clear**: Include un pulsante "X" per pulire la selezione.

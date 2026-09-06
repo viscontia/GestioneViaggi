@@ -432,7 +432,17 @@
                                  <!-- 2. Trip Config -->
                                  <MudGrid Spacing="2">
                                      <MudItem xs="6">
-                                         <TipoPartecipanteSelect SelectedId="@(_currentEntity.TipoPartecipanteIdFk == 0 ? (int?)null : _currentEntity.TipoPartecipanteIdFk)"
+                                         @* ⚠️ La chiave cambia a ogni svuotata della scheda, e Blazor RIFA' il
+                                            componente da zero invece di riusarlo. Serve perche' azzerare il
+                                            valore non basta: il campo teneva il testo scritto — dopo «Salva e
+                                            Nuovo» si leggeva ancora GUIDA con dentro nulla, e chi salvava
+                                            credeva di aver scelto un ruolo che non era piu' selezionato.
+                                            ⚠️ Provato a svuotarlo dall'interno del componente (ClearAsync):
+                                            peggio — segnava il campo come toccato e faceva comparire «Il ruolo
+                                            e' obbligatorio» su una scheda appena aperta. Rifarlo da capo
+                                            azzera anche lo stato di validazione, che e' cio' che serve. *@
+                                         <TipoPartecipanteSelect @key="_chiaveScheda"
+                                                                 SelectedId="@(_currentEntity.TipoPartecipanteIdFk == 0 ? (int?)null : _currentEntity.TipoPartecipanteIdFk)"
                                                                  SelectedIdChanged="@OnRoleChangedAsync"
                                                                  Required="true"
                                                                  Items="@_tipoPartecipanti" />
@@ -1063,8 +1073,13 @@
         }
     }
 
+    /// Cambia a ogni svuotata: i campi che la portano come chiave vengono ricostruiti da
+    /// zero, testo e stato di validazione compresi.
+    private int _chiaveScheda;
+
     private async Task ResetForm()
     {
+        _chiaveScheda++;
         _isEditMode = false;
         _currentEntity = new MovClientiViaggi();
         _selectedCliente = null;
