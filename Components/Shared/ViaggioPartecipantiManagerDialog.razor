@@ -920,6 +920,10 @@
                     _currentEntity, _isEditMode, MovClientiService, ClienteService, DialogService, Snackbar))
                 return;
 
+            // ⚠️ Si chiede PRIMA di scrivere qualunque cosa: rispondendo «no» non deve restare
+            // niente a metà — né l'iscrizione né la camera.
+            if (!await CameraIndipendenteConfermataAsync()) return;
+
             if (_isEditMode)
             {
                 await MovClientiService.UpdateParticipantAsync(_currentEntity);
@@ -1170,6 +1174,41 @@
         _needsTabRefresh = true;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Chiede conferma quando si sta dando una camera <b>tutta sua</b> a un passeggero che
+    /// viaggia con qualcuno. Torna false se l'operatore vuole tornare indietro.
+    ///
+    /// ⚠️ Chiesto da Adriano il 2026-09-06: «un operatore disattento potrebbe semplicemente
+    /// assegnare una camera singola al passeggero, per poi dover fare la rettifica». La
+    /// rettifica ora funziona, ma costa — e chi viaggia insieme di solito dorme insieme.
+    /// Non è un divieto: capita che dormano separati, e allora si risponde di sì.
+    ///
+    /// Non si chiede quando la camera è condivisa (lì la scelta è già esplicita), quando si
+    /// modifica un'iscrizione esistente, o quando chi si iscrive guida.
+    /// </summary>
+    private async Task<bool> CameraIndipendenteConfermataAsync()
+    {
+        if (_isEditMode || !_wantsAccommodation || _assignToExistingRoom) return true;
+        if (_currentEntity.ClientePilotaIdFk is not > 0) return true;
+
+        var pilota = _participants.FirstOrDefault(p => p.ClienteId == _currentEntity.ClientePilotaIdFk.Value);
+        if (pilota is null) return true;
+
+        var suaCamera = _existingRooms.FirstOrDefault(r => r.OccupantIds.Contains(pilota.ClienteId));
+        var dove = suaCamera is null
+            ? "che non ha ancora una sistemazione"
+            : $"che ha una {suaCamera.RoomType} ({suaCamera.StatusText})";
+
+        var risposta = await DialogService.ShowMessageBox(
+            "Una camera tutta sua?",
+            $"{_selectedCliente?.Cognome} {_selectedCliente?.Nome} viaggia con {pilota.Nominativo}, {dove}. " +
+            "Stai per assegnargli una sistemazione indipendente: è corretto?",
+            yesText: "Sì, sistemazione indipendente",
+            cancelText: "No, torno indietro");
+
+        return risposta == true;
     }
 
     /// <summary>
