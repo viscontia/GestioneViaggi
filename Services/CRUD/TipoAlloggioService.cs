@@ -93,13 +93,6 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
         }
     }
 
-    private static bool HasColumn(NpgsqlDataReader reader, string nome)
-    {
-        for (var i = 0; i < reader.FieldCount; i++)
-            if (string.Equals(reader.GetName(i), nome, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
-    }
-
     protected override TipoAlloggio MapFromReader(NpgsqlDataReader reader)
     {
         return new TipoAlloggio
