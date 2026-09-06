@@ -68,6 +68,10 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | C6 | Rimetti TENDA e togli ALBERGO | «Con Albergo» torna vuota |
 | C7 | Modifica «NESSUNO»: prova a spuntare qualcosa e poi togli tutto | Salva con «nessuna»: un elenco vuoto è legittimo |
 | C8 | In una qualunque scheda, cerca la voce «Nessuna sistemazione» fra le spunte | ⚠️ **Non c'è**, ed è giusto: vale sempre, su qualunque viaggio, e non si configura |
+| C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⚠️ **Rifiutato**: «414 assegnazioni già registrate resterebbero scoperte, su: …» |
+| C10 | Modifica «ALBERGO» **aggiungendo** TENDA senza togliere nulla | Passa: aggiungere non scopre niente |
+| C11 | Prova a **eliminare** il pernottamento «ALBERGO» | ⚠️ Rifiutato, con il conto di ciò che è collegato: viaggi, date e prenotazioni |
+| C12 | Apri un **viaggio in albergo** con camere assegnate e cambiane il pernottamento a «SOLO CAMPI TENDATI» | ⚠️ **Rifiutato**: «le sistemazioni già assegnate su questo viaggio non sarebbero più ammesse. Vanno cambiate prima» |
 
 ---
 

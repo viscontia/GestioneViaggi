@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–604)
+### Elenco ordinato (467–605)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -382,6 +382,7 @@ ls SqlScripts/*.sql \
 | 602 | Sistemazione_Coerente_Col_Viaggio | Trigger `trg_alloggio_coerente` su `mov_clienti_alloggi`: rifiuta una sistemazione di un genere che il viaggio non prevede — una tenda su un viaggio in albergo, una camera su uno in campo tendato. ⚠️ **Non controlla la capienza**, di proposito: una doppia con un occupante solo è reale quando l'albergo non ha singole (parola di Antonio, 2026-09-06), e una regola rigida spingerebbe chi lavora ad annotarla fuori dal sistema. ⚠️ **Su PROD ci sono 17 righe che lo violano, tutte nell'azienda 6**: SFT ne ha zero. Restano come sono — il trigger guarda solo inserimenti e modifiche — ma toccarne una la farà rifiutare. ⚠️ Va **dopo il 599** |
 | 603 | Descrizioni_Sempre_Maiuscole | Porta in maiuscolo le descrizioni di generi e tipi di alloggio, e sposta la regola **dentro le funzioni di scrittura**. ⚠️ Prima il maiuscolo lo faceva solo la scheda del gestionale, con un `ToUpper` al momento della digitazione: le righe scritte da uno script comparivano minuscole in elenco e maiuscole aprendole. Su PROD tocca poche righe — le tre dei generi arrivano già corrette dal 599 aggiornato |
 | 604 | Genere_Non_Si_Cambia_Se_Rende_Incoerente | ⚠️ Rifiuta il cambio di genere di un tipo di sistemazione quando renderebbe **incoerenti assegnazioni già registrate**, dicendo quante e su quali viaggi. Misurato: cambiare CAMERA MATRIMONIALE da ALBERGO a TENDA invaliderebbe **219 assegnazioni** in silenzio. ⚠️ Non vieta il cambio su un tipo «usato» — quello impedirebbe di correggere una classificazione sbagliata, che è proprio il caso in cui serve: si guarda l'**effetto**, non l'uso. Nessun dato modificato, solo la funzione |
+| 605 | Pernottamento_Coerente_Con_Le_Assegnazioni | Chiude le **tre strade** che invalidavano le assegnazioni in silenzio: togliere un genere ammesso da un pernottamento (misurato: −ALBERGO da «ALBERGO» = **414 assegnazioni** scoperte), cambiare il pernottamento **di un viaggio** (fino a 37 su un solo viaggio), e la cancellazione. ⚠️ **Aggiunge la chiave esterna** `fk_ana_viaggi_tipo_pernottamento` che non esisteva né in sviluppo né su PROD: la cancellazione era protetta solo da un trigger, e un trigger si può disattivare. Orfani esistenti: **0** in entrambi gli ambienti, quindi il vincolo si applica senza bonifiche. ⚠️ Va **dopo il 599** |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
