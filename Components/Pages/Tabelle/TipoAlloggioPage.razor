@@ -43,6 +43,17 @@ else
             
             <PropertyColumn Property="x => x.NumeroOccupanti" Title="N. Occupanti" HeaderStyle="text-align: right; justify-content: end; min-width: 120px;" CellStyle="text-align: right; justify-content: end; min-width: 120px;" />
 
+            <TemplateColumn Title="Mai proposta" SortBy="x => x.MaiProposta">
+                <CellTemplate>
+                    @if (context.Item.MaiProposta)
+                    {
+                        <MudTooltip Text="Resta scegliibile, ma il programma non la propone da solo">
+                            <MudIcon Icon="@Icons.Material.Filled.DoNotDisturbOn" Size="Size.Small" Class="mud-text-secondary" />
+                        </MudTooltip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
             <TemplateColumn Title="Supplemento" SortBy="x => x.Supplemento">
                 <CellTemplate>
                     <MudCheckBox Value="@context.Item.Supplemento" ReadOnly="true" Color="Color.Primary" Dense="true" />
@@ -141,7 +152,8 @@ else
                 NumeroOccupanti = item.NumeroOccupanti,
                 SupplementoDb = item.SupplementoDb,
                 GenereFk = item.GenereFk,
-                GenereDescrizione = item.GenereDescrizione
+                GenereDescrizione = item.GenereDescrizione,
+                MaiProposta = item.MaiProposta
             } },
             { x => x.IsEditMode, true }
         };

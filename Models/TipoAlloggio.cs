@@ -31,6 +31,18 @@ public class TipoAlloggio : BaseEntity
     [Range(1, int.MaxValue, ErrorMessage = "Il genere è obbligatorio")]
     public int GenereFk { get; set; }
 
+    /// <summary>
+    /// La sistemazione resta scegliibile, ma il programma non la propone mai d'ufficio.
+    ///
+    /// ⚠️ Nasce per le camere attrezzate per disabili: in elenco ci devono essere — si
+    /// mostrano sempre, anche per rispetto verso la categoria — ma assegnarle a chi non le
+    /// ha chieste sarebbe sbagliato. Prima non uscivano solo perché create più tardi delle
+    /// altre: per fortuna, non per regola.
+    /// ⛔️ Non si riconoscono dal nome: è il difetto tolto dai generi.
+    /// </summary>
+    [Column("TIPO_ALLOGGIO_MAI_PROPOSTA")]
+    public bool MaiProposta { get; set; }
+
     /// <summary>Descrizione del genere, per l'elenco. Non si scrive.</summary>
     [NotMapped]
     public string? GenereDescrizione { get; set; }

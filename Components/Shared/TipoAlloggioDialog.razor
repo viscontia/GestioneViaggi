@@ -68,6 +68,17 @@
                          Color="Color.Primary"
                          tabindex="4"
                          Class="mb-3" />
+
+            <MudCheckBox @bind-Value="Entity.MaiProposta"
+                         Label="Non proporre mai d'ufficio"
+                         Color="Color.Primary"
+                         tabindex="5"
+                         Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mb-3 d-block mud-text-secondary">
+                Resta scegliibile in elenco, ma il programma non la assegna da solo.
+                Da spuntare sulle sistemazioni attrezzate per esigenze particolari:
+                si danno a chi le chiede, non a chi capita.
+            </MudText>
         </MudForm>
     </DialogContent>
     <DialogActions>

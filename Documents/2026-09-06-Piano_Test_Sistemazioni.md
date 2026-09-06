@@ -29,7 +29,7 @@ generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non 
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **610** applicati.
+Il database locale deve avere gli script fino al **611** applicati.
 
 ⚠️ **Dal 2026-09-06 la tendina delle sistemazioni è UN componente solo**
 (`TipoAlloggioSelect`), usato da tutte e tre le schede. Prima erano tre copie: se una prova
@@ -147,17 +147,23 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F3 | Aggiungi il **terzo**, poi il **quarto** | CAMERA TRIPLA (TRE LETTI SINGOLI), poi CAMERA QUADRUPLA (…4P) |
 | F4 | Con 2 occupanti, **cambia a mano** in CAMERA DOPPIA LETTI SINGOLI, poi aggiungi il terzo | ⚠️ **Resta quella che hai scelto tu**: la proposta non sovrascrive una scelta. La capienza sbagliata la segnala la validazione (E2) |
 | F5 | Viaggio **in tenda**, gruppo di **2** | Propone **TENDA 2 POSTI DI PROPRIETA'** — non quella noleggiata, che ha supplemento |
-| F6 | Stesso viaggio, gruppo di **3** | ⚠️ **Nessuna proposta**, la tendina resta vuota: ci sono solo tende da 2 e da 4. Meglio non proporre che proporre una capienza che poi il salvataggio rifiuta |
+| F6 | Stesso viaggio, gruppo di **3** | ⚠️ **Nessuna proposta**: ci sono tende da 1, 2 e 4 posti, non da 3. Meglio non proporre che proporre una capienza che poi il salvataggio rifiuta |
+| F6b | Viaggio **in tenda**, gruppo di **1** | Propone **TENDA 1 POSTO DI PROPRIETA'** — non la noleggiata, che ha supplemento. ⚠️ Prima non c'era nessuna tenda da uno: a chi partiva da solo il programma non proponeva niente e non aveva niente da scegliere |
 | F7 | **Iscrizione Veloce**: scegli un viaggio in albergo, una data, e chiedi la sistemazione | Propone CAMERA SINGOLA: lì si iscrive una persona per volta |
 | F8 | Scheda **Partecipanti**: apri un **pilota con 2 passeggeri** e chiedi la sistemazione | Propone un tipo da **3 posti**: il pilota porta con sé i suoi passeggeri |
 | F9 | Stessa scheda, apri un **passeggero** | Propone un tipo da **1 posto**: un passeggero sta per conto suo |
 
-⚠️ **Una cosa da sapere, che nessuna prova qui copre.** Per una persona sola in albergo
+| F10 | Viaggio in albergo, gruppo di **1**: apri la tendina e guarda l'elenco | ⚠️ **CAMERA SINGOLA DISABILI c'è**, si può scegliere — ma **non è quella proposta**: esce CAMERA SINGOLA |
+| F11 | Menu → **Tipologie Alloggi**: guarda la colonna «Mai proposta» | Il segno c'è sulle due righe DISABILI e su nessun'altra |
+| F12 | Modifica una sistemazione qualunque e spunta «Non proporre mai d'ufficio», poi rifai F1 | Sparisce dalle proposte ma **resta in elenco**. ⚠️ È una scelta dell'operatore, non una cosa che posso cambiare solo io con una UPDATE a mano |
+
+⚠️ **Perché serviva una colonna** (`SqlScripts/611`). Per una persona sola in albergo
 esistono tre tipi da 1 posto, tutti con supplemento: CAMERA SINGOLA, CAMERA DOPPIA USO
-SINGOLA e **CAMERA SINGOLA DISABILI**. Il dato non dice quale sia quella normale né quale sia
-riservata a chi ha esigenze particolari: oggi esce CAMERA SINGOLA solo perché è la più
-vecchia delle tre — **per fortuna, non per regola**. Una camera per disabili non dovrebbe mai
-essere proposta da sola. ⛔️ Riconoscerla dal nome non si fa: servirebbe una colonna.
+SINGOLA e **CAMERA SINGOLA DISABILI**. Fino al 6 settembre usciva CAMERA SINGOLA solo perché
+era la più vecchia delle tre — **per fortuna, non per regola**: bastava creare una riga
+nuova per far proporre a caso una camera attrezzata a chi non l'aveva chiesta. Ora lo dice il
+dato (`tipo_alloggio_mai_proposta`). ⛔️ Riconoscerla dal nome non si fa: è il difetto tolto
+dai generi.
 
 ---
 

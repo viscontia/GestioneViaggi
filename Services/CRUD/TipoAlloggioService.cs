@@ -53,21 +53,16 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
         if (persone <= 0) return null;
 
         return ammessi
+            // ⚠️ Fuori chi non si propone d'ufficio: resta nella tendina, ma non si assegna
+            // da sola. Una camera attrezzata per disabili non si dà a chi non l'ha chiesta.
+            .Where(t => !t.MaiProposta)
             .Where(t => t.NumeroOccupanti == persone)
             // A parità di capienza si propone quello senza supplemento: è il più economico
             // per chi viaggia, e resta comunque cambiabile.
             .OrderBy(t => t.Supplemento ? 1 : 0)
-            // ⚠️ A parità anche di supplemento serve un criterio, e l'ordine alfabetico non
-            // va: fra CAMERA DOPPIA USO SINGOLA, CAMERA SINGOLA e CAMERA SINGOLA DISABILI —
-            // tutte da 1 posto e tutte con supplemento — proponeva la prima, cioè la doppia.
-            // Si prende la più vecchia (id più basso), che è il tipo base: le varianti sono
-            // state aggiunte dopo.
-            //
-            // ⚠️ È un ripiego, e va detto: il dato NON sa quale sia la sistemazione normale
-            // né quale sia riservata a chi ha esigenze particolari. Una camera per disabili
-            // non andrebbe mai proposta da sola, e oggi non succede solo perché è stata
-            // creata più tardi — per fortuna, non per regola. Servirebbe una colonna.
-            // ⛔️ Quello che NON si fa è riconoscerla dal nome: è il difetto tolto dai generi.
+            // A parità anche di supplemento si prende la più vecchia: è il tipo base, le
+            // varianti sono state aggiunte dopo. ⚠️ Non è più questo a tenere fuori le
+            // camere per disabili — quello ora lo dice il dato (MaiProposta, SqlScripts/611).
             .ThenBy(t => t.Id)
             .FirstOrDefault();
     }
@@ -99,7 +94,8 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
                 Descrizione = reader.GetString(reader.GetOrdinal("descrizione")),
                 NumeroOccupanti = reader.GetInt32(reader.GetOrdinal("posti")),
                 SupplementoDb = reader.GetBoolean(reader.GetOrdinal("supplemento")) ? "Y" : "N",
-                GenereDescrizione = reader.GetString(reader.GetOrdinal("genere"))
+                GenereDescrizione = reader.GetString(reader.GetOrdinal("genere")),
+                MaiProposta = reader.GetBoolean(reader.GetOrdinal("mai_proposta"))
             });
         }
         return esito;
@@ -115,12 +111,13 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
         {
             await using var connection = await _databaseService.GetConnectionAsync();
             await using var command = new NpgsqlCommand(
-                "SELECT fn_ana_tipo_alloggio_upsert(@id, @descrizione, @occupanti, @supplemento, @genere)", connection);
+                "SELECT fn_ana_tipo_alloggio_upsert(@id, @descrizione, @occupanti, @supplemento, @genere, @maiProposta)", connection);
             command.Parameters.AddWithValue("id", entity.Id);
             command.Parameters.AddWithValue("descrizione", entity.Descrizione);
             command.Parameters.AddWithValue("occupanti", entity.NumeroOccupanti);
             command.Parameters.AddWithValue("supplemento", entity.SupplementoDb);
             command.Parameters.AddWithValue("genere", entity.GenereFk);
+            command.Parameters.AddWithValue("maiProposta", entity.MaiProposta);
 
             entity.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
             return entity;
@@ -143,7 +140,9 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
             SupplementoDb = reader.GetString(reader.GetOrdinal("tipo_alloggio_supplemento")),
             GenereFk = ReadInt(reader, "genere_fk"),
             GenereDescrizione = HasColumn(reader, "genere_descrizione")
-                ? reader.GetString(reader.GetOrdinal("genere_descrizione")) : null
+                ? reader.GetString(reader.GetOrdinal("genere_descrizione")) : null,
+            MaiProposta = HasColumn(reader, "tipo_alloggio_mai_proposta")
+                          && reader.GetBoolean(reader.GetOrdinal("tipo_alloggio_mai_proposta"))
         };
     }
 }
