@@ -1955,6 +1955,8 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2007,10 +2009,11 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `partenza, con l'indicazione se serve chiedere chi sta con chi. ⚠️ N sono le persone che una` |  |  |  |
 | `sistemazione la vogliono: chi sceglie «nessuna» esce dal conto prima.` |  |  |  |
 | `fn_alloggi_salva_camera` | p_alloggio_pk integer, p_viaggio_id integer, p_data_viaggio_id integer, p_tipo_alloggio_id integer, p_clienti integer[] | integer | Salva una sistemazione e, nella stessa transazione, toglie i suoi occupanti dalle altre |
-| `sistemazioni della STESSA partenza, eliminando quelle che restano vuote.` |  |  |  |
-| `⚠️ Deve restare UNA chiamata: separando la scrittura dallo spostamento, un'interruzione fra` |  |  |  |
-| `le due lascerebbe una persona in due camere o una camera vuota mai eliminata — e nessuna` |  |  |  |
-| `delle due si vede, perche' non sono errori ma dati che sembrano buoni.` |  |  |  |
+| `sistemazioni della STESSA partenza: quelle che restano vuote si eliminano, quelle che` |  |  |  |
+| `restano con meno persone si adeguano al tipo della capienza giusta.` |  |  |  |
+| `⛔️ La capienza deve CORRISPONDERE al numero di occupanti — nessuna scappatoia, decisione del` |  |  |  |
+| `2026-09-06 — tranne per il genere NESSUNA, dove capienza 0 con un occupante e' il modo in cui` |  |  |  |
+| `si registra chi dorme nel proprio mezzo.` |  |  |  |
 | `fn_alloggi_tipi_ammessi` | p_data_viaggio_id integer | TABLE(tipo_id integer, descrizione character varying, posti integer, supplemento boolean, genere character varying, mai_proposta boolean) | Le sistemazioni che questa partenza ammette, secondo il pernottamento del viaggio. |
 | `Unica fonte per gestionale e sito: ⚠️ `mai_proposta` dice quali non vanno suggerite` |  |  |  |
 | `d'ufficio — restano scegliibili, non si propongono.` |  |  |  |

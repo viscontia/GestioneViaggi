@@ -29,7 +29,7 @@ generica** (`DatabaseExceptionHelper`) — che riguardava tutte le guardie, non 
 
 ## Prima di cominciare
 
-Il database locale deve avere gli script fino al **613** applicati.
+Il database locale deve avere gli script fino al **614** applicati.
 
 ⚠️ **Dal 2026-09-06 la tendina delle sistemazioni è UN componente solo**
 (`TipoAlloggioSelect`), usato da tutte e tre le schede. Prima erano tre copie: se una prova
@@ -156,6 +156,8 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F13a | **Il caso vero.** Iscritto un pilota da solo con CAMERA SINGOLA, iscrivi ora una passeggera abbinata a lui e scegli «aggiungi a camera esistente» | ⚠️ La camera del pilota **compare anche se piena** (1/1). Scegliendola: «CAMERA SINGOLA è al completo. Per stare insieme a X la camera va cambiata», e sotto una tendina **«La camera diventa»**. Salvi e finisce lì: ⛔️ **nessuna registrazione finta in una singola** |
 | F13a1 | Apri quella tendina | ⚠️ Contiene **solo le sistemazioni da 2 posti**: CAMERA MATRIMONIALE (proposta), CAMERA DOPPIA LETTI SINGOLI, CAMERA MATRIMONIALE DISABILI. ⚠️ La proposta è la matrimoniale ma **la scelta è tua**: due persone possono volere i letti singoli. E la DISABILI c'è, ma non è proposta |
 | F13a3 | Scegli **CAMERA DOPPIA LETTI SINGOLI** e salva | La camera diventa quella, non la matrimoniale |
+| F13a6 | Iscrivi un passeggero e scegli **«crea nuova camera»**: apri la tendina | ⚠️ Ci sono **solo le sistemazioni da 1 posto**. Prima si poteva scegliere una MATRIMONIALE per una persona sola — ed è successo davvero. Sotto c'è scritto perché: «per dormire con altri, scegli aggiungi a camera esistente» |
+| F13a7 | Sposta una persona **fuori** da una camera tripla occupata da tre | La tripla resta con due e ⚠️ **il tipo si adegua da solo** a una sistemazione da 2 posti. Senza, resterebbe una tripla con due dentro — contro la regola — oppure lo spostamento sarebbe impossibile |
 | F13a4 | **La scala.** Sulla matrimoniale ormai piena (2/2) aggiungi una **terza** persona, poi una **quarta** | La tendina offre le sistemazioni da **3** posti (le due triple), poi quelle da **4**. Non c'è nessun caso speciale per la coppia: è sempre «capienza = occupanti + 1» |
 | F13a5 | Prova ad aggiungere una **sesta** persona a una camera da 5 | ⚠️ «CAMERA … è al completo: scegli con quale sistemazione da 6 posti sostituirla», e la tendina è **vuota** con «questo viaggio non prevede sistemazioni da 6 posti». Non si sfonda: si ferma |
 | F13a2 | Stessa prova su un gruppo di **4**: scegli una quadrupla già piena | ⚠️ «per 5 persone questo viaggio non prevede nessuna sistemazione»: non si sfonda la capienza, si dice che non si può |
@@ -233,3 +235,4 @@ quelle 7 righe **prima**, altrimenti non saranno più modificabili. Decisione ap
   fuori portata nell'analisi, il modello lega la sistemazione alla partenza.
 - **I dati storici incoerenti**: le 17 assegnazioni già in produzione non vengono corrette
   da nulla. Il nuovo controllo impedisce che se ne creino altre.
+	

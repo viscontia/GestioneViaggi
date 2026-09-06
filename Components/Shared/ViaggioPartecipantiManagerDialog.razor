@@ -610,10 +610,20 @@
                                         else
                                         {
                                                      <!-- Opzione 2: Crea Nuova Camera -->
+                                                     @* ⚠️ Ristretta alla capienza di CHI SI STA ISCRIVENDO. Senza questo
+                                                        filtro si poteva creare una MATRIMONIALE per una persona sola —
+                                                        successo davvero il 2026-09-06, camera 4887 — cioe' proprio la
+                                                        scappatoia vietata: «le camere vanno assegnate in modo rigoroso sul
+                                                        rapporto persone/capienza». Questa strada non passava da nessun
+                                                        controllo di capienza: quello vive nella gestione alloggi.
+                                                        Per dormire con qualcun altro non si crea una camera piu' grande
+                                                        vuota a meta': si sceglie «aggiungi a camera esistente». *@
                                                      <TipoAlloggioSelect DataViaggioId="@DataViaggioId"
                                                                          @bind-SelectedId="_currentAlloggio.TipoAlloggioIdFk"
                                                                          SelectedItemChanged="@(t => _tipoScelto = t)"
+                                                                         CapienzaEsatta="@DimensioneGruppo()"
                                                                          PersoneDaSistemare="@DimensioneGruppo()"
+                                                                         HelperText="@($"Per {DimensioneGruppo()} persona/e. Per dormire con altri, scegli «aggiungi a camera esistente»")"
                                                                          Required="true" />
 
                                             @if (_currentAlloggio.TipoAlloggioIdFk > 0)
@@ -963,24 +973,14 @@
                 else if (!_assignToExistingRoom && _currentAlloggio.TipoAlloggioIdFk > 0)
                 {
                     // Opzione 2: Crea nuova camera
+                    // ⚠️ Passa dalla stessa funzione di tutte le altre scritture. Prima usava
+                    // una strada sua (AddAccommodationAsync) che non controllava la capienza:
+                    // da lì è nata la MATRIMONIALE con una persona sola del 2026-09-06.
                     _currentAlloggio.ViaggioIdFk = ViaggioId;
                     _currentAlloggio.DataViaggioIdFk = DataViaggioId;
-                    _currentAlloggio.ClienteId1Fk = _selectedCliente.ClienteId;
-                    _currentAlloggio.ClienteId2Fk = null;
-                    _currentAlloggio.ClienteId3Fk = null;
-                    _currentAlloggio.ClienteId4Fk = null;
-                    _currentAlloggio.ClienteId5Fk = null;
-                    _currentAlloggio.ClienteId6Fk = null;
 
-                    // Update o Insert in base a se l'alloggio esiste già
-                    if (_isEditMode && _currentAlloggio.MovClientiAlloggioPk > 0)
-                    {
-                        await AlloggiService.UpdateAccommodationAsync(_currentAlloggio);
-                    }
-                    else
-                    {
-                        await AlloggiService.AddAccommodationAsync(_currentAlloggio);
-                    }
+                    await AlloggiService.SalvaCameraAsync(
+                        _currentAlloggio, new[] { _selectedCliente.ClienteId });
 
                     var msg = _tipoScelto?.Supplemento == true
                         ? "Nuova camera creata (con supplemento)"
