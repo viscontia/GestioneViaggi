@@ -170,7 +170,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | F13a12 | Iscrivi un **pilota** (non un passeggero) con camera nuova | ⚠️ **Nessuna domanda**: chi guida non viaggia «con» qualcun altro |
 | F13a13 | Iscrivi un passeggero scegliendo **«aggiungi a camera esistente»** | ⚠️ **Nessuna domanda**: lì la scelta di stare insieme l'hai già fatta. Un avviso che compare quando non serve insegna a ignorarlo |
 | F14a | **Il buco.** Da una matrimoniale con due persone togline una e accetta la singola proposta per chi resta | ⚠️ Compare **«Partecipa ancora al viaggio?»**: «X è rimasto senza sistemazione. Se parte, va messo in una camera; se non parte più, va tolto anche dall'iscrizione» |
-| F14b | Rispondi **«Parte: gli assegno una sistemazione»** | Resta iscritto e compare fra i partecipanti senza camera, dove puoi assegnarlo |
+| F14b | Rispondi **«Parte: gli assegno una sistemazione»** | ⚠️ Si apre subito **«Dove dorme X»**, con la persona **già dentro** come occupante: manca solo il tipo. Non una scheda di nuovo inserimento — l'iscrizione c'è già |
+| F14b2 | In quella scheda scegli il tipo e salva | La persona ha la sua sistemazione, e sparisce dai «senza camera» |
+| F14b3 | In quella scheda premi **Annulla** | ⚠️ Resta iscritto **senza** camera: legittimo, ma l'avviso giallo torna a segnalarlo. La domanda l'hai vista, la scelta è tua |
 | F14c | Rifai e rispondi **«Non parte più: cancella l'iscrizione»** | ⚠️ Sparisce dal viaggio, non solo dalla camera. Nessun avviso giallo da ignorare |
 | F14d | Rifai togliendo un **pilota che ha passeggeri** e scegli di cancellarlo | ⚠️ Prima di procedere: «X guida, e senza di lui restano senza mezzo: Y, Z. Cancellando lui si cancellano anche loro» — con i nomi, non un numero |
 | F14e | In quella finestra premi **Annulla** | Non si cancella nessuno: il pilota resta iscritto, solo senza camera |

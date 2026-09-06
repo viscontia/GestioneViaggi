@@ -42,7 +42,7 @@
                     </div>
 
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNewRoom">
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => CreateNewRoom())">
                         Nuova Camera
                     </MudButton>
                 </div>
@@ -246,8 +246,10 @@
     /// ⚠️ Cancellando un pilota se ne vanno anche i suoi passeggeri (SqlScripts/586): si
     /// elencano PRIMA, perché chi decide deve sapere chi altro sta togliendo.
     /// </summary>
-    private async Task ChiediChiEscePerSempreAsync(List<OccupantViewModel> usciti)
+    private async Task<List<OccupantViewModel>> ChiediChiEscePerSempreAsync(List<OccupantViewModel> usciti)
     {
+        var daSistemare = new List<OccupantViewModel>();
+
         foreach (var chi in usciti)
         {
             var resta = await DialogService.ShowMessageBox(
@@ -257,7 +259,14 @@
                 yesText: "Parte: gli assegno una sistemazione",
                 noText: "Non parte più: cancella l'iscrizione");
 
-            if (resta != false) continue;   // «parte» o finestra chiusa: si lascia com'è
+            if (resta != false)
+            {
+                // ⚠️ «Parte» non puo' voler dire «non succede niente»: la persona e' gia'
+                // iscritta e manca solo dove dorme. Prima si tornava alla scheda vuota di un
+                // nuovo inserimento, che non c'entra — l'iscrizione c'e' gia'.
+                daSistemare.Add(chi);
+                continue;
+            }
 
             var effetti = await MovClientiService.GetCancellazioneEffettiAsync(DataViaggioId, chi.ClienteId);
             var altri = effetti.Where(e => e.ClienteId != chi.ClienteId).ToList();
@@ -280,6 +289,8 @@
                          (altri.Count > 0 ? $" insieme a {altri.Count} passeggero/i" : ""),
                          Severity.Info);
         }
+
+        return daSistemare;
     }
 
     public class RoomViewModel
@@ -455,17 +466,25 @@
         _selectedParticipantIds = _unassignedParticipants.ToDictionary(p => p.ClienteId, p => false);
     }
 
-    private async Task CreateNewRoom()
+    /// <summary>
+    /// Apre la scheda di una sistemazione nuova. Con <paramref name="conOccupante"/> la
+    /// persona è già dentro: serve a chi è appena rimasto senza letto ma parte lo stesso —
+    /// è già iscritto, manca solo dove dorme.
+    /// </summary>
+    private async Task CreateNewRoom(OccupantViewModel? conOccupante = null)
     {
         var parameters = new DialogParameters
         {
             { "Room", new MovClientiAlloggi { ViaggioIdFk = ViaggioId, DataViaggioIdFk = DataViaggioId, TipoAlloggioIdFk = 0 } },
-            { "Occupants", new List<OccupantViewModel>() },
+            { "Occupants", conOccupante is null
+                ? new List<OccupantViewModel>()
+                : new List<OccupantViewModel> { conOccupante } },
             { "AllParticipants", _allParticipants },
             { "ExistingRooms", _rooms }
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ViaggioAlloggiEditDialog>("Nuova Camera", parameters, options);
+        var titolo = conOccupante is null ? "Nuova Camera" : $"Dove dorme {conOccupante.Nominativo}";
+        var dialog = await DialogService.ShowAsync<ViaggioAlloggiEditDialog>(titolo, parameters, options);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled && result.Data is not null)
         {
@@ -592,7 +611,7 @@
             // ⚠️ Chi è uscito da questa sistemazione e non ne ha un'altra resta iscritto SENZA
             // un letto. Prima lo diceva un avviso giallo, che si può ignorare: e il buco si
             // scopre in albergo. Ora si fa la domanda vera, che è una sola e ha due risposte.
-            await ChiediChiEscePerSempreAsync(usciti);
+            var daSistemare = await ChiediChiEscePerSempreAsync(usciti);
             await LoadDataAsync();
         }
         catch (Exception ex)
