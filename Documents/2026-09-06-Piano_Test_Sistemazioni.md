@@ -66,7 +66,7 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 | C4 | Guarda la colonna «Con Albergo» | ⚠️ È ancora `Y`, **senza che tu l'abbia toccata**: ora è una conseguenza dei generi, non una scelta |
 | C5 | Modifica «SOLO CAMPI TENDATI»: **togli** TENDA, **metti** ALBERGO, salva | La colonna «Con Albergo» passa da vuota a spuntata **da sola** |
 | C6 | Rimetti TENDA e togli ALBERGO | «Con Albergo» torna vuota |
-| C7 | Modifica «NESSUNO»: prova a spuntare qualcosa e poi togli tutto | Salva con «nessuna»: un elenco vuoto è legittimo |
+| C7 | Modifica «NESSUNO»: spunta qualcosa, salva, poi riapri e **togli tutto** | ⚠️ Compare una **domanda** — «17 assegnazioni già registrate resterebbero scoperte… vuoi procedere?» — perché quelle 17 righe storiche dell'azienda 6 erano già incoerenti prima. Rispondendo **Procedi** salva con «NESSUNA». ⚠️ Rispondendo Annulla non cambia nulla |
 | C8 | In una qualunque scheda, cerca la voce «Nessuna sistemazione» fra le spunte | ⚠️ **Non c'è**, ed è giusto: vale sempre, su qualunque viaggio, e non si configura |
 | C9 | Modifica «ALBERGO» e prova a **togliere** la spunta ALBERGO | ⚠️ **Rifiutato**: «414 assegnazioni già registrate resterebbero scoperte, su: …» |
 | C10 | Modifica «ALBERGO» **aggiungendo** TENDA senza togliere nulla | Passa: aggiungere non scopre niente |

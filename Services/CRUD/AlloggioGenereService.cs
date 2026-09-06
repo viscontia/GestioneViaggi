@@ -115,13 +115,36 @@ public class AlloggioGenereService
     /// da comporre. E il flag <c>con_albergo</c> viene riallineato dal database: non è più
     /// una scelta separata, è una conseguenza.
     /// </summary>
-    public async Task ImpostaGeneriDelPernottamentoAsync(int pernottamentoId, IEnumerable<int> generi)
+    public async Task ImpostaGeneriDelPernottamentoAsync(
+        int pernottamentoId, IEnumerable<int> generi, bool conferma = false)
     {
-        await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand(
-            "SELECT fn_ana_tipo_pernottamento_generi_set(@id, @generi)", conn);
-        cmd.Parameters.AddWithValue("id", pernottamentoId);
-        cmd.Parameters.AddWithValue("generi", generi.ToArray());
-        await cmd.ExecuteNonQueryAsync();
+        try
+        {
+            await using var conn = await _db.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT fn_ana_tipo_pernottamento_generi_set(@id, @generi, @conferma)", conn);
+            cmd.Parameters.AddWithValue("id", pernottamentoId);
+            cmd.Parameters.AddWithValue("generi", generi.ToArray());
+            cmd.Parameters.AddWithValue("conferma", conferma);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23514")
+        {
+            // Il database ha visto che la scelta lascia scoperte assegnazioni già
+            // registrate. ⚠️ Non è un errore da mostrare e basta: è una domanda, e chi
+            // sa cosa sta facendo deve poter rispondere — altrimenti si resta chiusi
+            // fuori da uno stato in cui si era appena entrati.
+            throw new SistemazioniScoperteException(ex.MessageText, ex);
+        }
     }
+}
+
+/// <summary>
+/// La scelta dei generi lascerebbe scoperte assegnazioni già registrate.
+/// Non è un errore: è una domanda a cui l'operatore può rispondere.
+/// </summary>
+public class SistemazioniScoperteException : Exception
+{
+    public SistemazioniScoperteException(string messaggio, Exception inner)
+        : base(messaggio, inner) { }
 }
