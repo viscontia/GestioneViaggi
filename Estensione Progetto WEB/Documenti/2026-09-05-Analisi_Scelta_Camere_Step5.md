@@ -82,7 +82,18 @@ e una volta ottenuta la lista delle soluzioni valide è breve e si può mostrare
 
 ---
 
-## 4. ⚠️ Il sito non deve far scegliere il tipo di camera
+## 4. ⚠️ Il sito non deve far indovinare che cosa offre l'albergo
+
+> **Precisazione del 2026-09-07.** Il titolo di questa sezione diceva «non deve far
+> scegliere il tipo di camera», ed è una formulazione che ha già prodotto un errore: sembra
+> dire che chi si iscrive non sceglie **come dormire**, che è falso e sarebbe sbagliato.
+> ⚠️ **Due persone che viaggiano insieme scelgono eccome**: matrimoniale o due letti singoli
+> sono la stessa capienza, e la differenza la conoscono solo loro.
+>
+> Quello che il sito non deve chiedere è di indovinare che cosa offre la **struttura** —
+> matrimoniale contro doppia-uso-singola. Quelle due non sono mai alternative sullo stesso
+> schermo, perché hanno capienza diversa: la doppia-uso-singola compare solo per chi dorme
+> da solo. È di quella distinzione che parla il resto della sezione.
 
 **Questa sezione sostituisce quella precedente**, che dava per buona la regola «capienza =
 persone». È caduta il 2026-09-05, e l'ha smontata un fatto di mestiere.

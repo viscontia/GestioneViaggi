@@ -1967,6 +1967,7 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2027,9 +2028,11 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 | `fn_alloggi_tipi_ammessi` | p_data_viaggio_id integer | TABLE(tipo_id integer, descrizione character varying, posti integer, supplemento boolean, genere character varying, mai_proposta boolean) | Le sistemazioni che questa partenza ammette, secondo il pernottamento del viaggio. |
 | `Unica fonte per gestionale e sito: ⚠️ `mai_proposta` dice quali non vanno suggerite` |  |  |  |
 | `d'ufficio — restano scegliibili, non si propongono.` |  |  |  |
-| `fn_alloggi_tipi_per_capienza` | p_data_viaggio_id integer, p_capienza integer | TABLE(tipo_id integer, descrizione character varying, supplemento boolean, predefinito boolean) | I tipi di sistemazione che ospitano esattamente N persone su questa partenza, con il segno |
-| `di quello predefinito. Le varianti attrezzate per esigenze particolari sono in elenco ma non` |  |  |  |
-| `predefinite. Sostituisce il filtro che il sito faceva nel JavaScript.` |  |  |  |
+| `fn_alloggi_tipi_per_capienza` | p_data_viaggio_id integer, p_capienza integer | TABLE(tipo_id integer, descrizione character varying, supplemento boolean, predefinito boolean) | I tipi di sistemazione che chi si iscrive puo' scegliere per un gruppo di N persone, con il |
+| `segno di quello predefinito. ⚠️ Esclude le VARIANTI COMMERCIALI (tipo_alloggio_fk valorizzata):` |  |  |  |
+| `la doppia uso singola e' la stessa richiesta della singola — «dormo da solo» — e sceglierla` |  |  |  |
+| `richiederebbe di sapere che camere ha l'albergo. Il gestionale usa invece` |  |  |  |
+| `fn_alloggi_tipi_ammessi, che le mostra tutte: SFT con la struttura ci parla.` |  |  |  |
 | `fn_alloggi_tipo_predefinito` | p_data_viaggio_id integer, p_persone integer | integer | La sistemazione da mettere d'ufficio a un gruppo di N persone su questa partenza, o NULL se |
 | `non ce n'e' una adatta — e allora non si propone niente, invece di proporre una capienza che` |  |  |  |
 | `poi viene rifiutata. ⚠️ Unica fonte per il sito e per il gestionale: il sito non fa scegliere` |  |  |  |
