@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–624)
+### Elenco ordinato (467–625)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -402,6 +402,7 @@ ls SqlScripts/*.sql \
 | 622 | Via_ESP_Piano_Abbandonato | Elimina tabella e funzioni `ana_aziende_esp`. ⚠️ Il piano ESP (mail via provider esterno) era stato **abbandonato il 2026-07-12**, e la tabella lasciata «pronta per un uso futuro»: Adriano ha confermato il 2026-09-07 che quella strada non si riprende. ⛔️ Teneva una colonna per una **chiave API cifrata** in un sistema che quel segreto non usa: un contenitore di segreti dimenticato è peggio di nessun contenitore. ⚠️ **Su PROD non esiste** (verificato in sola lettura): lì non farà nulla. Gli script `421` e `443` restano in sequenza ma sono superati da questo; il **`475` serve ancora**, perché cifra anche i segreti SMTP, che sono vivi. ⚠️ Rifiuta di procedere se la tabella contiene righe |
 | 623 | Blocco_B_Una_Scrittura_Per_Tabella | ⛔️ **Verificato che non esiste più un caso di due funzioni diverse che fanno lo stesso lavoro dai due lati.** Le tre tabelle che entrambi scrivono usano la stessa funzione: `fn_ana_clienti_insert/_update`, `fn_mov_clienti_viaggi_insert`, `fn_alloggi_salva_camera`. Elimina l'ultima morta, `sp_mov_clienti_viaggi_create` — la vecchia iscrizione senza controlli, quella per cui si sono iscritti 11 piloti senza email. ⚠️ Sembrava viva perché il suo nome compariva in un **commento**: la ricognizione va fatta sul codice ripulito dai commenti. Solo un `DROP`, nessun dato modificato |
 | 624 | Blocco_C_Una_Regola_Per_Email | ⛔️ **«Indirizzo valido» era definito due volte, e diversamente**: `fn_validate_email_format` in un modo, `fn_ana_clienti_valida` se lo riscriveva più permissivo. Ora la definizione è una e la seconda la chiama. ⚠️ Su PROD (azienda 2) **tutti i 198 indirizzi passano** la regola severa: nessuno resta bloccato (verificato in sola lettura). In locale ne cade uno, ed è un errore vero — `mailto:…@gmail.com`, un collegamento incollato al posto dell'indirizzo. ⛔️ Elimina anche `validate_codice_fiscale`, che controllava solo la forma e aveva dentro scritto **`TODO: Implementare algoritmo completo`**: nessun carattere di controllo, accanto alla famiglia `fn_cf_*` che invece è completa. È il tipo peggiore di funzione morta — non inerte, **ingannevole**. Con lei `validate_fiscal_data` e `validate_partita_iva`, che nessuno chiamava |
+| 625 | Blocco_D_Una_Regola_Per_Partenza_Chiusa | ⛔️ **«Partenza chiusa» era definita due volte, con regole DIVERSE.** `fn_partenza_iscrivibile` (inizio futuro e non effettuata) è quella in vigore, che usano sito e gestionale; `fn_partenza_conclusa` (effettuata **oppure** fine passata) non la chiamava più nessuno. Non dicono la stessa cosa: una partenza cominciata ieri e in corso oggi non è «conclusa» ma non è nemmeno «iscrivibile». ⚠️ È lo stesso difetto che lo script `583` aveva chiuso — il sito che mostra partenze che il database poi rifiuta — e sarebbe tornato al primo che avesse preso la funzione sbagliata. Solo un `DROP` |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -961,6 +962,36 @@ CROSS JOIN LATERAL fn_ana_clienti_campi_mancanti(to_jsonb(c), FALSE) m
 WHERE c.azienda_fk = 2
 GROUP BY 1,2,3 ORDER BY 2,3;
 ```
+
+---
+
+### 2.17 — Le letture da guardare, e i due file che non si leggono più
+
+**Le letture senza chiamanti.** Sul database ci sono **316 funzioni di sola lettura**, di cui
+**83** non risultano chiamate da nessuno (dopo aver tolto `fn_partenza_conclusa` con il `625`).
+⚠️ **Non si eliminano in blocco**: sulle letture il rilevatore ha già sbagliato una volta —
+`fn_partenza_conclusa` risultava «senza chiamanti» ma il suo nome compariva in due file, dentro
+dei commenti. E fra le 83 ci sono **sovraccarichi legittimi**, cioè la stessa funzione con firme
+diverse, che il conteggio vede come righe separate. Vanno guardate in una passata dedicata, con
+lo stesso metodo usato per le scritture.
+
+**Due file che nessuno riesce più a leggere**, e che nessuna pulizia automatica risolve:
+
+| File | Righe |
+|---|---|
+| `static/js/steps/Step2Content.jsx` | **3241** |
+| `app.py` | **2720** |
+
+⚠️ Non è un problema di stile: in `app.py` stanno insieme la configurazione, tutti gli endpoint,
+la posta e la finalizzazione, e per capire dove finisce una cosa bisogna scorrere il file intero.
+Dividerli è un lavoro a sé — non si fa in mezzo ad altro, e va fatto quando il comportamento è
+fermo, altrimenti si perde la possibilità di dire «prima funzionava».
+
+**Un ramo dimenticato.** `worktrees/step5-ux-redesign/` è una cartella di lavoro git sul ramo
+`feature/step5-ux-redesign`, ferma al **2026-04-11**, che contiene copie di `Step2Content.jsx` e
+un file `Step2Content copy.jsx`. ⚠️ Riguarda proprio il passo 5 riscritto il 2026-09-07, quindi è
+quasi certamente superata — ma **non è stata toccata**: contiene un file non tracciato, che
+sparirebbe. Decisione di Adriano.
 
 ---
 

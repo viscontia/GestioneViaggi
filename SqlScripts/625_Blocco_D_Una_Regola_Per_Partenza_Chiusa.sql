@@ -1,0 +1,29 @@
+-- =============================================================================
+-- 625 — Blocco D: «partenza chiusa» era definita due volte, con regole diverse
+-- =============================================================================
+--
+-- Le letture: 316 funzioni di sola lettura, di cui 84 senza chiamanti. ⚠️ Non si
+-- eliminano in blocco — il rilevatore, sulle letture, ha gia' sbagliato una volta —
+-- ma una merita di sparire subito, perche' non e' inerte: dice una cosa DIVERSA da
+-- quella in vigore.
+--
+--   fn_partenza_iscrivibile   inizio nel futuro E non gia' effettuata   ← in vigore
+--   fn_partenza_conclusa      effettuata OPPURE con la fine passata     ← nessuno
+--
+-- Non sono la stessa regola: una partenza cominciata ieri e in corso oggi **non e'
+-- conclusa**, ma **non e' nemmeno iscrivibile**. Chi trovasse `fn_partenza_conclusa`
+-- e la usasse credendola l'autorita' otterrebbe l'elenco sbagliato — ed e' proprio
+-- il difetto che lo script 583 era stato scritto per chiudere, quando il sito
+-- mostrava partenze che poi il database rifiutava.
+--
+-- Oggi il sito e il gestionale chiamano **la stessa**: `fn_partenza_iscrivibile`,
+-- direttamente o tramite `fn_partenza_motivo_non_iscrivibile`, che spiega il rifiuto
+-- con parole leggibili. Questa e' la superstite dello script 578, superata dal 584.
+--
+-- ⚠️ Le altre 83 letture senza chiamanti restano: sono elencate in §2.17 della
+-- checklist, e vanno guardate in una passata dedicata. Fra loro ci sono anche
+-- sovraccarichi legittimi (la stessa funzione con firme diverse), che il conteggio
+-- vede come righe separate.
+-- =============================================================================
+
+DROP FUNCTION IF EXISTS fn_partenza_conclusa(integer);
