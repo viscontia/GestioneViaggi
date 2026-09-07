@@ -1531,7 +1531,40 @@ l'ambiente del processo Flask in PROD **non** la contenga:
 ```bash
 # sul server, prima di dichiarare fatto il go-live
 grep -c MAIL_DIROTTA_A .env    # deve dare 0
+grep -c MAIL_AMBIENTE_REALE .env   # deve dare 1
 ```
+
+⛔️ **`MAIL_AMBIENTE_REALE=si` è OBBLIGATORIA in produzione, dal 2026-09-07.** Da quella data
+il sito **si rifiuta di spedire** quando `MAIL_DIROTTA_A` non c'è e nessuno ha dichiarato di
+essere in produzione. Senza quella riga, in PROD **non parte nessuna conferma di iscrizione**.
+
+Perché è stata introdotta: `.env` viene **sostituito** a ogni cambio di ambiente
+(`avvia-supabase.sh` fa `cp .env.supabase .env`), e per mesi `.env.supabase` — che punta ai
+dati veri su Supabase — era l'unico a non avere la riga del dirottamento. Bastava avviare da lì
+per spedire ai clienti veri. La sicurezza non può dipendere dal ricordarsi una riga in un file
+che viene riscritto: ora il caso pericoloso fallisce da solo, e il fallimento è **visibile**
+(nessuna mail parte, con un messaggio che dice cosa fare) invece che silenzioso.
+
+⚠️ **Il gestionale non ha ancora questa protezione** (§3.9).
+
+---
+
+### 3.9 — ⚠️ Il gestionale spedisce senza rete di sicurezza
+
+Rilevato il 2026-09-07 verificando il sito. `Services/Email/SmtpEmailSender.cs` — e la sua
+seconda implementazione `ResendEmailSender.cs` — **non hanno alcun dirottamento**: dal
+gestionale la posta va sempre ai destinatari veri, anche eseguendo in locale.
+
+⚠️ Non è teorico e non è simmetrico al sito: `NewsletterSenderService` spedisce **uno per uno**
+agli indirizzi che tornano da `fn_web_destinatari_newsletter`. Nel database locale ci sono
+**186 clienti di azienda 2 con un'email valida**: una newsletter partita per errore da una
+macchina di sviluppo raggiunge loro, non un indirizzo di prova.
+
+Non è stato toccato il 2026-09-07 di proposito, per non modificare un componente condiviso
+mentre è in corso una sessione di collaudo. **Va fatto prima della consegna**, con la stessa
+regola del sito e lo stesso nome di variabile — una regola sola, due prodotti — tenendo conto
+che un'app desktop avviata dal Finder non vede le variabili d'ambiente della shell: per il
+gestionale la sede naturale è `appsettings`, con precedenza all'ambiente.
 
 ---
 
@@ -1574,6 +1607,8 @@ grep -c MAIL_DIROTTA_A .env    # deve dare 0
 - [ ] Eseguito il Piano di Test dell'Estensione Web (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end — è la parte CMS dentro il gestionale.
 - [ ] **Eseguito il Piano di Test del sito di iscrizione** (`Documents/2026-09-07-Piano_Test_Sito_Iscrizione.md`) — nove gruppi, dall'apertura della pagina a cosa resta scritto a database. ⚠️ Il gruppo **I** è quello che verifica l'unificazione fra sito e gestionale: se un'iscrizione fatta dal sito non si riesce a risalvare dal gestionale, il sito ha scritto qualcosa che le regole non accettano.
 - [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
+- [ ] **`MAIL_AMBIENTE_REALE=si` nell'ambiente Flask di PROD** (§3.8) — ⛔️ senza, non parte nessuna conferma di iscrizione; e `MAIL_DIROTTA_A` assente.
+- [ ] **Dirottamento posta anche nel gestionale** (§3.9) — oggi la newsletter va ai destinatari veri anche da una macchina di sviluppo: 186 clienti nel solo database locale.
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
 
