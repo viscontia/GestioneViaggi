@@ -959,6 +959,32 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
+### 2.14 — DA FARE PRIMA DEL GO-LIVE: la stessa ricognizione su TUTTO il sito
+
+Chiesto da Adriano il 2026-09-07: «bisogna tornare su Flask per fare una verifica più
+profonda e uniformare tutte le chiamate compresi i CRUD tra MAUI e Flask».
+
+Quella fatta finora ha coperto **solo le sistemazioni**, ed è bastata a trovare: cinque
+regole duplicate nel JavaScript, ⚠️ **nove funzioni che scrivevano sulla stessa tabella** —
+quattro delle quali senza alcun controllo — e nessuna che guardasse il genere del viaggio.
+
+⚠️ **Non c'è motivo di credere che le sistemazioni fossero un caso isolato.** Le altre aree
+dove il sito e il gestionale toccano gli stessi dati, e che vanno guardate allo stesso modo:
+
+| Area | Cosa verificare |
+|---|---|
+| **Anagrafica cliente** | Già misurata il 2026-08-20 e già nota: 17 validator in C#, **un solo CHECK a database**. È il caso peggiore conosciuto |
+| **Iscrizione al viaggio** (`mov_clienti_viaggi`) | Quante funzioni scrivono? Il sito e il gestionale usano la stessa? |
+| **Mezzi** (marca, modello, targa) | Il sito ha il passaggio del tipo, il gestionale l'ha aggiunto dopo: le regole coincidono? |
+| **Documenti d'identità** | Già unificati col `585`, ma va verificato che il sito usi davvero `fn_ana_tipo_documento_get_all` |
+| **Consensi e newsletter** | Il sito raccoglie, il gestionale invia: una regola sola su chi si può contattare |
+
+**Il metodo che ha funzionato**, da ripetere tale e quale: contare **chi scrive** ogni
+tabella con una query su `pg_proc`, poi contare **chi le chiama** da C# e da Python. Le
+funzioni senza chiamanti non sono innocue: sono la prossima strada che qualcuno prenderà.
+
+---
+
 ### 2.13 — DA SCRIVERE PRIMA DELLA CONSEGNA: il manuale di cosa è cambiato
 
 ⛔️ **Non è documentazione di cortesia: senza, l'operatore fa danni.** Deciso da Adriano il
