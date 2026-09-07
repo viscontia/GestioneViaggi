@@ -17,15 +17,53 @@ vale come non-regressione. Questo è il suo gemello sul sito.
 
 | Gruppo | Esito |
 |---|---|
-| **A** — L'ambiente prima di cominciare | ☐ |
-| **B** — Passo 1: viaggio, data, email | ☐ |
-| **C** — Passo 2: l'anagrafica di chi guida | ☐ |
-| **D** — Il consenso all'invio di email | ☐ |
+| **A** — L'ambiente prima di cominciare | ✅ **superato** (2026-09-07) |
+| **B** — Passo 1: viaggio, data, email | ✅ **superato** (2026-09-07), dopo la correzione di B5 |
+| **C** — Passo 2: l'anagrafica di chi guida | 🟡 in corso: regole verificate a database, resta la prova a schermo di C5, C8, C9, C15 |
+| **D** — Il consenso all'invio di email | 🟡 D4 superato; il resto da provare |
 | **E** — Passo 3: i passeggeri | ☐ |
 | **F** — Passo 4: mezzo, cane, note | ☐ |
 | **G** — Passo 5: le sistemazioni | ☐ |
 | **H** — La conferma: cosa resta scritto | ☐ |
 | **I** — Che le due strade dicano la stessa cosa | ☐ |
+
+---
+
+## Esito della prima passata (assistente, 2026-09-07)
+
+⚠️ **Questa passata NON sostituisce la tua.** Le prove le ha scritte chi ha scritto il codice:
+esercitano quello che *credo* siano le regole. Serve a togliere di mezzo i difetti meccanici,
+non a dire che il sito è a posto.
+
+**Difetti trovati e corretti:**
+- ⛔️ **B5** — il sito accettava `mailto:tizio@dominio.it` al passo 1 e se lo portava dentro il
+  campo Mail. Era la porta da cui è entrato in anagrafica il caso PERINI ELENA. Causa: il passo 1
+  aveva una regex propria, più permissiva della regola vera. Ora chiede al database.
+- ⛔️ Il **blocco all'iscrizione** aggiunto lo stesso giorno non funzionava al primo tentativo:
+  era agganciato a `updateStepValidity`, che non ferma il passaggio di schermata. Trovato solo
+  provando a schermo.
+
+**Le regole, verificate a database con una scheda di controllo coerente:**
+
+| Prova | Esito |
+|---|---|
+| controprova: scheda corretta | ✅ nessun rilievo |
+| C3 codice fiscale malformato | `FORMA` (ERRORE) |
+| C4 codice fiscale di un'altra persona | `CARATTERE_CONTROLLO` (ERRORE) |
+| C6 nome femminile con titolo `SIG.` | `NOME_SESSO` (**AVVISO**: avvisa, non blocca) |
+| C10 data di nascita nel futuro | `NASCITA_FUTURA` (ERRORE) |
+| C13 documento scaduto | `DOCUMENTO_SCADUTO` (**AVVISO**) |
+| C13 rilascio nel futuro | `RILASCIO_FUTURO` (ERRORE) |
+| B4 email malformata | `EMAIL_FORMATO` (ERRORE) |
+
+⚠️ **Il documento scaduto è un avviso, non un errore**, ed è voluto: a fermare davvero c'è
+`documentoValidoPerLaPartenza`, che confronta la scadenza con **quella partenza** — all'estero
+ferma, in Italia avvisa. Una carta d'identità scaduta non impedisce un viaggio in Sardegna.
+Se non sei d'accordo, è un cambio di regola, non un difetto.
+
+⚠️ **Alla prima misura sbagliai la scheda di controllo**: il codice fiscale inventato non
+corrispondeva al comune scelto a caso, e *ogni* riga risultava in errore. Gli esiti qui sopra
+sono quelli dopo aver reso coerente la base.
 
 ---
 
