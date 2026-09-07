@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–621)
+### Elenco ordinato (467–622)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -399,6 +399,7 @@ ls SqlScripts/*.sql \
 | 619 | Una_Sola_Scrittura_Per_Le_Sistemazioni | ⛔️ **Da nove funzioni che scrivevano `mov_clienti_alloggi` a una.** Misurato prima di toccare: il gestionale ne usava tre strade, il sito una quarta, le altre erano rimaste indietro senza chiamanti — e quattro su cinque non controllavano niente. Resta `fn_alloggi_salva_camera`, che prende anche `p_created_by` (serviva al sito). ⚠️ **Elimina** `fn_wizard_insert_alloggio_assegnato`, `sp_mov_clienti_alloggi_create/update`, `sp_assign_to_first_free_slot`, `sp_resolve_room_violation_move`: verificato che nessuno le chiami più. Restano a parte `fn_mov_clienti_alloggi_togli_cliente` (cancellazione), `sp_remove_client_from_room` (usata da altre tre) e `fn_silos_rimappa_movimenti` (bonifica una tantum). ⚠️ Va **insieme al gestionale E al sito**: entrambi cambiano strada nello stesso momento |
 | 620 | La_Doppia_Uso_Singola_E_Una_Variante | Valorizza `ana_tipo_alloggio.tipo_alloggio_fk` — **la colonna che esisteva da sempre e non era mai stata usata in 17 righe** — per dire che CAMERA DOPPIA USO SINGOLA è una **variante commerciale** di CAMERA DOPPIA LETTI SINGOLI: la stessa stanza con un trattamento diverso. ⚠️ Il sito non offre più le varianti: chi viaggia da solo vede CAMERA SINGOLA e CAMERA SINGOLA DISABILI, perché quello che chiede è «dormo da solo» — se poi l'albergo gli dà una doppia, è una decisione della struttura. Il **gestionale continua a vederle tutte**: SFT con l'albergo ci parla. ⛔️ Non si riconosce dal nome ma dalla colonna: «USO SINGOLA» nel testo è il difetto tolto quattro volte in tre giorni. ⚠️ Una riga di dati modificata |
 | 621 | Scritture_Senza_Chiamanti | **Blocco A dell'unificazione.** Elimina **35 funzioni di scrittura che non chiamava più nessuno** — né gestionale, né sito, né altre funzioni, né trigger. Erano 50 su 172; le altre 15 sono escluse di proposito e spiegate nello script. ⛔️ **Nessuna funzione viva viene toccata**: verificato uno per uno che `fn_app_login_text`, `fn_app_request_password_reset`, `fn_app_health_check`, `fn_app_list_users`, `fn_app_list_roles` e `fn_silos_rimappa_movimenti` restino. ⚠️ Fra le eliminate: `sp_ana_clienti_*` e `fn_wizard_*` (sostituite dalle funzioni condivise), il CRUD dell'interfaccia esterna abbandonata, `fn_superadmin_update_table` (UPDATE su qualsiasi tabella passata come stringa: nessun controllo poteva valere) e l'ultimo resto di Retool, abbandonato da oltre un anno. Solo `DROP FUNCTION`, nessun dato modificato |
+| 622 | Via_ESP_Piano_Abbandonato | Elimina tabella e funzioni `ana_aziende_esp`. ⚠️ Il piano ESP (mail via provider esterno) era stato **abbandonato il 2026-07-12**, e la tabella lasciata «pronta per un uso futuro»: Adriano ha confermato il 2026-09-07 che quella strada non si riprende. ⛔️ Teneva una colonna per una **chiave API cifrata** in un sistema che quel segreto non usa: un contenitore di segreti dimenticato è peggio di nessun contenitore. ⚠️ **Su PROD non esiste** (verificato in sola lettura): lì non farà nulla. Gli script `421` e `443` restano in sequenza ma sono superati da questo; il **`475` serve ancora**, perché cifra anche i segreti SMTP, che sono vivi. ⚠️ Rifiuta di procedere se la tabella contiene righe |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -961,7 +962,7 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
-### 2.15 — Le 13 scritture orfane rimandate, e perché
+### 2.15 — Le 10 scritture orfane rimandate, e perché
 
 Il `621` ha eliminato 35 funzioni di scrittura senza chiamanti. Queste **restano**, e non per
 dimenticanza: ognuna appartiene a una funzionalità viva o a una scelta già presa. Vanno
@@ -969,7 +970,6 @@ guardate una per una, con calma, dopo il go-live.
 
 | Funzioni | Perché restano |
 |---|---|
-| `fn_ana_aziende_esp_insert/update/delete` | ⚠️ `ana_aziende_esp` è **«predisposta ma inutilizzata, pronta per un eventuale uso futuro»** (decisione del 2026-07-12): eliminarne le funzioni disferebbe quella scelta |
 | `sp_ana_aliquote_iva_*` (4) | L'IVA è viva nel gestionale: prima va capito da dove passa oggi la sua gestione |
 | `fn_test_smtp_config`, `sp_ana_aziende_smtp_test_connection` | La prova SMTP è una funzione che serve, anche se oggi la chiama altro |
 | `fn_logo_setup_master_detail_relation`, `fn_logo_update_access_stats` | Appartengono alla gestione dei loghi, viva |
