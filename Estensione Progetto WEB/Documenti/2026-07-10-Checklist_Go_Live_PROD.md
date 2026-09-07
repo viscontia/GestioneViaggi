@@ -982,6 +982,10 @@ Destinatari: Antonio oggi, e chi verrà dopo di lui.
    segnalato in giallo.
    Regola pratica da scrivere in grassetto: **quando sai già che dormiranno insieme, non
    assegnare la camera al momento dell'iscrizione.**
+   ⚠️ **Dal 2026-09-07 questa è la strada preimpostata**: l'interruttore «Assegna la camera
+   adesso» nasce **spento**, e le due attività — iscrivere e sistemare — sono separate, come
+   erano su Oracle. Il manuale deve spiegare che è una scelta, non una dimenticanza: chi
+   arriva da una versione precedente si aspetta di trovarlo acceso.
 
 2. **La capienza deve corrispondere**: non esistono camere «a metà». Le eccezioni con
    l'albergo — una doppia pagata a uso singola — si gestiscono fuori dal programma

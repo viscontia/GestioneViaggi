@@ -557,11 +557,25 @@
                                             <MudIcon Icon="@Icons.Material.Filled.Hotel" Color="Color.Primary" Size="Size.Small" />
                                             <MudText Typo="Typo.subtitle2" Color="Color.Primary"><b>Alloggio</b></MudText>
                                         </div>
+                                        @* ⚠️ L'etichetta non cambia con l'interruttore: prima, da spento,
+                                           diceva soltanto «No» — e da quando è spento di partenza si
+                                           leggerebbe sempre così, senza dire di che cosa. *@
                                         <MudSwitch @bind-Value="@_wantsAccommodation"
                                                    @bind-Value:after="@OnWantsAccommodationChangedAsync"
-                                                   Label="@(_wantsAccommodation ? "Assegna camera" : "No")"
+                                                   Label="Assegna la camera adesso"
                                                    Color="Color.Success" />
                                      </div>
+
+                                @if (!_wantsAccommodation && !_isEditMode)
+                                {
+                                         @* Dove andare dopo: senza questa riga, chi lascia l'interruttore
+                                            spento non sa che il lavoro non è finito. *@
+                                         <MudText Typo="Typo.caption" Class="mb-2 d-block mud-text-secondary">
+                                             Le sistemazioni si compongono dopo, dalla linguetta
+                                             <b>«Partecipanti senza camere»</b>: è la strada giusta quando
+                                             due persone dormono insieme.
+                                         </MudText>
+                                }
 
                                 @if (_wantsAccommodation)
                                 {
@@ -830,7 +844,18 @@
     private bool _isLoadingList = true;
     private bool _isEditMode = false;
     private bool _hasDog = false;
-    private bool _wantsAccommodation = true; // Default true (90% case)
+    /// <summary>
+    /// Se all'iscrizione si assegna anche la sistemazione. ⚠️ **Spento di partenza** dal
+    /// 2026-09-07, su richiesta di Adriano dopo averle provate entrambe: iscrivere e
+    /// sistemare sono due lavori distinti, e tenerli separati è più chiaro — «un po' come
+    /// funzionava precedentemente su Oracle».
+    ///
+    /// ⚠️ E non è solo comodità: assegnando durante l'iscrizione, per una coppia il primo
+    /// prende una camera singola che poi va cambiata, e nel frattempo il dato dice una cosa
+    /// falsa che sembra vera. Con lo switch spento lo stato intermedio è «senza camera», che
+    /// è segnalato dalla linguetta gialla: sbagliato ma visibile.
+    /// </summary>
+    private bool _wantsAccommodation = false;
     private bool _assignToExistingRoom = false; // Se true, assegna a camera esistente
     private int? _selectedExistingRoomId = null; // ID camera esistente selezionata
     private bool _needsTabRefresh = false; // Flag per richiedere refresh Tab navigation dopo render
@@ -1154,7 +1179,7 @@
         _currentEntity = new MovClientiViaggi();
         _selectedCliente = null;
         _hasDog = false;
-        _wantsAccommodation = true;
+        _wantsAccommodation = false;   // stesso default della scheda appena aperta
         _assignToExistingRoom = false;
         _selectedExistingRoomId = null;
         _ingrandimento = null;

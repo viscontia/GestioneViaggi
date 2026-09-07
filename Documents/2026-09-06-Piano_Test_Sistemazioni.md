@@ -148,7 +148,9 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
-| E1 | Iscrivi **due persone spegnendo «Assegna camera»**, poi dalla linguetta **«Partecipanti senza camere»** premi **Assegna** sulla prima → «Una sistemazione sua» → scegli **CAMERA MATRIMONIALE** → aggiungi anche la seconda → salva | Si salva. ⚠️ Da lì il tipo è **libero**: si sceglie la sistemazione e poi si riempie, e «Aggiungi Occupante» resta finché non è piena |
+| E0 | Apri la scheda di un nuovo partecipante | ⚠️ **«Assegna la camera adesso» è SPENTO**, e sotto c'è scritto dove si compongono le sistemazioni. L'etichetta non cambia più in «No», che da spenta non diceva di che cosa |
+| E0b | Modifica un'iscrizione di **chi una camera ce l'ha** | L'interruttore è **acceso**: riflette la realtà, non il default |
+| E1 | Iscrivi **due persone** (l'interruttore è già spento), poi dalla linguetta **«Partecipanti senza camere»** premi **Assegna** sulla prima → «Una sistemazione sua» → scegli **CAMERA MATRIMONIALE** → aggiungi anche la seconda → salva | Si salva. ⚠️ Da lì il tipo è **libero**: si sceglie la sistemazione e poi si riempie, e «Aggiungi Occupante» resta finché non è piena |
 | E1b | Prova a fare la stessa cosa **iscrivendo** una persona (Crea nuova camera) | ⚠️ La matrimoniale **non c'è in elenco**, ed è voluto: lì stai sistemando UNA persona, e una camera da due con uno dentro non è uno stato ammesso. Per dormire in due si usa «aggiungi a camera esistente» |
 | E2 | Crea una **matrimoniale** con **un solo** occupante | ⚠️ Rifiutato: «ospita 2 persone, ne è stata indicata 1». Una doppia con uno solo si chiama «doppia uso singola» ed è un tipo suo |
 | E3 | Crea una **camera singola** con 1 occupante | Si salva |
