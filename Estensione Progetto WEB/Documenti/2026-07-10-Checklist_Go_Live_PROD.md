@@ -1002,7 +1002,56 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
+### 2.19 — Quattro controlli che esistono e non sono collegati a niente
+
+Trovati il **2026-09-07** mentre si toglievano le funzioni senza chiamanti. Non sono stati tolti
+con il `626` apposta: sono controlli veri, e cancellarli farebbe sparire la traccia di una
+lacuna invece di colmarla. ⚠️ Nessuno dei quattro è bloccante per il go-live, ma vanno decisi.
+
+**1. Il reset della password non ha un limite ai tentativi.** `check_reset_rate_limit` esiste,
+e nessuno la chiama. Non è teoria: `password_reset_tokens` ha 19 righe e
+`password_reset_attempts` ne ha 21, quindi la funzione di reset **si usa davvero**. Oggi si può
+chiedere il reset quante volte si vuole. Vanno insieme `get_reset_stats` (mai chiamata) e
+`cleanup_expired_tokens` (i token scaduti non li ripulisce nessuno: restano validi nel senso che
+restano lì).
+
+**2. I ruoli utente non hanno integrità referenziale.** `trg_user_roles_delete_protection`
+impedirebbe di cancellare un ruolo ancora assegnato a qualcuno — ma non è agganciata a nessuna
+tabella, né in locale né su PROD. E non c'è una FK che faccia il suo lavoro: le uniche chiavi
+esterne di `app_users` sono `fk_app_users_azienda` e `fk_app_users_valuta_default`, **nessuna
+su `role_id`**. Cancellando un ruolo, gli utenti che ce l'hanno restano a puntare nel vuoto.
+⚠️ È esattamente il caso delle «quattro domande» sull'integrità referenziale: la scelta è fra
+agganciare il trigger e mettere la FK — la seconda è più solida, e la spiegazione del rifiuto
+va scritta comunque.
+
+**3. La contabilità apre una form che chiama una funzione inesistente.**
+`MovTransazioniService.cs:173` chiama `fn_get_transazione_init_data`, che non esiste **né in
+locale né su PROD**. È la spiegazione del «la form funziona male» notato il 2026-09-07.
+⛔️ **`SqlScripts/270_Create_FnGetTransazioneInitData.sql` non va applicato così com'è**: è
+stato scritto prima di tre rinomine e cerca colonne che non esistono più — `ana_controparti.azienda_id_fk`
+(oggi `azienda_fk`), `ana_viaggi.azienda_id_fk` (oggi `azienda_id`) e un `is_active` su
+`ana_controparti` che non c'è. Provato in locale il 2026-09-07: la funzione si crea e poi
+fallisce alla prima chiamata. Va riscritta quando si affronterà la contabilità, che Adriano ha
+rimandato a una release successiva.
+
+**4. `fn_ana_aliquote_iva_get_active_by_filter.sql`** è uno script senza numero, mai applicato,
+la cui funzione non esiste. Rientra nella contabilità/IVA rimandata.
+
+---
+
 ### 2.18 — ⚠️ DB-first: è il GESTIONALE a non rispettarlo, non il sito
+
+> **Aggiornamento 2026-09-07 (script 627).** Il caso peggiore è stato chiuso: il gestionale non
+> si limitava a leggere con SQL scritto dentro il C#, **creava oggetti di database a ogni avvio**.
+> `DbMigrationService`, chiamato da `MainLayout` in DEBUG, creava due funzioni, due trigger e una
+> terza funzione, e alla riga 80 **riscriveva i dati**
+> (`UPDATE ana_geo_comuni SET comune_num_abitanti = 10 WHERE ... < 10 OR IS NULL`).
+> `StatisticYearService` ne teneva una seconda copia per ricreare la funzione al volo quando
+> mancava. Il servizio è stato eliminato, la funzione utile è passata nello script `627`, e il
+> C# ora fa solo la chiamata. I due trigger di auto-numerazione non sono stati ricreati: le
+> colonne hanno già il proprio `nextval()`, su PROD come in locale — numeravano una cosa già
+> numerata. Il CHECK sugli abitanti non è stato ripreso: non è una migrazione, è una scelta di
+> merito su cosa sia un dato valido, e spetta a chi conosce il dato.
 
 Misurato il 2026-09-07, ed è il contrario di quello che ci si aspetta.
 
@@ -1039,15 +1088,28 @@ suo.
 
 ---
 
-### 2.17 — Le letture da guardare, e i due file che non si leggono più
+### 2.17 — ✅ FATTO: le letture senza chiamanti (script 626)
 
-**Le letture senza chiamanti.** Sul database ci sono **316 funzioni di sola lettura**, di cui
-**83** non risultano chiamate da nessuno (dopo aver tolto `fn_partenza_conclusa` con il `625`).
-⚠️ **Non si eliminano in blocco**: sulle letture il rilevatore ha già sbagliato una volta —
-`fn_partenza_conclusa` risultava «senza chiamanti» ma il suo nome compariva in due file, dentro
-dei commenti. E fra le 83 ci sono **sovraccarichi legittimi**, cioè la stessa funzione con firme
-diverse, che il conteggio vede come righe separate. Vanno guardate in una passata dedicata, con
-lo stesso metodo usato per le scritture.
+Chiuso il **2026-09-07**, dopo l'osservazione di Adriano: «Se sono morte perché le teniamo?».
+Erano rimaste per prudenza, ma la prudenza giusta non è tenerle: è verificarle una per una.
+
+Lo script `626` toglie **84 funzioni** (81 letture + 10 scritture, 87 firme contando i
+sovraccarichi): il database passa da **699 a 612** funzioni. Il metodo è descritto nella testa
+dello script; i tre punti che lo rendono affidabile sono: i commenti tolti prima di cercare, le
+firme lette da `pg_proc` invece che indovinate, e il controllo su trigger/CHECK/viste/default/
+indici/policy — perché un trigger non nomina la sua funzione in nessun file. Verificato anche
+su PROD in sola lettura.
+
+⚠️ **Le definizioni non sono perdute.** Molte non comparivano in nessuno script: esistevano solo
+dentro il database. Sono salvate per intero in `Documents/2026-09-07-Funzioni_rimosse_definizioni.sql`,
+tenuto **fuori** da `SqlScripts/` apposta, perché il ciclo di go-live non le riapplichi.
+
+⚠️ **Il gruppo più numeroso — 33 funzioni geografiche più 7 dell'IVA — non era spazzatura: era
+la versione DB-first di qualcosa che il gestionale fa con SQL scritto dentro il C#.** Sono state
+tolte lo stesso, e per una ragione precisa: non le ha mai eseguite nessuno, sono anteriori a tre
+re-model dello schema, e tenere del codice mai provato come «destinazione futura» è una falsa
+sicurezza. Quando si affronterà l'SQL inline (§2.18) si riscriveranno sullo schema di allora,
+partendo — se serve — dal file di ricovero.
 
 **Due file che nessuno riesce più a leggere**, e che nessuna pulizia automatica risolve:
 
@@ -1088,22 +1150,16 @@ database locale non resta **nessun** indirizzo non valido.
 
 ---
 
-### 2.15 — Le 10 scritture orfane rimandate, e perché
+### 2.15 — ✅ FATTO: le scritture orfane (script 626)
 
-Il `621` ha eliminato 35 funzioni di scrittura senza chiamanti. Queste **restano**, e non per
-dimenticanza: ognuna appartiene a una funzionalità viva o a una scelta già presa. Vanno
-guardate una per una, con calma, dopo il go-live.
+Le 10 scritture che il `621` aveva lasciato indietro sono state riprese una per una e tolte con
+il `626`: le quattro dell'IVA, la prova SMTP, le due dei loghi, la cancellazione delle funzioni
+web e `fn_superadmin_delete_from_table`.
 
-| Funzioni | Perché restano |
-|---|---|
-| `sp_ana_aliquote_iva_*` (4) | L'IVA è viva nel gestionale: prima va capito da dove passa oggi la sua gestione |
-| `fn_test_smtp_config`, `sp_ana_aziende_smtp_test_connection` | La prova SMTP è una funzione che serve, anche se oggi la chiama altro |
-| `fn_logo_setup_master_detail_relation`, `fn_logo_update_access_stats` | Appartengono alla gestione dei loghi, viva |
-| `fn_web_aziende_funzioni_delete`, `fn_web_newsletter_set_oggetto` | Un verbo di CRUD di funzionalità web vive: manca la cancellazione, non la funzione |
-
-⚠️ Restano fuori anche **accesso, password e token** (`fn_app_login`, `cleanup_expired_tokens`):
-sbagliare lì significa non entrare più nel gestionale. Si fa in un momento dedicato, non in
-mezzo ad altro.
+⚠️ Su quest'ultima vale la pena fermarsi: prendeva un nome di tabella e una clausola WHERE e
+costruiva la DELETE al volo. Era protetta da un controllo di ruolo, ma restava la porta di
+servizio che scavalca ogni regola scritta nelle funzioni di cancellazione vere — quella degli
+alloggi chiede all'operatore cosa diventa la camera di chi resta, questa cancellava e basta.
 
 ---
 
@@ -1472,7 +1528,8 @@ grep -c MAIL_DIROTTA_A .env    # deve dare 0
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **220** script 406–625 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **222** script 406–627 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+  ⛔️ **Non applicare `270_Create_FnGetTransazioneInitData.sql`**: cerca colonne che non esistono più (§2.19).
   ⚠️ Il conteggio era fermo a «114 script 406–524»: era il numero del 2026-07-10 e non seguiva l'elenco di §1, che nel frattempo è arrivato al 625. Ricontato sui file il 2026-09-07.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
