@@ -254,7 +254,6 @@ public static class MauiProgram
         builder.Logging.SetMinimumLevel(LogLevel.Information);
 
         // Servizio per le migrazioni DB (eseguito una tantum in MainLayout)
-        builder.Services.AddScoped<DbMigrationService>();
 #endif
 
         builder.Services.AddTransient<OracleClientiImportService>();

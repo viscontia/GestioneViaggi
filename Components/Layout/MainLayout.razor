@@ -140,22 +140,6 @@
             // Forza il refresh per applicare il tema
             StateHasChanged();
 
-#if DEBUG
-// Esegue le migrazioni del database (es. correzione dati, creazione trigger)
-try
-{
-using (var scope = Services.CreateScope())
-{
-var migrationService = scope.ServiceProvider.GetRequiredService<GestioneViaggi.Services.Database.DbMigrationService>();
-await migrationService.ApplyMigrationsAsync();
-Console.WriteLine("Database migrations applied successfully.");
-}
-}
-catch (Exception ex)
-{
-Console.WriteLine($"Error applying migrations: {ex.Message}");
-}
-#endif
         }
     }
 }
