@@ -1002,7 +1002,7 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
-### 2.19 — Quattro controlli che esistono e non sono collegati a niente
+### 2.19 — Tre controlli scollegati, e un falso allarme già chiuso
 
 Trovati il **2026-09-07** mentre si toglievano le funzioni senza chiamanti. Non sono stati tolti
 con il `626` apposta: sono controlli veri, e cancellarli farebbe sparire la traccia di una
@@ -1015,14 +1015,23 @@ chiedere il reset quante volte si vuole. Vanno insieme `get_reset_stats` (mai ch
 `cleanup_expired_tokens` (i token scaduti non li ripulisce nessuno: restano validi nel senso che
 restano lì).
 
-**2. I ruoli utente non hanno integrità referenziale.** `trg_user_roles_delete_protection`
-impedirebbe di cancellare un ruolo ancora assegnato a qualcuno — ma non è agganciata a nessuna
-tabella, né in locale né su PROD. E non c'è una FK che faccia il suo lavoro: le uniche chiavi
-esterne di `app_users` sono `fk_app_users_azienda` e `fk_app_users_valuta_default`, **nessuna
-su `role_id`**. Cancellando un ruolo, gli utenti che ce l'hanno restano a puntare nel vuoto.
-⚠️ È esattamente il caso delle «quattro domande» sull'integrità referenziale: la scelta è fra
-agganciare il trigger e mettere la FK — la seconda è più solida, e la spiegazione del rifiuto
-va scritta comunque.
+**2. ✅ FALSO ALLARME — i ruoli sono protetti (script 628).** Verificato il 2026-09-07 su
+richiesta di Adriano, prima dei test. ⚠️ **La lacuna non c'era, e l'errore era mio**: avevo letto
+il corpo del trigger invece dello schema di oggi. Il legame utente-ruolo non passa da
+`app_users.role_id` — quella colonna **non esiste**, né in locale né su PROD — ma da
+`app_user_role_map.role_code`, che è protetto da una FK `ON DELETE RESTRICT`; e lo stesso vale
+per `sys_menu_role_grants.role_code`. Provato per esperimento su transazione annullata:
+cancellare un ruolo assegnato **viene rifiutato**. Zero righe orfane in entrambi gli ambienti.
+
+`trg_user_roles_delete_protection` è stato quindi eliminato con il `628`: non era una protezione
+mancante, era il residuo di un disegno precedente scritto su una colonna poi rimossa — e la sua
+esistenza faceva credere che la protezione vera non ci fosse.
+
+⚠️ Resta scoperto **il messaggio**, non la regola: il rifiuto arriva come
+`violates foreign key constraint app_user_role_map_role_code_fkey`, che non dice quale ruolo né
+chi lo sta usando. Oggi senza conseguenze — i ruoli non si cancellano da nessuna interfaccia, e
+non esiste una funzione che lo faccia: si può solo a mano da psql. Quando si costruirà la
+gestione dei ruoli, il rifiuto dovrà spiegare (è la quarta delle «quattro domande»).
 
 **3. La contabilità apre una form che chiama una funzione inesistente.**
 `MovTransazioniService.cs:173` chiama `fn_get_transazione_init_data`, che non esiste **né in
@@ -1528,7 +1537,7 @@ grep -c MAIL_DIROTTA_A .env    # deve dare 0
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **222** script 406–627 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **223** script 406–628 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
   ⛔️ **Non applicare `270_Create_FnGetTransazioneInitData.sql`**: cerca colonne che non esistono più (§2.19).
   ⚠️ Il conteggio era fermo a «114 script 406–524»: era il numero del 2026-07-10 e non seguiva l'elenco di §1, che nel frattempo è arrivato al 625. Ricontato sui file il 2026-09-07.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
