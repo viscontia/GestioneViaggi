@@ -394,3 +394,60 @@ impedisce di rifarlo. Vedi il **difetto 83** nelle note di rilascio.
 ⚠️ **Resta aperto, ma è un'altra cosa**: l'azienda 6 in produzione non ha ragione di
 esistere (parole dell'utente, 2026-09-05). Va affrontato separatamente — qui si è solo
 fatto in modo che il confine fra le due aziende sia reale finché ce ne sono due.
+
+---
+
+## Unicità dell'anagrafica: un confronto su più campi, obbligatorio
+
+**Deciso il 2026-09-07** da Adriano, dopo aver misurato i doppioni veri di PROD: «anche lì
+dobbiamo avere una protezione e l'unica è un confronto su più campi anagrafici. Obbligatorio.»
+Vale **su entrambi i lati**: gestionale e sito. Da completare come analisi e poi realizzare —
+altrimenti il database continua a sporcarsi.
+
+### Perché non basta l'email
+
+Erano state considerate, e scartate sui dati veri:
+
+| Rimedio | Avrebbe fermato MAIORCA? | Avrebbe fermato TACCA? |
+|---|---|---|
+| `cliente_email` UNIQUE | ⛔️ no — la riga doppia **non aveva email** | ⛔️ no — due indirizzi diversi (`.sa` / `.ta`) |
+| OTP di verifica dell'indirizzo | ⛔️ no — creata dalla segreteria, non dal sito | ⛔️ no — entrambi gli indirizzi sono suoi |
+| **Identità: cognome + nome + data di nascita** | ✅ sì | ✅ sì |
+
+⚠️ **Nessuno dei due doppioni di produzione sarebbe stato impedito da email obbligatoria +
+unica + OTP. Entrambi lo sarebbero stati dal confronto anagrafico.**
+
+E l'email obbligatoria ha un costo che si ritorce: i 7 clienti della segreteria che hanno
+viaggiato senza indirizzo, e le tre coppie che ne condividono uno, sarebbero **costretti a
+inventarne uno** — cioè proprio le email finte che si vogliono evitare.
+
+### Il dato che orienta il lavoro
+
+Clienti di azienda 2 per origine: **163 creati dalla segreteria** nel gestionale, **32 dal
+sito**, 8 non registrati, 2 da Adriano. L'80% non passa dal sito: ⚠️ **una protezione che viva
+solo nel sito lascia scoperta la strada da cui arrivano quattro clienti su cinque.** Deve stare
+a database.
+
+### Cosa c'è già, e cosa manca
+
+La regola **esiste**, in `fn_ana_clienti_verifica_duplicato`: codice fiscale se c'è, altrimenti
+cognome + nome + data di nascita + comune di nascita, col commento «l'omonimia esiste, ma non
+alla stessa data e nello stesso comune di nascita». Manca il **vincolo** che la renda
+inaggirabile: oggi è una funzione che si può non chiamare.
+
+⚠️ Da decidere in analisi: la funzione usa anche il **comune di nascita**, ma su due delle tre
+coppie di PROD i coniugi sono nati nello stesso comune — quindi come vincolo va valutato se
+includerlo (più permissivo) o fermarsi a cognome + nome + data di nascita (più severo).
+Attenzione ai clienti **senza data di nascita**, che un vincolo non copre.
+
+**Stato di PROD al 2026-09-07:** dopo la cancellazione della MAIORCA doppia resta **1 gruppo in
+violazione** (TACCA ALESSANDRO, 4377 e 4381 — la 4377 non ha iscrizioni). Sistemato quello, il
+vincolo si può creare.
+
+### L'OTP resta, ma per un'altra ragione
+
+Non serve contro i doppioni. Serve a garantire che l'indirizzo esista e sia raggiungibile:
+protegge la conferma d'iscrizione, blocca le iscrizioni fasulle, e ⚠️ **rafforza il consenso** —
+un consenso raccolto a un indirizzo mai verificato è debole proprio dove conta.
+⚠️ Da progettare con una via d'uscita: aggiunge un passaggio nel momento in cui la persona sta
+decidendo di iscriversi, e lega l'iscrizione al funzionamento della posta.
