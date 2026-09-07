@@ -1,0 +1,33 @@
+-- =============================================================================
+-- 623 — Blocco B: una sola scrittura per tabella
+-- =============================================================================
+--
+-- ⚠️ **Il blocco era quasi già fatto, e il dato lo dimostra.** Rimisurato dopo il
+-- Blocco A, ignorando i nomi citati nei COMMENTI — che non sono usi, ed e' l'errore
+-- che mi aveva fatto credere viva `sp_mov_clienti_viaggi_create`:
+--
+--   ana_clienti           fn_ana_clienti_insert / _update      ← entrambi
+--   mov_clienti_viaggi    fn_mov_clienti_viaggi_insert         ← entrambi
+--   mov_clienti_alloggi   fn_alloggi_salva_camera              ← entrambi (script 619)
+--
+-- ⛔️ **Non esiste piu' un caso di due funzioni diverse che fanno lo stesso lavoro dai
+-- due lati.** Le funzioni che restano di un lato solo lo sono per un motivo:
+--   • modifica e cancellazione delle iscrizioni: le fa solo il gestionale, il sito no;
+--   • `fn_ana_clienti_aggancia_email` e `fn_consenso_registra_risposta`: cose che
+--     succedono solo sul sito;
+--   • consenso, lingua e titolo: cose che si governano solo dal gestionale.
+--
+-- Resta da togliere l'ultima morta.
+-- =============================================================================
+
+-- ⚠️ Sembrava viva perche' il suo nome compare in un commento di
+-- MovClientiViaggiService.cs, che racconta perche' e' stata abbandonata. Un nome
+-- dentro un commento non e' una chiamata — ed e' il motivo per cui la ricognizione
+-- va fatta sul codice ripulito dai commenti, non sul testo grezzo.
+--
+-- Che cosa era: la vecchia iscrizione senza controlli. Non chiedeva l'email a chi
+-- guida e non pretendeva i dati del mezzo quando il ruolo li richiede — regole che
+-- allora applicava SOLO il sito. E' cosi' che si sono iscritti 11 piloti senza email.
+-- ⚠️ Firma letta dal database: quella che avevo scritto a memoria era diversa, e un
+-- DROP con la firma sbagliata non protesta — lascia la funzione dov'era.
+DROP FUNCTION IF EXISTS sp_mov_clienti_viaggi_create(integer,integer,integer,integer,integer,integer,numeric,character varying,character varying,text,integer);

@@ -103,11 +103,12 @@ namespace GestioneViaggi.Services.CRUD
         /// <summary>
         /// Iscrive un partecipante chiamando <c>fn_mov_clienti_viaggi_insert</c>.
         ///
-        /// Fino ad agosto 2026 qui si chiamava <c>sp_mov_clienti_viaggi_create</c>, che non
-        /// controllava nulla: l'email obbligatoria per chi guida e i dati del mezzo quando il
-        /// ruolo li richiede erano regole che **solo il sito** applicava. Il gestionale, cioe'
-        /// lo strumento di chi lavora tutti i giorni, ne era scoperto — ed e' cosi' che si sono
-        /// iscritti 11 piloti senza email.
+        /// Fino ad agosto 2026 qui si chiamava una funzione che non controllava nulla:
+        /// l'email obbligatoria per chi guida e i dati del mezzo quando il ruolo li richiede
+        /// erano regole che **solo il sito** applicava. Il gestionale, cioe' lo strumento di
+        /// chi lavora tutti i giorni, ne era scoperto — ed e' cosi' che si sono iscritti
+        /// 11 piloti senza email. ⚠️ Quella funzione non esiste piu' (SqlScripts/623): finche'
+        /// restava, era una strada senza controlli che qualcuno poteva riprendere.
         /// </summary>
         public async Task<int> AddParticipantAsync(MovClientiViaggi entity, bool conferme = false)
         {
