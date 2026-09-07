@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–620)
+### Elenco ordinato (467–621)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -398,6 +398,7 @@ ls SqlScripts/*.sql \
 | 618 | Tipo_Predefinito_E_Tetto_Sei_Posti | `fn_alloggi_tipo_predefinito` — quale sistemazione mettere d'ufficio a un gruppo di N persone. ⚠️ La regola **scende dal C# al database** perché serve anche al sito: il passo 5 non fa scegliere il tipo (chi si iscrive non sa se quell'albergo ha le singole), e due copie della stessa regola divergono. Più `fn_alloggi_tipi_per_capienza` per l'ultimo passo. ⚠️ **Vincolo nuovo** `chk_tipo_alloggio_capienza_max`: la capienza non può superare **6**, quante sono le colonne cliente in `mov_clienti_alloggi` — un tipo da 7 verrebbe offerto dalle combinazioni e poi non ci starebbe dentro nessuno. Nessuna riga esistente lo viola. ⚠️ Va **insieme al gestionale**, che non ha più la sua copia della regola |
 | 619 | Una_Sola_Scrittura_Per_Le_Sistemazioni | ⛔️ **Da nove funzioni che scrivevano `mov_clienti_alloggi` a una.** Misurato prima di toccare: il gestionale ne usava tre strade, il sito una quarta, le altre erano rimaste indietro senza chiamanti — e quattro su cinque non controllavano niente. Resta `fn_alloggi_salva_camera`, che prende anche `p_created_by` (serviva al sito). ⚠️ **Elimina** `fn_wizard_insert_alloggio_assegnato`, `sp_mov_clienti_alloggi_create/update`, `sp_assign_to_first_free_slot`, `sp_resolve_room_violation_move`: verificato che nessuno le chiami più. Restano a parte `fn_mov_clienti_alloggi_togli_cliente` (cancellazione), `sp_remove_client_from_room` (usata da altre tre) e `fn_silos_rimappa_movimenti` (bonifica una tantum). ⚠️ Va **insieme al gestionale E al sito**: entrambi cambiano strada nello stesso momento |
 | 620 | La_Doppia_Uso_Singola_E_Una_Variante | Valorizza `ana_tipo_alloggio.tipo_alloggio_fk` — **la colonna che esisteva da sempre e non era mai stata usata in 17 righe** — per dire che CAMERA DOPPIA USO SINGOLA è una **variante commerciale** di CAMERA DOPPIA LETTI SINGOLI: la stessa stanza con un trattamento diverso. ⚠️ Il sito non offre più le varianti: chi viaggia da solo vede CAMERA SINGOLA e CAMERA SINGOLA DISABILI, perché quello che chiede è «dormo da solo» — se poi l'albergo gli dà una doppia, è una decisione della struttura. Il **gestionale continua a vederle tutte**: SFT con l'albergo ci parla. ⛔️ Non si riconosce dal nome ma dalla colonna: «USO SINGOLA» nel testo è il difetto tolto quattro volte in tre giorni. ⚠️ Una riga di dati modificata |
+| 621 | Scritture_Senza_Chiamanti | **Blocco A dell'unificazione.** Elimina **35 funzioni di scrittura che non chiamava più nessuno** — né gestionale, né sito, né altre funzioni, né trigger. Erano 50 su 172; le altre 15 sono escluse di proposito e spiegate nello script. ⛔️ **Nessuna funzione viva viene toccata**: verificato uno per uno che `fn_app_login_text`, `fn_app_request_password_reset`, `fn_app_health_check`, `fn_app_list_users`, `fn_app_list_roles` e `fn_silos_rimappa_movimenti` restino. ⚠️ Fra le eliminate: `sp_ana_clienti_*` e `fn_wizard_*` (sostituite dalle funzioni condivise), il CRUD dell'interfaccia esterna abbandonata, `fn_superadmin_update_table` (UPDATE su qualsiasi tabella passata come stringa: nessun controllo poteva valere) e l'ultimo resto di Retool, abbandonato da oltre un anno. Solo `DROP FUNCTION`, nessun dato modificato |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -957,6 +958,26 @@ CROSS JOIN LATERAL fn_ana_clienti_campi_mancanti(to_jsonb(c), FALSE) m
 WHERE c.azienda_fk = 2
 GROUP BY 1,2,3 ORDER BY 2,3;
 ```
+
+---
+
+### 2.15 — Le 13 scritture orfane rimandate, e perché
+
+Il `621` ha eliminato 35 funzioni di scrittura senza chiamanti. Queste **restano**, e non per
+dimenticanza: ognuna appartiene a una funzionalità viva o a una scelta già presa. Vanno
+guardate una per una, con calma, dopo il go-live.
+
+| Funzioni | Perché restano |
+|---|---|
+| `fn_ana_aziende_esp_insert/update/delete` | ⚠️ `ana_aziende_esp` è **«predisposta ma inutilizzata, pronta per un eventuale uso futuro»** (decisione del 2026-07-12): eliminarne le funzioni disferebbe quella scelta |
+| `sp_ana_aliquote_iva_*` (4) | L'IVA è viva nel gestionale: prima va capito da dove passa oggi la sua gestione |
+| `fn_test_smtp_config`, `sp_ana_aziende_smtp_test_connection` | La prova SMTP è una funzione che serve, anche se oggi la chiama altro |
+| `fn_logo_setup_master_detail_relation`, `fn_logo_update_access_stats` | Appartengono alla gestione dei loghi, viva |
+| `fn_web_aziende_funzioni_delete`, `fn_web_newsletter_set_oggetto` | Un verbo di CRUD di funzionalità web vive: manca la cancellazione, non la funzione |
+
+⚠️ Restano fuori anche **accesso, password e token** (`fn_app_login`, `cleanup_expired_tokens`):
+sbagliare lì significa non entrare più nel gestionale. Si fa in un momento dedicato, non in
+mezzo ad altro.
 
 ---
 
