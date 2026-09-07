@@ -802,10 +802,13 @@
                     OnClick="OpenNewClientDialog">
                     Nuovo Cliente
                 </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
-                    OnClick="OpenQuickAddDialog">
-                    Iscrizione Veloce
-                </MudButton>
+                @* ⚠️ Vedi DashboardSuperAdmin: il nome da solo non diceva che cosa fa. *@
+                <MudTooltip Text="@QuickAddSpiegazione">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
+                        OnClick="OpenQuickAddDialog">
+                        Iscrizione Veloce — solo pilota
+                    </MudButton>
+                </MudTooltip>
                 <MudTooltip Text="@(_isIscrizioneWebDisabled ? "Nessun sito web di iscrizione configurato" : "")">
                     <ChildContent>
                         <MudButton Variant="Variant.Filled"
@@ -882,6 +885,14 @@
     </MudStack>
 
     @code {
+    /// <summary>
+    /// Che cosa fa il pulsante dell'Iscrizione Veloce, per il passaggio del mouse. ⚠️ Deve
+    /// dire anche DOVE andare per gli altri casi: un avviso che spiega solo il divieto
+    /// lascia l'operatore fermo.
+    /// </summary>
+    private const string QuickAddSpiegazione =
+        "Iscrive UNA persona che viaggia da sola — il pilota che parte per conto suo — e le assegna subito una sistemazione da un posto. Per una coppia, una famiglia o chiunque condivida la camera, usa «Gestisci Partecipanti» sulla partenza: lì si iscrivono tutti e poi si compongono le sistemazioni.";
+
     private bool _isLoading = true; // FASE 2: Loading state for fade-in animation
     private Models.UserInfo? _currentUser;
     private ComparisonMode _comparisonMode = ComparisonMode.FullYear;

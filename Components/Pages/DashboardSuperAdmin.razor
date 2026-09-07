@@ -687,10 +687,16 @@ else
                                OnClick="OpenNewClientDialog">
                         Nuovo Cliente
                     </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
-                               OnClick="OpenQuickAddDialog">
-                        Iscrizione Veloce
-                    </MudButton>
+                    @* ⚠️ «Iscrizione Veloce» da solo non diceva che cosa fa: da qui si iscrive
+                       una persona sola, e chi ci provava con una coppia scopriva a meta' strada
+                       che non si puo' (Adriano, 2026-09-07). Il nome lo dice, e il passaggio del
+                       mouse spiega dove andare per gli altri casi. *@
+                    <MudTooltip Text="@QuickAddSpiegazione">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.FlashOn"
+                                   OnClick="OpenQuickAddDialog">
+                            Iscrizione Veloce — solo pilota
+                        </MudButton>
+                    </MudTooltip>
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Info"
                                StartIcon="@Icons.Material.Filled.Language"
@@ -868,6 +874,14 @@ else
 </style>
 
 @code {
+    /// <summary>
+    /// Che cosa fa il pulsante dell'Iscrizione Veloce, per il passaggio del mouse. ⚠️ Deve
+    /// dire anche DOVE andare per gli altri casi: un avviso che spiega solo il divieto
+    /// lascia l'operatore fermo.
+    /// </summary>
+    private const string QuickAddSpiegazione =
+        "Iscrive UNA persona che viaggia da sola — il pilota che parte per conto suo — e le assegna subito una sistemazione da un posto. Per una coppia, una famiglia o chiunque condivida la camera, usa «Gestisci Partecipanti» sulla partenza: lì si iscrivono tutti e poi si compongono le sistemazioni.";
+
     private bool _isLoaded = false;
     private Models.UserInfo? _currentUser;
     private bool _isMenuOpen;
