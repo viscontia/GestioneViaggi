@@ -1002,6 +1002,43 @@ GROUP BY 1,2,3 ORDER BY 2,3;
 
 ---
 
+### 2.18 — ⚠️ DB-first: è il GESTIONALE a non rispettarlo, non il sito
+
+Misurato il 2026-09-07, ed è il contrario di quello che ci si aspetta.
+
+| | Chiamate a funzioni del database | Query scritte a mano nel codice |
+|---|---|---|
+| **Sito** (Python) | 65 | **0** |
+| **Gestionale** (C#) | 257 | **67** |
+
+Sul sito, 61 dei 63 `cursor.execute` chiamano una funzione; le due eccezioni sono in `test_db.py`
+e `test_supabase_connection.py`, cioè strumenti di diagnosi. ⛔️ **Il sito è già DB-first, in
+lettura e in scrittura.**
+
+Nel gestionale restano **67 query scritte in C#**. Il caso che lo mostra meglio: i **comuni**.
+Il sito li legge con `fn_wizard_get_all_comuni`; `ComuneService.cs` se li scrive a mano. Stessa
+tabella, due modi — ed è la definizione stessa del problema che stiamo togliendo.
+
+**I file da guardare per primi** (numero di query a mano):
+
+| File | Query | Note |
+|---|---|---|
+| `AnaViaggiService.cs` | 4 | ha già 12 chiamate a funzioni: la migrazione è a metà |
+| `ContropartiService.cs` | 4 | |
+| `AnaRegimiFiscaliService.cs` | 4 | **nessuna** chiamata a funzioni |
+| `AnaAliquoteIvaService.cs` | 4 | **nessuna** — e le sue `sp_ana_aliquote_iva_*` sono fra le orfane di §2.15: probabilmente le funzioni esistono e nessuno le usa |
+| `ComuneService.cs`, `ProvinciaService.cs` | | il sito le stesse cose le legge da funzioni |
+
+⚠️ **Non è un lavoro da fare adesso**: 67 query sono un capitolo suo, e ognuna va spostata a
+database verificando che il risultato non cambi. Ma va saputo che **la duplicazione in lettura
+non è fra sito e gestionale: è dentro il gestionale**, che per le stesse tabelle usa due strade.
+
+⚠️ Le `sp_ana_aliquote_iva_*` orfane suggeriscono il modo di lavorare: prima si guarda se la
+funzione esiste già — in diversi casi qualcuno l'ha scritta e poi il C# ha continuato per conto
+suo.
+
+---
+
 ### 2.17 — Le letture da guardare, e i due file che non si leggono più
 
 **Le letture senza chiamanti.** Sul database ci sono **316 funzioni di sola lettura**, di cui
