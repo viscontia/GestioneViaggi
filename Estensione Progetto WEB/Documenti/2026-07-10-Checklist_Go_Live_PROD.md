@@ -211,7 +211,7 @@ ls SqlScripts/*.sql \
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–623)
+### Elenco ordinato (467–624)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -401,6 +401,7 @@ ls SqlScripts/*.sql \
 | 621 | Scritture_Senza_Chiamanti | **Blocco A dell'unificazione.** Elimina **35 funzioni di scrittura che non chiamava più nessuno** — né gestionale, né sito, né altre funzioni, né trigger. Erano 50 su 172; le altre 15 sono escluse di proposito e spiegate nello script. ⛔️ **Nessuna funzione viva viene toccata**: verificato uno per uno che `fn_app_login_text`, `fn_app_request_password_reset`, `fn_app_health_check`, `fn_app_list_users`, `fn_app_list_roles` e `fn_silos_rimappa_movimenti` restino. ⚠️ Fra le eliminate: `sp_ana_clienti_*` e `fn_wizard_*` (sostituite dalle funzioni condivise), il CRUD dell'interfaccia esterna abbandonata, `fn_superadmin_update_table` (UPDATE su qualsiasi tabella passata come stringa: nessun controllo poteva valere) e l'ultimo resto di Retool, abbandonato da oltre un anno. Solo `DROP FUNCTION`, nessun dato modificato |
 | 622 | Via_ESP_Piano_Abbandonato | Elimina tabella e funzioni `ana_aziende_esp`. ⚠️ Il piano ESP (mail via provider esterno) era stato **abbandonato il 2026-07-12**, e la tabella lasciata «pronta per un uso futuro»: Adriano ha confermato il 2026-09-07 che quella strada non si riprende. ⛔️ Teneva una colonna per una **chiave API cifrata** in un sistema che quel segreto non usa: un contenitore di segreti dimenticato è peggio di nessun contenitore. ⚠️ **Su PROD non esiste** (verificato in sola lettura): lì non farà nulla. Gli script `421` e `443` restano in sequenza ma sono superati da questo; il **`475` serve ancora**, perché cifra anche i segreti SMTP, che sono vivi. ⚠️ Rifiuta di procedere se la tabella contiene righe |
 | 623 | Blocco_B_Una_Scrittura_Per_Tabella | ⛔️ **Verificato che non esiste più un caso di due funzioni diverse che fanno lo stesso lavoro dai due lati.** Le tre tabelle che entrambi scrivono usano la stessa funzione: `fn_ana_clienti_insert/_update`, `fn_mov_clienti_viaggi_insert`, `fn_alloggi_salva_camera`. Elimina l'ultima morta, `sp_mov_clienti_viaggi_create` — la vecchia iscrizione senza controlli, quella per cui si sono iscritti 11 piloti senza email. ⚠️ Sembrava viva perché il suo nome compariva in un **commento**: la ricognizione va fatta sul codice ripulito dai commenti. Solo un `DROP`, nessun dato modificato |
+| 624 | Blocco_C_Una_Regola_Per_Email | ⛔️ **«Indirizzo valido» era definito due volte, e diversamente**: `fn_validate_email_format` in un modo, `fn_ana_clienti_valida` se lo riscriveva più permissivo. Ora la definizione è una e la seconda la chiama. ⚠️ Su PROD (azienda 2) **tutti i 198 indirizzi passano** la regola severa: nessuno resta bloccato (verificato in sola lettura). In locale ne cade uno, ed è un errore vero — `mailto:…@gmail.com`, un collegamento incollato al posto dell'indirizzo. ⛔️ Elimina anche `validate_codice_fiscale`, che controllava solo la forma e aveva dentro scritto **`TODO: Implementare algoritmo completo`**: nessun carattere di controllo, accanto alla famiglia `fn_cf_*` che invece è completa. È il tipo peggiore di funzione morta — non inerte, **ingannevole**. Con lei `validate_fiscal_data` e `validate_partita_iva`, che nessuno chiamava |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -960,6 +961,18 @@ CROSS JOIN LATERAL fn_ana_clienti_campi_mancanti(to_jsonb(c), FALSE) m
 WHERE c.azienda_fk = 2
 GROUP BY 1,2,3 ORDER BY 2,3;
 ```
+
+---
+
+### 2.16 — DA SISTEMARE A MANO: PERINI ELENA ha un indirizzo email non valido
+
+Trovato il 2026-09-07 unificando la regola dell'email (`624`). Il cliente **3884, PERINI ELENA**
+(azienda 2) ha come indirizzo `mailto:avvocatoelenaperini@gmail.com`: qualcuno ha incollato un
+collegamento invece dell'indirizzo. ⚠️ Con quell'indirizzo **non le arriva nessuna mail**.
+
+⚠️ **Solo in locale**: su PROD tutti i 198 indirizzi dell'azienda 2 sono scritti bene. Va
+sistemato nel database locale, oppure lasciato com'è sapendo che quella riga non sarà
+modificabile finché l'indirizzo non viene corretto.
 
 ---
 
