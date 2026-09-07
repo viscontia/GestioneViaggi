@@ -1472,7 +1472,8 @@ grep -c MAIL_DIROTTA_A .env    # deve dare 0
 
 ## 4. Checklist finale di rilascio
 
-- [ ] Applicati in ordine i **114** script 406–524 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+- [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **220** script 406–625 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
+  ⚠️ Il conteggio era fermo a «114 script 406–524»: era il numero del 2026-07-10 e non seguiva l'elenco di §1, che nel frattempo è arrivato al 625. Ricontato sui file il 2026-09-07.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).
 - [ ] **Cifratura reale segreti implementata** e segreti caricati (§2.2). ← bloccante
