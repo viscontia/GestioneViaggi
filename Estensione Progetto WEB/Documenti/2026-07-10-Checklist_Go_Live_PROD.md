@@ -988,10 +988,20 @@ Dividerli è un lavoro a sé — non si fa in mezzo ad altro, e va fatto quando 
 fermo, altrimenti si perde la possibilità di dire «prima funzionava».
 
 **Un ramo dimenticato.** `worktrees/step5-ux-redesign/` è una cartella di lavoro git sul ramo
-`feature/step5-ux-redesign`, ferma al **2026-04-11**, che contiene copie di `Step2Content.jsx` e
-un file `Step2Content copy.jsx`. ⚠️ Riguarda proprio il passo 5 riscritto il 2026-09-07, quindi è
-quasi certamente superata — ma **non è stata toccata**: contiene un file non tracciato, che
-sparirebbe. Decisione di Adriano.
+`feature/step5-ux-redesign`, ferma al **2026-04-11**. I suoi tre commit toccano **solo**
+`Step5Content.jsx`: una riscrittura dell'interfaccia delle camere, superata da quella del
+2026-09-07 (la loro era di 699 righe, la nuova ne ha 401 e non contiene più regole).
+
+⚠️ Attenzione a non farsi ingannare da ciò che si trova dentro quella cartella:
+
+| Cosa c'è | Che cos'è davvero |
+|---|---|
+| `Step2Content.jsx` diverso | **Non** è una copia: è la versione di aprile. Sul ramo principale quel file è cambiato di 813 righe da allora |
+| `Step2Content copy.jsx` | Un file **mai committato**: un salvataggio fatto a mano da qualcuno mentre lavorava, e lasciato lì |
+
+⚠️ La cartella **non è stata toccata**: eliminandola, quel file non tracciato sparirebbe per
+sempre. Il ramo invece resta comunque, anche togliendo la cartella di lavoro. Decisione di
+Adriano.
 
 ---
 
