@@ -226,10 +226,13 @@
 
             if (_wantsAccommodation && _currentAlloggio.TipoAlloggioIdFk > 0)
             {
+                // ⚠️ La stessa scrittura di tutte le altre: fn_alloggi_salva_camera.
+                // Questa scheda aveva una strada sua (AddAccommodationAsync), che non
+                // controllava la capienza e non toglieva la persona da un'altra camera.
                 _currentAlloggio.ViaggioIdFk = _selectedViaggioId;
                 _currentAlloggio.DataViaggioIdFk = _selectedDataId;
-                _currentAlloggio.ClienteId1Fk = _selectedCliente.ClienteId;
-                await AlloggiService.AddAccommodationAsync(_currentAlloggio);
+                await AlloggiService.SalvaCameraAsync(
+                    _currentAlloggio, new[] { _selectedCliente.ClienteId });
             }
 
             Snackbar.Add("Inserimento completato!", Severity.Success);
