@@ -16,7 +16,7 @@ Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere
 | **B** — Il genere sui tipi di sistemazione | ✅ **superato** (2026-09-06) |
 | **C** — Le sistemazioni previste da un pernottamento | ✅ **superato** (2026-09-06), dopo gli script `607`→`609` e la correzione dei messaggi |
 | **D** — Quel che si può assegnare dipende dal viaggio | ✅ **superato** (2026-09-06), dopo `610`, `611`, la tendina unica e la correzione del blocco |
-| **E** — La validazione al salvataggio | ☐ da fare |
+| **E** — La validazione al salvataggio | ◐ **regole verificate al database** (2026-09-07): E1–E5 tutte come attese. ☐ Resta la prova sull'interfaccia: che i rifiuti arrivino leggibili nella scheda |
 | **F** — Il suggerimento del tipo | ✅ **superato** (2026-09-06), dopo `610`–`615`, la tendina unica, lo spostamento atomico e la linguetta «senza camere» |
 | **G** — Che le due strade dicano la stessa cosa | ✅ **superato** (2026-09-06), eseguito in locale su transazione annullata. ⚠️ G1e resta come atteso ma in contraddizione con la decisione sulla capienza — vedi la nota in fondo |
 
@@ -136,13 +136,24 @@ SELECT count(*) FROM ana_tipo_pernottamento_generi;       -- atteso: 4
 > che c'è già, e **Assegna** su chi non ce l'ha. Un terzo pulsante che apre la stessa finestra
 > era un doppione — aggiunto e tolto il 2026-09-06 su rilievo di Adriano.
 
+> **Provate al database il 2026-09-07** (transazione annullata), perché è lì che vivono le
+> regole: **E1** matrimoniale con due ✅ si salva; **E2** con uno solo ⛔️ rifiutata; **E3**
+> singola con uno ✅ si salva; **E4** stessa persona in due camere ✅ non ci finisce — la
+> prima si libera da sé; **E4b** stessa persona due volte nella stessa camera ⛔️ rifiutata;
+> **E5** un messaggio per rilievo, non un muro.
+>
+> ⚠️ Restano da provare **sull'interfaccia**: che quei rifiuti arrivino leggibili nella scheda
+> (E5 vale soprattutto lì, dopo la correzione di `DatabaseExceptionHelper`), e i percorsi
+> E1/E1b, che il database non può collaudare.
+
 | # | Cosa fare | Cosa deve succedere |
 |---|---|---|
 | E1 | Iscrivi **due persone spegnendo «Assegna camera»**, poi dalla linguetta **«Partecipanti senza camere»** premi **Assegna** sulla prima → «Una sistemazione sua» → scegli **CAMERA MATRIMONIALE** → aggiungi anche la seconda → salva | Si salva. ⚠️ Da lì il tipo è **libero**: si sceglie la sistemazione e poi si riempie, e «Aggiungi Occupante» resta finché non è piena |
 | E1b | Prova a fare la stessa cosa **iscrivendo** una persona (Crea nuova camera) | ⚠️ La matrimoniale **non c'è in elenco**, ed è voluto: lì stai sistemando UNA persona, e una camera da due con uno dentro non è uno stato ammesso. Per dormire in due si usa «aggiungi a camera esistente» |
 | E2 | Crea una **matrimoniale** con **un solo** occupante | ⚠️ Rifiutato: «ospita 2 persone, ne è stata indicata 1». Una doppia con uno solo si chiama «doppia uso singola» ed è un tipo suo |
 | E3 | Crea una **camera singola** con 1 occupante | Si salva |
-| E4 | Metti la **stessa persona** in due camere | ⚠️ Rifiutato: «una stessa persona risulta assegnata a più di una sistemazione» |
+| E4 | Metti la **stessa persona** in due camere | ⚠️ Non viene «rifiutato»: la persona **si sposta**, e la camera di prima si libera (o si elimina, se resta vuota). Il risultato — una persona in una camera sola — è lo stesso, ma si ottiene spostandola invece di sbarrarle la strada |
+| E4b | Metti la stessa persona **due volte nella stessa** camera | ⛔️ Rifiutato: «La stessa persona è indicata due volte nella stessa sistemazione» |
 | E5 | Guarda il messaggio di errore | Una riga per rilievo, leggibile — non un errore tecnico del database |
 
 ---

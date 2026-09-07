@@ -201,13 +201,6 @@
     private IEnumerable<ParticipantsViewDTO> AvailableParticipants =>
         AllParticipants.Where(p => !Occupants.Any(o => o.ClienteId == p.ClienteId));
 
-    private bool IsParticipantInAnotherRoom(int clienteId)
-    {
-        return ExistingRooms.Any(r => 
-            r.AlloggioPk != Room.MovClientiAlloggioPk && 
-            r.Occupanti.Any(o => o.ClienteId == clienteId));
-    }
-
     /// <summary>La sistemazione in cui questa persona sta adesso, se è in un'altra.</summary>
     private string? CameraAttualeDi(int clienteId) =>
         ExistingRooms.FirstOrDefault(r => r.AlloggioPk != Room.MovClientiAlloggioPk
