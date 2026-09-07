@@ -267,6 +267,47 @@ camere (`NESSUNA CAMERA` è una scelta a parte, non un tipo di stanza).
 
 ---
 
+## 6-bis. ⚠️ Ricognizione del 2026-09-07: dove stanno oggi le regole nel sito
+
+Chiesta da Adriano prima di scrivere l'API: «bisogna verificare che su Flask non ci siano più
+verifiche o controlli o errori che riguardano lo step cinque dentro il codice Python,
+altrimenti ricadiamo nello stesso identico problema».
+
+**Il risultato, misurato:** ⛔️ **il sito non chiama NESSUNA delle funzioni-regola del
+database.** Non `fn_alloggi_assegnazione_valida`, non `fn_alloggi_combinazioni`, non
+`fn_alloggi_tipi_ammessi`. L'unica che usa è `fn_wizard_get_all_tipi_alloggio`, che è il
+catalogo intero senza parametri.
+
+### Le regole duplicate, una per una
+
+| Dove | Che regola è |
+|---|---|
+| `Step5Content.jsx` — `filteredAlloggioOptionsA` | capienza ≤ persone ancora da assegnare |
+| `Step5Content.jsx` — `filteredAlloggioOptionsB` | capienza **uguale** al gruppo — la stessa regola che ora sta nel trigger |
+| `Step5Content.jsx` — `canShare` | «possono condividere se stesso tipo e capienza ≥ 2» |
+| `Step5Content.jsx` — `handleModeAConfirm` | il messaggio «Non puoi assegnare una camera da più posti a una sola persona»: è ancora la regola della capienza, scritta una terza volta |
+| `Step5Content.jsx` — `mode = totalPartecipanti >= 3 ? 'B' : 'A'` | quale percorso mostrare, deciso dal numero di persone |
+
+⚠️ **Nessuna di queste guarda il genere**: il sito non sa che un viaggio in tenda non prevede
+camere d'albergo. Lo sa il database, e dal `602` lo rifiuta.
+
+### I due punti scoperti in Python
+
+| Dove | Cosa manca |
+|---|---|
+| `/api/alloggi` | Torna **tutti** i tipi, senza partenza: né filtro di genere né di capienza. È da qui che il browser riceve le tende su un viaggio in albergo |
+| `/api/session/assegna-alloggio` | Controlla solo che l'id sia un intero. Nessuna verifica contro le regole: l'assegnazione arriva al database così com'è |
+
+### ⚠️ Perché adesso è urgente e non più solo «meglio»
+
+Il sito scrive con `fn_wizard_insert_alloggio_assegnato`, che fa un `INSERT` diretto — e ora
+quell'`INSERT` incontra il trigger della capienza (`616`) e quello del genere (`602`). Le
+combinazioni che il passo 5 permette oggi **verranno rifiutate**: l'iscrizione fallirebbe alla
+fine, dopo che la persona ha compilato tutto. Non è una rifinitura: senza questa riscrittura
+il sito non può andare in PROD con gli script applicati.
+
+---
+
 ## 7. Cosa si pulisce nel codice
 
 | Dove | Cosa sparisce |
