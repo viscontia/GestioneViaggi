@@ -30,6 +30,20 @@ public partial class ClienteDialog : ComponentBase, IDisposable
 
     [Parameter] public Cliente Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
+
+    /// <summary>
+    /// L'etichetta del codice fiscale dice se e' obbligatorio, invece di farlo
+    /// scoprire al salvataggio.
+    ///
+    /// ⚠️ La REGOLA non e' qui: sta in fn_ana_clienti_valida (SqlScripts/629), che
+    /// la applica sia al gestionale sia al sito. Questa e' solo la sua faccia —
+    /// obbligatorio per chi si iscrive ORA e risiede in Italia, perche' senza
+    /// codice fiscale non si emette fattura. Chi c'e' gia' senza resta com'e'.
+    /// </summary>
+    private string EtichettaCodiceFiscale =>
+        !IsEditMode && Entity?.ComuneResidenza?.ComuneEstero == false
+            ? "Codice Fiscale *"
+            : "Codice Fiscale";
     [Parameter] public int AziendaFk { get; set; }
 
     /// <summary>Lingua preferita del cliente per la newsletter (side-field, Blocco 11). null = auto dalla nazione.</summary>
