@@ -148,6 +148,43 @@ ls SqlScripts/*.sql \
 > Verificare **a occhio** l'elenco stampato prima di lanciarlo davvero (sostituendo `psql …` con `echo`):
 > gli script con ⚠️ nelle tabelle sotto vanno applicati **a mano, uno alla volta**, non dentro il loop.
 
+### ⛔️ PRIMA di tutto: cinque script MAI applicati, e cinque stampe rotte
+
+Trovato il 2026-09-07 mentre si cercavano le letture senza chiamanti. ⚠️ **Non è un residuo:
+è un guasto, e c'è anche in produzione.**
+
+Cinque servizi di stampa del gestionale chiamano funzioni che **non esistono in nessuno dei due
+ambienti**. Adriano ha provato e ha ottenuto:
+
+> `Errore durante la generazione del PDF: 42883: function fn_get_mov_transazioni_print_data(…)
+> does not exist`
+
+Le funzioni ci sono, ma negli script **310, 320, 330, 340, 350**, che non sono mai stati
+applicati — mentre i vicini `280` e `300` sì, ed è per questo che la scheda viaggio e la rooming
+list funzionano.
+
+| Script | Funzione | Stampa che sblocca |
+|---|---|---|
+| `310` | `fn_get_mov_transazioni_print_data` | Movimenti contabili |
+| `320` | `fn_get_registro_iva_print_data` | Registro IVA |
+| `330` | `fn_get_scadenzario_print_data` | Scadenzario |
+| `340` | `fn_get_bilancio_viaggio_print_data` | Bilancio viaggio |
+| `350` | `fn_get_fattura_attiva_print_data` | Fattura attiva |
+
+✅ Applicati in locale il 2026-09-07 e verificati: le cinque firme corrispondono **esattamente**
+ai parametri che il gestionale invia (22, 3, 10, 7, 1), e le funzioni rispondono.
+
+⚠️ **Vanno applicati su PROD**, e prima degli altri: sono sotto il 406, quindi non erano nella
+sequenza — si dava per scontato che fossero già stati eseguiti. ⚠️ Non toccano dati: creano
+soltanto funzioni.
+
+⚠️ **Da non confondere con le versioni vecchie**: a database esistono anche `fn_get_registro_iva`,
+`fn_get_bilancio_viaggio`, `fn_get_scadenzario_stampa`, `fn_get_fattura_attiva_stampa`. Non le
+chiama più nessuno, ed erano state classificate come «letture morte» — cancellarle sarebbe stato
+sbagliato due volte: erano l'unica implementazione esistente finché mancavano le `_print_data`.
+
+---
+
 ### Elenco ordinato (406–466)
 
 > Nota: questa tabella dettaglia i primi script; per `467`–`537` c'è la **seconda tabella** subito sotto. I riquadri qui sopra restano come approfondimento tematico (grant `anon`, `SECURITY DEFINER`, re-model Blocco 13), non come elenco di deploy.
@@ -1005,15 +1042,12 @@ Adriano.
 
 ---
 
-### 2.16 — DA SISTEMARE A MANO: PERINI ELENA ha un indirizzo email non valido
+### 2.16 — ✅ FATTO: l'indirizzo di PERINI ELENA
 
-Trovato il 2026-09-07 unificando la regola dell'email (`624`). Il cliente **3884, PERINI ELENA**
-(azienda 2) ha come indirizzo `mailto:avvocatoelenaperini@gmail.com`: qualcuno ha incollato un
-collegamento invece dell'indirizzo. ⚠️ Con quell'indirizzo **non le arriva nessuna mail**.
-
-⚠️ **Solo in locale**: su PROD tutti i 198 indirizzi dell'azienda 2 sono scritti bene. Va
-sistemato nel database locale, oppure lasciato com'è sapendo che quella riga non sarà
-modificabile finché l'indirizzo non viene corretto.
+Trovato il 2026-09-07 unificando la regola dell'email (`624`): il cliente 3884 aveva
+`mailto:avvocatoelenaperini@gmail.com`, un collegamento incollato al posto dell'indirizzo.
+**Sistemato da Adriano lo stesso giorno.** Verificato: ora passa la regola, e in tutto il
+database locale non resta **nessun** indirizzo non valido.
 
 ---
 
