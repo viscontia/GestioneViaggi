@@ -33,38 +33,30 @@ public class TipoAlloggioService : BaseCrudService<TipoAlloggio>
     }
 
     /// <summary>
-    /// Fra le sistemazioni ammesse, quella da proporre per un gruppo di questa dimensione.
-    /// Torna <c>null</c> se non c'è niente di adatto — e allora non si propone nulla,
-    /// invece di proporre qualcosa che poi la validazione rifiuta.
+    /// La sistemazione da proporre per un gruppo di questa dimensione su questa partenza,
+    /// o <c>null</c> se non ce n'è una adatta.
     ///
-    /// ⚠️ La capienza deve CORRISPONDERE, non bastare. Una doppia con una persona sola si
-    /// chiama «doppia uso singola» ed è un tipo suo, con il suo supplemento: proporre una
-    /// matrimoniale per uno solo significa far pagare all'azienda un letto in più.
-    ///
-    /// ⚠️ E il tipo non si riconosce mai dal nome. La versione precedente cercava
-    /// «MATRIMONIALE» dentro la descrizione: su un viaggio in tenda non trovava niente, e
-    /// bastava rinominare una riga per spegnere il suggerimento in silenzio.
-    ///
-    /// Sta qui perché era scritta due volte, nella gestione alloggi e nella scheda
-    /// Partecipanti, e le due copie erano già divergenti.
+    /// ⚠️ La regola NON è più qui: sta in <c>fn_alloggi_tipo_predefinito</c>. Ci è scesa il
+    /// 2026-09-07 perché serve anche al sito di iscrizione, e tenerne una copia in C# e una
+    /// in Python sarebbe la terza volta in tre giorni che due copie della stessa regola
+    /// divergono. Da qui si chiede soltanto.
+    /// DB Function: fn_alloggi_tipo_predefinito (SqlScripts/618)
     /// </summary>
-    public static TipoAlloggio? Suggerisci(IEnumerable<TipoAlloggio> ammessi, int persone)
+    public async Task<TipoAlloggio?> SuggerisciAsync(int dataViaggioId, int persone)
     {
-        if (persone <= 0) return null;
+        if (dataViaggioId <= 0 || persone <= 0) return null;
 
-        return ammessi
-            // ⚠️ Fuori chi non si propone d'ufficio: resta nella tendina, ma non si assegna
-            // da sola. Una camera attrezzata per disabili non si dà a chi non l'ha chiesta.
-            .Where(t => !t.MaiProposta)
-            .Where(t => t.NumeroOccupanti == persone)
-            // A parità di capienza si propone quello senza supplemento: è il più economico
-            // per chi viaggia, e resta comunque cambiabile.
-            .OrderBy(t => t.Supplemento ? 1 : 0)
-            // A parità anche di supplemento si prende la più vecchia: è il tipo base, le
-            // varianti sono state aggiunte dopo. ⚠️ Non è più questo a tenere fuori le
-            // camere per disabili — quello ora lo dice il dato (MaiProposta, SqlScripts/611).
-            .ThenBy(t => t.Id)
-            .FirstOrDefault();
+        await using var connection = await _databaseService.GetConnectionAsync();
+        await using var command = new NpgsqlCommand(
+            "SELECT fn_alloggi_tipo_predefinito(@partenza, @persone)", connection);
+        command.Parameters.AddWithValue("partenza", dataViaggioId);
+        command.Parameters.AddWithValue("persone", persone);
+
+        var esito = await command.ExecuteScalarAsync();
+        if (esito is null || esito == DBNull.Value) return null;
+
+        var id = Convert.ToInt32(esito);
+        return (await GetAmmessiPerPartenzaAsync(dataViaggioId)).FirstOrDefault(t => t.Id == id);
     }
 
     /// <summary>

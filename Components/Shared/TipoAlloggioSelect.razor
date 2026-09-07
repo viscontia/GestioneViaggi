@@ -77,7 +77,7 @@
 
     /// <summary>
     /// Quante persone vanno sistemate. Se è nota e nessuno ha ancora scelto, il componente
-    /// **propone** il tipo adatto (<see cref="TipoAlloggioService.Suggerisci"/>).
+    /// **propone** il tipo adatto (<c>fn_alloggi_tipo_predefinito</c>, SqlScripts/618).
     ///
     /// ⚠️ Una proposta, non una decisione: resta cambiabile, e se l'utente sceglie a mano
     /// il componente non ci torna più sopra. Ma finché il valore è quello proposto da noi,
@@ -194,7 +194,12 @@
         if (PersoneDaSistemare <= 0 || _tipi.Count == 0) return;
         if (SelectedId != 0 && SelectedId != _proposto) return;   // scelto a mano: non si tocca
 
-        var proposta = TipoAlloggioService.Suggerisci(_tipi, PersoneDaSistemare);
+        // ⚠️ La proposta la fa il database, non questo componente: la stessa regola serve al
+        // sito di iscrizione, e due copie divergono.
+        var proposta = await TipoAlloggioService.SuggerisciAsync(DataViaggioId, PersoneDaSistemare);
+        // Deve essere fra quelle che questa tendina mostra davvero: se il filtro di capienza
+        // l'ha esclusa, proporla metterebbe un valore che l'elenco non contiene.
+        if (proposta is not null && _tipi.All(t => t.Id != proposta.Id)) proposta = null;
         // Niente di adatto: si lascia com'è. Proporre una capienza sbagliata sarebbe peggio
         // che non proporre, perché poi il salvataggio la rifiuta.
         if (proposta == null || proposta.Id == SelectedId) return;
