@@ -1562,7 +1562,8 @@ grep -c MAIL_DIROTTA_A .env    # deve dare 0
   `Flask-Mail inizializzato da DB (Server=…, Porta=…, Security=…)`.
   Se compare invece `GV_SECRET_KEY non impostata` o `Nessuna configurazione SMTP utilizzabile`, la chiave manca o è quella sbagliata.
 - [ ] **Sito di iscrizione ai viaggi rivisto (§2.8)** — consenso email raccolto alla fonte con data e fonte (§2.8.1), avviso nome/sesso replicato (§2.8.2), titolo/sesso allineati (§2.8.3), controlli del CRUD cliente confrontati con quelli del gestionale (§2.8.4). ← **prerequisito**: dopo il deploy degli script il sito scrive su uno schema che non rispetta, e quei dati non si sistemano più
-- [ ] Eseguito il Piano di Test (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end.
+- [ ] Eseguito il Piano di Test dell'Estensione Web (`2026-07-09-Piano_Test_Estensione_Web.md`) end-to-end — è la parte CMS dentro il gestionale.
+- [ ] **Eseguito il Piano di Test del sito di iscrizione** (`Documents/2026-09-07-Piano_Test_Sito_Iscrizione.md`) — nove gruppi, dall'apertura della pagina a cosa resta scritto a database. ⚠️ Il gruppo **I** è quello che verifica l'unificazione fra sito e gestionale: se un'iscrizione fatta dal sito non si riesce a risalvare dal gestionale, il sito ha scritto qualcosa che le regole non accettano.
 - [x] Corretta la data errata di `mov_transazioni` id 72 e allineati i campi data delle altre form (§3.5) — fatto il 2026-08-01.
 - [ ] **Manuale utente scritto**, con il capitolo sugli stati dei contenuti web, la pubblicabilità, la clonazione e le cancellazioni (§3.4). ← senza, il cliente scambierà per difetti comportamenti voluti
 - [ ] `Documents/Funzioni_DB.md` allineato allo stato PROD.
