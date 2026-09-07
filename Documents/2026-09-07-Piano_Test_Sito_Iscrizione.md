@@ -147,7 +147,7 @@ riempimento a posteriori, perché nessuno può dire quando e come è stato dato.
 
 | ID | Cosa fare | Cosa deve succedere | ☐ |
 |---|---|---|---|
-| D1 | Iscrivere un cliente **nuovo** senza spuntare il consenso | Si iscrive lo stesso. A database: `consenso_marketing = false`, con **data e fonte valorizzate** — anche il no si registra | ☐ |
+| D1 | Iscrivere un cliente senza dare il consenso | Si iscrive lo stesso, e il rifiuto **resta registrato**: `consenso_marketing = false` e ⚠️ **`consenso_marketing_chiesto_data` valorizzata** — è quella a provare che gliel'abbiamo chiesto. `consenso_marketing_data` resta vuota, ed è giusto: è la data del *consenso*, e un no non ne ha una. La prova che funziona è che a quella persona **non viene più richiesto** | ✅ |
 | D2 | Iscrivere un cliente nuovo **spuntando** il consenso | `consenso_marketing = true`, più data e fonte | ☐ |
 | D3 | Riprendere un cliente che aveva **già** risposto (sì o no) | ⚠️ **Non gli si richiede**: si chiede solo a chi non ha mai risposto | ☐ |
 | D4 | Riprendere un cliente che non ha **mai** risposto | Gli viene chiesto | ☐ |
