@@ -18,6 +18,17 @@ vale come non-regressione. Questo è il suo gemello sul sito.
 | Gruppo | Esito |
 |---|---|
 | **A** — L'ambiente prima di cominciare | ✅ **superato** (2026-09-07) |
+| **B** — Passo 1: viaggio, data, email | ✅ **superato**, dopo la correzione di B5 |
+| **C** — Passo 2: l'anagrafica di chi guida | ✅ **superato** — C1–C13 provati a schermo o a database |
+| **D** — Il consenso all'invio di email | 🟡 D1, D2, D4, D6 superati · **restano D3 e D5** |
+| **E** — Passo 3: i passeggeri | ✅ E1, E3, E4 · ⚠️ **E7 non applicabile**: il sito ferma a 4 passeggeri (5 persone) |
+| **F** — Passo 4: mezzo, cane, note | ✅ F1, F4 · restano F2, F3, F5 |
+| **G** — Passo 5: le sistemazioni | ✅ **G1–G10, completo** |
+| **H** — La conferma: cosa resta scritto | ✅ H1–H4 · **restano H6, H7, H8** |
+| **I** — Che le due strade dicano la stessa cosa | ⛔️ **DA FARE — richiede il gestionale, non automatizzabile** |
+
+---|---|
+| **A** — L'ambiente prima di cominciare | ✅ **superato** (2026-09-07) |
 | **B** — Passo 1: viaggio, data, email | ✅ **superato** (2026-09-07), dopo la correzione di B5 |
 | **C** — Passo 2: l'anagrafica di chi guida | 🟡 in corso: regole verificate a database, resta la prova a schermo di C5, C8, C9, C15 |
 | **D** — Il consenso all'invio di email | 🟡 D4 superato; il resto da provare |
