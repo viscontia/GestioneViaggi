@@ -55,7 +55,13 @@ public class MovTransazioniPrintService
             cmd.Parameters.AddWithValue("AziendaId", filtri.AziendaId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("ControparteId", filtri.ControparteId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("CausaleTipoId", filtri.CausaleTipoId ?? (object)DBNull.Value);
-            cmd.Parameters.AddWithValue("Stati", filtri.Stati ?? Array.Empty<string>());
+            // ⚠️ NULL, non lista vuota: sono due cose opposte. La scheda manda null quando
+            // l'operatore non ha scelto nessuno stato, e la funzione lo legge come «nessun
+            // filtro»; una lista vuota le dice invece «solo i movimenti che non hanno alcuno
+            // stato», cioè nessuno. Da qui la stampa vuota con il messaggio «Nessuna
+            // transazione trovata con i filtri applicati», che mandava a cercare l'errore
+            // nelle date. Tutti gli altri parametri qui usano già DBNull: questo era l'unico.
+            cmd.Parameters.AddWithValue("Stati", (object?)filtri.Stati ?? DBNull.Value);
             cmd.Parameters.AddWithValue("ViaggioId", filtri.ViaggioId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("DataViaggioId", filtri.DataViaggioId ?? (object)DBNull.Value);
             cmd.Parameters.AddWithValue("ValutaId", filtri.ValutaId ?? (object)DBNull.Value);
