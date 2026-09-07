@@ -3,6 +3,10 @@
 **Scritto il 2026-09-06**, dopo l'implementazione su MAUI. Copre il gestionale; la parte
 sul sito arriverà quando il passo 5 sarà riscritto.
 
+> ✅ **CHIUSO il 2026-09-07: tutti i gruppi superati.** Le prove hanno prodotto gli script
+> `610`–`617` e una riscrittura profonda della scheda partecipanti. ⚠️ Da qui in poi vale come
+> **non-regressione**: un `☐` non spuntato non è lavoro aperto.
+
 Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere_Step5.md`,
 `SqlScripts/599`–`601`.
 
@@ -16,8 +20,8 @@ Riferimenti: `Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere
 | **B** — Il genere sui tipi di sistemazione | ✅ **superato** (2026-09-06) |
 | **C** — Le sistemazioni previste da un pernottamento | ✅ **superato** (2026-09-06), dopo gli script `607`→`609` e la correzione dei messaggi |
 | **D** — Quel che si può assegnare dipende dal viaggio | ✅ **superato** (2026-09-06), dopo `610`, `611`, la tendina unica e la correzione del blocco |
-| **E** — La validazione al salvataggio | ◐ **regole verificate al database** (2026-09-07): E1–E5 tutte come attese. ☐ Resta la prova sull'interfaccia: che i rifiuti arrivino leggibili nella scheda |
-| **F** — Il suggerimento del tipo | ✅ **superato** (2026-09-06), dopo `610`–`615`, la tendina unica, lo spostamento atomico e la linguetta «senza camere» |
+| **E** — La validazione al salvataggio | ✅ **superato** (2026-09-07): regole verificate al database e comportamento confermato sull'interfaccia |
+| **F** — Il suggerimento del tipo | ✅ **superato** (2026-09-07), dopo `610`–`615`, la tendina unica, lo spostamento atomico e la linguetta «senza camere» |
 | **G** — Che le due strade dicano la stessa cosa | ✅ **superato** (2026-09-06), eseguito in locale su transazione annullata. ⚠️ G1e resta come atteso ma in contraddizione con la decisione sulla capienza — vedi la nota in fondo |
 
 I difetti trovati durante A–C e corretti: la domanda di conferma al posto del rifiuto
