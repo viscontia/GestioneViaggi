@@ -1003,8 +1003,31 @@ Destinatari: Antonio oggi, e chi verrà dopo di lui.
 6. **Le sistemazioni che non si propongono da sole** (camere attrezzate per disabili): ci sono
    in elenco, non vengono suggerite, e perché.
 
+7. **L'interruttore «Assegna la camera adesso» nasce SPENTO** (dal 2026-09-07). ⚠️ Chi arriva
+   dalla versione precedente si aspetta di trovarlo acceso: va detto che è una scelta e non
+   una dimenticanza, altrimenti la prima cosa che farà sarà riaccenderlo e tornare al problema
+   del punto 1. Iscrivere e sistemare sono due lavori distinti, come erano su Oracle.
+
+8. **La linguetta «Partecipanti senza camere»**: compare solo quando c'è qualcuno da
+   sistemare, elenca i nomi, e da lì si assegna. È il posto in cui si finisce il lavoro
+   lasciato aperto dal punto 7 — e il fatto che sparisca da sola è il segnale che non è
+   rimasto niente indietro.
+
+9. **«Iscrizione Veloce — solo pilota»**: che cosa fa e cosa non fa. Iscrive **una** persona
+   che viaggia da sola e le dà subito una sistemazione da un posto; per una coppia o una
+   famiglia si passa da «Gestisci Partecipanti». ⚠️ Lì l'interruttore è invece **acceso**, ed
+   è voluto: è l'unica scheda dove la sistemazione si conosce già.
+
+⚠️ **Con gli screenshot** (chiesto da Adriano il 2026-09-07). Questa parte non si spiega a
+parole: le schede sono cambiate — l'interruttore, la linguetta nuova, la finestra «Dove dorme
+X», la domanda «partecipa ancora al viaggio?» — e chi legge deve riconoscere quello che ha
+davanti. Le immagini vanno prese **dopo** che il comportamento è fermo, altrimenti invecchiano
+prima del testo.
+
 ⚠️ Da scrivere **al momento della consegna**, non prima: fino ad allora il comportamento può
-ancora cambiare, e un manuale che non corrisponde è peggio di nessun manuale.
+ancora cambiare, e un manuale che non corrisponde è peggio di nessun manuale. ⚠️ Il conto dei
+punti è salito da 6 a 9 in un solo giorno di prove: è la misura di quanto è cambiato, e del
+perché senza manuale l'operatore non ci arriva da solo.
 
 ## 3. Configurazione applicativa PROD (fuori dal DB)
 
