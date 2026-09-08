@@ -978,7 +978,23 @@ creerebbe una **scheda doppia**.
 
 ---
 
-### 2.12 — 27 clienti su 206 non potranno iscriversi finché non si completano
+### 2.12 — 26 clienti su 203 non potranno iscriversi finché non si completano
+
+> ### ✅ ELENCO ESTRATTO il 2026-09-08 — `Resoconto_Lavori/2026-09-08-Clienti_da_Completare_prima_del_GoLive.md`
+>
+> Nomi, email, telefono e cosa manca a ciascuno, in ordine alfabetico di cognome, pronto da
+> consegnare ad Antonio. ⚠️ **I numeri sono scesi da 27/206 a 26/203**: le tre schede doppie
+> (MAIORCA, TACCA, COLOMBO) sono state risolte nel frattempo, e con loro è sparita una delle
+> incomplete.
+>
+> ⛔️ **Sei di queste persone non hanno né email né telefono** — passeggere iscritte da altri,
+> senza recapito proprio. Vanno raggiunte tramite il pilota del loro viaggio.
+> ⚠️ **Due non hanno la data di nascita** (FORNO, GENDUSO): è anche il motivo per cui il nuovo
+> vincolo sui doppioni non le copre.
+>
+> ⚠️ La query nella checklist usa `fn_ana_clienti_campi_mancanti`, che **su PROD non esiste
+> ancora** (script 563 non applicato): l'elenco è stato prodotto replicandone la logica in SQL,
+> senza il controllo sul titolo — quello lo risolve la migrazione degli script 538-542.
 Misurato su PROD (azienda 2) il 2026-09-05. Le regole di completezza dell'anagrafica
 (`fn_ana_clienti_campi_mancanti`, script 563) sono **nuove**: nascono in questo ciclo. I
 clienti inseriti prima non le hanno mai attraversate.
