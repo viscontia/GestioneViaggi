@@ -99,8 +99,7 @@
                     Disabled="@_isLoading"
                     tabindex="3"
                     Color="Color.Default"
-                    aria-label="Seleziona per rimanere connesso"
-                    @onkeydown="HandleCheckboxKeyDown" />
+                    aria-label="Seleziona per rimanere connesso" />
 
                 <!-- Bottone Login -->
                 <MudButton
@@ -163,7 +162,8 @@
                     StateHasChanged();
                 }
 
-                await JS.InvokeVoidAsync("loginFormHelper.setupTabNavigation");
+                await JS.InvokeVoidAsync("loginFormHelper.setupTabNavigation",
+                    !string.IsNullOrWhiteSpace(_loginRequest.Email));
             }
             catch (Exception ex)
             {
@@ -171,9 +171,12 @@
             }
             finally
             {
-                if (_emailField != null)
+                var initialField = string.IsNullOrWhiteSpace(_loginRequest.Email)
+                    ? _emailField
+                    : _passwordField;
+                if (initialField != null)
                 {
-                    await _emailField.FocusAsync();
+                    await initialField.FocusAsync();
                 }
             }
         }
@@ -185,19 +188,6 @@
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e, KeyDownTarget target)
-    {
-        if (e.Key == "Enter" && !_isLoading)
-        {
-            if (!ValidateForm())
-            {
-                StateHasChanged();
-                return;
-            }
-            await HandleLogin();
-        }
-    }
-
-    private async Task HandleCheckboxKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !_isLoading)
         {

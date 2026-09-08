@@ -1,6 +1,6 @@
 // Gestione TAB personalizzata per il form di login
 window.loginFormHelper = {
-    setupTabNavigation: function() {
+    setupTabNavigation: function(focusPassword = false) {
         // Retry mechanism per aspettare che MudBlazor renderizzi gli input
         const trySetup = (attempts = 0) => {
             if (attempts > 20) {
@@ -13,7 +13,7 @@ window.loginFormHelper = {
             const emailInput = inputs[0];
             const passwordInput = inputs[1];
             const checkbox = document.querySelector('.mud-checkbox input');
-            const submitButton = document.querySelector('.login-button button');
+            const submitButton = document.querySelector('button.login-button');
 
             if (!emailInput || !passwordInput) {
                 // Gli input non sono ancora pronti, riprova tra 100ms
@@ -49,35 +49,16 @@ window.loginFormHelper = {
                 checkbox.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter' && submitButton) {
                         e.preventDefault();
-                        submitButton.click();
+                        // Evita una seconda gestione di Enter da MudBlazor/Blazor.
+                        e.stopPropagation();
+                        if (!e.repeat) submitButton.click();
                     }
                 });
             }
 
-            // Gestione ENTER globale sul form - funziona ovunque
-            const loginCard = document.querySelector('.login-card');
-            if (loginCard) {
-                loginCard.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        const target = e.target;
-
-                        // Lascia che gli input nativi (email, password) gestiscano ENTER normalmente
-                        const isTextInput = target.tagName === 'INPUT' && (target.type === 'text' || target.type === 'email' || target.type === 'password');
-
-                        if (!isTextInput && submitButton) {
-                            // Per checkbox, button e altri elementi, submit manualmente
-                            e.preventDefault();
-                            submitButton.click();
-                        }
-                    }
-                }, true);
-            }
-
-            // Focus automatico sul primo campo
-            if (emailInput) {
-                emailInput.focus();
-                console.log('Login form tab navigation setup complete - focus set on email');
-            }
+            // La scelta arriva dal model Blazor, anche prima del rendering dell'email.
+            const initialField = focusPassword ? passwordInput : emailInput;
+            initialField.focus();
         };
 
         // Inizia il tentativo

@@ -1,7 +1,7 @@
 # Consuntivo del lavoro svolto — 27 giugno / 8 settembre 2026
 
 **A cosa serve questo documento.** Fissare per capitoli e punti che cosa è stato fatto, con due
-destinatari: chi lavora al progetto (per ritrovare le decisioni fra sei mesi) e il cliente (per
+destinatari: chi lavora al progetto (per ritrovare le decisioni fra sei mesi) e Antonio SFT (per
 sapere che cosa ha ricevuto).
 
 ⚠️ **Il perimetro iniziale era uno solo**: preparare il gestionale a fare da backend per il nuovo

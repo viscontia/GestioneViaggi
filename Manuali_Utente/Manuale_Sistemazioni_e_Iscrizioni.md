@@ -22,16 +22,25 @@ Leggi almeno i capitoli 1 e 2: sono il 90% del lavoro quotidiano.
 
 ## Indice
 
-1. [La regola che conta: la coppia](#1-la-regola-che-conta-la-coppia)
-2. [L'interruttore «Assegna la camera adesso» nasce spento](#2-linterruttore-assegna-la-camera-adesso-nasce-spento)
-3. [La linguetta «Partecipanti senza camere»](#3-la-linguetta-partecipanti-senza-camere)
-4. [Le due porte per comporre le camere](#4-le-due-porte-per-comporre-le-camere)
-5. [La capienza deve corrispondere: non esistono camere a metà](#5-la-capienza-deve-corrispondere-non-esistono-camere-a-metà)
-6. [Togliere qualcuno da una camera](#6-togliere-qualcuno-da-una-camera)
-7. [Il genere della sistemazione: perché in tenda non vedi le camere d'albergo](#7-il-genere-della-sistemazione-perché-in-tenda-non-vedi-le-camere-dalbergo)
-8. [Le sistemazioni che il programma non propone mai da solo](#8-le-sistemazioni-che-il-programma-non-propone-mai-da-solo)
-9. [«Iscrizione Veloce — solo pilota»: cosa fa e cosa non fa](#9-iscrizione-veloce--solo-pilota-cosa-fa-e-cosa-non-fa)
-10. [Riepilogo in una pagina](#10-riepilogo-in-una-pagina)
+- [Manuale — Iscrizioni e sistemazioni: cosa è cambiato](#manuale--iscrizioni-e-sistemazioni-cosa-è-cambiato)
+  - [Perché questo manuale](#perché-questo-manuale)
+  - [Indice](#indice)
+  - [1. La regola che conta: la coppia](#1-la-regola-che-conta-la-coppia)
+    - [La strada giusta](#la-strada-giusta)
+    - [La strada sbagliata — e perché è sbagliata](#la-strada-sbagliata--e-perché-è-sbagliata)
+  - [2. L'interruttore «Assegna la camera adesso» nasce spento](#2-linterruttore-assegna-la-camera-adesso-nasce-spento)
+  - [3. La linguetta «Partecipanti senza camere»](#3-la-linguetta-partecipanti-senza-camere)
+  - [4. Le due porte per comporre le camere](#4-le-due-porte-per-comporre-le-camere)
+    - [La finestra «Con chi dorme…?»](#la-finestra-con-chi-dorme)
+  - [5. La capienza deve corrispondere: non esistono camere a metà](#5-la-capienza-deve-corrispondere-non-esistono-camere-a-metà)
+  - [6. Togliere qualcuno da una camera](#6-togliere-qualcuno-da-una-camera)
+    - [Domanda 1 — «La sistemazione di chi resta»](#domanda-1--la-sistemazione-di-chi-resta)
+    - [Domanda 2 — «Partecipa ancora al viaggio?»](#domanda-2--partecipa-ancora-al-viaggio)
+  - [7. Il genere della sistemazione: perché in tenda non vedi le camere d'albergo](#7-il-genere-della-sistemazione-perché-in-tenda-non-vedi-le-camere-dalbergo)
+  - [8. Le sistemazioni che il programma non propone mai da solo](#8-le-sistemazioni-che-il-programma-non-propone-mai-da-solo)
+  - [9. «Iscrizione Veloce — solo pilota»: cosa fa e cosa non fa](#9-iscrizione-veloce--solo-pilota-cosa-fa-e-cosa-non-fa)
+  - [10. Riepilogo in una pagina](#10-riepilogo-in-una-pagina)
+    - [Le tre cose da non fare](#le-tre-cose-da-non-fare)
 
 ---
 
@@ -53,7 +62,7 @@ condividono, per una famiglia.
 6. Il programma chiede **«Con chi dorme…?»**: scegli la camera dell'altro se già ce l'ha,
    oppure creane una nuova della capienza giusta.
 
-![La linguetta «Partecipanti senza camere» con due nomi in elenco](img_partecipanti_senza_camere)
+![La linguetta «Partecipanti senza camere» con due nomi in elenco](image.png)
 
 ### La strada sbagliata — e perché è sbagliata
 
@@ -85,7 +94,7 @@ Nella scheda di iscrizione, nel riquadro **Alloggio**, c'è un interruttore:
 trovarlo acceso: **non è una dimenticanza, è una scelta.** È il modo in cui si lavorava su
 Oracle, ed è il modo che evita il problema del capitolo 1.
 
-![Il riquadro Alloggio con l'interruttore spento e la riga che spiega dove andare dopo](img_interruttore_spento)
+![Il riquadro Alloggio con l'interruttore spento e la riga che spiega dove andare dopo](image-1.png)
 
 Sotto l'interruttore spento compare una riga che ti dice dove finire il lavoro:
 
@@ -114,7 +123,7 @@ La stessa informazione la ritrovi anche dentro **Gestione Avanzata Alloggi**, ne
 giallo **«Senza sistemazione»**. Sono due porte sulla stessa cosa: la linguetta serve a
 vederlo **entrando**, senza dover aprire la scheda giusta.
 
-![La linguetta con il conto fra parentesi, accanto alle altre](img_linguetta_conto)
+![La linguetta con il conto fra parentesi, accanto alle altre](image-2.png)
 
 ---
 
@@ -141,7 +150,7 @@ e ti fa indicare **cosa diventa** quella camera (da singola a matrimoniale, oppu
 letti singoli). ⚠️ **Lo scegli tu, non il programma**: due persone possono volere un letto
 matrimoniale o due letti separati, e dal programma non si può sapere quale.
 
-![La finestra «Con chi dorme…?» con l'avviso e la scelta della nuova sistemazione](img_con_chi_dorme)
+![La finestra «Con chi dorme…?» con l'avviso e la scelta della nuova sistemazione](image-3.png)
 
 ---
 
@@ -182,7 +191,7 @@ L'elenco propone **solo** le sistemazioni della capienza giusta. ⚠️ Nelle ve
 il programma sceglieva da solo e in silenzio: poteva mettere in matrimoniale due amici che
 volevano letti separati, su una camera che non stavi nemmeno guardando.
 
-![La finestra «La sistemazione di chi resta»](img_sistemazione_residua)
+![La finestra «La sistemazione di chi resta»](image-4.png)
 
 ### Domanda 2 — «Partecipa ancora al viaggio?»
 
@@ -200,7 +209,7 @@ programma chiede subito:
 prima** di procedere: leggi quell'elenco, perché stai togliendo più persone di quelle che
 credi.
 
-![La domanda «Partecipa ancora al viaggio?» con i due pulsanti](img_partecipa_ancora)
+![La domanda «Partecipa ancora al viaggio?» con i due pulsanti](image-5.png)
 
 ---
 
@@ -226,10 +235,10 @@ aggiungere (per esempio CASA MOBILE o BUNGALOW).
 
 ⚠️ Fra le tipologie di pernottamento, la riga **«NESSUNO» non si può rinominare né cancellare**,
 e non ammette sistemazioni: significa «non si dorme da nessuna parte», ed è quella su cui si
-appoggia chi dorme nel proprio mezzo. Se provi a modificarla il programma rifiuta — non è un
+appoggia chi dorme nel proprio mezzo o a casa sua o a casa di qualcun altro. Se provi a modificarla il programma rifiuta — non è un
 guasto.
 
-![Tipologie di Pernottamento con la colonna «Sistemazioni previste»](img_pernottamento_generi)
+![Tipologie di Pernottamento con la colonna «Sistemazioni previste»](image-6.png)
 
 ---
 
@@ -247,7 +256,7 @@ Significa che:
 - ⛔️ il programma **non le assegna mai automaticamente** a chi capita.
 
 Sono camere che si danno a chi ne ha bisogno, non a chi arriva per primo. Prima non venivano
-proposte solo perché erano state create dopo le altre: per fortuna, non per regola.
+proposte solo perché erano state create dopo le altre.
 
 **Dove si imposta:** menu **Tabelle → Tipologie Alloggi**, colonna **«Mai proposta»**.
 
@@ -286,4 +295,5 @@ passeggeri, sei nel posto sbagliato.
 
 1. ⛔️ **Non** dare una singola al primo di una coppia contando di correggere dopo.
 2. ⛔️ **Non** riaccendere l'interruttore «per comodità» quando iscrivi più persone insieme.
-3. ⛔️ **Non** chiudere la scheda lasciando aperta la linguetta «Partecipanti senza camere».
+3. ⛔️ **Non** chiudere la scheda lasciando aperta la linguetta «Partecipanti senza camere». 
+IN OGNI CASO QUANDO LANCERAI LA STAMPA DELLA ROOMING LIST, SE CI SARANNO PERSONE SENZA CAMERE TI VERRA' SEGNALATO, SIA A VIDEO CHE SULLA STAMPA
