@@ -210,7 +210,14 @@ public static class DatabaseExceptionHelper
             { "uq_web_tour_mappa_insieme", "Questa edizione ha già una mappa dell'intero viaggio. Elimina quella esistente prima di caricarne un'altra." },
             { "uq_web_tour_mappa_gpx_dedup", "Questo file GPX è già stato caricato per questa edizione (stesso nome e stessa dimensione)." },
             { "uq_web_newsletter_soppressioni_email", "Questo indirizzo è già soppresso per questa azienda." },
-            { "uq_web_indirizzi_descrizione", "Esiste già un indirizzo web con questo nome. Scegline uno diverso: il nome serve a riconoscerlo nell'elenco." }
+            { "uq_web_indirizzi_descrizione", "Esiste già un indirizzo web con questo nome. Scegline uno diverso: il nome serve a riconoscerlo nell'elenco." },
+
+            // Unicità dell'anagrafica (SqlScripts/592 e 636). Normalmente non si arriva qui:
+            // `fn_ana_clienti_verifica_duplicato` intercetta prima e nomina la persona. Questi
+            // messaggi valgono per chi quella funzione l'ha aggirata — un'importazione, una
+            // correzione fatta a mano — e senza di loro leggerebbe il 23505 di PostgreSQL.
+            { "ana_clienti_cf_unico_per_azienda", "Questo codice fiscale è già registrato su un'altra scheda. Cerca la persona nell'anagrafica invece di crearne una nuova." },
+            { "ana_clienti_uq_identita", "Esiste già una scheda con questo cognome, nome e data di nascita. Se è la stessa persona, usa quella; se è un omonimo, controlla la data di nascita." }
         };
 
         foreach (var mapping in uniqueMessages)

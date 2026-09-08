@@ -156,6 +156,13 @@ Le sette bloccate sono CAMBIAGIO PIERANGELA, COLOMBO ROBERTA, DENARI MARIA ADELA
 DONATI BARBARA, MAIORCA MARIA, MELIS GIORGIA, MEZZALAMA BIANCA. ⚠️ Sono **tutte donne**,
 il che conferma da dove vengono: passeggere iscritte da altri, senza un indirizzo proprio.
 
+> ⚠️ **Aggiornato al 2026-09-08.** Due di questi nomi si sono rivelati anche doppioni, e sono
+> stati trattati nel capitolo sull'unicità: **MAIORCA MARIA** (la scheda senza email era la
+> doppia, cancellata su PROD il 2026-09-07 — misurato oggi: **7 schede senza email su 204**) e
+> **COLOMBO ROBERTA**, che è ancora doppia con due date di nascita diverse e **resta da
+> risolvere**. GENDUSO FRANCESCA, quella che il riconoscimento non vede, è anche una delle due
+> clienti SFT che il nuovo vincolo non copre: è sempre la data di nascita che manca.
+
 **Il disastro temuto — la scheda doppia — è quasi sempre già evitato**, e da lavoro fatto
 in questo stesso ciclo: `fn_ana_clienti_verifica_duplicato` riconosce la stessa persona da
 cognome, nome, data di nascita e comune di nascita, e risponde ERRORE. Ma «non si crea un
@@ -397,7 +404,7 @@ fatto in modo che il confine fra le due aziende sia reale finché ce ne sono due
 
 ---
 
-## Unicità dell'anagrafica: un confronto su più campi, obbligatorio
+## ✅ Unicità dell'anagrafica: fatto con lo script 636 — con due casi che restano aperti
 
 **Deciso il 2026-09-07** da Adriano, dopo aver misurato i doppioni veri di PROD: «anche lì
 dobbiamo avere una protezione e l'unica è un confronto su più campi anagrafici. Obbligatorio.»
@@ -428,21 +435,56 @@ sito**, 8 non registrati, 2 da Adriano. L'80% non passa dal sito: ⚠️ **una p
 solo nel sito lascia scoperta la strada da cui arrivano quattro clienti su cinque.** Deve stare
 a database.
 
-### Cosa c'è già, e cosa manca
+### ✅ FATTO — script 636 (2026-09-08)
 
-La regola **esiste**, in `fn_ana_clienti_verifica_duplicato`: codice fiscale se c'è, altrimenti
-cognome + nome + data di nascita + comune di nascita, col commento «l'omonimia esiste, ma non
-alla stessa data e nello stesso comune di nascita». Manca il **vincolo** che la renda
-inaggirabile: oggi è una funzione che si può non chiamare.
+⛔️ **La premessa scritta qui sopra era sbagliata, e va corretta.** Non mancava un vincolo:
+**ce n'era già uno**, `ana_clienti_idx06_scoped` su (azienda, cognome, nome, data di nascita,
+codice fiscale). Non proteggeva perché in un indice UNIQUE il `NULL` non collide con niente —
+nemmeno con un altro `NULL` — e **324 clienti su 777 hanno il codice fiscale vuoto**: per loro
+quell'indice semplicemente non esisteva. È esattamente il caso MAIORCA (nessuna delle due
+schede aveva il CF); nel caso TACCA una lo aveva e l'altra no, quindi le due chiavi
+differivano e convivevano lo stesso.
 
-⚠️ Da decidere in analisi: la funzione usa anche il **comune di nascita**, ma su due delle tre
-coppie di PROD i coniugi sono nati nello stesso comune — quindi come vincolo va valutato se
-includerlo (più permissivo) o fermarsi a cognome + nome + data di nascita (più severo).
-Attenzione ai clienti **senza data di nascita**, che un vincolo non copre.
+Il lavoro non è stato aggiungere un vincolo, è stato **sostituirne uno che dava una falsa
+sicurezza**. Lo fa lo script `636`:
 
-**Stato di PROD al 2026-09-07:** dopo la cancellazione della MAIORCA doppia resta **1 gruppo in
-violazione** (TACCA ALESSANDRO, 4377 e 4381 — la 4377 non ha iscrizioni). Sistemato quello, il
-vincolo si può creare.
+- **`ana_clienti_uq_identita`** — unico su (azienda, cognome, nome, data di nascita), parziale
+  sulle schede che la data ce l'hanno. È il vincolo che avrebbe fermato entrambi i doppioni.
+- **`ana_clienti_idx06_ricerca`** — le stesse colonne del vecchio, ma **non unico**: su PROD
+  quell'indice è usato in lettura (37 scansioni), toglierlo e basta avrebbe rallentato una
+  ricerca. Si toglie la promessa che non manteneva, non l'accesso.
+- **3 codici fiscali scritti come stringa vuota** normalizzati a `NULL` (MIRONOVA, SULLI,
+  GRASSO): due modi di scrivere «non lo so» prima o poi divergono nel confronto.
+
+Il **codice fiscale** era già coperto dallo script `592` (`ana_clienti_cf_unico_per_azienda`),
+che quindi va applicato prima.
+
+**Il comune di nascita è stato escluso**, come si sospettava qui: due delle tre coppie di PROD
+sono nate nello stesso comune, e includerlo avrebbe reso il vincolo più permissivo senza
+guadagno.
+
+✅ **Restano possibili**, verificati uno per uno in transazione annullata: due coniugi con la
+stessa email, un cliente senza codice fiscale, due omonimi con date diverse, la stessa persona
+in due aziende diverse (i silos).
+
+### ⚠️ Quello che il vincolo NON copre — resta lavoro
+
+Un vincolo non è un rilevatore di doppioni: la difesa che **parla** resta
+`fn_ana_clienti_verifica_duplicato`, che confronta con più tolleranza e dice chi è l'omonimo.
+Fuori dall'indice restano due casi veri:
+
+- **I clienti senza data di nascita** — 34 in tutto, 32 dei quali in azienda 6; ⚠️ **in SFT
+  sono due**: GENDUSO FRANCESCA e FORNO RAFFAELLA. Recuperabile solo chiedendo.
+- ⛔️ **Le date sbagliate.** Il caso reale era **COLOMBO ROBERTA**, doppia in SFT (3027 e 3889)
+  con date «1964-05-20» e «1964-05-25»: il codice fiscale `CLMRRT64E65A794E` dice che la data
+  vera è il 25 (`E65` = giorno 25 per una donna), quindi la 3027 aveva un refuso. **Questo indice
+  non l'avrebbe fermata**, perché le due date differiscono davvero — resta il limite, anche se il
+  caso è chiuso.
+  ✅ **Risolto su PROD il 2026-09-08** fondendo le due schede sulla 3889 (quella col codice
+  fiscale): vedi `Documents/PROD/2026-09-08-Doppione_COLOMBO_3027.md`. ⚠️ Guardando i movimenti si
+  è scoperto che le due schede erano **iscritte alla stessa partenza**, e che il pilota risultava
+  di conseguenza in **due camere matrimoniali** sulla stessa notte: una rooming list stampata in
+  quel momento avrebbe chiesto all'albergo una camera in più.
 
 ### L'OTP resta, ma per un'altra ragione
 

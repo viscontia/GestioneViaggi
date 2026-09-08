@@ -31,7 +31,7 @@ scritto perché — e sono i punti in cui un'inversione fa danno, non fastidio.
 | ☐ | 1. Backup di PROD | §1 | senza questo non si comincia |
 | ☐ | 2. Script `406`→`466` | §1 | |
 | ☐ | 3. Voci ad attenzione manuale della prima fascia (RLS, Storage, backfill lingua) | §2.1–§2.6 | |
-| ☐ | 4. Script `467`→`596` | §1 | **587→588→589→592 in quest'ordine**, §1.6 |
+| ☐ | 4. Script `467`→`636` | §1 | **587→588→589→592 in quest'ordine**, §1.6; il `592` **prima** del `636` |
 | ☐ | 5. `GV_SECRET_KEY` in PROD e segreti re-inseriti | §3.1 | senza, la posta non parte |
 | ☐ | 6. `MAIL_DIROTTA_A` **assente** dall'ambiente | §3.8 | se c'è, nessun cliente riceve nulla |
 | ☐ | 7. Resto della configurazione applicativa | §3.2 | |
@@ -248,7 +248,7 @@ sbagliato due volte: erano l'unica implementazione esistente finché mancavano l
 | 465 | Blocco11_ClienteLingua_Destinatari | ⚠️ **BACKFILL DATI** su clienti reali — §2.5 |
 | 466 | Create_FnAnaClientiLingua | |
 
-### Elenco ordinato (467–625)
+### Elenco ordinato (467–636)
 
 > **Il blocco `538`–`562` è rigiocabile** — verificato il 2026-08-21 **rigiocandolo per davvero**:
 > copia del DB, sequenza applicata tre volte di fila, zero errori, e stato finale corretto
@@ -440,6 +440,17 @@ sbagliato due volte: erano l'unica implementazione esistente finché mancavano l
 | 623 | Blocco_B_Una_Scrittura_Per_Tabella | ⛔️ **Verificato che non esiste più un caso di due funzioni diverse che fanno lo stesso lavoro dai due lati.** Le tre tabelle che entrambi scrivono usano la stessa funzione: `fn_ana_clienti_insert/_update`, `fn_mov_clienti_viaggi_insert`, `fn_alloggi_salva_camera`. Elimina l'ultima morta, `sp_mov_clienti_viaggi_create` — la vecchia iscrizione senza controlli, quella per cui si sono iscritti 11 piloti senza email. ⚠️ Sembrava viva perché il suo nome compariva in un **commento**: la ricognizione va fatta sul codice ripulito dai commenti. Solo un `DROP`, nessun dato modificato |
 | 624 | Blocco_C_Una_Regola_Per_Email | ⛔️ **«Indirizzo valido» era definito due volte, e diversamente**: `fn_validate_email_format` in un modo, `fn_ana_clienti_valida` se lo riscriveva più permissivo. Ora la definizione è una e la seconda la chiama. ⚠️ Su PROD (azienda 2) **tutti i 198 indirizzi passano** la regola severa: nessuno resta bloccato (verificato in sola lettura). In locale ne cade uno, ed è un errore vero — `mailto:…@gmail.com`, un collegamento incollato al posto dell'indirizzo. ⛔️ Elimina anche `validate_codice_fiscale`, che controllava solo la forma e aveva dentro scritto **`TODO: Implementare algoritmo completo`**: nessun carattere di controllo, accanto alla famiglia `fn_cf_*` che invece è completa. È il tipo peggiore di funzione morta — non inerte, **ingannevole**. Con lei `validate_fiscal_data` e `validate_partita_iva`, che nessuno chiamava |
 | 625 | Blocco_D_Una_Regola_Per_Partenza_Chiusa | ⛔️ **«Partenza chiusa» era definita due volte, con regole DIVERSE.** `fn_partenza_iscrivibile` (inizio futuro e non effettuata) è quella in vigore, che usano sito e gestionale; `fn_partenza_conclusa` (effettuata **oppure** fine passata) non la chiamava più nessuno. Non dicono la stessa cosa: una partenza cominciata ieri e in corso oggi non è «conclusa» ma non è nemmeno «iscrivibile». ⚠️ È lo stesso difetto che lo script `583` aveva chiuso — il sito che mostra partenze che il database poi rifiuta — e sarebbe tornato al primo che avesse preso la funzione sbagliata. Solo un `DROP` |
+| 626 | Funzioni_Morte_Via | Elimina **84 funzioni** (87 firme) che non chiamava piu' nessuno: 699 → 612. ⚠️ Le definizioni eliminate sono conservate in `Documents/2026-09-07-Funzioni_rimosse_definizioni.sql`, per poterne rileggere una se un domani servisse. Solo `DROP FUNCTION` |
+| 627 | Get_Max_Old_Year_Company_Nel_DB | La funzione veniva creata **dal C#** con una `CREATE FUNCTION` inline all'avvio: una definizione che vive nel codice dell'applicazione non e' nel database, e chi legge il database non la trova. Ora e' uno script come le altre |
+| 628 | Via_Trigger_Ruoli_Obsoleto | Elimina `trg_user_roles_delete_protection`, che proteggeva una colonna **che non esiste piu'** (`app_users.role_id`). ⚠️ Non era inerte, era **ingannevole**: leggendone il corpo si concludeva che il legame utente-ruolo fosse scoperto, mentre il vero legame (`app_user_role_map.role_code`) ha da sempre `ON DELETE RESTRICT`. Mi ci sono sbagliato io stesso il 2026-09-07 |
+| 629 | CF_Obbligatorio_Residenti_IT | ⚠️ **Superato dal 634**, che sposta la regola dove il ruolo si conosce — applicarlo lo stesso, in ordine, perche' il 634 ne modifica la funzione. Il codice fiscale diventa obbligatorio per chi **risiede** in Italia (non per chi ci e' nato): serve la fattura, e SFT sta diventando un tour operator vero. ⚠️ I 46 clienti storici senza CF **non vengono toccati**: la regola vale sui nuovi |
+| 630 | Fn_Cliente_Iscrivibile | ⚠️ **Superata dal 635** (che aggiunge il ruolo e **elimina la firma a due parametri**): applicare in ordine. Dice cosa manca a un cliente per potersi iscrivere, **prima** di fargli compilare mezzo, passeggeri e camere |
+| 631 | Iscrivibile_Nella_Validazione | ⚠️ **Superato dal 635**, che ne toglie la chiamata diventata doppia. Applicare in ordine |
+| 632 | Via_Trigger_Audit_Doppi | ⛔️ **Due trigger di audit scrivevano `created_by`/`updated_by` sulla stessa tabella**, e il secondo leggeva una variabile (`jwt.claims.app_user`) che nessuno dei due software valorizza: l'ordine di esecuzione e' alfabetico sul nome, quindi chi vinceva dipendeva da come erano stati chiamati. Resta un trigger solo, quello che legge `my.app_user`. Solo `DROP TRIGGER` |
+| 633 | Pilota_Maggiorenne | ⛔️ Un minorenne **non puo'** avere un ruolo di guida (decisione di Adriano, 2026-09-07). L'eta' si calcola **alla partenza**, non al momento dell'iscrizione: chi compie 18 anni prima di partire puo' iscriversi. Vale per i 7 ruoli che guidano. ⚠️ Nessuna iscrizione esistente lo viola |
+| 634 | CF_Al_Ruolo_Non_Allo_Schema | ⛔️ **Sposta il codice fiscale obbligatorio dalla validazione dell'anagrafica all'iscrizione**, e lo chiede **solo a chi guida**. ⚠️ `fn_ana_clienti_valida` giudica la scheda e **non puo' sapere il ruolo**: il ruolo esiste solo nell'iscrizione. Il 629 funzionava per combinazione. Decisione di Adriano: «serve a chiedere meno dati all'iscrizione dei passeggeri». ⚠️ Va **insieme al gestionale e al sito**, che tolgono entrambi l'asterisco dal campo |
+| 635 | Iscrivibile_Distingue_Chi_Guida | `fn_cliente_iscrivibile` prende `p_guida`: al pilota il CF serve, al passeggero no. ⚠️ **Elimina la firma a due parametri** del 630: va applicato **insieme al sito**, che passa il ruolo. Toglie anche la chiamata doppia introdotta dal 631 |
+| 636 | Unicita_Identita_Anagrafica | ⛔️ **La stessa persona non puo' esistere due volte nella stessa azienda.** Nasce dai due doppioni veri trovati su PROD il 2026-09-07 (MAIORCA MARIA, TACCA ALESSANDRO), gia' risolti. ⚠️ **Un indice unico c'era gia'** (`ana_clienti_idx06_scoped`) e non proteggeva: includeva il codice fiscale, e in un btree UNIQUE il NULL non collide con niente — per le 324 schede senza CF quell'indice non esisteva. Viene **sostituito** da `ana_clienti_uq_identita` (azienda, cognome, nome, data di nascita) piu' un indice **non unico** con le stesse colonne per la ricerca: ⚠️ su PROD il vecchio e' usato in lettura (37 scansioni), toglierlo e basta rallenterebbe. ⚠️ Normalizza a NULL **3 codici fiscali scritti come stringa vuota** (MIRONOVA, SULLI, GRASSO). ⚠️ Il CF era gia' coperto dal **592**, che va applicato prima. ✅ Restano possibili: due coniugi con la stessa email (3 coppie vere), i clienti senza CF, gli omonimi con date diverse. ⚠️ **Non copre** chi non ha la data di nascita (2 in SFT) ne' le date sbagliate — COLOMBO ROBERTA e' doppia con due date diverse e questo indice non l'avrebbe fermata: per quelli vale `fn_ana_clienti_verifica_duplicato`. Va **insieme al gestionale e al sito**, che traducono entrambi il rifiuto in una frase leggibile |
 
 
 > **Dopo `542` + `543`**, i due vincoli nati `NOT VALID` possono essere promossi a validati, perché
@@ -1200,6 +1211,32 @@ funzioni senza chiamanti non sono innocue: sono la prossima strada che qualcuno 
 
 ### 2.13 — DA SCRIVERE PRIMA DELLA CONSEGNA: il manuale di cosa è cambiato
 
+> ### ✅ SCRITTO il 2026-09-08 — `Manuali_Utente/Manuale_Sistemazioni_e_Iscrizioni.md`
+>
+> Dieci capitoli, che coprono tutti e nove i punti richiesti qui sotto, più un riepilogo di una
+> pagina con «le tre cose da non fare». Ogni comando, etichetta e messaggio citato è stato
+> **riletto sul codice**, non ricordato: l'interruttore nasce davvero spento
+> (`_wantsAccommodation = false` in `ViaggioPartecipantiManagerDialog`) e davvero acceso
+> nell'Iscrizione Veloce (`= true` in `QuickAddParticipantDialog`); i titoli delle finestre sono
+> «Con chi dorme…?», «La sistemazione di chi resta», «Partecipa ancora al viaggio?»; i nomi di
+> menu sono quelli di `NavMenu`.
+>
+> ⛔️ **MANCANO GLI SCREENSHOT** — sette immagini. Nel testo ci sono i
+> segnaposto `![descrizione](img_…)`, come nel Manuale di Installazione:
+>
+> | Segnaposto | Cosa deve mostrare |
+> |---|---|
+> | `img_partecipanti_senza_camere` | La linguetta aperta, con due nomi in elenco e il pulsante Assegna |
+> | `img_interruttore_spento` | Il riquadro Alloggio con l'interruttore spento e la riga che spiega dove andare dopo |
+> | `img_linguetta_conto` | La linguetta con il conto fra parentesi, accanto alle altre |
+> | `img_con_chi_dorme` | La finestra «Con chi dorme…?» con l'avviso «Diventeranno in 2» e la scelta della nuova sistemazione |
+> | `img_sistemazione_residua` | La finestra «La sistemazione di chi resta» |
+> | `img_partecipa_ancora` | La domanda «Partecipa ancora al viaggio?» con i due pulsanti |
+> | `img_pernottamento_generi` | Tabelle → Tipologie di Pernottamento, con la colonna «Sistemazioni previste» |
+>
+> ⚠️ Vanno prese **a comportamento fermo**, cioè adesso: il testo è scritto sulla versione 2.0
+> attuale e le immagini invecchiano prima del testo.
+
 ⛔️ **Non è documentazione di cortesia: senza, l'operatore fa danni.** Deciso da Adriano il
 2026-09-06, dopo aver visto lui stesso quanto è facile prendere la strada sbagliata.
 
@@ -1334,6 +1371,30 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 ---
 
 ### 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
+
+> ### ✅ SCRITTO il 2026-09-08 — `Manuali_Utente/Manuale_Contenuti_Web.md`
+>
+> Undici capitoli, che coprono tutti i punti dell'elenco qui sotto, più un riepilogo di una
+> pagina in forma di «situazione → spiegazione» e «le tre cose da non fare». Ogni etichetta,
+> messaggio e regola è stato **riletto sul codice o interrogato al database**, non ripreso da
+> questa lista: i quattro casi dello stato partenza vengono da `StatoPartenzaRules.Valuta`, la
+> soglia di pubblicazione da `MotivoNonPubblicabile` (data di **inizio**, dal giorno successivo
+> a oggi), l'ordine dei quattro blocchi sulla cancellazione da `sp_ana_date_viaggi_delete`.
+>
+> ⚠️ **Una correzione all'elenco qui sotto**: il pulsante «traduci tutto» **non esiste** — nella
+> 2.0 i due pulsanti sono **«Traduci mancanti»** e **«Approva tutte»**, e il secondo non traduce,
+> marca revisionato senza toccare i testi. Il manuale descrive quelli veri.
+>
+> ⛔️ **MANCANO GLI SCREENSHOT** — tre segnaposto `![descrizione](img_…)`:
+>
+> | Segnaposto | Cosa deve mostrare |
+> |---|---|
+> | `img_web_stato` | Il campo Stato aperto sui tre valori, col punto interrogativo dell'aiuto |
+> | `img_web_stato_partenza` | L'etichetta di stato della partenza (meglio se un caso di anomalia, arancione) |
+> | `img_web_clona` | La finestra di creazione con le due opzioni e la nota su foto e mappe |
+>
+> ⚠️ Il capitolo 6 (durate diverse) descrive una finestra che compare solo in quel caso: se
+> riesci a riprodurlo, vale uno screenshot in più.
 
 Durante i test è emerso che il comportamento dei contenuti web è **corretto ma non ovvio**: diverse regole,
 prese singolarmente, sembrano difetti del programma finché non si conosce il motivo. Vanno raccolte e
