@@ -1386,6 +1386,28 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 
 ---
 
+### 3.4-bis — ✅ Manuale della newsletter (scritto il 2026-09-08)
+
+`Manuali_Utente/Manuale_Newsletter.md` — dieci capitoli. Chiesto da Adriano il 2026-09-08: i
+contenuti web avevano il loro manuale, la newsletter no, ed è **l'unica parte del gestionale che
+manda email vere a persone vere** e che una volta partita non si richiama.
+
+Tutto riletto sul codice e sul database: i nove tipi di blocco vengono da
+`fn_web_newsletter_tipi_blocco()` (intestazione e footer sono gli unici `obbligatorio = true`), i
+sei criteri destinatari da `NewsletterFiltroDialog`, e le tre esclusioni automatiche —
+consenso mancante, nessuna email, soppressioni — da `fn_web_destinatari_newsletter`.
+
+⚠️ I due punti che senza manuale sembrano difetti: i **criteri si sommano in AND** (un secondo
+criterio restringe, e il conteggio crolla), e gli **iscritti dal sito restano fuori** appena si
+mette un criterio qualsiasi, perché non avendo un'anagrafica nessun criterio può valutarli.
+
+⛔️ **Senza screenshot**, a differenza degli altri due: la pagina è un elenco di linguette e
+tabelle, che il testo descrive per intero. Se in fase di consegna si vuole allinearlo agli altri,
+i punti che meritano un'immagine sono la composizione a blocchi e il riquadro destinatari col
+conteggio spaccato.
+
+---
+
 ### 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
 
 > ### ✅ SCRITTO il 2026-09-08 — `Manuali_Utente/Manuale_Contenuti_Web.md`
