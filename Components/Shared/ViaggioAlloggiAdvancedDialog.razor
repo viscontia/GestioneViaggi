@@ -375,10 +375,27 @@
             return;
         }
 
-        var camere = _rooms.Select(r => new AbbinaACameraDialog.CameraScelta(
-            r.AlloggioPk, r.TipoDescrizione,
-            r.Occupanti.Select(o => o.Nominativo).ToList(),
-            r.Occupanti.Select(o => o.ClienteId).ToList())).ToList();
+        // ⚠️ Se è già sistemata, da qui non si passa. Ci si arrivava con un elenco vecchio —
+        // il pannello diceva «senza alloggio» chi una camera ce l'aveva già — e la finestra
+        // la contava DUE volte: per due persone proponeva una tripla. Il database la fermava
+        // («la stessa persona è indicata due volte»), quindi il dato non si è mai sporcato,
+        // ma era un vicolo cieco. Segnalato da Adriano il 2026-09-08.
+        if (_rooms.Any(r => r.Occupanti.Any(o => o.ClienteId == chi.ClienteId)))
+        {
+            Snackbar.Add($"{chi.Nominativo} ha già una sistemazione su questa partenza. " +
+                         "Per spostarla, usa la matita sulla camera.", Severity.Warning);
+            await LoadDataAsync();   // l'elenco era vecchio: si riallinea
+            return;
+        }
+
+        // La rete sotto: anche se un domani si arrivasse qui in un altro modo, la camera in
+        // cui la persona è già non deve comparire fra quelle a cui abbinarla.
+        var camere = _rooms
+            .Where(r => r.Occupanti.All(o => o.ClienteId != chi.ClienteId))
+            .Select(r => new AbbinaACameraDialog.CameraScelta(
+                r.AlloggioPk, r.TipoDescrizione,
+                r.Occupanti.Select(o => o.Nominativo).ToList(),
+                r.Occupanti.Select(o => o.ClienteId).ToList())).ToList();
 
         var parameters = new DialogParameters<AbbinaACameraDialog>
         {

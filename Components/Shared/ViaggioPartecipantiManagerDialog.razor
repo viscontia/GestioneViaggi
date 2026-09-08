@@ -1553,13 +1553,19 @@
             parameters,
             options);
 
-        var result = await dialog.Result;
+        await dialog.Result;
 
-        if (result != null && !result.Canceled)
-        {
-            // Refresh data after closing advanced dialog
-            await LoadListAsync();
-        }
+        // ⚠️ Si ricarica SEMPRE, anche se il dialogo è stato chiuso con la X o con Esc.
+        // Prima il refresh era condizionato a `!result.Canceled`, ma lì dentro le
+        // assegnazioni si salvano subito, una per una: chiudere con la X non annulla
+        // niente, annulla solo il refresh. Chi assegnava una camera e poi chiudeva con la
+        // X vedeva il pannello dire ancora «1 senza alloggio» — e riassegnando la stessa
+        // persona la finestra proponeva una TRIPLA, perché la contava due volte. Il
+        // database la fermava («la stessa persona è indicata due volte»), quindi il dato
+        // non si è mai sporcato, ma l'interfaccia portava in un vicolo cieco.
+        // ⚠️ Spiega anche perché non succedeva sempre: dipendeva da come si chiudeva.
+        // Segnalato da Adriano il 2026-09-08.
+        await LoadListAsync();
     }
 
 
