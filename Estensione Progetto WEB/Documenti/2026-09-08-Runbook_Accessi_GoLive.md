@@ -1,8 +1,10 @@
 # Runbook accessi go-live — verificato il 2026-09-08, sera
 
-> Preparato la sera prima del go-live. **Tutto quello che c'è qui è stato provato davvero**, non
-> copiato dai documenti: dove la realtà differiva dalla documentazione, sotto c'è scritto come
-> stanno le cose oggi.
+> Preparato la sera del 2026-09-08, il giorno prima del go-live. **Tutto quello che c'è qui è
+> stato provato davvero**, non copiato dai documenti: in quattro punti la realtà differiva dalla
+> documentazione di marzo, e sotto c'è scritto come stanno le cose.
+>
+> ⚠️ **Da leggere per primo il §6**, che è la lista di cosa fare all'inizio.
 
 ---
 
@@ -121,28 +123,41 @@ nginx -t && systemctl reload nginx                     # se si tocca nginx
 
 ---
 
-## 4. ⚠️ Due cose viste stasera, da sapere
+## 4. Lo stato del server, e le tre voci ancora da verificare
 
-### Il load average è 8,00 e non è traffico
+### ✅ FATTO: il server è stato riavviato (2026-09-08, 20:19 → 20:31)
 
-Su 2 CPU, load `8,00 8,00 8,00` — identico sui tre intervalli — ma **nessun processo consuma
-CPU**. La causa: **quattro processi bloccati in stato D** (I/O non interrompibile), residui di un
-`npm install` / `npm cache clean` lanciati sul server tempo fa:
+Deciso da Adriano appena visti i quattro processi bloccati. **Riavviato ieri sera, non domani**:
+se qualcosa non fosse ripartito, c'era tutta la sera per sistemarlo.
 
-```
-D 939407 npm install     D 939506 npm install
-D 939625 npm install     D 939732 npm cache clean
-```
+⛔️ **La verifica prima del riavvio ha trovato un problema serio: `nginx` era `active` ma
+`disabled`.** Senza socket activation, dopo il riavvio i due siti sarebbero rimasti giù finché
+qualcuno non lo avviava a mano dalla console. Era così da chissà quando: 506 giorni di uptime
+lo avevano reso invisibile. Corretto con `systemctl enable nginx` **prima** del reboot.
 
-⚠️ **Non si uccidono con `kill`**: in stato D il processo non risponde ai segnali. Si liberano
-solo con un riavvio del server.
+ℹ️ Falso allarme su `ssh.service`, che risultava `disabled`: su Ubuntu 24.04 c'è la **socket
+activation**, e `ssh.socket` è `enabled` e `active`. L'accesso non si sarebbe perso. ⚠️ Verificato
+prima di allarmare — la differenza fra i due casi è tutta lì.
 
-✅ **Non è bloccante per domani**: memoria libera (2,5 GB disponibili), disco al 22%, entrambi i
-siti rispondono 200. È rumore che falsa il monitoraggio, non un guasto. ⚠️ Ma se domani si vede
-il server lento, si sa già che il load average non è l'indicatore da guardare.
+**Esito, misurato dopo:**
 
-ℹ️ **Uptime: 506 giorni.** Un riavvio pulirebbe i processi bloccati, ma va deciso **prima** o
-**dopo** il go-live — non nel mezzo.
+| | Prima | Dopo |
+|---|---|---|
+| Processi bloccati in stato D | **4** | **0** |
+| Load average | **8,00** fisso | **0,00** |
+| Memoria libera | 172 MB | **3,1 GB** |
+| nginx / Flask legacy / Flask azienda 2 | attivi | **tutti attivi** |
+| I due siti dall'esterno | 200 | **200** (0,8s e 0,55s) |
+| Servizi falliti al boot | — | **nessuno** |
+
+⚠️ **Il riavvio ha impiegato circa 11 minuti**, e vale la pena sapere dove sono andati: il **boot
+è durato 8,5 secondi** (`systemd-analyze`), quindi **erano tutti nello shutdown**. I quattro
+processi in stato D non rispondono ai segnali: systemd li attende uno per uno prima di forzare.
+ℹ️ Nessun `fsck`, che pure era l'ipotesi più ovvia dopo 506 giorni — l'ipotesi era sbagliata e i
+tempi di boot lo dimostrano.
+
+ℹ️ Da qui in avanti un riavvio è un'operazione da un minuto: i processi bloccati erano
+l'anomalia, non la norma.
 
 ### Il `.env` di produzione non l'ho letto
 
@@ -194,15 +209,42 @@ dopo il passo 1, senza pause in mezzo.
 ## 6. Da fare per primi, domani mattina
 
 1. ☐ **Verificare l'accesso SSH dalla rete di domani** (ACL sull'IP): se non passa, tutto il
-   resto è bloccato e va risolto prima.
-2. ☐ **Backup di Supabase.**
-3. ☐ **Leggere i nomi delle chiavi nel `.env` di produzione** (le tre voci del §4).
-4. ☐ **`npm run build` sul Mac** e verificare che il bundle contenga «Come volete dormire».
-5. ☐ Decidere se riavviare il server (processi bloccati) **prima** di iniziare.
+   resto è bloccato e va risolto prima di ogni altra cosa.
+2. ☐ **Backup di Supabase.** Senza questo non si comincia.
+3. ☐ **Leggere i nomi delle chiavi nel `.env` di produzione** — le tre voci del §4 che fanno
+   fallire la consegna in silenzio.
+4. ☐ **`npm run build` sul Mac**, poi verificare che il bundle contenga «Come volete dormire».
+5. ☐ **Pagina di manutenzione sul sito** prima di applicare gli script.
 6. ☐ Consegnare ad Antonio l'elenco delle 26 schede incomplete
    (`Resoconto_Lavori/2026-09-08-Clienti_da_Completare_prima_del_GoLive.md`).
 
+✅ **Il riavvio del server è già stato fatto ieri sera** — vedi §4. Non va rifatto.
+
 ---
 
-*Verificato il 2026-09-08 dalle 20:00. Accessi provati: SSH ✅, Supabase via container ✅,
-Supabase via MCP ✅, psql di sistema ⛔️.*
+## 7. Se qualcosa va storto
+
+**Il server non risponde più.** Console Hetzner dal pannello (Cloud Console): dà accesso allo
+schermo della macchina anche senza rete. ⚠️ **Solo Adriano ha il pannello Hetzner** — io non
+posso arrivarci.
+
+**Uno script fallisce a metà sequenza.** ⛔️ Non si prosegue con i successivi: si legge l'errore,
+si capisce, e si decide. Gli script sono in ordine di dipendenza, e uno saltato rende insensati
+quelli dopo. Con `-v ON_ERROR_STOP=1` psql si ferma da solo — ⚠️ è il motivo per cui va sempre
+messo.
+
+**Il sito nuovo non parte dopo il rsync.** `journalctl -u iscrizione-viaggi-2.service -n 50
+--no-pager` dice quasi sempre il perché in chiaro. Le cause più probabili: dipendenze cambiate
+(`pip install -r requirements.txt`) o una chiave mancante nel `.env`.
+
+**Le mail non arrivano.** Le tre voci del §4, in quest'ordine: `MAIL_DIROTTA_A` assente,
+`MAIL_AMBIENTE_REALE=si` presente, `GV_SECRET_KEY` presente e identica a quella del gestionale.
+Nel log del sito deve comparire `Flask-Mail inizializzato da DB (…)`.
+
+**Serve tornare indietro.** ⛔️ `499_Rollback_EstensioneWeb.sql` **non è la via**: contiene
+`DROP COLUMN` e cancella dati. Il ritorno indietro vero è il **backup del passo 0**.
+
+---
+
+*Verificato il 2026-09-08 dalle 20:00 alle 22:35. Accessi provati: SSH ✅, Supabase via container ✅,
+Supabase via MCP ✅, psql di sistema ⛔️. Server riavviato e ripartito pulito ✅.*
