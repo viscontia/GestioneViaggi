@@ -144,14 +144,8 @@ Hai ricevuto un'email con un link di **WeTransfer** per scaricare il programma d
 
 **Ecco cosa fare:**
 
-1. Clicca su **"Altre informazioni"** (il testo blu/grigio in piccolo)
-
-   ![Altre informazioni](img_placeholder)
-
+1. Clicca su **"Altre informazioni"** — è un testo piccolo, blu o grigio, appena sotto il messaggio dell'avviso
 2. Appare il pulsante **"Esegui comunque"** — clicca su di esso
-
-   ![Esegui comunque](img_placeholder)
-
 3. L'installazione parte normalmente
 
 > 💡 Se invece compare una finestra **"Controllo account utente"** che chiede *"Vuoi consentire a questa app di apportare modifiche al dispositivo?"*, clicca **"Sì"**. È necessario per installare il programma.
@@ -253,36 +247,8 @@ Oltre al programma installato sul PC, esiste anche un **portale web** dove i tuo
 
 Questo indirizzo funziona su qualsiasi browser (Chrome, Edge, Firefox, Safari) e da qualsiasi dispositivo: PC, tablet, smartphone.
 
----
-
-### ⚠️ Se il tuo sito web ha un bottone che rimanda alle iscrizioni
-
-Molti siti aziendali hanno un pulsante del tipo **"Iscriviti"**, **"Prenota"** o **"Compila il modulo"** che porta direttamente alla pagina di iscrizione.
-
-Se quel pulsante rimandava a un vecchio indirizzo, **deve essere aggiornato** con il nuovo link indicato sopra.
-
-**Cosa fare:**
-
-**Se gestisci il sito web in autonomia** (hai accesso al pannello di amministrazione del sito):
-1. Accedi al pannello del tuo sito (WordPress, Wix, Squarespace, ecc.)
-2. Trova il pulsante o il link che porta alle iscrizioni
-3. Sostituisci il vecchio indirizzo con il nuovo:
-   ```
-   https://iscrizioni.sardegnafuoritraccia.it/
-   ```
-4. Salva le modifiche e verifica che il link funzioni correttamente
-
-**Se il sito è gestito da un webmaster o agenzia web:**
-Contatta il tuo webmaster **con urgenza** e forniscigli queste informazioni:
-
-> *"Devo aggiornare il link al modulo di iscrizione sul sito. Il nuovo indirizzo è:*
-> *https://iscrizioni.sardegnafuoritraccia.it/*
-> *Puoi aggiornarlo il prima possibile?"*
-
-> ℹ️ **Non c'è fretta**: il vecchio indirizzo con il codice
-> (`.../2-976f2734/`) continua a funzionare, quindi chi clicca sul pulsante di prima
-> arriva comunque al modulo giusto. Il nuovo indirizzo è però più semplice da leggere e
-> da dettare al telefono.
+> ℹ️ **Il collegamento dal sito di Sardegna Fuori Traccia funziona già**: è stato provato il
+> 9 settembre 2026 partendo dal sito pubblico, e porta al modulo giusto. Non serve fare nulla.
 
 ---
 

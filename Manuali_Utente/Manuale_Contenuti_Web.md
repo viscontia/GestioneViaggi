@@ -59,7 +59,6 @@ una copia — resta spiazzato. Non fa nulla di tutto questo.
 
 ✅ **Tornare a Bozza o Archiviato è sempre possibile**, e toglie il tour dal sito subito.
 
-![Il campo Stato con i tre valori e il punto interrogativo dell'aiuto](img_web_stato)
 
 ---
 
@@ -131,7 +130,6 @@ spunta «Viaggio Effettuato» (scheda Date del viaggio) e la **data di fine**.
 ⚠️ Il giorno stesso della data di fine il viaggio è considerato **ancora in corso**, non
 concluso.
 
-![L'etichetta di stato con il suo suggerimento](img_web_stato_partenza)
 
 ---
 
@@ -155,7 +153,6 @@ stesso viaggio, cambiano solo le date. Resta comunque una scelta.
 3. Se nessun'altra partenza di quel viaggio ha una scheda, l'opzione è spenta e il programma lo
    dice.
 
-![La finestra di creazione con le due opzioni e la nota su foto e mappe](img_web_clona)
 
 ---
 
