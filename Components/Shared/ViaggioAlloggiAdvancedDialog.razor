@@ -535,6 +535,16 @@
         // Load participants first, then rooms (rooms need participants data)
         await LoadParticipantsAsync();
         await LoadRoomsAsync();
+
+        // ⛔️ Il ridisegno va chiesto ESPLICITAMENTE. Blazor lo fa da solo al termine di un
+        // gestore di evento, ma qui in mezzo ci sono tre finestre di dialogo attese una
+        // dopo l'altra: dopo quelle attese il ridisegno automatico non scatta piu', e
+        // resta a schermo la situazione di PRIMA del salvataggio.
+        // ⚠️ Il dato sul database era giusto, la schermata no — ed e' il caso peggiore:
+        // chi guarda crede che l'operazione non sia riuscita e la rifa', creando doppioni.
+        // Trovato da Adriano il 2026-09-09 collaudando la 2.0 installata: aveva assegnato
+        // una matrimoniale e il pannello continuava a dire «2 partecipanti senza alloggio».
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadRoomsAsync()
