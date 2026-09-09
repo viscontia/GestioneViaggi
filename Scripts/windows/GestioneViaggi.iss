@@ -10,13 +10,18 @@
 ; =============================================================================
 
 #define AppName "GestioneViaggi"
-#define AppVersion "1.35"
+#define AppVersion "2.0"
 #define AppPublisher "Adriano Visconti"
 #define AppExeName "GestioneViaggi.exe"
 #define AppDescription "Sistema di Gestione Viaggi e Turismo"
 
-; PERCORSO dei file pubblicati (output di dotnet publish / build-release.ps1)
-#define SourceDir "C:\GestioneViaggi"
+; PERCORSO dei file pubblicati (output di dotnet publish).
+; ATTENZIONE: deve puntare alla cartella APPENA COMPILATA, non a un'installazione
+; esistente. Puntandolo a C:\GestioneViaggi (dove il programma e' gia' installato) si
+; impacchetta la versione VECCHIA e l'installer sembra riuscito lo stesso.
+; Il flusso: si copia il contenuto di ...\publish\ in C:\GestioneViaggi-build e si
+; compila da li'. Vedi Scripts/windows/COME_SI_GENERA_L_INSTALLER.md
+#define SourceDir "C:\GestioneViaggi-build"
 
 [Setup]
 AppId={{7229DAF4-6720-48BF-9590-F903A3F02D7D}
@@ -36,7 +41,7 @@ DefaultGroupName={#AppName}
 AllowNoIcons=no
 
 ; Cartella output del Setup.exe generato
-OutputDir=C:\GestioneViaggi\Setup
+OutputDir=C:\GestioneViaggi-build\Setup
 OutputBaseFilename=GestioneViaggi_Setup_{#AppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes

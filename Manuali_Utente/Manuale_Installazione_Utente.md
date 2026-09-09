@@ -1,7 +1,7 @@
 # Manuale di Installazione — Gestione Viaggi per Windows
 
-**Versione**: 1.35
-**Ultimo aggiornamento**: Luglio 2026
+**Versione**: 2.0
+**Ultimo aggiornamento**: settembre 2026
 **A chi è rivolto**: Utenti finali — nessuna conoscenza tecnica richiesta
 
 ---
@@ -14,6 +14,7 @@
 4. [Passo 3 — Avvia l'installazione](#4-passo-3--avvia-linstallazione)
 5. [Passo 4 — Segui il wizard di installazione](#5-passo-4--segui-il-wizard-di-installazione)
 6. [Passo 5 — Primo avvio e accesso](#6-passo-5--primo-avvio-e-accesso)
+7. [La chiave dei segreti — da impostare una volta sola](#7-una-cosa-da-impostare-una-volta-sola--la-chiave-dei-segreti)
 8. [Portale Web Iscrizioni](#8-portale-web-iscrizioni)
 9. [Risoluzione Problemi](#9-risoluzione-problemi)
 
@@ -196,7 +197,44 @@ Al primo avvio appare la schermata di login.
 
 > 💡 I **documenti PDF** generati dal programma (preventivi, fatture, ecc.) vengono salvati automaticamente nella cartella `C:\Users\TuoNome\Downloads\` — la stessa cartella dove scarichi i file da internet. Per aprirli è necessario **Adobe Reader** oppure **joPDF**.
 
-**Installazione completata! 🎉** Il programma è ora pronto all'uso.
+**Installazione completata! 🎉**
+
+---
+
+## 7. Una cosa da impostare una volta sola — la chiave dei segreti
+
+⚠️ **Da fare subito dopo l'installazione, altrimenti alcune schede non funzionano.**
+
+Il programma conserva nel database alcune informazioni riservate — la password della posta,
+la chiave per le traduzioni automatiche — e le tiene **cifrate**. Per poterle rileggere ha
+bisogno di una chiave, che **non sta dentro il programma**: sta nelle impostazioni di Windows.
+
+⛔️ **Senza questa chiave**, aprendo le schede *Traduzioni* o *Configurazione email* le funzioni
+appaiono spente e non è possibile inviare posta né tradurre.
+
+### Come si imposta
+
+1. Premi il tasto **Windows** e scrivi `variabili`
+2. Apri **«Modifica le variabili di ambiente relative al sistema»**
+3. Clicca sul pulsante **«Variabili d'ambiente…»** in basso
+4. Nel riquadro **in basso** («Variabili di sistema») clicca **«Nuovo…»**
+5. Compila i due campi:
+   - **Nome variabile**: `GV_SECRET_KEY`
+   - **Valore variabile**: la stringa che ti è stata comunicata a parte
+6. **OK** su tutte le finestre aperte
+7. ⚠️ **Chiudi e riapri il programma**: la chiave viene letta all'avvio
+
+### ⚠️ Tre avvertenze
+
+- La chiave va scritta **esatta**, senza spazi prima o dopo. Un carattere invisibile in coda
+  la rende diversa, e i segreti non si aprono.
+- Dev'essere **la stessa identica** su ogni computer che usa il programma. Chiavi diverse
+  significano segreti scritti da una postazione e illeggibili dall'altra.
+- Non va inviata per email insieme al programma: **si comunica a voce o per altra via.**
+
+---
+
+Il programma è ora pronto all'uso.
 
 ---
 
@@ -206,7 +244,7 @@ Oltre al programma installato sul PC, esiste anche un **portale web** dove i tuo
 
 ### Indirizzo del portale (Azienda Sardegna Fuori Traccia)
 
-👉 **https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/**
+👉 **https://iscrizioni.sardegnafuoritraccia.it/**
 
 Questo indirizzo funziona su qualsiasi browser (Chrome, Edge, Firefox, Safari) e da qualsiasi dispositivo: PC, tablet, smartphone.
 
@@ -225,7 +263,7 @@ Se quel pulsante rimandava a un vecchio indirizzo, **deve essere aggiornato** co
 2. Trova il pulsante o il link che porta alle iscrizioni
 3. Sostituisci il vecchio indirizzo con il nuovo:
    ```
-   https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/
+   https://iscrizioni.sardegnafuoritraccia.it/
    ```
 4. Salva le modifiche e verifica che il link funzioni correttamente
 
@@ -233,10 +271,13 @@ Se quel pulsante rimandava a un vecchio indirizzo, **deve essere aggiornato** co
 Contatta il tuo webmaster **con urgenza** e forniscigli queste informazioni:
 
 > *"Devo aggiornare il link al modulo di iscrizione sul sito. Il nuovo indirizzo è:*
-> *https://iscrizioni.sardegnafuoritraccia.it/2-976f2734/*
+> *https://iscrizioni.sardegnafuoritraccia.it/*
 > *Puoi aggiornarlo il prima possibile?"*
 
-> ⚠️ Finché il link non viene aggiornato, i clienti che cliccano sul vecchio pulsante potrebbero arrivare su una pagina errata o inesistente — le nuove iscrizioni andrebbero perse.
+> ℹ️ **Non c'è fretta**: il vecchio indirizzo con il codice
+> (`.../2-976f2734/`) continua a funzionare, quindi chi clicca sul pulsante di prima
+> arriva comunque al modulo giusto. Il nuovo indirizzo è però più semplice da leggere e
+> da dettare al telefono.
 
 ---
 
