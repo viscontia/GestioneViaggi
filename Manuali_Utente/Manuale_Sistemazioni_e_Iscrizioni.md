@@ -31,7 +31,7 @@ Leggi almeno i capitoli 1 e 2: sono il 90% del lavoro quotidiano.
   - [2. L'interruttore «Assegna la camera adesso» nasce spento](#2-linterruttore-assegna-la-camera-adesso-nasce-spento)
   - [3. La linguetta «Partecipanti senza camere»](#3-la-linguetta-partecipanti-senza-camere)
   - [4. Le due porte per comporre le camere](#4-le-due-porte-per-comporre-le-camere)
-    - [La finestra «Con chi dorme…?»](#la-finestra-con-chi-dorme)
+    - [La domanda «Dove dorme…?» e le sue due strade](#la-domanda-dove-dorme-e-le-sue-due-strade)
   - [5. La capienza deve corrispondere: non esistono camere a metà](#5-la-capienza-deve-corrispondere-non-esistono-camere-a-metà)
   - [6. Togliere qualcuno da una camera](#6-togliere-qualcuno-da-una-camera)
     - [Domanda 1 — «La sistemazione di chi resta»](#domanda-1--la-sistemazione-di-chi-resta)
@@ -59,8 +59,18 @@ condividono, per una famiglia.
 3. Iscrivi la **seconda** allo stesso modo, sempre con l'interruttore spento.
 4. Compare la linguetta **«Partecipanti senza camere (2)»**. Aprila.
 5. Premi **Assegna** sul primo dei due nomi.
-6. Il programma chiede **«Con chi dorme…?»**: scegli la camera dell'altro se già ce l'ha,
-   oppure creane una nuova della capienza giusta.
+6. Il programma chiede **«Dove dorme…?»** e offre due strade:
+   - **«In una camera che c'è già»** — solo se l'altra persona una camera ce l'ha **già**
+   - ⭐️ **«In una camera nuova»** — ⚠️ **è questa quando siete partiti da zero tutti e due**
+7. Scegliendo **«In una camera nuova»** si apre la scheda della camera: indica il tipo
+   (per esempio CAMERA MATRIMONIALE) e poi, dal campo **«Aggiungi Occupante»**, aggiungi
+   la seconda persona. Salva.
+
+> ⚠️ **Il punto su cui ci si blocca, ed è il caso più comune.** Se iscrivi una coppia e
+> nessuno dei due ha ancora una camera, **«In una camera che c'è già» non ti mostrerà
+> l'altra persona** — e non è un difetto: lì dentro ci sono le *camere*, non le persone, e
+> l'altra persona una camera non ce l'ha ancora.
+> **La strada è sempre «In una camera nuova»**, dove li metti tutti e due insieme.
 
 ![La linguetta «Partecipanti senza camere» con due nomi in elenco](image.png)
 
@@ -134,13 +144,29 @@ Le vie per comporre una sistemazione sono **due**. Non ce ne sono altre, e non s
 | Situazione | Dove si fa | Cosa si apre |
 |---|---|---|
 | La camera **esiste già** e vuoi cambiare chi ci dorme | La **matita** ✏️ sulla camera, in Gestione Avanzata Alloggi | *Modifica Camera* |
-| Una persona **non ha ancora** una camera | Il pulsante **Assegna** (nella linguetta o nel riquadro giallo) | *Con chi dorme…?* |
+| Una persona **non ha ancora** una camera | Il pulsante **Assegna** (nella linguetta o nel riquadro giallo) | *Dove dorme…?* |
 
-### La finestra «Con chi dorme…?»
+### La domanda «Dove dorme…?» e le sue due strade
 
-Ti fa scegliere una delle sistemazioni già presenti sulla partenza, **anche quelle piene**.
+Premendo **Assegna**, il programma chiede dove va sistemata quella persona, e offre due strade.
+⚠️ **La differenza conta**, ed è la cosa su cui ci si blocca più spesso.
+
+#### ⭐️ «In una camera nuova» — quando nessuno ha ancora una camera
+
+Si apre la scheda di una camera vuota, con quella persona già dentro. Indichi il **tipo** e,
+dal campo **«Aggiungi Occupante»**, puoi metterci **anche gli altri partecipanti**.
+
+⚠️ **È la strada per una coppia o una famiglia che si iscrive**: se nessuno dei due ha ancora
+una camera, è l'unica che funziona.
+
+#### «In una camera che c'è già» — quando l'altro è già sistemato
+
+Ti fa scegliere una delle camere già presenti sulla partenza, **anche quelle piene**.
 Questo è voluto: la moglie che prima aveva detto di no e poi decide di venire deve poter
 dormire con il marito, e la sua camera è "piena" per definizione.
+
+⚠️ **Qui dentro ci sono le camere, non le persone.** Chi non ha ancora una camera non compare —
+e per lui la strada è quella di sopra.
 
 Quando scegli una camera occupata, il programma avvisa:
 
@@ -150,7 +176,7 @@ e ti fa indicare **cosa diventa** quella camera (da singola a matrimoniale, oppu
 letti singoli). ⚠️ **Lo scegli tu, non il programma**: due persone possono volere un letto
 matrimoniale o due letti separati, e dal programma non si può sapere quale.
 
-![La finestra «Con chi dorme…?» con l'avviso e la scelta della nuova sistemazione](image-3.png)
+![La finestra di abbinamento con l'avviso e la scelta della nuova sistemazione](image-3.png)
 
 ---
 
@@ -287,7 +313,7 @@ passeggeri, sei nel posto sbagliato.
 | Iscrivere **una coppia** o **un gruppo** | Gestisci Partecipanti → iscrivi tutti con l'interruttore **spento** → linguetta «Partecipanti senza camere» → **Assegna** |
 | Iscrivere **una persona sola** | Iscrizione Veloce — solo pilota (l'interruttore lì è acceso, va bene) |
 | Cambiare **chi dorme** in una camera esistente | La **matita** ✏️ sulla camera |
-| Dare una camera a chi **non ce l'ha** | Il pulsante **Assegna** |
+| Dare una camera a chi **non ce l'ha** | Il pulsante **Assegna** → **«In una camera nuova»** se nessuno ne ha ancora una |
 | Sapere se **è rimasto qualcosa in sospeso** | Guarda se c'è la linguetta «Partecipanti senza camere»: se non c'è, hai finito |
 | Capire perché **manca una sistemazione** in elenco | Tabelle → Tipologie di Pernottamento → «Sistemazioni previste» (capitolo 7) |
 

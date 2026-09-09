@@ -361,11 +361,19 @@
             Ruolo = chi.Ruolo
         };
 
+        // ⚠️ Le etichette dicono DOVE si finisce, non con chi. Prima erano «Con qualcun
+        // altro» e «Una sistemazione sua», e mandavano dalla parte sbagliata: chi voleva
+        // mettere due persone insieme premeva la prima e non trovava l'altra, perché lì
+        // ci sono solo le camere GIÀ ESISTENTI. La camera nuova — dove si aggiungono
+        // quanti occupanti si vuole — sta dietro il pulsante che sembrava dire il
+        // contrario. ⛔️ È il caso più comune che c'è: una coppia che si iscrive insieme,
+        // entrambi senza camera. Segnalato da Adriano il 2026-09-09 collaudando la 2.0.
         var conAltri = await DialogService.ShowMessageBox(
             $"Dove dorme {chi.Nominativo}?",
-            "Può avere una sistemazione tutta sua, oppure stare con qualcuno che ne ha già una.",
-            yesText: "Con qualcun altro",
-            noText: "Una sistemazione sua");
+            "Scegli una camera che c'è già, oppure creane una nuova — dove potrai " +
+            "aggiungere anche gli altri partecipanti.",
+            yesText: "In una camera che c'è già",
+            noText: "In una camera nuova");
 
         if (conAltri is null) return;   // finestra chiusa: non si fa niente
 
