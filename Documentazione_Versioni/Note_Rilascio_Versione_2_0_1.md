@@ -1,7 +1,10 @@
-# Note di Rilascio — Versione 2.0
+# Note di Rilascio — Versione 2.0.1
 
 > Salto maggiore **1.35 → 2.0**: introduzione dell'**Estensione CMS per il Web** nel gestionale, più una serie di bug pre-esistenti individuati e risolti durante i test di pre-rilascio.
-> Data: 2026-07-19 · ultimo aggiornamento 2026-08-20. Stato: in preparazione (documento vivo fino al go-live).
+> ⭐️ **RILASCIATA IN PRODUZIONE il 2026-09-09.** La versione consegnata è la **2.0.1**: la
+> 2.0 è stata compilata, installata e collaudata lo stesso giorno, e tre difetti emersi
+> proprio in quel collaudo hanno prodotto la 2.0.1 — vedi la Sezione 4.
+> Data: 2026-07-19 · rilascio 2026-09-09.
 
 ---
 
@@ -24,6 +27,14 @@ Il gestionale diventa l'**unico motore di contenuti** per il nuovo sito pubblico
 - **Cifratura dei segreti (`pgcrypto`)** — chiavi salvate cifrate e rilette in chiaro solo con la master key d'ambiente. *(Verificato a runtime sulla chiave Claude: 2026-07-28. Il percorso SMTP usa lo stesso meccanismo ma non è stato riesercitato in questo ciclo.)*
 
 ### In attesa di verifica runtime (non ancora documentate come rilasciate)
+
+> ⭐️ **Aggiornamento del 2026-09-09, giorno del rilascio.** Alcune di queste voci sono state
+> collaudate durante il go-live e non sono più in attesa: **newsletter** (motore di invio e
+> configurazione SMTP provati: `Flask-Mail inizializzato da DB`, mail ricevuta),
+> **cifratura dei segreti** (password SMTP re-inserita e riletta con la chiave nuova),
+> **SMTP con diagnostica**. ⚠️ Restano davvero in attesa quelle che dipendono dal **sito
+> pubblico** (Fase 3): posti rimasti, tour brevi, recensioni, e il filtro sulle partenze già
+> iniziate. Le voci sotto non sono state riordinate: la riga qui sopra vale come rettifica.
 
 Implementate ma da collaudare prima di promuoverle sopra. Le voci qui sotto **non sono state esercitate** nel ciclo di test 2026-07-25 → 08-01: per alcune manca il dato di prova, per altre serve il sito pubblico (Fase 3).
 
@@ -197,4 +208,47 @@ dei controlli. Sono documentati qui perché la loro gravità non dipende da quan
 
 ---
 
-*Documento da completare/rivedere fino al go-live. Per la sequenza tecnica di deploy in produzione vedi `Estensione Progetto WEB/Documenti/2026-07-10-Checklist_Go_Live_PROD.md`.*
+## Sezione 4 — Da 2.0 a 2.0.1: cosa ha trovato il collaudo dell'eseguibile
+
+⚠️ **Tre difetti trovati il 2026-09-09**, tutti nelle poche ore fra la compilazione della 2.0
+e la consegna. ⓘ Hanno un tratto in comune che vale più dei difetti stessi: **il programma
+faceva la cosa giusta, ma non lo mostrava**. Nessuno dei tre è visibile leggendo il codice —
+si vedono solo usandolo, e infatti sono emersi al primo giro reale su un eseguibile installato.
+
+| # | Cosa si vedeva | Cos'era davvero |
+|---|---|---|
+| 1 | Iscrivendo una coppia, premendo «Con qualcun altro» **l'altra persona non compariva** | Le etichette dicevano il contrario di quello che facevano: «con qualcun altro» offriva solo le **camere esistenti**, e la camera nuova — dove si aggiungono gli occupanti — stava dietro «Una sistemazione sua». ⛔️ Nel caso più comune che esista, una coppia che si iscrive insieme, la strada giusta sembrava quella sbagliata |
+| 2 | Assegnata la matrimoniale, il pannello continuava a dire **«2 partecipanti senza alloggio»** | ⛔️ `StateHasChanged` non compariva **nemmeno una volta** in tutto il dialogo. I dati venivano riletti dal database — verificato su PROD: la camera c'era — ma nessuno diceva a Blazor di ridisegnare. Con un clic semplice il ridisegno è automatico; dopo tre finestre attese in sequenza, no. ⚠️ È il caso peggiore: il dato è giusto e la schermata dice il contrario, quindi si è portati a rifare l'operazione |
+| 3 | Il menu **«Tipo Mezzo» appariva già compilato** (sito di iscrizione) | `tipo_mezzo_selezionato_id` mancava dalla lista delle chiavi che la home ripulisce dalla sessione: era l'unica delle quattro tendine del passo 4 a sopravvivere. Sfuggita perché si chiama `tipo_mezzo_` e non `mezzo_` come le altre |
+
+✅ **Nessun dato è stato corrotto** da questi difetti: verificato su tutta la produzione che il
+n. 2 non abbia generato camere doppie. Ha retto la transazione unica di `fn_alloggi_salva_camera`
+(script `612`), scritta proprio perché *«scrivere la camera e liberare quella di provenienza
+sono due parti della stessa operazione»*.
+
+### Anche la documentazione aveva lo stesso difetto
+
+⚠️ Il manuale delle sistemazioni **ripeteva l'errore n. 1**: diceva di scegliere «la camera
+dell'altro se già ce l'ha, oppure creane una nuova», senza spiegare che *creane una nuova* si
+raggiungeva dal pulsante che sembrava negarlo. ⓘ Era stato scritto **deducendo dal codice
+invece di provare il percorso**. Capitoli 1 e 4 riscritti.
+
+---
+
+## Il rilascio in produzione — 2026-09-09
+
+| | |
+|---|---|
+| Script applicati | **226** (dal `406` al `636`), 8 minuti, zero errori |
+| Backup | fatto **e provato con un ripristino completo** |
+| Sito di iscrizione | in produzione su `https://iscrizioni.sardegnafuoritraccia.it/` |
+| Vecchio sito Oracle | spento e rimosso ⚠️ era ancora pubblico, ma il suo database era **morto dal 2 giugno** |
+| Posta | provata end-to-end, con i segreti cifrati via `pgcrypto` |
+| Eseguibile | `GestioneViaggi_Setup_2.0.1.exe` — x64, self-contained, 102,7 MB |
+
+ⓘ Il resoconto completo, con i numeri misurati e le cose impreviste, è in
+`Documents/PROD/2026-09-09-Go_Live_Eseguito.md`.
+
+---
+
+*Per la sequenza tecnica di deploy vedi `Estensione Progetto WEB/Documenti/2026-07-10-Checklist_Go_Live_PROD.md`; per rigenerare l'eseguibile, `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`.*
