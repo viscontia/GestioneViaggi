@@ -502,3 +502,7 @@ Gallerie Foto Web/
 # inutili in cronologia (e maui_syslog.txt pesava 217K di righe di libxpc).
 maui_syslog.txt
 *.syslog
+
+# Gli installer consegnati: pesano 100 MB e si rigenerano da Inno Setup.
+# I PDF dei manuali invece restano tracciati: sono la fotografia di cio che ha ricevuto il cliente.
+Versione */*.exe
