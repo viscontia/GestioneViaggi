@@ -1,6 +1,6 @@
 # Manuale — Iscrizioni e sistemazioni: cosa è cambiato
 
-**Versione del programma**: 2.0
+**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi iscrive i clienti ai viaggi e assegna le camere. Nessuna conoscenza tecnica richiesta.
 
 ---

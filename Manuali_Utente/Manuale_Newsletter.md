@@ -1,6 +1,6 @@
 # Manuale — La newsletter
 
-**Versione del programma**: 2.0
+**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi scrive e spedisce le newsletter ai clienti. Nessuna conoscenza tecnica richiesta.
 
 ---

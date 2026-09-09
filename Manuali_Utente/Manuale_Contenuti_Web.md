@@ -1,6 +1,6 @@
 # Manuale — I contenuti web dei tour
 
-**Versione del programma**: 2.0
+**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
 
 ---
