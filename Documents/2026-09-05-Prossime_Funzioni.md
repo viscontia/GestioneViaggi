@@ -493,3 +493,93 @@ protegge la conferma d'iscrizione, blocca le iscrizioni fasulle, e ⚠️ **raff
 un consenso raccolto a un indirizzo mai verificato è debole proprio dove conta.
 ⚠️ Da progettare con una via d'uscita: aggiunge un passaggio nel momento in cui la persona sta
 decidendo di iscriversi, e lega l'iscrizione al funzionamento della posta.
+
+---
+
+# Idee del 2026-09-09 — annotate prima del go-live
+
+Tre idee di Adriano, fissate la mattina della consegna. ⚠️ **Nessuna di queste è nel perimetro
+del go-live**: sono i passi successivi.
+
+---
+
+## 7. Il calendario in dashboard — ⚠️ **c'è già, ma nella dashboard sbagliata**
+
+**Chiesto:** un calendario che si posizioni **da solo sui viaggi in partenza**, con la possibilità
+di scegliere periodi diversi. I viaggi rappresentati nella loro **estensione temporale** sulle
+giornate; al passaggio del mouse un riquadro con titolo, date, **numero mezzi** e numero persone
+iscritte; cliccando si entra nella scheda del viaggio/partenza.
+
+### ⛔️ Prima di progettare: metà del lavoro esiste
+
+`Components/Shared/TravelCalendar.razor` c'è già, ed è più avanti di quanto la richiesta lasci
+pensare. Fa già:
+
+- ✅ i viaggi disegnati sulla loro **estensione temporale**, non come punti;
+- ✅ il **tooltip** (`TravelTooltipContent.razor`) con descrizione, date, partecipanti, stato della
+  partenza e azienda;
+- ✅ il **clic** che porta da qualche parte (`OnTravelClick`, già agganciato);
+- ✅ navigazione mese per mese e pulsante **Oggi**.
+
+⛔️ **Ma è montato solo in `DashboardSuperAdmin`.** In `DashboardAdmin` non c'è: `grep` conta zero.
+⚠️ E il SuperAdmin è Adriano, non un utente vero (vedi la nota sui silos): **per Antonio quel
+calendario di fatto non esiste**. È il motivo per cui la richiesta è nata come «manca».
+
+### Quindi il lavoro vero è più piccolo, ed è questo
+
+1. ⛔️ **Montarlo in `DashboardAdmin`** — da solo, questo è il grosso del valore.
+2. **Posizionamento automatico sulle partenze**: oggi apre sul mese corrente. Deve aprire sul mese
+   della **prossima partenza**, che non è la stessa cosa — a novembre, con la prossima partenza a
+   marzo, oggi si vedrebbe un calendario vuoto.
+3. **Periodi diversi**: oggi è mese per mese. Da decidere quali intervalli (trimestre? stagione?
+   intervallo libero?) — ⚠️ **è la parte da definire con Adriano**, il resto è meccanico.
+4. **Numero mezzi nel tooltip**: oggi mostra i partecipanti, non i mezzi. Il dato c'è
+   (`mov_clienti_viaggi.ana_mezzi_id_fk`), va contato e aggiunto al DTO del calendario.
+
+ℹ️ Verificare anche **dove porta il clic** oggi: la richiesta dice «direttamente nella form del
+viaggio/data relativo», e va confermato che sia quello che fa `OnCalendarTravelClick`.
+
+---
+
+## 8. Wizard «newsletter in pochi clic»
+
+**Chiesto:** far partire una newsletter con pochissimi passaggi, riusando le form e i componenti
+che ci sono già:
+
+1. si sceglie **data/viaggio** (con i selettori esistenti);
+2. il programma chiede **quale immagine** abbinare al blocco dedicato al viaggio;
+3. si sceglie un **modello già presente**;
+4. **anteprima**;
+5. **conferma o annulla**.
+
+### Perché è un'idea buona, e cosa la rende possibile
+
+⚠️ Oggi comporre una newsletter è un lavoro da chi conosce la pagina: blocchi da aggiungere e
+ordinare, riquadro tour da agganciare alla partenza, immagine da scegliere, destinatari da
+descrivere con criteri, traduzioni, prova. Sono molti passaggi giusti — ma tutti insieme, ogni
+volta, per una comunicazione che nella pratica è sempre la stessa: *«è uscita questa partenza»*.
+
+✅ **I pezzi ci sono già tutti**: i **modelli** (si duplicano, non si inviano), il **riquadro tour**
+che si aggancia a una partenza, il **picker immagini** dalla galleria dell'azienda,
+l'**anteprima**, e il motore di invio multilingua. Il wizard non aggiunge funzioni: **mette in fila
+quelle che ci sono**, con i valori predefiniti giusti.
+
+### Le domande da sciogliere in analisi
+
+- ⚠️ **I destinatari**: il wizard non li chiede. Vanno a *tutti quelli che ne hanno diritto*, o si
+  eredita un criterio dal modello? ⛔️ È il punto delicato — una newsletter parte e non si richiama.
+- **Le traduzioni**: si traduce dentro il wizard (che allunga i tempi) o si consegna la bozza e la
+  traduzione resta un passo a parte?
+- **L'esito**: il wizard finisce con l'invio, o con una **bozza pronta** da rivedere? ℹ️ La seconda
+  è più prudente e costa un clic in più.
+- Il modello va **filtrato** per quelli che contengono un riquadro tour, altrimenti il passo 2 non
+  ha dove mettere l'immagine.
+
+---
+
+## 9. Dashboard di Business Intelligence
+
+Adriano ha abbozzato un'analisi in `Business_Intelligence/` (2026-09-09). ⚠️ **Non ancora letta,
+per sua indicazione**: qui è solo annotata perché non vada persa.
+
+ℹ️ Da riprendere leggendo quella cartella, non da riprogettare da zero.
