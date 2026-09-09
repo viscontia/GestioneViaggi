@@ -28,6 +28,24 @@ scritto perché — e sono i punti in cui un'inversione fa danno, non fastidio.
 
 | | Cosa | Dove | ⚠️ |
 |---|---|---|---|
+> ## ⭐️ GO-LIVE ESEGUITO IL 2026-09-09
+>
+> Database, sito e posta sono in produzione. Il resoconto di cosa è stato fatto davvero — con i
+> numeri misurati e le cose impreviste che sono saltate fuori — è in
+> `Documents/PROD/2026-09-09-Go_Live_Eseguito.md`.
+>
+> **In sintesi:** 226 script applicati in 8 minuti senza errori · backup fatto **e provato con
+> un ripristino** · Oracle spento e rimosso (era pubblico, ma il suo database era morto dal 2
+> giugno) · sito su `https://iscrizioni.sardegnafuoritraccia.it/` con `noindex` · posta
+> funzionante, iscrizione di prova completata end-to-end.
+>
+> ⛔️ **Resta la consegna del gestionale 2.0 ad Antonio**: la sua 1.35 non riesce più a iscrivere
+> né ad assegnare camere, perché usava quattro funzioni che gli script hanno eliminato.
+>
+> ⚠️ Le caselle qui sotto restano come traccia della pianificazione: quella era la lista prima,
+> il documento del 9 settembre dice com'è andata.
+
+
 | ☐ | 1. Backup di PROD | §1 | senza questo non si comincia |
 | ☐ | 2. Script `406`→`466` | §1 | |
 | ☐ | 3. Voci ad attenzione manuale della prima fascia (RLS, Storage, backfill lingua) | §2.1–§2.6 | |
