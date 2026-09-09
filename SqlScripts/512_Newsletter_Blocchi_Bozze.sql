@@ -1,5 +1,5 @@
 -- Newsletter a blocchi — Fase 1 (schema + CRUD + riordino + clonazione + bozze).
--- Design: "Estensione Progetto WEB/Documenti/2026-08-09-Newsletter_Blocchi_design.md"
+-- Design: "Documents/Progetti/Estensione_Web/2026-08-09-Newsletter_Blocchi_design.md"
 --
 -- La newsletter smette di essere una casella di testo dentro un template fisso e diventa una
 -- sequenza di blocchi ordinati. Tabella e non JSONB perche' le traduzioni hanno bisogno di

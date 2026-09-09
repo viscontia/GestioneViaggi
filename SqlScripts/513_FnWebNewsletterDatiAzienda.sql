@@ -1,5 +1,5 @@
 -- Dati aziendali per intestazione e footer della newsletter (Fase 3).
--- Design: "Estensione Progetto WEB/Documenti/2026-08-09-Newsletter_Blocchi_design.md" §6.5
+-- Design: "Documents/Progetti/Estensione_Web/2026-08-09-Newsletter_Blocchi_design.md" §6.5
 --
 -- Il footer e' componibile per azienda (quali campi, in quale ordine): questa function
 -- restituisce TUTTI i campi disponibili in una sola lettura, e la composizione decide quali

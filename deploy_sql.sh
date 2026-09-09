@@ -18,11 +18,11 @@ echo "==> Deploy $SCRIPT su Docker (postgres_db)..."
 # sembrerebbe deployato (e l'appendice verrebbe rigenerata su uno stato incoerente).
 # E' anche la stessa modalita' con cui gli script vengono applicati in PROD (checklist go-live).
 if ! docker exec -i postgres_db psql -U postgres -d gestione_viaggi -v ON_ERROR_STOP=1 < "$SCRIPT"; then
-  echo "==> DEPLOY FALLITO: correggi lo script e rilancia. Documents/Funzioni_DB.md NON e' stato toccato."
+  echo "==> DEPLOY FALLITO: correggi lo script e rilancia. Documents/Architettura/Funzioni_DB.md NON e' stato toccato."
   exit 1
 fi
 
-echo "==> Rigenero l'appendice auto-generata in fondo a Documents/Funzioni_DB.md..."
+echo "==> Rigenero l'appendice auto-generata in fondo a Documents/Architettura/Funzioni_DB.md..."
 ./generate_db_functions_doc.sh
 
-echo "==> Fatto. Se l'appendice segnala funzioni non citate, documentale a mano nella parte curata di Documents/Funzioni_DB.md."
+echo "==> Fatto. Se l'appendice segnala funzioni non citate, documentale a mano nella parte curata di Documents/Architettura/Funzioni_DB.md."

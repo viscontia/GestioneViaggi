@@ -3,7 +3,7 @@ namespace GestioneViaggi.Services.Security;
 /// <summary>
 /// Fornisce la master key per cifrare/decifrare i segreti (SMTP/ESP/Claude) via pgcrypto.
 /// La key vive nell'ambiente (env var GV_SECRET_KEY), fuori dal binario e da git, e DEVE essere
-/// la stessa su tutte le installazioni che condividono lo stesso DB. Vedi Documents/2026-07-11-Cifratura_Segreti_design.md.
+/// la stessa su tutte le installazioni che condividono lo stesso DB. Vedi Documents/Analisi_e_Design/2026-07-11-Cifratura_Segreti_design.md.
 /// </summary>
 public interface ISecretKeyProvider
 {

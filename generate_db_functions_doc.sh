@@ -1,12 +1,12 @@
 #!/bin/bash
-# Rigenera l'appendice auto-generata in fondo a Documents/Funzioni_DB.md interrogando pg_catalog
+# Rigenera l'appendice auto-generata in fondo a Documents/Architettura/Funzioni_DB.md interrogando pg_catalog
 # sul DB Docker reale. La parte curata a mano (sopra il marker) non viene mai toccata.
 set -e
 
 CONTAINER="postgres_db"
 DB="gestione_viaggi"
 USER="postgres"
-REF="Documents/Funzioni_DB.md"
+REF="Documents/Architettura/Funzioni_DB.md"
 MARKER_START="<!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->"
 MARKER_END="<!-- AUTO-GENERATED-END -->"
 

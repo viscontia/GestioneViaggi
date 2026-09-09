@@ -53,25 +53,25 @@ var result = await db.QueryAsync<Foo>("SELECT * FROM foo WHERE id = @id", new { 
 var result = await db.QueryAsync<Foo>("SELECT * FROM fn_get_foo(@p_id::INTEGER)", new { p_id = id });
 ```
 
-Dopo ogni function DB creata o modificata → **aggiornare `Documents/Funzioni_DB.md`**.
+Dopo ogni function DB creata o modificata → **aggiornare `Documents/Architettura/Funzioni_DB.md`**.
 
 **Deploy script SQL — usare SEMPRE il wrapper, mai `docker exec` a mano:**
 ```bash
 ./deploy_sql.sh SqlScripts/NNN_NomeScript.sql
 ```
-Il wrapper esegue lo script sul DB Docker e rigenera automaticamente, in fondo a `Documents/Funzioni_DB.md`
+Il wrapper esegue lo script sul DB Docker e rigenera automaticamente, in fondo a `Documents/Architettura/Funzioni_DB.md`
 stesso, un'**appendice auto-generata** (letta in tempo reale da `pg_catalog`, tra i marker
 `AUTO-GENERATED-START/END`) che elenca tutte le function e segnala quelle non ancora citate nella parte
 curata sopra. Non sostituisce l'aggiornamento manuale della parte curata, ma garantisce che nessuna
 function nuova/modificata passi inosservata. Non modificare mai a mano il contenuto tra i marker: viene
-sovrascritto ad ogni deploy. Vedi `Documents/Funzioni_DB.md` sezione documentazione (§15).
+sovrascritto ad ogni deploy. Vedi `Documents/Architettura/Funzioni_DB.md` sezione documentazione (§15).
 
 ### 3.2 COMPONENTI SHARED (ASSOLUTA)
 Usare sempre i componenti da `Components/Shared/`. Non duplicare logica.
 
-Dopo ogni componente creato o modificato → **aggiornare `Documents/ComponentiShared.md`**.
+Dopo ogni componente creato o modificato → **aggiornare `Documents/Architettura/ComponentiShared.md`**.
 
-Documento di riferimento completo: `Documents/ComponentiShared.md`.
+Documento di riferimento completo: `Documents/Architettura/ComponentiShared.md`.
 
 ### 3.3 UI — FORM DI EDIT
 1. **SetFocus sul primo campo**: sempre, all'apertura della form.
@@ -122,10 +122,15 @@ L'aggiornamento a MudBlazor 9 è previsto **dopo il go-live** — riscrive il si
 tocca 3.419 usi di componenti Mud, con cambiamenti che il compilatore non intercetta — e quando sarà
 fatto **questa sezione va rivista**, perché parte di queste accortezze non servirà più.
 
-Dettaglio completo: `Documents/Digitazione_Date.md`.
+Dettaglio completo: `Documents/Architettura/Digitazione_Date.md`.
 
 ### 3.5 VALIDAZIONE
-Il sistema di validazione è centralizzato in `Validation/`. Non scrivere regole inline nei componenti. Usare/estendere i validator già presenti. Vedi `Documents/Gestione_check.md` per il catalogo completo.
+Il sistema di validazione è centralizzato in `Validation/`. Non scrivere regole inline nei componenti. Usare/estendere i validator già presenti. Vedi `Documents/Architettura/Gestione_check.md` per il catalogo completo.
+
+### 3.6 DOCUMENTI: uno solo posto, sempre versionati
+⛔️ **Ogni documento sta sotto `Documents/`, nella sua sottocartella, ed è committato su git.**
+Niente documenti sparsi in radice, niente bozze fuori dal repository. Dettaglio completo e
+tabella «dove va cosa» in **§15**.
 
 ---
 
@@ -180,7 +185,18 @@ GestioneViaggi/
 │   ├── js/                     → dialogFormHelper.js, focusHelper.js, login.js
 │   └── lib/                    → Bootstrap, Quill.js
 │
-├── Documents/                  → Documentazione progetto (30+ file MD)
+├── Documents/                  → ⭐️ TUTTA la documentazione, in un posto solo
+│   ├── overview.md             → questo file: il punto d'ingresso
+│   ├── Architettura/           → come è fatto il programma (Funzioni_DB, ComponentiShared, Gestione_check…)
+│   ├── Procedure/              → come si fanno le cose (installazione, dump DB, git)
+│   ├── Analisi_e_Design/       → analisi e progetti di singole funzioni, prima di scriverle
+│   ├── Piani_Test/             → i piani di collaudo, uno per area
+│   ├── Progetti/               → i lavori grossi: Estensione_Web, Business_Intelligence
+│   ├── Produzione (PROD/)      → cosa è successo davvero sul database vero
+│   ├── Versioni/               → note di rilascio, una per versione consegnata
+│   ├── Resoconti/              → consuntivi e liste di lavoro per il cliente
+│   └── Storico/                → chiuso e superato: si tiene per capire il perché, non si aggiorna
+├── Manuali_Utente/             → i manuali che riceve il cliente (+ PDF in Versione …/)
 ├── SqlScripts/                 → Script SQL numerati sequenzialmente
 ├── Resources/                  → Font (Lato, OpenSans), icone, splash
 └── Platforms/                  → Configurazioni platform-specific (Mac/Win/iOS/Android)
@@ -256,7 +272,7 @@ Ogni entità ha un servizio `XxxService.cs` che:
 
 ## 7. COMPONENTI UI — MAPPA RAPIDA
 
-Documento completo: **`Documents/ComponentiShared.md`**
+Documento completo: **`Documents/Architettura/ComponentiShared.md`**
 
 ### Grid
 - `EnterpriseDataGrid` → `MudDataGrid` con toolbar (titolo + search + azioni), sempre usarlo
@@ -407,18 +423,58 @@ Classi in `Statistics/`:
 
 ## 15. DOCUMENTAZIONE INTERNA (cartella `Documents/`)
 
-| File | Contenuto |
-|------|-----------|
-| `Funzioni_DB.md` | **Single source of truth** per tutte le function PostgreSQL. Parte curata a mano (sopra il marker `AUTO-GENERATED-START`) + appendice finale auto-generata da `pg_catalog` via `deploy_sql.sh`/`generate_db_functions_doc.sh` (non modificare a mano l'appendice, viene sovrascritta ad ogni deploy). Aggiornare SEMPRE la parte curata dopo ogni modifica DB. |
-| `ComponentiShared.md` | **Single source of truth** per tutti i componenti shared. Aggiornare SEMPRE dopo ogni modifica. |
-| `Gestione_check.md` | Architettura validazione, catalogo validatori, DbErrorTranslator |
-| `Digitazione_Date.md` | **Come si scrive un campo data** (§3.4). Le quattro accortezze obbligatorie, perché la `Mask` è vietata, e come un convertitore dichiara di non aver capito un valore |
-| `DataBaseLocale.md` | Credenziali e comandi Docker per sviluppo locale |
-| `Multi_Tenancy_Architecture.md` | Design multi-tenant |
-| `CRUD_PATTERN.md` | Pattern standard per CRUD services |
-| `PDF_Creation_Standard.md` | Standard generazione PDF con QuestPDF |
-| `Enterprise_DataGrid.md` | Documentazione EnterpriseDataGrid |
-| `Analisi_Preliminare_Sito_Web_SFT.md` | Analisi progetto nuovo sito SFT (2026-06-19) |
+### ⛔️ REGOLA: ogni documento sta in `Documents/` ed è versionato su git
+
+**Non esistono documenti sparsi.** Un documento di progetto — analisi, design, piano di test,
+procedura, resoconto, nota di rilascio — nasce dentro `Documents/`, nella sottocartella giusta, e
+viene **committato**. Nessuna eccezione per «è solo una bozza» o «lo cancello dopo»: le bozze che
+restano fuori sono esattamente quelle che ci si ritrova sparse in radice due mesi dopo, senza
+sapere se valgono ancora.
+
+**Perché è una regola e non una preferenza:**
+- ⚠️ Un documento non versionato **non ha una data affidabile**: `git log` dice quando è stato
+  scritto e cosa è cambiato da allora, la data del file dice solo quando qualcuno l'ha aperto.
+- ⚠️ Un documento fuori posto **viene riscritto da zero** da chi non lo trova, e le due copie
+  divergono. È lo stesso motivo per cui le regole di validazione stanno in un posto solo.
+- ⚠️ Senza versionamento **non si sa cosa aveva in mano il cliente**: i PDF dei manuali consegnati
+  sono tracciati apposta.
+
+**Le due sole cose che NON si versionano:** i log di build (`*.log`) e gli artefatti di consegna
+pesanti (gli installer: 100 MB, si rigenerano). Regole già in `.gitignore`.
+
+⚠️ **Quando un documento è superato non si cancella: si sposta in `Documents/Storico/`.** Dice
+*perché* si era deciso così, e quel perché serve ancora. Si cancella solo ciò che è stato
+sostituito parola per parola da un altro documento.
+
+### Dove va cosa
+
+| Cartella | Cosa contiene | Si aggiorna? |
+|---|---|---|
+| `Documents/` (radice) | Solo `overview.md`, il punto d'ingresso | sempre |
+| `Architettura/` | Come è fatto il programma | ⭐️ ad ogni modifica |
+| `Procedure/` | Come si esegue un'operazione ripetibile | quando cambia il modo |
+| `Analisi_e_Design/` | Il ragionamento **prima** di scrivere il codice | no: è una fotografia |
+| `Piani_Test/` | Cosa si prova e cosa è già stato provato | ad ogni collaudo |
+| `Progetti/` | I lavori grossi, con i loro documenti | finché il progetto è vivo |
+| `PROD/` | Cosa è successo sul database vero | si aggiunge, non si riscrive |
+| `Versioni/` | Note di rilascio, una per versione | una nuova per versione |
+| `Resoconti/` | Consuntivi e liste per il cliente | si aggiunge |
+| `Storico/` | Chiuso e superato | ⛔️ mai |
+
+### I documenti che vanno tenuti allineati per obbligo
+
+| File | Contenuto | Quando aggiornarlo |
+|------|-----------|---|
+| `Architettura/Funzioni_DB.md` | **Single source of truth** delle function PostgreSQL. Parte curata a mano (sopra `AUTO-GENERATED-START`) + appendice auto-generata da `pg_catalog` via `deploy_sql.sh` (l'appendice **non** si tocca a mano: viene sovrascritta) | ⛔️ dopo **ogni** modifica DB |
+| `Architettura/ComponentiShared.md` | **Single source of truth** dei componenti shared | ⛔️ dopo **ogni** componente creato o modificato |
+| `Architettura/Gestione_check.md` | Architettura validazione, catalogo validatori, DbErrorTranslator | dopo ogni validator |
+| `Architettura/Digitazione_Date.md` | **Come si scrive un campo data** (§3.4): le quattro accortezze obbligatorie, perché la `Mask` è vietata | quando cambia la convenzione |
+| `Architettura/DataBaseLocale.md` | Credenziali e comandi Docker per lo sviluppo locale | quando cambia l'ambiente |
+| `Architettura/Multi_Tenancy_Architecture.md` | Design multi-tenant | raramente |
+| `Architettura/CRUD_PATTERN.md` | Pattern standard per i CRUD service | raramente |
+| `Architettura/PDF_Creation_Standard.md` | Standard di generazione PDF con QuestPDF | raramente |
+| `Architettura/Enterprise_DataGrid.md` | Documentazione EnterpriseDataGrid | raramente |
+| `Progetti/Estensione_Web/2026-07-10-Checklist_Go_Live_PROD.md` | Cosa va applicato in produzione, in ordine | ⛔️ ad ogni nuovo script web |
 
 ---
 
@@ -439,12 +495,12 @@ es: 401_Create_FnGetClientiAttivi.sql
 
 1. **Creare function PostgreSQL** in un file `NNN_*.sql`
 2. **Deploy su Docker** con `./deploy_sql.sh SqlScripts/NNN_*.sql` (rigenera anche l'appendice auto in fondo a `Funzioni_DB.md`)
-3. **Aggiornare la parte curata di `Documents/Funzioni_DB.md`** (usare l'appendice auto-generata per verificare di non aver dimenticato nulla)
+3. **Aggiornare la parte curata di `Documents/Architettura/Funzioni_DB.md`** (usare l'appendice auto-generata per verificare di non aver dimenticato nulla)
 4. **Creare/aggiornare Model** in `Models/`
 5. **Creare/aggiornare Service** in `Services/CRUD/` — chiama la function, niente SQL inline
 6. **Registrare il service** in `MauiProgram.cs` se nuovo
 7. **Creare componente Shared** se si tratta di un elemento riutilizzabile (select, dialog, ecc.)
-8. **Aggiornare `Documents/ComponentiShared.md`** se creato/modificato un componente
+8. **Aggiornare `Documents/Architettura/ComponentiShared.md`** se creato/modificato un componente
 9. **Creare/aggiornare la pagina** in `Components/Pages/`
 10. **Rispettare UI rules**: SetFocus primo campo, uppercase, dialogFormHelper.js
 

@@ -1,5 +1,5 @@
 -- Contenuto di un riquadro "tour" della newsletter a partire da un'edizione (Fase 3).
--- Design: "Estensione Progetto WEB/Documenti/2026-08-09-Newsletter_Blocchi_design.md" §2.3
+-- Design: "Documents/Progetti/Estensione_Web/2026-08-09-Newsletter_Blocchi_design.md" §2.3
 --
 -- E' il pezzo che fa risparmiare piu' tempo: scelta l'edizione, titolo, periodo, testo,
 -- copertina e link si compilano da soli invece di essere ricopiati a mano dalla scheda del tour.

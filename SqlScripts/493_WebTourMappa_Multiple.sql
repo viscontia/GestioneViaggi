@@ -1,5 +1,5 @@
 -- Mappe multiple per edizione, con abbinamento dichiarato (Blocco 9 — estensione 2026-07-25).
--- Design: "Estensione Progetto WEB/Documenti/2026-07-25-Mappe_Multiple_GPX_design.md"
+-- Design: "Documents/Progetti/Estensione_Web/2026-07-25-Mappe_Multiple_GPX_design.md"
 --
 -- Da 1 mappa per edizione a N, ognuna con un significato dichiarato dall'utente:
 --   - mappa dell'INTERO VIAGGIO  → web_tour_itinerario_id_fk IS NULL, descrizione obbligatoria;

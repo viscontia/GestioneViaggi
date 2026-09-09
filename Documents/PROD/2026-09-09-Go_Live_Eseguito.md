@@ -137,7 +137,7 @@ durato 8,5 secondi): i processi in stato D non rispondono ai segnali.
 
 - **Chiudere l'esposizione dei dati personali** (§2.12) e solo allora togliere il `noindex`.
 - **Consegnare l'elenco delle 26 schede incomplete**
-  (`Resoconto_Lavori/2026-09-08-Clienti_da_Completare_prima_del_GoLive.md`): quelle persone non
+  (`Documents/Resoconti/2026-09-08-Clienti_da_Completare_prima_del_GoLive.md`): quelle persone non
   si possono iscrivere finché la scheda non è completa.
 - **Pulizia ricorrente dei token scaduti**: non li rimuove nessuno.
 - **Bucket Storage e RLS `anon`**: da verificare quando arriverà il sito pubblico.

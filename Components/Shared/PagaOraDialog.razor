@@ -115,7 +115,7 @@
         }
 
         // MaxDate blocca solo il calendario, non il testo digitato: la plausibilità dell'anno va
-        // verificata comunque. Vedi Documents/Digitazione_Date.md.
+        // verificata comunque. Vedi Documents/Architettura/Digitazione_Date.md.
         var esitoAnno = DateValidator.CheckAnnoPlausibile(_dataPagamento, "Data Pagamento");
         if (!esitoAnno.IsValid)
         {

@@ -2,7 +2,7 @@
 -- 544 — Il motore del codice fiscale, nel database
 -- =============================================================================
 -- Fase 1 del piano "ana_clienti: un controllo, un posto solo"
--- (docs/plans/2026-08-20-ana-clienti-un-controllo-un-posto-solo.md).
+-- (Documents/Analisi_e_Design/piani-storici/2026-08-20-ana-clienti-un-controllo-un-posto-solo.md).
 --
 -- Perche' qui: l'algoritmo esisteva DUE volte, in due linguaggi —
 --   · Validation/Fiscal/CodiceFiscaleValidator.cs (MAUI): completo, con omocodia,

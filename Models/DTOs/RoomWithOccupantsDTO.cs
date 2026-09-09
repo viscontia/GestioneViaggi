@@ -3,7 +3,7 @@ namespace GestioneViaggi.Models.DTOs;
 /// <summary>
 /// DTO che mappa il risultato della DB function get_rooms_with_occupants(p_data_viaggio_id)
 /// Restituisce camere con occupanti aggregati (ARRAY_AGG di nomi e IDs)
-/// Documentazione: Documents/Funzioni_DB.md
+/// Documentazione: Documents/Architettura/Funzioni_DB.md
 /// </summary>
 public class RoomWithOccupantsDTO
 {

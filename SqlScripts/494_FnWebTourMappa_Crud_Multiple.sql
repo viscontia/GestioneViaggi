@@ -1,5 +1,5 @@
 -- CRUD di web_tour_mappa adeguata alle mappe multiple (segue lo script 493).
--- Design: "Estensione Progetto WEB/Documenti/2026-07-25-Mappe_Multiple_GPX_design.md"
+-- Design: "Documents/Progetti/Estensione_Web/2026-07-25-Mappe_Multiple_GPX_design.md"
 --
 -- Convenzione invariata: scoping per p_azienda_id, SECURITY INVOKER, audit da trg_web_audit(),
 -- insert ritorna il nuovo id, update/delete ritornano le righe toccate (0/1), le violazioni di

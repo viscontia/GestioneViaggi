@@ -3,7 +3,7 @@
 -- =============================================================================
 --
 -- Nasce dall'analisi del 2026-09-05/06
--- (`Estensione Progetto WEB/Documenti/2026-09-05-Analisi_Scelta_Camere_Step5.md`).
+-- (`Documents/Progetti/Estensione_Web/2026-09-05-Analisi_Scelta_Camere_Step5.md`).
 --
 -- ⚠️ Oggi non esiste NESSUN controllo incrociato fra il pernottamento previsto dal
 -- viaggio e il tipo di sistemazione assegnato. Misurato su PROD: **17 assegnazioni

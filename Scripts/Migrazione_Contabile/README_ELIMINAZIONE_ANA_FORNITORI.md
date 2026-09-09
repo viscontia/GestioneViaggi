@@ -97,7 +97,7 @@ Prima di considerare completata la migrazione:
 ## 🆘 Supporto
 
 In caso di problemi:
-- Consulta il documento: [Implementazione_Contabile.md](../../Documents/Implementazione_Contabile.md)
+- Consulta il documento: [Implementazione_Contabile.md](../../Documents/Analisi_e_Design/Implementazione_Contabile.md)
 - Verifica i log PostgreSQL: `/var/log/postgresql/`
 - Controlla i log applicazione
 
