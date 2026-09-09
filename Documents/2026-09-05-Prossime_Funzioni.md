@@ -531,8 +531,9 @@ calendario di fatto non esiste**. È il motivo per cui la richiesta è nata come
 2. **Posizionamento automatico sulle partenze**: oggi apre sul mese corrente. Deve aprire sul mese
    della **prossima partenza**, che non è la stessa cosa — a novembre, con la prossima partenza a
    marzo, oggi si vedrebbe un calendario vuoto.
-3. **Periodi diversi**: oggi è mese per mese. Da decidere quali intervalli (trimestre? stagione?
-   intervallo libero?) — ⚠️ **è la parte da definire con Adriano**, il resto è meccanico.
+3. ✅ **Periodo libero, deciso il 2026-09-09**: due tendine, **anno** e **mese**. Non intervalli
+   predefiniti (trimestre, stagione): si sceglie il punto in cui posizionarsi e basta. Resta la
+   navigazione avanti/indietro che c'è già.
 4. **Numero mezzi nel tooltip**: oggi mostra i partecipanti, non i mezzi. Il dato c'è
    (`mov_clienti_viaggi.ana_mezzi_id_fk`), va contato e aggiunto al DTO del calendario.
 
@@ -564,16 +565,20 @@ che si aggancia a una partenza, il **picker immagini** dalla galleria dell'azien
 l'**anteprima**, e il motore di invio multilingua. Il wizard non aggiunge funzioni: **mette in fila
 quelle che ci sono**, con i valori predefiniti giusti.
 
-### Le domande da sciogliere in analisi
+### ✅ Le tre domande, sciolte il 2026-09-09
 
-- ⚠️ **I destinatari**: il wizard non li chiede. Vanno a *tutti quelli che ne hanno diritto*, o si
-  eredita un criterio dal modello? ⛔️ È il punto delicato — una newsletter parte e non si richiama.
-- **Le traduzioni**: si traduce dentro il wizard (che allunga i tempi) o si consegna la bozza e la
-  traduzione resta un passo a parte?
-- **L'esito**: il wizard finisce con l'invio, o con una **bozza pronta** da rivedere? ℹ️ La seconda
-  è più prudente e costa un clic in più.
-- Il modello va **filtrato** per quelli che contengono un riquadro tour, altrimenti il passo 2 non
-  ha dove mettere l'immagine.
+- **I destinatari**: vanno a **tutti quelli che ne hanno diritto**. Il wizard non li chiede e non
+  eredita criteri dal modello: nessun filtro. ℹ️ Semplifica anche l'interfaccia — il passo dei
+  destinatari sparisce del tutto.
+- **Le traduzioni**: **comprese, se servono** — cioè solo se fra i destinatari c'è qualcuno che non
+  legge italiano. ⚠️ Il wizard deve quindi guardare le lingue dei destinatari *prima* di decidere
+  se tradurre: se sono tutti italiani non traduce, e non fa aspettare per niente.
+- **L'esito**: **lo sceglie chi lo usa** — «bozza da controllare» oppure «invio immediato». ℹ️ È la
+  risposta migliore delle due che avevo proposto: chi ha fretta non paga un clic in più, chi vuole
+  rileggere non è costretto a spedire.
+
+⚠️ Resta un dettaglio di progetto: il modello va **filtrato** su quelli che contengono un riquadro
+tour, altrimenti il passo dell'immagine non ha dove mettere la foto.
 
 ---
 
