@@ -1,8 +1,13 @@
 # Manuale di Installazione — Gestione Viaggi per Windows
 
-**Versione**: 2.0.1
-**Ultimo aggiornamento**: settembre 2026
 **A chi è rivolto**: Utenti finali — nessuna conoscenza tecnica richiesta
+
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+>
+> ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
+> programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
+> hai davanti: chiedi la versione aggiornata prima di seguirlo.
+
 
 ---
 
@@ -373,4 +378,8 @@ Quando lo contatti, cerca di descrivere:
 
 ---
 
-*Manuale realizzato per Gestione Viaggi v2.0.1 — settembre 2026*
+---
+
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
+a quale versione del programma le istruzioni si riferiscono davvero.*

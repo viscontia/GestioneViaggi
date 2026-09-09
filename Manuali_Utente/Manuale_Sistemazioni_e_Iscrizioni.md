@@ -1,7 +1,13 @@
 # Manuale — Iscrizioni e sistemazioni: cosa è cambiato
 
-**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi iscrive i clienti ai viaggi e assegna le camere. Nessuna conoscenza tecnica richiesta.
+
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+>
+> ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
+> programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
+> hai davanti: chiedi la versione aggiornata prima di seguirlo.
+
 
 ---
 
@@ -323,3 +329,9 @@ passeggeri, sei nel posto sbagliato.
 2. ⛔️ **Non** riaccendere l'interruttore «per comodità» quando iscrivi più persone insieme.
 3. ⛔️ **Non** chiudere la scheda lasciando aperta la linguetta «Partecipanti senza camere». 
 IN OGNI CASO QUANDO LANCERAI LA STAMPA DELLA ROOMING LIST, SE CI SARANNO PERSONE SENZA CAMERE TI VERRA' SEGNALATO, SIA A VIDEO CHE SULLA STAMPA
+
+---
+
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
+a quale versione del programma le istruzioni si riferiscono davvero.*

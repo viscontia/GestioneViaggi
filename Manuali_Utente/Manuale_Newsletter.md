@@ -1,7 +1,13 @@
 # Manuale — La newsletter
 
-**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi scrive e spedisce le newsletter ai clienti. Nessuna conoscenza tecnica richiesta.
+
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+>
+> ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
+> programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
+> hai davanti: chiedi la versione aggiornata prima di seguirlo.
+
 
 ---
 
@@ -283,3 +289,9 @@ usare il footer di prima.
 1. ⛔️ **Non** premere «Invia a tutti» senza aver prima fatto «Invia prova» a te stesso.
 2. ⛔️ **Non** aggiungere una soppressione senza scrivere il motivo: fra sei mesi non te lo ricordi.
 3. ⛔️ **Non** chiudere la finestra durante l'invio.
+
+---
+
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
+a quale versione del programma le istruzioni si riferiscono davvero.*

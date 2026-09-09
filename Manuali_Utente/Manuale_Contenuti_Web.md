@@ -1,7 +1,13 @@
 # Manuale — I contenuti web dei tour
 
-**Versione del programma**: 2.0.1
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
+
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+>
+> ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
+> programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
+> hai davanti: chiedi la versione aggiornata prima di seguirlo.
+
 
 ---
 
@@ -296,3 +302,9 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
    stai dichiarando di averle lette.
 3. ⛔️ **Non** clonare fra partenze di durata diversa e pubblicare senza rileggere **l'ultima
    giornata**: descrive una tappa intermedia, non un finale.
+
+---
+
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
+a quale versione del programma le istruzioni si riferiscono davvero.*
