@@ -447,6 +447,31 @@ lingua. L'export dà **solo gli indirizzi**. Quindi:
 - `lingua` ← `IT` per tutti. ℹ️ Nell'elenco a video la colonna lingua esisteva e diceva `it`: si
   potrebbe recuperarla dal database MySQL, se un domani servisse.
 
+### Il collegamento con l'anagrafica — misurato il 2026-09-10
+
+Adriano ha chiesto di collegare (`cliente_fk`) gli iscritti che sono già clienti. Confrontando i
+2.484 indirizzi con i **501 clienti che hanno un'email** in produzione:
+
+| | Iscritti (2.484) | Soppressi (643) |
+|---|---|---|
+| Già in anagrafica | 326 | 15 |
+| · con scheda **SFT** → ✅ si collegano | **78** | **4** |
+| · solo **azienda 6** → ⛔️ non si collegano | 248 | 11 |
+| Mai stati clienti | 2.158 | 628 |
+
+⛔️ **I 248 dell'azienda 6 non vanno collegati**, e la verifica lo conferma: **nessuno di loro ha
+mai viaggiato con SFT** — misurato su tutte le iscrizioni, il conteggio è **zero**. Sono i clienti
+storici di Offroad Adventures, iscritti alla newsletter perché il sito era lo stesso. Collegarli
+violerebbe il silos multi-tenant, e per giunta punterebbe a schede di
+[[azienda-6-non-ha-senso-in-prod|un'azienda che va tolta dalla produzione]].
+
+ℹ️ Entrano comunque nella lista come **nuovi iscritti senza `cliente_fk`**: l'indirizzo è valido e
+il consenso pure, manca solo il legame con una scheda cliente.
+
+⚠️ **Il dato che si vede solo da qui: 131 clienti SFT con email NON sono nella newsletter.** Non si
+erano mai iscritti, e l'import non li tocca. Restano il gruppo a cui va posta la domanda del
+consenso — vedi sopra.
+
 ### Poi, il lavoro nostro
 
 1. **Importarli** — probabilmente in `web_newsletter_iscritti` (oggi vuota) e non in
