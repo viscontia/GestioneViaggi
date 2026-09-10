@@ -325,6 +325,44 @@ prima newsletter parte a un pubblico più piccolo di quello reale.
 da dove viene il consenso (`consenso_marketing_fonte` esiste apposta), non trattato come
 se l'avessero dato qui.
 
+### ⛔️ NON è stato fatto al go-live, e la misura su PROD del 2026-09-10 dice quanto pesa
+
+| In produzione, azienda SFT | |
+|---|---|
+| Clienti | **227** |
+| Con un indirizzo email | 216 |
+| ⛔️ Consenso «sì» | **0** |
+| ⛔️ Consenso «no» | **0** |
+| Mai stata posta la domanda | **227 su 227** |
+| Righe in `web_newsletter_iscritti` | **0** |
+
+**Quindi oggi una newsletter non ha un solo destinatario che abbia acconsentito.** La finestra
+del consenso è attiva sul sito dal 9 settembre, ma raccoglie solo **chi si iscrive da qui in
+avanti**: i 227 già in archivio non passeranno mai da quella finestra.
+
+⚠️ **Il rischio vero è il tempo**: il consenso non si recupera con un backfill (lo dice già
+[[consenso-newsletter-regole-valgono-anche-sul-sito]]), e ogni settimana che passa senza chiederlo
+è una campagna che parte a un pubblico più piccolo del reale.
+
+### ⛔️ Dove sono quegli indirizzi? — **da chiarire prima di qualunque lavoro**
+
+Il vecchio sito girava su **Oracle Cloud**, e quel database:
+- aveva la password di ADMIN **scaduta dal 2 giugno 2026** (`ORA-28001`, 1.548 errori);
+- ⛔️ **è stato dismesso il 9 settembre** insieme al server, e la password è perduta.
+
+ℹ️ Sul server Hetzner erano stati rimossi solo l'applicazione e il wallet: **il database stava su
+Oracle Cloud**, quindi tecnicamente potrebbe esistere ancora, ma senza credenziali non è
+raggiungibile.
+
+**Le domande, in ordine di quanto cambiano il lavoro:**
+1. Quegli indirizzi **dove stanno adesso**? Un foglio Excel, un pannello tipo Mailchimp, il
+   backend del sito SFT, o erano solo dentro Oracle?
+2. Se erano **solo** in Oracle: si può recuperare l'accesso a Oracle Cloud (reset password dalla
+   console) o è definitivamente perduto?
+3. Per i 227 clienti già in archivio: si manda **una mail sola** che chiede il consenso? È
+   l'unica via che resta, e va scritta con cura — una richiesta di consenso mal fatta brucia
+   l'indirizzo per sempre.
+
 ---
 
 ## 5-bis. Il gestionale accettava QUALUNQUE certificato TLS — **RISOLTO il 2026-09-05**
