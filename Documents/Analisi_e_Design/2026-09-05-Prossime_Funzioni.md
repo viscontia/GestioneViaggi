@@ -344,23 +344,34 @@ avanti**: i 227 già in archivio non passeranno mai da quella finestra.
 [[consenso-newsletter-regole-valgono-anche-sul-sito]]), e ogni settimana che passa senza chiederlo
 è una campagna che parte a un pubblico più piccolo del reale.
 
-### ⛔️ Dove sono quegli indirizzi? — **da chiarire prima di qualunque lavoro**
+### ⛔️ Stanno nel vecchio CMS, e vanno chiesti PRIMA che il rapporto si chiuda
 
-Il vecchio sito girava su **Oracle Cloud**, e quel database:
-- aveva la password di ADMIN **scaduta dal 2 giugno 2026** (`ORA-28001`, 1.548 errori);
-- ⛔️ **è stato dismesso il 9 settembre** insieme al server, e la password è perduta.
+⚠️ **Oracle non c'entra** (precisazione di Adriano, 2026-09-10): quegli indirizzi sono nel **CMS
+del vecchio sito SFT**, quello ancora gestito dal fornitore **che sta lasciando** per far posto al
+nuovo sito.
 
-ℹ️ Sul server Hetzner erano stati rimossi solo l'applicazione e il wallet: **il database stava su
-Oracle Cloud**, quindi tecnicamente potrebbe esistere ancora, ma senza credenziali non è
-raggiungibile.
+⛔️ **Questo è ciò che rende la cosa urgente e non rimandabile.** Non è un lavoro tecnico in attesa
+di essere schedulato: è un dato in mano a un fornitore uscente. Quando il rapporto si chiude —
+scadenza del contratto, hosting non rinnovato, pannello disattivato — quegli indirizzi non
+tornano più. E a differenza di un backup, **non esiste un altro posto da cui ricavarli**.
 
-**Le domande, in ordine di quanto cambiano il lavoro:**
-1. Quegli indirizzi **dove stanno adesso**? Un foglio Excel, un pannello tipo Mailchimp, il
-   backend del sito SFT, o erano solo dentro Oracle?
-2. Se erano **solo** in Oracle: si può recuperare l'accesso a Oracle Cloud (reset password dalla
-   console) o è definitivamente perduto?
-3. Per i 227 clienti già in archivio: si manda **una mail sola** che chiede il consenso? È
-   l'unica via che resta, e va scritta con cura — una richiesta di consenso mal fatta brucia
+**Cosa deve fare Antonio, e conviene lo faccia subito:** chiedere al gestore l'**esportazione
+completa degli iscritti alla newsletter**, in CSV o Excel, e — se il CMS lo registra — con
+**data e modalità del consenso** per ciascuno. Quel dettaglio non è un di più: senza, non si può
+scrivere `consenso_marketing_fonte` in modo veritiero, e si finirebbe per dichiarare un consenso
+raccolto qui che invece era stato dato altrove.
+
+ℹ️ Se il CMS non conserva la data del consenso, non è un blocco: si registra la fonte
+(«iscrizione newsletter sul sito precedente») e si tiene la data di esportazione come riferimento,
+dichiarando che è quella e non l'originale.
+
+### Poi, il lavoro nostro
+
+1. **Importarli** — probabilmente in `web_newsletter_iscritti` (oggi vuota) e non in
+   `ana_clienti`: sono iscritti alla newsletter, non clienti che hanno viaggiato. ⚠️ Chi fra loro
+   è **già** cliente va riconosciuto e non duplicato.
+2. **I 227 già in archivio** restano un problema a parte: a nessuno è mai stata posta la domanda.
+   Serve una mail sola che la ponga, scritta con cura — una richiesta di consenso mal fatta brucia
    l'indirizzo per sempre.
 
 ---
