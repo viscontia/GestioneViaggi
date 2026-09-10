@@ -111,3 +111,41 @@ procedura per l'utente è nel capitolo 7 del `Documents/Manuali_Utente/Manuale_I
 2. `Documents/Manuali_Utente/Manuale_Installazione_Utente.md` (o il PDF)
 3. Gli altri manuali: sistemazioni e iscrizioni, contenuti web, newsletter
 4. La `GV_SECRET_KEY`, **separatamente**
+
+
+---
+
+## L'app sul Mac (per l'assistenza ad Antonio)
+
+Adriano tiene installata sul Mac la stessa versione che gira in produzione, per vedere quello che
+vede Antonio.
+
+```bash
+dotnet publish -f net9.0-maccatalyst -c Release
+rm -rf /Applications/GestioneViaggi.app
+cp -R bin/Release/net9.0-maccatalyst/GestioneViaggi.app /Applications/
+```
+
+⛔️ **La cartella da cui si copia è quella SENZA sottocartella di architettura.** `publish` ne
+produce diverse:
+
+| Percorso | Icona |
+|---|---|
+| `bin/Release/net9.0-maccatalyst/GestioneViaggi.app` | ✅ **questa** — universale x64+arm64 |
+| `bin/Release/net9.0-maccatalyst/maccatalyst-arm64/…` | ⛔️ senza icona |
+| `bin/Release/net9.0-maccatalyst/maccatalyst-x64/…` | ⛔️ senza icona |
+
+⚠️ **Come ci si accorge di aver sbagliato**: l'app parte e funziona benissimo, ma nel Dock e nel
+Finder ha **l'icona generica**. È l'unico sintomo — nient'altro cambia. Successo il 2026-09-09 e
+scoperto il giorno dopo da Adriano.
+
+ℹ️ `dotnet build -c Release` **non genera affatto** l'icona (provato): serve `publish`. In Debug
+invece la genera. Verifica in un colpo solo:
+
+```bash
+plutil -p /Applications/GestioneViaggi.app/Contents/Info.plist | grep -i icon
+```
+
+Deve rispondere `CFBundleIconFile => appicon`. Se non risponde nulla, l'icona non c'è.
+
+⚠️ Dopo la copia serve `killall Dock` perché il Finder rilegga l'icona.
