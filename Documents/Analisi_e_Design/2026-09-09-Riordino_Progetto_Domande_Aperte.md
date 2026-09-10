@@ -21,7 +21,35 @@
 
 ---
 
-## Le domande
+## ✅ Le otto decisioni, prese il 2026-09-10
+
+| | Deciso | Fatto |
+|---|---|---|
+| 1. I 90 script SQL senza numero | **cancellare** | ✅ `SqlScripts/` ora ha **solo** i 365 numerati |
+| 2. `Manuali_Utente/` | **spostare** — «voglio un albero ordinato» | ✅ ora è `Documents/Manuali_Utente/` |
+| 3. `bin/` + `obj/` | **cancellare** | ✅ **6,9 GB → 429 MB**, poi ricompilato da zero: verde |
+| 4. `Gallerie Foto Web/` | lasciare | — |
+| 5. I file di lavoro in radice | **cancellare** | ✅ 8 file (c'era anche `test_mudblazor.cs`) |
+| 6. `Scripts/Migrazione_Contabile/` | **cancellare** | ✅ cartella rimossa |
+| 7. `Unit_Tests/` | **cancellare** | ✅ rimossa, e tolte dal `.csproj` le 4 regole rimaste orfane |
+| 8. PDF di Capodanno e file GPX | lasciare | — |
+
+⚠️ **Cosa comporta la scelta 1, detto chiaro:** i 90 script erano citati da **28 punti** della
+documentazione, che ora nominano file inesistenti. Non li ho riscritti: quei documenti raccontano
+lavori del 2025-2026 già chiusi, e cambiarli falsificherebbe il racconto. ℹ️ **I file restano in
+git**: `git log --diff-filter=D -- SqlScripts/` li elenca, e
+`git show <commit>^:SqlScripts/<nome>.sql` ne stampa il contenuto.
+
+⚠️ **Le due guardie nel `.csproj` sono rimaste** (`<Compile Remove="Test*.cs">`): non c'è più
+nessun file di test in radice, ma se un domani ne ricomparisse uno con un suo `Main()`, la build
+fallirebbe con un errore sugli entry-point duplicati che **non nomina il file colpevole**. Il
+commento nel `.csproj` ora lo dice.
+
+---
+
+## Le domande originali (per riferimento)
+
+
 
 ### 1. ⭐️ I 90 script SQL senza numero — la domanda che pesa di più
 
@@ -44,7 +72,7 @@ storia resta comunque in git?
 
 ---
 
-### 2. `Manuali_Utente/` resta in radice?
+### 2. `Documents/Manuali_Utente/` resta in radice?
 
 Due giorni fa mi hai chiesto tu di crearla **sotto la radice**, e l'ho lasciata lì apposta: non
 volevo disfare una tua decisione recente durante un riordino.

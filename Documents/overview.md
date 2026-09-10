@@ -195,9 +195,10 @@ GestioneViaggi/
 │   ├── Produzione (PROD/)      → cosa è successo davvero sul database vero
 │   ├── Versioni/               → note di rilascio, una per versione consegnata
 │   ├── Resoconti/              → consuntivi e liste di lavoro per il cliente
+│   ├── Manuali_Utente/         → i manuali che riceve il cliente, con i loro screenshot
 │   └── Storico/                → chiuso e superato: si tiene per capire il perché, non si aggiorna
-├── Manuali_Utente/             → i manuali che riceve il cliente (+ PDF in Versione …/)
-├── SqlScripts/                 → Script SQL numerati sequenzialmente
+├── SqlScripts/                 → ⛔️ SOLO script numerati: la sequenza di deploy, senza buchi
+├── Versione <ver> per …/       → il pacchetto consegnato: installer (fuori da git) + manuali in PDF
 ├── Resources/                  → Font (Lato, OpenSans), icone, splash
 └── Platforms/                  → Configurazioni platform-specific (Mac/Win/iOS/Android)
 ```
@@ -459,6 +460,7 @@ sostituito parola per parola da un altro documento.
 | `PROD/` | Cosa è successo sul database vero | si aggiunge, non si riscrive |
 | `Versioni/` | Note di rilascio, una per versione | una nuova per versione |
 | `Resoconti/` | Consuntivi e liste per il cliente | si aggiunge |
+| `Manuali_Utente/` | I manuali del cliente | ⭐️ ad ogni versione consegnata |
 | `Storico/` | Chiuso e superato | ⛔️ mai |
 
 ### I documenti che vanno tenuti allineati per obbligo

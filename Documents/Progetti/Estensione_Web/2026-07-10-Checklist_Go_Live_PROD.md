@@ -1245,7 +1245,7 @@ funzioni senza chiamanti non sono innocue: sono la prossima strada che qualcuno 
 
 ### 2.13 — DA SCRIVERE PRIMA DELLA CONSEGNA: il manuale di cosa è cambiato
 
-> ### ✅ SCRITTO il 2026-09-08 — `Manuali_Utente/Manuale_Sistemazioni_e_Iscrizioni.md`
+> ### ✅ SCRITTO il 2026-09-08 — `Documents/Manuali_Utente/Manuale_Sistemazioni_e_Iscrizioni.md`
 >
 > Dieci capitoli, che coprono tutti e nove i punti richiesti qui sotto, più un riepilogo di una
 > pagina con «le tre cose da non fare». Ogni comando, etichetta e messaggio citato è stato
@@ -1406,7 +1406,7 @@ Sulla macchina di destinazione, con l'utenza con cui lavorerà il cliente, e con
 
 ### 3.4-bis — ✅ Manuale della newsletter (scritto il 2026-09-08)
 
-`Manuali_Utente/Manuale_Newsletter.md` — dieci capitoli. Chiesto da Adriano il 2026-09-08: i
+`Documents/Manuali_Utente/Manuale_Newsletter.md` — dieci capitoli. Chiesto da Adriano il 2026-09-08: i
 contenuti web avevano il loro manuale, la newsletter no, ed è **l'unica parte del gestionale che
 manda email vere a persone vere** e che una volta partita non si richiama.
 
@@ -1428,7 +1428,7 @@ conteggio spaccato.
 
 ### 3.4 — Manuale utente: il capitolo sugli stati dei contenuti web (da scrivere PRIMA della consegna)
 
-> ### ✅ SCRITTO il 2026-09-08 — `Manuali_Utente/Manuale_Contenuti_Web.md`
+> ### ✅ SCRITTO il 2026-09-08 — `Documents/Manuali_Utente/Manuale_Contenuti_Web.md`
 >
 > Undici capitoli, che coprono tutti i punti dell'elenco qui sotto, più un riepilogo di una
 > pagina in forma di «situazione → spiegazione» e «le tre cose da non fare». Ogni etichetta,

@@ -99,7 +99,7 @@ Get-Arch "C:\GestioneViaggi-build\GestioneViaggi.exe"
 
 ⛔️ **`GV_SECRET_KEY` va impostata come variabile d'ambiente di sistema**, altrimenti le schede
 che toccano i segreti (Traduzioni, Configurazione email) si presentano disabilitate. La
-procedura per l'utente è nel capitolo 7 del `Manuali_Utente/Manuale_Installazione_Utente.md`.
+procedura per l'utente è nel capitolo 7 del `Documents/Manuali_Utente/Manuale_Installazione_Utente.md`.
 
 ⚠️ La chiave **non va spedita insieme al programma**: si comunica per altra via.
 
@@ -108,6 +108,6 @@ procedura per l'utente è nel capitolo 7 del `Manuali_Utente/Manuale_Installazio
 ## Cosa consegnare
 
 1. `GestioneViaggi_Setup_<versione>.exe`
-2. `Manuali_Utente/Manuale_Installazione_Utente.md` (o il PDF)
+2. `Documents/Manuali_Utente/Manuale_Installazione_Utente.md` (o il PDF)
 3. Gli altri manuali: sistemazioni e iscrizioni, contenuti web, newsletter
 4. La `GV_SECRET_KEY`, **separatamente**
