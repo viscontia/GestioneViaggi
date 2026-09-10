@@ -402,6 +402,51 @@ Quindi l'estrazione deve tenere **anche i disiscritti**, marcati come tali. Non 
 
 **Basta un CSV con intestazioni**, anche grezzo: al resto pensa lo script di import.
 
+### ✅ ESTRAZIONE FATTA il 2026-09-10 — ed è dieci volte più grande del previsto
+
+Adriano ha aperto il pannello Drupal, l'estrazione è stata guidata da lì. ⭐️ **Simplenews ha già
+una funzione «Esporta»** in `/admin/people/simplenews/export`: non è servito né il fornitore né
+phpMyAdmin.
+
+| | |
+|---|---|
+| ⭐️ **Iscritti attivi** | **2.523** |
+| Disiscritti | 643 |
+| ⚠️ In entrambi i gruppi | **39** |
+| Non confermati | ✅ **zero** |
+| Doppioni fra gli attivi | ✅ **zero** (Drupal deduplica già) |
+| Indirizzi malformati | ✅ zero |
+
+⛔️ **Il confronto che cambia le priorità: in produzione ci sono 227 clienti. Qui ce ne sono
+2.523.** La lista del vecchio sito è **undici volte** l'anagrafica del gestionale. Non è un
+travaso di rifinitura: è il patrimonio di contatti dell'azienda, e finora era fuori.
+
+**Dove sono i file** (⛔️ **fuori dal repository**: sono dati personali di 2.523 persone):
+`~/Documents/Backup_GoLive/newsletter_drupal/` — `01_attivi_iscritti.csv` e `02_disiscritti.csv`.
+
+### ⚠️ Quattro liste, non una — e il gestionale ne ha una sola
+
+Il Drupal ha `Sardegna Fuori Traccia newsletter`, `Newsletter Test SFT`, `SFT Moto`,
+`Nuovi Clienti 12-2024`. Sono state esportate **tutte** per decisione di Adriano, con deduplica.
+ℹ️ Il gestionale non ha segmenti: l'informazione su *quale* lista era diventa indistinguibile.
+
+### ⛔️ I 39 da decidere prima di importare
+
+Sono **iscritti a una lista e disiscritti da un'altra**. Nella lista unica del gestionale le due
+cose non possono coesistere: o entrano fra gli iscritti, o fra i soppressi.
+
+⚠️ **La scelta prudente è considerarli soppressi**: chi ha compiuto l'atto di disiscriversi ha
+espresso una volontà esplicita, mentre l'iscrizione all'altra lista può essere vecchia o
+implicita. Costa 39 contatti su 2.523 — l'1,5% — e toglie il rischio di scrivere a chi ha detto
+di no.
+
+⚠️ **Cosa NON abbiamo, perché Simplenews non lo esporta:** nome, cognome, **data di iscrizione** e
+lingua. L'export dà **solo gli indirizzi**. Quindi:
+- `data_iscrizione` ← la data di importazione, dichiarata come tale;
+- `consenso_fonte` ← «newsletter sito Drupal, esportata il 2026-09-10»;
+- `lingua` ← `IT` per tutti. ℹ️ Nell'elenco a video la colonna lingua esisteva e diceva `it`: si
+  potrebbe recuperarla dal database MySQL, se un domani servisse.
+
 ### Poi, il lavoro nostro
 
 1. **Importarli** — probabilmente in `web_newsletter_iscritti` (oggi vuota) e non in
