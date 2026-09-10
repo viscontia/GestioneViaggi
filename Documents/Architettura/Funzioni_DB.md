@@ -1980,6 +1980,43 @@ Confine di sicurezza del sito pubblico: `anon` legge **solo contenuti pubblicati
 
 
 
+
+### `fn_web_newsletter_import` — import di una lista newsletter esterna
+
+Nata per portare dentro i 2.523 indirizzi del vecchio sito Drupal (Simplenews) di SFT, ma non è
+legata a quel caso: prende due elenchi di indirizzi e li mette al posto giusto.
+
+```sql
+fn_web_newsletter_import(p_azienda_id, p_iscritti TEXT[], p_soppressi TEXT[],
+                         p_fonte, p_motivo, p_utente) RETURNS TABLE(...)
+```
+
+Restituisce sette conteggi: soppressi nuovi/già noti, iscritti nuovi/già noti, quanti sono stati
+**collegati** a una scheda cliente, quanti **scartati perché soppressi**, quanti **malformati**.
+
+⛔️ **I soppressi si inseriscono per primi, sempre.** Non è un dettaglio d'ordine: se entrassero
+prima gli iscritti, per un istante qualcuno che si era disiscritto risulterebbe contattabile.
+
+⚠️ **`cliente_fk` si valorizza solo quando il legame è certo**: se in quell'azienda l'indirizzo
+appartiene a **due** clienti — due coniugi che condividono la casella sono un caso reale — resta
+`NULL`. Un legame sbagliato è peggio di un legame assente.
+
+ℹ️ Chi era già in lista e compare fra i soppressi viene marcato `stato='disiscritto'` **anche**
+nella tabella iscritti. Il motore di invio controlla già le soppressioni e non lo contatterebbe
+comunque, ma una riga che dice «attivo» mentre la persona è soppressa è una seconda verità, e chi
+apre l'elenco dal gestionale la leggerebbe come contattabile.
+
+**Rigiocabile**: due esecuzioni di fila non raddoppiano nulla (`ON CONFLICT` sui vincoli
+`UNIQUE (azienda_id, email)`).
+
+⚠️ Lo script `637` allarga anche `consenso_fonte` e `motivo` da `VARCHAR(20)` a `VARCHAR(120)`:
+venti caratteri non bastavano a scrivere da dove viene davvero un consenso, che è l'informazione
+che serve a dimostrarlo.
+
+⛔️ **Gli indirizzi non stanno nello script**: sono dati personali di migliaia di persone e non
+entrano nel repository. Arrivano come parametro da un file tenuto in
+`~/Documents/Backup_GoLive/newsletter_drupal/`.
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
