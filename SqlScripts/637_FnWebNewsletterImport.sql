@@ -117,19 +117,36 @@ BEGIN
         SELECT 1 FROM web_newsletter_soppressioni x
         WHERE x.azienda_id = p_azienda_id AND x.email = i.email);
 
-    -- 3) Gli iscritti, collegati alla scheda cliente quando il legame e' certo.
-    -- ⚠️ Si collega SOLO se in quell'azienda esiste UN cliente con quell'indirizzo.
-    --    Due coniugi che condividono la casella sono un caso reale e legittimo:
-    --    attribuire l'iscrizione a uno dei due sarebbe una scelta arbitraria, e
-    --    un legame sbagliato e' peggio di un legame assente.
+    -- 3) Gli iscritti, collegati alla scheda cliente.
+    -- ⚠️ Una casella condivisa da due clienti e' un caso reale: sono coniugi che
+    --    viaggiano insieme. La newsletter va a CHI GUIDA — e' a lui che interessa
+    --    sapere dove si va (decisione di Adriano, 2026-09-10).
+    -- ℹ️ Verificato sui tre casi presenti in SFT: in ognuno uno ha guidato e
+    --    l'altra no, quindi la regola non lascia ambiguita'.
+    -- ⛔️ Se NESSUNO dei due ha mai guidato non c'e' criterio, e il legame resta
+    --    NULL: meglio nessun legame che uno tirato a sorte.
     WITH candidati AS (
         SELECT i.email,
-               -- max() + HAVING count(*)=1: se in quell'azienda l'indirizzo
-               -- appartiene a due clienti, la riga sparisce e il legame resta NULL.
-               (SELECT max(c.cliente_id) FROM ana_clienti c
+               (SELECT c.cliente_id
+                  FROM ana_clienti c
                  WHERE c.azienda_fk = p_azienda_id
                    AND lower(btrim(c.cliente_email)) = i.email
-                HAVING count(*) = 1) AS cliente_fk
+                   -- unico candidato, oppure ha guidato almeno una volta
+                   AND ( (SELECT count(*) FROM ana_clienti c2
+                           WHERE c2.azienda_fk = p_azienda_id
+                             AND lower(btrim(c2.cliente_email)) = i.email) = 1
+                         OR EXISTS (SELECT 1 FROM mov_clienti_viaggi mv
+                                      JOIN ana_tipo_partecipante tp
+                                        ON tp.tipo_partecipante_id = mv.tipo_partecipante_id_fk
+                                     WHERE mv.cliente_id_fk = c.cliente_id
+                                       AND tp.tipo_partecipante_pilota) )
+                 ORDER BY (SELECT count(*) FROM mov_clienti_viaggi mv
+                             JOIN ana_tipo_partecipante tp
+                               ON tp.tipo_partecipante_id = mv.tipo_partecipante_id_fk
+                            WHERE mv.cliente_id_fk = c.cliente_id
+                              AND tp.tipo_partecipante_pilota) DESC,
+                          c.cliente_id ASC       -- a parita', la scheda piu' vecchia
+                 LIMIT 1) AS cliente_fk
         FROM _in_isc i
     ), ins AS (
         INSERT INTO web_newsletter_iscritti (

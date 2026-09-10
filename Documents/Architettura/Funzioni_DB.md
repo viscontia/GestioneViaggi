@@ -1997,9 +1997,17 @@ Restituisce sette conteggi: soppressi nuovi/già noti, iscritti nuovi/già noti,
 ⛔️ **I soppressi si inseriscono per primi, sempre.** Non è un dettaglio d'ordine: se entrassero
 prima gli iscritti, per un istante qualcuno che si era disiscritto risulterebbe contattabile.
 
-⚠️ **`cliente_fk` si valorizza solo quando il legame è certo**: se in quell'azienda l'indirizzo
-appartiene a **due** clienti — due coniugi che condividono la casella sono un caso reale — resta
-`NULL`. Un legame sbagliato è peggio di un legame assente.
+⚠️ **Se la casella è condivisa da due clienti, la newsletter va a CHI GUIDA.** Sono coniugi che
+viaggiano insieme, e a chi non guida quelle mail non interessano (decisione di Adriano,
+2026-09-10). Il pilota si riconosce da `ana_tipo_partecipante.tipo_partecipante_pilota` sulle
+iscrizioni passate; a parità di volte al volante vince la scheda più vecchia.
+
+⛔️ **Se nessuno dei due ha mai guidato, `cliente_fk` resta `NULL`**: non c'è criterio, e un legame
+tirato a sorte è peggio di un legame assente.
+
+ℹ️ Provata sui tre casi veri di SFT, in sola lettura su produzione: in ognuno la mail va al pilota.
+⚠️ In un caso l'indirizzo porta il nome della passeggera (`lulu.sciascia@…`) ma il collegamento va
+al marito, che è chi guida. È voluto, ma è il genere di dettaglio che sorprende se non lo si sa.
 
 ℹ️ Chi era già in lista e compare fra i soppressi viene marcato `stato='disiscritto'` **anche**
 nella tabella iscritti. Il motore di invio controlla già le soppressioni e non lo contatterebbe
