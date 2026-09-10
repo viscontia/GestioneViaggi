@@ -365,6 +365,43 @@ raccolto qui che invece era stato dato altrove.
 («iscrizione newsletter sul sito precedente») e si tiene la data di esportazione come riferimento,
 dichiarando che è quella e non l'originale.
 
+### ⭐️ Il CMS è **Drupal**, e Adriano ci accede (2026-09-10)
+
+Cambia molto: l'estrazione non dipende dal fornitore uscente.
+
+⚠️ **Serve capire con quale modulo è gestita la newsletter.** Il caso più comune è **Simplenews**,
+che tiene gli iscritti in `simplenews_subscriber` (`mail`, `status`, `created`, `langcode`) e le
+adesioni in `simplenews_subscriber__subscriptions` (`subscriptions_status`: **1 = iscritto,
+2 = DISISCRITTO**). Se invece è un Webform, gli indirizzi stanno nelle submission.
+
+**Dove guardare nell'interfaccia:** `/admin/people/simplenews`. Per portarli fuori serve una vista
+con «Views Data Export» (CSV); se non c'è il modulo, la via più diretta è il database MySQL da
+phpMyAdmin.
+
+### ⛔️ La cosa da non sbagliare: i disiscritti
+
+**Chi si è disiscritto NON va in `web_newsletter_iscritti`.** Va in
+`web_newsletter_soppressioni`, che esiste apposta. ⚠️ Importarlo come attivo significherebbe
+riscrivergli dopo che ha detto di no — il danno peggiore che si possa fare con una lista, e
+l'unico irreparabile.
+
+Quindi l'estrazione deve tenere **anche i disiscritti**, marcati come tali. Non filtrarli via.
+
+### Il tracciato che serve
+
+| Colonna richiesta | Da Drupal | Se manca |
+|---|---|---|
+| `email` | `mail` | ⛔️ senza questa non si fa nulla |
+| `stato` | `status` / `subscriptions_status` | ⛔️ serve per separare attivi e soppressi |
+| `data_iscrizione` | `created` | si usa la data di esportazione, dichiarandolo |
+| `lingua` | `langcode` | si assume `IT` |
+| `nome`, `cognome` | se il modulo li raccoglie | restano vuoti, sono facoltativi |
+
+ℹ️ `consenso_fonte` lo scriviamo noi: «iscrizione newsletter sito Drupal precedente».
+`token_disiscrizione` e `cliente_fk` li genera e li risolve l'import — non servono nel file.
+
+**Basta un CSV con intestazioni**, anche grezzo: al resto pensa lo script di import.
+
 ### Poi, il lavoro nostro
 
 1. **Importarli** — probabilmente in `web_newsletter_iscritti` (oggi vuota) e non in
