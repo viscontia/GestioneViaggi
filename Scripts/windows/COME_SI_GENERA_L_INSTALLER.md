@@ -10,6 +10,11 @@ Procedura verificata il **2026-09-09**, compilando la versione 2.0 da Parallels 
 |---|---|
 | Dove si compila | **dentro Windows** — dal Mac il target Windows non esiste proprio |
 | Sorgenti | si leggono direttamente dal Mac: `\\Mac\Home\Documents\Sviluppo Software\MAUI\GestioneViaggi` |
+
+⛔️ **In Windows non serve git, e infatti non è installato.** Non c'è niente da scaricare o
+aggiornare: si compilano i file del Mac così come sono in quel momento, comprese le modifiche non
+ancora committate. Chi si ritrova a scrivere `git pull` qui dentro sta sbagliando procedura, non
+ambiente. Basta salvare sul Mac prima di lanciare la compilazione.
 | Serve | .NET 9 SDK + workload `maui-windows`, e **Inno Setup 6+** |
 
 ⛔️ **`appsettings.json` NON è su git** (è in `skip-worktree`) ed è una **risorsa incorporata**
@@ -54,6 +59,28 @@ Get-Arch "$pub\GestioneViaggi.exe"                          # deve dire: x64
 ⚠️ **I percorsi vanno scritti per intero.** Su cartelle di rete, .NET non usa la cartella
 corrente di PowerShell: un percorso relativo verrebbe cercato in `C:\Users\...` e darebbe
 «impossibile trovare una parte del percorso».
+
+⚠️ **E vanno racchiusi fra apici**, perché contengono uno spazio («Sviluppo Software»). Senza, la
+riga si spezza lì e PowerShell prova a eseguire `Software\MAUI\…` come se fosse un comando:
+*«Impossibile caricare il modulo 'Software'»*. Succede facilmente incollando: gli apici si perdono.
+
+### Le due verifiche in una riga sola
+
+Comode quando la funzione `Get-Arch` qui sopra non è stata definita nella sessione corrente —
+è una funzione, non un comando di sistema: senza averla incollata prima, PowerShell risponde
+*«Termine 'Get-Arch' non riconosciuto»*.
+
+```powershell
+# versione: deve cominciare per il numero che stai rilasciando
+(Get-Item '\\Mac\Home\Documents\Sviluppo Software\MAUI\GestioneViaggi\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish\GestioneViaggi.exe').VersionInfo.FileVersion
+
+# architettura: deve dire x64
+$f=[IO.File]::OpenRead('\\Mac\Home\Documents\Sviluppo Software\MAUI\GestioneViaggi\bin\Release\net9.0-windows10.0.19041.0\win10-x64\publish\GestioneViaggi.exe'); $b=New-Object IO.BinaryReader($f); $f.Seek(0x3C,'Begin')|Out-Null; $p=$b.ReadInt32(); $f.Seek($p+4,'Begin')|Out-Null; $m=$b.ReadUInt16(); $f.Close(); switch($m){0x8664{'x64'} 0xAA64{'ARM64'} 0x14C{'x86'} default{'sconosciuto'}}
+```
+
+ℹ️ La cartella si chiama `win10-x64` perché è il target che hai **chiesto**, non la prova di
+quello che è **uscito**: il controllo sull'intestazione del file serve proprio a distinguere le
+due cose. È così che il 2026-09-09 era passato un pacchetto ARM64.
 
 ---
 
