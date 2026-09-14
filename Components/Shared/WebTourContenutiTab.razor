@@ -179,11 +179,13 @@ else
             <div class="d-flex align-center gap-3 flex-wrap">
                 <MudText Typo="Typo.subtitle1">SEO</MudText>
 
-                @* Suggerimento assistito: AFFIANCA le icone dei due campi, non le sostituisce.
-                   Quelle fanno un taglio meccanico e funzionano sempre; questo scrive un testo
-                   pensato, ma richiede la chiave Claude dell'azienda. Se la chiave non c'è il
-                   pulsante resta visibile e spento, col motivo nel tooltip: nasconderlo farebbe
-                   sembrare che la funzione non esista. *@
+                @* Unico modo assistito di compilare i due meta. Le icone "bacchetta" dentro i campi
+                   (Blocco 5) sono state tolte quando e' arrivato questo: tagliavano il titolo a 60 e
+                   la descrizione a 155, cioe' producevano per il title lo STESSO testo che il sito
+                   usa gia' da se' come ripiego (fn_web_tour_pubblicati fa COALESCE su titolo e
+                   sottotitolo), e per la description una frase mozzata a meta'. Due pulsanti che non
+                   miglioravano il risultato. Se la chiave Claude manca questo resta visibile e
+                   spento, col motivo nel tooltip: nasconderlo farebbe sembrare che non esista. *@
                 <MudTooltip Text="@MotivoSeoAi()">
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
                                StartIcon="@(_seoAiBusy ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.AutoAwesome)"
@@ -219,9 +221,7 @@ else
                 <FieldHelp Title="Meta title"
                            Text="Il titolo che Google mostra nei risultati di ricerca e nella scheda del browser. Tienilo entro ~60 caratteri, con le parole più importanti all'inizio. Se lo lasci vuoto verrà usato il titolo del tour." />
             </div>
-            <MudTextField @bind-Value="_model.MetaTitle" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri."
-                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
-                          OnAdornmentClick="SuggerisciMetaTitle" AdornmentAriaLabel="Suggerisci meta title" />
+            <MudTextField @bind-Value="_model.MetaTitle" @bind-Value:after="MarkDirty" Variant="Variant.Outlined" MaxLength="255" HelperText="~60 caratteri." />
         </MudItem>
         <MudItem xs="12">
             <div class="d-flex align-center mb-1">
@@ -230,9 +230,7 @@ else
                            Text="La breve frase che appare sotto il titolo nei risultati di Google: serve a invogliare il clic. Circa 150 caratteri, invitante e chiara." />
             </div>
             <MudTextField @bind-Value="_model.MetaDescription" @bind-Value:after="MarkDirty" Variant="Variant.Outlined"
-                          Lines="2" AutoGrow="true" MaxLines="6" MaxLength="320" Counter="320" HelperText="~150 caratteri."
-                          Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.AutoFixHigh"
-                          OnAdornmentClick="SuggerisciMetaDescription" AdornmentAriaLabel="Suggerisci meta description" />
+                          Lines="2" AutoGrow="true" MaxLines="6" MaxLength="320" Counter="320" HelperText="~150 caratteri." />
         </MudItem>
 
         <!-- AZIONI -->
@@ -416,18 +414,6 @@ else
         await MarkDirty();
     }
 
-    private async Task SuggerisciMetaTitle()
-    {
-        _model.MetaTitle = Troncatura(DescrizioneBreve, 60);
-        await MarkDirty();
-    }
-
-    private async Task SuggerisciMetaDescription()
-    {
-        _model.MetaDescription = Troncatura(StripHtml(_model.DescrizioneHtml) ?? _model.Sottotitolo, 155);
-        await MarkDirty();
-    }
-
     /// <summary>Perché il pulsante SEO assistito è spento. Vietare senza dire il motivo costringe a indovinare.</summary>
     private string MotivoSeoAi()
     {
@@ -509,19 +495,6 @@ else
         var decodificato = System.Net.WebUtility.HtmlDecode(senzaTag);
         var compresso = System.Text.RegularExpressions.Regex.Replace(decodificato, @"\s+", " ").Trim();
         return compresso.Length == 0 ? null : compresso;
-    }
-
-    /// <summary>Taglia il testo a <paramref name="max"/> caratteri sull'ultimo confine di parola.</summary>
-    private static string? Troncatura(string? text, int max)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return null;
-        var trimmed = text.Trim();
-        if (trimmed.Length <= max) return trimmed;
-
-        var tagliato = trimmed[..max];
-        var ultimoSpazio = tagliato.LastIndexOf(' ');
-        if (ultimoSpazio > 0) tagliato = tagliato[..ultimoSpazio];
-        return tagliato.Trim();
     }
 
     /// <summary>Slug da testo: minuscolo, accenti rimossi, non-alfanumerici → '-'.</summary>

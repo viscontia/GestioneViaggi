@@ -437,8 +437,9 @@ un di più: è tutto quello che il tuo tour dice a Google di sé.
 | **Meta title** | Il titolo **azzurro** che Google mostra nei risultati, e il nome della scheda nel browser | ~60 caratteri |
 | **Meta description** | Le due righe grigie sotto il titolo, nei risultati: servono a far venire voglia di cliccare | ~150 caratteri |
 
-ℹ️ Accanto a ogni campo c'è il **punto interrogativo** con la spiegazione, e dentro il campo
-un'**icona a destra** che propone un valore di partenza. Non devi partire dal foglio bianco.
+ℹ️ Accanto a ogni campo c'è il **punto interrogativo** con la spiegazione. Non devi partire dal
+foglio bianco: l'indirizzo web ha la sua **icona ↻** che lo ricava dal titolo, e i due «meta» li
+scrive il pulsante **«Scrivili con l'AI»** in cima al riquadro.
 
 ---
 
@@ -472,32 +473,25 @@ Vale la pena compilarli.
 
 ---
 
-### Cosa fa davvero il pulsante dei suggerimenti
+### L'icona ↻ dell'indirizzo web
 
-Le tre icone fanno un lavoro **meccanico**, non intelligente:
-
-| Campo | Cosa propone |
-|---|---|
-| Indirizzo web | Il titolo del viaggio ridotto: tutto minuscolo, accenti tolti, spazi trasformati in trattini |
-| Meta title | Il titolo del viaggio **tagliato a 60 caratteri** |
-| Meta description | Le prime ~155 lettere della **descrizione**, ripulite dalla formattazione |
-
-⚠️ **La descrizione tagliata finisce quasi sempre a metà frase.** Va bene come punto di partenza,
-non come testo definitivo: rileggilo e riscrivilo perché stia in piedi da solo.
+Fa un lavoro **meccanico**: prende il titolo del viaggio, lo mette tutto in minuscolo, toglie gli
+accenti e trasforma gli spazi in trattini. Niente di intelligente, ed è giusto così — l'indirizzo
+deve essere prevedibile, non creativo (vedi il riquadro qui sopra: non si cambia più).
 
 ---
 
-### ⭐️ «Scrivili con l'AI»: il pulsante che li scrive davvero
+### ⭐️ «Scrivili con l'AI»: chi scrive i due «meta»
 
-Accanto al titolo **SEO** c'è un secondo pulsante, **«Scrivili con l'AI»**. Non taglia: **legge** i
-testi che hai scritto nella scheda — titolo, sottotitolo, durata, luoghi e descrizione — e propone
-un meta title e una meta description pensati per chi cerca su Google.
+In cima al riquadro SEO c'è il pulsante **«Scrivili con l'AI»**. **Legge** i testi che hai scritto
+nella scheda — titolo, sottotitolo, durata, luoghi e descrizione — e propone un meta title e una
+meta description pensati per chi cerca su Google.
 
-| | Le icone dentro i campi | «Scrivili con l'AI» |
-|---|---|---|
-| Cosa fa | Taglia il testo alla lunghezza giusta | Scrive un testo nuovo leggendo la scheda |
-| Serve la chiave? | ⛔️ no, funziona sempre | ✅ sì, la stessa delle traduzioni (capitolo 12) |
-| Costo | nessuno | qualche **millesimo** di euro |
+| | |
+|---|---|
+| Cosa serve | La **chiave Claude** dell'azienda, la stessa delle traduzioni (capitolo 12) |
+| Quanto costa | qualche **millesimo** di euro a tour |
+| Cosa tocca | Solo meta title e meta description. **L'indirizzo web non lo tocca mai** |
 
 **Come si usa:** compila prima la scheda — descrizione compresa — poi premi il pulsante. Se i due
 campi sono già pieni il programma **chiede conferma** prima di sostituirli: un testo scritto a mano
