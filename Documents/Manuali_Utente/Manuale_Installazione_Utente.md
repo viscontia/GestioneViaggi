@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: Utenti finali — nessuna conoscenza tecnica richiesta
 
-> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.1** · manuale aggiornato il **14 settembre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -120,7 +120,7 @@ Hai ricevuto un'email con un link di **WeTransfer** per scaricare il programma d
 
    Nella barra in basso del browser vedrai l'avanzamento del download.
 
-5. Al termine trovi **un solo file** nella cartella Download, chiamato **`GestioneViaggi_Setup_2.0.1.exe`**
+5. Al termine trovi **un solo file** nella cartella Download, chiamato **`GestioneViaggi_Setup_2.1.exe`**
 
 > ✅ **Ricevi un unico file `.exe`** — non una cartella, non uno ZIP. È sufficiente questo file per installare tutto il programma.
 
@@ -131,7 +131,7 @@ Hai ricevuto un'email con un link di **WeTransfer** per scaricare il programma d
 ## 4. Passo 3 — Avvia l'installazione
 
 1. Vai nella cartella **Download**
-2. Trova il file **`GestioneViaggi_Setup_2.0.1.exe`** (ha un'icona con uno schermo o un ingranaggio)
+2. Trova il file **`GestioneViaggi_Setup_2.1.exe`** (ha un'icona con uno schermo o un ingranaggio)
 3. Fai **doppio clic** su questo file per avviare l'installazione
 
 ### ⚠️ Avviso di Windows SmartScreen — cosa fare
@@ -346,6 +346,6 @@ Quando lo contatti, cerca di descrivere:
 
 ---
 
-*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*📌 Gestione Viaggi **2.1** — manuale aggiornato il 14 settembre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*

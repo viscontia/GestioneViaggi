@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **14 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.1** · manuale aggiornato il **14 settembre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -467,18 +467,22 @@ Clonando una scheda il programma compone l'indirizzo da solo: prende quello di p
 attacca in coda **le date della nuova partenza**, così i due non si scontrano. Funziona, ma ha due
 conseguenze che si vedono solo dopo.
 
-⛔️ **Le date restano quelle di allora.** È una fotografia scattata al momento della clonazione: se
-più tardi correggi le date in Anagrafica Viaggi e Date, **l'indirizzo non si aggiorna**. Ti ritrovi
-una pagina che dice dicembre mentre la partenza è a maggio, e se nel frattempo l'hai pubblicata non
-si può più sistemare.
+✅ **Avere la data nell'indirizzo va benissimo**: le partenze sono fissate e comunicate, non si
+spostano. Il problema non è la data in sé — è che quella nell'indirizzo è **la data di quel
+momento**.
 
-⚠️ **Clonando una copia si accumulano.** Se cloni da una scheda che era già una copia, la coda si
-allunga ogni volta: `tour-2026-05-02-2026-12-01-2026-12-06`. Nessuno lo legge, e Google nemmeno.
+⛔️ **Se la data era sbagliata quando hai clonato, resta sbagliata nell'indirizzo.** Correggerla in
+Anagrafica Viaggi e Date **non aggiorna l'indirizzo**: quello è stato scritto una volta sola, alla
+clonazione. Un errore di battitura sulla data — succede — te lo ritrovi nell'indirizzo della pagina,
+e dopo la pubblicazione non si può più togliere.
 
-✅ **Cosa fare, e costa dieci secondi**: appena finita la clonazione, **riscrivi l'indirizzo** finché
-la scheda è ancora in bozza. Meglio corto e leggibile che esatto al giorno —
-`est-sardegna-in-4x4-dicembre-2026` regge anche se la partenza slitta di tre giorni,
-`est-sardegna-in-4x4-2026-12-01` no.
+⚠️ **Clonando una copia le code si accumulano.** Se cloni da una scheda che era già una copia,
+l'indirizzo si allunga ogni volta: `tour-2026-05-02-2026-12-01-2026-12-06`. Non lo legge nessuno, e
+Google nemmeno.
+
+✅ **Cosa fare, e costa dieci secondi**: appena finita la clonazione, **leggi l'indirizzo e
+confrontalo con le date vere della partenza**. Se non corrispondono, o se si è allungato con due
+code, riscrivilo adesso — finché la scheda è in bozza è gratis.
 
 ---
 
@@ -907,6 +911,6 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 14 settembre 2026.*
+*📌 Gestione Viaggi **2.1** — manuale aggiornato il 14 settembre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*
