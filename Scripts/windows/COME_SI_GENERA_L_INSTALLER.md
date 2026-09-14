@@ -132,6 +132,38 @@ procedura per l'utente è nel capitolo 7 del `Documents/Manuali_Utente/Manuale_I
 
 ---
 
+## Dopo la consegna: cancellare il vecchio installer
+
+⛔️ **Non lasciare i setup vecchi sul disco della VM, e soprattutto MAI dentro
+`C:\GestioneViaggi`**, che è la cartella del programma installato.
+
+Non è pignoleria d'ordine: il `.iss` impacchetta **tutto** quello che trova nella cartella
+sorgente. Un installer dimenticato lì dentro finisce dentro il pacchetto successivo, e il
+pacchetto pesa il doppio senza che nessun errore lo segnali.
+
+**È già successo.** Verificato il 2026-09-14 confrontando i pesi:
+
+| Versione | Peso |
+|---|---|
+| 1.25 | 108 MB |
+| 1.30 | 102 MB |
+| **1.35** | **206 MB** ⚠️ |
+| 2.1 | 103 MB |
+
+La 1.35 stava in `C:\GestioneViaggi\Setup\` insieme alla 1.30: è stata compilata puntando alla
+cartella del programma installato, e si è portata dentro i 102 MB della 1.30. Il peso doppio è
+l'unico sintomo che quell'errore produce.
+
+```powershell
+# dopo aver consegnato: via i pacchetti vecchi, ovunque siano
+Get-ChildItem C:\ -Recurse -Filter 'GestioneViaggi_Setup_*.exe' -Depth 3 -ErrorAction SilentlyContinue |
+    Select-Object FullName, LastWriteTime
+```
+
+Deve restare **solo** quello appena consegnato.
+
+---
+
 ## Cosa consegnare
 
 1. `GestioneViaggi_Setup_<versione>.exe`
