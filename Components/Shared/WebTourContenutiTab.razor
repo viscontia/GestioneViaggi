@@ -8,6 +8,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject WebSeoAiService SeoAi
 
 @* Scheda "Contenuti Web" del viaggio (Blocco 5 estensione web).
    ECCEZIONE UI DOCUMENTATA: i campi editoriali/RichText NON usano il maiuscolo
@@ -175,7 +176,30 @@ else
         <!-- SEO -->
         <MudItem xs="12">
             <MudDivider Class="my-1" />
-            <MudText Typo="Typo.subtitle1">SEO</MudText>
+            <div class="d-flex align-center gap-3 flex-wrap">
+                <MudText Typo="Typo.subtitle1">SEO</MudText>
+
+                @* Suggerimento assistito: AFFIANCA le icone dei due campi, non le sostituisce.
+                   Quelle fanno un taglio meccanico e funzionano sempre; questo scrive un testo
+                   pensato, ma richiede la chiave Claude dell'azienda. Se la chiave non c'è il
+                   pulsante resta visibile e spento, col motivo nel tooltip: nasconderlo farebbe
+                   sembrare che la funzione non esista. *@
+                <MudTooltip Text="@MotivoSeoAi()">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@(_seoAiBusy ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.AutoAwesome)"
+                               Disabled="@(_seoAiBusy || !_seoAiDisponibile)" OnClick="SuggerisciSeoConAi">
+                        @(_seoAiBusy ? "Sto scrivendo…" : "Scrivili con l'AI")
+                    </MudButton>
+                </MudTooltip>
+
+                @if (_seoAiDisponibile)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Legge i testi di questa scheda e propone i due meta in italiano: le altre lingue
+                        arrivano dalle traduzioni. Costa qualche millesimo di euro.
+                    </MudText>
+                }
+            </div>
         </MudItem>
         <MudItem xs="12" sm="6">
             <div class="d-flex align-center mb-1">
@@ -244,6 +268,8 @@ else
 
     private WebTourContenuto _model = new();
     private bool _loading = true;
+    private bool _seoAiDisponibile;
+    private bool _seoAiBusy;
     private bool _saving;
     private bool _htmlLoaded;
     private bool _dirty;
@@ -302,6 +328,10 @@ else
                 _model = existing;
             else
                 Snackbar.Add("Contenuto non trovato.", Severity.Error);
+
+            // Sapere se il pulsante SEO assistito è utilizzabile è una lettura: non deve poter
+            // impedire l'apertura della scheda, quindi il servizio la fa senza lanciare.
+            _seoAiDisponibile = await SeoAi.ChiaveDisponibileAsync(AziendaId);
         }
         catch (Exception ex)
         {
@@ -396,6 +426,79 @@ else
     {
         _model.MetaDescription = Troncatura(StripHtml(_model.DescrizioneHtml) ?? _model.Sottotitolo, 155);
         await MarkDirty();
+    }
+
+    /// <summary>Perché il pulsante SEO assistito è spento. Vietare senza dire il motivo costringe a indovinare.</summary>
+    private string MotivoSeoAi()
+    {
+        if (_seoAiBusy) return "Richiesta in corso…";
+        if (!SeoAi.SecretKeyConfigurata)
+            return "Master key dei segreti non disponibile (GV_SECRET_KEY): la chiave Claude non è leggibile.";
+        if (!_seoAiDisponibile)
+            return "Nessuna chiave Claude per questa azienda: impostala in Anagrafica Azienda → Traduzioni.";
+        return "Propone meta title e meta description leggendo i testi di questa scheda.";
+    }
+
+    /// <summary>
+    /// Chiede a Claude i due meta e li propone. Non scrive nulla di nascosto: se i campi sono già
+    /// compilati chiede conferma prima di sovrascrivere, perché il testo che c'è potrebbe essere
+    /// stato scritto a mano e non si recupera.
+    /// </summary>
+    private async Task SuggerisciSeoConAi()
+    {
+        var giaCompilati = !string.IsNullOrWhiteSpace(_model.MetaTitle) || !string.IsNullOrWhiteSpace(_model.MetaDescription);
+        if (giaCompilati)
+        {
+            var parametri = new DialogParameters<DeleteConfirmationDialog>
+            {
+                { x => x.Title, "Sovrascrivere i meta?" },
+                { x => x.ContentText, "Meta title e meta description sono già compilati: la proposta li sostituisce. Procedere?" },
+                { x => x.ButtonText, "Sostituisci" },
+                { x => x.Color, Color.Primary }
+            };
+            var conferma = await DialogService.ShowAsync<DeleteConfirmationDialog>("Sovrascrivere i meta?", parametri,
+                new DialogOptions { BackdropClick = false });
+            if ((await conferma.Result)!.Canceled) return;
+        }
+
+        _seoAiBusy = true;
+        StateHasChanged();
+        try
+        {
+            // Si parte da ciò che l'operatore ha davanti, editor compresi: suggerire sui testi
+            // salvati ignorerebbe le modifiche appena fatte, che sono proprio quelle da riassumere.
+            var descrizione = StripHtml(await LeggiEditor(_edDescrizione) ?? _model.DescrizioneHtml);
+            var sorgente = new SeoSorgente(DescrizioneBreve, _model.Sottotitolo, descrizione,
+                                           _model.DurataTesto, _model.LuoghiVisitati);
+
+            var proposta = await SeoAi.SuggerisciAsync(AziendaId, sorgente);
+            if (string.IsNullOrWhiteSpace(proposta.MetaTitle) && string.IsNullOrWhiteSpace(proposta.MetaDescription))
+            {
+                Snackbar.Add("Il servizio non ha restituito nulla di utilizzabile. Riprova.", Severity.Warning);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(proposta.MetaTitle)) _model.MetaTitle = proposta.MetaTitle;
+            if (!string.IsNullOrWhiteSpace(proposta.MetaDescription)) _model.MetaDescription = proposta.MetaDescription;
+            await MarkDirty();
+            Snackbar.Add("Proposta pronta: rileggila e, se va bene, salva.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex is InvalidOperationException ? ex.Message : $"Suggerimento non riuscito: {ex.Message}",
+                         Severity.Error);
+        }
+        finally
+        {
+            _seoAiBusy = false;
+        }
+    }
+
+    /// <summary>HTML corrente di un editor Quill, o null se non è leggibile (si ripiega sul salvato).</summary>
+    private static async Task<string?> LeggiEditor(BlazoredTextEditor editor)
+    {
+        try { return await editor.GetHTML(); }
+        catch { return null; }
     }
 
     /// <summary>Rimuove i tag HTML, decodifica le entità e comprime gli spazi multipli.</summary>

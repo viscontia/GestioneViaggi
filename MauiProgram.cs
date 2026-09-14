@@ -340,6 +340,7 @@ public static class MauiProgram
         builder.Services.AddScoped<Services.Web.WebAiConsumoService>();
         builder.Services.AddScoped<Services.Web.WebAiAlertService>();
         builder.Services.AddScoped<Services.Web.WebTraduzioneOrchestratorService>();
+        builder.Services.AddScoped<Services.Web.WebSeoAiService>();
 
         return builder.Build();
     }

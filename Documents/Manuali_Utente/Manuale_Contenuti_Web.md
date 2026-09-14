@@ -487,6 +487,39 @@ non come testo definitivo: rileggilo e riscrivilo perché stia in piedi da solo.
 
 ---
 
+### ⭐️ «Scrivili con l'AI»: il pulsante che li scrive davvero
+
+Accanto al titolo **SEO** c'è un secondo pulsante, **«Scrivili con l'AI»**. Non taglia: **legge** i
+testi che hai scritto nella scheda — titolo, sottotitolo, durata, luoghi e descrizione — e propone
+un meta title e una meta description pensati per chi cerca su Google.
+
+| | Le icone dentro i campi | «Scrivili con l'AI» |
+|---|---|---|
+| Cosa fa | Taglia il testo alla lunghezza giusta | Scrive un testo nuovo leggendo la scheda |
+| Serve la chiave? | ⛔️ no, funziona sempre | ✅ sì, la stessa delle traduzioni (capitolo 12) |
+| Costo | nessuno | qualche **millesimo** di euro |
+
+**Come si usa:** compila prima la scheda — descrizione compresa — poi premi il pulsante. Se i due
+campi sono già pieni il programma **chiede conferma** prima di sostituirli: un testo scritto a mano
+non si butta via di nascosto.
+
+⚠️ **È una proposta, non un verdetto.** I due campi restano modificabili, e il testo entra in scheda
+ma **non è ancora salvato**: rileggilo e premi *Salva Contenuti Web*. Se non ti convince, cambia
+scheda senza salvare e non è successo niente.
+
+ℹ️ **Scrive solo in italiano**, di proposito. Le altre quattro lingue arrivano dalle traduzioni,
+dove passano per la revisione: farle scrivere direttamente qui salterebbe il controllo che
+impedisce di pubblicare testi che nessuno ha letto.
+
+✅ **Non inventa.** Il programma gli vieta di aggiungere prezzi, date, posti disponibili, difficoltà
+o servizi che non siano già scritti nella scheda. ⚠️ Resta comunque da **rileggere**: è un
+suggerimento scritto da una macchina, e finisce in vetrina sui risultati di ricerca.
+
+ℹ️ Se il pulsante è **spento**, passaci sopra il mouse: il suggerimento dice quale delle due cose
+manca, la chiave Claude o GV_SECRET_KEY.
+
+---
+
 ### ⚠️ Dopo aver clonato una scheda, rileggi sempre questi tre campi
 
 La clonazione (capitolo 10) se la cava da sola con l'indirizzo web: lo compone dallo slug di

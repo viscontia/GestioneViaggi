@@ -99,12 +99,24 @@ public sealed class ClaudeTranslationClient
             "NON tradurre i nomi propri: toponimi, nomi di tour, marchi, nomi di persone. " +
             "Rispondi SOLO con la traduzione, senza premesse, virgolette o commenti.";
 
+        return await ChiamaAsync(apiKey, system, sourceText, _opt.MaxTokens, ct);
+    }
+
+    /// <summary>
+    /// Una chiamata a Messages: prompt di sistema + testo utente, risposta e token consumati.
+    /// Estratta da <see cref="TranslateAsync"/> quando è servita anche ai suggerimenti SEO: la
+    /// forma della richiesta, la lettura di <c>usage</c> e la traduzione dell'errore HTTP sono le
+    /// stesse per qualunque prompt, e tenerne due copie significa correggerne una sola.
+    /// </summary>
+    public async Task<ClaudeTranslation> ChiamaAsync(
+        string apiKey, string system, string userText, int maxTokens, CancellationToken ct = default)
+    {
         var payload = new
         {
             model = _opt.Model,
-            max_tokens = _opt.MaxTokens,
+            max_tokens = maxTokens,
             system,
-            messages = new[] { new { role = "user", content = sourceText } }
+            messages = new[] { new { role = "user", content = userText } }
         };
 
         using var req = new HttpRequestMessage(HttpMethod.Post, Endpoint);
@@ -124,7 +136,7 @@ public sealed class ClaudeTranslationClient
         var text = doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString();
 
         // "usage" è sempre presente nelle risposte Messages, ma se un domani cambiasse formato non
-        // deve far fallire la traduzione: senza conteggio si registra 0, non si perde il testo.
+        // deve far fallire la chiamata: senza conteggio si registra 0, non si perde il testo.
         var input = 0; var output = 0;
         if (doc.RootElement.TryGetProperty("usage", out var usage))
         {
