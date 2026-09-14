@@ -461,6 +461,25 @@ no.
 ⚠️ **Due tour della stessa azienda non possono avere lo stesso indirizzo**, nemmeno se sono due
 partenze dello stesso viaggio: il programma rifiuta il salvataggio. Ogni edizione ha il suo.
 
+#### ⚠️ Se cloni, l'indirizzo si porta dietro **le date di quel momento**
+
+Clonando una scheda il programma compone l'indirizzo da solo: prende quello di partenza e ci
+attacca in coda **le date della nuova partenza**, così i due non si scontrano. Funziona, ma ha due
+conseguenze che si vedono solo dopo.
+
+⛔️ **Le date restano quelle di allora.** È una fotografia scattata al momento della clonazione: se
+più tardi correggi le date in Anagrafica Viaggi e Date, **l'indirizzo non si aggiorna**. Ti ritrovi
+una pagina che dice dicembre mentre la partenza è a maggio, e se nel frattempo l'hai pubblicata non
+si può più sistemare.
+
+⚠️ **Clonando una copia si accumulano.** Se cloni da una scheda che era già una copia, la coda si
+allunga ogni volta: `tour-2026-05-02-2026-12-01-2026-12-06`. Nessuno lo legge, e Google nemmeno.
+
+✅ **Cosa fare, e costa dieci secondi**: appena finita la clonazione, **riscrivi l'indirizzo** finché
+la scheda è ancora in bozza. Meglio corto e leggibile che esatto al giorno —
+`est-sardegna-in-4x4-dicembre-2026` regge anche se la partenza slitta di tre giorni,
+`est-sardegna-in-4x4-2026-12-01` no.
+
 ---
 
 ### Se lasci vuoti i due «meta»
