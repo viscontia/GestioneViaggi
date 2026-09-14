@@ -85,8 +85,14 @@
         <Content Remove="appsettings.json" />
         <Content Remove="appsettings.Development.json" />
         <EmbeddedResource Include="appsettings.json" />
-        <EmbeddedResource Include="appsettings.Development.json" />
         <EmbeddedResource Include="Resources\Version\Versione.txt" />
+    </ItemGroup>
+
+    <!-- appsettings.Development.json SOLO in Debug: MauiProgram lo legge dentro #if DEBUG, quindi
+         in Release non serve a niente e nel binario consegnato al cliente ci finiva comunque —
+         segreti di sviluppo compresi. Il file resta escluso da Content in entrambe le configurazioni. -->
+    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+        <EmbeddedResource Include="appsettings.Development.json" />
     </ItemGroup>
 
     <ItemGroup>

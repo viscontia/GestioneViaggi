@@ -779,3 +779,55 @@ il codice, se emergesse un buco nella migrazione non ci sarebbe più modo di rif
 va rifatta la domanda prima di cancellare.
 
 ℹ️ **Non urgente e non bloccante**: la pagina è irraggiungibile e non fa danni. È pulizia.
+
+---
+
+## 11. 🔴 La chiave dello Storage viaggia dentro il programma del cliente — **deciso il 2026-09-14**
+
+Il gestionale carica foto, mappe e immagini di libreria su Supabase Storage parlandogli
+**direttamente**, e per farlo usa una **service key** (`sb_secret_…`) che sta in `appsettings.json`
+— cioè **dentro l'eseguibile consegnato al cliente**, da cui si estrae senza fatica.
+
+Una `sb_secret_…` **scavalca le RLS**. Chi la trova non ottiene solo la possibilità di caricare
+file: può **cancellare tutti i media di produzione**, e il sito resterebbe con le immagini rotte
+su ogni scheda pubblicata.
+
+### Perché non è stato risolto prima
+
+È un debito **dichiarato fin dall'inizio**, non una svista: sta nel commento d'intestazione di
+`Services/Shared/Storage/SupabaseMediaStorage.cs` («in produzione NON deve restare nel binario
+MAUI») e nella §2.4 della Checklist Go-Live PROD. Al go-live si è scelto di consegnare comunque,
+perché l'alternativa era rimandare la consegna.
+
+### Cos'è stato fatto il 2026-09-14 (e cosa NON risolve)
+
+- ✅ `appsettings.Development.json` **non finisce più nel Release** (`GestioneViaggi.csproj`): era
+  incluso come `EmbeddedResource` senza condizione, quindi il binario del cliente si portava dietro
+  anche la configurazione di sviluppo pur non leggendola mai (`MauiProgram.cs` la carica dentro
+  `#if DEBUG`).
+- ✅ Chiavi **separate** fra sviluppo e produzione (2026-09-14): la chiave storica resta in
+  `appsettings.json` come chiave di **produzione** — è già dentro il binario di Antonio e non
+  gliela si può cambiare senza ricompilare — mentre in `appsettings.Development.json` è stata
+  messa una secret key nuova, verificata con un upload di prova su `tour-media-dev`. Serve a poter
+  revocare una delle due senza bloccare l'altra. ⚠️ **Non revocare la chiave di produzione** finché
+  il gestionale di Antonio non viene ricompilato: gli si spegnerebbe il caricamento di foto e mappe.
+
+⚠️ **Nessuna delle due tocca il problema**: la chiave di produzione resta nel binario di Antonio
+ed è estraibile. Servono a limitare il danno e a rendere possibile una revoca, non a evitarla.
+
+### Le due strade
+
+| | Come funziona | Cosa costa |
+|---|---|---|
+| ⭐️ **Upload server-side** | Il gestionale manda il file al sito Flask, che ha già la sua chiave lato server e carica lui su Storage. **Dal gestionale la chiave sparisce del tutto** | Un endpoint nuovo sul sito + autenticazione fra gestionale e sito. È la soluzione corretta |
+| **Chiave con ruolo limitato** | Una secret key legata a un ruolo Postgres con permessi solo sul bucket dei media | Più rapida, ma la chiave resta estraibile: chi la prende può ancora **cancellare** i media |
+
+⚠️ **La seconda non è una versione economica della prima**: riduce la superficie, non la elimina.
+Se si sceglie quella, va messo in conto che il problema resta aperto.
+
+### Quando
+
+Non ora. Antonio sta caricando le prime schede in produzione e ogni modifica al percorso di upload
+lo bloccherebbe. Da riprendere quando il caricamento dei contenuti si è assestato — e comunque
+**prima** che il gestionale vada su una seconda macchina, perché ogni copia consegnata è una copia
+in più della chiave.
