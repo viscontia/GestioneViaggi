@@ -864,22 +864,22 @@ contenuti**: serve decidere chi disegna il PDF e quando.
 garantire che il file rigeneri quando la scheda cambia — e le schede cambiano, soprattutto il
 prezzo, che vive sulla data e non sul contenuto web (vedi il *Manuale — I contenuti web*, cap. 9).
 
-### ⛔️ Il punto da decidere PRIMA di scrivere una riga: il prezzo dentro il PDF
+### ✅ DECISO il 2026-09-14: nel PDF **il prezzo non ci va**
 
 Un PDF scaricato è un documento che il cliente **conserva** e che, a distanza di mesi, tira fuori
 dicendo «qui c'era scritto così». Il prezzo sul sito invece cambia: è il minimo delle sei tariffe
-di quella partenza e lo si corregge in anagrafica quando serve.
+di quella partenza e lo si corregge in anagrafica quando serve. Mettercelo significa produrre a
+ogni scaricamento un impegno commerciale che nessuno ha firmato e che nessuno può ritirare.
 
-Le opzioni, in ordine di rischio:
+Quindi: **PDF senza prezzo**, con un rimando alla pagina del viaggio per condizioni e
+disponibilità. Il PDF fa il lavoro che deve fare — raccontare il viaggio — e il prezzo resta dove
+può ancora essere aggiornato.
 
-1. ⭐️ **PDF senza prezzo**, con un rimando alla pagina per condizioni e disponibilità. Il PDF fa il
-   lavoro che deve fare — raccontare il viaggio — senza diventare un impegno commerciale.
-2. **Prezzo con data di generazione ben visibile** e la formula «prezzo alla data del …, soggetto a
-   variazione». Accettabile, ma va scritto bene.
-3. ⛔️ **Prezzo nudo**: è quello che genera la discussione, ed è gratis evitarlo.
+⚠️ **Per la stessa ragione restano fuori «SOLD OUT» e «ultimi posti»**: invecchiano nel giro di
+giorni, e un PDF che dice «ultimi posti» sei mesi dopo lavora contro di noi.
 
-⚠️ Vale anche per **«SOLD OUT» e «ultimi posti»**: sono informazioni che invecchiano nel giro di
-giorni. In un PDF non ci devono stare.
+ℹ️ Le date invece **ci vanno**: sono fissate, comunicate ai clienti e già pubblicate. Non è
+informazione che invecchia, è l'identità della partenza.
 
 ### Altri dettagli da non scoprire a metà lavoro
 
@@ -895,5 +895,6 @@ giorni. In un PDF non ci devono stare.
 
 ### Stato
 
-Solo **raccolto**, non analizzato e non pianificato. Da riprendere insieme agli altri lavori sul
-sito pubblico.
+**Raccolto e con una decisione già presa** (niente prezzo, niente disponibilità). Restano da
+scegliere la strada — generato dal sito o pre-generato dal gestionale — e da fare l'analisi vera.
+Non pianificato: da riprendere insieme agli altri lavori sul sito pubblico.
