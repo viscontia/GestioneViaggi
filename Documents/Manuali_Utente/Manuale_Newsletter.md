@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi scrive e spedisce le newsletter ai clienti. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **14 settembre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -32,13 +32,14 @@ prova»* a te stesso. È l'unico modo di vedere davvero cosa arriva.
 1. [Dove si trova e com'è fatta la pagina](#1-dove-si-trova-e-comè-fatta-la-pagina)
 2. [Creare una newsletter, o un modello](#2-creare-una-newsletter-o-un-modello)
 3. [Comporre: i blocchi](#3-comporre-i-blocchi)
-4. [A chi va: i destinatari](#4-a-chi-va-i-destinatari)
-5. [Le lingue](#5-le-lingue)
-6. [La prova, e poi l'invio](#6-la-prova-e-poi-linvio)
-7. [Storico: cosa è stato spedito davvero](#7-storico-cosa-è-stato-spedito-davvero)
-8. [Iscritti e soppressioni](#8-iscritti-e-soppressioni)
-9. [Impostazioni: il footer](#9-impostazioni-il-footer)
-10. [Riepilogo in una pagina](#10-riepilogo-in-una-pagina)
+4. [Le immagini: dove si prendono e come si caricano](#4-le-immagini-dove-si-prendono-e-come-si-caricano)
+5. [A chi va: i destinatari](#5-a-chi-va-i-destinatari)
+6. [Le lingue](#6-le-lingue)
+7. [La prova, e poi l'invio](#7-la-prova-e-poi-linvio)
+8. [Storico: cosa è stato spedito davvero](#8-storico-cosa-è-stato-spedito-davvero)
+9. [Iscritti e soppressioni](#9-iscritti-e-soppressioni)
+10. [Impostazioni: il footer](#10-impostazioni-il-footer)
+11. [Riepilogo in una pagina](#11-riepilogo-in-una-pagina)
 
 ---
 
@@ -108,6 +109,10 @@ tabella sotto mostra quelli già inseriti, nell'ordine in cui appariranno.
 spenti su di loro. Uno serve a farsi riconoscere, l'altro contiene i dati che per legge devono
 esserci — compreso il collegamento per disiscriversi.
 
+ℹ️ I blocchi che contengono una foto — *Testata con immagine*, *Riquadro informativo*,
+*Riquadro tour*, *Immagine* — **non caricano niente**: fanno scegliere fra le immagini già in
+archivio. Come ci arrivano, e perché gli archivi sono due, è il **capitolo 4**.
+
 ### Come si lavora
 
 - **Frecce ▲▼** per cambiare l'ordine.
@@ -122,7 +127,114 @@ esserci — compreso il collegamento per disiscriversi.
 
 ---
 
-## 4. A chi va: i destinatari
+## 4. Le immagini: dove si prendono e come si caricano
+
+⚠️ **Dalla newsletter le immagini non si caricano: si scelgono.** Il blocco ti mostra una striscia
+di miniature e ti chiede quale usare. Se la foto che ti serve non è ancora nel programma, lì non
+può comparire: va caricata **prima**, e in uno dei due magazzini qui sotto.
+
+### I due magazzini delle immagini
+
+| Dove | Cosa ci va | Come ci si arriva |
+|---|---|---|
+| **Libreria immagini** | Locandine, icone, loghi, immagini generiche — tutto ciò che **non appartiene a un viaggio** | **Tabelle → Tabelle web → Libreria immagini** |
+| **Galleria del tour** | Le foto di quel viaggio: le stesse che si vedono sul sito | Contenuti web del tour → scheda **Galleria** |
+
+Nel blocco le vedi **tutte insieme**, ma non mescolate: la tendina *«Mostra le foto di»* le separa.
+La voce **«Libreria immagini»** raccoglie quelle dell'azienda; le altre voci sono i nomi dei
+viaggi.
+
+ℹ️ **Perché due posti e non uno.** Un'icona di trenta pixel cercata in mezzo a quattrocento
+fotografie di moto nel deserto non si trova più. Man mano che l'archivio cresce, tenerle separate
+è l'unica cosa che rende ancora possibile scegliere.
+
+ℹ️ Il cursore **«Dimensione miniature»** vale ovunque: se allarghi le miniature qui, le ritrovi
+allargate anche nella galleria dei tour.
+
+---
+
+### Caricare una locandina, un'icona, un logo
+
+1. **Tabelle → Tabelle web → Libreria immagini**
+2. Pulsante **«Carica immagini»**
+3. Seleziona i file — **anche più di uno insieme**
+4. Aspetta: una finestrella conta *«Caricamento 3 di 12»*
+5. Le miniature compaiono nell'elenco, col **nome del file** come descrizione
+
+I limiti sono **30 file per volta** e **20 MB l'uno**. Un file troppo grande non viene caricato,
+ma non sparisce in silenzio: il programma lo dice, con il suo nome.
+
+---
+
+### ⚠️ PNG oppure no: la sola scelta che conta davvero
+
+| Se carichi… | Il programma… | Quindi |
+|---|---|---|
+| Un file **.png** | lo lascia PNG | ✅ la trasparenza resta — è il formato giusto per **icone e loghi** |
+| Qualunque altro formato (JPG, HEIC…) | lo converte in **JPEG** | ✅ va benissimo per **locandine e fotografie** |
+
+⛔️ **Non caricare in JPG un'icona con lo sfondo trasparente.** Il JPEG non sa cosa sia la
+trasparenza e ci mette dietro il bianco. Su un pulsante colorato ti ritrovi il logo dentro un
+francobollo bianco.
+
+✅ **Non ridimensionare niente a mano.** Il programma porta da sé il lato lungo a **1200 pixel**.
+La newsletter si legge in una colonna larga 600: oltre quella misura non guadagni nitidezza,
+guadagni solo peso — e una mail pesante è una mail che il destinatario non scarica.
+
+ℹ️ **Le foto dei tour sono salvate in un formato che la posta non capisce** (serve per il sito, ed
+è più leggero). Non devi farci niente: quando una di quelle foto finisce in una newsletter, il
+programma ne prepara da solo la versione per l'email. **Non caricarle una seconda volta.**
+
+---
+
+### ⛔️ La trappola delle locandine: il testo dentro l'immagine
+
+Una locandina grafica quasi sempre **ha il testo dentro**: le date, il prezzo, «ULTIMI POSTI».
+Quel testo è fatto di pixel, non di parole: **il programma non lo traduce**, e resta in italiano
+anche nella newsletter che parte verso la Germania.
+
+Il programma te lo ricorda — con un avviso in libreria e un altro dentro il blocco — ma non può
+impedirtelo, perché non sa leggere dentro le immagini.
+
+✅ **Come si fa allora**: la locandina porta l'immagine, e le parole che contano stanno in un
+blocco **Testo** sotto — quelle sì vengono tradotte. Se il testo dentro l'immagine è proprio
+indispensabile, **scrivilo in inglese**.
+
+---
+
+### Rinominare: conviene farlo subito
+
+La **matita** sulla miniatura cambia il nome. Vale la pena usarla appena carichi, perché il nome
+di partenza è quello del file: fra due mesi, davanti a quaranta miniature piccole, *IMG_4821* non
+ti dice niente e *Locandina Sardegna maggio* sì.
+
+---
+
+### Eliminare: il programma può dire di no
+
+- Se l'immagine **non è usata da nessuna parte**, chiede conferma e la elimina. Il file sparisce
+  per sempre: non c'è un cestino da cui ripescarla.
+- Se è **usata in una newsletter**, rifiuta — e ti dice **in quali**, con l'oggetto e lo stato di
+  ciascuna. Vanno tolte da quelle newsletter prima di riprovare.
+
+⛔️ **Un'immagine finita in una newsletter già spedita non si elimina più.** Non è un difetto: una
+newsletter inviata non si modifica (capitolo 2), quindi non esiste il modo di toglierla da lì.
+Resta in libreria, e va bene così — è la prova di cosa è stato spedito.
+
+---
+
+### Le due immagini che non si scelgono
+
+Non tutto quello che si vede in una newsletter viene dalla galleria:
+
+| Immagine | Da dove arriva davvero |
+|---|---|
+| Il **logo** in cima, nel blocco *Intestazione* | Dal logo dell'azienda, quello attivo e predefinito. Non si sceglie qui: si cambia nell'anagrafica dell'azienda. ℹ️ Se l'azienda non ha logo la newsletter parte lo stesso, con la ragione sociale al suo posto. |
+| L'**icona di un social o di un indirizzo in rubrica** | Da **Tabelle → Tabelle web → Indirizzi web**, dove l'icona si carica insieme all'indirizzo. ⚠️ Viene **copiata** nel blocco: se domani in rubrica sostituisci l'icona, le newsletter già composte continuano a mostrare quella vecchia — di proposito, perché una mail già spedita non deve cambiare aspetto. |
+
+---
+
+## 5. A chi va: i destinatari
 
 > ### **I destinatari non si scelgono uno per uno: si descrivono con dei criteri.**
 
@@ -141,7 +253,7 @@ Sono due popolazioni diverse, ed è utile saperlo: i **clienti** hanno una sched
 
 - chi **non ha dato il consenso** al marketing;
 - chi **non ha un indirizzo email**;
-- chi è nell'elenco delle **soppressioni** (capitolo 8).
+- chi è nell'elenco delle **soppressioni** (capitolo 9).
 
 Non c'è modo di forzarli dentro, ed è voluto.
 
@@ -176,7 +288,7 @@ ha una scheda. Se li vuoi comunque, accendi **«Includi comunque gli iscritti da
 
 ---
 
-## 5. Le lingue
+## 6. Le lingue
 
 Il riquadro **Lingue** mostra, per ciascuna, quanti testi sono tradotti: `EN 12/14`.
 
@@ -193,7 +305,7 @@ versione italiana. Il programma lo scrive in fondo alla schermata.
 
 ---
 
-## 6. La prova, e poi l'invio
+## 7. La prova, e poi l'invio
 
 ### Invia prova
 
@@ -218,7 +330,7 @@ nello storico.
 
 ---
 
-## 7. Storico: cosa è stato spedito davvero
+## 8. Storico: cosa è stato spedito davvero
 
 La linguetta **Storico** elenca gli invii fatti: oggetto, stato, data, numero di destinatari e
 canale.
@@ -231,7 +343,7 @@ cui una newsletter inviata non si può più toccare.
 
 ---
 
-## 8. Iscritti e soppressioni
+## 9. Iscritti e soppressioni
 
 ### Iscritti
 
@@ -256,7 +368,7 @@ destinatari significa ricominciare a scrivergli.
 
 ---
 
-## 9. Impostazioni: il footer
+## 10. Impostazioni: il footer
 
 Qui si decide **come è composto il footer societario**, quel blocco obbligatorio in fondo a ogni
 newsletter: quali campi mostrare (indirizzo, telefono, partita IVA, social…), in che ordine, su
@@ -271,13 +383,14 @@ usare il footer di prima.
 
 ---
 
-## 10. Riepilogo in una pagina
+## 11. Riepilogo in una pagina
 
 | Se devi… | Fai così |
 |---|---|
 | Preparare una struttura da riusare ogni volta | **Nuovo modello**, poi si duplica |
 | Modificare una newsletter già spedita | Non si può: **duplicala** |
-| Capire perché i destinatari sono meno del previsto | Consenso mancante, nessuna email, soppressioni, o i criteri che si sommano in AND (cap. 4) |
+| Mettere una locandina o un'icona nella newsletter | Si carica **prima** in Tabelle → Tabelle web → Libreria immagini, poi si sceglie nel blocco (cap. 4) |
+| Capire perché i destinatari sono meno del previsto | Consenso mancante, nessuna email, soppressioni, o i criteri che si sommano in AND (cap. 5) |
 | Far arrivare la newsletter anche agli iscritti dal sito quando ci sono dei criteri | Accendi **«Includi comunque gli iscritti dal sito»** |
 | Vedere come arriva a uno straniero | **Invia prova**, scegliendo la lingua |
 | Sapere chi non l'ha ricevuta | Storico → **Log** |
@@ -292,6 +405,6 @@ usare il footer di prima.
 
 ---
 
-*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 14 settembre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*

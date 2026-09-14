@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **9 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.0.1** · manuale aggiornato il **14 settembre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -30,13 +30,18 @@ Durante i collaudi sono emerse otto o nove situazioni di questo tipo. Sono tutte
 2. [Il controllo scatta al salvataggio, non alla scelta](#2-il-controllo-scatta-al-salvataggio-non-alla-scelta)
 3. [Il tour sparisce dal sito da solo](#3-il-tour-sparisce-dal-sito-da-solo)
 4. [Lo stato della partenza e le sue due anomalie](#4-lo-stato-della-partenza-e-le-sue-due-anomalie)
-5. [Clonare una scheda da un'altra partenza](#5-clonare-una-scheda-da-unaltra-partenza)
-6. [Clonare fra partenze di durata diversa](#6-clonare-fra-partenze-di-durata-diversa)
-7. [Le traduzioni](#7-le-traduzioni)
-8. [Le verifiche che non bloccano](#8-le-verifiche-che-non-bloccano)
-9. [Eliminare una scheda web](#9-eliminare-una-scheda-web)
-10. [Eliminare una partenza](#10-eliminare-una-partenza)
-11. [Riepilogo in una pagina](#11-riepilogo-in-una-pagina)
+5. [La galleria: caricare le foto del tour](#5-la-galleria-caricare-le-foto-del-tour)
+6. [L'itinerario: giornate e passaggi](#6-litinerario-giornate-e-passaggi)
+7. [La mappa: dal GPX all'immagine](#7-la-mappa-dal-gpx-allimmagine)
+8. [Il SEO: farsi trovare su Google](#8-il-seo-farsi-trovare-su-google)
+9. [Il prezzo, e le altre cose che non stanno nella scheda web](#9-il-prezzo-e-le-altre-cose-che-non-stanno-nella-scheda-web)
+10. [Clonare una scheda da un'altra partenza](#10-clonare-una-scheda-da-unaltra-partenza)
+11. [Clonare fra partenze di durata diversa](#11-clonare-fra-partenze-di-durata-diversa)
+12. [Le traduzioni](#12-le-traduzioni)
+13. [Le verifiche che non bloccano](#13-le-verifiche-che-non-bloccano)
+14. [Eliminare una scheda web](#14-eliminare-una-scheda-web)
+15. [Eliminare una partenza](#15-eliminare-una-partenza)
+16. [Riepilogo in una pagina](#16-riepilogo-in-una-pagina)
 
 ---
 
@@ -78,7 +83,7 @@ Servono **due condizioni insieme**:
 
 1. **Tutte le sezioni complete** — le icone in alto devono essere verdi. Comprese le
    **traduzioni revisionate**: ⚠️ non basta che siano tradotte, devono essere state
-   *revisionate* (capitolo 7).
+   *revisionate* (capitolo 12).
 2. **Una partenza che deve ancora iniziare**, e non segnata come effettuata. La soglia è la
    data di **inizio**, e dev'essere almeno **il giorno dopo oggi**: pubblicare una partenza che
    parte oggi non serve a nessuno, perché nessuno può più prenotarla.
@@ -133,7 +138,462 @@ concluso.
 
 ---
 
-## 5. Clonare una scheda da un'altra partenza
+## 5. La galleria: caricare le foto del tour
+
+La scheda **Galleria** è la seconda linguetta dei contenuti web. È il solo posto da cui entrano le
+foto di un viaggio: quelle che si vedono sul sito, quelle che si agganciano ai passaggi
+dell'itinerario e quelle che si possono scegliere nelle newsletter vengono tutte da qui.
+
+### Caricare
+
+1. Pulsante **«Carica immagini»**
+2. Seleziona i file — **anche trenta insieme**
+3. Aspetta: una finestrella conta *«Caricamento 3 di 12»*
+
+I limiti sono **30 file per volta** e **20 MB l'uno**: una foto più pesante non viene caricata, e
+il programma te lo dice con il nome del file.
+
+✅ **Non ridimensionare e non convertire niente a mano.** Il programma porta il lato lungo a
+**2000 pixel** e riscrive la foto in un formato più leggero, adatto al sito. Una foto da 8 MB
+appena uscita dal telefono va bene così com'è.
+
+ℹ️ **Le foto già caricate vengono saltate.** Se rilanci lo stesso caricamento, quelle con un nome
+di file già presente non entrano una seconda volta, e a fine caricamento il programma ti dice
+quante ne ha saltate e quali. Non è un errore: è quello che deve succedere.
+
+---
+
+### ⚠️ La copertina, senza la quale non si pubblica
+
+La **stella ⭐** su una foto la elegge a **copertina**: è quella che rappresenta il tour negli
+elenchi del sito.
+
+| Situazione | L'icona della scheda Galleria | Si può pubblicare? |
+|---|---|---|
+| Nessuna foto | 🔴 vuota | ⛔️ no |
+| Foto caricate, **nessuna stella** | 🟠 incompleta | ⛔️ no |
+| Foto caricate **+ una copertina** | 🟢 completa | ✅ sì |
+
+⚠️ **Caricare le foto non basta.** È l'errore più facile: si caricano venti foto, l'icona resta
+arancione e non si capisce perché il tour non si pubblica. Manca la stella.
+
+La copertina è **una sola**: mettere la stella su un'altra foto la sposta, non ne aggiunge una
+seconda. In vista Dettaglio sta in cima, grande, con la fascetta **COPERTINA**.
+
+---
+
+### Titolo e testo alternativo
+
+Ogni foto ha due campi, e servono a due cose diverse:
+
+| Campo | A cosa serve |
+|---|---|
+| **Titolo** | Il testo che compare sul sito passandoci sopra il mouse |
+| **Testo alternativo** | Quello che viene letto al posto della foto: dagli screen reader di chi non vede, dai motori di ricerca, e da chiunque abbia le immagini spente |
+
+Si scrivono nella vista **Dettaglio** e **si salvano da soli** appena esci dal campo: non c'è un
+pulsante Salva da cercare.
+
+⚠️ **In vista Griglia i due campi non sono modificabili.** La griglia serve a guardare tutte le
+foto insieme, non a scriverci: per modificarli torna a **Dettaglio**.
+
+✅ Il riquadro **«Applica a tutte le foto»** compila titolo e testo alternativo di tutte in un
+colpo solo — utile quando le foto di un tour raccontano la stessa cosa. ⚠️ **Sovrascrive quello
+che c'è già**, quindi usalo prima di rifinire le singole, non dopo.
+
+ℹ️ Finito un caricamento, il programma ricorda quante foto sono rimaste senza titolo e senza testo
+alternativo. Non blocca niente: è un promemoria, e va preso come tale.
+
+---
+
+### Eliminare: due casi in cui il programma non lo fa
+
+- 🗑 **Una foto agganciata a un passaggio dell'itinerario non si elimina**: il cestino è spento, e
+  il suggerimento dice il perché. Va prima staccata da quel passaggio.
+- 🗑 **«Elimina tutte le foto»** toglie tutto, copertina compresa — ⚠️ e senza copertina l'anteprima
+  e la pubblicazione non sono più possibili. Le foto usate in un passaggio **restano**: il
+  programma le salta e ti dice quante ne ha mantenute.
+
+⛔️ **Se la scheda è stata clonata, la foto che cancelli sparisce anche dall'altra.** Le due schede
+non hanno due copie: hanno **lo stesso file**. È la conseguenza della clonazione — vedi il
+capitolo 10.
+
+---
+
+### Le immagini che non passano da qui
+
+ℹ️ Le **icone, i loghi e le locandine** usate nelle newsletter **non** vanno caricate nella
+galleria di un tour: hanno un posto loro, **Tabelle → Tabelle web → Libreria immagini**. La
+separazione serve a non dover scorrere quattrocento fotografie per trovare un'icona. Il
+*Manuale — La newsletter* lo spiega al capitolo 4.
+
+---
+
+## 6. L'itinerario: giornate e passaggi
+
+> ### ⛔️ Il programma del viaggio **non** va scritto nella Descrizione
+>
+> Nella scheda **Contenuti** c'è una sola grande casella, e la tentazione è di infilarci dentro
+> tutto: *tappa 1*, *tappa 2*, *tappa 3*… **Non è il posto giusto.** Quella casella è la
+> **presentazione** del viaggio — che viaggio è, a chi si rivolge, che tipo di esperienza —, non il
+> programma.
+>
+> Il programma giorno per giorno ha una scheda sua: **Itinerario**, la terza linguetta. E non è una
+> questione di ordine: **senza l'itinerario compilato il tour non si pubblica** (§ più sotto).
+
+La scheda è divisa in due colonne: a **sinistra** l'elenco delle **Giornate**, a **destra** il
+dettaglio con i **Passaggi** della giornata scelta.
+
+ℹ️ Dentro la scheda c'è un pulsante **«Guida»**: apre la stessa spiegazione, con le icone vere
+sotto gli occhi.
+
+| | Cos'è | Cosa contiene |
+|---|---|---|
+| **Giornata** | Un giorno del viaggio | Un **titolo**, scritto da te — es. *GIORNO 1 : Olbia - Monte Limbara - Tempio* |
+| **Passaggio** | Un momento di quella giornata | Un **testo**, una **foto** presa dalla galleria del tour e la sua **didascalia** |
+
+Il titolo della giornata lo decidi tu, **numerazione compresa**: il programma propone
+*«GIORNO X :»* e si aspetta che tu completi.
+
+---
+
+### ⚠️ Aggiungere una giornata: il passo che sembra non funzionare
+
+Premendo **«Aggiungi una Giornata»** non compare una riga vuota: si apre **subito la finestra del
+primo passaggio**. È voluto — una giornata senza contenuto non ha senso di esistere.
+
+⚠️ **Se a quel punto annulli, non viene creato niente**: né la giornata né il passaggio. Chi si
+aspettava la riga vuota pensa che il pulsante sia rotto. Non lo è: bisogna arrivare in fondo alla
+finestra e salvare.
+
+---
+
+### Titolo e passaggi sono indivisibili
+
+Sono tre regole che discendono tutte dalla stessa idea — una giornata **è** il suo contenuto:
+
+1. Una giornata **nasce già con il suo primo passaggio**.
+2. Eliminando l'**ultimo** passaggio si elimina **l'intera giornata**. Il programma non lo fa di
+   nascosto: te lo chiede, nominando la giornata che sta per sparire.
+3. Un passaggio **non si sposta** in un'altra giornata. Se hai sbagliato giornata, si riscrive.
+
+---
+
+### Riordinare
+
+| Cosa | Come |
+|---|---|
+| **Giornate** | Si **trascinano** nell'elenco di sinistra, oppure con le frecce ▲▼ nel dettaglio a destra |
+| **Passaggi** | Solo con le frecce ▲▼, e ⚠️ **solo dentro la stessa giornata** |
+
+✅ Il numero progressivo delle giornate **si rifà da solo** dopo ogni spostamento: non devi
+rinumerare niente. Il **titolo**, invece, resta quello che hai scritto — se dentro c'è scritto
+«GIORNO 3» e la sposti in seconda posizione, il titolo continua a dire 3. Correggilo a mano.
+
+---
+
+### ⚠️ Quante giornate servono per poter pubblicare
+
+Ne serve **una per ogni giorno di durata del viaggio** — il campo *numero giorni* dell'anagrafica.
+
+| Giornate inserite | Semaforo della scheda | Pubblicazione |
+|---|---|---|
+| Meno del dovuto | 🟠 gialla | ⛔️ bloccata |
+| Quante ne servono | 🟢 verde | ✅ possibile |
+| **Più** del dovuto | 🟢 verde | ✅ possibile, ma compare un **avviso** fra le verifiche |
+
+✅ **L'anteprima funziona comunque**, anche a itinerario incompleto: puoi guardarti il lavoro a
+metà strada senza dover prima finire tutto.
+
+ℹ️ Inserire **più** giornate del previsto è consentito — capita con una giornata opzionale o di
+riposo. L'avviso non blocca niente, serve solo a farti notare la differenza nel caso sia una
+distrazione (capitolo 13).
+
+---
+
+### Le foto dei passaggi
+
+Si **scelgono**, non si caricano: la striscia di miniature mostra la **galleria di quel tour**. Se
+è vuota, si carica prima dalla scheda **Galleria** (capitolo 5).
+
+⚠️ **Una foto usata in un passaggio non si può più eliminare dalla galleria**: il cestino è spento
+finché non la stacchi da lì. È la stessa regola vista al capitolo 5, guardata dall'altro lato.
+
+---
+
+### Perché non conviene scrivere tutto in un blocco unico
+
+Anche riuscendo a pubblicare, un programma schiacciato dentro la Descrizione ha due difetti che si
+pagano dopo:
+
+1. **Sul sito esce un muro di testo.** Le foto non si intercalano più al racconto: restano tutte
+   ammucchiate in galleria, e la pagina perde il ritmo giorno-per-giorno che è il motivo per cui
+   uno la legge.
+2. **Le traduzioni costano di più, per sempre.** Ogni giornata e ogni passaggio si traduce come
+   pezzo a sé: se correggi la tappa 4, si ritraduce **solo la tappa 4**. Un blocco unico da
+   seimila caratteri si ritraduce **tutto intero**, in tutte le lingue, ogni volta che ci sposti
+   una virgola (capitolo 12).
+
+---
+
+## 7. La mappa: dal GPX all'immagine
+
+✅ **La mappa è l'unica scheda che non blocca mai la pubblicazione.** Il suo semaforo è sempre
+verde, anche quando non c'è nessuna mappa. Le mancanze compaiono solo fra le verifiche, come
+avvisi (capitolo 13).
+
+Quello che fa è semplice da dire: prendi il **file GPX** — la traccia registrata dal navigatore —
+e il programma ne ricava **un'immagine** del percorso. Un disegno, non una mappa da trascinare col
+dito: sul sito il cliente vede una figura. Sotto compare la scritta **© OpenStreetMap
+contributors**, che è il credito dovuto a chi fornisce le mappe e non si toglie.
+
+---
+
+### ⛔️ Una mappa per giornata, oppure una per l'intero viaggio. Nient'altro.
+
+| Tipo di mappa | Quante se ne possono avere |
+|---|---|
+| **Intero viaggio** | **Una sola** per edizione |
+| **Una giornata** | **Una sola** per giornata dell'itinerario |
+
+⛔️ **Non sono ammessi GPX che coprono mezza giornata, o due giornate e mezzo.** Non è una
+limitazione della finestra: è una regola del programma, perché una traccia «da metà del giorno 2 a
+metà del giorno 3» non si saprebbe dove mostrarla sul sito.
+
+ℹ️ Le opzioni già occupate compaiono **spente**, con scritto accanto il motivo: *(già presente)*
+per l'intero viaggio, e una spiegazione diversa a seconda che l'itinerario sia **vuoto** o abbia
+tutte le giornate **già coperte**.
+
+---
+
+### Come si carica
+
+1. Scheda **Mappa** → **«Scegli GPX»**. Si accettano **solo file .gpx**, fino a **20 MB**.
+2. ⚠️ **Solo dopo aver scelto il file** compaiono le opzioni di abbinamento. Prima non ci sono, e
+   chi le cerca pensa che manchino: c'è una riga che lo dice, ma è facile non vederla.
+3. Scegli se la mappa è dell'**intero viaggio** o di **una giornata**. In questo secondo caso la
+   tendina elenca **solo le giornate ancora libere**.
+4. Scrivi la **Descrizione**: è **obbligatoria**, è il nome che vede il cliente sul sito (es.
+   *«Mappa Giorno 1»*), e **viene tradotta** nelle lingue del sito. ⚠️ È una cosa diversa dal nome
+   del file GPX, che al cliente non interessa.
+5. **«Genera mappa»**, e aspetta qualche secondo: il disegno viene fatto **passando da internet**.
+
+⚠️ **Lo stesso GPX non si carica due volte nella stessa edizione.** Il programma riconosce il
+doppione dal nome e dalla dimensione del file e lo rifiuta. È una protezione contro il doppio
+caricamento per distrazione, non un dispetto.
+
+---
+
+### I tre pulsanti su una mappa già fatta
+
+| Pulsante | Cosa fa |
+|---|---|
+| **Modifica** | Cambia **descrizione** e **abbinamento** senza ricaricare il GPX. ✅ Se tocchi solo la descrizione non viene rigenerato niente |
+| **Rigenera** | Rifà l'immagine partendo **dallo stesso GPX** già caricato |
+| **Elimina** | Toglie la mappa **e il file dell'immagine** |
+
+⚠️ **«Rigenera» serve solo se l'immagine è venuta male o è andata persa.** Ogni rigenerazione è una
+richiesta a un servizio esterno: non è gratis e non è istantanea. Non farlo per abitudine, perché
+il risultato sarà identico.
+
+---
+
+### ⚠️ Le due trappole
+
+**1. Una giornata che ha una mappa non si elimina.** Il programma blocca l'operazione invece di
+far sparire la mappa di nascosto. L'ordine giusto è: prima elimini la mappa, poi la giornata
+(capitolo 6).
+
+**2. Dopo una clonazione l'immagine della mappa è lo STESSO file dell'originale**, esattamente
+come succede alle foto. Eliminando la mappa su una delle due schede, **l'immagine sparisce anche
+dall'altra** (capitolo 10).
+
+ℹ️ Quando si clona verso una partenza **più corta**, le mappe delle giornate che non sono state
+copiate vengono semplicemente **saltate**: non diventano una seconda mappa d'insieme, che sarebbe
+vietata.
+
+---
+
+### Se compare «Chiave Geoapify non configurata»
+
+Non è un errore tuo e non si risolve nella scheda. Il disegno delle mappe passa da un servizio
+esterno, e la sua chiave sta nella **configurazione del programma**: va chiesta a chi ha
+installato il gestionale.
+
+ℹ️ Nel frattempo **tutto il resto continua a funzionare**: resta spento solo il pulsante «Genera
+mappa». E dato che la mappa non blocca la pubblicazione, il tour può andare online lo stesso.
+
+---
+
+## 8. Il SEO: farsi trovare su Google
+
+In fondo alla scheda **Contenuti** c'è un riquadro intitolato **SEO**. Sono tre campi, e non sono
+un di più: è tutto quello che il tuo tour dice a Google di sé.
+
+| Campo | Cos'è | Quanto lungo |
+|---|---|---|
+| **Indirizzo web (URL)** | L'indirizzo della pagina sul sito — la parte finale, es. `…/tour-dune-gallura` | corto, minuscolo, parole separate da trattini |
+| **Meta title** | Il titolo **azzurro** che Google mostra nei risultati, e il nome della scheda nel browser | ~60 caratteri |
+| **Meta description** | Le due righe grigie sotto il titolo, nei risultati: servono a far venire voglia di cliccare | ~150 caratteri |
+
+ℹ️ Accanto a ogni campo c'è il **punto interrogativo** con la spiegazione, e dentro il campo
+un'**icona a destra** che propone un valore di partenza. Non devi partire dal foglio bianco.
+
+---
+
+### ⛔️ L'indirizzo web non si tocca dopo la pubblicazione
+
+È l'unico dei tre **obbligatorio**: senza, la scheda Contenuti non diventa verde e il tour non si
+pubblica.
+
+Ed è anche l'unico **irreversibile nei fatti**. Cambiarlo dopo la pubblicazione significa cambiare
+l'indirizzo della pagina, e quindi:
+
+- chi aveva salvato o condiviso il link vecchio **trova una pagina che non esiste**;
+- Google **riparte da zero** su quella pagina: la posizione guadagnata è persa.
+
+✅ **Deciderlo bene la prima volta** è l'unico modo di non pagarlo dopo. Corto, in minuscolo, con
+le parole che contano: `dalle-dune-alla-gallura` è giusto, `tour-n-3-primavera-2026-definitivo`
+no.
+
+⚠️ **Due tour della stessa azienda non possono avere lo stesso indirizzo**, nemmeno se sono due
+partenze dello stesso viaggio: il programma rifiuta il salvataggio. Ogni edizione ha il suo.
+
+---
+
+### Se lasci vuoti i due «meta»
+
+Non è un errore e non blocca niente: il sito **ripiega** sul titolo del tour e sul sottotitolo.
+Fra le verifiche compare come **suggerimento**, non come problema (capitolo 13).
+
+⚠️ Ma un ripiego è un ripiego: il titolo del tour è scritto per te, non per chi cerca su Google.
+Vale la pena compilarli.
+
+---
+
+### Cosa fa davvero il pulsante dei suggerimenti
+
+Le tre icone fanno un lavoro **meccanico**, non intelligente:
+
+| Campo | Cosa propone |
+|---|---|
+| Indirizzo web | Il titolo del viaggio ridotto: tutto minuscolo, accenti tolti, spazi trasformati in trattini |
+| Meta title | Il titolo del viaggio **tagliato a 60 caratteri** |
+| Meta description | Le prime ~155 lettere della **descrizione**, ripulite dalla formattazione |
+
+⚠️ **La descrizione tagliata finisce quasi sempre a metà frase.** Va bene come punto di partenza,
+non come testo definitivo: rileggilo e riscrivilo perché stia in piedi da solo.
+
+---
+
+### ⚠️ Dopo aver clonato una scheda, rileggi sempre questi tre campi
+
+La clonazione (capitolo 10) se la cava da sola con l'indirizzo web: lo compone dallo slug di
+partenza più le date della nuova partenza, e se esiste già aggiunge un numero. Il risultato
+**funziona**, ma è lungo e brutto — vale la pena riscriverlo finché la scheda è ancora in bozza.
+
+⛔️ **Meta title e meta description invece vengono copiati identici.** Due partenze con lo stesso
+titolo e la stessa descrizione sono, per Google, **due pagine doppione**: ne mostra una sola e
+decide lui quale. Se le due edizioni hanno qualcosa che le distingue — la stagione, le date, un
+tratto diverso — deve comparire lì dentro.
+
+---
+
+### Scrivere i testi con un assistente (ChatGPT e simili)
+
+Si può, ed è un uso sensato. Tre regole perché serva a qualcosa:
+
+1. ✅ **Chiedi esattamente i due formati**: un meta title entro 60 caratteri e una meta description
+   intorno ai 150. Senza il vincolo di lunghezza escono testi che Google taglia a metà.
+2. ⛔️ **Incollali nei due campi**, non in mezzo alla descrizione. Fuori da quei campi non fanno
+   SEO: sono solo altre righe di testo.
+3. ⚠️ **Falli rileggere a chi il viaggio l'ha fatto davvero.** Nomi di località, distanze,
+   difficoltà, durata delle tappe: su questo un assistente inventa con grande scioltezza, e
+   l'errore finisce in vetrina su Google.
+
+⚠️ **Non gonfiare i testi «per il SEO».** Ogni parola in più va tradotta in tutte le lingue, e
+ritradotta a ogni correzione: un testo lungo il doppio costa il doppio, per sempre (capitolo 12).
+
+ℹ️ **Anche meta title e meta description si traducono**, come gli altri testi della scheda: chi
+cerca in tedesco vede il meta title tedesco. Il che significa che vanno **revisionati** come tutto
+il resto prima di poter pubblicare.
+
+---
+
+## 9. Il prezzo, e le altre cose che non stanno nella scheda web
+
+⛔️ **Nella scheda dei contenuti web non esiste nessun campo prezzo.** Cercarlo è tempo perso: il
+prezzo che si legge sul sito non è stato scritto lì, e da lì non si può cambiare.
+
+### Il prezzo lo calcola il programma, e ne mostra **uno solo**
+
+Sul sito compare una cifra sola, nella forma **«da 890 €»**. È il **prezzo più basso fra le sei
+tariffe di quella partenza**:
+
+- costo pilota
+- costo passeggero
+- costo passeggero in auto/guida
+- costo bambino 0-2
+- costo bambino 2-6
+- costo bambino 6-12
+
+Le tariffe **lasciate vuote o a zero vengono ignorate**: una casella non compilata non fa
+sprofondare il prezzo a zero.
+
+> ### ⚠️ La cosa da controllare prima di pubblicare
+>
+> Il «da» è un **minimo**, e il minimo è quasi sempre una **tariffa bambino**. Se su una partenza
+> compili il costo bambino 0-2 a 150 €, il sito annuncia **«da 150 €»** anche se il pilota ne paga
+> 1.900. Non è un errore del programma: è esattamente quello che gli hai chiesto.
+>
+> ✅ Prima di pubblicare, guarda le sei tariffe della data e chiediti quale di quelle vuoi vedere
+> in vetrina.
+
+### Il prezzo è della **partenza**, non del viaggio
+
+Due date dello stesso tour con tariffe diverse mostrano sul sito **due prezzi diversi**. È voluto:
+la stessa traversata a giugno e a ottobre non costa uguale.
+
+✅ **Si cambia in «Anagrafica Viaggi e Date», sulla singola data.** Nei contenuti web non c'è
+niente da toccare e **niente da ripubblicare**: il sito legge la tariffa nel momento in cui
+qualcuno apre la pagina, esattamente come fa con le date di partenza (capitolo 3).
+
+ℹ️ **Al sito arriva solo il «da».** La griglia completa delle sei tariffe non esce mai dal
+gestionale: chi guarda il sito non può ricostruire quanto paga un passeggero o un bambino.
+
+---
+
+### Le altre cose che vengono da fuori
+
+La scheda web è meno di quello che sembra. Buona parte di ciò che si vede sul sito arriva
+dall'anagrafica, non da lì:
+
+| Cosa si vede sul sito | Da dove arriva | Dove si cambia |
+|---|---|---|
+| **Titolo** del tour | La descrizione breve del **viaggio** | Anagrafica Viaggi e Date → il viaggio |
+| **Difficoltà** | Il **viaggio** | Anagrafica Viaggi e Date → il viaggio |
+| **Numero di giorni** | Il **viaggio** | Anagrafica Viaggi e Date → il viaggio |
+| **Incluso / Escluso** | Il **viaggio** (e si traducono come ogni altro testo) | Anagrafica Viaggi e Date → il viaggio |
+| **«SOLD OUT»** e **«Rimangono solo N posti»** | Capienza e soglia di allerta del **viaggio**, meno i mezzi già occupati su quella data | Anagrafica Viaggi e Date → il viaggio |
+| **Date** di partenza e rientro | La **data** | Anagrafica Viaggi e Date → la data |
+| **Prezzo «da»** | Le tariffe della **data** | Anagrafica Viaggi e Date → la data |
+| Sezione **«tour giornalieri»** | Una spunta sul **tipo** di viaggio | Tabelle → tipi di viaggio |
+
+⚠️ **Guarda la colonna di mezzo, dice più di quanto sembra.** Quello che arriva dal **viaggio**
+cambia **su tutte le partenze insieme**: correggi l'«Incluso» una volta e si aggiorna ovunque,
+anche sulle edizioni già pubblicate. Quello che arriva dalla **data** — prezzo e date — riguarda
+**solo quella partenza**.
+
+### Cosa sta davvero nella scheda web
+
+Solo questo: **sottotitolo**, **descrizione**, **durata a parole**, le informazioni su
+**pernottamento, pasti, equipaggiamento e altro**, i **testi per i motori di ricerca**, le
+**foto**, l'**itinerario** e la **mappa**. Tutto il resto viene da fuori — ed è il motivo per cui
+una scheda web non va tenuta allineata a mano: si allinea da sola.
+
+---
+
+## 10. Clonare una scheda da un'altra partenza
 
 Quando crei la scheda di una partenza, il programma chiede se partire da zero o **clonare** da
 un'altra partenza dello stesso viaggio.
@@ -156,7 +616,7 @@ stesso viaggio, cambiano solo le date. Resta comunque una scelta.
 
 ---
 
-## 6. Clonare fra partenze di durata diversa
+## 11. Clonare fra partenze di durata diversa
 
 Può succedere che le due partenze abbiano **un numero di giorni diverso**, pur essendo lo stesso
 viaggio: basta che qualcuno abbia cambiato la durata in anagrafica dopo aver creato le partenze.
@@ -181,7 +641,7 @@ programma dice quante.
 
 ---
 
-## 7. Le traduzioni
+## 12. Le traduzioni
 
 Le lingue sono quattro: **EN / DE / FR / ES**.
 
@@ -224,7 +684,7 @@ La traduzione automatica è **a consumo**, con la chiave dell'azienda.
 
 ---
 
-## 8. Le verifiche che non bloccano
+## 13. Le verifiche che non bloccano
 
 Oltre ai controlli che impediscono di pubblicare, ce n'è un secondo gruppo: **promemoria**.
 Giornate senza foto, giornate senza mappa, «incluso/escluso» non compilati.
@@ -244,7 +704,7 @@ Nessuna è obbligatoria.»*
 
 ---
 
-## 9. Eliminare una scheda web
+## 14. Eliminare una scheda web
 
 ⛔️ **L'eliminazione è irreversibile. Non esiste un cestino.**
 
@@ -256,12 +716,12 @@ itinerario con i loro passaggi, immagini in galleria, mappe caricate da GPX, tra
 quelle già revisionate. **Leggi quell'elenco**: è il lavoro editoriale più costoso da rifare.
 
 ⚠️ **I file di foto e mappe restano in archivio.** Non è una dimenticanza: possono essere
-condivisi con una scheda clonata (capitolo 5), e cancellarli danneggerebbe l'altra. Quello che
+condivisi con una scheda clonata (capitolo 10), e cancellarli danneggerebbe l'altra. Quello che
 va perso davvero sono **testi, ordinamento e revisioni delle traduzioni**.
 
 ---
 
-## 10. Eliminare una partenza
+## 15. Eliminare una partenza
 
 > ### **Lo storico non si cancella.**
 
@@ -279,17 +739,26 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-## 11. Riepilogo in una pagina
+## 16. Riepilogo in una pagina
 
 | Situazione | Spiegazione |
 |---|---|
 | Metto «Pubblicato», salvo, torna a «Bozza» | Il controllo è al salvataggio. Il messaggio dice cosa manca (cap. 2) |
+| Ho caricato le foto ma non riesco a pubblicare | Manca la **copertina**: metti la stella su una foto (cap. 5) |
+| Non so dove scrivere il programma giorno per giorno | Nella scheda **Itinerario**, mai nella Descrizione (cap. 6) |
+| Il semaforo dell'Itinerario resta giallo | Mancano giornate: ne serve una per ogni giorno di durata (cap. 6) |
+| «Genera mappa» è spento | Manca la chiave del servizio mappe nella configurazione del programma (cap. 7) |
+| Non riesco a eliminare una giornata | Ha una mappa abbinata: elimina prima la mappa (cap. 7) |
+| Google mostra un titolo diverso da quello che ho scritto | Meta title vuoto: il sito ripiega sul titolo del tour (cap. 8) |
+| Ho cambiato l'indirizzo web e i vecchi link non funzionano più | Lo slug non si tocca dopo la pubblicazione (cap. 8) |
+| Il sito mostra un prezzo più basso di quello che mi aspettavo | È il **minimo** delle sei tariffe della partenza, di solito una bambino (cap. 9) |
+| Non trovo dove si scrive il prezzo nella scheda web | Non c'è: sta sulla **data**, in Anagrafica Viaggi e Date (cap. 9) |
 | «Archiviato» non sembra fare niente | Per il sito è identico a «Bozza». La differenza è solo editoriale (cap. 1) |
 | Il tour è sparito dal sito ma è ancora «Pubblicato» | La partenza è iniziata: il filtro è in lettura, lo stato non cambia (cap. 3) |
-| Non riesco a pubblicare, le traduzioni ci sono | Devono essere **revisionate**, non solo tradotte (cap. 2 e 7) |
-| «Approva tutte» è spento | Manca il campione: revisionane almeno una per lingua (cap. 7) |
-| Ho cancellato una foto e sparisce da due schede | Sono lo stesso file: la scheda è stata clonata (cap. 5) |
-| Non riesco a eliminare una partenza | Uno dei quattro blocchi. Il messaggio dice quale (cap. 10) |
+| Non riesco a pubblicare, le traduzioni ci sono | Devono essere **revisionate**, non solo tradotte (cap. 2 e 12) |
+| «Approva tutte» è spento | Manca il campione: revisionane almeno una per lingua (cap. 12) |
+| Ho cancellato una foto e sparisce da due schede | Sono lo stesso file: la scheda è stata clonata (cap. 10) |
+| Non riesco a eliminare una partenza | Uno dei quattro blocchi. Il messaggio dice quale (cap. 15) |
 | Etichetta arancione sulla partenza | Anomalia fra spunta e calendario: si corregge nella scheda Date (cap. 4) |
 
 ### Le tre cose da non fare
@@ -302,6 +771,6 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 9 settembre 2026.*
+*📌 Gestione Viaggi **2.0.1** — manuale aggiornato il 14 settembre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*
