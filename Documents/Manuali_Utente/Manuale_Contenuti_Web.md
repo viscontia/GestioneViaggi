@@ -37,11 +37,12 @@ Durante i collaudi sono emerse otto o nove situazioni di questo tipo. Sono tutte
 9. [Il prezzo, e le altre cose che non stanno nella scheda web](#9-il-prezzo-e-le-altre-cose-che-non-stanno-nella-scheda-web)
 10. [Clonare una scheda da un'altra partenza](#10-clonare-una-scheda-da-unaltra-partenza)
 11. [Clonare fra partenze di durata diversa](#11-clonare-fra-partenze-di-durata-diversa)
-12. [Le traduzioni](#12-le-traduzioni)
-13. [Le verifiche che non bloccano](#13-le-verifiche-che-non-bloccano)
-14. [Eliminare una scheda web](#14-eliminare-una-scheda-web)
-15. [Eliminare una partenza](#15-eliminare-una-partenza)
-16. [Riepilogo in una pagina](#16-riepilogo-in-una-pagina)
+12. [La chiave delle traduzioni: dove si prende e chi la paga](#12-la-chiave-delle-traduzioni-dove-si-prende-e-chi-la-paga)
+13. [Le traduzioni](#13-le-traduzioni)
+14. [Le verifiche che non bloccano](#14-le-verifiche-che-non-bloccano)
+15. [Eliminare una scheda web](#15-eliminare-una-scheda-web)
+16. [Eliminare una partenza](#16-eliminare-una-partenza)
+17. [Riepilogo in una pagina](#17-riepilogo-in-una-pagina)
 
 ---
 
@@ -83,7 +84,7 @@ Servono **due condizioni insieme**:
 
 1. **Tutte le sezioni complete** — le icone in alto devono essere verdi. Comprese le
    **traduzioni revisionate**: ⚠️ non basta che siano tradotte, devono essere state
-   *revisionate* (capitolo 12).
+   *revisionate* (capitolo 13).
 2. **Una partenza che deve ancora iniziare**, e non segnata come effettuata. La soglia è la
    data di **inizio**, e dev'essere almeno **il giorno dopo oggi**: pubblicare una partenza che
    parte oggi non serve a nessuno, perché nessuno può più prenotarla.
@@ -307,7 +308,7 @@ metà strada senza dover prima finire tutto.
 
 ℹ️ Inserire **più** giornate del previsto è consentito — capita con una giornata opzionale o di
 riposo. L'avviso non blocca niente, serve solo a farti notare la differenza nel caso sia una
-distrazione (capitolo 13).
+distrazione (capitolo 14).
 
 ---
 
@@ -332,7 +333,7 @@ pagano dopo:
 2. **Le traduzioni costano di più, per sempre.** Ogni giornata e ogni passaggio si traduce come
    pezzo a sé: se correggi la tappa 4, si ritraduce **solo la tappa 4**. Un blocco unico da
    seimila caratteri si ritraduce **tutto intero**, in tutte le lingue, ogni volta che ci sposti
-   una virgola (capitolo 12).
+   una virgola (capitolo 13).
 
 ---
 
@@ -340,7 +341,7 @@ pagano dopo:
 
 ✅ **La mappa è l'unica scheda che non blocca mai la pubblicazione.** Il suo semaforo è sempre
 verde, anche quando non c'è nessuna mappa. Le mancanze compaiono solo fra le verifiche, come
-avvisi (capitolo 13).
+avvisi (capitolo 14).
 
 Quello che fa è semplice da dire: prendi il **file GPX** — la traccia registrata dal navigatore —
 e il programma ne ricava **un'immagine** del percorso. Un disegno, non una mappa da trascinare col
@@ -464,7 +465,7 @@ partenze dello stesso viaggio: il programma rifiuta il salvataggio. Ogni edizion
 ### Se lasci vuoti i due «meta»
 
 Non è un errore e non blocca niente: il sito **ripiega** sul titolo del tour e sul sottotitolo.
-Fra le verifiche compare come **suggerimento**, non come problema (capitolo 13).
+Fra le verifiche compare come **suggerimento**, non come problema (capitolo 14).
 
 ⚠️ Ma un ripiego è un ripiego: il titolo del tour è scritto per te, non per chi cerca su Google.
 Vale la pena compilarli.
@@ -512,7 +513,7 @@ Si può, ed è un uso sensato. Tre regole perché serva a qualcosa:
    l'errore finisce in vetrina su Google.
 
 ⚠️ **Non gonfiare i testi «per il SEO».** Ogni parola in più va tradotta in tutte le lingue, e
-ritradotta a ogni correzione: un testo lungo il doppio costa il doppio, per sempre (capitolo 12).
+ritradotta a ogni correzione: un testo lungo il doppio costa il doppio, per sempre (capitolo 13).
 
 ℹ️ **Anche meta title e meta description si traducono**, come gli altri testi della scheda: chi
 cerca in tedesco vede il meta title tedesco. Il che significa che vanno **revisionati** come tutto
@@ -641,7 +642,95 @@ programma dice quante.
 
 ---
 
-## 12. Le traduzioni
+## 12. La chiave delle traduzioni: dove si prende e chi la paga
+
+> ### ⛔️ Senza questa chiave non si pubblica **nessun** tour
+>
+> Non è un accessorio per chi vuole il sito in tedesco. Le traduzioni devono risultare
+> **revisionate** perché una scheda si possa pubblicare (capitolo 13), e senza chiave non c'è
+> traduzione da revisionare: il semaforo resta giallo e la pubblicazione è bloccata, per quanto
+> bene tu abbia compilato tutto il resto.
+
+### ⚠️ Tre chiavi diverse, e non c'entrano una con l'altra
+
+È il punto in cui ci si confonde, perché si chiamano tutte «chiave»:
+
+| Quale | Dove sta | A cosa serve |
+|---|---|---|
+| **GV_SECRET_KEY** | Nelle variabili d'ambiente di **Windows** | Non traduce niente: apre i dati riservati conservati cifrati. Vedi il *Manuale di Installazione*, cap. 7 |
+| **Chiave Claude (Anthropic)** | **Dentro il programma**, in Anagrafica Azienda | Traduce i contenuti web. È questa | 
+| Chiave dello **storage** | Nella configurazione del programma | Foto e mappe. Non la si tocca mai |
+
+⚠️ **La prima serve alla seconda.** La chiave Claude viene conservata **cifrata** nel database, e
+la cifratura usa GV_SECRET_KEY: se manca, il programma non riesce **né a salvarla né a rileggerla**
+e nella scheda compare l'avviso *«Master key dei segreti non disponibile»*. L'ordine è: prima la
+variabile d'ambiente, poi la chiave Claude.
+
+---
+
+### Dove si prende
+
+Si crea sulla **console di Anthropic** (`console.anthropic.com`), con **l'account dell'azienda** e
+**la sua carta**. Non è una chiave che arriva insieme al programma: la traduzione automatica è un
+servizio a consumo, e **lo paga chi possiede la chiave**.
+
+⚠️ **Anthropic mostra la chiave in chiaro una volta sola**, al momento in cui la crea. Copiala e
+mettila da parte subito: dopo, dalla console, si vede che esiste ma non si rilegge più.
+
+### Dove si incolla
+
+Due strade, stesso identico campo — è indifferente quale usi:
+
+- **Anagrafica Azienda → scheda Traduzioni** ⭐️ (qui c'è anche la spesa e la soglia)
+- la scheda **Traduzioni** di un tour qualsiasi
+
+Incolli e premi **Salva**. Sotto il campo deve comparire **«Chiave configurata»** in verde. Se
+leggi *«Nessuna chiave: traduzione automatica non disponibile»*, non è stata salvata.
+
+ℹ️ Quando è già configurata il campo mostra dei **pallini**: la chiave non si rilegge nemmeno da
+qui. Per sostituirla se ne incolla una nuova sopra; **Rimuovi** la cancella.
+
+---
+
+### ✅ Si fa una volta sola, e non è «sul computer»
+
+La chiave **sta nel database**, non nel PC. Due conseguenze pratiche:
+
+- Se domani il programma viene installato su un **secondo computer**, lì non c'è niente da
+  rifare: la chiave è già dove serve.
+- ⚠️ Ma quel secondo computer deve avere **la stessa identica GV_SECRET_KEY**, altrimenti da lì la
+  chiave risulta illeggibile. È la stessa regola delle tre avvertenze del manuale di
+  installazione, vista dall'altro lato.
+
+---
+
+### Quanto costa
+
+| | |
+|---|---|
+| Modello usato | Claude Haiku 4.5, il più economico adatto al lavoro |
+| Costo indicativo | circa **$0,30** per un tour intero — una ventina di campi per quattro lingue |
+| Come si controlla | **Azienda → Traduzioni**: spesa registrata e **soglia** con avviso al 90% |
+
+⚠️ **Il credito residuo non si può vedere.** Anthropic non lo espone, quindi il gestionale mostra
+solo **quanto ha speso lui**: se la stessa chiave viene usata anche altrove, quel consumo non
+compare e la stima resta ottimistica. Il saldo vero si guarda sulla console Anthropic.
+
+⛔️ **Se il credito finisce, le traduzioni smettono di funzionare** — e con esse la possibilità di
+pubblicare nuove schede. Vale la pena impostare la soglia il giorno stesso in cui si mette la
+chiave, non il giorno in cui serve.
+
+---
+
+### Come si verifica che sia tutto a posto
+
+Apri un tour qualsiasi → scheda **Traduzioni**: se il pulsante **«Traduci mancanti (EN/DE/FR/ES)»**
+è **attivo**, la chiave c'è e funziona. Se è spento, manca la chiave oppure manca GV_SECRET_KEY —
+e l'avviso in cima alla scheda dice quale dei due.
+
+---
+
+## 13. Le traduzioni
 
 Le lingue sono quattro: **EN / DE / FR / ES**.
 
@@ -684,7 +773,7 @@ La traduzione automatica è **a consumo**, con la chiave dell'azienda.
 
 ---
 
-## 13. Le verifiche che non bloccano
+## 14. Le verifiche che non bloccano
 
 Oltre ai controlli che impediscono di pubblicare, ce n'è un secondo gruppo: **promemoria**.
 Giornate senza foto, giornate senza mappa, «incluso/escluso» non compilati.
@@ -704,7 +793,7 @@ Nessuna è obbligatoria.»*
 
 ---
 
-## 14. Eliminare una scheda web
+## 15. Eliminare una scheda web
 
 ⛔️ **L'eliminazione è irreversibile. Non esiste un cestino.**
 
@@ -721,7 +810,7 @@ va perso davvero sono **testi, ordinamento e revisioni delle traduzioni**.
 
 ---
 
-## 15. Eliminare una partenza
+## 16. Eliminare una partenza
 
 > ### **Lo storico non si cancella.**
 
@@ -739,7 +828,7 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-## 16. Riepilogo in una pagina
+## 17. Riepilogo in una pagina
 
 | Situazione | Spiegazione |
 |---|---|
@@ -747,6 +836,7 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 | Ho caricato le foto ma non riesco a pubblicare | Manca la **copertina**: metti la stella su una foto (cap. 5) |
 | Non so dove scrivere il programma giorno per giorno | Nella scheda **Itinerario**, mai nella Descrizione (cap. 6) |
 | Il semaforo dell'Itinerario resta giallo | Mancano giornate: ne serve una per ogni giorno di durata (cap. 6) |
+| Il pulsante «Traduci mancanti» è spento | Manca la chiave Anthropic in Anagrafica Azienda, o manca GV_SECRET_KEY (cap. 12) |
 | «Genera mappa» è spento | Manca la chiave del servizio mappe nella configurazione del programma (cap. 7) |
 | Non riesco a eliminare una giornata | Ha una mappa abbinata: elimina prima la mappa (cap. 7) |
 | Google mostra un titolo diverso da quello che ho scritto | Meta title vuoto: il sito ripiega sul titolo del tour (cap. 8) |
@@ -755,10 +845,10 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 | Non trovo dove si scrive il prezzo nella scheda web | Non c'è: sta sulla **data**, in Anagrafica Viaggi e Date (cap. 9) |
 | «Archiviato» non sembra fare niente | Per il sito è identico a «Bozza». La differenza è solo editoriale (cap. 1) |
 | Il tour è sparito dal sito ma è ancora «Pubblicato» | La partenza è iniziata: il filtro è in lettura, lo stato non cambia (cap. 3) |
-| Non riesco a pubblicare, le traduzioni ci sono | Devono essere **revisionate**, non solo tradotte (cap. 2 e 12) |
-| «Approva tutte» è spento | Manca il campione: revisionane almeno una per lingua (cap. 12) |
+| Non riesco a pubblicare, le traduzioni ci sono | Devono essere **revisionate**, non solo tradotte (cap. 2 e 13) |
+| «Approva tutte» è spento | Manca il campione: revisionane almeno una per lingua (cap. 13) |
 | Ho cancellato una foto e sparisce da due schede | Sono lo stesso file: la scheda è stata clonata (cap. 10) |
-| Non riesco a eliminare una partenza | Uno dei quattro blocchi. Il messaggio dice quale (cap. 15) |
+| Non riesco a eliminare una partenza | Uno dei quattro blocchi. Il messaggio dice quale (cap. 16) |
 | Etichetta arancione sulla partenza | Anomalia fra spunta e calendario: si corregge nella scheda Date (cap. 4) |
 
 ### Le tre cose da non fare

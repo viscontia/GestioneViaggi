@@ -831,3 +831,69 @@ Non ora. Antonio sta caricando le prime schede in produzione e ogni modifica al 
 lo bloccherebbe. Da riprendere quando il caricamento dei contenuti si è assestato — e comunque
 **prima** che il gestionale vada su una seconda macchina, perché ogni copia consegnata è una copia
 in più della chiave.
+
+---
+
+## 12. Scaricare la scheda del viaggio in PDF dal sito — **chiesto da Antonio il 2026-09-14**
+
+Su ogni pagina di viaggio pubblicata, un pulsante che permetta al visitatore di **scaricare un PDF**
+con le informazioni e le foto di quella pagina.
+
+### Perché l'ha chiesto
+
+Non l'ha motivato, ma il mestiere lo spiega da sé: chi valuta un viaggio offroad lo confronta con
+altri, lo fa vedere a chi parte con lui e lo rilegge dopo. Una pagina web si perde fra i segnalibri,
+un PDF resta nella cartella dei documenti. È lo stesso motivo per cui i tour operator mandano la
+scheda in allegato.
+
+### Il dato c'è già tutto
+
+`fn_web_tour_pubblicati` restituisce già, per edizione, esattamente ciò che la pagina mostra:
+titolo, sottotitolo, descrizione, durata, incluso/escluso, prezzo «da», date, copertina, posti
+rimasti, meta. L'itinerario e le foto si leggono dalle rispettive tabelle. **Non serve inventare
+contenuti**: serve decidere chi disegna il PDF e quando.
+
+### Le due strade
+
+| | Come | Pro e contro |
+|---|---|---|
+| **Generato dal sito** (Flask, al clic) | Il visitatore preme, il sito compone il PDF e lo restituisce | ✅ sempre aggiornato, ✅ segue la lingua del visitatore. ⛔️ serve una libreria PDF lato Python, e ogni clic costa CPU sul server |
+| **Pre-generato dal gestionale** | QuestPDF, già in casa (`ReportHeaderHelper` per l'intestazione), il PDF finisce su Storage e il sito lo linka | ✅ zero costo a runtime, ✅ resa tipografica già collaudata sulle stampe esistenti. ⛔️ **va rigenerato a ogni modifica della scheda**, e un PDF vecchio online è peggio che nessun PDF. Serve un PDF per lingua |
+
+⚠️ La seconda sembra più comoda perché il generatore c'è già, ma sposta il problema: qualcuno deve
+garantire che il file rigeneri quando la scheda cambia — e le schede cambiano, soprattutto il
+prezzo, che vive sulla data e non sul contenuto web (vedi il *Manuale — I contenuti web*, cap. 9).
+
+### ⛔️ Il punto da decidere PRIMA di scrivere una riga: il prezzo dentro il PDF
+
+Un PDF scaricato è un documento che il cliente **conserva** e che, a distanza di mesi, tira fuori
+dicendo «qui c'era scritto così». Il prezzo sul sito invece cambia: è il minimo delle sei tariffe
+di quella partenza e lo si corregge in anagrafica quando serve.
+
+Le opzioni, in ordine di rischio:
+
+1. ⭐️ **PDF senza prezzo**, con un rimando alla pagina per condizioni e disponibilità. Il PDF fa il
+   lavoro che deve fare — raccontare il viaggio — senza diventare un impegno commerciale.
+2. **Prezzo con data di generazione ben visibile** e la formula «prezzo alla data del …, soggetto a
+   variazione». Accettabile, ma va scritto bene.
+3. ⛔️ **Prezzo nudo**: è quello che genera la discussione, ed è gratis evitarlo.
+
+⚠️ Vale anche per **«SOLD OUT» e «ultimi posti»**: sono informazioni che invecchiano nel giro di
+giorni. In un PDF non ci devono stare.
+
+### Altri dettagli da non scoprire a metà lavoro
+
+- **Lingua**: la pagina è multilingua, quindi il PDF deve seguire la lingua del visitatore e
+  pescare dalle traduzioni già approvate. Se il PDF è pre-generato, sono quattro file per edizione.
+- **Le foto sono WebP** (scelta del sito, più leggere): vanno convertite per il PDF, esattamente
+  come già si fa per le immagini delle newsletter (`WebImageProcessor.ToEmailJpegAsync`).
+- **Peso del file**: una galleria intera dentro un PDF produce documenti da decine di MB. Meglio
+  copertina + una foto per giornata, alla risoluzione giusta.
+- **Chi lo chiede non è chi lo mantiene**: se la strada è il pre-generato, il pulsante «rigenera»
+  finisce nel gestionale e diventa un'altra cosa che Antonio deve ricordarsi di premere. Da
+  valutare con la stessa severità con cui si è deciso che la mappa non blocca la pubblicazione.
+
+### Stato
+
+Solo **raccolto**, non analizzato e non pianificato. Da riprendere insieme agli altri lavori sul
+sito pubblico.
