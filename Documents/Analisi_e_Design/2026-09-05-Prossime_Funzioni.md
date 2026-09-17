@@ -901,7 +901,7 @@ Non pianificato: da riprendere insieme agli altri lavori sul sito pubblico.
 
 ---
 
-## 13. 🔴 Il margine di un forfettario è calcolato al netto di un'IVA che non recupera — **misurato il 2026-09-17**
+## 13. ✅ Il margine di un forfettario era calcolato al netto di un'IVA che non recupera — **RISOLTO il 2026-09-17**
 
 Il **Bilancio Viaggio** e il **Bilancio Annuale Viaggi** sommano ricavi e costi usando sempre
 `importo_netto_eur`, cioè l'**imponibile**. Per un'azienda in regime **ordinario** è corretto: l'IVA
@@ -949,7 +949,37 @@ ogni bilancio di viaggio comincerà a sovrastimare il margine, in silenzio e sen
 4. ⚠️ **Il lato ricavi non si tocca.** Un forfettario non addebita IVA in fattura, quindi sui ricavi
    netto e lordo coincidono: intervenire solo sui costi.
 
-### Stato
+### ✅ Fatto il 2026-09-17 — `SqlScripts/638_Bilancio_Viaggi_IvaNonDetraibile.sql`
 
-Misurato e circoscritto, **non pianificato**. Non urgente finché SFT non registra costi — ma da fare
-**prima** che ne registri in quantità, perché correggere dopo significa rifare i conti già fatti.
+Deciso di correggere subito: nessun numero già stampato da proteggere, e l'unica azienda toccata
+era di test.
+
+Le due funzioni del bilancio espongono una colonna nuova, **`importo_effettivo_eur`**: il netto,
+tranne sui COSTI di un'azienda con `is_iva_detraibile = FALSE`, dove è il lordo. I ricavi non sono
+stati toccati. La regola sta **nella funzione DB**, letta una volta per chiamata: vale per qualunque
+consumatore futuro, non solo per la stampa.
+
+Lato stampa, `BilancioViaggioPrintService` usa la colonna nuova in tutti e quattro i punti dove
+calcola un margine **e anche nella riga di dettaglio**: se le righe mostrassero il netto e il totale
+il lordo, il report non tornerebbe.
+
+Verificato in locale su un viaggio dell'azienda 6 (forfettaria): costi da 438,52 → **535,00**
+(= netto + 96,48 di IVA), ricavi invariati a 2.868,85.
+
+### ⛔️ E nel farlo è saltato fuori che la stampa era ROTTA
+
+Provando la funzione è arrivato questo:
+
+```
+ERROR: function fn_get_bilancio_viaggio(integer,integer,integer,date,date) is not unique
+```
+
+Di entrambe le funzioni esistevano **firme superate** con parametri opzionali, non richiamate da
+nessuna parte del codice, che rendevano **ambigua** la chiamata interna di
+`fn_get_bilancio_viaggio_print_data`. Quindi **Stampa Bilancio Viaggio e Stampa Bilancio Annuale non
+funzionavano affatto** — e non per questa modifica: era così da prima.
+
+È lo stesso difetto che lo script 524 aveva già ripulito altrove. Le tre firme morte sono state
+eliminate nello stesso script, e dopo la stampa risponde.
+
+⚠️ **Da applicare in PROD**: vedi la Checklist Go-Live.

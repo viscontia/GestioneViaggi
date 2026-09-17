@@ -35,6 +35,13 @@ public class BilancioViaggioDTO
     public decimal ImportoNettoEur { get; set; }
     public decimal ImportoIvaEur { get; set; }
     public decimal ImportoLordoEur { get; set; }
+
+    /// <summary>
+    /// Valore su cui si calcola il margine: il netto, tranne sui COSTI di un'azienda che non
+    /// detrae l'IVA (regime forfettario), dove è il lordo — perché quell'IVA è costo a tutti gli
+    /// effetti. La regola sta nella funzione DB, non qui: vedi SqlScripts/638.
+    /// </summary>
+    public decimal ImportoEffettivoEur { get; set; }
     
     // Financial Status
     public decimal ImportoPagatoEur { get; set; }

@@ -239,8 +239,8 @@ public class BilancioViaggioPrintService
             // Global Totals (Livello 3)
             var globalTotals = new BilancioTotals
             {
-                TotalRevenue = data.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur),
-                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur),
+                TotalRevenue = data.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoEffettivoEur),
+                TotalCost = data.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoEffettivoEur),
                 Participants = data.GroupBy(x => x.DataViaggioId).Sum(g => g.First().DataViaggioNumeroPartecipanti)
             };
 
@@ -349,8 +349,8 @@ public class BilancioViaggioPrintService
         var revenueTransactions = transactions.Where(x => x.CategoriaTipo == "RICAVO").ToList();
         var costTransactions = transactions.Where(x => x.CategoriaTipo == "COSTO").ToList();
 
-        var revenue = revenueTransactions.Sum(x => x.ImportoNettoEur);
-        var cost = costTransactions.Sum(x => x.ImportoNettoEur);
+        var revenue = revenueTransactions.Sum(x => x.ImportoEffettivoEur);
+        var cost = costTransactions.Sum(x => x.ImportoEffettivoEur);
 
         if (revenueTransactions.Any())
         {
@@ -375,8 +375,8 @@ public class BilancioViaggioPrintService
 
     private void ComposeAnnualeTripTotals(ColumnDescriptor column, string viaggioDescrizione, List<BilancioViaggioDTO> tripTransactions)
     {
-        var revenue = tripTransactions.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoNettoEur);
-        var cost = tripTransactions.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoNettoEur);
+        var revenue = tripTransactions.Where(x => x.CategoriaTipo == "RICAVO").Sum(x => x.ImportoEffettivoEur);
+        var cost = tripTransactions.Where(x => x.CategoriaTipo == "COSTO").Sum(x => x.ImportoEffettivoEur);
         var participants = tripTransactions.GroupBy(x => x.DataViaggioId).Sum(g => g.First().DataViaggioNumeroPartecipanti);
 
         column.Item().PaddingTop(5).PaddingBottom(10).Background(Colors.Blue.Lighten5).Border(1).BorderColor(Colors.Blue.Lighten2).Padding(10).Column(c =>
@@ -460,8 +460,8 @@ public class BilancioViaggioPrintService
         var revenueTransactions = transactions.Where(x => x.CategoriaTipo == "RICAVO").ToList();
         var costTransactions = transactions.Where(x => x.CategoriaTipo == "COSTO").ToList();
 
-        var revenue = revenueTransactions.Sum(x => x.ImportoNettoEur);
-        var cost = costTransactions.Sum(x => x.ImportoNettoEur);
+        var revenue = revenueTransactions.Sum(x => x.ImportoEffettivoEur);
+        var cost = costTransactions.Sum(x => x.ImportoEffettivoEur);
         var margin = revenue - cost;
         var marginPercent = revenue > 0 ? (margin / revenue) * 100 : 0;
         var costPercent = revenue > 0 ? (cost / revenue) * 100 : 0;
@@ -569,7 +569,7 @@ public class BilancioViaggioPrintService
                 table.Cell().Element(CellStyle).Text(transaction.CategoriaNome);
                 
                 var color = isRevenue ? Colors.Green.Medium : Colors.Red.Medium;
-                table.Cell().Element(CellStyle).AlignRight().Text($"{transaction.ImportoNettoEur:N2}").FontColor(color);
+                table.Cell().Element(CellStyle).AlignRight().Text($"{transaction.ImportoEffettivoEur:N2}").FontColor(color);
 
                 IContainer CellStyle(IContainer container) => container.BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten4).Padding(2);
             }

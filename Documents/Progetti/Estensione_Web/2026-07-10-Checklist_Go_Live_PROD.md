@@ -617,6 +617,23 @@ Blocco 7 (immagini tour, WebP) e Blocco 9 (mappe da GPX) salvano su **Supabase S
 - [x] **Creare il bucket `tour-media` (PUBBLICO)** nel progetto Supabase PROD. ✅ **FATTO il 2026-09-14** (public, nessun limite di dimensione, nessuna restrizione di mime — identico a `tour-media-dev`). ⚠️ **Era rimasto indietro al go-live del 9 settembre**: è emerso solo quando Antonio ha provato a caricare la prima foto e ha ricevuto *«Upload immagine fallito (400). Verifica la configurazione dello storage»*. Nessuna migrazione necessaria: `web_tour_immagini`, `web_tour_mappa` e `web_immagini_libreria` erano vuote, quindi non esistevano URL che puntassero al bucket di sviluppo. Nel progetto di test i bucket erano **azzerati** (`GET /storage/v1/bucket` → `[]`): è stato creato `tour-media-dev` (pubblico) il 2026-07-21. Il bucket dev'essere **public** perché l'URL pubblico usa `…/object/public/<bucket>/…` (`SupabaseMediaStorage.BuildPublicUrl`). Il nome bucket è per-ambiente in `appsettings` (`WebMediaStorage:Bucket`): dev = `tour-media-dev`, prod = `tour-media`.
 - [ ] **Formato chiave Storage.** Se si usa una **nuova chiave Supabase `sb_secret_…`** (non-JWT), DEVE essere passata nell'header **`apikey`** (il solo `Authorization: Bearer` dà `400 Invalid Compact JWS`). Già gestito nel codice: `SupabaseMediaStorage` invia `apikey` + `Bearer`. La vecchia `service_role` (JWT `eyJ…`) funziona con entrambi. Ricorda comunque il debito go-live: la ServiceKey NON deve restare nel binario MAUI (estraibile) → chiave scoped al bucket o upload server-side.
 
+### 2.4-bis — Script 638: bilancio viaggi, IVA non detraibile (⛔️ e una stampa rotta)
+
+`SqlScripts/638_Bilancio_Viaggi_IvaNonDetraibile.sql` **va eseguito su PROD**. Fa due cose:
+
+1. **Elimina tre firme superate** di `fn_get_bilancio_viaggio` / `fn_get_bilancio_annuale_viaggi`.
+   ⛔️ Finché ci sono, la chiamata interna di `fn_get_bilancio_viaggio_print_data` è **ambigua** e il
+   database la rifiuta: **Stampa Bilancio Viaggio e Stampa Bilancio Annuale non funzionano**.
+   Verificato in locale il 2026-09-17 — ed è molto probabile che in PROD sia lo stesso, perché le
+   firme arrivano dagli stessi script.
+2. Aggiunge `importo_effettivo_eur`, il valore su cui si calcola il margine: il lordo sui costi di
+   chi non detrae l'IVA (forfettario), il netto in tutti gli altri casi.
+
+⚠️ **Va insieme alla versione del programma che lo usa**: la stampa legge la colonna nuova. Script
+prima, applicativo poi — o la stampa non trova la colonna.
+
+ℹ️ Nessuna migrazione di dati: sono solo funzioni.
+
 ### 2.5 — Backfill `ana_clienti.cliente_lingua` (465)
 Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_comune(...), 'IT') WHERE cliente_lingua IS NULL`. **Va eseguito sui clienti reali di PROD** (in locale ha popolato 740 clienti Docker). È **idempotente** (`WHERE cliente_lingua IS NULL`). Vedi [[prod-backfill-cliente-lingua]]. Dopo il backfill, verificare la distribuzione lingue prima del primo invio newsletter.
 

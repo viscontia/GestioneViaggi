@@ -334,17 +334,19 @@ Stanno tutte sotto **Stampe Contabili**. Ognuna apre una finestrella di parametr
 ⚠️ **Il bilancio di un viaggio vale quanto i collegamenti che hai fatto** (capitolo 10). Se un costo
 non è agganciato alla partenza, lì non c'è — e il margine sembra più alto di quello che è.
 
-> ### ⚠️ Il margine, in regime forfettario, è ottimista
+> ### ℹ️ Come vengono contati i costi, secondo il regime
 >
-> Il bilancio somma ricavi e costi al **netto dell'IVA**. È giusto per chi l'IVA sugli acquisti la
-> recupera; **in regime forfettario non si recupera**, quindi l'IVA pagata ai fornitori è un costo a
-> tutti gli effetti — ma nel report non compare.
+> Il bilancio somma i ricavi al netto dell'IVA — ed è giusto, perché l'IVA incassata non è un
+> ricavo. Sui **costi** invece dipende dal regime fiscale dell'azienda:
 >
-> **In pratica:** il margine che leggi è più alto del reale di quanto hai pagato di IVA ai fornitori
-> su quella partenza. Su 10.000 € di costi al 22% sono circa 2.200 € di differenza.
+> - **regime ordinario**: si conta l'**imponibile**, perché l'IVA sugli acquisti si recupera e
+>   quindi non è un costo;
+> - **regime forfettario**: si conta il **totale IVA compresa**, perché quell'IVA **non si recupera**
+>   ed è denaro uscito a tutti gli effetti.
 >
-> ✅ Finché non viene corretto, per avere il numero vero **sottrai al margine l'IVA dei costi** di
-> quel viaggio: la trovi nella *Stampa Movimenti Contabili* filtrando sul viaggio.
+> ✅ **Non devi fare niente**: il programma legge il regime dell'azienda e applica la regola giusta.
+> Gli importi che leggi nelle righe del report sono già quelli usati per il margine, quindi le righe
+> e il totale tornano sempre.
 
 ℹ️ Il **Registro IVA** chiede il credito del periodo precedente perché il programma non lo può
 dedurre da sé: la contabilità comincia da un certo punto in poi, e prima di quel punto c'è un saldo
