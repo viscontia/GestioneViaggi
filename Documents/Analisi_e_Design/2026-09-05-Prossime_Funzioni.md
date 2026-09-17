@@ -898,3 +898,58 @@ informazione che invecchia, è l'identità della partenza.
 **Raccolto e con una decisione già presa** (niente prezzo, niente disponibilità). Restano da
 scegliere la strada — generato dal sito o pre-generato dal gestionale — e da fare l'analisi vera.
 Non pianificato: da riprendere insieme agli altri lavori sul sito pubblico.
+
+---
+
+## 13. 🔴 Il margine di un forfettario è calcolato al netto di un'IVA che non recupera — **misurato il 2026-09-17**
+
+Il **Bilancio Viaggio** e il **Bilancio Annuale Viaggi** sommano ricavi e costi usando sempre
+`importo_netto_eur`, cioè l'**imponibile**. Per un'azienda in regime **ordinario** è corretto: l'IVA
+sugli acquisti la recupera, quindi non è un costo. Per un'azienda in regime **forfettario** no:
+l'IVA sugli acquisti **non è detraibile**, quindi è costo a tutti gli effetti, e il margine che il
+report mostra è **più alto del vero** esattamente di quell'importo.
+
+### Dove sta, esattamente
+
+| | |
+|---|---|
+| Funzione DB | `fn_get_bilancio_viaggio` → `importo_netto_eur = ABS(COALESCE(imponibile_eur, importo)) * causale_segno` |
+| Stampa | `Services/Printing/BilancioViaggioPrintService.cs` — somma `ImportoNettoEur` sia per i ricavi sia per i costi, in tutti e quattro i punti dove calcola un margine |
+| Cosa manca | Nessuno dei due guarda `ana_regimi_fiscali.is_iva_detraibile`, che esiste in tabella dal primo giorno proprio per questo |
+
+ℹ️ Il debito era **già annotato** in `EvoluzioneContabile.md` come follow-up: *«aggiornare
+`vw_margini_viaggi` per usare `is_iva_detraibile`»*. ⚠️ Ma quella vista **non esiste più** — non
+compare in nessuno script né nel codice. Il follow-up era rimasto agganciato a un oggetto sparito,
+ed è per questo che non è mai stato ripreso.
+
+### ⭐️ Quanto pesa oggi: **zero** sull'azienda che conta
+
+Misurato su PROD il 2026-09-17:
+
+| Azienda | Regime | Movimenti contabili | IVA sui costi legati a viaggi |
+|---|---|---|---|
+| **2 — SFT** | Forfettario | **nessuno** | — |
+| 6 | Forfettario | 12 (dal 2022) | 96,48 € su 2.372,84 € di costi |
+
+✅ **SFT non ha ancora registrato un solo movimento contabile in produzione**: il difetto non ha
+prodotto finora nessun numero sbagliato per il cliente. L'unica azienda toccata è la **6**, che è
+quella che [si è deciso di togliere dalla produzione](#).
+
+⛔️ **Ma è una bomba a orologeria**: appena Antonio comincia a registrare le fatture dei fornitori,
+ogni bilancio di viaggio comincerà a sovrastimare il margine, in silenzio e senza nessun segnale.
+
+### Cosa va deciso prima di scrivere codice
+
+1. ⭐️ **La regola contabile.** Per un forfettario il costo da usare nel margine è il **lordo**. Va
+   confermato da chi tiene i conti, non dedotto: è una scelta che cambia numeri già stampati.
+2. **Dove applicarla.** Nella funzione DB (un solo punto, vale per tutte le stampe) oppure nella
+   stampa. ⭐️ La funzione: la regola deve valere anche per qualunque futuro consumatore del dato.
+3. **Cosa succede ai report già emessi.** Correggendo, gli stessi viaggi mostreranno margini più
+   bassi di quelli letti in passato. Se qualcuno li ha usati, va saputo prima.
+4. ⚠️ **Il lato ricavi non si tocca.** Un forfettario non addebita IVA in fattura, quindi sui ricavi
+   netto e lordo coincidono: intervenire solo sui costi.
+
+### Stato
+
+Misurato e circoscritto, **non pianificato**. Non urgente finché SFT non registra costi — ma da fare
+**prima** che ne registri in quantità, perché correggere dopo significa rifare i conti già fatti.

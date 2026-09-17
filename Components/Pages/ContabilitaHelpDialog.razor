@@ -90,22 +90,37 @@
                     <tr>
                         <th>Ciclo</th>
                         <th>Uso</th>
-                        <th>Modalita IVA</th>
+                        <th>Cosa cambia</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><b>Passivo</b></td>
                         <td>Fatture da fornitori (costi)</td>
-                        <td>SCORPORO - L'importo inserito e il lordo, il sistema scorporera l'IVA</td>
+                        <td>Il movimento e' un'USCITA e la controparte e' un Fornitore</td>
                     </tr>
                     <tr>
                         <td><b>Attivo</b></td>
                         <td>Fatture emesse a clienti (ricavi)</td>
-                        <td>CALCOLO - L'importo inserito e il netto, il sistema aggiungera l'IVA</td>
+                        <td>Il movimento e' un'ENTRATA e la controparte e' un Cliente</td>
                     </tr>
                 </tbody>
             </MudSimpleTable>
+
+            @* Fino alla 2.1 questa tabella prometteva uno "scorporo" sul ciclo passivo che il
+               programma non fa: le righe calcolano sempre IVA = imponibile x aliquota, in entrambi
+               i cicli. Chi ci credeva scriveva il totale della fattura nell'imponibile e si
+               ritrovava l'IVA addebitata due volte. *@
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudText Typo="Typo.subtitle2"><b>L'imponibile e' sempre il netto</b></MudText>
+                <MudText Typo="Typo.body2">
+                    In entrambi i cicli, nelle righe si scrive l'<b>imponibile</b>: l'IVA viene calcolata
+                    sopra (imponibile x aliquota) e sommata per ottenere il lordo. Non esiste una modalita
+                    in cui si scrive il totale e il sistema toglie l'IVA da dentro.
+                    <br />Quindi, registrando una fattura di acquisto, <b>non scrivere il totale del
+                    documento nell'imponibile</b>: scrivi l'imponibile che leggi sulla fattura.
+                </MudText>
+            </MudAlert>
 
             @* ===== SEZIONE 5: NOTE OPERATIVE ===== *@
             <MudAlert Severity="Severity.Warning" Class="mb-4">
