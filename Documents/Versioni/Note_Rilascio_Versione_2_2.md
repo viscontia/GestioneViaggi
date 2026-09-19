@@ -9,14 +9,39 @@
 
 ## In una riga
 
-Versione di **manutenzione contabile**: due difetti veri sui bilanci — uno dei quali impediva del
-tutto di stamparli — più il manuale della contabilità, che prima non esisteva.
+Due difetti veri sui bilanci — uno dei quali impediva del tutto di stamparli — il **calendario
+delle partenze** che finalmente arriva nella dashboard di chi lavora, e il manuale della
+contabilità, che prima non esisteva.
 
 ---
 
-## Sezione 1 — Correzioni
+## Sezione 1 — Novità
 
-### ⛔️ 1.1 — Le stampe dei bilanci non funzionavano affatto
+### ⭐️ 1.1 — Il calendario delle partenze nella dashboard
+
+Nella dashboard compare **«Calendario Partenze»**: le partenze disegnate sulla loro estensione
+temporale, con il dettaglio al passaggio del mouse e il clic che porta dentro la scheda del viaggio,
+sulla linguetta delle date.
+
+⛔️ **Non è un componente nuovo: era montato solo nella dashboard del SuperAdmin.** Cioè esisteva per
+chi sviluppa e non per chi lavora — ed è il motivo per cui era stato chiesto come funzione mancante.
+
+Oltre a montarlo dove serviva, tre aggiunte:
+
+| | |
+|---|---|
+| **Si apre sulla prossima partenza** | Prima apriva sul mese corrente. A novembre, con la prossima partenza a marzo, mostrava un mese vuoto: e quel vuoto non diceva «non c'è niente in programma», diceva «non c'è niente *adesso*» |
+| **Mese e anno da due tendine** | Si sceglie il punto in cui posizionarsi. Niente intervalli predefiniti; le frecce avanti/indietro restano |
+| **Il numero dei mezzi** | Accanto ai partecipanti, non al loro posto: su un tour offroad le persone si ridistribuiscono fra i mezzi, i mezzi no. Stesso conteggio del bilancio viaggi, per non avere due definizioni di «mezzo» |
+
+ℹ️ Esempio dai dati veri: una partenza di Capodanno con **6 partecipanti e 4 mezzi** — è la
+differenza che rende utile il secondo numero.
+
+---
+
+## Sezione 2 — Correzioni
+
+### ⛔️ 2.1 — Le stampe dei bilanci non funzionavano affatto
 
 **Sintomo:** *Stampe Contabili → Stampa Bilancio Viaggio* e *Stampa Bilancio Annuale Viaggi* non
 producevano il PDF.
@@ -41,7 +66,7 @@ chiamata che non li elenchi tutti.
 ⚠️ **Da verificare al rilascio**: provare una stampa bilancio prima e dopo aver applicato lo script.
 Se prima dà errore, era rotta anche in produzione.
 
-### 1.2 — Il margine di un forfettario era più alto del vero
+### 2.2 — Il margine di un forfettario era più alto del vero
 
 **Sintomo:** nessuno. È il tipo di difetto peggiore — un numero plausibile e sbagliato.
 
@@ -61,7 +86,7 @@ lo leggesse.
 ancora registrato un solo movimento contabile**: nessun bilancio è mai stato prodotto con il calcolo
 vecchio.
 
-### 1.3 — La guida della contabilità prometteva una cosa che il programma non fa
+### 2.3 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre
@@ -74,9 +99,9 @@ Testo corretto, e aggiunto un avviso esplicito su cosa scrivere nelle righe.
 
 ---
 
-## Sezione 2 — Documentazione
+## Sezione 3 — Documentazione
 
-### ⭐️ 2.1 — Il manuale della contabilità
+### ⭐️ 3.1 — Il manuale della contabilità
 
 `Documents/Manuali_Utente/Manuale_Contabilita.md` — **quinto manuale utente**, 15 capitoli:
 registrazioni e righe di dettaglio, causali, regime fiscale e calcolo automatico, date e controlli,
@@ -86,7 +111,7 @@ fattura elettronica per lo SDI, tabelle contabili.
 Prima non esisteva niente sulla contabilità: era l'area più delicata del programma e la meno
 spiegata.
 
-### 2.2 — Aggiornati
+### 3.2 — Aggiornati
 
 | Documento | Cosa cambia |
 |---|---|
@@ -94,23 +119,26 @@ spiegata.
 | Checklist Go-Live PROD | Nuovo §2.4-bis: lo script 638 e l'ordine in cui va applicato |
 | `Prossime_Funzioni.md` | Punto 13 chiuso; punto 12 (PDF del viaggio) con la decisione sul prezzo |
 | `COME_SI_GENERA_L_INSTALLER.md` | Tre inciampi della compilazione 2.1: git assente nella VM, apici sui percorsi, `Get-Arch` da definire. E la regola di cancellare i setup vecchi, col confronto dei pesi che dimostra perché |
+| §2.8.4 Checklist, piano storico, memoria | ⚠️ **Correzione importante**: descrivevano come lavoro aperto la centralizzazione dei controlli su `ana_clienti`, che era invece **già fatta su entrambi i lati**. La svista ha fatto proporre come prioritario un lavoro chiuso: i documenti ora riportano lo stato verificato sul codice |
 
 ---
 
-## Sezione 3 — Database
+## Sezione 4 — Database
 
 | Script | Cosa fa |
 |---|---|
 | `638_Bilancio_Viaggi_IvaNonDetraibile.sql` | Elimina tre firme superate delle funzioni del bilancio (**senza, le stampe non funzionano**) e aggiunge `importo_effettivo_eur` alle due superstiti |
+| `639_Calendario_Mezzi_E_MeseIniziale.sql` | Aggiunge `tot_mezzi` a `fn_get_calendar_data` e crea `fn_get_calendar_mese_iniziale` |
 
-⚠️ **Ordine di rilascio**: lo script **prima**, l'applicativo **poi**. La stampa legge la colonna
-nuova, e senza lo script non la trova.
+⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
+stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
+senza gli script non esistono, e il programma andrebbe in errore invece di ripiegare.
 
 ℹ️ Nessuna migrazione di dati: sono solo funzioni.
 
 ---
 
-## Sezione 4 — Cosa NON è cambiato, e vale la pena dirlo
+## Sezione 5 — Cosa NON è cambiato, e vale la pena dirlo
 
 - Il **sito pubblico e il modulo di iscrizione** (Flask) non sono toccati da questa versione. ⭐️ Sono
   in uso dai clienti veri: le iscrizioni arrivano da lì.
@@ -120,11 +148,15 @@ nuova, e senza lo script non la trova.
 
 ---
 
-## Sezione 5 — Al momento del rilascio
+## Sezione 6 — Al momento del rilascio
 
 1. Portare a **2.2** i quattro punti in cui vive il numero di versione: `Versione.txt`, il `#define`
    di Inno Setup, `ApplicationDisplayVersion` (+ build), l'intestazione dei **cinque** manuali.
 2. Applicare `SqlScripts/638` su PROD — **prima** di consegnare l'eseguibile.
 3. Compilare seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**, sorgente
    `C:\GestioneViaggi-build`, e cancellare i setup vecchi dopo la consegna.
-4. Verificare sulla VM: la stampa del bilancio **deve produrre il PDF** — è la correzione principale.
+4. Applicare anche `SqlScripts/639` — stesso vincolo d'ordine.
+5. Verificare sulla VM, nell'ordine:
+   - la **stampa del bilancio** deve produrre il PDF (è la correzione principale);
+   - la dashboard di un utente **non SuperAdmin** deve mostrare il **Calendario Partenze**, aperto
+     sul mese della prossima partenza, con i mezzi nel dettaglio al passaggio del mouse.
