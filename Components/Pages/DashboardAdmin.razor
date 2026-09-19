@@ -782,6 +782,22 @@
             </MudItem>
         </MudGrid>
 
+        @* Calendario delle partenze. Il componente esisteva gia' ma era montato solo nella
+           dashboard del SuperAdmin, che e' Adriano: per l'utente vero non esisteva, ed e' il
+           motivo per cui e' stato chiesto come se mancasse. *@
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-4">Calendario Partenze</MudText>
+            @if (_currentUser?.AziendaId is int calendarioAziendaId && calendarioAziendaId > 0)
+            {
+                <TravelCalendar AziendaId="calendarioAziendaId"
+                                OnTravelClick="OnCalendarTravelClick" />
+            }
+            else
+            {
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            }
+        </MudPaper>
+
         <!-- Quick Actions -->
         <MudPaper Elevation="2" Class="pa-4">
             <MudText Typo="Typo.h6" Class="mb-4">Azioni Rapide</MudText>
@@ -1154,6 +1170,50 @@
 
     [Inject] public IDialogService DialogService { get; set; } = default!;
     [Inject] public AnaViaggiService ViaggiService { get; set; } = default!;
+
+    /// <summary>
+    /// Dal calendario alla scheda del viaggio, aperta sulla linguetta delle date.
+    /// </summary>
+    /// <remarks>
+    /// Stesso comportamento della dashboard SuperAdmin: cliccando una partenza si vuole arrivare
+    /// dove si lavora, non all'elenco dei viaggi.
+    /// </remarks>
+    private async Task OnCalendarTravelClick(GestioneViaggi.Models.DTOs.CalendarTravelDTO travel)
+    {
+        try
+        {
+            var viaggio = await ViaggiService.GetByIdAsync(travel.ViaggioId);
+            if (viaggio == null)
+            {
+                Snackbar.Add("Viaggio non trovato", Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters<GestioneViaggi.Components.Shared.AnaViaggiDialog>
+            {
+                { x => x.Entity, viaggio },
+                { x => x.IsEditMode, true },
+                { x => x.AziendaFk, travel.AziendaId },
+                { x => x.StartOnDatesTab, true }
+            };
+
+            var options = new DialogOptions
+            {
+                // La X la mette AnaViaggiDialog: dai sotto-tab si torna ai Contenuti, non all'elenco.
+                CloseButton = false,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                BackdropClick = false
+            };
+
+            await DialogService.ShowAsync<GestioneViaggi.Components.Shared.AnaViaggiDialog>(
+                travel.DescrizioneViaggio, parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore apertura viaggio: {ex.Message}", Severity.Error);
+        }
+    }
     [Inject] public Services.Shared.IBrowserLauncherService BrowserLauncher { get; set; } = default!;
     [Inject] public AziendaService AziendaService { get; set; } = default!;
 

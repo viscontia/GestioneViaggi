@@ -906,6 +906,7 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
                     DataInizio = dataInizio,
                     DataFine = reader.GetDateTime(reader.GetOrdinal("data_fine")),
                     TotClienti = ReadInt(reader, "tot_clienti"),
+                    TotMezzi = ReadInt(reader, "tot_mezzi"),
                     Effettuato = effettuatoSino is 'Y' or 'S',
                     AziendaId = ReadInt(reader, "azienda_id"),
                     AziendaNome = reader.GetString(reader.GetOrdinal("azienda_nome"))
@@ -919,6 +920,40 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Mese su cui aprire il calendario: quello della prossima partenza.
+    /// </summary>
+    /// <remarks>
+    /// Aprirlo sul mese corrente sembrava naturale ed è sbagliato: a novembre, con la prossima
+    /// partenza a marzo, si apre su un mese vuoto e il calendario dice il falso — non «non c'è
+    /// niente in programma», ma «non c'è niente in programma adesso». La regola sta nella funzione
+    /// DB (<c>fn_get_calendar_mese_iniziale</c>), che ripiega sull'ultima partenza conclusa e poi
+    /// sul mese corrente.
+    /// <para>
+    /// È una lettura di comodo: se fallisce si torna al mese corrente, che è il comportamento di
+    /// prima — un calendario che non si apre sarebbe peggio di uno aperto sul mese sbagliato.
+    /// </para>
+    /// </remarks>
+    public async Task<DateTime> GetCalendarMeseInizialeAsync(int aziendaId)
+    {
+        try
+        {
+            await using var connection = await _databaseService.GetConnectionAsync();
+            await using var command = new NpgsqlCommand(
+                "SELECT fn_get_calendar_mese_iniziale(@aziendaId)", connection);
+            command.Parameters.AddWithValue("aziendaId", aziendaId);
+
+            var risultato = await command.ExecuteScalarAsync();
+            if (risultato is DateTime mese) return mese;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Mese iniziale del calendario non determinato per azienda {AziendaId}", aziendaId);
+        }
+
+        return new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     }
 }
 

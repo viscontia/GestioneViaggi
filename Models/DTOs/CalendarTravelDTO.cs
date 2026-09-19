@@ -11,6 +11,17 @@ public class CalendarTravelDTO
     public DateTime DataInizio { get; set; }
     public DateTime DataFine { get; set; }
     public int TotClienti { get; set; }
+
+    /// <summary>
+    /// Mezzi impegnati sulla partenza: uno per pilota.
+    /// </summary>
+    /// <remarks>
+    /// Non è un doppione dei partecipanti: su un tour offroad le persone si ridistribuiscono fra i
+    /// mezzi, i mezzi no — ed è il numero che decide quante guide servono e quanto è pieno il
+    /// gruppo. Il conteggio vive nella funzione DB, lo stesso usato dal bilancio viaggi, per non
+    /// avere due definizioni di «mezzo».
+    /// </remarks>
+    public int TotMezzi { get; set; }
     /// <summary>
     /// Spunta "Viaggio Effettuato" (<c>ana_date_viaggi.data_viaggio_effettuato_sino</c> = 'Y').
     /// </summary>

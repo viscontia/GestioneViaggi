@@ -30,12 +30,15 @@ public partial class TravelCalendar : ComponentBase
     private List<DateTime[]> _weeks = new();
     private bool _isLoading = true;
     private int _lastLoadedAziendaId;
+    private int _annoScelto = DateTime.Today.Year;
+    private int _meseScelto = DateTime.Today.Month;
 
     private readonly CultureInfo _culture = new("it-IT");
     private readonly string[] _dayNames = { "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom" };
 
     protected override async Task OnInitializedAsync()
     {
+        await PosizionaSullePartenzeAsync();
         BuildCalendarGrid();
         await LoadTravelsAsync();
     }
@@ -45,8 +48,65 @@ public partial class TravelCalendar : ComponentBase
         // Ricarica se cambia l'azienda
         if (AziendaId != _lastLoadedAziendaId && AziendaId > 0)
         {
+            // Cambiando azienda cambiano le partenze, quindi cambia anche il mese giusto su cui
+            // stare: restare sul mese di prima mostrerebbe un calendario vuoto di un'altra azienda.
+            await PosizionaSullePartenzeAsync();
+            BuildCalendarGrid();
             await LoadTravelsAsync();
         }
+    }
+
+    /// <summary>
+    /// Porta il calendario sul mese della prossima partenza invece che su quello corrente.
+    /// </summary>
+    /// <remarks>
+    /// Aprirsi sul mese corrente sembra naturale ma mente: a novembre, con la prossima partenza a
+    /// marzo, si vede un calendario vuoto e si conclude che non c'è niente in programma.
+    /// </remarks>
+    private async Task PosizionaSullePartenzeAsync()
+    {
+        if (AziendaId <= 0) return;
+
+        _currentDate = await ViaggiService.GetCalendarMeseInizialeAsync(AziendaId);
+        _annoScelto = _currentDate.Year;
+        _meseScelto = _currentDate.Month;
+    }
+
+    /// <summary>Anni proposti nelle tendine: un margine attorno all'anno corrente e a quello scelto.</summary>
+    private IEnumerable<int> AnniDisponibili
+    {
+        get
+        {
+            var minimo = Math.Min(DateTime.Today.Year, _annoScelto) - 2;
+            var massimo = Math.Max(DateTime.Today.Year, _annoScelto) + 2;
+            for (var anno = minimo; anno <= massimo; anno++) yield return anno;
+        }
+    }
+
+    private async Task OnAnnoChanged(int anno)
+    {
+        _annoScelto = anno;
+        await VaiAlMeseSceltoAsync();
+    }
+
+    private async Task OnMeseChanged(int mese)
+    {
+        _meseScelto = mese;
+        await VaiAlMeseSceltoAsync();
+    }
+
+    private async Task VaiAlMeseSceltoAsync()
+    {
+        _currentDate = new DateTime(_annoScelto, _meseScelto, 1);
+        BuildCalendarGrid();
+        await LoadTravelsAsync();
+    }
+
+    /// <summary>Tiene le tendine allineate quando ci si sposta con le frecce o con «Oggi».</summary>
+    private void AllineaTendine()
+    {
+        _annoScelto = _currentDate.Year;
+        _meseScelto = _currentDate.Month;
     }
 
     private async Task LoadTravelsAsync()
@@ -121,6 +181,7 @@ public partial class TravelCalendar : ComponentBase
     private async Task PreviousMonth()
     {
         _currentDate = _currentDate.AddMonths(-1);
+        AllineaTendine();
         BuildCalendarGrid();
         await LoadTravelsAsync();
     }
@@ -128,6 +189,7 @@ public partial class TravelCalendar : ComponentBase
     private async Task NextMonth()
     {
         _currentDate = _currentDate.AddMonths(1);
+        AllineaTendine();
         BuildCalendarGrid();
         await LoadTravelsAsync();
     }
@@ -135,6 +197,7 @@ public partial class TravelCalendar : ComponentBase
     private async Task GoToToday()
     {
         _currentDate = DateTime.Today;
+        AllineaTendine();
         BuildCalendarGrid();
         await LoadTravelsAsync();
     }

@@ -19,6 +19,13 @@
             <MudText Typo="Typo.body2">@Travel.TotClienti partecipanti</MudText>
         </MudStack>
 
+        @* I mezzi accanto alle persone, non al loro posto: sono due numeri diversi e servono a
+           due domande diverse — quanti sono, e quante macchine devo gestire. *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <MudIcon Icon="@Icons.Material.Filled.DirectionsCar" Size="Size.Small" />
+            <MudText Typo="Typo.body2">@Travel.TotMezzi @(Travel.TotMezzi == 1 ? "mezzo" : "mezzi")</MudText>
+        </MudStack>
+
         @* Qui siamo gia' dentro un tooltip, quindi la spiegazione si scrive: e' lo stesso testo
            che altrove compare passando il mouse sullo stato, e nel calendario e' proprio cio' che
            mancava per capire i colori delle targhette. *@

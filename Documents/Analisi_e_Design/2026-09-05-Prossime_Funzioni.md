@@ -659,7 +659,23 @@ del go-live**: sono i passi successivi.
 
 ---
 
-## 7. Il calendario in dashboard — ⚠️ **c'è già, ma nella dashboard sbagliata**
+## 7. ✅ Il calendario in dashboard — **FATTO il 2026-09-19**
+
+> **Realizzato.** Tutti e quattro i punti dell'analisi qui sotto, più il click verificato:
+>
+> 1. ✅ **Montato in `DashboardAdmin`** — era il grosso del valore, e la ragione per cui la
+>    funzione era stata chiesta come se non esistesse.
+> 2. ✅ **Posizionamento sulla prossima partenza** — `fn_get_calendar_mese_iniziale` (script 639),
+>    con ripiego sull'ultima partenza conclusa e poi sul mese corrente.
+> 3. ✅ **Due tendine, mese e anno**, come deciso il 2026-09-09. La navigazione con le frecce resta
+>    e tiene le tendine allineate.
+> 4. ✅ **Numero mezzi nel tooltip**, accanto ai partecipanti: `tot_mezzi` in
+>    `fn_get_calendar_data`, con lo stesso conteggio del bilancio viaggi per non avere due
+>    definizioni di «mezzo».
+> 5. ✅ **Il click** apre la scheda del viaggio sulla linguetta delle date, come nella dashboard
+>    SuperAdmin.
+>
+> ⚠️ Build verde, **collaudo a video da fare**.
 
 **Chiesto:** un calendario che si posizioni **da solo sui viaggi in partenza**, con la possibilità
 di scegliere periodi diversi. I viaggi rappresentati nella loro **estensione temporale** sulle
