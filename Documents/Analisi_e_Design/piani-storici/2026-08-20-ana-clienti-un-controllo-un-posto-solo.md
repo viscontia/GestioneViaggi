@@ -1,5 +1,20 @@
 # Piano — `ana_clienti`: un controllo, un posto solo
 
+> ## ✅ COMPLETATO — verificato il 2026-09-19
+>
+> Tutte le fasi risultano eseguite, **su entrambi i client**. Verifica fatta sul codice e sul
+> database, non sulle caselle di questo piano:
+>
+> - **MAUI** — `ClienteRepository` 1.271 → 572 righe, `ClienteService` 541 → 342,
+>   `ClienteValidator` 17 → 4 metodi; le scritture passano dalle funzioni canoniche.
+> - **Flask** — `cliente.py` e `mov_clienti_viaggi_dao.py` chiamano le stesse funzioni,
+>   `codice_fiscale_utils.py` è stato eliminato, `/api/validate_cf` delega a `fn_cf_verifica`,
+>   e la spunta del consenso è negli step.
+> - **Camere** — `fn_alloggi_salva_camera` è la stessa funzione per entrambi.
+>
+> ⚠️ Restano due sole cose: la colonna `ana_clienti.cliente_titolo` (ora eliminabile) e la verifica
+> di eventuali controlli **a monte** della chiamata nei due client, che non è mai stata fatta.
+
 ## Contesto
 
 `ana_clienti` è la tabella più trasversale del sistema: la usano il gestionale MAUI, il sito di

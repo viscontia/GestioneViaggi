@@ -983,3 +983,40 @@ funzionavano affatto** — e non per questa modifica: era così da prima.
 eliminate nello stesso script, e dopo la stampa risponde.
 
 ⚠️ **Da applicare in PROD**: vedi la Checklist Go-Live.
+
+---
+
+## 14. La colonna `cliente_titolo`, finalmente eliminabile — **sbloccata il 2026-09-19**
+
+`ana_clienti` ha due colonne per la stessa cosa: **`cliente_titolo_fk`**, quella buona, che punta
+alla tabella dei titoli, e **`cliente_titolo`**, la vecchia stringa libera. Nessuno la scrive più:
+la riempie un trigger per compatibilità.
+
+### Perché era bloccata, e perché adesso non lo è più
+
+Era il debito dichiarato in `Funzioni_DB.md` §8.3: non si poteva togliere finché il sito non fosse
+allineato sul titolo. ✅ **Il sito adesso è allineato** — verificato il 2026-09-19: usa le funzioni
+canoniche e `fn_ana_clienti_titolo_fk` per derivare il titolo.
+
+### Chi la legge ancora: due punti soli
+
+| Dove | Cosa fa |
+|---|---|
+| Flask, `Classi_Tabelle_DB/cliente.py:162` | Una lettura in un dizionario di ritorno |
+| MAUI, `Migrazione_Dati_Oracle/OracleClientiImportService.cs` | La scrive nell'import — ⭐️ ed è **proprio il codice che il punto 10 prevede di eliminare** |
+
+### L'ordine, che non è indifferente
+
+1. **Togliere l'import da Oracle** (punto 10 di questo documento): sparisce l'unico punto che la
+   *scrive*.
+2. **Togliere la lettura in `cliente.py`**: verificare prima chi consuma quella chiave del
+   dizionario — se è morta, va via con la riga.
+3. **Eliminare la colonna e il trigger** che la teneva allineata, e chiudere il §8.3 di
+   `Funzioni_DB.md`.
+
+⚠️ **Prima di eliminare, confrontare i due valori su PROD.** Se in qualche riga `cliente_titolo` e
+il titolo derivato da `cliente_titolo_fk` non coincidono, quella differenza è un dato che si perde:
+va guardata, non scavalcata.
+
+ℹ️ **Piccolo, ma non inutile.** Due colonne per la stessa informazione sono il tipo di cosa su cui
+qualcuno, fra un anno, scriverà una query sulla colonna sbagliata.

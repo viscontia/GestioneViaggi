@@ -818,20 +818,30 @@ deprecata non si può togliere.
 
 #### 2.8.4 — I controlli sul cliente: due implementazioni, nessuna condivisa
 
-> **Ordine dei lavori, deciso il 2026-08-19.** Questo è il **primo** lavoro da fare, prima di tutto
-> il resto del go-live — e si fa in due tempi ravvicinati: **prima il gestionale** (centralizzare i
-> controlli di `ana_clienti`, facendo scendere nel DB quelli che devono valere ovunque), **subito
-> dopo il sito**, che a quel punto si allinea a una regola sola invece che a diciassette sparse.
+> ## ✅ FATTO — verificato il 2026-09-19 su codice e database
 >
-> L'ordine non è un dettaglio: replicare sul sito controlli che nel gestionale sono ancora
-> frammentati significherebbe duplicare la frammentazione invece di chiuderla. Fatto così, su
-> `ana_clienti` non ci si torna più.
+> Il lavoro è stato eseguito fra il 2026-08-20 e il go-live, **su entrambi i lati**, e questa sezione
+> descriveva ancora la situazione di partenza. ⚠️ Lasciarla così ha un costo reale: il 2026-09-19 ha
+> portato a proporre come lavoro prioritario una cosa già chiusa.
+>
+> | Ambito | Funzione canonica, chiamata da MAUI **e** da Flask |
+> |---|---|
+> | Anagrafica cliente | `fn_ana_clienti_valida` / `_insert` / `_update` / `_delete` |
+> | Iscrizione al viaggio | `fn_mov_clienti_viaggi_valida` / `_insert` / `_update` / `_delete` |
+> | Assegnazione camere | `fn_alloggi_salva_camera` |
+> | Codice fiscale | `fn_cf_verifica` / `fn_cf_verifica_cliente` |
+>
+> Numeri a confronto: i `CHECK` su `ana_clienti` sono passati da **1 a 10** (script 541);
+> `ClienteRepository.cs` da **1.271 a 572** righe; `ClienteService.cs` da 541 a 342;
+> `ClienteValidator.cs` da **17 metodi a 4**, che ora anticipano il messaggio invece di essere la
+> regola. Lato sito, `codice_fiscale_utils.py` **non esiste più**.
+>
+> ⚠️ **Cosa resta davvero:** la colonna deprecata `ana_clienti.cliente_titolo` (ora eliminabile:
+> la leggono solo `cliente.py:162` e l'import Oracle, che è in via di rimozione), e la verifica —
+> mai fatta — se i due client abbiano controlli **a monte** della chiamata alle funzioni.
 
-**Da verificare, non ancora deciso.** Il CRUD cliente del sito applica i suoi controlli; il
-gestionale applica i propri. Nessuno dei due sa cosa fa l'altro, e non esiste un punto in cui la
-regola sia scritta una volta sola.
-
-L'inventario del gestionale, rilevato il 2026-08-19:
+<details>
+<summary>L'inventario di partenza, rilevato il 2026-08-19 (storico)</summary>
 
 | Dove | Cosa |
 |---|---|
@@ -862,6 +872,9 @@ sono genuinamente di presentazione e nel DB non ci stanno.
 > questa verifica, non prima.
 
 ---
+
+
+</details>
 
 ### 2.9 — Campi obbligatori dell'anagrafica (563): l'unico script che si sente il primo giorno
 
