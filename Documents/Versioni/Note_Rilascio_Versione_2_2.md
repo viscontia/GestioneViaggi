@@ -122,7 +122,26 @@ Sistemate anche le **frecce su/giù** dei campi importo, che dalle quattro cifre
 il numero: su un importo in euro non servono a nessuno — nessuno registra mille euro a colpi di
 +1 — e sono state tolte sia dall'imponibile di riga sia dall'importo in testata.
 
-### 2.5 — La guida della contabilità prometteva una cosa che il programma non fa
+### ⛔️ 2.5 — Le tendine della scheda si aprivano piene di righe **senza testo**
+
+**Sintomo:** premendo la lente dell'aliquota IVA nel dettaglio righe si apriva un elenco con il
+numero giusto di voci, **tutte vuote**.
+
+**Causa:** i dati che il database manda alla scheda usano i nomi delle colonne (`iva_descrizione`,
+`viaggio_descrizione_breve`), mentre il programma li cercava con i propri (`IvaDescrizione`,
+`ViaggioDescrizioneBreve`) senza saperli convertire: gli oggetti venivano creati ma **vuoti**. Non
+una lista vuota — una lista di elementi vuoti, che è diverso e più difficile da riconoscere.
+
+⚠️ **Era nascosto dal difetto precedente** (§2.3): finché quella lettura non funzionava affatto,
+ogni tendina si caricava per conto proprio e nessuno se ne accorgeva. Rimessa in funzione la lettura
+unica, il problema di conversione è venuto a galla — il che è il motivo per cui le correzioni vanno
+provate, non solo compilate.
+
+**Correzione:** conversione automatica attivata lato programma, e alias del database riportati tutti
+allo stesso stile (`SqlScripts/641`), perché la conversione funziona solo se **tutte** le chiavi
+sono scritte allo stesso modo.
+
+### 2.6 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre
@@ -166,6 +185,7 @@ spiegata.
 | `638_Bilancio_Viaggi_IvaNonDetraibile.sql` | Elimina tre firme superate delle funzioni del bilancio (**senza, le stampe non funzionano**) e aggiunge `importo_effettivo_eur` alle due superstiti |
 | `639_Calendario_Mezzi_E_MeseIniziale.sql` | Aggiunge `tot_mezzi` a `fn_get_calendar_data` e crea `fn_get_calendar_mese_iniziale` |
 | `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `641_FnGetTransazioneInitData_AliasSnakeCase.sql` | Alias del JSON tutti in snake_case: senza, le tendine si popolano di elementi senza testo. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -185,6 +205,7 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | 2026-09-14 | **Chiavi Storage separate** fra sviluppo e produzione | Revocarne una non blocca più l'altra |
 | 2026-09-14 | **Chiave Claude** configurata sull'azienda 2 (da Antonio) | Traduzioni e testi SEO funzionanti |
 | **2026-09-20** | **`SqlScripts/640`** — creata `fn_get_transazione_init_data` | ⭐️ La tendina **Viaggio** nei movimenti contabili ora si apre: verificato in PROD, 23 viaggi, 12 causali, 34 valute |
+| **2026-09-20** | **`SqlScripts/641`** — alias del JSON in snake_case | Le tendine della scheda mostrano il testo delle voci, non righe vuote |
 
 ℹ️ Il **640** è stato applicato subito perché **non dipende dal nuovo eseguibile**: il programma già
 installato da Antonio quella funzione la chiamava già, e non la trovava.

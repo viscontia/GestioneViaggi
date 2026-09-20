@@ -179,7 +179,17 @@ public class MovTransazioniService
             
             if (string.IsNullOrEmpty(json)) return new TransazioneInitData();
 
-            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            // ⛔️ Senza SnakeCaseLower le liste si popolavano di oggetti VUOTI: il JSON del
+            // database usa i nomi delle colonne (iva_descrizione, viaggio_descrizione_breve) e i
+            // modelli non hanno annotazioni che li colleghino. PropertyNameCaseInsensitive da solo
+            // ignora le maiuscole ma non gli underscore, quindi nessuna proprietà veniva
+            // valorizzata — e la tendina dell'aliquota IVA si apriva piena di righe senza testo.
+            // Richiede che TUTTE le chiavi siano snake_case, alias SQL compresi (script 641).
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+            };
             var rawData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(json, options);
             
             var result = new TransazioneInitData();
