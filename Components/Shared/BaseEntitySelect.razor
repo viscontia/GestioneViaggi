@@ -5,7 +5,7 @@
 <MudAutocomplete T="TItem" Value="Value" ValueChanged="OnValueChanged" SearchFunc="SearchFunc"
     ToStringFunc="ToStringFunc" Label="@Label" Variant="Variant.Outlined" Required="@Required"
     RequiredError="@RequiredError" Disabled="@Disabled" Class="@ComputedClass" HelperText="@HelperText" Clearable="true"
-    ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="false" AdornmentIcon="@Icons.Material.Filled.Search"
+    ResetValueOnEmptyText="@ResetValueOnEmptyText" CoerceText="true" CoerceValue="false" AdornmentIcon="@Icons.Material.Filled.Search"
     AdornmentColor="Color.Primary" Strict="false" Dense="true" OpenOnFocus="false" @ref="_autocompleteRef"
     Validation="@Validation" MaxItems="null" ItemTemplate="@ItemTemplate" @attributes="AdditionalAttributes">
     @* Un elenco che si apre vuoto non dice se non c'e' nulla da scegliere o se qualcosa non ha
@@ -40,6 +40,16 @@
     /// fa capire dove si risolve, «Nessuna voce disponibile» no.
     /// </summary>
     [Parameter] public string TestoNessunElemento { get; set; } = "Nessuna voce disponibile";
+
+    /// <summary>
+    /// Se true (predefinito) svuotare il testo azzera anche il valore scelto.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Dentro una griglia va messo a <c>false</c>: la cella entra in modifica con il testo
+    /// vuoto, e con questa opzione attiva il valore già scelto viene buttato via prima ancora che
+    /// l'utente tocchi qualcosa — il campo resta muto e la scelta sembra non registrata.
+    /// </remarks>
+    [Parameter] public bool ResetValueOnEmptyText { get; set; } = true;
 
     /// <summary>
     /// Come si presenta una voce <b>nell'elenco</b>. Se assente, MudBlazor usa il testo del campo.

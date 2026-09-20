@@ -21,7 +21,8 @@
                   Disabled="@(_isLoading || Disabled)"
                   Class="@Class"
                   TestoNessunElemento="Nessuna aliquota IVA configurata per questa azienda (Tabelle → Tabelle Contabili → Aliquote IVA)."
-                  Clearable="@Clearable">
+                  Clearable="@Clearable"
+                  ResetValueOnEmptyText="@(!Compatto)">
     @* Nell'elenco il CODICE viene per primo: e' il modo in cui un'aliquota si cerca davvero
        ("N2.2", "22", "FC"), e prima non compariva affatto - si vedeva solo la descrizione, quindi
        per trovare N2.2 bisognava gia' sapere come si chiama per esteso. *@
