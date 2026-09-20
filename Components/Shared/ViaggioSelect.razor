@@ -27,6 +27,12 @@
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@viaggio.NazioneNome - @viaggio.NumeroGiorni giorni</MudText>
         }
     </ItemTemplate>
+    @* Un viaggio si crea in Anagrafica Viaggi: dirlo qui evita di cercare il difetto altrove. *@
+    <NoItemsTemplate>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-3">
+            Nessun viaggio in anagrafica per questa azienda.
+        </MudText>
+    </NoItemsTemplate>
 </MudAutocomplete>
 
 @code {

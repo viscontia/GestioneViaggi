@@ -151,7 +151,26 @@ dei **viaggi** non era ancora stato notato — la tendina sembrava sana — ed �
 servizio dopo essere stata ferma, **vanno verificate tutte le liste che porta**, non quella che ha
 dato il sintomo.
 
-### 2.6 — La guida della contabilità prometteva una cosa che il programma non fa
+### 2.6 — Un elenco vuoto non diceva di esserlo
+
+Cercando un **cliente** su una fattura di vendita, la tendina mostrava una sola voce — *«--- TUTTE LE
+CONTROPARTI ---»* — e sembrava che il caricamento fosse fallito. In realtà non c'era **nessuna
+controparte marcata come cliente**, e quella voce serve alle stampe, non a una scheda dove devi
+sceglierne una.
+
+Due correzioni:
+
+- la voce **«tutte le controparti»** ora compare **solo dove si filtra** — stampe, scadenziario,
+  estrazione SDI — e non nelle schede di registrazione;
+- ogni tendina che si apre senza risultati **lo dice**, e dice anche dove si rimedia: *«Nessun
+  cliente in anagrafica controparti. Aggiungilo, o spunta “è cliente” su una controparte
+  esistente.»*
+
+ℹ️ Il messaggio è scritto **una volta sola** nel componente comune: i venticinque elenchi che ne
+dipendono l'hanno preso tutti, e quelli contabili (controparti, viaggi, aliquote IVA, causali,
+valute) dicono in più dove si risolve.
+
+### 2.7 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre

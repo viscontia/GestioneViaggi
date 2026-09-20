@@ -44,6 +44,13 @@
             </MudText>
         }
     </ItemTemplate>
+    @* Dire che non c'e' nessun cliente e' diverso da mostrare un elenco vuoto: il primo indica
+       dove si risolve (l'anagrafica controparti), il secondo lascia pensare a un guasto. *@
+    <NoItemsTemplate>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-3">
+            @TestoNessunElemento()
+        </MudText>
+    </NoItemsTemplate>
 </MudAutocomplete>
 
 @code {
@@ -72,6 +79,25 @@
     /// </summary>
     [Parameter] public string? CausaleCiclo { get; set; }
     [Parameter] public List<AnaControparte>? Items { get; set; }
+
+    /// <summary>
+    /// Aggiunge in cima la voce «--- TUTTE LE CONTROPARTI ---».
+    /// </summary>
+    /// <remarks>
+    /// ⛔️ Ha senso solo dove si <b>filtra</b> — stampe ed estrazioni, dove «tutte» è una scelta
+    /// legittima. In una scheda dove si registra un movimento no: lì una controparte va scelta, e
+    /// quella voce era anche l'unica cosa visibile quando l'elenco era vuoto, facendo sembrare pieno
+    /// un elenco che non aveva niente dentro. Per questo il valore predefinito è <c>false</c>.
+    /// </remarks>
+    [Parameter] public bool MostraOpzioneTutte { get; set; } = false;
+
+    /// <summary>Messaggio a elenco vuoto, scritto in base a cosa si stava cercando.</summary>
+    private string TestoNessunElemento() => CausaleCiclo switch
+    {
+        "ATTIVO"  => "Nessun cliente in anagrafica controparti. Aggiungilo, o spunta «è cliente» su una controparte esistente.",
+        "PASSIVO" => "Nessun fornitore in anagrafica controparti. Aggiungilo, o spunta «è fornitore» su una controparte esistente.",
+        _         => "Nessuna controparte in anagrafica."
+    };
 
     private List<AnaControparte> _controparti = new List<AnaControparte>();
     private AnaControparte? _selectedControparte;
@@ -147,11 +173,11 @@
                 result = await ContropartiService.GetAllAsync(aziendaId.Value, soloFornitori, soloClienti);
             }
 
-            // Inserisce l'opzione virtuale per la selezione globale (Stampa Tutti)
-            _controparti = new List<AnaControparte>
+            _controparti = new List<AnaControparte>();
+            if (MostraOpzioneTutte)
             {
-                new AnaControparte { Id = 0, RagioneSociale = "--- TUTTE LE CONTROPARTI ---" }
-            };
+                _controparti.Add(new AnaControparte { Id = 0, RagioneSociale = "--- TUTTE LE CONTROPARTI ---" });
+            }
             _controparti.AddRange(result);
 
             _lastLoadedAziendaId = aziendaId;

@@ -36,7 +36,8 @@
 
                 @* RIGA 2: Controparte e Urgenza *@
                 <MudItem xs="12" sm="6">
-                    <ControparteSelect @bind-SelectedControparteId="_filtroControparteIdInt"
+                    <ControparteSelect MostraOpzioneTutte="true"
+                                   @bind-SelectedControparteId="_filtroControparteIdInt"
                                        AziendaId="@_aziendaIdEffettivo"
                                        CausaleCiclo="@_filtroCausaleCiclo"
                                        Label="Filtra per Controparte"

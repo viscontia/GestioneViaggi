@@ -30,7 +30,13 @@
                  CoerceValue="false"
                  Strict="false"
                  OpenOnFocus="false"
-                 MaxItems="null" />
+                 MaxItems="null">
+    <NoItemsTemplate>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-3">
+            Nessuna valuta attiva (Tabelle → Tabelle Contabili → Valute).
+        </MudText>
+    </NoItemsTemplate>
+</MudAutocomplete>
 
 @code {
     [Parameter] public int SelectedValutaId { get; set; }
