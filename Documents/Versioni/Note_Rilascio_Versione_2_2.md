@@ -141,6 +141,16 @@ provate, non solo compilate.
 allo stesso stile (`SqlScripts/641`), perché la conversione funziona solo se **tutte** le chiavi
 sono scritte allo stesso modo.
 
+⚠️ **Una coda, trovata subito dopo** (`SqlScripts/642`): due elenchi su cinque — **controparti** e
+**viaggi** — restavano agganciati male. Le loro classi non hanno una chiave con un nome proprio, ma
+un generico `Id`, mentre le colonne si chiamano `controparte_id` e `viaggio_id`: il testo si vedeva,
+ma ogni voce arrivava senza identificativo, e la controparte già scelta spariva dall'elenco. Il caso
+dei **viaggi** non era ancora stato notato — la tendina sembrava sana — ed è stato corretto insieme.
+
+ℹ️ Tre giri sullo stesso punto in un giorno. La lezione, annotata: quando una lettura unica torna in
+servizio dopo essere stata ferma, **vanno verificate tutte le liste che porta**, non quella che ha
+dato il sintomo.
+
 ### 2.6 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
@@ -186,6 +196,7 @@ spiegata.
 | `639_Calendario_Mezzi_E_MeseIniziale.sql` | Aggiunge `tot_mezzi` a `fn_get_calendar_data` e crea `fn_get_calendar_mese_iniziale` |
 | `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `641_FnGetTransazioneInitData_AliasSnakeCase.sql` | Alias del JSON tutti in snake_case: senza, le tendine si popolano di elementi senza testo. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `642_FnGetTransazioneInitData_ChiaviId.sql` | Alias `id` per controparti e viaggi, le cui classi ereditano `Id` da BaseEntity. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -206,6 +217,7 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | 2026-09-14 | **Chiave Claude** configurata sull'azienda 2 (da Antonio) | Traduzioni e testi SEO funzionanti |
 | **2026-09-20** | **`SqlScripts/640`** — creata `fn_get_transazione_init_data` | ⭐️ La tendina **Viaggio** nei movimenti contabili ora si apre: verificato in PROD, 23 viaggi, 12 causali, 34 valute |
 | **2026-09-20** | **`SqlScripts/641`** — alias del JSON in snake_case | Le tendine della scheda mostrano il testo delle voci, non righe vuote |
+| **2026-09-20** | **`SqlScripts/642`** — alias `id` per controparti e viaggi | La controparte selezionata non sparisce più dall'elenco |
 
 ℹ️ Il **640** è stato applicato subito perché **non dipende dal nuovo eseguibile**: il programma già
 installato da Antonio quella funzione la chiamava già, e non la trovava.
