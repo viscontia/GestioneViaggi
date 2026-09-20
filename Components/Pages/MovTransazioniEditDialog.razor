@@ -171,11 +171,16 @@
                                     <MudNumericField @bind-Value="context.Item.RigaImponibile" Margin="Margin.Dense" Format="N2" Culture="@(new System.Globalization.CultureInfo("it-IT"))" T="decimal" OnBlur="@(() => OnRigaImponibileChanged(context.Item))" />
                                 </EditTemplate>
                             </TemplateColumn>
-                            <TemplateColumn Title="IVA (%)" HeaderStyle="width: 130px;">
+                            @* Label vuota di proposito: l'intestazione della colonna dice gia'
+                               "IVA (%)", e "Aliquota IVA" dentro 130px veniva troncata in "Alq..."
+                               finendo sotto la lente di ricerca. La colonna e' anche piu' larga,
+                               perche' il testo dell'aliquota e la lente non ci stavano insieme. *@
+                            <TemplateColumn Title="IVA (%)" HeaderStyle="width: 180px;">
                                 <EditTemplate>
                                     <AliquotaIvaSelect SelectedAliquotaId="context.Item.RigaAliquotaIvaFk"
                                                       SelectedAliquotaIdChanged="@((id) => OnRigaAliquotaChanged(context.Item, id))"
                                                       AziendaId="@AziendaId"
+                                                      Label=""
                                                       Items="@_initData.AliquoteIva" />
                                 </EditTemplate>
                                 <CellTemplate>

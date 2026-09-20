@@ -110,7 +110,15 @@ Viaggio**, e il margine di quella partenza risulta migliore del reale — in sil
 inserimento sia in modifica. Lo script vecchio è stato eliminato, perché uno script che crea una
 funzione rotta è peggio di nessuno script.
 
-### 2.4 — La guida della contabilità prometteva una cosa che il programma non fa
+### 2.4 — Nel dettaglio righe la lente di ricerca finiva sopra l'aliquota
+
+Applicando **«Applica Calcolo Regime»**, nella colonna *IVA (%)* la scritta «Aliquota IVA» veniva
+troncata in «Alq…» e si sovrapponeva alla lente di ricerca.
+
+La label lì dentro era superflua — l'intestazione della colonna dice già «IVA (%)» — e in 130 pixel
+non ci stava. Tolta la label e allargata la colonna.
+
+### 2.5 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre
