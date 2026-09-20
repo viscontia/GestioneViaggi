@@ -62,7 +62,7 @@
 
     private async Task OpenCreateDialog()
     {
-        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true  };
+        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true  };
         var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Nuovo Modello", options);
         var result = await dialog.Result;
 
@@ -100,7 +100,7 @@ TipoMezzoDescrizione = item.TipoMezzoDescrizione
 { "IsEditMode", true }
 };
 
-        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true  };
+        var options = new DialogOptions { BackdropClick = false,  CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true  };
         var dialog = await DialogService.ShowAsync<MezzoModelloDialog>("Modifica Modello", parameters, options);
         var result = await dialog.Result;
 

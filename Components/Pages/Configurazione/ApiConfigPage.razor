@@ -88,7 +88,7 @@
 
     private async Task OpenCreateDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<ApiConfigEditDialog>("Nuova Configurazione API", options);
         var result = await dialog.Result;
 
@@ -101,7 +101,7 @@
     private async Task OpenEditDialog(ApiConfig item)
     {
         var parameters = new DialogParameters { ["Entity"] = item };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<ApiConfigEditDialog>("Modifica Configurazione API", parameters, options);
         var result = await dialog.Result;
 

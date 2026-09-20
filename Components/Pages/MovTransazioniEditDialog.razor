@@ -533,7 +533,46 @@
         catch { }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    /// <summary>
+    /// C'è qualcosa che si perderebbe chiudendo? Non un tracciamento fine delle modifiche: basta
+    /// sapere se la scheda è stata toccata.
+    /// </summary>
+    private bool HaLavoroDaPerdere()
+        => Transazione.TransazioneImporto > 0
+        || (Transazione.Righe?.Any() ?? false)
+        || !string.IsNullOrWhiteSpace(Transazione.TransazioneCausale)
+        || !string.IsNullOrWhiteSpace(Transazione.TransazioneNumeroDocumento)
+        || Transazione.TransazioneControparteId > 0
+        || Transazione.TransazioneViaggioId > 0;
+
+    /// <summary>
+    /// Chiude la scheda, chiedendo conferma se c'è del lavoro dentro.
+    /// </summary>
+    /// <remarks>
+    /// ⛔️ Registrare un movimento significa compilare una testata e tre o quattro righe di
+    /// dettaglio: perderle per un clic sbagliato costa dieci minuti, e finora «Annulla» le buttava
+    /// via senza chiedere niente. Su una scheda vuota la domanda non compare: sarebbe solo un
+    /// ostacolo in più per chi ha aperto la finestra per errore.
+    /// </remarks>
+    private async Task Cancel()
+    {
+        if (HaLavoroDaPerdere())
+        {
+            var parametri = new DialogParameters<DeleteConfirmationDialog>
+            {
+                { x => x.Title, "Chiudere senza salvare?" },
+                { x => x.ContentText, "Quello che hai inserito in questa scheda — righe di dettaglio comprese — andrà perso." },
+                { x => x.ButtonText, "Chiudi senza salvare" },
+                { x => x.Color, Color.Error }
+            };
+            var conferma = await DialogService.ShowAsync<DeleteConfirmationDialog>(
+                "Chiudere senza salvare?", parametri, new DialogOptions { BackdropClick = false });
+
+            if ((await conferma.Result)!.Canceled) return;
+        }
+
+        MudDialog.Cancel();
+    }
 
     private async Task Submit()
     {

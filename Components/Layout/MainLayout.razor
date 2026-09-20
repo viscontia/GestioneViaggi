@@ -6,7 +6,13 @@
 @inject IJSRuntime JSRuntime
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_theme" IsDarkMode="_isDarkMode" />
-<MudDialogProvider />
+<!-- Un dialog non si chiude per sbaglio: né cliccando fuori, né con Esc.
+     Il valore predefinito di MudBlazor è l'opposto, e bastava un clic a vuoto per
+     perdere una scheda compilata a metà senza una sola domanda.
+     Si esce dal pulsante, che chiede conferma quando c'è qualcosa da perdere.
+     Dove la chiusura rapida ha senso - conferme, anteprime, aiuti, parametri di
+     stampa - le singole chiamate riattivano Esc con CloseOnEscapeKey = true. -->
+<MudDialogProvider BackdropClick="false" CloseOnEscapeKey="false" />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 

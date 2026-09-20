@@ -404,7 +404,9 @@
         // Large e non Medium: dentro c'e' la griglia del dettaglio righe, sette colonne fra cui
         // un'aliquota con codice e descrizione. In Medium le colonne si comprimevano al punto che
         // il testo scelto si riduceva a un quadratino grigio.
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
+        // CloseOnEscapeKey = false: in una scheda dove si registra un documento contabile un tasto
+        // premuto per sbaglio non deve buttare via il lavoro. Il clic fuori era gia' bloccato.
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Nuova Transazione", parameters, options);
         var result = await dialog.Result;
 
@@ -433,7 +435,9 @@
         // Large e non Medium: dentro c'e' la griglia del dettaglio righe, sette colonne fra cui
         // un'aliquota con codice e descrizione. In Medium le colonne si comprimevano al punto che
         // il testo scelto si riduceva a un quadratino grigio.
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
+        // CloseOnEscapeKey = false: in una scheda dove si registra un documento contabile un tasto
+        // premuto per sbaglio non deve buttare via il lavoro. Il clic fuori era gia' bloccato.
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Modifica Transazione", parameters, options);
         var result = await dialog.Result;
 

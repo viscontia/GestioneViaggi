@@ -3,6 +3,32 @@
 /* Selettori ad alta specificità - Sovrascrive FORZATAMENTE tutti gli stili MudBlazor */
 
 /* ========================================== */
+/* 0. NIENTE NAVIGAZIONE DALLO SCROLL         */
+/* ========================================== */
+/*
+   La rotella del mouse riportava alla dashboard perdendo il lavoro in corso.
+   Non e' un difetto dell'applicazione: il motore della WebView (Chromium)
+   interpreta lo scroll ORIZZONTALE che sfonda il bordo della pagina - la
+   rotella inclinabile, o due dita sul trackpad - come il gesto «indietro» del
+   browser, e «indietro» in Blazor vuol dire cambiare pagina. La scheda aperta
+   spariva senza una sola domanda.
+
+   `overscroll-behavior: none` dice al motore di non trasformare piu' lo scroll
+   in una navigazione, ne' orizzontale ne' verticale (quest'ultimo e' il
+   ricaricamento da trascinamento). Lo scroll normale dentro tabelle ed elenchi
+   non e' toccato: cambia solo cosa succede QUANDO SI ARRIVA IN FONDO.
+
+   Su Windows la stessa cosa e' impedita anche dal lato .NET (MainPage.xaml.cs,
+   IsSwipeNavigationEnabled): due chiusure per la stessa porta, perche' questa
+   vale per ogni piattaforma e quella intercetta anche i gesti che non passano
+   dal CSS.
+*/
+html,
+body {
+    overscroll-behavior: none;
+}
+
+/* ========================================== */
 /* WEBKIT FIX - Cursor/Caret visibility on macOS/iOS */
 /* ========================================== */
 input,

@@ -15,6 +15,32 @@ public partial class MainPage : ContentPage
 	{
 		InitializeComponent();
 
+		// LA ROTELLA DEL MOUSE NON DEVE CAMBIARE PAGINA.
+		//
+		// Sintomo: con una scheda aperta e il lavoro non salvato, una rotellata riportava
+		// alla dashboard. Non e' codice nostro: il motore della WebView legge lo scroll che
+		// sfonda il bordo della pagina — la rotella inclinabile, due dita sul trackpad — come
+		// il gesto «indietro» del browser, e «indietro» qui significa abbandonare la scheda.
+		//
+		// Si chiude da due lati: qui (il gesto non arriva nemmeno alla pagina) e nel CSS
+		// (`overscroll-behavior: none`, che vale su ogni piattaforma). Nessuno dei due da
+		// solo copre tutti i casi.
+		//
+		// Insieme si tolgono anche le scorciatoie da browser: F5 e Ctrl+R ricaricavano
+		// l'applicazione da zero, Alt+Freccia faceva lo stesso danno della rotella. In un
+		// gestionale non servono e possono solo far perdere quello che si sta scrivendo.
+		blazorWebView.BlazorWebViewInitialized += (_, e) =>
+		{
+#if WINDOWS
+			var impostazioni = e.WebView?.CoreWebView2?.Settings;
+			if (impostazioni is not null)
+			{
+				impostazioni.IsSwipeNavigationEnabled = false;
+				impostazioni.AreBrowserAcceleratorKeysEnabled = false;
+			}
+#endif
+		};
+
 		// L'anteprima della newsletter scrive dentro un <iframe> senza indirizzo. La WebView
 		// legge quella scrittura come una NAVIGAZIONE verso "about:blank", e il comportamento
 		// predefinito di BlazorWebView per un indirizzo che non riconosce e' aprirlo nel browser

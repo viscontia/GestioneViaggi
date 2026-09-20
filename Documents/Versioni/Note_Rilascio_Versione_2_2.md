@@ -209,6 +209,37 @@ Testo corretto, e aggiunto un avviso esplicito su cosa scrivere nelle righe.
 
 ---
 
+### ⛔️ 2.9 — Si perdeva il lavoro senza che nessuno chiedesse niente
+
+Tre modi diversi di buttare via una scheda compilata a metà, tutti senza una domanda:
+
+1. **Un clic fuori dalla finestra.** Il comportamento predefinito di una finestra di
+   MudBlazor è chiudersi se si clicca sullo sfondo. Un clic a vuoto — per spostare il
+   mouse, per togliere il fuoco da un campo — e la scheda spariva con tutto dentro.
+2. **Il tasto Esc.** Stessa cosa, con un tasto che si preme per istinto quando si vuole
+   chiudere una tendina.
+3. **La rotella del mouse.** Il più insidioso: una rotellata riportava alla dashboard.
+   Non era un difetto del programma ma del motore della finestra, che legge lo scroll
+   che sfonda il bordo della pagina — la rotella inclinabile, due dita sul trackpad —
+   come il gesto «indietro» del browser. E «indietro», qui, vuol dire cambiare pagina.
+
+**Come è stato chiuso.** Non correggendo una schermata alla volta — erano oltre cento i
+punti in cui si apre una finestra — ma cambiando la regola generale una volta sola: da
+oggi **nessuna finestra si chiude per sbaglio**, né cliccando fuori né con Esc. Si esce
+dal pulsante *Annulla*, e nella scheda dei movimenti contabili quel pulsante chiede
+conferma quando c'è davvero qualcosa da perdere.
+
+Dove la chiusura rapida ha senso e non c'è lavoro da perdere — conferme di
+cancellazione, anteprime, guide, parametri di stampa — Esc continua a funzionare.
+
+La rotella è chiusa da due lati insieme: nel foglio di stile (`overscroll-behavior`,
+che vale su ogni piattaforma) e nelle impostazioni della finestra su Windows
+(`IsSwipeNavigationEnabled`). Nella stessa occasione sono state tolte le scorciatoie da
+browser che non servono in un gestionale e possono solo fare danni: **F5** e **Ctrl+R**
+ricaricavano l'applicazione da zero, **Alt+Freccia** faceva lo stesso danno della rotella.
+
+---
+
 ## Sezione 3 — Documentazione
 
 ### ⭐️ 3.1 — Il manuale della contabilità

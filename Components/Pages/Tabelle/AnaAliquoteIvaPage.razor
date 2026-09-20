@@ -160,7 +160,7 @@
         };
 
         var parameters = new DialogParameters { ["Aliquota"] = newAliquota };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaAliquoteIvaEditDialog>("Nuova Aliquota IVA", parameters, options);
         var result = await dialog.Result;
 
@@ -173,7 +173,7 @@
     private async Task OpenEditDialog(AnaAliquotaIva item)
     {
         var parameters = new DialogParameters { ["Aliquota"] = item };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaAliquoteIvaEditDialog>("Modifica Aliquota IVA", parameters, options);
         var result = await dialog.Result;
 

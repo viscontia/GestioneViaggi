@@ -97,7 +97,7 @@
 
     private async Task OpenCreateDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaTassiCambioEditDialog>("Nuovo Tasso", options);
         var result = await dialog.Result;
 
@@ -110,7 +110,7 @@
     private async Task OpenEditDialog(AnaTassiCambio item)
     {
         var parameters = new DialogParameters { ["Tasso"] = item };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaTassiCambioEditDialog>("Modifica Tasso", parameters, options);
         var result = await dialog.Result;
 

@@ -77,7 +77,7 @@
 
     private async Task OpenCreateDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaValuteEditDialog>("Nuova Valuta", options);
         var result = await dialog.Result;
 
@@ -90,7 +90,7 @@
     private async Task OpenEditDialog(AnaValute item)
     {
         var parameters = new DialogParameters { ["Valuta"] = item };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaValuteEditDialog>("Modifica Valuta", parameters, options);
         var result = await dialog.Result;
 

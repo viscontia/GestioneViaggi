@@ -214,7 +214,7 @@ else
             CloseButton = true,
             MaxWidth = MaxWidth.ExtraLarge,
             FullWidth = true,
-            CloseOnEscapeKey = true
+            CloseOnEscapeKey = false
         };
 
         var dialog = await DialogService.ShowAsync<AziendaDialog>("Nuova Azienda", parameters, options);
@@ -274,7 +274,7 @@ else
             CloseButton = true,
             MaxWidth = MaxWidth.ExtraLarge,
             FullWidth = true,
-            CloseOnEscapeKey = true
+            CloseOnEscapeKey = false
         };
 
         var dialog = await DialogService.ShowAsync<AziendaDialog>("Modifica Azienda", parameters, options);

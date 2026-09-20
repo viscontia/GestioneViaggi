@@ -141,7 +141,7 @@
         };
 
         var parameters = new DialogParameters { ["Regime"] = newRegime };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaRegimiFiscaliEditDialog>("Nuovo Regime Fiscale", parameters, options);
         var result = await dialog.Result;
 
@@ -154,7 +154,7 @@
     private async Task OpenEditDialog(AnaRegimeFiscale item)
     {
         var parameters = new DialogParameters { ["Regime"] = item };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var options = new DialogOptions { CloseOnEscapeKey = false, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<AnaRegimiFiscaliEditDialog>("Modifica Regime Fiscale", parameters, options);
         var result = await dialog.Result;
 
