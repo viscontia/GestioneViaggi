@@ -79,6 +79,18 @@ namespace GestioneViaggi.Models
         [Column("tipo_fornitore_fk")]
         public int? TipoFornitoreFk { get; set; }
 
+        /// <summary>
+        /// Modalità di pagamento abituale con questa controparte: è la proposta che
+        /// compare aprendo un movimento, non un obbligo.
+        /// </summary>
+        /// <remarks>
+        /// Sta sulla controparte e non sulla causale perché i giorni di pagamento sono
+        /// un <b>accordo con quel fornitore</b>, non una proprietà del tipo di documento:
+        /// due fatture uguali possono scadere a 30 e a 60 giorni.
+        /// </remarks>
+        [Column("modalita_pagamento_fk")]
+        public int? ModalitaPagamentoFk { get; set; }
+
         [Column("attivo")]
         public bool Attivo { get; set; } = true;
 
@@ -121,6 +133,10 @@ namespace GestioneViaggi.Models
 
         [NotMapped]
         public string? ProvinciaSigla { get; set; }
+
+        /// <summary>Il codice della modalità abituale (30DF, RD...), già pronto per l'elenco.</summary>
+        [NotMapped]
+        public string? ModalitaPagamentoCodice { get; set; }
 
         [NotMapped]
         public string TipoControparteDisplay

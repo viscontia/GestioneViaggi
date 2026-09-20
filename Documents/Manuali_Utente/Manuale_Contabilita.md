@@ -35,15 +35,16 @@ un'etichetta: è un interruttore.
 4. [Registrare un movimento, campo per campo](#4-registrare-un-movimento-campo-per-campo)
 5. [Le righe di dettaglio e i totali](#5-le-righe-di-dettaglio-e-i-totali)
 6. [Le date e i controlli che non si aggirano](#6-le-date-e-i-controlli-che-non-si-aggirano)
-7. [Le valute diverse dall'euro](#7-le-valute-diverse-dalleuro)
-8. [Il protocollo IVA, e perché poi non si cancella più](#8-il-protocollo-iva-e-perché-poi-non-si-cancella-più)
-9. [Incassi e pagamenti: «Paga Ora»](#9-incassi-e-pagamenti-paga-ora)
-10. [Collegare un movimento a un viaggio](#10-collegare-un-movimento-a-un-viaggio)
-11. [Trovare quello che cerchi nell'elenco](#11-trovare-quello-che-cerchi-nellelenco)
-12. [Le stampe contabili](#12-le-stampe-contabili)
-13. [La fattura elettronica per lo SDI](#13-la-fattura-elettronica-per-lo-sdi)
-14. [Le tabelle contabili](#14-le-tabelle-contabili)
-15. [Riepilogo in una pagina](#15-riepilogo-in-una-pagina)
+7. [Le modalità di pagamento](#7-le-modalità-di-pagamento)
+8. [Le valute diverse dall'euro](#8-le-valute-diverse-dalleuro)
+9. [Il protocollo IVA, e perché poi non si cancella più](#9-il-protocollo-iva-e-perché-poi-non-si-cancella-più)
+10. [Incassi e pagamenti: «Paga Ora»](#10-incassi-e-pagamenti-paga-ora)
+11. [Collegare un movimento a un viaggio](#11-collegare-un-movimento-a-un-viaggio)
+12. [Trovare quello che cerchi nell'elenco](#12-trovare-quello-che-cerchi-nellelenco)
+13. [Le stampe contabili](#13-le-stampe-contabili)
+14. [La fattura elettronica per lo SDI](#14-la-fattura-elettronica-per-lo-sdi)
+15. [Le tabelle contabili](#15-le-tabelle-contabili)
+16. [Riepilogo in una pagina](#16-riepilogo-in-una-pagina)
 
 ---
 
@@ -74,7 +75,7 @@ tutti gli altri. Ogni causale porta con sé quattro informazioni:
 | Informazione | Cosa determina |
 |---|---|
 | **Ciclo** (Attivo / Passivo) | ⭐️ Se è un **ricavo** o un **costo**. Cambia l'etichetta del campo controparte in *Cliente* o *Fornitore*, e il movimento diventa ENTRATA o USCITA |
-| **Genera IVA** | Se la registrazione entra nel **registro IVA** e riceve un protocollo (capitolo 8) |
+| **Genera IVA** | Se la registrazione entra nel **registro IVA** e riceve un protocollo (capitolo 9) |
 | **Richiede scadenza** | Se la **data di scadenza diventa obbligatoria**. Tipico delle fatture, inutile per un incasso immediato |
 | **Tipo documento SDI** | Il codice (TD01, TD04…) che serve alla **fattura elettronica** |
 
@@ -85,7 +86,7 @@ i costi. È il modo più rapido di vedere se hai sbagliato causale.
 significato contabile del movimento. Se hai sbagliato, verifica dopo il cambio che controparte,
 scadenza e righe abbiano ancora senso.
 
-ℹ️ Le causali si creano e si modificano in **Tabelle → Tabelle Contabili → Causali** (capitolo 14).
+ℹ️ Le causali si creano e si modificano in **Tabelle → Tabelle Contabili → Causali** (capitolo 15).
 Sono per azienda: ognuna ha le sue.
 
 ---
@@ -133,14 +134,15 @@ da subire.
 | **Causale Contabile** ⭐️ | Obbligatoria, e da scegliere **per prima**: cambia il resto della scheda (capitolo 2) |
 | **Cliente / Fornitore** ⭐️ | L'etichetta cambia da sola secondo il ciclo della causale |
 | **Descrizione** ⭐️ | Obbligatoria. È quella che leggerai nell'elenco fra sei mesi: «FATTURA» non serve a niente |
-| **Importo** e **Valuta** ⭐️ | Obbligatori. Sulle valute diverse dall'euro vedi il capitolo 7 |
+| **Importo** e **Valuta** ⭐️ | Obbligatori. Sulle valute diverse dall'euro vedi il capitolo 8 |
 | **Dettaglio Righe** | Il cuore della registrazione — capitolo 5 |
 | **Stato Pagamento** | Da Pagare, Pagato, Parzialmente Pagato, Annullato |
 | **N. Documento** e **Data Documento** | ⚠️ **o entrambi, o nessuno dei due** |
 | **Note** | Libere |
+| **Modalità di Pagamento** | Arriva dall'interlocutore e calcola la scadenza; modificabile — capitolo 7 |
 | **Data Scadenza** | Obbligatoria se la causale lo richiede: l'etichetta mostra l'asterisco |
 | **Data Pagamento** | Da valorizzare quando il movimento è saldato |
-| **Viaggio** e **Data Viaggio** | ⚠️ **o entrambi, o nessuno dei due** — capitolo 10 |
+| **Viaggio** e **Data Viaggio** | ⚠️ **o entrambi, o nessuno dei due** — capitolo 11 |
 
 ✅ **I campi di testo diventano maiuscoli da soli**: non è il tasto BLOC MAIUSC rimasto acceso, è il
 programma che uniforma ciò che finirà nelle stampe.
@@ -211,7 +213,91 @@ passata è quasi sempre un errore.
 
 ---
 
-## 7. Le valute diverse dall'euro
+## 7. Le modalità di pagamento
+
+I giorni di pagamento non sono una proprietà del tipo di documento: sono un **accordo con quella
+controparte**. Due fatture identiche possono scadere a 30 e a 60 giorni, e finora andava scritto a
+mano ogni volta.
+
+### Come funziona, in tre passaggi
+
+1. **La tabella** — *Tabelle Contabili → Modalità di Pagamento*. Nasce già piena di quindici voci;
+   si aggiungono e si modificano come qualsiasi altra tabella.
+2. **La controparte** — nella sua scheda c'è *Modalità di pagamento abituale*: si sceglie una volta.
+   Nell'elenco delle controparti la colonna *Pagamento* mostra il codice, così si vede subito chi ce
+   l'ha e chi no.
+3. **Il movimento** — appena scegli l'interlocutore, la sua modalità compare da sola e **calcola la
+   data di scadenza**. Puoi cambiarla: l'accordo abituale non impedisce l'eccezione.
+
+### Le quindici modalità già pronte
+
+| Codice | Significato |
+|---|---|
+| `RD` | Rimessa diretta (bonifico a vista) |
+| `CONT` | Contanti alla consegna |
+| `CARTA` | Carta di credito o bancomat |
+| `ASS` | Assegno bancario |
+| `ANTIC` | Anticipo / caparra alla prenotazione |
+| `30DF` `60DF` `90DF` | Bonifico a 30, 60, 90 giorni **data fattura** |
+| `30FM` `60FM` `90FM` | Bonifico a 30, 60, 90 giorni **fine mese** |
+| `RIBA30` `RIBA60FM` | Ricevuta bancaria |
+| `MAV` | Pagamento con MAV a 30 giorni |
+| `SDD` | Addebito diretto SEPA |
+
+ℹ️ I codici seguono la convenzione commerciale italiana, quella che si legge sulle fatture: `DF` =
+data fattura, `FM` = fine mese. Non è uno standard di legge, è come si parla fra chi fattura.
+
+### ⚠️ «Data fattura» e «fine mese» non sono la stessa cosa
+
+È la differenza che fa litigare sulle scadenze, e vale la pena averla chiara:
+
+| Fattura del | Con `60DF` scade il | Con `60FM` scade il |
+|---|---|---|
+| 3 marzo | 2 maggio | **30 maggio** |
+
+Con **fine mese** i giorni non partono dalla data della fattura ma dall'**ultimo giorno del mese in
+cui cade**. Quasi un mese di differenza.
+
+✅ Quando crei o modifichi una modalità, sotto ai campi c'è un'**anteprima**: ti dice quando
+scadrebbe una fattura di oggi con quei termini. Guardala prima di salvare.
+
+### Quando la scadenza viene ricalcolata
+
+| Situazione | Cosa succede alla data di scadenza |
+|---|---|
+| Scegli l'interlocutore e il campo scadenza è **vuoto** | Viene calcolata |
+| Scegli l'interlocutore e la scadenza **c'è già** | Non viene toccata (te lo dice sotto il campo) |
+| Scegli tu una modalità dalla tendina | Viene **sempre** ricalcolata: l'hai chiesto tu |
+| Cambi la data del documento | Segue la nuova data |
+
+ℹ️ Sotto alla tendina compare sempre una riga che spiega cosa è successo e da dove arriva la
+proposta. Se una controparte non ha una modalità abituale, te lo dice — così non sembra un
+caricamento fallito.
+
+### Per la fattura elettronica
+
+Ogni modalità porta con sé anche i due codici che il **Sistema di Interscambio** pretende:
+
+* **ModalitaPagamento** — da `MP01` a `MP23`: come si paga (MP01 contanti, MP05 bonifico,
+  MP08 carta, MP12 RIBA, MP19 SEPA Direct Debit…);
+* **CondizioniPagamento** — `TP01` a rate, `TP02` pagamento completo, `TP03` anticipo.
+
+Sono già impostati su tutte e quindici le modalità di partenza: non c'è niente da fare, se non
+compilarli quando aggiungi una modalità tua.
+
+### Cosa non fa
+
+⛔️ **Niente rate multiple** («30/60/90 giorni»). Un movimento ha una sola data di scadenza, e un
+campo che il programma poi ignora sarebbe peggio che non averlo. Se servirà, si farà insieme alle
+scadenze multiple.
+
+ℹ️ La modalità resta scritta **anche sul movimento**, non solo sulla controparte. Serve a sapere
+cosa era stato pattuito allora: se domani rinegozi con quel fornitore, le fatture già registrate
+non cambiano condizioni da sole.
+
+---
+
+## 8. Le valute diverse dall'euro
 
 Se la valuta della transazione **non è l'euro**, il programma cambia comportamento:
 
@@ -227,11 +313,11 @@ peserà zero nei bilanci in euro. I tassi si consultano e si correggono in **Tab
 Contabili → Storico Tassi**.
 
 ⛔️ Una transazione in valuta estera **non riceve il protocollo IVA** e non entra nel registro IVA
-(capitolo 8). È voluto: il registro IVA italiano è in euro.
+(capitolo 9). È voluto: il registro IVA italiano è in euro.
 
 ---
 
-## 8. Il protocollo IVA, e perché poi non si cancella più
+## 9. Il protocollo IVA, e perché poi non si cancella più
 
 Quando salvi, il programma assegna in automatico un **numero di protocollo IVA** — ma solo se
 ricorrono **tutte e tre** queste condizioni:
@@ -258,7 +344,7 @@ si eliminano normalmente.
 
 ---
 
-## 9. Incassi e pagamenti: «Paga Ora»
+## 10. Incassi e pagamenti: «Paga Ora»
 
 Nell'elenco, sulle righe in stato *Da Pagare* o *Parzialmente Pagato*, compare l'icona 💳 **Paga
 Ora**. Apre una finestrella dove indichi **importo**, **data** ed eventuali **note**.
@@ -285,14 +371,14 @@ scadenziario di dire cosa è aperto **a una certa data**.
 
 ---
 
-## 10. Collegare un movimento a un viaggio
+## 11. Collegare un movimento a un viaggio
 
 In fondo alla scheda ci sono **Viaggio** e **Data Viaggio**. Sono facoltativi, ma ⚠️ **o li compili
 entrambi o nessuno dei due**: il programma rifiuta il salvataggio a metà, perché un costo attribuito
 a un viaggio senza sapere a quale **partenza** non è attribuibile a niente.
 
 ✅ **Vale la pena farlo**, ed è il motivo per cui la funzione esiste: solo i movimenti collegati
-finiscono nel **Bilancio del viaggio** (capitolo 12), che è il documento che dice se una partenza ha
+finiscono nel **Bilancio del viaggio** (capitolo 13), che è il documento che dice se una partenza ha
 guadagnato o perso. Un costo non collegato scompare dal conto di quella partenza — e il margine che
 leggi risulta migliore del vero.
 
@@ -324,7 +410,7 @@ E il viaggio che hai già scelto resta sempre visibile, anche se cambi filtro.
 
 ---
 
-## 11. Trovare quello che cerchi nell'elenco
+## 12. Trovare quello che cerchi nell'elenco
 
 La pagina **Movimenti Contabili** ha una fila di filtri che si combinano fra loro:
 
@@ -342,7 +428,7 @@ attive), 🗑 elimina.
 
 ---
 
-## 12. Le stampe contabili
+## 13. Le stampe contabili
 
 Stanno tutte sotto **Stampe Contabili**. Ognuna apre una finestrella di parametri e produce un PDF.
 
@@ -355,7 +441,7 @@ Stanno tutte sotto **Stampe Contabili**. Ognuna apre una finestrella di parametr
 | **Registro IVA** | Il registro da consegnare, in ordine di protocollo | Periodo, credito IVA del periodo precedente |
 | **Stampa Fatture Attive** | Le fatture emesse, in PDF e in XML | Anno, date, cliente, importi, stato, numero |
 
-⚠️ **Il bilancio di un viaggio vale quanto i collegamenti che hai fatto** (capitolo 10). Se un costo
+⚠️ **Il bilancio di un viaggio vale quanto i collegamenti che hai fatto** (capitolo 11). Se un costo
 non è agganciato alla partenza, lì non c'è — e il margine sembra più alto di quello che è.
 
 > ### ℹ️ Come vengono contati i costi, secondo il regime
@@ -380,7 +466,7 @@ che conosce solo chi tiene i conti.
 
 ---
 
-## 13. La fattura elettronica per lo SDI
+## 14. La fattura elettronica per lo SDI
 
 Le fatture emesse si trasformano in **file XML per l'Agenzia delle Entrate**. Due strade:
 
@@ -411,7 +497,7 @@ incompleto verrebbe scartato dallo SDI, e lo scarto arriva giorni dopo.
 
 ---
 
-## 14. Le tabelle contabili
+## 15. Le tabelle contabili
 
 **Tabelle → Tabelle Contabili**. Si toccano di rado, ma quando una stampa o un export si lamenta, la
 risposta è quasi sempre qui.
@@ -423,23 +509,25 @@ risposta è quasi sempre qui.
 | **Storico Tassi** | I tassi di cambio raccolti, per data. Qui si verifica un controvalore che non torna |
 | **Causali** | ⭐️ Il cuore: ciclo, IVA, scadenza, tipo documento SDI (capitolo 2) |
 | **Aliquote IVA** | Codici, percentuali e **Natura** per le aliquote a zero — quella che lo SDI pretende |
+| **Modalità di Pagamento** | ⭐️ Termini e modalità: codice, giorni, fine mese, codici SDI (capitolo 7) |
 | **Regimi Fiscali** | 🔒 Solo amministratore: i parametri di calcolo di ogni regime (capitolo 3) |
 
 ---
 
-## 15. Riepilogo in una pagina
+## 16. Riepilogo in una pagina
 
 | Se devi… | Fai così |
 |---|---|
+| Far calcolare la scadenza da sola | Metti la modalità di pagamento nella scheda dell'interlocutore — capitolo 7 |
 | Registrare una fattura ricevuta | Causale del ciclo passivo, poi righe con l'**imponibile** letto sul documento |
 | Far quadrare i centesimi col cartaceo | Correggi a mano l'imponibile di una riga |
 | Generare le righe di un forfettario | **Applica Calcolo Regime**, dopo aver scritto l'importo |
-| Cancellare una registrazione con protocollo | Non si può: portala ad **Annullato** (cap. 8) |
+| Cancellare una registrazione con protocollo | Non si può: portala ad **Annullato** (cap. 9) |
 | Sapere cosa devi incassare | **Scadenziario**, oppure la spunta *Solo da Pagare* nell'elenco |
 | Registrare un pagamento | Icona 💳 **Paga Ora** sulla riga: crea il movimento collegato |
 | Capire se un viaggio ha guadagnato | **Bilancio Viaggio** — ma solo se i costi sono collegati alla partenza |
 | Mandare una fattura allo SDI | **Estrazione Dati per SDI**, e correggi l'anagrafica se il controllo si lamenta |
-| Capire perché un controvalore è a zero | Manca il tasso di cambio per quella data (cap. 7) |
+| Capire perché un controvalore è a zero | Manca il tasso di cambio per quella data (cap. 8) |
 
 ### Le tre cose da non fare
 

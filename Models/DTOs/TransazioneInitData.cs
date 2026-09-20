@@ -9,6 +9,12 @@ namespace GestioneViaggi.Models.DTOs
         public List<AnaValute> Valute { get; set; } = new();
         public List<AnaControparte> Controparti { get; set; } = new();
         public List<AnaViaggi> Viaggi { get; set; } = new();
+
+        /// <summary>
+        /// Termini e modalità di pagamento attivi dell'azienda: la tendina della scheda
+        /// e la proposta che arriva dalla controparte pescano entrambe da qui.
+        /// </summary>
+        public List<AnaModalitaPagamento> ModalitaPagamento { get; set; } = new();
         public bool ShowHelperCalcolo { get; set; }
         public MovTransazioni? Transazione { get; set; }
 

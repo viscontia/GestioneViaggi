@@ -62,6 +62,51 @@ filtro: nessuna scelta sparisce sotto gli occhi.
 
 ---
 
+### ⭐️ 1.3 — Le modalità di pagamento: una tabella, e la scadenza che si calcola da sola
+
+Mancava un pezzo di contabilità. Fino a ieri i giorni di scadenza li decideva la **causale**,
+uguali per tutti: «fattura fornitore = 30 giorni». Ma i giorni non sono una proprietà del tipo
+di documento, sono un **accordo con quella controparte**. Un fornitore paga a 30 giorni data
+fattura, un altro a 60 fine mese, l'agenzia vuole la rimessa diretta. Finora andava riscritto a
+mano ogni volta — e a mano si sbaglia.
+
+**Cosa c'è di nuovo, in tre punti.**
+
+1. **Una tabella nuova**: *Tabelle Contabili → Modalità di Pagamento*. Nasce **già piena**, con
+   quindici modalità: RD, CONT, CARTA, ASS, ANTIC, 30DF, 60DF, 90DF, 30FM, 60FM, 90FM, RIBA30,
+   RIBA60FM, MAV, SDD. Si aggiungono e si modificano come qualsiasi altra tabella.
+2. **Ogni controparte ha la sua**, nella sua scheda: si sceglie una volta e basta. In elenco
+   compare una colonna *Pagamento* col codice, per vedere a colpo d'occhio chi ce l'ha e chi no.
+3. **Nei movimenti la proposta arriva da sola** appena si sceglie l'interlocutore, e **calcola
+   la scadenza**. Resta modificabile: l'accordo abituale non impedisce l'eccezione.
+
+**Il codice mnemonico.** Per i termini non esiste uno standard di legge, esiste una convenzione
+commerciale italiana consolidata — quella che si legge sulle fatture e si usa a voce: `30DF` =
+30 giorni data fattura, `60FM` = 60 giorni fine mese, `RD` = rimessa diretta. È quella che
+abbiamo adottato.
+
+⚠️ **Per la fattura elettronica invece lo standard c'è, ed è obbligatorio.** Ogni modalità porta
+con sé i due codici che il Sistema di Interscambio pretende: `MP01`…`MP23` per **come** si paga
+(MP05 bonifico, MP12 RIBA, MP08 carta, MP19 SEPA…) e `TP01`/`TP02`/`TP03` per **quando** (a rate,
+in una volta sola, anticipo). Oggi non servono a niente; il giorno in cui si genererà l'XML non
+andranno indovinati, sono già accanto al termine che li riguarda.
+
+ℹ️ **«Fine mese» è la cosa che si sbaglia più spesso**, e vale la pena dirla: i giorni non
+partono dalla data della fattura ma dall'ultimo giorno del mese in cui cade. Una fattura del
+**3 marzo** a «60 FM» scade il **30 maggio**, non il 2 maggio — quasi un mese di differenza, ed
+è il motivo per cui si litiga sulle scadenze. Nella scheda della modalità c'è un'anteprima che
+lo mostra prima di salvare.
+
+ℹ️ **Niente rate multiple** («30/60/90»): un movimento ha una scadenza sola, e un campo che il
+programma poi ignora sarebbe peggio della sua assenza. Se serviranno, si affrontano insieme alle
+scadenze multiple.
+
+ℹ️ La modalità viene salvata **anche sul movimento**, non solo sulla controparte: serve a sapere
+cosa era stato pattuito allora. Se domani si rinegozia con quel fornitore, le fatture già
+registrate non cambiano condizioni da sole.
+
+---
+
 ## Sezione 2 — Correzioni
 
 ### ⛔️ 2.1 — Le stampe dei bilanci non funzionavano affatto
@@ -320,6 +365,10 @@ spiegata.
 | `642_FnGetTransazioneInitData_ChiaviId.sql` | Alias `id` per controparti e viaggi, le cui classi ereditano `Id` da BaseEntity. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `643_FnGetTransazioneInitData_Viaggi.sql` | I viaggi con le chiavi che il programma cerca (`descrizione_breve`, non `viaggio_descrizione_breve`): senza, la tendina Viaggio è bianca. Toglie anche la mappa dal JSON. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `644_TransazioneInitData_ViaggiPartenze.sql` | Aggiunge `ultima_partenza` e `prossima_partenza` a ogni viaggio: è su queste che poggiano i tre pulsanti del §1.2. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `645_ModalitaPagamento_Tabella.sql` | Crea `ana_modalita_pagamento` e le due colonne di collegamento su controparti e movimenti. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `646_ModalitaPagamento_Funzioni_E_Dati.sql` | Funzioni CRUD + le 15 modalità di partenza per ogni azienda (idempotente). ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `647_ModalitaPagamento_Controparti_E_InitData.sql` | Ricrea `fn_ana_controparti_get_all` e `_get_by_id` con la modalità e il suo codice. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `648_TransazioneInitData_ModalitaPagamento.sql` | Le modalità attive nell'apertura della scheda movimenti. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -343,6 +392,7 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | **2026-09-20** | **`SqlScripts/642`** — alias `id` per controparti e viaggi | La controparte selezionata non sparisce più dall'elenco |
 | **2026-09-20** | **`SqlScripts/643`** — i viaggi con le chiavi della classe | La tendina **Viaggio** mostra i nomi dei viaggi e la nazione: verificato in PROD, 23 viaggi con descrizione piena |
 | **2026-09-20** | **`SqlScripts/644`** — le date di partenza su ogni viaggio | Prepara i tre pulsanti §1.2: verificato in PROD, 23 viaggi di cui 17 già effettuati e 12 da effettuare |
+| **2026-09-20** | **`SqlScripts/645`–`648`** — modalità di pagamento | Verificato in PROD: 15 modalità per SFT, presenti nell'apertura della scheda movimenti. ⚠️ La tabella si **vede** solo con l'eseguibile 2.2 |
 
 ℹ️ Il **640** e i tre che lo correggono (**641**, **642**, **643**) sono stati applicati subito
 perché **non dipendono dal nuovo eseguibile**: il programma già installato da Antonio quella

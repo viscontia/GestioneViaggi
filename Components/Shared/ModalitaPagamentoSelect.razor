@@ -1,0 +1,104 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using Microsoft.Extensions.Logging
+@inject AnaModalitaPagamentoService ModalitaService
+@inject ILogger<ModalitaPagamentoSelect> Logger
+
+@* Quindici voci circa, non centinaia: una tendina normale e' piu' rapida di un campo
+   di ricerca, che costringerebbe a digitare per vedere quello che c'e'. *@
+<MudSelect T="int?"
+           Value="@SelectedModalitaId"
+           ValueChanged="@OnValueChanged"
+           Label="@Label"
+           Variant="Variant.Outlined"
+           Margin="Margin.Dense"
+           Clearable="@Clearable"
+           Disabled="@Disabled"
+           HelperText="@HelperText"
+           Class="@Class"
+           AdornmentIcon="@Icons.Material.Filled.Schedule"
+           AdornmentColor="Color.Primary">
+    @if (_items.Count == 0)
+    {
+        @* Dirlo qui evita di cercare il difetto altrove: la tabella si compila in
+           Tabelle Contabili > Modalita' di Pagamento. *@
+        <MudSelectItem T="int?" Value="@((int?)null)" Disabled="true">
+            Nessuna modalità in tabella per questa azienda
+        </MudSelectItem>
+    }
+    else
+    {
+        foreach (var m in _items)
+        {
+            <MudSelectItem T="int?" Value="@((int?)m.ModpagId)">@m.Etichetta</MudSelectItem>
+        }
+    }
+</MudSelect>
+
+@code {
+    [Parameter] public int? SelectedModalitaId { get; set; }
+    [Parameter] public EventCallback<int?> SelectedModalitaIdChanged { get; set; }
+
+    /// <summary>Azienda di cui leggere le modalità, quando non arrivano già pronte.</summary>
+    [Parameter] public int? AziendaId { get; set; }
+
+    /// <summary>
+    /// Elenco già caricato da chi ospita il componente (il Fat Init della scheda movimenti):
+    /// se c'è, qui non si legge nulla dal database.
+    /// </summary>
+    [Parameter] public IEnumerable<AnaModalitaPagamento>? CustomItems { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Modalità di Pagamento";
+    [Parameter] public bool Clearable { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? HelperText { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private List<AnaModalitaPagamento> _items = new();
+    private IEnumerable<AnaModalitaPagamento>? _customItemsPrecedenti;
+    private int? _aziendaPrecedente;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // ⚠️ Riferimento e non conteggio: due elenchi diversi possono avere lo stesso
+        // numero di voci, e con il solo conteggio la tendina resterebbe sul vecchio.
+        bool cambiati = !ReferenceEquals(CustomItems, _customItemsPrecedenti)
+                        || AziendaId != _aziendaPrecedente;
+
+        if (!cambiati) return;
+
+        _customItemsPrecedenti = CustomItems;
+        _aziendaPrecedente = AziendaId;
+        await CaricaAsync();
+    }
+
+    private async Task CaricaAsync()
+    {
+        try
+        {
+            if (CustomItems != null)
+            {
+                _items = CustomItems.ToList();
+            }
+            else if (AziendaId.HasValue && AziendaId.Value > 0)
+            {
+                _items = (await ModalitaService.GetActiveByAziendaAsync(AziendaId.Value)).ToList();
+            }
+            else
+            {
+                _items = new List<AnaModalitaPagamento>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "ModalitaPagamentoSelect: errore nel caricamento delle modalità");
+            _items = new List<AnaModalitaPagamento>();
+        }
+    }
+
+    private async Task OnValueChanged(int? value)
+    {
+        SelectedModalitaId = value;
+        await SelectedModalitaIdChanged.InvokeAsync(value);
+    }
+}

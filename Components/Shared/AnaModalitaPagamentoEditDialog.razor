@@ -1,0 +1,192 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@inject AnaModalitaPagamentoService ModalitaService
+@inject ITenantContext TenantContext
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(Entity.ModpagId == 0 ? Icons.Material.Filled.Add : Icons.Material.Filled.Edit)" Class="mr-3 mb-n1" />
+            @(Entity.ModpagId == 0 ? "Nuova Modalità di Pagamento" : "Modifica Modalità di Pagamento")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="@Entity" OnValidSubmit="OnValidSubmit">
+            <DataAnnotationsValidator />
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudTextField Label="Codice"
+                                  Value="@Entity.ModpagCodice"
+                                  ValueChanged="@((string val) => Entity.ModpagCodice = val?.ToUpper() ?? string.Empty)"
+                                  Required="true"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="10"
+                                  AutoFocus="true"
+                                  Class="uppercase-input"
+                                  HelperText="Es: 30DF, 60FM, RD" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField Label="Descrizione"
+                                  @bind-Value="Entity.ModpagDescrizione"
+                                  Required="true"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="100"
+                                  HelperText="Come va letta: «Bonifico 30 giorni data fattura»" />
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="int" Label="Giorni"
+                                     @bind-Value="Entity.ModpagGiorni"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" Max="365"
+                                     HideSpinButtons="true"
+                                     HelperText="0 = subito" />
+                </MudItem>
+                <MudItem xs="12" sm="8" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Entity.ModpagFineMese"
+                               Label="I giorni partono dalla fine del mese"
+                               Color="Color.Primary" />
+                </MudItem>
+
+                @* L'effetto si vede prima di salvare: «fine mese» e' la cosa che si
+                   sbaglia piu' spesso, e un esempio vale piu' di una spiegazione. *@
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        Una fattura del <b>@_esempio.ToString("dd/MM/yyyy")</b> scadrebbe il
+                        <b>@Entity.CalcolaScadenza(_esempio).ToString("dd/MM/yyyy")</b>.
+                    </MudAlert>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Fattura elettronica</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="7">
+                    <MudSelect T="string" Label="Modalità di pagamento (SDI)"
+                               @bind-Value="Entity.ModpagSdiModalita"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Clearable="true"
+                               HelperText="Il codice che il Sistema di Interscambio pretende">
+                        @foreach (var m in CodiciSdiPagamento.Modalita)
+                        {
+                            <MudSelectItem T="string" Value="@m.Codice">@m.Codice — @m.Descrizione</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudSelect T="string" Label="Condizioni (SDI)"
+                               @bind-Value="Entity.ModpagSdiCondizioni"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
+                        @foreach (var c in CodiciSdiPagamento.Condizioni)
+                        {
+                            <MudSelectItem T="string" Value="@c.Codice">@c.Codice — @c.Descrizione</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int" Label="Ordinamento"
+                                     @bind-Value="Entity.ModpagOrdinamento"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" Max="9999"
+                                     HideSpinButtons="true"
+                                     HelperText="In che ordine compare nelle tendine" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="Entity.IsActive"
+                               Label="Attiva"
+                               Color="Color.Success" />
+                </MudItem>
+            </MudGrid>
+
+            <div class="d-flex justify-end mt-6">
+                <MudButton ButtonType="ButtonType.Button" OnClick="Cancel" Class="mr-2">Annulla</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_processing">
+                    @if (_processing)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Salvataggio...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>@(Entity.ModpagId == 0 ? "Crea" : "Salva")</MudText>
+                    }
+                </MudButton>
+            </div>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AnaModalitaPagamento Entity { get; set; } = new();
+    [Parameter] public int AziendaId { get; set; }
+
+    private bool _processing = false;
+
+    // Data di esempio fissa all'apertura: se cambiasse a ogni battuta, l'anteprima
+    // sotto sembrerebbe muoversi da sola.
+    private readonly DateTime _esempio = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Entity.ModpagId == 0)
+        {
+            Entity.AziendaFk = AziendaId > 0
+                ? AziendaId
+                : (await TenantContext.GetCurrentAziendaIdAsync()) ?? 0;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("dialogFormHelper.setupTabNavigation");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AnaModalitaPagamentoEditDialog] Errore JS: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task OnValidSubmit()
+    {
+        _processing = true;
+        try
+        {
+            if (Entity.ModpagId == 0)
+            {
+                await ModalitaService.CreateAsync(Entity);
+                Snackbar.Add("Modalità di pagamento creata", Severity.Success);
+            }
+            else
+            {
+                await ModalitaService.UpdateAsync(Entity);
+                Snackbar.Add("Modalità di pagamento aggiornata", Severity.Success);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore durante il salvataggio: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

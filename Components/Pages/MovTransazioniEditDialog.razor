@@ -78,7 +78,8 @@
 
                 <!-- RIGA 2: Controparte e Descrizione -->
                 <MudItem xs="12" sm="6">
-                    <ControparteSelect @bind-SelectedControparteId="Transazione.TransazioneControparteId"
+                    <ControparteSelect SelectedControparteId="@Transazione.TransazioneControparteId"
+                                       SelectedControparteIdChanged="@OnControparteChanged"
                                        AziendaId="@AziendaId"
                                        Items="@_initData.Controparti"
                                        CausaleCiclo="@_causaleCicloCorrente"
@@ -267,7 +268,8 @@
                 </MudItem>
                 <MudItem xs="6">
                     <MudDatePicker Label="Data Documento"
-                                   @bind-Date="_dataDocumento"
+                                   Date="@_dataDocumento"
+                                   DateChanged="@OnDataDocumentoChanged"
                                    Variant="Variant.Outlined"
                                    AnchorOrigin="Origin.BottomCenter"
                                    Editable="true" Class="campo-data" TextUpdateSuppression="false"
@@ -311,6 +313,18 @@
                                    Error="@_dataPagamentoError"
                                    ErrorText="@_dataPagamentoErrorText" />
                 </MudItem>
+
+                <!-- RIGA 8-bis: Modalità di pagamento -->
+                @* Arriva dalla controparte appena la si sceglie, e ricalcola la scadenza.
+                   Resta modificabile: l'accordo abituale non impedisce l'eccezione. *@
+                <MudItem xs="12" sm="6">
+                    <ModalitaPagamentoSelect SelectedModalitaId="@Transazione.TransazioneModalitaPagamentoFk"
+                                             SelectedModalitaIdChanged="@OnModalitaPagamentoChanged"
+                                             CustomItems="@_initData.ModalitaPagamento"
+                                             Label="Modalità di Pagamento"
+                                             HelperText="@_notaModalita" />
+                </MudItem>
+                <MudItem xs="12" sm="6"></MudItem>
 
                 <!-- RIGA 9: Viaggio e Data Viaggio -->
                 @* Una fattura attiva si emette quasi sempre su un viaggio gia' concluso, e
@@ -430,6 +444,14 @@
     // === Filtro dei viaggi ===
     // «tutti» (predefinito), «effettuati», «da_effettuare». Non viene ricordato fra
     // un'apertura e l'altra: e' una scorciatoia di ricerca, non una preferenza.
+    // === Modalità di pagamento ===
+    // Nota sotto la tendina: dice da dove arriva la proposta e che scadenza produce.
+    private string? _notaModalita;
+    // ⚠️ Distingue la proposta arrivata dalla controparte da una scelta fatta a mano.
+    // Solo la prima viene sostituita cambiando controparte: quello che l'utente ha
+    // scelto di persona non si tocca.
+    private bool _modalitaProposta;
+
     private string _filtroViaggi = "tutti";
     // ⚠️ Nome qualificato: la pagina AnaViaggi.razor genera una classe omonima in questo
     // stesso namespace, e senza il prefisso il compilatore sceglie quella.
@@ -572,6 +594,105 @@
     /// C'è qualcosa che si perderebbe chiudendo? Non un tracciamento fine delle modifiche: basta
     /// sapere se la scheda è stata toccata.
     /// </summary>
+    /// <summary>
+    /// Scelta della controparte: oltre a registrarla, porta con sé la modalità di
+    /// pagamento abituale.
+    /// </summary>
+    private void OnControparteChanged(int controparteId)
+    {
+        Transazione.TransazioneControparteId = controparteId;
+
+        // ⛔️ Una modalità scelta a mano non si tocca, e nemmeno quella con cui un
+        // movimento è stato registrato mesi fa: si sostituisce solo una proposta.
+        if (Transazione.TransazioneModalitaPagamentoFk.HasValue && !_modalitaProposta)
+        {
+            return;
+        }
+
+        var controparte = _initData.Controparti.FirstOrDefault(c => c.Id == controparteId);
+
+        if (controparte?.ModalitaPagamentoFk is not int modalitaId || modalitaId <= 0)
+        {
+            // Nessun accordo registrato: si lascia il campo com'è e si dice perché,
+            // invece di far pensare a un caricamento fallito.
+            Transazione.TransazioneModalitaPagamentoFk = null;
+            _modalitaProposta = false;
+            _notaModalita = controparte == null
+                ? null
+                : "Questa controparte non ha una modalità abituale: si può indicarla nella sua scheda.";
+            return;
+        }
+
+        ApplicaModalita(modalitaId, daProposta: true, nomeControparte: controparte.RagioneSociale);
+    }
+
+    /// <summary>Scelta fatta a mano nella tendina: da qui in poi comanda l'utente.</summary>
+    private void OnModalitaPagamentoChanged(int? modalitaId)
+    {
+        if (modalitaId is not int id || id <= 0)
+        {
+            Transazione.TransazioneModalitaPagamentoFk = null;
+            _modalitaProposta = false;
+            _notaModalita = null;
+            return;
+        }
+
+        ApplicaModalita(id, daProposta: false, nomeControparte: null);
+    }
+
+    /// <summary>
+    /// Imposta la modalità e ne fa seguire la scadenza.
+    /// </summary>
+    /// <remarks>
+    /// La scadenza si ricalcola <b>sempre</b> quando la scelta è di chi sta compilando —
+    /// ha appena detto quali termini vuole — ma su una proposta automatica solo se il
+    /// campo è ancora vuoto: una data scritta a mano non viene sovrascritta da sola.
+    /// Il calcolo è quello di <see cref="AnaModalitaPagamento.CalcolaScadenza"/>, l'unico
+    /// posto in cui la regola «fine mese» è scritta.
+    /// </remarks>
+    private void ApplicaModalita(int modalitaId, bool daProposta, string? nomeControparte)
+    {
+        var modalita = _initData.ModalitaPagamento.FirstOrDefault(m => m.ModpagId == modalitaId);
+        if (modalita == null) return;
+
+        Transazione.TransazioneModalitaPagamentoFk = modalitaId;
+        _modalitaProposta = daProposta;
+
+        var origine = daProposta && !string.IsNullOrWhiteSpace(nomeControparte)
+            ? $"Proposta da {nomeControparte}. "
+            : string.Empty;
+
+        if (daProposta && _dataScadenza.HasValue)
+        {
+            _notaModalita = $"{origine}Scadenza lasciata al {_dataScadenza.Value:dd/MM/yyyy}, già indicata.";
+            return;
+        }
+
+        var baseDate = _dataDocumento ?? _dataTransazione ?? DateTime.Today;
+        _dataScadenza = modalita.CalcolaScadenza(baseDate);
+        _dataScadenzaError = false;
+        _dataScadenzaErrorText = string.Empty;
+
+        _notaModalita = $"{origine}Scadenza calcolata al {_dataScadenza.Value:dd/MM/yyyy}.";
+    }
+
+    /// <summary>
+    /// Se cambia la data del documento la scadenza deve seguirla: è da quella che si
+    /// contano i giorni, e una scadenza rimasta indietro non se ne accorge nessuno.
+    /// </summary>
+    private void OnDataDocumentoChanged(DateTime? nuovaData)
+    {
+        _dataDocumento = nuovaData;
+
+        if (Transazione.TransazioneModalitaPagamentoFk is not int modalitaId) return;
+
+        var modalita = _initData.ModalitaPagamento.FirstOrDefault(m => m.ModpagId == modalitaId);
+        if (modalita == null || !nuovaData.HasValue) return;
+
+        _dataScadenza = modalita.CalcolaScadenza(nuovaData.Value);
+        _notaModalita = $"Scadenza aggiornata al {_dataScadenza.Value:dd/MM/yyyy} sulla nuova data documento.";
+    }
+
     /// <summary>
     /// Ricostruisce l'elenco dei viaggi mostrato dalla tendina secondo il filtro scelto.
     /// </summary>

@@ -122,6 +122,18 @@ namespace GestioneViaggi.Models
         [Column("transazione_data_documento")]
         public DateTime? TransazioneDataDocumento { get; set; }
 
+        /// <summary>
+        /// Modalità di pagamento pattuita per QUESTO movimento.
+        /// </summary>
+        /// <remarks>
+        /// Parte da quella abituale della controparte e resta modificabile. Viene salvata
+        /// sul movimento e non solo sulla controparte perché serve sapere cosa era stato
+        /// pattuito <b>allora</b>: se domani si rinegozia con quel fornitore, le fatture
+        /// già registrate non devono cambiare condizioni da sole.
+        /// </remarks>
+        [Column("transazione_modalita_pagamento_fk")]
+        public int? TransazioneModalitaPagamentoFk { get; set; }
+
         [Column("transazione_fattura_fk")]
         public int? TransazioneFatturaFk { get; set; }
 

@@ -183,6 +183,10 @@
                         OnClick="@(() => OpenTabAndNotify("/tabelle/aliquote-iva", "Aliquote IVA", "table"))">
                 <MudText Typo="Typo.body1">Aliquote IVA</MudText>
             </MudNavLink>
+             <MudNavLink Icon="@Icons.Material.Filled.Schedule"
+                        OnClick="@(() => OpenTabAndNotify("/tabelle/modalita-pagamento", "Modalità di Pagamento", "table"))">
+                <MudText Typo="Typo.body1">Modalità di Pagamento</MudText>
+            </MudNavLink>
             <AuthorizeView Roles="superadmin">
                 <MudNavLink Icon="@Icons.Material.Filled.Gavel"
                             OnClick="@(() => OpenTabAndNotify("/tabelle/regimi-fiscali", "Regimi Fiscali", "gavel"))">

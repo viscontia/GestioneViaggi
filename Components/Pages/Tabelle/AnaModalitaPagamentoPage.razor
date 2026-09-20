@@ -1,0 +1,215 @@
+@page "/tabelle/modalita-pagamento"
+@using GestioneViaggi.Models
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Components.Shared
+@inject AnaModalitaPagamentoService ModalitaService
+@inject ITenantContext TenantContext
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<AppBreadcrumbs />
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <EnterpriseDataGrid T="AnaModalitaPagamento"
+                        Title="Modalità di Pagamento"
+                        Items="@_items"
+                        ReadOnly="false"
+                        Loading="@_loading"
+                        SearchFunction="@SearchFunc">
+        <ToolBarActions>
+            @if (_isSuperAdmin)
+            {
+                <div style="min-width: 250px;" class="mr-4">
+                    <AziendaSelect Value="_selectedAziendaId" Label="Filtra per Azienda" Clearable="false" ShowAllOption="false"
+                                   ValueChanged="@OnAziendaFilterChanged" />
+                </div>
+            }
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@OpenCreateDialog">
+                Nuova Modalità
+            </MudButton>
+        </ToolBarActions>
+        <Columns>
+            <PropertyColumn Property="x => x.ModpagCodice" Title="Codice" />
+            <PropertyColumn Property="x => x.ModpagDescrizione" Title="Descrizione" />
+            <PropertyColumn Property="x => x.ModpagGiorni" Title="Scadenza">
+                <CellTemplate>
+                    @* Si legge come si direbbe a voce, non come e' scritto a database. *@
+                    @if (context.Item.ModpagGiorni == 0 && !context.Item.ModpagFineMese)
+                    {
+                        <MudChip Color="Color.Info" Size="Size.Small" Variant="Variant.Text">Subito</MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">
+                            @context.Item.ModpagGiorni giorni @(context.Item.ModpagFineMese ? "fine mese" : "data fattura")
+                        </MudText>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.ModpagSdiModalita" Title="Fattura elettronica">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.ModpagSdiModalita))
+                    {
+                        <MudChip Color="Color.Tertiary" Size="Size.Small" Variant="Variant.Text">
+                            @CodiciSdiPagamento.DescriviModalita(context.Item.ModpagSdiModalita)
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">non indicata</MudText>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+            <PropertyColumn Property="x => x.IsActive" Title="Attiva">
+                <CellTemplate>
+                    @if (context.Item.IsActive)
+                    {
+                        <MudChip Color="Color.Success" Size="Size.Small" Variant="Variant.Text">Sì</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip Color="Color.Default" Size="Size.Small" Variant="Variant.Text">No</MudChip>
+                    }
+                </CellTemplate>
+            </PropertyColumn>
+
+            <EnterpriseActionsColumn T="AnaModalitaPagamento" OnEdit="@OpenEditDialog" OnDelete="@EliminaModalita" />
+        </Columns>
+    </EnterpriseDataGrid>
+</MudContainer>
+
+@code {
+    private IEnumerable<AnaModalitaPagamento> _items = new List<AnaModalitaPagamento>();
+    private bool _loading = true;
+    private int? _currentAziendaId;
+    private int _selectedAziendaId;
+    private bool _isSuperAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isSuperAdmin = await TenantContext.IsSuperAdminAsync();
+
+        if (_isSuperAdmin)
+        {
+            _currentAziendaId = null;
+        }
+        else
+        {
+            _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            if (!_currentAziendaId.HasValue)
+            {
+                Snackbar.Add("Errore: Azienda non trovata nel context", Severity.Error);
+                return;
+            }
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task OnAziendaFilterChanged(int aziendaId)
+    {
+        _selectedAziendaId = aziendaId;
+        await LoadDataAsync();
+    }
+
+    private int GetEffectiveAziendaId()
+    {
+        if (_isSuperAdmin && _selectedAziendaId > 0)
+            return _selectedAziendaId;
+        return _currentAziendaId ?? 0;
+    }
+
+    private async Task LoadDataAsync()
+    {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            _items = new List<AnaModalitaPagamento>();
+            return;
+        }
+
+        _loading = true;
+        try
+        {
+            _items = await ModalitaService.GetAllByAziendaAsync(aziendaId);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var aziendaId = GetEffectiveAziendaId();
+        if (aziendaId == 0)
+        {
+            Snackbar.Add("Seleziona un'azienda prima di creare una modalità di pagamento", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters { ["AziendaId"] = aziendaId };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AnaModalitaPagamentoEditDialog>("Nuova Modalità di Pagamento", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(AnaModalitaPagamento item)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Entity"] = item,
+            ["AziendaId"] = GetEffectiveAziendaId()
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AnaModalitaPagamentoEditDialog>("Modifica Modalità di Pagamento", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task EliminaModalita(AnaModalitaPagamento item)
+    {
+        bool? conferma = await DialogService.ShowMessageBox(
+            "Elimina Modalità di Pagamento",
+            $"Sei sicuro di voler eliminare {item.ModpagCodice} - {item.ModpagDescrizione}?",
+            yesText: "Elimina", cancelText: "Annulla");
+
+        if (conferma != true) return;
+
+        try
+        {
+            await ModalitaService.DeleteAsync(item.ModpagId);
+            Snackbar.Add("Modalità di pagamento eliminata", Severity.Success);
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            // Il database dice gia' CHI la sta usando e cosa si puo' fare: il messaggio
+            // arriva intero, e resta il tempo di leggerlo.
+            Snackbar.Add(ex.Message, Severity.Warning, config => config.RequireInteraction = true);
+        }
+    }
+
+    private bool SearchFunc(AnaModalitaPagamento item, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        return item.ModpagCodice?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
+            || item.ModpagDescrizione?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true
+            || item.ModpagSdiModalita?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true;
+    }
+}

@@ -392,6 +392,55 @@ Funzioni CRUD per la gestione dei tipi di causale contabile con metadati IVA e s
 
 ---
 
+## 8.1.1. Contabilità - Modalità di Pagamento (`SqlScripts/645`–`648`)
+
+Termini e modalità di pagamento per azienda: `ana_modalita_pagamento`.
+
+**Perché esiste.** Prima i giorni di scadenza stavano sulla **causale**, uguali per tutti.
+Ma i giorni non sono una proprietà del tipo di documento, sono un **accordo con quella
+controparte**: due fatture identiche possono scadere a 30 e a 60 giorni. La modalità sta
+quindi sulla controparte (proposta) e sul singolo movimento (quello che è stato pattuito).
+
+**I due mondi dei codici.**
+
+| | Chi lo fissa | Dove sta |
+|---|---|---|
+| `modpag_codice` (30DF, 60FM, RD) | convenzione commerciale italiana, nessuno standard di legge | scelto dall'utente |
+| `modpag_sdi_modalita` (MP01…MP23) | Agenzia delle Entrate, **obbligatorio** in fattura elettronica | `CodiciSdiPagamento.Modalita` |
+| `modpag_sdi_condizioni` (TP01/TP02/TP03) | idem | `CodiciSdiPagamento.Condizioni` |
+
+⚠️ I codici SDI sono scritti in **un posto solo** lato C# (`Models/CodiciSdiPagamento.cs`):
+sono un fatto esterno, non una scelta nostra, e serviranno all'XML della fattura elettronica.
+
+**Funzioni**
+
+| Funzione | Cosa fa |
+|---|---|
+| `fn_ana_modalita_pagamento_get_all(p_azienda_id)` | tutte, per la pagina di tabella |
+| `fn_ana_modalita_pagamento_get_active(p_azienda_id)` | solo le attive, per le tendine |
+| `sp_ana_modalita_pagamento_create(...)` | ritorna il nuovo `modpag_id` |
+| `sp_ana_modalita_pagamento_update(...)` | |
+| `sp_ana_modalita_pagamento_delete(p_modpag_id)` | ⚠️ il rifiuto **dice chi la sta usando**: quanti movimenti, quante controparti e il nome della prima, più la via d'uscita (disattivarla) |
+
+**Il calcolo della scadenza NON è nel database.** Sta in `AnaModalitaPagamento.CalcolaScadenza`,
+un posto solo, perché serve mentre si compila la scheda e non al salvataggio. La regola che
+conta: con `modpag_fine_mese` i giorni partono dall'**ultimo giorno del mese** della data
+documento — una fattura del 3 marzo a «60 FM» scade il 30 maggio, non il 2 maggio.
+
+**Cosa non fa**: niente rate multiple («30/60/90»). Un movimento ha una sola scadenza, e un
+campo che il programma poi ignora sarebbe peggio della sua assenza.
+
+**Collegamenti**: `ana_controparti.modalita_pagamento_fk` (la proposta) e
+`mov_transazioni.transazione_modalita_pagamento_fk` (quello che è stato pattuito allora, che
+non cambia se in seguito si rinegozia con la controparte).
+
+⚠️ `fn_ana_controparti_get_all` e `fn_ana_controparti_get_by_id` sono state **ricreate** dal
+`647` con due colonne in più (`modalita_pagamento_fk`, `modalita_pagamento_codice`):
+`CREATE OR REPLACE` non basta quando cambia il tipo del risultato, e la `get_by_id` va rifatta
+anche se il suo corpo non cambia, perché restituisce `SELECT *` dell'altra.
+
+---
+
 ## 8.7. Iscrizione al viaggio (`SqlScripts/551`)
 
 **Fase 4.** `MovClientiViaggiService` non ha **mai** avuto una validazione: solo traduzione in italiano

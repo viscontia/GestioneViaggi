@@ -361,14 +361,16 @@ public class MovTransazioniService
                     transazione_importo, transazione_valuta_id, transazione_data,
                     transazione_data_scadenza, transazione_data_pagamento, transazione_stato,
                     transazione_causale, transazione_note, transazione_numero_documento,
-                    transazione_data_documento, created_at, created_by
+                    transazione_data_documento, transazione_modalita_pagamento_fk,
+                    created_at, created_by
                 ) VALUES (
                     @TransazioneAziendaId, @TransazioneViaggioId, @TransazioneDataViaggioId,
                     @TransazioneControparteId, @TransazioneCausaleTipoId, @TransazioneTipoMovimento,
                     @TransazioneImporto, @TransazioneValutaId, @TransazioneData,
                     @TransazioneDataScadenza, @TransazioneDataPagamento, @TransazioneStato,
                     @TransazioneCausale, @TransazioneNote, @TransazioneNumeroDocumento,
-                    @TransazioneDataDocumento, NOW(), @CreatedBy
+                    @TransazioneDataDocumento, @TransazioneModalitaPagamentoFk,
+                    NOW(), @CreatedBy
                 ) RETURNING transazione_id";
 
             await using var cmdInsert = new NpgsqlCommand(sql, conn, transaction);
@@ -388,6 +390,7 @@ public class MovTransazioniService
             cmdInsert.Parameters.AddWithValue("TransazioneNote", (object?)item.TransazioneNote ?? DBNull.Value);
             cmdInsert.Parameters.AddWithValue("TransazioneNumeroDocumento", (object?)item.TransazioneNumeroDocumento ?? DBNull.Value);
             cmdInsert.Parameters.AddWithValue("TransazioneDataDocumento", (object?)item.TransazioneDataDocumento ?? DBNull.Value);
+            cmdInsert.Parameters.AddWithValue("TransazioneModalitaPagamentoFk", (object?)item.TransazioneModalitaPagamentoFk ?? DBNull.Value);
             cmdInsert.Parameters.AddWithValue("CreatedBy", (object?)item.CreatedBy ?? DBNull.Value);
 
             var result = await cmdInsert.ExecuteScalarAsync();
@@ -529,6 +532,7 @@ public class MovTransazioniService
                     transazione_note = @TransazioneNote,
                     transazione_numero_documento = @TransazioneNumeroDocumento,
                     transazione_data_documento = @TransazioneDataDocumento,
+                    transazione_modalita_pagamento_fk = @TransazioneModalitaPagamentoFk,
                     updated_at = NOW(),
                     updated_by = @UpdatedBy
                 WHERE transazione_id = @TransazioneId";
@@ -549,6 +553,7 @@ public class MovTransazioniService
             cmdUpdate.Parameters.AddWithValue("TransazioneNote", (object?)item.TransazioneNote ?? DBNull.Value);
             cmdUpdate.Parameters.AddWithValue("TransazioneNumeroDocumento", (object?)item.TransazioneNumeroDocumento ?? DBNull.Value);
             cmdUpdate.Parameters.AddWithValue("TransazioneDataDocumento", (object?)item.TransazioneDataDocumento ?? DBNull.Value);
+            cmdUpdate.Parameters.AddWithValue("TransazioneModalitaPagamentoFk", (object?)item.TransazioneModalitaPagamentoFk ?? DBNull.Value);
             cmdUpdate.Parameters.AddWithValue("UpdatedBy", (object?)item.UpdatedBy ?? DBNull.Value);
             cmdUpdate.Parameters.AddWithValue("TransazioneId", item.TransazioneId);
             await cmdUpdate.ExecuteNonQueryAsync();

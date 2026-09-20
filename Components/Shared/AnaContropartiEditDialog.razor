@@ -80,6 +80,17 @@
                         Variant="Variant.Outlined" Min="1" Max="10" />
                 </MudItem>
 
+                <!-- RIGA 3-bis: Modalità di pagamento abituale -->
+                @* Si sceglie una volta qui e torna da sola su ogni movimento: i giorni di
+                   pagamento sono un accordo con QUESTA controparte, non una proprieta' del
+                   tipo di documento. Resta modificabile sul singolo movimento. *@
+                <MudItem xs="12" sm="8">
+                    <ModalitaPagamentoSelect @bind-SelectedModalitaId="Entity.ModalitaPagamentoFk"
+                                             AziendaId="@Entity.AziendaFk"
+                                             Label="Modalità di pagamento abituale"
+                                             HelperText="Proposta automaticamente sui movimenti di questa controparte" />
+                </MudItem>
+
                 <!-- RIGA 4: Attivo (Switch) -->
                 <MudItem xs="12">
                     <MudSwitch @bind-Value="Entity.Attivo" Color="Color.Primary" Label="Controparte Attiva" />

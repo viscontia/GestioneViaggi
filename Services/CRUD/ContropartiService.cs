@@ -156,6 +156,7 @@ public class ContropartiService : BaseCrudService<AnaControparte>
                     partita_iva,
                     codice_fiscale,
                     tipo_fornitore_fk,
+                    modalita_pagamento_fk,
                     attivo,
                     priorita,
                     note,
@@ -182,6 +183,7 @@ public class ContropartiService : BaseCrudService<AnaControparte>
                     @partitaIva,
                     @codiceFiscale,
                     @tipoFornitoreFk,
+                    @modalitaPagamentoFk,
                     @attivo,
                     @priorita,
                     @note,
@@ -239,6 +241,7 @@ public class ContropartiService : BaseCrudService<AnaControparte>
                     partita_iva = @partitaIva,
                     codice_fiscale = @codiceFiscale,
                     tipo_fornitore_fk = @tipoFornitoreFk,
+                    modalita_pagamento_fk = @modalitaPagamentoFk,
                     attivo = @attivo,
                     priorita = @priorita,
                     note = @note,
@@ -332,6 +335,7 @@ public class ContropartiService : BaseCrudService<AnaControparte>
             PartitaIva = ReadNullableString(reader, "partita_iva"),
             CodiceFiscale = ReadNullableString(reader, "codice_fiscale"),
             TipoFornitoreFk = ReadNullableInt(reader, "tipo_fornitore_fk"),
+            ModalitaPagamentoFk = ReadNullableInt(reader, "modalita_pagamento_fk"),
             Attivo = reader.GetBoolean(reader.GetOrdinal("attivo")),
             Priorita = reader.GetInt32(reader.GetOrdinal("priorita")),
             Note = ReadNullableString(reader, "note"),
@@ -346,6 +350,7 @@ public class ContropartiService : BaseCrudService<AnaControparte>
     {
         var entity = MapFromReader(reader);
         entity.TipoFornitoreDescrizione = ReadNullableString(reader, "tipo_fornitore_desc");
+        entity.ModalitaPagamentoCodice = ReadNullableString(reader, "modalita_pagamento_codice");
         entity.ComuneDescrizione = ReadNullableString(reader, "comune_descrizione");
         entity.ProvinciaSigla = ReadNullableString(reader, "provincia_sigla");
         return entity;
@@ -381,6 +386,13 @@ public class ContropartiService : BaseCrudService<AnaControparte>
         AddNullableStringParameter(command, "codiceDestinatarioSdi", entity.CodiceSdi);
         AddNullableStringParameter(command, "partitaIva", entity.PartitaIva);
         AddNullableStringParameter(command, "codiceFiscale", entity.CodiceFiscale);
+
+        // La modalita' abituale e' facoltativa: senza tipo esplicito Npgsql non saprebbe
+        // che tipo ha un DBNull e rifiuterebbe la scrittura.
+        if (entity.ModalitaPagamentoFk.HasValue && entity.ModalitaPagamentoFk.Value > 0)
+            command.Parameters.AddWithValue("modalitaPagamentoFk", entity.ModalitaPagamentoFk.Value);
+        else
+            command.Parameters.Add(new NpgsqlParameter("modalitaPagamentoFk", NpgsqlTypes.NpgsqlDbType.Integer) { Value = DBNull.Value });
 
         if (entity.TipoFornitoreFk.HasValue)
             command.Parameters.AddWithValue("tipoFornitoreFk", entity.TipoFornitoreFk.Value);

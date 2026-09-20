@@ -94,6 +94,23 @@ else
 
             <PropertyColumn Property="x => x.TipoFornitoreDescrizione" Title="Tipo Forn." />
 
+            @* Il codice della modalità abituale: si vede a colpo d'occhio chi ce l'ha e
+               chi no, senza aprire scheda per scheda. *@
+            <TemplateColumn Title="Pagamento">
+                <CellTemplate>
+                    @if (!string.IsNullOrWhiteSpace(context.Item.ModalitaPagamentoCodice))
+                    {
+                        <MudChip Color="Color.Tertiary" Size="Size.Small" Variant="Variant.Text">
+                            @context.Item.ModalitaPagamentoCodice
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+
             <TemplateColumn Title="P.IVA / VAT">
                 <CellTemplate>
                     @if (!string.IsNullOrWhiteSpace(context.Item.PartitaIva))
