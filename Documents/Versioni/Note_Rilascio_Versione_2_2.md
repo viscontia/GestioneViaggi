@@ -118,6 +118,10 @@ troncata in «Alq…» e si sovrapponeva alla lente di ricerca.
 La label lì dentro era superflua — l'intestazione della colonna dice già «IVA (%)» — e in 130 pixel
 non ci stava. Tolta la label e allargata la colonna.
 
+Sistemate anche le **frecce su/giù** dei campi importo, che dalle quattro cifre in su finivano sopra
+il numero: su un importo in euro non servono a nessuno — nessuno registra mille euro a colpi di
++1 — e sono state tolte sia dall'imponibile di riga sia dall'importo in testata.
+
 ### 2.5 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema

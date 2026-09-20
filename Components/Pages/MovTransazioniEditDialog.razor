@@ -102,6 +102,7 @@
                                      Format="N2"
                                      Variant="Variant.Outlined"
                                      Required="true"
+                                     HideSpinButtons="true"
                                      Adornment="Adornment.Start"
                                      AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
                 </MudItem>
@@ -168,7 +169,10 @@
                             </TemplateColumn>
                             <TemplateColumn Title="Imponibile" HeaderStyle="width: 120px;">
                                 <EditTemplate>
-                                    <MudNumericField @bind-Value="context.Item.RigaImponibile" Margin="Margin.Dense" Format="N2" Culture="@(new System.Globalization.CultureInfo("it-IT"))" T="decimal" OnBlur="@(() => OnRigaImponibileChanged(context.Item))" />
+                                    @* HideSpinButtons: su un importo in euro le frecce su/giu' non servono a nessuno
+                                       - nessuno registra mille euro a colpi di +1 - e in colonna rubavano
+                                       spazio al numero, sovrapponendosi a partire dalle quattro cifre. *@
+                                    <MudNumericField @bind-Value="context.Item.RigaImponibile" Margin="Margin.Dense" Format="N2" Culture="@(new System.Globalization.CultureInfo("it-IT"))" T="decimal" HideSpinButtons="true" OnBlur="@(() => OnRigaImponibileChanged(context.Item))" />
                                 </EditTemplate>
                             </TemplateColumn>
                             @* Label vuota di proposito: l'intestazione della colonna dice gia'
