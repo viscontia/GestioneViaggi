@@ -40,6 +40,28 @@ differenza che rende utile il secondo numero.
 
 ---
 
+### ⭐️ 1.2 — Nei movimenti, il viaggio si trova in due mosse
+
+Sopra la tendina **Viaggio** della scheda contabile ci sono tre pulsanti: **TUTTI I VIAGGI**,
+**GIÀ EFFETTUATI**, **DA EFFETTUARE**, ognuno con il proprio conteggio.
+
+Il motivo è pratico: una fattura attiva si emette quasi sempre sul viaggio **appena concluso**, e
+l'anagrafica cresce di anno in anno (in produzione oggi sono 23 viaggi, 17 con partenze già fatte).
+Scorrere un elenco alfabetico per trovare quello di due settimane fa non è il modo di lavorare di
+chi fattura.
+
+Cambia anche **l'ordine**, non solo il contenuto: *GIÀ EFFETTUATI* mette in cima la partenza più
+recente, *DA EFFETTUARE* la più vicina — quella su cui si incassano le caparre.
+
+ℹ️ Un viaggio che si ripete compare in entrambi gli elenchi, ed è corretto: ha partenze concluse e
+partenze future. I pulsanti leggono il **calendario**, non la spunta «effettuato», così un viaggio
+che nessuno ha spuntato non sparisce da quelli da fatturare.
+
+ℹ️ Si parte sempre da *TUTTI I VIAGGI*, e il viaggio già scelto resta visibile anche cambiando
+filtro: nessuna scelta sparisce sotto gli occhi.
+
+---
+
 ## Sezione 2 — Correzioni
 
 ### ⛔️ 2.1 — Le stampe dei bilanci non funzionavano affatto
@@ -297,6 +319,7 @@ spiegata.
 | `641_FnGetTransazioneInitData_AliasSnakeCase.sql` | Alias del JSON tutti in snake_case: senza, le tendine si popolano di elementi senza testo. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `642_FnGetTransazioneInitData_ChiaviId.sql` | Alias `id` per controparti e viaggi, le cui classi ereditano `Id` da BaseEntity. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `643_FnGetTransazioneInitData_Viaggi.sql` | I viaggi con le chiavi che il programma cerca (`descrizione_breve`, non `viaggio_descrizione_breve`): senza, la tendina Viaggio è bianca. Toglie anche la mappa dal JSON. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `644_TransazioneInitData_ViaggiPartenze.sql` | Aggiunge `ultima_partenza` e `prossima_partenza` a ogni viaggio: è su queste che poggiano i tre pulsanti del §1.2. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -319,10 +342,12 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | **2026-09-20** | **`SqlScripts/641`** — alias del JSON in snake_case | Le tendine della scheda mostrano il testo delle voci, non righe vuote |
 | **2026-09-20** | **`SqlScripts/642`** — alias `id` per controparti e viaggi | La controparte selezionata non sparisce più dall'elenco |
 | **2026-09-20** | **`SqlScripts/643`** — i viaggi con le chiavi della classe | La tendina **Viaggio** mostra i nomi dei viaggi e la nazione: verificato in PROD, 23 viaggi con descrizione piena |
+| **2026-09-20** | **`SqlScripts/644`** — le date di partenza su ogni viaggio | Prepara i tre pulsanti §1.2: verificato in PROD, 23 viaggi di cui 17 già effettuati e 12 da effettuare |
 
 ℹ️ Il **640** e i tre che lo correggono (**641**, **642**, **643**) sono stati applicati subito
 perché **non dipendono dal nuovo eseguibile**: il programma già installato da Antonio quella
-funzione la chiamava già, e non la trovava.
+funzione la chiamava già, e non la trovava. Il **644** aggiunge solo due campi in più al JSON,
+che la versione installata ignora: applicarlo in anticipo non le cambia nulla.
 
 ⛔️ Gli altri due script — **638** e **639** — **non** sono stati applicati: vanno **insieme**
 all'eseguibile nuovo, perché aggiungono colonne che solo la versione 2.2 sa leggere. Applicarli

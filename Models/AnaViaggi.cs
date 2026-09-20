@@ -151,4 +151,21 @@ public class AnaViaggi : BaseEntity, IAuditable, IValidatableObject
     // === Transient UI Properties ===
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public int MatchingDatesCount { get; set; }
+
+    /// <summary>
+    /// La partenza conclusa piu' recente, oppure null se il viaggio non e' mai stato fatto.
+    /// Calcolata sul calendario (<c>ana_date_viaggi</c>) e non sulla spunta «effettuato»:
+    /// un viaggio che nessuno ha spuntato e' comunque un viaggio da fatturare.
+    /// Arriva solo dal percorso JSON della scheda movimenti (<c>fn_get_transazione_init_data</c>,
+    /// script 644); altrove resta null.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTime? UltimaPartenza { get; set; }
+
+    /// <summary>
+    /// La prima partenza ancora in corso o futura, oppure null se non ce ne sono in calendario.
+    /// Un viaggio che si ripete ha ENTRAMBE le date: e' sia gia' effettuato sia da effettuare.
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public DateTime? ProssimaPartenza { get; set; }
 }

@@ -1102,7 +1102,8 @@ Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica c
   - `p_transazione_id` (INT, default NULL): ID della transazione per recuperare i dettagli (modalità edit).
 - **Ritorna**: `JSON` contenente `Causali`, `AliquoteIva`, `Valute`, `Controparti`, `Viaggi`, `ShowHelperCalcolo` e `TransazioneJson`.
 - **Utilizzo**: `MovTransazioniService.GetTransazioneInitDataAsync(int aziendaId, int? transazioneId)`
-- **Script**: `SqlScripts/640` (ricostruzione), poi `641`, `642` e **`643`** (quello in servizio).
+- **Script**: `SqlScripts/640` (ricostruzione), poi `641`, `642`, `643` e **`644`** (quello in servizio).
+- **Viaggi**: oltre ai campi della scheda, ogni viaggio porta `ultima_partenza` (la partenza conclusa più recente) e `prossima_partenza` (la prima in corso o futura), calcolate su `ana_date_viaggi`. Servono ai tre filtri della tendina Viaggio (tutti / già effettuati / da effettuare) **senza tornare al database** a ogni cambio. ⚠️ Volutamente **non** si usa `data_viaggio_effettuato_sino`: è una spunta manuale, e un viaggio dimenticato sparirebbe da quelli da fatturare.
   ⛔️ **Non usare il `270`**: usa colonne che lo schema non ha (`azienda_id_fk`, `is_active` su
   `ana_controparti`/`ana_viaggi`, `viaggio_data_inizio` su `ana_viaggi`). La funzione si crea e
   fallisce alla prima chiamata — ed è il motivo per cui **fino al 2026-09-20 non è mai esistita**,

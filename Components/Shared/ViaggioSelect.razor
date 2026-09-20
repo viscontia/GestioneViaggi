@@ -50,7 +50,11 @@
     private AnaViaggi? _selectedViaggio;
     private List<AnaViaggi> _allViaggi = new();
     private int? _previousAziendaId;
-    private int _previousCustomItemsCount;
+    // ⚠️ Si confronta il RIFERIMENTO della lista, non il numero di elementi: due filtri
+    // diversi possono restituire lo stesso numero di viaggi (gia' effettuati e da
+    // effettuare, per dire) e con il solo conteggio la tendina resterebbe ferma sulla
+    // lista precedente senza che nulla lo faccia sospettare.
+    private IEnumerable<AnaViaggi>? _previousCustomItems;
     private bool _previousFilterOnlyWithTransactions;
 
     protected override async Task OnInitializedAsync()
@@ -66,16 +70,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        // Determina se CustomItems è cambiato controllando il count
-        int currentCount = CustomItems?.Count() ?? 0;
-        bool customItemsChanged = currentCount != _previousCustomItemsCount;
+        bool customItemsChanged = !ReferenceEquals(CustomItems, _previousCustomItems);
         bool aziendaChanged = AziendaId != _previousAziendaId;
         bool filterChanged = FilterOnlyWithTransactions != _previousFilterOnlyWithTransactions;
 
         if (customItemsChanged || aziendaChanged || filterChanged)
         {
             _previousAziendaId = AziendaId;
-            _previousCustomItemsCount = currentCount;
+            _previousCustomItems = CustomItems;
             _previousFilterOnlyWithTransactions = FilterOnlyWithTransactions;
 
             await LoadViaggiAsync();

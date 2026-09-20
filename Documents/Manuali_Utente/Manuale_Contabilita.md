@@ -298,6 +298,30 @@ leggi risulta migliore del vero.
 
 ℹ️ Il collegamento si può aggiungere anche dopo, riaprendo la registrazione.
 
+### Trovare il viaggio giusto senza scorrere tutta l'anagrafica
+
+Sopra la tendina **Viaggio** ci sono tre pulsanti, con fra parentesi quanti viaggi contiene
+ciascuno:
+
+| Pulsante | Cosa mostra | Con quale ordine |
+|---|---|---|
+| **TUTTI I VIAGGI** | tutta l'anagrafica | alfabetico |
+| **GIÀ EFFETTUATI** | i viaggi con almeno una partenza conclusa | **dal più recente**: in cima quello appena chiuso |
+| **DA EFFETTUARE** | i viaggi con una partenza in corso o futura | **dalla più vicina**: in cima la prossima |
+
+✅ Serve soprattutto in **fatturazione attiva**: una fattura si emette quasi sempre sul viaggio
+appena concluso, e con *GIÀ EFFETTUATI* te lo trovi in cima invece di cercarlo in mezzo agli altri.
+Per le **caparre** vale il contrario: *DA EFFETTUARE* mette per prima la partenza più vicina.
+
+ℹ️ Un viaggio che si ripete ogni anno compare in **entrambi** gli elenchi: ha partenze già fatte e
+partenze ancora da fare, ed è giusto trovarlo sia di qua sia di là.
+
+ℹ️ I tre pulsanti guardano il **calendario delle partenze**, non la spunta «effettuato»: un viaggio
+che nessuno si è ricordato di spuntare resta comunque fra quelli da fatturare.
+
+ℹ️ Il filtro non viene ricordato: ogni volta che apri una registrazione riparte da *TUTTI I VIAGGI*.
+E il viaggio che hai già scelto resta sempre visibile, anche se cambi filtro.
+
 ---
 
 ## 11. Trovare quello che cerchi nell'elenco

@@ -313,10 +313,31 @@
                 </MudItem>
 
                 <!-- RIGA 9: Viaggio e Data Viaggio -->
+                @* Una fattura attiva si emette quasi sempre su un viaggio gia' concluso, e
+                   l'anagrafica cresce di anno in anno: il filtro evita di scorrerla tutta.
+                   Si parte da «Tutti» perche' chi apre la scheda deve vedere quello che c'e',
+                   non una selezione decisa da noi. *@
+                <MudItem xs="12" Class="pb-0">
+                    <MudChipSet T="string" SelectedValue="@_filtroViaggi"
+                                SelectedValueChanged="@CambiaFiltroViaggi" Class="mb-n2">
+                        <MudChip Text="tutti" Value="@("tutti")" Size="Size.Small"
+                                 Color="Color.Default" Variant="Variant.Outlined">
+                            TUTTI I VIAGGI (@_initData.Viaggi.Count)
+                        </MudChip>
+                        <MudChip Text="effettuati" Value="@("effettuati")" Size="Size.Small"
+                                 Color="Color.Success" Variant="Variant.Outlined">
+                            GIÀ EFFETTUATI (@_viaggiEffettuati)
+                        </MudChip>
+                        <MudChip Text="da_effettuare" Value="@("da_effettuare")" Size="Size.Small"
+                                 Color="Color.Warning" Variant="Variant.Outlined">
+                            DA EFFETTUARE (@_viaggiDaEffettuare)
+                        </MudChip>
+                    </MudChipSet>
+                </MudItem>
                 <MudItem xs="6">
                     <ViaggioSelect @bind-SelectedViaggioId="Transazione.TransazioneViaggioId"
                                    AziendaId="@AziendaId"
-                                   CustomItems="@_initData.Viaggi"
+                                   CustomItems="@_viaggiFiltrati"
                                    Clearable="true" />
                 </MudItem>
                 <MudItem xs="6">
@@ -406,6 +427,16 @@
     private bool _isLoading = false;
     private TransazioneInitData _initData = new();
 
+    // === Filtro dei viaggi ===
+    // «tutti» (predefinito), «effettuati», «da_effettuare». Non viene ricordato fra
+    // un'apertura e l'altra: e' una scorciatoia di ricerca, non una preferenza.
+    private string _filtroViaggi = "tutti";
+    // ⚠️ Nome qualificato: la pagina AnaViaggi.razor genera una classe omonima in questo
+    // stesso namespace, e senza il prefisso il compilatore sceglie quella.
+    private List<GestioneViaggi.Models.AnaViaggi> _viaggiFiltrati = new();
+    private int _viaggiEffettuati;
+    private int _viaggiDaEffettuare;
+
     protected override async Task OnInitializedAsync()
     {
         _isLoading = true;
@@ -416,6 +447,10 @@
                 Transazione.TransazioneId > 0 ? Transazione.TransazioneId : null);
 
             _showHelperCalcolo = _initData.ShowHelperCalcolo;
+
+            _viaggiEffettuati = _initData.Viaggi.Count(v => v.UltimaPartenza.HasValue);
+            _viaggiDaEffettuare = _initData.Viaggi.Count(v => v.ProssimaPartenza.HasValue);
+            ApplicaFiltroViaggi();
 
             if (Transazione.TransazioneId == 0)
             {
@@ -537,6 +572,53 @@
     /// C'è qualcosa che si perderebbe chiudendo? Non un tracciamento fine delle modifiche: basta
     /// sapere se la scheda è stata toccata.
     /// </summary>
+    /// <summary>
+    /// Ricostruisce l'elenco dei viaggi mostrato dalla tendina secondo il filtro scelto.
+    /// </summary>
+    /// <remarks>
+    /// L'ORDINE conta quanto il filtro, ed e' diverso per ciascuno:
+    /// <list type="bullet">
+    /// <item>gia' effettuati: dal piu' recente, perche' si fattura il viaggio appena chiuso;</item>
+    /// <item>da effettuare: dalla partenza piu' vicina, che e' quella su cui si incassano
+    /// le caparre;</item>
+    /// <item>tutti: alfabetico, l'ordine con cui il database li manda.</item>
+    /// </list>
+    /// ⚠️ Un viaggio che si ripete ha sia partenze concluse sia partenze future e compare
+    /// in entrambi gli elenchi: e' corretto, sono due domande diverse sullo stesso viaggio.
+    /// </remarks>
+    private void ApplicaFiltroViaggi()
+    {
+        _viaggiFiltrati = _filtroViaggi switch
+        {
+            "effettuati" => _initData.Viaggi.Where(v => v.UltimaPartenza.HasValue)
+                                            .OrderByDescending(v => v.UltimaPartenza)
+                                            .ToList(),
+            "da_effettuare" => _initData.Viaggi.Where(v => v.ProssimaPartenza.HasValue)
+                                               .OrderBy(v => v.ProssimaPartenza)
+                                               .ToList(),
+            _ => _initData.Viaggi.ToList()
+        };
+
+        // Il viaggio gia' scelto resta nell'elenco qualunque filtro sia attivo. Senza questa
+        // riga, cambiando filtro il campo si svuoterebbe sotto gli occhi pur restando il
+        // collegamento salvato: si crederebbe di aver perso la scelta e la si rifarebbe.
+        if (Transazione.TransazioneViaggioId > 0 &&
+            !_viaggiFiltrati.Any(v => v.Id == Transazione.TransazioneViaggioId))
+        {
+            var scelto = _initData.Viaggi.FirstOrDefault(v => v.Id == Transazione.TransazioneViaggioId);
+            if (scelto != null)
+            {
+                _viaggiFiltrati.Insert(0, scelto);
+            }
+        }
+    }
+
+    private void CambiaFiltroViaggi(string? filtro)
+    {
+        _filtroViaggi = string.IsNullOrEmpty(filtro) ? "tutti" : filtro;
+        ApplicaFiltroViaggi();
+    }
+
     private bool HaLavoroDaPerdere()
         => Transazione.TransazioneImporto > 0
         || (Transazione.Righe?.Any() ?? false)
