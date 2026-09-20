@@ -129,20 +129,17 @@
             </tbody>
         </MudSimpleTable>
 
-        @* Legenda *@
+        @* Legenda: colori ed etichette arrivano dalla stessa fonte delle targhette, non sono
+           riscritti qui. Prima erano duplicati, e dicevano verde/arancio/rosso mentre il
+           calendario disegnava blu/ambra/grigio. *@
         <MudStack Row="true" Spacing="3" Class="mt-3" Justify="Justify.Center">
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-success);"></div>
-                <MudText Typo="Typo.caption">Effettuato</MudText>
-            </MudStack>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-warning);"></div>
-                <MudText Typo="Typo.caption">Futuro</MudText>
-            </MudStack>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: var(--mud-palette-error);"></div>
-                <MudText Typo="Typo.caption">Non Effettuato</MudText>
-            </MudStack>
+            @foreach (var (etichetta, colore) in VociLegenda())
+            {
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    <div style="@($"width: 12px; height: 12px; border-radius: 50%; background-color: {colore};")"></div>
+                    <MudText Typo="Typo.caption">@etichetta</MudText>
+                </MudStack>
+            }
         </MudStack>
     }
 </div>

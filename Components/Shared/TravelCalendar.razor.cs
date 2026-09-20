@@ -211,26 +211,57 @@ public partial class TravelCalendar : ComponentBase
     }
 
     /// <summary>
-    /// Colore della targhetta di una partenza nel calendario.
+    /// I tre colori del calendario, uno per livello di stato.
     /// </summary>
     /// <remarks>
-    /// Stesso vocabolario di <c>StatoPartenzaChip</c>, che e' l'unico posto dove i tre casi sono
-    /// definiti: neutro per una partenza in programma, blu per una conclusa, ambra per una
-    /// contraddizione fra la spunta e il calendario. Prima l'arancione toccava a TUTTE le partenze
-    /// future — il caso normale colorato come un allarme — e il rosso a quelle passate.
+    /// ⛔️ Sono qui e non duplicati fra targhette e legenda: quando i colori sono stati riportati al
+    /// vocabolario di <c>StatoPartenzaChip</c> (blu = conclusa, ambra = anomalia, neutro = in
+    /// programma) la legenda è rimasta a quelli di prima — verde/arancio/rosso — e per settimane ha
+    /// spiegato colori che il calendario non usava più. Due copie divergono sempre: con una sola
+    /// fonte, cambiare un colore lo cambia in entrambi i posti.
     /// </remarks>
+    private static (string Sfondo, string Testo, string Bordo) ColoriPerLivello(LivelloStatoPartenza livello)
+        => livello switch
+        {
+            LivelloStatoPartenza.Conclusa => ("#e3f2fd", "#1565c0", "#2196f3"),
+            LivelloStatoPartenza.Anomalia => ("#fff3e0", "#ef6c00", "#ff9800"),
+            _                             => ("#eeeeee", "#424242", "#9e9e9e")
+        };
+
+    /// <summary>
+    /// Le tre voci della legenda, con la stessa etichetta che compare nel dettaglio di una partenza.
+    /// </summary>
+    /// <remarks>
+    /// Le etichette non sono riscritte a mano: si chiedono a <see cref="StatoPartenzaRules"/>
+    /// costruendo un caso rappresentativo per ciascun livello, così la legenda dice esattamente le
+    /// parole che l'utente ritrova passando il mouse su una targhetta.
+    /// </remarks>
+    private static IEnumerable<(string Etichetta, string Colore)> VociLegenda()
+    {
+        var oggi = DateTime.Today;
+        var ieri = oggi.AddDays(-1);
+        var domani = oggi.AddDays(1);
+
+        // (effettuato, dataFine) scelti per produrre un livello ciascuno:
+        //   in programma = non effettuata e non ancora conclusa
+        //   effettuata   = effettuata e conclusa
+        //   anomalia     = conclusa ma non registrata
+        foreach (var (effettuato, fine) in new[] { (false, domani), (true, ieri), (false, ieri) })
+        {
+            var stato = StatoPartenzaRules.Valuta(effettuato, fine, oggi);
+            yield return (stato.Etichetta, ColoriPerLivello(stato.Livello).Bordo);
+        }
+    }
+
+    /// <summary>Stile della targhetta di una partenza nel calendario.</summary>
     private static string GetTravelChipStyle(CalendarTravelDTO travel)
     {
-        var baseStyle = "font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
+        const string baseStyle = "font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
 
         var livello = StatoPartenzaRules.Valuta(travel.Effettuato, travel.DataFine, DateTime.Today).Livello;
+        var (sfondo, testo, bordo) = ColoriPerLivello(livello);
 
-        return livello switch
-        {
-            LivelloStatoPartenza.Conclusa => $"{baseStyle} background-color: #e3f2fd; color: #1565c0; border-left: 3px solid #2196f3;",
-            LivelloStatoPartenza.Anomalia => $"{baseStyle} background-color: #fff3e0; color: #ef6c00; border-left: 3px solid #ff9800;",
-            _ => $"{baseStyle} background-color: #eeeeee; color: #424242; border-left: 3px solid #9e9e9e;"
-        };
+        return $"{baseStyle} background-color: {sfondo}; color: {testo}; border-left: 3px solid {bordo};";
     }
 
     private static string TruncateText(string text, int maxLength)
