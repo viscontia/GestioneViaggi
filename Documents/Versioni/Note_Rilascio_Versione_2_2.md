@@ -1,8 +1,8 @@
 # Note di Rilascio — Versione 2.2
 
-> 🚧 **In preparazione.** Il documento si compila man mano, e i numeri di versione nel programma
-> **non sono ancora stati portati a 2.2**: si fa al momento di compilare, per non avere in giro
-> manuali che dichiarano una versione che non esiste.
+> ### 📦 Pronta da compilare — 2026-09-20
+> I numeri di versione sono stati portati a **2.2** nei quattro punti del codice e nell'intestazione
+> dei **cinque** manuali; i PDF sono rigenerati. Resta la compilazione dell'installer e la consegna.
 > Versione precedente: **2.1** del 2026-09-14 (consegnata ad Antonio).
 
 ---
@@ -195,8 +195,9 @@ prima non romperebbe nulla, ma applicarli **dopo** l'eseguibile sì.
 
 ## Sezione 7 — Al momento del rilascio
 
-1. Portare a **2.2** i quattro punti in cui vive il numero di versione: `Versione.txt`, il `#define`
-   di Inno Setup, `ApplicationDisplayVersion` (+ build), l'intestazione dei **cinque** manuali.
+1. ✅ **Fatto il 2026-09-20** — numero di versione a **2.2** in `Versione.txt`, nel `#define` di Inno
+   Setup, in `ApplicationDisplayVersion` (build 38 → 39) e nell'intestazione dei cinque manuali;
+   PDF rigenerati e verificati titolo per titolo.
 2. Applicare su PROD `SqlScripts/638` e `639` — **prima** di consegnare l'eseguibile. ✅ Il **640** è già stato applicato il 2026-09-20 (§5): non rifarlo.
 3. Compilare seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**, sorgente
    `C:\GestioneViaggi-build`, e cancellare i setup vecchi dopo la consegna.

@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.1** · manuale aggiornato il **14 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.2** · manuale aggiornato il **20 settembre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -911,6 +911,6 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-*📌 Gestione Viaggi **2.1** — manuale aggiornato il 14 settembre 2026.*
+*📌 Gestione Viaggi **2.2** — manuale aggiornato il 20 settembre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*

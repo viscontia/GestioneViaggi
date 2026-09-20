@@ -10,7 +10,7 @@
 ; =============================================================================
 
 #define AppName "GestioneViaggi"
-#define AppVersion "2.1"
+#define AppVersion "2.2"
 #define AppPublisher "Adriano Visconti"
 #define AppExeName "GestioneViaggi.exe"
 #define AppDescription "Sistema di Gestione Viaggi e Turismo"

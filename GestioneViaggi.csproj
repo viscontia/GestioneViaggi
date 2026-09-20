@@ -27,8 +27,8 @@
         <ApplicationId>com.adrianovisconti.gestioneviaggi</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>2.1</ApplicationDisplayVersion>
-        <ApplicationVersion>38</ApplicationVersion>
+        <ApplicationDisplayVersion>2.2</ApplicationDisplayVersion>
+        <ApplicationVersion>39</ApplicationVersion>
 
         <WindowsPackageType>None</WindowsPackageType>
         <WindowsAppSDKSelfContained Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">true</WindowsAppSDKSelfContained>
