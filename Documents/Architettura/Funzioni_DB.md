@@ -4,6 +4,56 @@ Questo documento elenca le funzioni e stored procedure del database, raggruppate
 
 ---
 
+
+## 0. ⚠️ Due controlli da fare prima di ogni rilascio (`SqlScripts/649`, `650`)
+
+Due guasti gravi, entrambi scoperti sul campo, nascono dalla stessa distrazione:
+il database e il codice si allontanano senza che nessuno se ne accorga.
+
+### A. Funzioni con più di una firma
+
+```sql
+SELECT * FROM fn_check_firme_duplicate();   -- deve tornare ZERO righe
+```
+
+Ricreando una funzione con un parametro in più, Postgres **non sostituisce** la
+vecchia: ne tiene due. Finché la chiamata passa tutti i parametri non succede
+niente; il giorno in cui ne omette uno che ha un valore predefinito, entrambe
+diventano candidate e la chiamata fallisce con *«function ... is not unique»*.
+È quello che aveva bloccato le stampe dei bilanci (script 638).
+
+Il censimento del 2026-09-20 ne ha trovate **quindici**. Due erano peggio di un
+guasto: `reset_password_with_token` aveva una firma che avrebbe salvato la
+password **in chiaro**, e `sp_app_delete_role` ne aveva due identiche per numero
+di parametri. Ripulite con lo script `649`, che lascia solo la firma in uso.
+
+ℹ️ Due casi restano a doppia firma di proposito: `fn_get_tasso_cambio` (tipi
+incompatibili, overload vero) e `fn_superadmin_get_all_companies` (nessun
+chiamante, e non si sa quale sia quella buona). La guardia li esclude.
+
+### B. Funzioni che il codice chiama e il database non ha
+
+```sql
+-- I nomi si estraggono dai sorgenti, poi:
+SELECT v.nome FROM (VALUES ('fn_...'),('sp_...')) AS v(nome)
+LEFT JOIN pg_proc p ON p.proname = v.nome
+LEFT JOIN pg_namespace n ON p.pronamespace = n.oid AND n.nspname = 'public'
+WHERE p.oid IS NULL;
+```
+
+⛔️ Lo stesso giorno questo controllo ha trovato che in **produzione** mancavano
+**tutte e cinque le funzioni di stampa contabile** (script `650`): movimenti,
+scadenzario, registro IVA, bilancio viaggio, fattura attiva. Nessuna stampa
+poteva funzionare, e non se n'era accorto nessuno perché per stampare servono
+movimenti contabili — che in produzione non c'erano ancora. Sarebbe uscito alla
+prima stampa vera, davanti al cliente.
+
+⚠️ Lo stesso schema aveva già colpito con `fn_get_transazione_init_data`
+(script 640), che non era mai esistita né in locale né in PROD. **Uno script che
+esiste in `SqlScripts/` non è uno script applicato.**
+
+---
+
 ## 1. Sicurezza e Utenti
 Funzioni relative all'autenticazione, gestione utenti, ruoli e permessi.
 

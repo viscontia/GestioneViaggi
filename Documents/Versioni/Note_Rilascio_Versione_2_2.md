@@ -330,6 +330,53 @@ nomi che il programma si aspetta. Due miglioramenti arrivati con la correzione:
 
 ---
 
+### ⛔️ 2.11 — In produzione nessuna stampa contabile poteva funzionare
+
+Non è un difetto nato oggi: è un'assenza rimasta dal go-live, trovata facendo un
+controllo che non era mai stato fatto — prendere tutti i nomi di funzione che il
+programma cita nel codice e chiedere al database di produzione quali non esistono.
+
+Ne mancavano **cinque**, tutte della stessa famiglia: la stampa dei **movimenti**,
+dello **scadenzario**, del **registro IVA**, del **bilancio viaggio** e della **fattura
+attiva**. Il programma le chiama, non le trova, e la stampa non parte.
+
+ℹ️ Perché nessuno se n'era accorto: per stampare servono movimenti contabili, e in
+produzione non ce n'erano ancora. Sarebbe uscito alla prima stampa vera — cioè davanti
+al cliente.
+
+Tutte e cinque sono state **ricreate in produzione** prendendo la definizione
+dall'ambiente di sviluppo, dove sono in servizio da sempre, e provate una per una.
+
+⚠️ Insieme è stato applicato anche lo **script 638**, in anticipo sul rilascio: senza,
+la stampa del bilancio sarebbe rimasta ambigua fra tre versioni della stessa funzione.
+
+---
+
+### 2.12 — Quindici funzioni avevano più di una firma, e due erano pericolose
+
+Stessa radice del punto 2.1: quando una funzione viene ricreata con un parametro in
+più, il database **non sostituisce** la vecchia, ne tiene due. Finché il programma passa
+tutti i parametri non succede niente; il giorno in cui ne omette uno, il database non sa
+più quale scegliere e la chiamata fallisce. È esattamente ciò che aveva bloccato le
+stampe dei bilanci.
+
+Censite tutte: erano **quindici**. Due meritano una riga a parte:
+
+* **`reset_password_with_token`** aveva due versioni: una che cifra la password, l'altra
+  che scriveva nel campo **quello che riceveva**. Se una chiamata fosse finita sulla
+  seconda, la password sarebbe stata salvata **in chiaro** e l'accesso non avrebbe più
+  funzionato. Non è mai successo solo grazie a un dettaglio di come il programma scrive
+  la chiamata.
+* **`sp_app_delete_role`** ne aveva due indistinguibili fra loro.
+
+Tenuta per ognuna solo la versione realmente in uso — cercata nel gestionale, nel sito e
+dentro le altre funzioni, non scelta a occhio.
+
+✅ Resta una **guardia**: `SELECT * FROM fn_check_firme_duplicate();` elenca le funzioni
+con più di una firma. Da lanciare prima di ogni rilascio; deve rispondere zero righe.
+
+---
+
 ## Sezione 3 — Documentazione
 
 ### ⭐️ 3.1 — Il manuale della contabilità
@@ -369,6 +416,8 @@ spiegata.
 | `646_ModalitaPagamento_Funzioni_E_Dati.sql` | Funzioni CRUD + le 15 modalità di partenza per ogni azienda (idempotente). ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `647_ModalitaPagamento_Controparti_E_InitData.sql` | Ricrea `fn_ana_controparti_get_all` e `_get_by_id` con la modalità e il suo codice. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `648_TransazioneInitData_ModalitaPagamento.sql` | Le modalità attive nell'apertura della scheda movimenti. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `649_FirmeDuplicate_Pulizia.sql` | Elimina le firme morte di 13 funzioni e crea la guardia `fn_check_firme_duplicate()`. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `650_PROD_Stampe_Mancanti.sql` | Ricrea le 5 funzioni di stampa contabile che in PROD non esistevano. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -393,15 +442,21 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | **2026-09-20** | **`SqlScripts/643`** — i viaggi con le chiavi della classe | La tendina **Viaggio** mostra i nomi dei viaggi e la nazione: verificato in PROD, 23 viaggi con descrizione piena |
 | **2026-09-20** | **`SqlScripts/644`** — le date di partenza su ogni viaggio | Prepara i tre pulsanti §1.2: verificato in PROD, 23 viaggi di cui 17 già effettuati e 12 da effettuare |
 | **2026-09-20** | **`SqlScripts/645`–`648`** — modalità di pagamento | Verificato in PROD: 15 modalità per SFT, presenti nell'apertura della scheda movimenti. ⚠️ La tabella si **vede** solo con l'eseguibile 2.2 |
+| **2026-09-20** | **`SqlScripts/649`** — firme duplicate | 15 funzioni ripulite, fra cui la password in chiaro; `fn_check_firme_duplicate()` risponde zero righe |
+| **2026-09-20** | ⭐️ **`SqlScripts/650`** — le 5 stampe contabili mancanti | ⛔️ In PROD non esistevano: nessuna stampa contabile funzionava. Ricreate e provate tutte |
+| **2026-09-20** | **`SqlScripts/638`** — bilanci (anticipato) | Serviva al 650: senza, la stampa del bilancio resta ambigua fra tre firme |
 
 ℹ️ Il **640** e i tre che lo correggono (**641**, **642**, **643**) sono stati applicati subito
 perché **non dipendono dal nuovo eseguibile**: il programma già installato da Antonio quella
 funzione la chiamava già, e non la trovava. Il **644** aggiunge solo due campi in più al JSON,
 che la versione installata ignora: applicarlo in anticipo non le cambia nulla.
 
-⛔️ Gli altri due script — **638** e **639** — **non** sono stati applicati: vanno **insieme**
-all'eseguibile nuovo, perché aggiungono colonne che solo la versione 2.2 sa leggere. Applicarli
-prima non romperebbe nulla, ma applicarli **dopo** l'eseguibile sì.
+⛔️ **Resta da applicare solo il `639`** (calendario), che va **insieme** all'eseguibile nuovo:
+aggiunge `tot_mezzi` e crea `fn_get_calendar_mese_iniziale`, cose che solo la 2.2 sa leggere.
+
+ℹ️ Il **638** era in questa lista fino al 2026-09-20: è stato anticipato perché serviva alla
+stampa del bilancio (§2.11). Non rompe la 2.1 installata — aggiunge una colonna che quella
+versione semplicemente non legge.
 
 ---
 
