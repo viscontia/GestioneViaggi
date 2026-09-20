@@ -153,7 +153,7 @@ spiegata.
 |---|---|
 | `638_Bilancio_Viaggi_IvaNonDetraibile.sql` | Elimina tre firme superate delle funzioni del bilancio (**senza, le stampe non funzionano**) e aggiunge `importo_effettivo_eur` alle due superstiti |
 | `639_Calendario_Mezzi_E_MeseIniziale.sql` | Aggiunge `tot_mezzi` a `fn_get_calendar_data` e crea `fn_get_calendar_mese_iniziale` |
-| `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ⭐️ Applicabile subito, anche prima dell'applicativo |
+| `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -163,7 +163,27 @@ senza gli script non esistono, e il programma andrebbe in errore invece di ripie
 
 ---
 
-## Sezione 5 — Cosa NON è cambiato, e vale la pena dirlo
+## Sezione 5 — ✅ Già applicato in PRODUZIONE (non serve rifarlo)
+
+Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cosa è già in piedi.
+
+| Quando | Cosa | Effetto |
+|---|---|---|
+| 2026-09-14 | Creato il bucket Storage **`tour-media`** (pubblico) | Senza, il caricamento di foto e mappe rispondeva *«Upload immagine fallito (400)»* |
+| 2026-09-14 | **Chiavi Storage separate** fra sviluppo e produzione | Revocarne una non blocca più l'altra |
+| 2026-09-14 | **Chiave Claude** configurata sull'azienda 2 (da Antonio) | Traduzioni e testi SEO funzionanti |
+| **2026-09-20** | **`SqlScripts/640`** — creata `fn_get_transazione_init_data` | ⭐️ La tendina **Viaggio** nei movimenti contabili ora si apre: verificato in PROD, 23 viaggi, 12 causali, 34 valute |
+
+ℹ️ Il **640** è stato applicato subito perché **non dipende dal nuovo eseguibile**: il programma già
+installato da Antonio quella funzione la chiamava già, e non la trovava.
+
+⛔️ Gli altri due script — **638** e **639** — **non** sono stati applicati: vanno **insieme**
+all'eseguibile nuovo, perché aggiungono colonne che solo la versione 2.2 sa leggere. Applicarli
+prima non romperebbe nulla, ma applicarli **dopo** l'eseguibile sì.
+
+---
+
+## Sezione 6 — Cosa NON è cambiato, e vale la pena dirlo
 
 - Il **sito pubblico e il modulo di iscrizione** (Flask) non sono toccati da questa versione. ⭐️ Sono
   in uso dai clienti veri: le iscrizioni arrivano da lì.
@@ -173,14 +193,14 @@ senza gli script non esistono, e il programma andrebbe in errore invece di ripie
 
 ---
 
-## Sezione 6 — Al momento del rilascio
+## Sezione 7 — Al momento del rilascio
 
 1. Portare a **2.2** i quattro punti in cui vive il numero di versione: `Versione.txt`, il `#define`
    di Inno Setup, `ApplicationDisplayVersion` (+ build), l'intestazione dei **cinque** manuali.
-2. Applicare `SqlScripts/638` su PROD — **prima** di consegnare l'eseguibile.
+2. Applicare su PROD `SqlScripts/638` e `639` — **prima** di consegnare l'eseguibile. ✅ Il **640** è già stato applicato il 2026-09-20 (§5): non rifarlo.
 3. Compilare seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**, sorgente
    `C:\GestioneViaggi-build`, e cancellare i setup vecchi dopo la consegna.
-4. Applicare anche `SqlScripts/639` — stesso vincolo d'ordine.
+4. Provare, in «Nuova Transazione», che la tendina **Viaggio** si apra e che un movimento si possa collegare a un viaggio.
 5. Verificare sulla VM, nell'ordine:
    - la **stampa del bilancio** deve produrre il PDF (è la correzione principale);
    - la dashboard di un utente **non SuperAdmin** deve mostrare il **Calendario Partenze**, aperto

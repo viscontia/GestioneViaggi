@@ -216,7 +216,9 @@ public class MovTransazioniService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Errore nel recupero dati init per transazione. Azienda: {AziendaId}, ID: {TransazioneId}", aziendaId, transazioneId);
-            return new TransazioneInitData();
+            // Non un oggetto vuoto e basta: vuoto e MARCATO, così il dialog può dirlo all'utente
+            // invece di aprirsi a metà in silenzio.
+            return new TransazioneInitData { CaricamentoRiuscito = false };
         }
     }
 

@@ -36,6 +36,23 @@
         </MudStack>
     </TitleContent>
     <DialogContent>
+        @* I dati di apertura non sono arrivati: le tendine sarebbero vuote e non si capirebbe
+           perché. È successo davvero — per due settimane il campo Viaggio è rimasto vuoto perché
+           la funzione di database non esisteva, e l'errore stava solo nel registro. Un campo vuoto
+           non distingue «non c'è niente» da «non sono riuscito a leggerlo»: lo deve dire la scheda. *@
+        @if (!_initData.CaricamentoRiuscito)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">
+                <MudText Typo="Typo.subtitle2"><b>Dati di apertura non caricati</b></MudText>
+                <MudText Typo="Typo.body2">
+                    Le tendine di questa scheda (causale, controparte, valuta, viaggio) risultano vuote
+                    perché non è stato possibile leggerle dal database: <b>quello che scrivi qui rischia
+                    di essere incompleto</b>. Chiudi la scheda e riprova; se il problema resta, segnalalo
+                    a chi assiste il programma — il dettaglio tecnico è nel registro dell'applicazione.
+                </MudText>
+            </MudAlert>
+        }
+
         <MudForm Model="@Transazione" @ref="_form" id="mov-transazioni-form" Validation="@(new Func<object, string, Task<IEnumerable<string>>>((obj, prop) => Task.FromResult<IEnumerable<string>>(Array.Empty<string>())))">
             <MudGrid>
                 <!-- RIGA 1: Data e Tipo -->
