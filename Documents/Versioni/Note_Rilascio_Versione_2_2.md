@@ -170,7 +170,27 @@ Due correzioni:
 dipendono l'hanno preso tutti, e quelli contabili (controparti, viaggi, aliquote IVA, causali,
 valute) dicono in più dove si risolve.
 
-### 2.7 — La guida della contabilità prometteva una cosa che il programma non fa
+### 2.7 — L'aliquota IVA: il codice non si vedeva, e una volta scelta nemmeno lei
+
+Nel dettaglio righe l'elenco delle aliquote mostrava **solo la descrizione**: per scegliere *N2.2*
+— quella del regime forfettario — bisognava già sapere che per esteso si chiama «Regime Forfettario
+art. 1 c. 54-89». Il **codice**, che è il modo in cui un'aliquota si cerca davvero, non compariva.
+
+E una volta scelta, nella colonna non si leggeva: fra la crocetta e la lente restava lo spazio di
+un **quadratino grigio**.
+
+Tre correzioni che vanno insieme:
+
+| | |
+|---|---|
+| **Nell'elenco** | Il codice viene per primo, in evidenza, seguito da descrizione e percentuale |
+| **Nel campo** | Testo compatto — `N2.2 (0,00%)` — invece della descrizione estesa |
+| **La scheda** | Allargata: dentro c'è una griglia di sette colonne che in larghezza media si comprimeva |
+
+ℹ️ Elenco e campo ora possono dire cose diverse: si cerca con tutto, si legge poco. Prima erano
+costretti a essere lo stesso testo, e vinceva sempre quello sbagliato per uno dei due usi.
+
+### 2.8 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre

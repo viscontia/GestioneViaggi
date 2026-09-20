@@ -7,7 +7,7 @@
     RequiredError="@RequiredError" Disabled="@Disabled" Class="@ComputedClass" HelperText="@HelperText" Clearable="true"
     ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="false" AdornmentIcon="@Icons.Material.Filled.Search"
     AdornmentColor="Color.Primary" Strict="false" Dense="true" OpenOnFocus="false" @ref="_autocompleteRef"
-    Validation="@Validation" MaxItems="null" @attributes="AdditionalAttributes">
+    Validation="@Validation" MaxItems="null" ItemTemplate="@ItemTemplate" @attributes="AdditionalAttributes">
     @* Un elenco che si apre vuoto non dice se non c'e' nulla da scegliere o se qualcosa non ha
        funzionato. Qui il messaggio e' UNO SOLO per tutti i venticinque select che passano di qua:
        scriverlo in ognuno significherebbe averne venticinque versioni diverse. *@
@@ -40,6 +40,16 @@
     /// fa capire dove si risolve, «Nessuna voce disponibile» no.
     /// </summary>
     [Parameter] public string TestoNessunElemento { get; set; } = "Nessuna voce disponibile";
+
+    /// <summary>
+    /// Come si presenta una voce <b>nell'elenco</b>. Se assente, MudBlazor usa il testo del campo.
+    /// </summary>
+    /// <remarks>
+    /// Serve perché le due cose non coincidono: nella riga di una griglia ci stanno pochi caratteri,
+    /// ma mentre si sceglie servono codice, descrizione e percentuale. Senza, erano costrette a
+    /// essere lo stesso testo — e vinceva sempre quello sbagliato per uno dei due usi.
+    /// </remarks>
+    [Parameter] public RenderFragment<TItem>? ItemTemplate { get; set; }
     [Parameter] public bool HelperTextError { get; set; }
     [Parameter] public bool AutoFocus { get; set; }
     [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }

@@ -14,14 +14,27 @@
                   Value="@_selectedAliquota"
                   ValueChanged="@OnAliquotaChanged"
                   SearchFunc="@SearchAliquote"
-                  ToStringFunc="@(c => c?.DisplayText)"
+                  ToStringFunc="@(c => Compatto ? TestoCompatto(c) : c?.DisplayText)"
                   Label="@Label"
                   Required="@Required"
                   RequiredError="@RequiredError"
                   Disabled="@(_isLoading || Disabled)"
                   Class="@Class"
                   TestoNessunElemento="Nessuna aliquota IVA configurata per questa azienda (Tabelle → Tabelle Contabili → Aliquote IVA)."
-                  Clearable="@Clearable" />
+                  Clearable="@Clearable">
+    @* Nell'elenco il CODICE viene per primo: e' il modo in cui un'aliquota si cerca davvero
+       ("N2.2", "22", "FC"), e prima non compariva affatto - si vedeva solo la descrizione, quindi
+       per trovare N2.2 bisognava gia' sapere come si chiama per esteso. *@
+    <ItemTemplate Context="aliquota">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Class="ma-0">
+                @aliquota.IvaCodice
+            </MudChip>
+            <MudText Typo="Typo.body2">@aliquota.IvaDescrizione</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@($"{aliquota.IvaPercentuale:N2}%")</MudText>
+        </MudStack>
+    </ItemTemplate>
+</BaseEntitySelect>
 
 @code {
     [Parameter] public int? SelectedAliquotaId { get; set; }
@@ -34,6 +47,19 @@
     [Parameter] public bool Disabled { get; set; } = false;
     [Parameter] public int? AziendaId { get; set; }
     [Parameter] public List<AnaAliquotaIva>? Items { get; set; }
+
+    /// <summary>
+    /// Nel campo mostra solo codice e percentuale invece della descrizione estesa.
+    /// </summary>
+    /// <remarks>
+    /// Serve dentro le griglie: in una colonna stretta "Regime Forfettario art. 1 c. 54-89" non ci
+    /// sta, e fra la crocetta e la lente restava lo spazio di un quadratino. L'elenco resta
+    /// completo — si cerca con tutto, si legge poco.
+    /// </remarks>
+    [Parameter] public bool Compatto { get; set; } = false;
+
+    private static string TestoCompatto(AnaAliquotaIva? a)
+        => a is null ? string.Empty : $"{a.IvaCodice} ({a.IvaPercentuale:N2}%)";
 
     private List<AnaAliquotaIva> _aliquote = new();
     private AnaAliquotaIva? _selectedAliquota;

@@ -401,7 +401,10 @@
             ["AziendaId"] = _selectedAziendaId > 0 ? _selectedAziendaId : (_currentAziendaId ?? 0)
         };
 
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        // Large e non Medium: dentro c'e' la griglia del dettaglio righe, sette colonne fra cui
+        // un'aliquota con codice e descrizione. In Medium le colonne si comprimevano al punto che
+        // il testo scelto si riduceva a un quadratino grigio.
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Nuova Transazione", parameters, options);
         var result = await dialog.Result;
 
@@ -427,7 +430,10 @@
             ["AziendaId"] = fullItem.TransazioneAziendaId
         };
 
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        // Large e non Medium: dentro c'e' la griglia del dettaglio righe, sette colonne fra cui
+        // un'aliquota con codice e descrizione. In Medium le colonne si comprimevano al punto che
+        // il testo scelto si riduceva a un quadratino grigio.
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
         var dialog = await DialogService.ShowAsync<MovTransazioniEditDialog>("Modifica Transazione", parameters, options);
         var result = await dialog.Result;
 
