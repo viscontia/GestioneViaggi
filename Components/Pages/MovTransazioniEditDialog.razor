@@ -179,17 +179,42 @@
                                "IVA (%)", e "Aliquota IVA" dentro 130px veniva troncata in "Alq..."
                                finendo sotto la lente di ricerca. La colonna e' anche piu' larga,
                                perche' il testo dell'aliquota e la lente non ci stavano insieme. *@
-                            <TemplateColumn Title="IVA (%)" HeaderStyle="width: 180px;">
+                            <TemplateColumn Title="IVA (%)" HeaderStyle="width: 200px;">
                                 <EditTemplate>
-                                    <AliquotaIvaSelect SelectedAliquotaId="context.Item.RigaAliquotaIvaFk"
-                                                      SelectedAliquotaIdChanged="@((id) => OnRigaAliquotaChanged(context.Item, id))"
-                                                      AziendaId="@AziendaId"
-                                                      Label=""
-                                                      Compatto="true"
-                                                      Items="@_initData.AliquoteIva" />
+                                    @* ⛔️ Il codice scelto si mostra QUI, non dentro il campo di ricerca.
+                                       MudAutocomplete, dentro una cella di griglia, non ripresenta il
+                                       testo del valore gia' selezionato: il calcolo era giusto (1.000
+                                       + 22% = 1.220) ma la colonna restava muta e non si sapeva quale
+                                       aliquota fosse stata applicata. Invece di combattere col
+                                       componente, la scelta si legge da sola sopra al campo. *@
+                                    <MudStack Spacing="1">
+                                        @if (!string.IsNullOrWhiteSpace(context.Item.AliquotaIvaCodice))
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                     Variant="Variant.Filled" Class="ma-0">
+                                                @($"{context.Item.AliquotaIvaCodice} · {context.Item.AliquotaIvaPercentuale:N2}%")
+                                            </MudChip>
+                                        }
+                                        <AliquotaIvaSelect SelectedAliquotaId="context.Item.RigaAliquotaIvaFk"
+                                                          SelectedAliquotaIdChanged="@((id) => OnRigaAliquotaChanged(context.Item, id))"
+                                                          AziendaId="@AziendaId"
+                                                          Label=""
+                                                          Compatto="true"
+                                                          Items="@_initData.AliquoteIva" />
+                                    </MudStack>
                                 </EditTemplate>
                                 <CellTemplate>
-                                    @(context.Item != null ? $"{context.Item.AliquotaIvaCodice} ({context.Item.AliquotaIvaPercentuale}%)" : "")
+                                    @if (context.Item != null && !string.IsNullOrWhiteSpace(context.Item.AliquotaIvaCodice))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                 Variant="Variant.Outlined" Class="ma-0">
+                                            @($"{context.Item.AliquotaIvaCodice} · {context.Item.AliquotaIvaPercentuale:N2}%")
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">da scegliere</MudText>
+                                    }
                                 </CellTemplate>
                             </TemplateColumn>
                             <PropertyColumn Property="x => x.RigaIvaValore" Title="IVA Val." Editable="false" HeaderStyle="width: 100px;" Format="N2" />

@@ -190,6 +190,12 @@ Tre correzioni che vanno insieme:
 ℹ️ Elenco e campo ora possono dire cose diverse: si cerca con tutto, si legge poco. Prima erano
 costretti a essere lo stesso testo, e vinceva sempre quello sbagliato per uno dei due usi.
 
+⚠️ **E l'aliquota scelta ora si legge nella colonna**, come pastiglia — `22 · 22,00%` — sia mentre
+si sceglie sia dopo. Il calcolo era sempre stato giusto (1.000 + 22% = 1.220), ma la colonna restava
+muta: si vedeva l'imposta e non si sapeva quale aliquota l'avesse prodotta, che su un documento
+fiscale è proprio il dato da controllare. Se manca, la colonna dice *«da scegliere»* invece di
+restare bianca.
+
 ### 2.8 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
