@@ -9,9 +9,10 @@
 
 ## In una riga
 
-Due difetti veri sui bilanci — uno dei quali impediva del tutto di stamparli — il **calendario
-delle partenze** che finalmente arriva nella dashboard di chi lavora, e il manuale della
-contabilità, che prima non esisteva.
+Tre difetti veri, tutti in produzione da prima di questa versione: le stampe dei bilanci che non
+partivano, il margine del forfettario più alto del vero, e un movimento contabile che non si poteva
+collegare a un viaggio. Più il **calendario delle partenze** nella dashboard di chi lavora e il
+manuale della contabilità, che prima non esisteva.
 
 ---
 
@@ -86,7 +87,30 @@ lo leggesse.
 ancora registrato un solo movimento contabile**: nessun bilancio è mai stato prodotto con il calcolo
 vecchio.
 
-### 2.3 — La guida della contabilità prometteva una cosa che il programma non fa
+### ⛔️ 2.3 — In «Nuova Transazione» non si poteva collegare il movimento a un viaggio
+
+**Sintomo:** nella scheda di un movimento contabile la tendina **Viaggio** non si apre. Resta vuota,
+senza messaggi, mentre causale, controparte e valuta si compilano normalmente.
+
+**Causa:** il dialog chiede al database tutti i dati di apertura in una chiamata sola, e quella
+funzione — `fn_get_transazione_init_data` — **non è mai esistita**: lo script che doveva crearla era
+stato scritto prima di alcune rinomine di colonne, quindi la funzione si creava e falliva alla prima
+chiamata. Non è un difetto introdotto ora: era **già annotato** nella Checklist Go-Live del
+2026-09-07 come «la form funziona male», e rimandato insieme al resto della contabilità.
+
+⚠️ **Perché era così difficile da riconoscere:** il programma raccoglie l'errore, lo scrive nel log
+e va avanti con una lista vuota. Il campo Viaggio, a differenza degli altri, in quel caso rinuncia a
+cercarsi i dati da solo — quindi si vedeva **un solo campo morto in mezzo a una scheda
+apparentemente sana**.
+
+**Conseguenza vera, oltre al fastidio:** senza quel collegamento un costo non entra nel **Bilancio
+Viaggio**, e il margine di quella partenza risulta migliore del reale — in silenzio.
+
+**Correzione:** funzione riscritta allineata allo schema (`SqlScripts/640`), provata sia in
+inserimento sia in modifica. Lo script vecchio è stato eliminato, perché uno script che crea una
+funzione rotta è peggio di nessuno script.
+
+### 2.4 — La guida della contabilità prometteva una cosa che il programma non fa
 
 Nella finestra *Guida alle Registrazioni Contabili* si leggeva che sul ciclo passivo il sistema
 «scorpora» l'IVA dall'importo lordo. **Non è così**: nelle righe di dettaglio l'IVA è sempre
@@ -129,6 +153,7 @@ spiegata.
 |---|---|
 | `638_Bilancio_Viaggi_IvaNonDetraibile.sql` | Elimina tre firme superate delle funzioni del bilancio (**senza, le stampe non funzionano**) e aggiunge `importo_effettivo_eur` alle due superstiti |
 | `639_Calendario_Mezzi_E_MeseIniziale.sql` | Aggiunge `tot_mezzi` a `fn_get_calendar_data` e crea `fn_get_calendar_mese_iniziale` |
+| `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ⭐️ Applicabile subito, anche prima dell'applicativo |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che

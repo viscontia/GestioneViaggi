@@ -643,6 +643,16 @@ insieme al 638:
 ⚠️ Il calendario della dashboard legge `tot_mezzi`: **senza lo script la colonna non esiste** e la
 dashboard dell'utente va in errore al caricamento. Script prima, applicativo poi.
 
+**`SqlScripts/640_FnGetTransazioneInitData_Corretta.sql`** — ⛔️ **corregge un difetto già presente
+in produzione**, indipendente dalla versione del programma.
+
+`fn_get_transazione_init_data` **non esiste in PROD** (verificato il 2026-09-20): il dialog dei
+movimenti contabili la chiama a ogni apertura, l'eccezione finisce nel log e la tendina **Viaggio**
+resta vuota — quindi oggi, in produzione, **un movimento non si può collegare a un viaggio**. E
+senza quel collegamento il Bilancio Viaggio non vede il costo (vedi il manuale contabilità, cap. 10).
+
+ℹ️ Si può applicare **subito**, senza aspettare l'applicativo: il programma la chiama già.
+
 ### 2.5 — Backfill `ana_clienti.cliente_lingua` (465)
 Lo script 465 fa `UPDATE ana_clienti SET cliente_lingua = COALESCE(fn_lingua_da_comune(...), 'IT') WHERE cliente_lingua IS NULL`. **Va eseguito sui clienti reali di PROD** (in locale ha popolato 740 clienti Docker). È **idempotente** (`WHERE cliente_lingua IS NULL`). Vedi [[prod-backfill-cliente-lingua]]. Dopo il backfill, verificare la distribuzione lingue prima del primo invio newsletter.
 
@@ -1117,15 +1127,21 @@ chi lo sta usando. Oggi senza conseguenze — i ruoli non si cancellano da nessu
 non esiste una funzione che lo faccia: si può solo a mano da psql. Quando si costruirà la
 gestione dei ruoli, il rifiuto dovrà spiegare (è la quarta delle «quattro domande»).
 
-**3. La contabilità apre una form che chiama una funzione inesistente.**
-`MovTransazioniService.cs:173` chiama `fn_get_transazione_init_data`, che non esiste **né in
-locale né su PROD**. È la spiegazione del «la form funziona male» notato il 2026-09-07.
-⛔️ **`SqlScripts/270_Create_FnGetTransazioneInitData.sql` non va applicato così com'è**: è
-stato scritto prima di tre rinomine e cerca colonne che non esistono più — `ana_controparti.azienda_id_fk`
-(oggi `azienda_fk`), `ana_viaggi.azienda_id_fk` (oggi `azienda_id`) e un `is_active` su
-`ana_controparti` che non c'è. Provato in locale il 2026-09-07: la funzione si crea e poi
-fallisce alla prima chiamata. Va riscritta quando si affronterà la contabilità, che Adriano ha
-rimandato a una release successiva.
+**3. ✅ La contabilità apriva una form che chiamava una funzione inesistente — RISOLTO il 2026-09-20.**
+`MovTransazioniService.cs:173` chiama `fn_get_transazione_init_data`, che non esisteva **né in
+locale né su PROD**. Era la spiegazione del «la form funziona male» notato il 2026-09-07, e il
+sintomo esatto è emerso solo provandola: in «Nuova Transazione» la tendina **Viaggio** non si apre.
+
+⚠️ **Perché il sintomo era così poco riconoscibile**: il metodo C# raccoglie l'eccezione e
+restituisce un oggetto **vuoto ma non nullo**; `ViaggioSelect` vede un `CustomItems` non-null e
+smette di caricare i viaggi per conto proprio, mentre gli altri select ricadono sul proprio
+caricamento e sembrano sani. Un solo campo morto in mezzo a una form apparentemente a posto.
+
+✅ Funzione riscritta allineata allo schema: **`SqlScripts/640_FnGetTransazioneInitData_Corretta.sql`**,
+provata in locale sia in inserimento sia in modifica (19 viaggi, 12 causali, 34 valute; in modifica
+legge transazione e righe). Lo script `270`, che cercava `ana_controparti.azienda_id_fk`,
+`ana_viaggi.azienda_id_fk` e un `is_active` inesistente, **è stato eliminato** dal repository per
+non lasciare in giro uno script che crea una funzione rotta.
 
 **4. `fn_ana_aliquote_iva_get_active_by_filter.sql`** è uno script senza numero, mai applicato,
 la cui funzione non esiste. Rientra nella contabilità/IVA rimandata.
@@ -1727,7 +1743,7 @@ gestionale la sede naturale è `appsettings`, con precedenza all'ambiente.
 ## 4. Checklist finale di rilascio
 
 - [ ] Applicati in ordine gli **11** script 310–350 (§1, testa della sequenza: mai applicati, senza di loro cinque stampe non partono) e poi i **223** script 406–628 su PROD (§1) senza errori, **escluso `499_Rollback_EstensioneWeb.sql`**.
-  ⛔️ **Non applicare `270_Create_FnGetTransazioneInitData.sql`**: cerca colonne che non esistono più (§2.19).
+  ✅ Sostituito da `640_FnGetTransazioneInitData_Corretta.sql`; il `270` è stato eliminato (§2.19).
   ⚠️ Il conteggio era fermo a «114 script 406–524»: era il numero del 2026-07-10 e non seguiva l'elenco di §1, che nel frattempo è arrivato al 625. Ricontato sui file il 2026-09-07.
 - [ ] Eseguite **prima** le query di pre-verifica degli script che possono fallire su dati sporchi: `491` (descrizioni < 3 caratteri, ordine < 1) e `509` (anni fuori 2000–2100).
 - [ ] Ruolo `anon` + RLS riconciliati e verificati in staging (§2.1).

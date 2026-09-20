@@ -200,7 +200,7 @@ dopo il passo 1, senza pause in mezzo.
 ### ⛔️ Due script che NON vanno applicati
 
 - `499_Rollback_EstensioneWeb.sql` — contiene `DROP COLUMN`
-- `270_Create_FnGetTransazioneInitData.sql` — cerca tre colonne rinominate, fallisce alla prima
+- ✅ `270_Create_FnGetTransazioneInitData.sql` — eliminato il 2026-09-20 e sostituito da `640_FnGetTransazioneInitData_Corretta.sql`, allineato allo schema
   chiamata
 - ℹ️ `999_Verify_…` è una verifica, non è nella sequenza
 
