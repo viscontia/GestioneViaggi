@@ -1102,7 +1102,7 @@ Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica c
   - `p_transazione_id` (INT, default NULL): ID della transazione per recuperare i dettagli (modalità edit).
 - **Ritorna**: `JSON` contenente `Causali`, `AliquoteIva`, `Valute`, `Controparti`, `Viaggi`, `ShowHelperCalcolo` e `TransazioneJson`.
 - **Utilizzo**: `MovTransazioniService.GetTransazioneInitDataAsync(int aziendaId, int? transazioneId)`
-- **Script**: `SqlScripts/640_FnGetTransazioneInitData_Corretta.sql`.
+- **Script**: `SqlScripts/640` (ricostruzione), poi `641`, `642` e **`643`** (quello in servizio).
   ⛔️ **Non usare il `270`**: usa colonne che lo schema non ha (`azienda_id_fk`, `is_active` su
   `ana_controparti`/`ana_viaggi`, `viaggio_data_inizio` su `ana_viaggi`). La funzione si crea e
   fallisce alla prima chiamata — ed è il motivo per cui **fino al 2026-09-20 non è mai esistita**,
@@ -1112,6 +1112,22 @@ Funzione per il pattern **Fat Init** dell'area contabile. Recupera in un'unica c
   rinuncia a caricare i viaggi da sé, quindi in «Nuova Transazione» la tendina **Viaggio** restava
   vuota senza alcun messaggio. Gli altri select ricadevano sul proprio caricamento autonomo e
   sembravano sani.
+
+- ⚠️ **Le chiavi del JSON sono i nomi delle PROPRIETÀ C#, non quelli delle colonne.**
+  È la regola che vale per tutte le funzioni Fat Init lette con `System.Text.Json`, e i tre
+  script successivi al 640 sono tre modi diversi di violarla:
+  - `641`: alias scritti in PascalCase (`AS AliquotaIvaCodice`), che Postgres appiattisce in
+    minuscolo senza underscore e la conversione non riconosce più → righe **senza testo**;
+  - `642`: `AnaControparte` e `AnaViaggi` ereditano `Id` da `BaseEntity`, le colonne sono
+    `controparte_id`/`viaggio_id` → ogni voce con **Id = 0**, la selezione non si aggancia;
+  - `643`: `AnaViaggi` non ripete il prefisso della tabella (`DescrizioneBreve` ←
+    `viaggio_descrizione_breve`) → la tendina Viaggio **bianca**, una riga per viaggio ma
+    tutte vuote. Risolto costruendo la lista campo per campo con le chiavi della classe;
+    ne guadagna anche il peso, perché `SELECT *` portava con sé la colonna `viaggio_mappa`
+    (`bytea`) a ogni apertura della scheda.
+
+  ℹ️ Il disallineamento si vede **solo** qui perché le altre schermate non passano dal JSON:
+  `AnaViaggiService` legge con un `MapFromReader` scritto a mano che conosce i nomi veri.
 
 ### `fn_get_travel_print_data`
 - **Descrizione**: Funzione **Fat Init** per ottimizzare la stampa della scheda viaggio. Aggrega i dati di testata, azienda, partecipanti, statistiche e mezzi in un'unica chiamata JSON. Consolidamento di 5 chiamate separate. **Logo convertito in base64 per compatibilità JSON**.

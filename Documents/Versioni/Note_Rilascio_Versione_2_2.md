@@ -240,6 +240,29 @@ ricaricavano l'applicazione da zero, **Alt+Freccia** faceva lo stesso danno dell
 
 ---
 
+### ⛔️ 2.10 — La tendina dei viaggi si apriva bianca
+
+Dopo le correzioni 2.3 e 2.5 la tendina **Viaggio** si apriva, ma su un riquadro vuoto: una
+riga per ogni viaggio in anagrafica, tutte **senza testo**. Lo stesso aspetto che aveva l'IVA
+prima del punto 2.5, e la stessa famiglia di cause.
+
+I viaggi sono l'unico caso in cui i nomi usati nella tabella e quelli usati nel programma non
+coincidono: la colonna si chiama `viaggio_descrizione_breve`, il programma cerca
+`descrizione_breve`. Ogni viaggio arrivava quindi completo di tutto tranne il suo nome.
+
+ℹ️ Perché si vedeva solo qui: tutte le altre schermate leggono i viaggi per una strada diversa,
+che i nomi veri li conosce. La scheda dei movimenti è l'unica che passa dalla lettura unica
+introdotta al punto 2.3.
+
+Corretto **dal lato del database** (script `643`), costruendo la lista campo per campo con i
+nomi che il programma si aspetta. Due miglioramenti arrivati con la correzione:
+
+* sotto al nome del viaggio ora compare anche la **nazione**, che prima non arrivava mai;
+* **non viaggia più la mappa del viaggio**. Veniva spedita insieme al resto — un'immagine
+  intera per ogni viaggio, a ogni apertura della scheda — e non la usava nessuno.
+
+---
+
 ## Sezione 3 — Documentazione
 
 ### ⭐️ 3.1 — Il manuale della contabilità
@@ -273,6 +296,7 @@ spiegata.
 | `640_FnGetTransazioneInitData_Corretta.sql` | Crea `fn_get_transazione_init_data`, che **non è mai esistita**: senza, in «Nuova Transazione» la tendina Viaggio resta vuota. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `641_FnGetTransazioneInitData_AliasSnakeCase.sql` | Alias del JSON tutti in snake_case: senza, le tendine si popolano di elementi senza testo. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `642_FnGetTransazioneInitData_ChiaviId.sql` | Alias `id` per controparti e viaggi, le cui classi ereditano `Id` da BaseEntity. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `643_FnGetTransazioneInitData_Viaggi.sql` | I viaggi con le chiavi che il programma cerca (`descrizione_breve`, non `viaggio_descrizione_breve`): senza, la tendina Viaggio è bianca. Toglie anche la mappa dal JSON. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
@@ -294,9 +318,11 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | **2026-09-20** | **`SqlScripts/640`** — creata `fn_get_transazione_init_data` | ⭐️ La tendina **Viaggio** nei movimenti contabili ora si apre: verificato in PROD, 23 viaggi, 12 causali, 34 valute |
 | **2026-09-20** | **`SqlScripts/641`** — alias del JSON in snake_case | Le tendine della scheda mostrano il testo delle voci, non righe vuote |
 | **2026-09-20** | **`SqlScripts/642`** — alias `id` per controparti e viaggi | La controparte selezionata non sparisce più dall'elenco |
+| **2026-09-20** | **`SqlScripts/643`** — i viaggi con le chiavi della classe | La tendina **Viaggio** mostra i nomi dei viaggi e la nazione: verificato in PROD, 23 viaggi con descrizione piena |
 
-ℹ️ Il **640** è stato applicato subito perché **non dipende dal nuovo eseguibile**: il programma già
-installato da Antonio quella funzione la chiamava già, e non la trovava.
+ℹ️ Il **640** e i tre che lo correggono (**641**, **642**, **643**) sono stati applicati subito
+perché **non dipendono dal nuovo eseguibile**: il programma già installato da Antonio quella
+funzione la chiamava già, e non la trovava.
 
 ⛔️ Gli altri due script — **638** e **639** — **non** sono stati applicati: vanno **insieme**
 all'eseguibile nuovo, perché aggiungono colonne che solo la versione 2.2 sa leggere. Applicarli
