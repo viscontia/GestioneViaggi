@@ -675,7 +675,21 @@ del go-live**: sono i passi successivi.
 > 5. ✅ **Il click** apre la scheda del viaggio sulla linguetta delle date, come nella dashboard
 >    SuperAdmin.
 >
-> ⚠️ Build verde, **collaudo a video da fare**.
+> **Collaudo a video del 2026-09-20**, come utente SFT:
+>
+> | | |
+> |---|---|
+> | Calendario presente nella dashboard | ✅ verificato |
+> | Si apre sulla prossima partenza | ✅ verificato — si è aperto su **dicembre**, dove sta la prossima |
+> | Le tendine spostano il mese | ✅ verificato — spostandosi a mano su settembre |
+> | Numero mezzi nel dettaglio | ☐ da guardare |
+> | Il clic apre la scheda del viaggio | ☐ da guardare |
+>
+> ⛔️ **Un difetto trovato proprio guardando la schermata:** la **legenda** spiegava colori che il
+> calendario non usa più — verde/arancio/rosso invece di blu/ambra/grigio — e soprattutto dava
+> l'ambra come «futuro», cioè presentava come caso normale quello che è un **allarme** (spunta e
+> calendario in contraddizione). Corretto togliendo la duplicazione: colori ed etichette ora
+> vengono da una fonte sola, condivisa con le targhette.
 
 **Chiesto:** un calendario che si posizioni **da solo sui viaggi in partenza**, con la possibilità
 di scegliere periodi diversi. I viaggi rappresentati nella loro **estensione temporale** sulle
