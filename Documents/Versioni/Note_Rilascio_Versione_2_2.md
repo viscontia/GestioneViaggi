@@ -488,14 +488,23 @@ Elenco tenuto aggiornato man mano, per non arrivare al rilascio senza sapere cos
 | **2026-09-20** | **`SqlScripts/649`** — firme duplicate | 15 funzioni ripulite, fra cui la password in chiaro; `fn_check_firme_duplicate()` risponde zero righe |
 | **2026-09-20** | ⭐️ **`SqlScripts/650`** — le 5 stampe contabili mancanti | ⛔️ In PROD non esistevano: nessuna stampa contabile funzionava. Ricreate e provate tutte |
 | **2026-09-20** | **`SqlScripts/638`** — bilanci (anticipato) | Serviva al 650: senza, la stampa del bilancio resta ambigua fra tre firme |
+| **2026-09-21** | **`SqlScripts/651`** — il sito risponde con verdetti | Gli endpoint del sito non restituiscono più i dati personali — ⚠️ serve il deploy del sito, §7.6 |
+| **2026-09-21** | **`SqlScripts/652`** — filtri vuoti | L'elenco delle fatture attive non torna più vuoto per un filtro in bianco |
+| **2026-09-21** | ⭐️ **`SqlScripts/639`** — calendario | **Ultimo script del rilascio.** Verificato in PROD: apertura su ottobre 2026, 4 partenze, 20 mezzi |
+| **2026-09-21** | Eliminate le **sette tabelle `_bak`** | Fra cui `ana_clienti_bak` con 689 anagrafiche complete. Le 38 righe esclusive salvate fuori dal repository |
 
 ℹ️ Il **640** e i tre che lo correggono (**641**, **642**, **643**) sono stati applicati subito
 perché **non dipendono dal nuovo eseguibile**: il programma già installato da Antonio quella
 funzione la chiamava già, e non la trovava. Il **644** aggiunge solo due campi in più al JSON,
 che la versione installata ignora: applicarlo in anticipo non le cambia nulla.
 
-⛔️ **Resta da applicare solo il `639`** (calendario), che va **insieme** all'eseguibile nuovo:
-aggiunge `tot_mezzi` e crea `fn_get_calendar_mese_iniziale`, cose che solo la 2.2 sa leggere.
+✅ **Non resta più nessuno script da applicare.** L'ultimo, il `639`, è stato applicato il
+2026-09-21 insieme alla verifica del passo 0.
+
+⚠️ **Da qui in avanti l'ordine conta al contrario**: il database di produzione sa già fare
+cose che la versione **2.1 installata da Antonio non usa** (le colonne nuove, il calendario,
+le modalità di pagamento). Non è un problema — quella versione semplicemente le ignora — ma
+significa che **l'eseguibile 2.2 va consegnato**, non rimandato: è lui il pezzo mancante.
 
 ℹ️ Il **638** era in questa lista fino al 2026-09-20: è stato anticipato perché serviva alla
 stampa del bilancio (§2.11). Non rompe la 2.1 installata — aggiunge una colonna che quella
@@ -556,7 +565,28 @@ distrazione da cui nascono entrambi i controlli.
 1. ✅ **Fatto il 2026-09-20** — numero di versione a **2.2** in `Versione.txt`, nel `#define` di Inno
    Setup, in `ApplicationDisplayVersion` (build 38 → 39) e nell'intestazione dei cinque manuali;
    PDF rigenerati e verificati titolo per titolo.
-2. Applicare su PROD **solo `SqlScripts/639`** — **prima** di consegnare l'eseguibile. ✅ Tutti gli altri (**638**, **640**–**650**) sono già applicati (§5): non rifarli.
+2. ✅ **Fatto il 2026-09-21** — **tutti gli script sono applicati in PROD**, `639` compreso.
+   Il database di produzione è allineato a questa versione: non resta niente da lanciare.
+   Verificato con i due controlli del passo 0.
+### ⛔️ 6-bis. Il sito va ridistribuito, e non dipende dall'installer
+
+Il 2026-09-21 è stato chiuso il difetto per cui il sito di iscrizione consegnava codice
+fiscale, residenza e documento a chiunque conoscesse un'email (aperto da circa due anni).
+
+⚠️ **La correzione è in due pezzi e uno solo è già in produzione.** La funzione
+`fn_web_cliente_profilo_pubblico` è stata applicata al database, ma finché il **codice
+Python del sito non viene ridistribuito sul server**, gli endpoint continuano a leggere la
+scheda intera e a mandarla al browser: il difetto resta aperto.
+
+Il deploy del sito è un `rsync`, non `git pull` — il server non ha git. Dopo il deploy,
+provare che `GET /api/cliente/dati-per-email?email=<un'email vera>` risponda **senza**
+codice fiscale, indirizzo e documento.
+
+ℹ️ Non è legato all'installer del gestionale: si può (e si dovrebbe) fare **subito**, senza
+aspettare la consegna ad Antonio.
+
+---
+
 3. Compilare seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**, sorgente
    `C:\GestioneViaggi-build`, e cancellare i setup vecchi dopo la consegna.
 4. Provare, in «Nuova Transazione»:
