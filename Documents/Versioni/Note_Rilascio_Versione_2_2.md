@@ -472,14 +472,61 @@ versione semplicemente non legge.
 
 ## Sezione 7 — Al momento del rilascio
 
+### 0. I due controlli preliminari — **prima di tutto il resto**
+
+Si lanciano su **PROD** e durano un minuto. Nascono da due guasti veri: le stampe dei
+bilanci bloccate da firme doppie (§2.1) e le cinque stampe contabili che in produzione
+non esistevano (§2.11). Vanno rifatti a ogni rilascio, non una volta sola.
+
+**a) Nessuna funzione deve avere più di una firma**
+
+```sql
+SELECT * FROM fn_check_firme_duplicate();
+```
+
+⛔️ Deve rispondere **zero righe**. Se ne compare una, è una versione vecchia rimasta
+indietro: prima o poi farà fallire una chiamata con *«function ... is not unique»*.
+Trovare quale firma il programma usa davvero, e togliere le altre.
+
+**b) Ogni funzione che il codice chiama deve esistere in PROD**
+
+Dalla cartella del progetto:
+
+```bash
+grep -rhoE "\b(fn|sp)_[a-z0-9_]+\b" --include="*.cs" --include="*.razor" \
+     Services/ Repositories/ Statistics/ Components/ Helpers/ | sort -u
+```
+
+I nomi che ne escono vanno confrontati con quelli presenti in PROD (`pg_proc`, schema
+`public`): il procedimento completo è in `Documents/Architettura/Funzioni_DB.md` §0.
+
+⛔️ Ogni nome mancante è una funzione che il programma chiama e non trova: la schermata
+che la usa **non funziona**, e spesso in silenzio. ℹ️ Qualche riga sarà un falso allarme
+(nomi che compaiono solo dentro un commento, o composti a pezzi): si controllano a mano,
+sono pochi.
+
+⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** È questa la
+distrazione da cui nascono entrambi i controlli.
+
+---
+
 1. ✅ **Fatto il 2026-09-20** — numero di versione a **2.2** in `Versione.txt`, nel `#define` di Inno
    Setup, in `ApplicationDisplayVersion` (build 38 → 39) e nell'intestazione dei cinque manuali;
    PDF rigenerati e verificati titolo per titolo.
-2. Applicare su PROD `SqlScripts/638` e `639` — **prima** di consegnare l'eseguibile. ✅ Il **640** è già stato applicato il 2026-09-20 (§5): non rifarlo.
+2. Applicare su PROD **solo `SqlScripts/639`** — **prima** di consegnare l'eseguibile. ✅ Tutti gli altri (**638**, **640**–**650**) sono già applicati (§5): non rifarli.
 3. Compilare seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**, sorgente
    `C:\GestioneViaggi-build`, e cancellare i setup vecchi dopo la consegna.
-4. Provare, in «Nuova Transazione», che la tendina **Viaggio** si apra e che un movimento si possa collegare a un viaggio.
+4. Provare, in «Nuova Transazione»:
+   - la tendina **Viaggio** si apre, mostra i nomi e la nazione, e il movimento si collega;
+   - i tre pulsanti **TUTTI / GIÀ EFFETTUATI / DA EFFETTUARE** filtrano e riordinano (§1.2);
+   - scegliendo l'interlocutore arriva la sua **modalità di pagamento** e la scadenza si
+     calcola da sola (§1.3);
+   - la finestra **non si chiude** cliccando fuori, con Esc o con la rotella (§2.9).
 5. Verificare sulla VM, nell'ordine:
    - la **stampa del bilancio** deve produrre il PDF (è la correzione principale);
    - la dashboard di un utente **non SuperAdmin** deve mostrare il **Calendario Partenze**, aperto
      sul mese della prossima partenza, con i mezzi nel dettaglio al passaggio del mouse.
+   - ⭐️ **le altre quattro stampe contabili**: movimenti, scadenzario, registro IVA e fattura
+     attiva. In produzione non hanno **mai** funzionato fino al 2026-09-20 (§2.11), quindi
+     questo è il loro primo collaudo vero;
+   - **Tabelle Contabili → Modalità di Pagamento**: l'elenco deve contenere quindici voci.
