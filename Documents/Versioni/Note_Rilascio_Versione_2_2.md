@@ -377,6 +377,27 @@ con più di una firma. Da lanciare prima di ogni rilascio; deve rispondere zero 
 
 ---
 
+### ⛔️ 2.13 — Le stampe con un filtro sulle date non partivano
+
+L'elenco delle **fatture attive** non compariva mai. Non era la pagina: la ricerca
+falliva prima di cominciare, e falliva **sempre**, perché la pagina imposta da sola
+l'intervallo di date appena si sceglie l'anno.
+
+**La causa, in una riga:** il programma mandava le date come *timestamp* (data **e**
+ora), mentre le funzioni del database aspettano una *data*. Non sono la stessa cosa e il
+database non converte da solo: rispondeva «questa funzione non esiste», e la stampa si
+fermava lì.
+
+⚠️ **Non era solo la fattura attiva.** Lo stesso difetto era in altre tre stampe —
+**scadenzario**, **bilancio viaggio** e **movimenti contabili** — e si manifestava alla
+stessa condizione: filtrare per data, cioè quasi sempre. Corrette tutte e quattro nello
+stesso giro.
+
+ℹ️ In produzione non se n'era accorto nessuno perché non c'erano ancora movimenti
+contabili da stampare (§2.11): le stampe non arrivavano nemmeno a provarci.
+
+---
+
 ## Sezione 3 — Documentazione
 
 ### ⭐️ 3.1 — Il manuale della contabilità

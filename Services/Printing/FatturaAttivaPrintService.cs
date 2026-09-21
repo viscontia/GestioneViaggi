@@ -179,7 +179,28 @@ public class FatturaAttivaPrintService
         try
         {
             await using var connection = await _dbService.GetConnectionAsync();
-            var sql = "SELECT * FROM fn_get_fatture_attive_elenco(@AziendaId, @ControparteId, @DataDocDa, @DataDocA, @ImportoDa, @ImportoA, @Stato, @NumeroDocumento)";
+            // ⚠️ I CAST NON SONO ORNAMENTALI: senza, l'elenco non compariva MAI.
+            //
+            // La funzione dichiara `date`, `numeric` e `varchar`. Npgsql manda un
+            // DateTime come `timestamp` e un DBNull senza tipo come `unknown`, e
+            // Postgres NON considera timestamp->date una conversione implicita: la
+            // funzione risultava «does not exist» (errore 42883) e la ricerca finiva
+            // in eccezione. La pagina imposta le due date da sola a ogni scelta
+            // dell'anno, quindi il caso rotto era quello NORMALE: l'elenco delle
+            // fatture attive non si e' mai visto.
+            //
+            // ℹ️ E' la stessa regola che vale in tutto il progetto per i parametri
+            // opzionali di data e testo. Vale anche per i NULL: `unknown` non aiuta
+            // Postgres a scegliere quando i parametri hanno un valore predefinito.
+            var sql = @"SELECT * FROM fn_get_fatture_attive_elenco(
+                            @AziendaId,
+                            @ControparteId::integer,
+                            @DataDocDa::date,
+                            @DataDocA::date,
+                            @ImportoDa::numeric,
+                            @ImportoA::numeric,
+                            @Stato::varchar,
+                            @NumeroDocumento::varchar)";
             
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);

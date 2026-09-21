@@ -47,7 +47,18 @@ public class ScadenzarioPrintService
         {
             await using var connection = await _dbService.GetConnectionAsync();
 
-            var sql = "SELECT fn_get_scadenzario_print_data(@AziendaId, @ControparteId, @CausaleCiclo, @Urgenza, @DataScadenzaDa, @DataScadenzaA, @ViaggioId, @SoloConViaggio, @SoloSenzaViaggio, @Raggruppamento)";
+            // ⚠️ I cast di tipo sono obbligatori, non estetici: Npgsql manda un
+            // DateTime come `timestamp` e un DBNull senza tipo come `unknown`, e
+            // Postgres NON considera timestamp->date una conversione implicita. Senza,
+            // la funzione risulta «does not exist» (42883) e la stampa non parte —
+            // e succede proprio quando si filtra per data, cioe' quasi sempre.
+            // Stesso difetto trovato il 2026-09-21 sull'elenco delle fatture attive.
+            var sql = @"SELECT fn_get_scadenzario_print_data(
+                            @AziendaId::integer, @ControparteId::integer,
+                            @CausaleCiclo::varchar, @Urgenza::varchar,
+                            @DataScadenzaDa::date, @DataScadenzaA::date,
+                            @ViaggioId::integer, @SoloConViaggio, @SoloSenzaViaggio,
+                            @Raggruppamento::varchar)";
 
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", filtri.AziendaId ?? (object)DBNull.Value);

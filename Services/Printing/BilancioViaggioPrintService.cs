@@ -49,7 +49,16 @@ public class BilancioViaggioPrintService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
+            // ⚠️ I cast di tipo sono obbligatori, non estetici: Npgsql manda un
+            // DateTime come `timestamp` e un DBNull senza tipo come `unknown`, e
+            // Postgres NON considera timestamp->date una conversione implicita. Senza,
+            // la funzione risulta «does not exist» (42883) e la stampa non parte —
+            // e succede proprio quando si filtra per data, cioe' quasi sempre.
+            // Stesso difetto trovato il 2026-09-21 sull'elenco delle fatture attive.
+            var sql = @"SELECT fn_get_bilancio_viaggio_print_data(
+                            @AziendaId::integer, @ViaggioId::integer, @DataViaggioId::integer,
+                            @DataDa::date, @DataA::date, @Anno::integer,
+                            @ValutaTargetId::integer)";
 
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
@@ -106,7 +115,16 @@ public class BilancioViaggioPrintService
         try
         {
             await using var connection = await _databaseService.GetConnectionAsync();
-            var sql = "SELECT fn_get_bilancio_viaggio_print_data(@AziendaId, @ViaggioId, @DataViaggioId, @DataDa, @DataA, @Anno, @ValutaTargetId)";
+            // ⚠️ I cast di tipo sono obbligatori, non estetici: Npgsql manda un
+            // DateTime come `timestamp` e un DBNull senza tipo come `unknown`, e
+            // Postgres NON considera timestamp->date una conversione implicita. Senza,
+            // la funzione risulta «does not exist» (42883) e la stampa non parte —
+            // e succede proprio quando si filtra per data, cioe' quasi sempre.
+            // Stesso difetto trovato il 2026-09-21 sull'elenco delle fatture attive.
+            var sql = @"SELECT fn_get_bilancio_viaggio_print_data(
+                            @AziendaId::integer, @ViaggioId::integer, @DataViaggioId::integer,
+                            @DataDa::date, @DataA::date, @Anno::integer,
+                            @ValutaTargetId::integer)";
 
             await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)connection);
             cmd.Parameters.AddWithValue("AziendaId", aziendaId);
