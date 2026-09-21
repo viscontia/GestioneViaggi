@@ -420,6 +420,16 @@ torni a mordere.
 
 ## Sezione 3 — Documentazione
 
+### ⭐️ 3.0 — Il documento da mandare ad Antonio
+
+`Documents/Versioni/Novita_Versione_2_2.md` (e il suo **PDF**) è la versione breve di queste
+note, scritta per chi il programma lo usa e non lo scrive: le tre novità, i difetti che noterà
+corretti, e il rimando al manuale della contabilità. Due pagine.
+
+⚠️ Le note che stai leggendo **non** vanno mandate al cliente: contengono nomi di funzioni,
+numeri di script e la storia dei difetti. Servono a noi.
+
+
 ### ⭐️ 3.1 — Il manuale della contabilità
 
 `Documents/Manuali_Utente/Manuale_Contabilita.md` — **quinto manuale utente**, 15 capitoli:
