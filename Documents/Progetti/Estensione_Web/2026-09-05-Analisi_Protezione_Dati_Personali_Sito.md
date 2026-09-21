@@ -226,14 +226,31 @@ autocorrettivo della conferma di iscrizione: se non è stato lui, se ne accorge 
 
 ## 9. Ordine di lavoro
 
-1. **Chiudere il rubinetto** — gli endpoint smettono di restituire i campi personali, il
-   modulo lavora sui verdetti. ⚠️ Da solo blocca i 27 con la scheda incompleta: va quindi
-   fatto insieme al punto 3.
+> ### ✅ Stato al 2026-09-21
+>
+> **Il rubinetto è chiuso.** I due endpoint restituiscono il profilo pubblico
+> (`fn_web_cliente_profilo_pubblico`, script `651`), applicato in locale **e in PROD**:
+> niente codice fiscale, residenza, telefono, date o documento. Restano nome, cognome,
+> titolo, il consenso alla newsletter e i verdetti. Commit `4da59b68` nel repo del sito.
+>
+> ⚠️ **Il timore del punto 1 — «blocca i 27 con la scheda incompleta» — non si è
+> avverato, e vale la pena dire perché**: i campi ora arrivano vuoti ma restano
+> **scrivibili** anche per chi è già in archivio, e la scrittura non fa danni perché
+> `_payload` scarta i campi vuoti e `fn_ana_clienti_update` aggiorna solo le chiavi che
+> riceve. Chi torna ricompila, e quello che non ridigita resta com'era. Il punto 3 serve
+> quindi a restituire una **comodità**, non a sbloccare nessuno.
+>
+> Fatto anche il punto **6** (freno per IP, 20 richieste al minuto). **Restano il 3
+> (OTP), il 4 (avviso al cliente quando si completa un campo vuoto), il 5 (bonifica di
+> Antonio) e il 7 (i test).**
+
+1. ~~**Chiudere il rubinetto**~~ — ✅ **fatto il 2026-09-21.** Gli endpoint restituiscono i
+   verdetti; il modulo si ricompila e il salvataggio completa senza sovrascrivere.
 2. ~~Togliere `/api/debug/session`~~ — ✅ **fatto il 2026-09-05**.
 3. **L'OTP** — database, endpoint, interfaccia.
 4. **Il completamento dei campi vuoti** senza OTP, con avviso via email al cliente.
 5. **La bonifica delle 7 schede** da parte di Antonio (in parallelo, non blocca).
-6. **Il limite di frequenza** sugli endpoint che accettano un'email.
+6. ~~**Il limite di frequenza**~~ — ✅ **fatto il 2026-09-21**: 20 richieste al minuto per IP, in memoria del processo. È un freno all'enumerazione, non una serratura: la serratura è che in quella risposta non c'è più niente da rubare.
 7. **Il nuovo gruppo H** del piano di test, più i gruppi C, D e F da rifare.
 
 ---
