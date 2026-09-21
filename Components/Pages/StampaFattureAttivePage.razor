@@ -98,7 +98,7 @@
                 Reset
             </MudButton>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CercaAsync"
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => CercaAsync())"
                        StartIcon="@Icons.Material.Filled.Search" Size="Size.Small">
                 Cerca
             </MudButton>
@@ -218,6 +218,10 @@
         {
             _currentAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
             await CaricaAnniDisponibiliAsync();
+            // La pagina si apre gia' con l'elenco dell'anno in corso. Prima restava
+            // vuota finche' non si premeva «Cerca», e una griglia vuota appena aperta
+            // si legge come «non c'e' niente da stampare», non come «devi cercare».
+            await CercaAsync(avvisaSeVuoto: false);
         }
     }
 
@@ -228,6 +232,8 @@
         _filterControparteId = 0;
         _items.Clear();
         await CaricaAnniDisponibiliAsync();
+        // Stessa ragione di sopra: scelta l'azienda, l'elenco si popola da solo.
+        await CercaAsync(avvisaSeVuoto: false);
         StateHasChanged();
     }
 
@@ -285,7 +291,11 @@
         }
     }
 
-    private async Task CercaAsync()
+    /// <param name="avvisaSeVuoto">
+    /// false quando la ricerca parte da sola all'apertura: un avviso non richiesto,
+    /// su una pagina appena aperta, sembra un errore.
+    /// </param>
+    private async Task CercaAsync(bool avvisaSeVuoto = true)
     {
         // Validazioni
         if (_aziendaIdEffettivo <= 0)
@@ -326,7 +336,7 @@
                 _filterStato,
                 !string.IsNullOrWhiteSpace(_filterNumeroDocumento) ? _filterNumeroDocumento.ToUpperInvariant() : null);
 
-            if (_items.Count == 0)
+            if (_items.Count == 0 && avvisaSeVuoto)
             {
                 Snackbar.Add("Nessuna fattura attiva trovata con i filtri selezionati.", Severity.Info);
             }

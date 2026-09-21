@@ -398,6 +398,26 @@ contabili da stampare (§2.11): le stampe non arrivavano nemmeno a provarci.
 
 ---
 
+### 2.14 — L'elenco delle fatture attive restava vuoto anche dopo la correzione
+
+Due cose ancora, sulla stessa schermata:
+
+* **La pagina non cercava da sola.** Si apriva con i filtri già pronti sull'anno in corso,
+  ma la griglia restava vuota finché non si premeva *Cerca* — e una griglia vuota appena
+  aperta si legge come «non c'è niente da stampare», non come «devi premere un pulsante».
+  Ora l'elenco si popola all'apertura, e di nuovo quando si sceglie un'altra azienda.
+* **Un filtro lasciato in bianco filtrava lo stesso.** La tendina *Stato*, se svuotata
+  dopo essere stata usata, non mandava «nessun filtro» ma una **stringa vuota**: il
+  database cercava allora le fatture con stato uguale a `''`, che non esiste, e
+  rispondeva zero righe.
+
+⚠️ La seconda l'ha corretta il database (script `652`) e non la schermata: *vuoto e
+assente sono la stessa cosa* è una regola che il progetto applica già altrove, e lasciarla
+al chiamante significa che basta una tendina che si comporta diversamente perché il filtro
+torni a mordere.
+
+---
+
 ## Sezione 3 — Documentazione
 
 ### ⭐️ 3.1 — Il manuale della contabilità
@@ -439,6 +459,8 @@ spiegata.
 | `648_TransazioneInitData_ModalitaPagamento.sql` | Le modalità attive nell'apertura della scheda movimenti. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `649_FirmeDuplicate_Pulizia.sql` | Elimina le firme morte di 13 funzioni e crea la guardia `fn_check_firme_duplicate()`. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
 | `650_PROD_Stampe_Mancanti.sql` | Ricrea le 5 funzioni di stampa contabile che in PROD non esistevano. ✅ **Già applicato in PROD il 2026-09-20** (§5) |
+| `651_Web_ClienteProfiloPubblico.sql` | Il sito risponde con verdetti invece che con i dati personali del cliente. ✅ **Già applicato in PROD il 2026-09-21** (§5) |
+| `652_FattureAttive_FiltriVuoti.sql` | Un filtro vuoto non filtra più: l'elenco fatture attive tornava vuoto. ✅ **Già applicato in PROD il 2026-09-21** (§5) |
 
 ⚠️ **Ordine di rilascio**: gli script **prima**, l'applicativo **poi**. Valgono per entrambi: la
 stampa del bilancio legge `importo_effettivo_eur` e il calendario legge `tot_mezzi` — colonne che
