@@ -1,0 +1,98 @@
+# Cose da fare su MAUI — versione 2.3
+
+> **USO INTERNO.** Aperto il 2026-09-22, dopo la consegna della 2.2.
+> Raccoglie le idee nate lavorando, con il **perché** di ognuna: senza quello, fra tre mesi
+> resta solo un elenco di funzioni che nessuno sa più valutare.
+
+---
+
+## Il filo che le tiene insieme
+
+Antonio passa **quasi tutte le giornate in viaggio con i clienti**. Quando è a casa prepara i
+nuovi viaggi, tiene i conti, fa le fatture, scarica foto e filmati — e in mezzo a tutto questo
+deve anche trovare il tempo per il gestionale.
+
+⭐️ Le tre voci qui sotto nascono tutte dalla stessa constatazione: **il programma non deve
+aspettare che uno si ricordi di fare una cosa.** Deve dirgliela lui, nel momento in cui apre, e
+portarcelo con un clic.
+
+---
+
+## 1. Il promemoria all'apertura ⭐️ *(la più importante)*
+
+**Cosa.** All'avvio del gestionale compare una finestra con una **tabella delle cose rimaste in
+sospeso**. Ogni riga ha un bottone che porta **dritto alla funzione** che la risolve.
+
+**Le righe, per cominciare:**
+
+| Cosa segnala | Perché è in sospeso | Dove porta il bottone |
+|---|---|---|
+| Viaggi **già passati** e non segnati come effettuati | Falsa i conti e le statistiche, e resta lì per sempre | Anagrafica Viaggi e Date, su quella partenza |
+| Partenze future **senza scheda web** | Senza scheda il tour **non esiste** per il sito | Viaggio → Contenuti Web |
+| Partenze future **con scheda in bozza** | Pronta ma invisibile: è il caso più frustrante | Viaggio → Contenuti Web |
+| Partenze future **senza newsletter** | Un viaggio che nessuno sa che esiste non si riempie | Newsletter → nuova, già agganciata a quella partenza |
+| Viaggi **senza capienza o senza soglia** | Il sito non può scrivere «rimangono N posti» | Viaggio → Dati Generali |
+| Schede web **senza fotografie** | Non sono pubblicabili: diventerebbero caselle grigie | Viaggio → Contenuti Web → Galleria |
+| Clienti con **scheda incompleta** | Bloccano l'iscrizione e la schedina alloggiati | Anagrafica Clienti, su quel cliente |
+| Documenti **scaduti o in scadenza** per partenze vicine | Si scopre all'imbarco, ed è tardi | Partecipanti della partenza |
+
+⚠️ **Vincoli, dalle lezioni già imparate:**
+- la finestra **non si chiude cliccando fuori, né con Esc, né con la rotella** — vale la regola
+  introdotta nella 2.2, e qui a maggior ragione: è la prima cosa che si vede;
+- deve avere un **«non mostrarmelo più oggi»**, o alla terza volta diventa un fastidio da
+  chiudere a occhi chiusi — ed è così che i promemoria smettono di funzionare;
+- **se non c'è niente in sospeso, non deve comparire affatto.** Una finestra che dice «tutto a
+  posto» è una finestra che insegna a chiuderla senza leggerla.
+
+**Perché.** È insieme un promemoria e una lista di cose da fare, costruita su quello che il
+database **già sa**. Nessuna di queste domande richiede un dato nuovo: sono tutte interrogazioni
+su ciò che c'è.
+
+ℹ️ **Nota di progetto:** ogni riga è una funzione di database che risponde «quanti e quali».
+Così la stessa lista potrà un giorno comparire anche altrove (una mail del lunedì mattina, per
+dire) senza riscrivere niente.
+
+---
+
+## 2. Dopo una data nuova, la scheda web
+
+**Cosa.** Quando si salva una **data viaggio nuova**, compare una domanda: *«Vuoi preparare
+subito la scheda web di questa partenza?»*. Rispondendo **sì** si finisce direttamente nella
+schermata dei contenuti web, sulla partenza appena creata.
+
+**Perché.** È il momento in cui si ha in testa il viaggio — le date, il percorso, cosa lo rende
+diverso dagli altri. Tornarci tre settimane dopo significa ricostruire tutto da capo, e infatti
+oggi **otto schede su otto sono rimaste in bozza**.
+
+⚠️ La domanda va fatta **solo per le partenze future**: su una data passata inserita per
+storico sarebbe rumore.
+
+---
+
+## 3. Calendario: scegliere quanto guardare avanti
+
+**Cosa.** Nel calendario delle partenze, una tendina per l'**arco temporale**: 3 mesi · 6 mesi ·
+1 anno (oltre al mese singolo di oggi).
+
+**Perché.** Il mese da solo risponde a «cosa c'è adesso», ma le domande vere di un tour
+operator sono altre: *dove sono i buchi da riempire?* e *dove si accavallano due partenze?*.
+Sono domande che si vedono solo su un arco lungo.
+
+ℹ️ La scelta va **ricordata**: chi ragiona a sei mesi ci ragiona sempre. C'è già
+`sys_utente_preferenze` per questo.
+
+ℹ️ Su un anno intero le partenze diventano tante: probabilmente serve una vista più compatta
+(una barra per partenza invece della casella piena). Da guardare quando ci si mette mano.
+
+---
+
+## Ordine consigliato
+
+1. **Il promemoria all'apertura** — è quello che cambia la giornata di lavoro, e riusa cose che
+   ci sono già.
+2. **La domanda dopo la data nuova** — piccola, e attacca il problema delle schede in bozza
+   alla radice invece che a valle.
+3. **L'arco del calendario** — comoda, ma nessuno è bloccato senza.
+
+*(Le idee messe da parte durante i test restano in `2026-09-05-Prossime_Funzioni.md`; questo
+documento raccoglie solo quelle nate dopo la 2.2.)*
