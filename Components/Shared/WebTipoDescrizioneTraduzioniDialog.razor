@@ -76,7 +76,12 @@
 
     private async Task ReloadAsync()
     {
-        var list = await TraduzioniService.ListByEntitaAsync(Entita, DescrizioneId, AziendaId);
+        // ⛔️ Lettura GLOBALE, senza filtro azienda: le descrizioni web sono una tabella
+        // condivisa fra aziende e l'unique di web_traduzioni non contiene l'azienda. Con il
+        // filtro, la traduzione fatta da un'altra azienda risulterebbe assente e verrebbe
+        // rifatta — una chiamata all'AI pagata per riscrivere un testo già esistente, che poi
+        // sovrascrive quella di prima.
+        var list = await TraduzioniService.ListByEntitaGlobalAsync(Entita, DescrizioneId);
         _byLingua = list.Where(t => t.Campo == Campo).ToDictionary(t => t.Lingua, t => t);
         StateHasChanged();
     }

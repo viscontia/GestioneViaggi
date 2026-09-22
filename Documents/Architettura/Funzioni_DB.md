@@ -54,6 +54,42 @@ esiste in `SqlScripts/` non è uno script applicato.**
 
 ---
 
+## 0.1 Sito pubblico — le sezioni del menu (`SqlScripts/653`)
+
+### `fn_web_sezioni_tipologia(p_azienda_id, p_lingua)`
+Le sezioni da mostrare **adesso** nel menu del sito: quelle con almeno un tour pubblicato e con
+partenza **da domani in avanti**. Restituisce `sezione_id, nome, slug, ordine, tour_disponibili`.
+
+- ⚠️ **Poggia su `fn_web_tour_pubblicati`, non ricalcola il criterio.** È ciò che garantisce che
+  menu e catalogo dicano la stessa cosa: se una sezione compare, cliccandola ci sono dei tour.
+- ⛔️ Una sezione **senza tour non compare affatto**, non con conteggio zero: la decisione di
+  nasconderla non si scarica sul frontend.
+- **Ordine fisso** dal campo `ordine` — non per numero di tour: un menu che si riordina da solo
+  disorienta chi torna.
+- ℹ️ Le **sezioni senza foto** non si filtrano qui ma **a monte** (un tour senza immagine
+  principale non dev'essere pubblicabile): se il filtro stesse qui, una scheda risulterebbe
+  pubblicata nel gestionale e invisibile sul sito.
+
+### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
+Traduzioni di un'entità **globale**, senza filtro azienda.
+
+⛔️ **Il difetto che chiude**: `fn_web_traduzioni_list_by_entita` filtra per azienda, ma l'unique
+di `web_traduzioni` è `(entita, entita_id, campo, lingua)` — **senza azienda**. Su
+`web_tipi_viaggio_descrizioni`, che è condivisa, questo significa: l'azienda 6 traduce, SFT non
+vede niente, **ritraduce** (⚠️ una chiamata a Claude **pagata** per riscrivere un testo che
+c'era già) e la upsert sovrascrive la riga dell'altra. Le due aziende si sovrascrivono senza
+vedersi.
+
+ℹ️ Stesso criterio di `fn_web_traduzioni_marca_obsolete_global` (script 464), che aveva già
+riconosciuto il problema per la marcatura.
+
+### `fn_web_tour_pubblicati_nome_sezione(p_descrizione_id, p_lingua, p_fallback)`
+Il nome della sezione nella lingua richiesta. ⚠️ `fn_web_tour_pubblicati` restituiva
+`descrizione_web` **sempre in italiano**: un visitatore tedesco leggeva «Viaggi in 4x4» accanto
+a tutto il resto tradotto.
+
+---
+
 ## 1. Sicurezza e Utenti
 Funzioni relative all'autenticazione, gestione utenti, ruoli e permessi.
 

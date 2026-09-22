@@ -166,6 +166,46 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     }
 
     /// <summary>Tutte le traduzioni (ogni campo/lingua) di un record di un'entità.</summary>
+    /// <summary>
+    /// Traduzioni di un'entità <b>globale</b> (condivisa fra aziende), senza filtro azienda.
+    /// </summary>
+    /// <remarks>
+    /// ⛔️ Serve per <c>web_tipi_viaggio_descrizioni</c>: l'unique di <c>web_traduzioni</c> è
+    /// <c>(entita, entita_id, campo, lingua)</c> e <b>non contiene l'azienda</b>, quindi la
+    /// traduzione è unica a prescindere da chi l'abbia prodotta.
+    ///
+    /// Filtrando per azienda si otterrebbe questo: l'azienda 6 traduce «FUORISTRADA», SFT apre
+    /// lo stesso dialogo e <b>non vede niente</b>, ritraduce — ⚠️ una chiamata a Claude
+    /// <b>pagata</b> per riscrivere un testo che c'era già — e la upsert sovrascrive la riga
+    /// dell'altra. Le due aziende si sovrascrivono a vicenda senza vedersi.
+    ///
+    /// Stesso criterio di <see cref="MarkObsoleteGlobalAsync"/> (script 464).
+    /// </remarks>
+    public async Task<List<WebTraduzione>> ListByEntitaGlobalAsync(string entita, long entitaId)
+    {
+        try
+        {
+            await using var conn = await _databaseService.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(
+                "SELECT * FROM fn_web_traduzioni_list_by_entita_global(@Entita::varchar, @EntitaId::bigint)", conn);
+            cmd.Parameters.AddWithValue("Entita", entita);
+            cmd.Parameters.AddWithValue("EntitaId", entitaId);
+
+            var results = new List<WebTraduzione>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                results.Add(MapFromReader(reader));
+            }
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Errore nel recupero delle traduzioni globali di {Entita} {Id}", entita, entitaId);
+            return new List<WebTraduzione>();
+        }
+    }
+
     public async Task<List<WebTraduzione>> ListByEntitaAsync(string entita, long entitaId, int aziendaId)
     {
         try
