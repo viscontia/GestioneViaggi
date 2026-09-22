@@ -35,5 +35,6 @@ descrivono il database e le schermate del gestionale.
 serviranno solo al sito: il database è uno solo, e un secondo posto dove scrivere SQL è il modo
 più rapido per ritrovarsi con due verità.
 
-ℹ️ `2026-09-05-Analisi_Scelta_Camere_Step5.md` è finito in questa cartella per sbaglio: non
-riguarda il web ma la scelta delle camere. Andrebbe in `Analisi_e_Design/`.
+ℹ️ `2026-09-05-Analisi_Scelta_Camere_Step5.md` **è stato spostato nel progetto Flask**
+(`GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/docs/`): descrive il **passo 5 del wizard di
+iscrizione**, che è una schermata di quel sito — non del gestionale e non del sito pubblico.
