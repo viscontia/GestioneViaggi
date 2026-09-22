@@ -38,3 +38,22 @@ più rapido per ritrovarsi con due verità.
 ℹ️ `2026-09-05-Analisi_Scelta_Camere_Step5.md` **è stato spostato nel progetto Flask**
 (`GitHub/Iscrizione-Viaggi-Offroad PostgreSQL/docs/`): descrive il **passo 5 del wizard di
 iscrizione**, che è una schermata di quel sito — non del gestionale e non del sito pubblico.
+
+---
+
+## La cartella «Estensione Progetto WEB» non c'è più
+
+**Eliminata il 2026-09-22.** Stava nella radice del repository, non era tracciata da git, e
+conteneva due documenti che sembravano copie ma erano **versioni divergenti** — più vecchie.
+
+⚠️ **Come si è deciso quale tenere: leggendo il codice, non le date dei file.** (La data di
+modifica diceva il contrario: la copia fuori era *più recente*, perché era stata copiata di
+peso il 10 settembre.)
+
+| Documento | Fuori | In `Documents/` | Verifica |
+|---|---|---|---|
+| `2026-08-09-Newsletter_Blocchi_design.md` | senza la nota sulla lingua dell'invio di prova | **con** la nota (2026-08-18) | ✅ Nel codice `_linguaProva` e la tendina **esistono**: la versione in `Documents/` descrive il programma di oggi |
+| `Dettaglio_Tabelle_DB.md` | dichiara **versione 1.0, 20 giugno** | dichiara **versione 2.0, 3 luglio** | ✅ Corpo identico: cambia solo l'intestazione, e una è dichiaratamente successiva |
+
+Il **PDF** e l'HTML temporaneo esistevano solo là: il PDF è stato **rigenerato** dalla versione
+allineata e messo qui accanto al suo `.md`; l'HTML, un file di lavoro, è stato buttato.
