@@ -88,6 +88,43 @@ Il nome della sezione nella lingua richiesta. ⚠️ `fn_web_tour_pubblicati` re
 `descrizione_web` **sempre in italiano**: un visitatore tedesco leggeva «Viaggi in 4x4» accanto
 a tutto il resto tradotto.
 
+### La coda di rigenerazione (`SqlScripts/654`)
+
+Il sito è fatto di pagine statiche: restano com'erano finché qualcuno non dice «rifalla».
+
+⛔️ **`pg_notify` da solo non basta ed è il punto da non sottovalutare**: se nessuno è in
+ascolto nell'istante in cui il messaggio parte, **è perso per sempre**. Basta un riavvio nel
+momento sbagliato e una pagina resta ferma su «3 posti» quando sono zero — nessun errore,
+nessuna traccia.
+
+**Decisione (Adriano, 2026-09-22): entrambe le reti.** La tabella `web_revalidate_coda`
+sopravvive ai riavvii ed è la verità; il `pg_notify` resta come **sveglia** per l'ascoltatore;
+lato sito si aggiunge la rigenerazione **a tempo**, così un messaggio perso costa minuti, non
+l'eternità.
+
+| Funzione | A cosa serve |
+|---|---|
+| `fn_web_revalidate_accoda(azienda, oggetto, riferimento, origine)` | Mette in coda e sveglia. `ON CONFLICT DO NOTHING`: dieci iscrizioni in un minuto sullo stesso tour = **una** rigenerazione |
+| `fn_web_revalidate_prossimi(limite)` | Le prossime da fare, marcate come prese. `SKIP LOCKED`: due ascoltatori non si pestano i piedi |
+| `fn_web_revalidate_completa(ids[])` | Chiude le righe fatte |
+| `fn_web_revalidate_fallita(id, errore)` | La rimette in attesa e registra il motivo. `tentativi` dice se si sta impuntando |
+| `fn_web_revalidate_pulisci(giorni)` | Butta le completate più vecchie di N giorni |
+
+**Trigger** (`trg_web_revalidate_func`, uno solo per tutte): `web_tour_contenuti`,
+`web_tour_immagini`, `web_tour_itinerario`, `web_tour_mappa`, `ana_date_viaggi`, `ana_viaggi`,
+più `mov_clienti_viaggi` per i posti rimasti.
+
+⭐️ **Registra cosa è cambiato, non quale URL rifare.** Gli URL li conosce il sito e cambiano
+con lui; il database sa quale contenuto è stato toccato. Se la coda scrivesse URL, ogni
+ristrutturazione del sito richiederebbe di cambiare i trigger.
+
+⚠️ **Il caso che ci si dimentica sempre**: quando l'ultimo tour di una sezione sparisce non
+basta rigenerare quella pagina — va rifatto **il menu**, che sta in ogni pagina. Per questo
+`web_tour_contenuti` e `ana_date_viaggi` accodano anche una riga `'menu'`.
+
+ℹ️ I trigger devono restare **leggerissimi**: girano dentro ogni salvataggio del gestionale.
+Solo capire azienda e contenuto, e scrivere una riga.
+
 ---
 
 ## 1. Sicurezza e Utenti
