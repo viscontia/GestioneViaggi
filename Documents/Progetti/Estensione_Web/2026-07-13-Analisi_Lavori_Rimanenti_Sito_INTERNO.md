@@ -84,6 +84,31 @@ Proposta tecnica **approvata dal cliente**.
   è tutta nel dato — data, fonte e indirizzo IP se disponibile vanno scritti sempre, e il link
   di disiscrizione dev'essere in ogni invio e funzionare al primo colpo.
 
+### A.6 Sezioni dinamiche per tipologia di viaggio
+*(Deciso il 2026-09-22. Generalizza §A.3, che riguardava i soli tour brevi.)*
+
+Ogni tipologia di viaggio ha la **sua pagina** sul sito, e quella pagina **compare da sola**
+quando esistono tour pubblicati di quella tipologia con partenze **da domani in avanti**;
+sparisce da sola quando non ce ne sono più. La sezione «viaggi in e-bike» oggi non esiste:
+comparirà il giorno in cui ci sarà un e-bike in calendario, senza toccare il sito.
+
+- **Il meccanismo c'è già**: `ana_viaggi` → `ana_tipo_viaggi.descrizione_web_fk` →
+  `web_tipi_viaggio_descrizioni` (nome + slug + ordine = la pagina). ⭐️ La mappatura è **N:1**
+  di proposito: «enduro bicilindrici» e «enduro monocilindrici» sono due tipologie in
+  gestionale e **una sola sezione** sul sito. Il gergo interno non è il gergo del sito.
+- **Manca una funzione sola** nello strato pubblico (`fn_web_sezioni_tipologia`) che dica quali
+  sezioni mostrare, con nome, slug e conteggio. ⚠️ **Deve poggiare su
+  `fn_web_tour_pubblicati`**, non ricalcolare il criterio: altrimenti il menu e il catalogo
+  possono dire cose diverse.
+- **La condizione è «almeno un tour PUBBLICATO con partenza futura»**, non «almeno un viaggio in
+  anagrafica»: ⛔️ altrimenti la sezione compare **vuota**, che è peggio di non averla.
+- **Lato sito**: menu costruito dalla funzione, rotta dinamica `/tour/[sezione]`, e una sezione
+  che si svuota risponde **410 Gone** (non 404: è una pagina ritirata, non un errore).
+
+⚠️ **Stato in PROD al 2026-09-22**: `web_tipi_viaggio_descrizioni` è **vuota** e
+`descrizione_web_fk` è NULL su tutti e 7 i tipi. Il meccanismo è pronto, il contenuto no.
+Dettaglio completo e misure in `2026-09-22-Verifica_Presupposti_Sito_e_Sezioni_Dinamiche.md`.
+
 ---
 
 ## B. Sito web pubblico (Fase 3) — Next.js SEO-first
@@ -123,6 +148,13 @@ l'idea realizzabile in futuro.
 ## D. Dipendenze dal cliente (da sollecitare — determinanti)
 - **Materiale fotografico curato** per i tour di punta e **almeno 1 video hero** di qualità: la vetrina "premium" vive o muore su questo → **martellare** costantemente. *(Il cliente ci sta lavorando.)*
 - **Schede Google/TripAdvisor** (Place ID / URL) per collegare le recensioni.
+- ⛔️ **Le schede web dei tour non-4x4** *(rilevato il 2026-09-22)*. Tutte e otto le schede
+  esistenti stanno su una sola tipologia: i tour **enduro** hanno partenze future ma nessun
+  contenuto web, quindi il sito nascerebbe con **una sezione sola**. Non è un difetto tecnico,
+  è contenuto che manca.
+- ⛔️ **Il lavoro di redazione preliminare** *(2026-09-22)*: creare le sezioni web, collegarvi
+  le tipologie, pubblicare le schede (oggi 8 su 8 in bozza), accendere le funzioni web,
+  compilare social e contatti. **Senza, il sito nasce vuoto** — e non è lavoro di sviluppo.
 
 ## E. Ordine consigliato
 1. **CMS §A** (incluso/escluso · capienza+trigger · flag tipo breve · config recensioni) — piccole aggiunte ad alto impatto, sbloccano feature molto visibili sul sito.
