@@ -127,6 +127,49 @@ Solo capire azienda e contenuto, e scrivere una riga.
 
 ---
 
+## 0.2 ⚠️ Chi può chiamare una funzione — la regola del sito pubblico (`SqlScripts/655`)
+
+**Il gestionale si connette come superuser: vede tutto e non si accorge di niente.**
+Il sito pubblico si connetterà come `anon`, che non ha privilegi su **nessuna** tabella —
+per scelta, è lì che vive l'isolamento fra aziende.
+
+Una funzione `SECURITY INVOKER` (il modo predefinito) gira con i privilegi di **chi
+chiama**. Chiamata da `anon` risponde quindi `permission denied for table …`, anche se
+dal gestionale funziona benissimo. È esattamente quello che è successo a
+`fn_web_tour_pubblicati` e `fn_web_sezioni_tipologia`, scoperto il 2026-09-23.
+
+> **REGOLA — ogni funzione che il sito pubblico chiama:**
+> 1. nasce `SECURITY DEFINER` con `SET search_path = public, pg_temp`;
+> 2. riceve `p_azienda_id` e **filtra da sé** (in DEFINER nessuno lo fa al posto suo);
+> 3. restituisce solo contenuti destinati alla pubblicazione, **mai dati personali**.
+>
+> **Nessuna funzione di scrittura è raggiungibile da `anon`.** ⚠️ In PostgreSQL una
+> funzione appena creata ha `EXECUTE` per `PUBLIC`: il permesso va tolto a mano, con
+> `REVOKE ALL … FROM PUBLIC`, altrimenti c'è per distrazione.
+
+Funzioni già promosse: `fn_web_tour_pubblicati`, `fn_web_sezioni_tipologia`,
+`fn_web_ha_tour_brevi_pubblicati`, `fn_web_tour_pubblicati_nome_sezione`, più
+`fn_web_mezzi_occupati_data` e `fn_web_recensioni_config`, che erano già nate così.
+Le funzioni delle Tappe 2-4 (scheda tour, itinerario, immagini, mappa, prossime partenze)
+sono ancora `INVOKER`: **vanno promosse quando il sito comincia a chiamarle.**
+
+Come si controlla che nessuna funzione sia esposta per sbaglio:
+
+```sql
+-- Tutte le SECURITY DEFINER raggiungibili da anon: devono essere solo quelle volute
+SELECT p.proname, p.proacl::text, p.proconfig::text
+  FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
+ WHERE n.nspname = 'public' AND p.prosecdef
+   AND has_function_privilege('anon', p.oid, 'EXECUTE');
+```
+
+ℹ️ **La Data API di Supabase non ci riguarda.** Dal 30 ottobre 2026 le tabelle nuove in
+`public` non ricevono più i permessi automatici per `anon`/`authenticated`/`service_role`.
+Verificato il 2026-09-23: nessuna nostra tabella li ha mai avuti, e non li vogliamo. Il
+sito non legge tabelle — chiama funzioni.
+
+---
+
 ## 1. Sicurezza e Utenti
 Funzioni relative all'autenticazione, gestione utenti, ruoli e permessi.
 
