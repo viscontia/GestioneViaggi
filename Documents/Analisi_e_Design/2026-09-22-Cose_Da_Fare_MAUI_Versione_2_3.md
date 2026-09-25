@@ -118,6 +118,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L8** | Import dei 2.523 iscritti dal Drupal, al go-live | `Prossime_Funzioni` §4 |
 | **L9** | PDF della scheda dal sito | `Prossime_Funzioni` §12 |
 | **L10** | ✅ Fatto il 2026-09-25 (`SqlScripts/659`): nessuna funzione nostra eseguibile da `PUBLIC`, le nuove nascono chiuse; `anon` esegue solo le 8 letture pubbliche | `Funzioni_DB.md` §0.2 |
+| **L11** | Dati personali nei log del sito Flask: il testo degli errori di database (DETAIL con la riga di `ana_clienti`) finisce nei log in molti punti; chiuso nel salvataggio del cliente, restano `/finalizza` e altri | Sito |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
