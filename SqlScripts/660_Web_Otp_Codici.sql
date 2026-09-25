@@ -6,8 +6,16 @@
 --
 -- Il sito riconosce un cliente dall'email, ma l'email non identifica nessuno:
 -- chiunque puo' digitarla. Per VEDERE o MODIFICARE la scheda serve dimostrare di
--- leggere la casella IN ARCHIVIO. Le regole — 5 minuti, uso singolo, 3 tentativi,
--- 3 richieste ogni 15 minuti — stanno qui e non nel Python.
+-- leggere la casella IN ARCHIVIO. Le regole — 8 cifre, 5 minuti, uso singolo,
+-- 3 tentativi, 3 richieste ogni 15 minuti e 10 ogni 24 ore — stanno qui e non
+-- nel Python.
+--
+-- ⚠️ PERCHE' 8 CIFRE E NON 6 (deciso dopo la revisione della parte Flask). Chi
+-- conosce molte email puo' chiedere codici per tutte e provare a indovinarli:
+-- 10 codici al giorno x 3 tentativi = 30 tentativi al giorno per scheda. Con
+-- 1000 email sono 30.000 tentativi al giorno: su un milione di codici possibili
+-- (6 cifre) apre qualche scheda con probabilita' ~3% al giorno; su cento
+-- milioni (8 cifre) ~0,03%. Due cifre in piu' da digitare costano poco.
 --
 -- ⚠️ Il codice NON si tiene in chiaro: si conserva l'impronta sha256 di sale+codice.
 -- sha256 e gen_random_uuid sono nativi (PG 13+): nessuna estensione, quindi lo
@@ -115,7 +123,10 @@ BEGIN
      WHERE o.cliente_id = p_cliente_id AND o.usato_il IS NULL AND o.scadenza > now();
 
     -- gen_random_uuid usa il generatore sicuro del sistema; random() no.
-    v_codice := lpad(((('x' || substr(md5(gen_random_uuid()::text), 1, 8))::bit(32)::bigint) % 1000000)::text, 6, '0');
+    -- ⚠️ 48 bit (12 cifre esadecimali), non 32: 2^32 fa ~4,29 miliardi, e il
+    -- modulo 100.000.000 renderebbe i codici sotto ~95 milioni piu' probabili
+    -- del 2,4%. Con 2^48 lo scarto scende sotto una parte su un milione.
+    v_codice := lpad(((('x' || substr(md5(gen_random_uuid()::text), 1, 12))::bit(48)::bigint) % 100000000)::text, 8, '0');
     v_sale   := gen_random_uuid()::text;
 
     INSERT INTO web_otp_codici (azienda_id, cliente_id, email, codice_sale, codice_hash, scadenza)
@@ -128,7 +139,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_web_otp_genera(INTEGER, INTEGER) IS
-    'Genera un codice a 6 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Tetto: 3 richieste in 15 minuti, 10 in 24 ore. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, TROPPE_RICHIESTE (script 660).';
+    'Genera un codice a 8 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Tetto: 3 richieste in 15 minuti, 10 in 24 ore. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, TROPPE_RICHIESTE (script 660).';
 
 CREATE OR REPLACE FUNCTION fn_web_otp_verifica(p_azienda_id INTEGER, p_cliente_id INTEGER, p_codice TEXT)
 RETURNS TEXT

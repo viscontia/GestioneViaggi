@@ -23,10 +23,10 @@ BEGIN
     -- Budget pulito: in locale potrebbero esserci righe vere di prove al sito.
     DELETE FROM web_otp_codici WHERE cliente_id = 3870;
 
-    -- 1. genera: restituisce un codice a 6 cifre e l'email in archivio
+    -- 1. genera: restituisce un codice a 8 cifre e l'email in archivio
     SELECT * INTO r FROM fn_web_otp_genera(2, 3870);                     -- richiesta 1
     ASSERT r.esito = 'OK', 'genera: atteso OK, ottenuto ' || r.esito;
-    ASSERT r.codice ~ '^[0-9]{6}$', 'genera: codice non di 6 cifre';
+    ASSERT r.codice ~ '^[0-9]{8}$', 'genera: codice non di 8 cifre';
     ASSERT r.email = (SELECT btrim(cliente_email) FROM ana_clienti WHERE cliente_id = 3870),
            'genera: non e'' l''email in archivio';
     v_codice := r.codice;
@@ -41,7 +41,7 @@ BEGIN
            'l''impronta non e'' sha256 di sale+codice';
 
     -- 3. sbagliato, poi giusto, poi riusato
-    -- 'sbagliato' non e' di 6 cifre: non puo' coincidere per caso col codice vero.
+    -- 'sbagliato' non e' fatto di cifre: non puo' coincidere per caso col codice vero.
     ASSERT fn_web_otp_verifica(2, 3870, 'sbagliato') = 'ERRATO', 'verifica sbagliata';
     ASSERT fn_web_otp_verifica(2, 3870, v_codice) = 'OK', 'verifica giusta';
     ASSERT fn_web_otp_verifica(2, 3870, v_codice) = 'NESSUN_CODICE', 'riuso ammesso';
