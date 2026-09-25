@@ -28,6 +28,7 @@ public static class SocialCatalogo
         new SocialInfo("instagram", "Instagram", "#C13584"),
         new SocialInfo("tiktok",    "TikTok",    "#010101"),
         new SocialInfo("youtube",   "YouTube",   "#FF0000"),
+        new SocialInfo("whatsapp",  "WhatsApp",  "#25D366"),
     };
 
     public static SocialInfo? Trova(string? codice) =>
