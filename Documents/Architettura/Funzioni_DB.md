@@ -143,9 +143,20 @@ dal gestionale funziona benissimo. È esattamente quello che è successo a
 > 2. riceve `p_azienda_id` e **filtra da sé** (in DEFINER nessuno lo fa al posto suo);
 > 3. restituisce solo contenuti destinati alla pubblicazione, **mai dati personali**.
 >
-> **Nessuna funzione di scrittura è raggiungibile da `anon`.** ⚠️ In PostgreSQL una
-> funzione appena creata ha `EXECUTE` per `PUBLIC`: il permesso va tolto a mano, con
-> `REVOKE ALL … FROM PUBLIC`, altrimenti c'è per distrazione.
+> **Nessuna funzione di scrittura è raggiungibile da `anon`.** Dal 2026-09-25
+> (`SqlScripts/659`) le funzioni create da `postgres` **nascono chiuse**: nessun `EXECUTE`
+> a `PUBLIC`. Una funzione per il sito pubblico va quindi aperta **esplicitamente**, con
+> `GRANT EXECUTE … TO anon` (come nello script 655).
+>
+> ⚠️ **Perché il 659**: lo script 453 aveva già provato a chiudere le funzioni future con
+> `ALTER DEFAULT PRIVILEGES … IN SCHEMA public REVOKE … FROM PUBLIC`, ma **la forma per
+> schema può solo aggiungere permessi, mai toglierli**: il comando passa senza errori e
+> non fa nulla. Così 187 funzioni nate dopo erano rimaste aperte. La revoca vera è quella
+> **globale**, senza `IN SCHEMA`.
+>
+> ℹ️ Gestionale e sito Flask non ne risentono: si connettono come `postgres`, che in PROD
+> **non** è superuser ma è il **proprietario** delle funzioni, e il proprietario esegue
+> sempre.
 
 Funzioni già promosse: `fn_web_tour_pubblicati`, `fn_web_sezioni_tipologia`,
 `fn_web_ha_tour_brevi_pubblicati`, `fn_web_tour_pubblicati_nome_sezione`, più
@@ -156,6 +167,12 @@ sono ancora `INVOKER`: **vanno promosse quando il sito comincia a chiamarle.**
 Come si controlla che nessuna funzione sia esposta per sbaglio:
 
 ```sql
+-- Nessuna funzione nostra aperta a PUBLIC (atteso: 0)
+SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+ WHERE n.nspname = 'public' AND p.proowner = 'postgres'::regrole
+   AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
+   AND (p.proacl IS NULL OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) a WHERE a.grantee = 0));
+
 -- Tutte le SECURITY DEFINER raggiungibili da anon: devono essere solo quelle volute
 SELECT p.proname, p.proacl::text, p.proconfig::text
   FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid
