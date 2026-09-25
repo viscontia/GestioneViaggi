@@ -108,7 +108,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 
 | Codice | Cosa, in una riga | Dettaglio |
 |---|---|---|
-| **L1** | I titoli dei tour arrivano al sito in MAIUSCOLO perché vengono da `viaggio_descrizione_breve`, campo di anagrafica forzato in maiuscolo: serve un **titolo web** fra i contenuti editoriali | Sito |
+| **L1** | I titoli dei tour arrivano al sito in MAIUSCOLO (`viaggio_descrizione_breve`, forzato in maiuscolo). ✅ Deciso il 2026-09-25: **nessuna modifica al gestionale**, li converte il codice del sito | Sito |
 | **L2** | Il promemoria all'apertura: quattro righe servono al sito (bozza, senza scheda, senza foto, senza capienza) | Qui, §1 |
 | **L3** | La scheda web proposta dopo una data nuova | Qui, §2 |
 | **L4** | Dati personali consegnati dal sito Flask (rubinetto + OTP) | `Prossime_Funzioni` §0-bis |
