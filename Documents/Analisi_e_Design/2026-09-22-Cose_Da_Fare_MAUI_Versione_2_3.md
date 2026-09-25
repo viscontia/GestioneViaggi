@@ -96,3 +96,29 @@ Sono domande che si vedono solo su un arco lungo.
 
 *(Le idee messe da parte durante i test restano in `2026-09-05-Prossime_Funzioni.md`; questo
 documento raccoglie solo quelle nate dopo la 2.2.)*
+
+---
+
+## Legato al sito pubblico
+
+Il sito pubblico (**Fuori Traccia Travel**, `fuoritracciatravel.com`) ha il suo elenco gemello:
+`../../../../Sito Web SFT/Documenti/2026-09-25-Cose_Da_Fare_Sito.md`. Le voci che toccano tutti
+e due i progetti hanno lo **stesso codice** in entrambi i documenti. ⛔️ Quando una si chiude, si
+chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo riassume e rimanda.
+
+| Codice | Cosa, in una riga | Dettaglio |
+|---|---|---|
+| **L1** | I titoli dei tour arrivano al sito in MAIUSCOLO perché vengono da `viaggio_descrizione_breve`, campo di anagrafica forzato in maiuscolo: serve un **titolo web** fra i contenuti editoriali | Sito |
+| **L2** | Il promemoria all'apertura: quattro righe servono al sito (bozza, senza scheda, senza foto, senza capienza) | Qui, §1 |
+| **L3** | La scheda web proposta dopo una data nuova | Qui, §2 |
+| **L4** | Dati personali consegnati dal sito Flask (rubinetto + OTP) | `Prossime_Funzioni` §0-bis |
+| **L5** | Indirizzo del sito scritto nel codice Flask: con il dominio nuovo va nella configurazione azienda | `Prossime_Funzioni` §2-bis |
+| **L6** | Chiave dello Storage dentro il gestionale | `Prossime_Funzioni` §11 |
+| **L7** | Pagina pubblica di iscrizione alla newsletter | `Prossime_Funzioni` §3 |
+| **L8** | Import dei 2.523 iscritti dal Drupal, al go-live | `Prossime_Funzioni` §4 |
+| **L9** | PDF della scheda dal sito | `Prossime_Funzioni` §12 |
+| **L10** | `anon` può eseguire 273 funzioni su 552 tramite `PUBLIC`: va ristretto alle `fn_web_*` di lettura, provando prima il sito Flask | Sito |
+
+ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
+nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
+dominio senza sito.
