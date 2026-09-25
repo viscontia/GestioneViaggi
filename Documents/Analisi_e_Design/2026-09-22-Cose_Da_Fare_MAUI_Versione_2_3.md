@@ -111,7 +111,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L1** | I titoli dei tour arrivano al sito in MAIUSCOLO (`viaggio_descrizione_breve`, forzato in maiuscolo). ✅ Deciso il 2026-09-25: **nessuna modifica al gestionale**, li converte il codice del sito | Sito |
 | **L2** | Il promemoria all'apertura: quattro righe servono al sito (bozza, senza scheda, senza foto, senza capienza) | Qui, §1 |
 | **L3** | La scheda web proposta dopo una data nuova | Qui, §2 |
-| **L4** | Dati personali consegnati dal sito Flask (rubinetto + OTP) | `Prossime_Funzioni` §0-bis |
+| **L4** | Dati personali nel sito Flask: ✅ rubinetto in produzione dal 2026-09-21 (script 651). ✅ Disegno nuovo approvato il 2026-09-25: chi è riconosciuto usa la sua scheda senza ricompilarla, completa solo i campi mancanti, OTP solo per modificare. Gli script SQL (`660` e seguenti) nascono qui | `Iscrizione-Viaggi-Offroad PostgreSQL/docs/plans/2026-09-25-cliente-riconosciuto-otp-design.md` |
 | **L5** | Indirizzo del sito scritto nel codice Flask: con il dominio nuovo va nella configurazione azienda | `Prossime_Funzioni` §2-bis |
 | **L6** | Chiave dello Storage dentro il gestionale | `Prossime_Funzioni` §11 |
 | **L7** | Pagina pubblica di iscrizione alla newsletter | `Prossime_Funzioni` §3 |
