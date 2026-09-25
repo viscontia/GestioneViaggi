@@ -45,10 +45,16 @@
 --   - il codice fiscale si scrive solo se fn_cf_verifica, sui dati uniti (scheda
 --     + modulo), risponde CORRISPONDE o OMOCODIA. FORMA_OK (dati insufficienti,
 --     o nato all'estero) non conferma niente: il campo si salta, senza errore;
---   - data e comune di nascita si scrivono solo se nella STESSA chiamata arriva
---     anche il codice fiscale della scheda (quello gia' in archivio o quello che
---     si sta completando) e con quei dati risponde CORRISPONDE o OMOCODIA.
---     Altrimenti si saltano;
+--   - data e comune di nascita si scrivono solo se il codice fiscale e' GIA' IN
+--     ARCHIVIO, arriva anche nella stessa chiamata, e con quei dati risponde
+--     CORRISPONDE o OMOCODIA. Altrimenti si saltano;
+--   - ⚠️ se in archivio mancano SIA il codice fiscale SIA la data di nascita, non
+--     si completa nessuno dei due: si saltano, senza errore, e il sito passa al
+--     codice usa e getta. «Si confermano a vicenda» li' non prova niente: il
+--     codice fiscale si calcola in modo pubblico da cognome, nome, sesso e comune
+--     (gia' in scheda) piu' la data, quindi una data inventata con il suo codice
+--     calcolato tornerebbe sempre. Un dato conferma l'altro solo se uno dei due
+--     c'era gia'. (Seconda revisione di qualita', 2026-09-25.)
 --   - documento, recapiti, indirizzo e intolleranze si completano liberamente.
 --
 -- ⛔️ I MESSAGGI DI VALIDAZIONE NON ESCONO COSI' COME SONO. Il sito mostra al
@@ -65,6 +71,12 @@
 -- Un valore malformato (una data «abc», un numero dove serve un comune, un comune
 -- che non esiste) si traduce in un messaggio unico: l'errore di Postgres non dice
 -- niente al cliente, e il DAO Flask lo inghiottirebbe.
+-- ⛔️ Lo stesso per OGNI violazione di vincolo, non solo le chiavi esterne. I
+-- vincoli che fn_ana_clienti_valida non guarda prima (rilascio dopo la nascita,
+-- scadenza dopo il rilascio, l'indice unico su cognome + nome + data di nascita
+-- senza comune) fanno uscire un errore il cui DETAIL e' la RIGA INTERA della
+-- scheda: «Failing row contains (3870, SIG., VISCONTI, …, codice fiscale, …)».
+-- Si risponde con un testo senza valori, e un'eccezione nuova non ha DETAIL.
 --
 -- ⚠️ La riga del cliente si legge FOR UPDATE: due completamenti insieme (doppio
 -- clic, due schede aperte) non devono vedere tutti e due il campo vuoto e
@@ -120,6 +132,7 @@ DECLARE
     v_esito_cf  VARCHAR;
     v_cf_inviato TEXT;
     v_esito     VARCHAR;
+    v_vincolo   TEXT;
     r           RECORD;
 BEGIN
     SELECT to_jsonb(c) INTO v_attuale
@@ -172,19 +185,22 @@ BEGIN
                                'cliente_codicefiscale'] THEN
             v_cf_inviato := upper(btrim(COALESCE(p_dati ->> 'cliente_codicefiscale', '')));
 
-            -- 1. La nascita: serve il codice fiscale della scheda, arrivato anche
-            --    nel modulo, che con i dati nuovi corrisponda.
+            -- 1. La nascita: serve il codice fiscale GIA' IN ARCHIVIO, arrivato
+            --    anche nel modulo, che con i dati nuovi corrisponda. Quello che si
+            --    sta completando non basta: vedi la testata.
             IF v_filtrati ?| ARRAY['cliente_data_nascita', 'cliente_comune_nascita_fk'] THEN
                 v_unito := v_attuale || v_filtrati;
                 v_esito_cf := fn_web_cliente_completa_esito_cf(v_unito);
                 IF v_cf_inviato = ''
-                   OR v_cf_inviato <> upper(btrim(COALESCE(v_unito ->> 'cliente_codicefiscale', '')))
+                   OR v_cf_inviato <> upper(btrim(COALESCE(v_attuale ->> 'cliente_codicefiscale', '')))
                    OR v_esito_cf NOT IN ('CORRISPONDE', 'OMOCODIA') THEN
                     v_filtrati := v_filtrati - 'cliente_data_nascita' - 'cliente_comune_nascita_fk';
                 END IF;
             END IF;
 
             -- 2. Il codice fiscale: FORMA_OK non conferma niente, e si salta.
+            --    Se la data di nascita mancava in archivio, dal punto 1 non e'
+            --    arrivata: qui l'esito e' FORMA_OK, e il codice si salta anche lui.
             --    Un esito di errore invece resta, e lo ferma la validazione qui
             --    sotto con un messaggio senza valori.
             IF v_filtrati ? 'cliente_codicefiscale' THEN
@@ -226,8 +242,20 @@ BEGIN
         END IF;
 
         PERFORM fn_ana_clienti_update(p_cliente_id, v_filtrati, FALSE);
-    EXCEPTION WHEN data_exception OR foreign_key_violation THEN
-        RAISE EXCEPTION 'Uno dei dati inviati non è nel formato atteso.';
+    EXCEPTION
+        WHEN unique_violation THEN
+            RAISE EXCEPTION 'Questi dati risultano già su un''altra scheda: usa il codice per modificare la scheda.';
+        WHEN check_violation THEN
+            -- Solo i due vincoli sulle date sono «date incoerenti»; gli altri
+            -- (indirizzo troppo corto, caratteri nel telefono) sono un formato.
+            GET STACKED DIAGNOSTICS v_vincolo = CONSTRAINT_NAME;
+            IF v_vincolo IN ('ana_clienti_rilascio_dopo_nascita_check',
+                             'ana_clienti_scadenza_dopo_rilascio_check') THEN
+                RAISE EXCEPTION 'Alcune date non sono coerenti tra loro.';
+            END IF;
+            RAISE EXCEPTION 'Uno dei dati inviati non è nel formato atteso.';
+        WHEN data_exception OR integrity_constraint_violation THEN
+            RAISE EXCEPTION 'Uno dei dati inviati non è nel formato atteso.';
     END;
 
     RETURN QUERY

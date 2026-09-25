@@ -28,6 +28,7 @@ DECLARE
     v_dopo    RECORD;
     v_scritti TEXT[];
     v_msg     TEXT;
+    v_dettaglio TEXT;
     v_cf_vero TEXT;
     -- Ben formato, con il carattere di controllo giusto, ma nato il 20 invece
     -- che il 19: supera la forma e non corrisponde ai dati del 3870.
@@ -226,20 +227,34 @@ BEGIN
                'cliente_codicefiscale', v_cf_falso));
     ASSERT v_scritti IS NULL, 'scritti data e codice fiscale incoerenti: ' || array_to_string(v_scritti, ',');
 
-    -- 14. data di nascita e codice fiscale insieme e coerenti: scritti tutti e due
-    SELECT array_agg(etichetta) INTO v_scritti
+    -- 14. codice fiscale e data di nascita tutti e due vuoti in archivio: anche se
+    --     coerenti tra loro non si scrive nessuno dei due, e senza errore. Il
+    --     codice fiscale si calcola da dati pubblici (cognome, nome, sesso, comune,
+    --     gia' in scheda) piu' la data: una coppia inventata si conferma da sola.
+    SELECT array_agg(campo) INTO v_scritti
       FROM fn_web_cliente_completa(3870, 2, jsonb_build_object(
-               'cliente_data_nascita', v_prima.cliente_data_nascita::TEXT,
-               'cliente_codicefiscale', lower(v_cf_vero)));
-    ASSERT v_scritti = ARRAY['la data di nascita', 'il codice fiscale'],
-           'data e codice fiscale coerenti non scritti: ' || COALESCE(array_to_string(v_scritti, ','), 'nulla');
+               'cliente_data_nascita', '1990-05-05',
+               'cliente_codicefiscale', fn_cf_calcola(v_prima.cliente_cognome, v_prima.cliente_nome,
+                                                      '1990-05-05', v_prima.cliente_sesso,
+                                                      v_prima.cliente_comune_nascita_fk)));
+    ASSERT v_scritti IS NULL, 'scritta una coppia data e codice fiscale inventata: ' || array_to_string(v_scritti, ',');
     SELECT * INTO v_dopo FROM ana_clienti WHERE cliente_id = 3870;
-    ASSERT v_dopo.cliente_data_nascita = v_prima.cliente_data_nascita, 'data di nascita non scritta';
-    ASSERT v_dopo.cliente_codicefiscale = v_cf_vero, 'codice fiscale non scritto';
+    ASSERT v_dopo.cliente_data_nascita IS NULL AND v_dopo.cliente_codicefiscale IS NULL,
+           'data o codice fiscale scritti con tutti e due vuoti in archivio';
+
+    -- 14-bis. data di nascita in archivio, codice fiscale vuoto: passa il codice vero
+    UPDATE ana_clienti SET cliente_data_nascita = v_prima.cliente_data_nascita WHERE cliente_id = 3870;
+    SELECT array_agg(etichetta) INTO v_scritti
+      FROM fn_web_cliente_completa(3870, 2, jsonb_build_object('cliente_codicefiscale', lower(v_cf_vero)));
+    ASSERT v_scritti = ARRAY['il codice fiscale'],
+           'codice fiscale vero non scritto: ' || COALESCE(array_to_string(v_scritti, ','), 'nulla');
+    ASSERT (SELECT cliente_codicefiscale FROM ana_clienti WHERE cliente_id = 3870) = v_cf_vero,
+           'codice fiscale non scritto';
 
     -- 15. data di nascita vuota, codice fiscale gia' in archivio: la conferma quel
     --     codice, se arriva anche nel modulo; senza, si salta
-    UPDATE ana_clienti SET cliente_data_nascita = NULL WHERE cliente_id = 3870;
+    UPDATE ana_clienti SET cliente_data_nascita = NULL, cliente_codicefiscale = v_prima.cliente_codicefiscale
+     WHERE cliente_id = 3870;
     SELECT array_agg(campo) INTO v_scritti
       FROM fn_web_cliente_completa(3870, 2, jsonb_build_object(
                'cliente_data_nascita', v_prima.cliente_data_nascita::TEXT));
@@ -250,6 +265,50 @@ BEGIN
                'cliente_codicefiscale', v_cf_vero));
     ASSERT v_scritti = ARRAY['cliente_data_nascita'],
            'data di nascita confermata dal codice in archivio non scritta: ' || COALESCE(array_to_string(v_scritti, ','), 'nulla');
+
+    -- 15-bis. ⛔️ un vincolo di tabella che la validazione non guarda prima: una data
+    --     di rilascio anteriore alla nascita. L'errore di Postgres porterebbe nel
+    --     DETAIL la riga intera della scheda; esce invece un testo senza valori.
+    UPDATE ana_clienti SET cliente_documento_rilasciato_data = NULL WHERE cliente_id = 3870;
+    BEGIN
+        PERFORM fn_web_cliente_completa(3870, 2, jsonb_build_object(
+                    'cliente_documento_rilasciato_data', '1900-01-01'));
+        ASSERT false, 'data di rilascio anteriore alla nascita accettata';
+    EXCEPTION WHEN raise_exception THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT, v_dettaglio = PG_EXCEPTION_DETAIL;
+        ASSERT v_msg = 'Alcune date non sono coerenti tra loro.', 'vincolo sulle date: messaggio inatteso: ' || v_msg;
+        ASSERT position(v_cf_vero IN v_msg || COALESCE(v_dettaglio, '')) = 0
+           AND position(v_prima.cliente_data_nascita::TEXT IN v_msg || COALESCE(v_dettaglio, '')) = 0,
+               'vincolo sulle date: l''errore rivela i dati della scheda';
+        ASSERT COALESCE(v_dettaglio, '') = '', 'vincolo sulle date: l''errore ha un dettaglio: ' || v_dettaglio;
+    END;
+    UPDATE ana_clienti SET cliente_documento_rilasciato_data = v_prima.cliente_documento_rilasciato_data
+     WHERE cliente_id = 3870;
+
+    -- 15-ter. ⛔️ l'indice unico su cognome + nome + data di nascita (senza comune,
+    --     quindi fn_ana_clienti_valida non lo vede come doppione): un omonimo nato
+    --     lo stesso giorno in un altro comune. Anche qui un testo senza valori.
+    UPDATE ana_clienti SET cliente_data_nascita = NULL WHERE cliente_id = 3870;
+    INSERT INTO ana_clienti (cliente_id, cliente_titolo_fk, cliente_cognome, cliente_nome, cliente_sesso,
+                             cliente_comune_residenza_fk, cliente_comune_nascita_fk, cliente_data_nascita,
+                             azienda_fk)
+    SELECT (SELECT max(cliente_id) + 1 FROM ana_clienti), v_prima.cliente_titolo_fk,
+           v_prima.cliente_cognome, v_prima.cliente_nome, v_prima.cliente_sesso,
+           v_prima.cliente_comune_residenza_fk,
+           (SELECT min(comune_id) FROM ana_geo_comuni WHERE comune_id <> v_prima.cliente_comune_nascita_fk),
+           v_prima.cliente_data_nascita, 2;
+    BEGIN
+        PERFORM fn_web_cliente_completa(3870, 2, jsonb_build_object(
+                    'cliente_data_nascita', v_prima.cliente_data_nascita::TEXT,
+                    'cliente_codicefiscale', v_cf_vero));
+        ASSERT false, 'omonimo nato lo stesso giorno accettato';
+    EXCEPTION WHEN raise_exception THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT, v_dettaglio = PG_EXCEPTION_DETAIL;
+        ASSERT v_msg = 'Questi dati risultano già su un''altra scheda: usa il codice per modificare la scheda.',
+               'indice unico: messaggio inatteso: ' || v_msg;
+        ASSERT COALESCE(v_dettaglio, '') = '', 'indice unico: l''errore ha un dettaglio: ' || v_dettaglio;
+    END;
+    -- L'omonimo resta fino al ROLLBACK: i casi che seguono non guardano la data di nascita.
 
     -- 16. senza email in archivio non c'e' avviso, quindi non si completa niente:
     --     stesso messaggio del cliente che non esiste
