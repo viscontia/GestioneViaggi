@@ -18,7 +18,10 @@
 -- avere lo stesso `created`. L'id no.
 --
 -- Permessi: nessun GRANT. Nascono chiuse ad anon (script 659); le chiama solo
--- Flask, che si connette come postgres, proprietario.
+-- Flask, che si connette come postgres, proprietario. La tabella si chiude
+-- esplicitamente ad anon/authenticated: oggi non hanno permessi, ma un GRANT
+-- dato per sbaglio domani non deve bastare a leggere le impronte.
+-- search_path fissato su entrambe le funzioni, come da script 655.
 --
 -- Test: Test_660_Web_Otp.sql (gira in una transazione annullata).
 -- ============================================================================
@@ -45,12 +48,26 @@ ALTER TABLE web_otp_codici ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS superadmin_bypass_all ON web_otp_codici;
 CREATE POLICY superadmin_bypass_all ON web_otp_codici TO app_superadmin USING (true) WITH CHECK (true);
 
+-- ⚠️ `authenticated` esiste su Supabase ma non in locale: si revoca solo ai
+-- ruoli che ci sono, cosi' lo stesso script gira in tutti e due i posti.
+DO $$
+DECLARE v_ruolo TEXT;
+BEGIN
+    FOR v_ruolo IN
+        SELECT r FROM unnest(ARRAY['anon','authenticated']) r
+         WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r)
+    LOOP
+        EXECUTE format('REVOKE ALL ON web_otp_codici FROM %I', v_ruolo);
+    END LOOP;
+END $$;
+
 COMMENT ON TABLE web_otp_codici IS
     'Codici usa e getta del sito di iscrizione: servono a vedere e modificare la propria scheda. Solo l''impronta sha256, mai il codice (script 660).';
 
 CREATE OR REPLACE FUNCTION fn_web_otp_genera(p_azienda_id INTEGER, p_cliente_id INTEGER)
 RETURNS TABLE(esito TEXT, codice TEXT, email VARCHAR)
 LANGUAGE plpgsql
+SET search_path = public, pg_temp
 AS $$
 DECLARE
     v_email  VARCHAR;
@@ -68,13 +85,26 @@ BEGIN
         RETURN QUERY SELECT 'SENZA_EMAIL'::TEXT, NULL::TEXT, NULL::VARCHAR; RETURN;
     END IF;
 
+    -- Una richiesta alla volta per cliente, fino alla fine della transazione.
+    -- ⚠️ Senza, due richieste parallele passerebbero entrambe il conteggio del
+    -- tetto, e ognuna annullerebbe solo i codici che vede: resterebbero due
+    -- codici aperti. Il lucchetto e' consultivo e non tocca ana_clienti: un
+    -- FOR UPDATE sulla scheda bloccherebbe invece le modifiche dal gestionale.
+    PERFORM pg_advisory_xact_lock(660, p_cliente_id);
+
     -- Una riga per richiesta, e dopo un giorno non serve a nessuno.
     DELETE FROM web_otp_codici o WHERE o.created < now() - interval '1 day';
 
     -- Il tetto conta le richieste, non i codici validi: anche quelli gia' usati
     -- o annullati. E' il freno contro chi riempie di codici la casella altrui.
-    IF (SELECT count(*) FROM web_otp_codici o
-         WHERE o.cliente_id = p_cliente_id AND o.created > now() - interval '15 minutes') >= 3 THEN
+    -- Due soglie: 3 ogni 15 minuti e 10 ogni 24 ore. ⚠️ La sola prima darebbe 9
+    -- tentativi ogni 15 minuti per cliente, che su molti clienti diventano un
+    -- budget di tentativi non trascurabile; con la seconda il massimo e' 30
+    -- tentativi al giorno per cliente.
+    IF (SELECT count(*) FILTER (WHERE o.created > now() - interval '15 minutes') >= 3
+            OR count(*) >= 10
+          FROM web_otp_codici o
+         WHERE o.cliente_id = p_cliente_id AND o.created > now() - interval '1 day') THEN
         RETURN QUERY SELECT 'TROPPE_RICHIESTE'::TEXT, NULL::TEXT, NULL::VARCHAR; RETURN;
     END IF;
 
@@ -98,11 +128,12 @@ END;
 $$;
 
 COMMENT ON FUNCTION fn_web_otp_genera(INTEGER, INTEGER) IS
-    'Genera un codice a 6 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, TROPPE_RICHIESTE (script 660).';
+    'Genera un codice a 6 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Tetto: 3 richieste in 15 minuti, 10 in 24 ore. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, TROPPE_RICHIESTE (script 660).';
 
 CREATE OR REPLACE FUNCTION fn_web_otp_verifica(p_azienda_id INTEGER, p_cliente_id INTEGER, p_codice TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
+SET search_path = public, pg_temp
 AS $$
 DECLARE
     r web_otp_codici%ROWTYPE;

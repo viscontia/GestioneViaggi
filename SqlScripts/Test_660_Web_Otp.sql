@@ -31,9 +31,14 @@ BEGIN
            'genera: non e'' l''email in archivio';
     v_codice := r.codice;
 
-    -- 2. il codice non e' in chiaro in tabella
+    -- 2. il codice non e' in chiaro in tabella: c'e' la sua impronta sha256
     ASSERT NOT EXISTS (SELECT 1 FROM web_otp_codici WHERE codice_hash = v_codice),
            'il codice e'' salvato in chiaro';
+    ASSERT (SELECT codice_hash = encode(sha256(convert_to(codice_sale || v_codice, 'UTF8')), 'hex')
+                   AND length(codice_hash) = 64
+              FROM web_otp_codici WHERE cliente_id = 3870
+             ORDER BY web_otp_codici_id DESC LIMIT 1),
+           'l''impronta non e'' sha256 di sale+codice';
 
     -- 3. sbagliato, poi giusto, poi riusato
     -- 'sbagliato' non e' di 6 cifre: non puo' coincidere per caso col codice vero.
@@ -90,6 +95,19 @@ BEGIN
     ASSERT (SELECT count(*) FROM web_otp_codici WHERE cliente_id = 3870) = 3,
            'la richiesta rifiutata ha scritto una riga';
 
+    -- 8b. tetto giornaliero: 10 richieste nelle 24 ore, tutte fuori dai 15 minuti
+    DELETE FROM web_otp_codici WHERE cliente_id = 3870;
+    INSERT INTO web_otp_codici (azienda_id, cliente_id, email, codice_sale, codice_hash, scadenza, created)
+    SELECT 2, 3870, 'prova@example.invalid', 's', 'h',
+           now() - interval '1 hour' * g, now() - interval '1 hour' * g
+      FROM generate_series(1, 10) g;          -- da 1 a 10 ore fa
+    SELECT * INTO r FROM fn_web_otp_genera(2, 3870);
+    ASSERT r.esito = 'TROPPE_RICHIESTE', 'tetto giornaliero non applicato: ' || r.esito;
+    -- e con 9 si passa: il tetto e' 10, non meno
+    DELETE FROM web_otp_codici WHERE cliente_id = 3870 AND created < now() - interval '9 hours 30 minutes';
+    SELECT * INTO r FROM fn_web_otp_genera(2, 3870);
+    ASSERT r.esito = 'OK', 'con 9 richieste nelle 24 ore: atteso OK, ottenuto ' || r.esito;
+
     -- 9. senza email in archivio nessun codice: andrebbe dove dice chi chiede
     DELETE FROM web_otp_codici WHERE cliente_id = 3870;
     UPDATE ana_clienti SET cliente_email = '  ' WHERE cliente_id = 3870;
@@ -101,6 +119,8 @@ BEGIN
            'anon puo'' generare codici';
     ASSERT NOT has_function_privilege('anon', 'fn_web_otp_verifica(integer,integer,text)', 'EXECUTE'),
            'anon puo'' verificare codici';
+    ASSERT NOT has_table_privilege('anon', 'web_otp_codici', 'SELECT'),
+           'anon puo'' leggere la tabella dei codici';
 
     RAISE NOTICE 'Test 660: tutto OK';
 END $$;
