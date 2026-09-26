@@ -135,6 +135,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L14** | `/api/cliente/verifica-registrazione-viaggio` del sito Flask risponde senza limite di frequenza con id, cognome e nome dall'email (e scrive la scheda intera nel log DEBUG). Preesistente, fuori da L4 | Sito |
 | **L15** | Mail di conferma del sito Flask: anche il passeggero legge «(e quella degli eventuali passeggeri)», che vale solo per il pilota. ✅ In produzione dal 2026-09-26 | Sito |
 | **L16** | Due rifiniture del wizard Flask rimandabili a dopo L4: il messaggio sul documento scaduto con la modifica già aperta, e un bottone «Riprova» dopo un caricamento del profilo non riuscito | Sito |
+| **L17** | Sito Flask: errori `DuplicatePreparedStatement` col pooler di Supabase in modalità transazione (porta 6543), preesistenti; possono accendere per un attimo l'icona rossa. Correzione: `prepare_threshold=None` nel pool (`db_manager.py`) | Sito |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
