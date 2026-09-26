@@ -132,6 +132,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L12** | Azione «email confermata» nella scheda cliente: su un'email agganciata dal sito (script 662) il codice usa e getta resta bloccato finché l'email non cambia; se Antonio verifica che è quella giusta deve poterlo dire (una funzione SQL che cancella la riga in `web_email_agganciate` + un bottone) | Qui (schermata cliente) |
 | **L13** | 🔴 Il sito Flask consegnava dati di clienti a caso (nomi, date di nascita, intolleranze, anche di altre aziende) mettendo id arbitrari in sessione: corretta sul ramo Flask e nello script **663** (le `fn_wizard_get_*` ora filtrano per azienda e le firme vecchie sono tolte: 663 e sito aggiornato vanno rilasciati **insieme**). In produzione con L4, per decisione di Adriano | Sito |
 | **L14** | `/api/cliente/verifica-registrazione-viaggio` del sito Flask risponde senza limite di frequenza con id, cognome e nome dall'email (e scrive la scheda intera nel log DEBUG). Preesistente, fuori da L4 | Sito |
+| **L15** | Mail di conferma del sito Flask: anche il passeggero legge «(e quella degli eventuali passeggeri)», che vale solo per il pilota. Da sistemare a fine test di L4, prima del rilascio | Sito |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
