@@ -12,14 +12,18 @@ public class EmailSenderFactory
     private readonly ILogger<SmtpEmailSender> _smtpLogger;
     private readonly ILogger<EmailSenderFactory> _logger;
     private readonly GestioneViaggi.Services.Security.ISecretKeyProvider _secretKey;
+    // Posta di prova (solo sviluppo): se c'è, ogni mail va qui. Vedi PostaDeviataSender.
+    private readonly string? _deviaA;
 
     public EmailSenderFactory(
         IDatabaseService databaseService,
         ResendEmailSender resendSender,
         ILogger<SmtpEmailSender> smtpLogger,
         ILogger<EmailSenderFactory> logger,
-        GestioneViaggi.Services.Security.ISecretKeyProvider secretKey)
+        GestioneViaggi.Services.Security.ISecretKeyProvider secretKey,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
+        _deviaA = configuration["Posta:DeviaA"];
         _databaseService = databaseService;
         _resendSender = resendSender;
         _smtpLogger = smtpLogger;
@@ -28,6 +32,12 @@ public class EmailSenderFactory
     }
 
     public async Task<IEmailSender> GetSenderAsync(string? roleCode, int? aziendaId)
+    {
+        var sender = await ScegliAsync(roleCode, aziendaId);
+        return string.IsNullOrWhiteSpace(_deviaA) ? sender : new PostaDeviataSender(sender, _deviaA!, _logger);
+    }
+
+    private async Task<IEmailSender> ScegliAsync(string? roleCode, int? aziendaId)
     {
         // 1. Se l'azienda ha SMTP configurato, usalo (vale per tutti i ruoli, incluso SuperAdmin)
         if (aziendaId.HasValue)
