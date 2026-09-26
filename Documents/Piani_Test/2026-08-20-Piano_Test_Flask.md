@@ -433,7 +433,10 @@ Per dire «non cambia nulla» si confronta l'impronta della riga prima e dopo:
 
 Le mail vanno alla casella di `MAIL_DIROTTA_A`. Si può usare la propria scheda **3870** (azienda 2,
 ha email): **annotare prima** i valori che si cambiano e rimetterli dopo, dal gestionale o col
-codice. Aprire i DevTools, pannello Network.
+codice. ⚠️ **In locale le email sono anonimizzate**: la 3870 non ha `visconti.adriano@gmail.com`
+ma `mirania008+95a5c513bf@gmail.com` (scoperto il 2026-09-26 al primo tentativo di M1: con l'email
+vera il sito risponde «cliente nuovo»). L'email di qualunque scheda si legge con
+`SELECT cliente_email FROM ana_clienti WHERE cliente_id = …` sul database locale. Aprire i DevTools, pannello Network.
 
 | # | Cosa fai | Cosa deve succedere | Esito |
 |---|---|---|---|
