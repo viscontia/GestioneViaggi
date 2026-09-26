@@ -14,7 +14,8 @@
 -- (QuickAddParticipantDialog, MovClientiAlloggiService) e il sito iscrivono
 -- prima di sistemare in camera.
 --
--- Indipendente da 660–663. ⏳ Applicato in locale; PROD con il rilascio L4/L13.
+-- Indipendente da 660–663.
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.fn_alloggi_salva_camera(p_alloggio_pk integer, p_viaggio_id integer, p_data_viaggio_id integer, p_tipo_alloggio_id integer, p_clienti integer[], p_adeguamenti jsonb DEFAULT '[]'::jsonb, p_created_by character varying DEFAULT NULL::character varying)

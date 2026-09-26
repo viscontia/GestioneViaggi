@@ -18,6 +18,8 @@
 -- rimettere il sito vecchio.
 --
 -- Test: Test_667_Wizard_Partecipanti_Via_Le_Firme_Vecchie.sql.
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 BEGIN;

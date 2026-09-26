@@ -33,6 +33,8 @@
 -- da script 655.
 --
 -- Test: Test_662_Web_Email_Agganciate_Dal_Sito.sql (transazione annullata).
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 BEGIN;

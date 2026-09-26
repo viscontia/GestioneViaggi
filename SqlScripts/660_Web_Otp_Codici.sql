@@ -32,6 +32,8 @@
 -- search_path fissato su entrambe le funzioni, come da script 655.
 --
 -- Test: Test_660_Web_Otp.sql (gira in una transazione annullata).
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 BEGIN;

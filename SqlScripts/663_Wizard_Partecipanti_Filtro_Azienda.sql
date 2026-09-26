@@ -42,6 +42,8 @@
 -- search_path fissato, come da script 655.
 --
 -- Test: Test_663_Wizard_Partecipanti_Filtro_Azienda.sql (transazione annullata).
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 BEGIN;

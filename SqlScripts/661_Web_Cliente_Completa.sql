@@ -88,6 +88,8 @@
 -- che si connette come postgres, proprietario. search_path fissato (script 655).
 --
 -- Test: Test_661_Web_Cliente_Completa.sql (gira in una transazione annullata).
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (rilascio L4/L13, sito Flask v5.0.0); test OK.
 -- ============================================================================
 
 BEGIN;
