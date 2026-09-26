@@ -12,6 +12,8 @@
 -- il sito Flask) non se ne accorge. Nessuno confronta il testo del messaggio.
 --
 -- Indipendente da 660–663: si puo' applicare a PROD da solo.
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.fn_documento_esito_per_partenza(p_data_viaggio_id integer, p_scadenza date, p_nome text DEFAULT NULL::text)

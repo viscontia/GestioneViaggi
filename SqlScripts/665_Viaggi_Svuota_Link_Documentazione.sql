@@ -11,6 +11,8 @@
 --
 -- Tutte le aziende: la 2 (10 link) e la 6 (36 link, stessi vecchi domini).
 -- Anche per la 6 lo ha deciso Adriano il 2026-09-26.
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26.
 -- ============================================================================
 
 BEGIN;
