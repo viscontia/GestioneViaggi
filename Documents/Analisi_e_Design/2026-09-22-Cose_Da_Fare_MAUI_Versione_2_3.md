@@ -120,6 +120,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L10** | ✅ Fatto il 2026-09-25 (`SqlScripts/659`): nessuna funzione nostra eseguibile da `PUBLIC`, le nuove nascono chiuse; `anon` esegue solo le 8 letture pubbliche | `Funzioni_DB.md` §0.2 |
 | **L11** | Dati personali nei log del sito Flask: il testo degli errori di database (DETAIL con la riga di `ana_clienti`) finisce nei log in molti punti; chiuso nel salvataggio del cliente, restano `/finalizza` e altri | Sito |
 | **L12** | Azione «email confermata» nella scheda cliente: su un'email agganciata dal sito (script 662) il codice usa e getta resta bloccato finché l'email non cambia; se Antonio verifica che è quella giusta deve poterlo dire (una funzione SQL che cancella la riga in `web_email_agganciate` + un bottone) | Qui (schermata cliente) |
+| **L13** | 🔴 Il sito Flask consegnava dati di clienti a caso (nomi, date di nascita, intolleranze, anche di altre aziende) mettendo id arbitrari in sessione: corretta sul ramo Flask e nello script **663** (le `fn_wizard_get_*` ora filtrano per azienda e le firme vecchie sono tolte: 663 e sito aggiornato vanno rilasciati **insieme**). In produzione con L4, per decisione di Adriano | Sito |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
