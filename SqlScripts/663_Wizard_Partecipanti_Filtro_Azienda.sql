@@ -26,9 +26,13 @@
 -- lasciare aperta la stessa porta. Si puo' perche' i chiamanti sono tutti nel
 -- sito Flask (verificato il 2026-09-26): il gestionale C# non le usa, e nessuna
 -- funzione SQL le chiama.
--- ⛔️ ORDINE DI RILASCIO: questo script e il sito aggiornato vanno insieme. Il
--- sito di oggi chiama le firme vecchie e, dopo il 663, riceve «function does not
--- exist» su riepilogo, email di conferma e /api/partecipanti.
+-- ⛔️ MA NON QUI: la cancellazione sta nello script 667. Questo crea le firme
+-- nuove ACCANTO alle vecchie (sono overload, convivono), cosi' il sito di oggi
+-- continua a funzionare finche' non gira quello nuovo, e se il nuovo va ritirato
+-- si torna indietro senza ricreare niente. Deciso il 2026-09-26 dopo la
+-- revisione finale: con i DROP qui, fra il 663 e il riavvio del sito le mail di
+-- conferma fallivano in silenzio e il riepilogo rispondeva vuoto.
+-- ORDINE: 663 → sito nuovo → prova del sito → 667.
 --
 -- Il corpo e' quello di prima, copiato dal database, con il solo filtro
 -- `AND c.azienda_fk = p_azienda_id` in piu'.
@@ -41,10 +45,6 @@
 -- ============================================================================
 
 BEGIN;
-
-DROP FUNCTION IF EXISTS fn_wizard_get_client_data(integer);
-DROP FUNCTION IF EXISTS fn_wizard_get_partecipanti_details(integer[]);
-DROP FUNCTION IF EXISTS fn_wizard_get_partecipanti(integer[]);
 
 CREATE OR REPLACE FUNCTION fn_wizard_get_client_data(p_cliente_id integer, p_azienda_id integer)
  RETURNS TABLE(cliente_cognome character varying, cliente_nome character varying, cliente_data_nascita date, cliente_sesso character, comune_codfisc character varying, cliente_intolleranza text)

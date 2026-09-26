@@ -121,6 +121,15 @@ BEGIN
            'anon puo'' verificare codici';
     ASSERT NOT has_table_privilege('anon', 'web_otp_codici', 'SELECT'),
            'anon puo'' leggere la tabella dei codici';
+    -- 10-bis. e nemmeno authenticated, dove esiste (Supabase)
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        ASSERT NOT has_function_privilege('authenticated', 'fn_web_otp_genera(integer,integer)', 'EXECUTE'),
+               'authenticated puo'' generare codici';
+        ASSERT NOT has_function_privilege('authenticated', 'fn_web_otp_verifica(integer,integer,text)', 'EXECUTE'),
+               'authenticated puo'' verificare codici';
+        ASSERT NOT has_table_privilege('authenticated', 'web_otp_codici', 'SELECT'),
+               'authenticated puo'' leggere la tabella dei codici';
+    END IF;
 
     RAISE NOTICE 'Test 660: tutto OK';
 END $$;

@@ -103,13 +103,7 @@ BEGIN
     ASSERT (SELECT array_agg(cliente_id ORDER BY cliente_id) FROM fn_wizard_get_partecipanti_details(v_misti, 6))
          = ARRAY[1129, 1163], 'details: l''azienda 6 non vede esattamente i suoi';
 
-    -- 5. la vecchia firma non c'e' piu': nessun chiamante puo' restare senza filtro
-    ASSERT to_regprocedure('fn_wizard_get_client_data(integer)') IS NULL,
-           'esiste ancora fn_wizard_get_client_data senza azienda';
-    ASSERT to_regprocedure('fn_wizard_get_partecipanti_details(integer[])') IS NULL,
-           'esiste ancora fn_wizard_get_partecipanti_details senza azienda';
-    ASSERT to_regprocedure('fn_wizard_get_partecipanti(integer[])') IS NULL,
-           'esiste ancora fn_wizard_get_partecipanti senza azienda';
+    -- 5. la sparizione delle firme vecchie la controlla Test_667
 
     -- 6. chiuse ad anon e authenticated (dove esiste): script 659
     FOR v_ruolo IN SELECT rolname FROM pg_roles WHERE rolname IN ('anon', 'authenticated') LOOP
