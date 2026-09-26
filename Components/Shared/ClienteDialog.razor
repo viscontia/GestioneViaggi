@@ -230,6 +230,21 @@
                                         HelperText="Email principale" Immediate="true" DebounceInterval="800"
                                         OnBlur="@(async () => await ControllaAlVolo("email"))"
                                         Validation="@(async (string e) => await ValidateEmailAsync(e))" />
+                                    @if (_emailDaConfermare && string.Equals(Entity.Email?.Trim(), _emailIniziale?.Trim(), StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        @* L12 (SqlScripts/668): l'email l'ha scritta chi si iscriveva sul sito, e nessuno
+                                           ha verificato che sia del cliente. Finche' non la si conferma, il sito non gli
+                                           manda il codice per modificare i suoi dati. Se si cambia l'email, l'avviso non
+                                           serve piu': la nuova l'ha scritta il gestionale. *@
+                                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1" Style="font-size:0.85rem;">
+                                            Email inserita dal sito di iscrizione e non ancora verificata: finché non la confermi,
+                                            il cliente non può ricevere il codice per modificare i suoi dati dal sito.
+                                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" Class="ml-2"
+                                                       Disabled="@_confermaEmailInCorso" OnClick="ConfermaEmailWebAsync">
+                                                È la sua email: conferma
+                                            </MudButton>
+                                        </MudAlert>
+                                    }
                                 </MudItem>
                                 <MudItem xs="12" sm="6">
                                     <MudSelect T="string" @bind-Value="_lingua" Label="Lingua newsletter" Variant="Variant.Outlined" Clearable="true"

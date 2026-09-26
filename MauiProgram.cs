@@ -129,6 +129,7 @@ public static class MauiProgram
         // I tipi di documento: elenco unico dal database, condiviso col sito.
         builder.Services.AddSingleton<Services.CRUD.TipoDocumentoService>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
+        builder.Services.AddScoped<Services.CRUD.ClienteEmailWebService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();
         builder.Services.AddScoped<Services.Web.NewsletterRenderService>();

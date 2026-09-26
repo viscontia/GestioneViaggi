@@ -27,6 +27,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     [Inject] public ILogger<ClienteDialog> Logger { get; set; } = default!;
     [Inject] public ClienteLinguaService ClienteLinguaService { get; set; } = default!;
     [Inject] public ClienteConsensoService ClienteConsensoService { get; set; } = default!;
+    [Inject] public ClienteEmailWebService ClienteEmailWebService { get; set; } = default!;
 
     [Parameter] public Cliente Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
@@ -55,6 +56,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     private bool _consensoIniziale;
     /// <summary>L'indirizzo con cui la scheda e' stata aperta: serve a sapere se e' cambiato.</summary>
     private string? _emailIniziale;
+    // L12: l'email l'ha agganciata il sito e nessuno l'ha confermata (SqlScripts/668).
+    private bool _emailDaConfermare;
+    private bool _confermaEmailInCorso;
     /// <summary>Data e provenienza dell'ultimo cambio di consenso, mostrate in sola lettura.</summary>
     private DateTime? _consensoData;
     private string? _consensoFonte;
@@ -558,6 +562,8 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 _emailIniziale = Entity.Email;
                 _consensoData = consenso.Data;
                 _consensoFonte = consenso.Fonte;
+
+                _emailDaConfermare = await ClienteEmailWebService.DaConfermareAsync(Entity.ClienteId, Entity.AziendaFk);
             }
         }
         catch (Exception ex)
@@ -1026,5 +1032,36 @@ public partial class ClienteDialog : ComponentBase, IDisposable
             if (f != null && f.Error) return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// L12: Antonio conferma che l'email agganciata dal sito è davvero del cliente. Da
+    /// quel momento il sito può mandargli il codice per modificare i suoi dati.
+    /// </summary>
+    private async Task ConfermaEmailWebAsync()
+    {
+        var ok = await DialogService.ShowMessageBox(
+            "Confermi l'email?",
+            $"Confermi che {Entity.Email} è davvero l'indirizzo di {Entity.Nome} {Entity.Cognome}? "
+            + "Da quel momento chi legge quella casella potrà vedere e modificare i dati della scheda dal sito.",
+            yesText: "Sì, è la sua", cancelText: "Annulla");
+        if (ok != true) return;
+
+        _confermaEmailInCorso = true;
+        try
+        {
+            await ClienteEmailWebService.ConfermaAsync(Entity.ClienteId, Entity.AziendaFk);
+            _emailDaConfermare = false;
+            Snackbar.Add("Email confermata: ora il cliente può ricevere il codice dal sito.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Conferma email web non riuscita, cliente {Id}", Entity.ClienteId);
+            Snackbar.Add("Non è stato possibile confermare l'email.", Severity.Error);
+        }
+        finally
+        {
+            _confermaEmailInCorso = false;
+        }
     }
 }

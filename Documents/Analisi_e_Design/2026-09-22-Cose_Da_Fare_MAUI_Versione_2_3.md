@@ -106,6 +106,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 | Cosa | Dove |
 |---|---|
 | **Foto HEIC dell'iPhone**: ImageSharp non le leggeva («Image cannot be loaded. Available decoders…», Antonio, 2026-09-26). Ora si convertono con Magick.NET su Windows e ImageIO sul Mac; un formato illeggibile dice «Salva la foto come JPEG o PNG». ⏳ Da provare dentro il gestionale su Windows (il pacchetto si installa solo lì) | `WebImageProcessor.cs`, commit `d8513f2` |
+| **Email agganciata dal sito: conferma** (L12). Nella scheda cliente, se l'email l'ha scritta il sito e nessuno l'ha verificata, un avviso con il bottone «È la sua email: conferma»: da lì il cliente riceve il codice per modificare i suoi dati dal sito. ⏳ Script 668 da applicare a PROD **prima** di distribuire la 2.3 (senza, la scheda cliente non trova la funzione e non mostra l'avviso) | `ClienteDialog`, `ClienteEmailWebService`, `SqlScripts/668` |
 
 ---
 
