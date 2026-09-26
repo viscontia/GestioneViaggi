@@ -19,6 +19,8 @@
 --
 -- Solo per il gestionale (postgres, proprietario): nessun GRANT, nascono chiuse
 -- (script 659). search_path fissato (script 655).
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (test OK). Lo usa il gestionale dalla 2.3.
 -- ============================================================================
 
 BEGIN;
