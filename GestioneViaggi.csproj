@@ -140,6 +140,16 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.0" />
         <PackageReference Include="QuestPDF" Version="2023.12.6" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
+    </ItemGroup>
+
+    <!-- Foto HEIC (iPhone): ImageSharp non le legge. Su Windows le decodifica Magick.NET, che
+         porta con se' libheif e non dipende dall'estensione HEVC dello Store; sul Mac lo fa
+         ImageIO, che e' del sistema. Vedi WebImageProcessor.CaricaAsync. -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+        <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.17.1" />
+    </ItemGroup>
+
+    <ItemGroup>
 
         <!-- Email SMTP (MailKit) -->
         <PackageReference Include="MailKit" Version="4.17.0" />

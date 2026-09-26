@@ -15,12 +15,89 @@ namespace GestioneViaggi.Services.Shared.Storage;
 public static class WebImageProcessor
 {
     public const int MaxEdge = 2000;
+
+    /// <summary>Messaggio per chi carica un formato che nessun decodificatore legge.</summary>
+    public const string MessaggioFormatoNonLetto =
+        "formato non leggibile. Salva la foto come JPEG o PNG e riprova.";
+
+    /// <summary>
+    /// Apre un'immagine con ImageSharp; se il formato non lo conosce (HEIC/HEIF delle foto
+    /// iPhone) la converte prima in PNG con il decodificatore della piattaforma.
+    /// </summary>
+    /// <remarks>
+    /// ImageSharp non legge l'HEIC, e le foto passate da iPhone a un PC Windows arrivano spesso
+    /// cosi' (trovato il 2026-09-26: «Image cannot be loaded. Available decoders: …»).
+    /// Su Windows decodifica Magick.NET, sul Mac ImageIO. Un formato che non legge nessuno
+    /// dei due finisce in <see cref="MessaggioFormatoNonLetto"/>, non nell'elenco dei
+    /// decodificatori di ImageSharp.
+    /// </remarks>
+    private static async Task<Image> CaricaAsync(Stream input, CancellationToken ct)
+    {
+        // Serve rileggere lo stream dall'inizio se ImageSharp lo rifiuta.
+        using var copia = input is MemoryStream ? null : new MemoryStream();
+        if (copia is not null) await input.CopyToAsync(copia, ct);
+        var ms = copia ?? (MemoryStream)input;
+        ms.Position = 0;
+
+        try
+        {
+            return await Image.LoadAsync(ms, ct);
+        }
+        catch (UnknownImageFormatException)
+        {
+            ms.Position = 0;
+            var png = ConvertiInPngDallaPiattaforma(ms.ToArray())
+                      ?? throw new InvalidOperationException(MessaggioFormatoNonLetto);
+            return Image.Load(png);
+        }
+    }
+
+    /// <summary>PNG ottenuto dal decodificatore della piattaforma, o null se non ci riesce.</summary>
+    private static byte[]? ConvertiInPngDallaPiattaforma(byte[] originale)
+    {
+#if WINDOWS
+        try
+        {
+            using var magick = new ImageMagick.MagickImage(originale);
+            magick.AutoOrient();   // la rotazione dello scatto diventa pixel: ImageSharp non la rileggerebbe
+            magick.Format = ImageMagick.MagickFormat.Png;
+            return magick.ToByteArray();
+        }
+        catch (ImageMagick.MagickException)
+        {
+            return null;
+        }
+#elif MACCATALYST || IOS
+        using var dati = Foundation.NSData.FromArray(originale);
+        using var sorgente = ImageIO.CGImageSource.FromData(dati);
+        if (sorgente is null || sorgente.ImageCount == 0) return null;
+        // La miniatura «con trasformazione» applica la rotazione dello scatto; il lato
+        // massimo e' largo abbastanza da non toccare la risoluzione delle foto di un telefono.
+        using var immagine = sorgente.CreateThumbnail(0, new ImageIO.CGImageThumbnailOptions
+        {
+            CreateThumbnailFromImageAlways = true,
+            CreateThumbnailWithTransform = true,
+            MaxPixelSize = 10000
+        });
+        if (immagine is null) return null;
+        var uscita = new Foundation.NSMutableData();
+        using (var destinazione = ImageIO.CGImageDestination.Create(uscita, "public.png", 1))
+        {
+            if (destinazione is null) return null;
+            destinazione.AddImage(immagine, (Foundation.NSDictionary?)null);
+            if (!destinazione.Close()) return null;
+        }
+        return uscita.ToArray();
+#else
+        return null;
+#endif
+    }
     public const int Quality = 80;
     public const string Mime = "image/webp";
 
     public static async Task<ProcessedImage> ToOptimizedWebpAsync(Stream input, CancellationToken ct = default)
     {
-        using var image = await Image.LoadAsync(input, ct);
+        using var image = await CaricaAsync(input, ct);
 
         if (Math.Max(image.Width, image.Height) > MaxEdge)
         {
@@ -52,7 +129,7 @@ public static class WebImageProcessor
     /// </summary>
     public static async Task<ProcessedImage> ToEmailJpegAsync(Stream input, CancellationToken ct = default)
     {
-        using var image = await Image.LoadAsync(input, ct);
+        using var image = await CaricaAsync(input, ct);
 
         if (Math.Max(image.Width, image.Height) > MaxEdgeEmail)
         {
@@ -93,7 +170,7 @@ public static class WebImageProcessor
     /// <summary>PNG ridimensionato, con la trasparenza conservata.</summary>
     public static async Task<ProcessedImage> ToEmailPngAsync(Stream input, int maxEdge, CancellationToken ct = default)
     {
-        using var image = await Image.LoadAsync(input, ct);
+        using var image = await CaricaAsync(input, ct);
 
         if (Math.Max(image.Width, image.Height) > maxEdge)
         {
