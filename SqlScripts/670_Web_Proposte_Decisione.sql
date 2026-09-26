@@ -14,6 +14,8 @@
 --
 -- Solo per il gestionale (postgres, proprietario): nessun GRANT.
 -- Test: Test_670_Web_Proposte_Decisione.sql.
+--
+-- ✅ Applicato in locale e a PROD il 2026-09-26 (test OK), insieme al sito Flask che manda le proposte.
 -- ============================================================================
 
 BEGIN;
