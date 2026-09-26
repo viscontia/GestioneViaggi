@@ -99,6 +99,16 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 
 ---
 
+## Già nel codice, da portare con la 2.3
+
+⚠️ Al rilascio `ApplicationDisplayVersion` passa da **2.2 a 2.3** (`GestioneViaggi.csproj`).
+
+| Cosa | Dove |
+|---|---|
+| **Foto HEIC dell'iPhone**: ImageSharp non le leggeva («Image cannot be loaded. Available decoders…», Antonio, 2026-09-26). Ora si convertono con Magick.NET su Windows e ImageIO sul Mac; un formato illeggibile dice «Salva la foto come JPEG o PNG». ⏳ Da provare dentro il gestionale su Windows (il pacchetto si installa solo lì) | `WebImageProcessor.cs`, commit `d8513f2` |
+
+---
+
 ## Legato al sito pubblico
 
 Il sito pubblico (**Fuori Traccia Travel**, `fuoritracciatravel.com`) ha il suo elenco gemello:
