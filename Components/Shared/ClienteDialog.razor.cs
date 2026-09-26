@@ -1073,6 +1073,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         }
     }
 
+    /// <summary>Risultato della finestra quando l'elenco va riletto dal database.</summary>
+    public const string RicaricaElenco = "ricarica-elenco";
+
     private async Task<string> UtenteCorrenteAsync()
     {
         var u = await TenantContext.GetCurrentUserAsync();
@@ -1102,7 +1105,10 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 ? "Scheda aggiornata. Al cliente è partita la mail per completare l'iscrizione."
                 : "Scheda aggiornata. ⚠️ La mail al cliente non è partita: avvisalo tu.",
                 mail ? Severity.Success : Severity.Warning);
-            MudDialog?.Cancel();
+            // Chiusa senza salvare (i campi a video sono quelli di prima), ma col segnale
+            // di rileggere l'elenco: senza, la riga mostrava ancora i dati vecchi e
+            // sembrava che l'approvazione non avesse fatto niente (2026-09-26).
+            MudDialog?.Close(DialogResult.Ok(RicaricaElenco));
         }
         catch (Npgsql.PostgresException pex)
         {

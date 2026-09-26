@@ -444,6 +444,14 @@ else
         options);
         var result = await dialog.Result;
 
+        // Correzione proposta dal sito approvata: la scheda l'ha scritta il database,
+        // l'elenco va riletto (L12-bis).
+        if (!result!.Canceled && result.Data is string segnale && segnale == ClienteDialog.RicaricaElenco)
+        {
+            await LoadDataAsync();
+            return;
+        }
+
         if (!result!.Canceled && result.Data is Cliente updatedItem)
         {
             // Il salvataggio è già avvenuto nel dialog
