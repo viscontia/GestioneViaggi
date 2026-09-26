@@ -15,12 +15,19 @@ public class SmtpEmailSender : IEmailSender
     private readonly int _aziendaId;
     private readonly string _masterKey;
 
+    // Posta di prova (sviluppo, Posta:DeviaA): anche il campo «A», che di solito è la casella
+    // dell'azienda, va alla casella di collaudo. Senza, ogni prova finiva in info@ dell'azienda
+    // (2026-09-26). I destinatari li devia PostaDeviataSender.
+    private readonly string? _deviaA;
+
     public SmtpEmailSender(
         IDatabaseService databaseService,
         ILogger<SmtpEmailSender> logger,
         int aziendaId,
-        string masterKey)
+        string masterKey,
+        string? deviaA = null)
     {
+        _deviaA = deviaA;
         _databaseService = databaseService;
         _logger = logger;
         _aziendaId = aziendaId;
@@ -133,7 +140,9 @@ public class SmtpEmailSender : IEmailSender
             message.From.Add(new MailboxAddress(fromName ?? config.FromName, config.FromEmail));
 
             // To visibile obbligatorio (molti server SMTP rifiutano messaggi senza header To)
-            message.To.Add(new MailboxAddress(fromName ?? config.FromName, config.FromEmail));
+            message.To.Add(string.IsNullOrWhiteSpace(_deviaA)
+                ? new MailboxAddress(fromName ?? config.FromName, config.FromEmail)
+                : MailboxAddress.Parse(_deviaA));
 
             // BCC per proteggere la privacy dei destinatari
             foreach (var email in toEmails.Where(e => !string.IsNullOrWhiteSpace(e)))

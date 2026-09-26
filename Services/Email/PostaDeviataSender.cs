@@ -28,14 +28,14 @@ public sealed class PostaDeviataSender : IEmailSender
 
     public Task<bool> SendPasswordResetEmailAsync(string toEmail, string userName, string resetCode)
     {
-        _logger.LogInformation("[POSTA DEVIATA] reset password per {Originale} → {DeviaA}", toEmail, _deviaA);
+        _logger.LogWarning("[POSTA DEVIATA] reset password per {Originale} → {DeviaA}", toEmail, _deviaA);
         return _vero.SendPasswordResetEmailAsync(_deviaA, userName, resetCode);
     }
 
     public Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
     {
         var originali = string.Join(", ", toEmails);
-        _logger.LogInformation("[POSTA DEVIATA] {Originali} → {DeviaA}", originali, _deviaA);
+        _logger.LogWarning("[POSTA DEVIATA] {Originali} → {DeviaA}", originali, _deviaA);
         // Il cc sparisce: anche lui andrebbe a una persona vera.
         return _vero.SendHtmlEmailAsync(new[] { _deviaA }, $"[PROVA → {originali}] {subject}", htmlBody, fromName, null);
     }

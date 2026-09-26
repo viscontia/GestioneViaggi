@@ -46,7 +46,7 @@ public class EmailSenderFactory
             if (hasSmtp)
             {
                 _logger.LogInformation("Azienda {AziendaId} ha SMTP configurato: uso SMTP aziendale", aziendaId.Value);
-                return new SmtpEmailSender(_databaseService, _smtpLogger, aziendaId.Value, _secretKey.GetMasterKey());
+                return new SmtpEmailSender(_databaseService, _smtpLogger, aziendaId.Value, _secretKey.GetMasterKey(), _deviaA);
             }
         }
 
