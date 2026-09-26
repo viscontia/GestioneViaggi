@@ -69,6 +69,7 @@ public class SmtpEmailSender : IEmailSender
             message.From.Add(new MailboxAddress(config.FromName, config.FromEmail));
             message.To.Add(new MailboxAddress(userName, toEmail));
             message.Subject = PasswordResetEmailTemplate.GetSubject();
+            message.MessageId = MessageIdPer(config.FromEmail);   // vedi MessageIdPer
 
             var bodyBuilder = new BodyBuilder
             {
@@ -158,6 +159,14 @@ public class SmtpEmailSender : IEmailSender
 
             message.Subject = subject;
 
+            // ⛔️ Message-Id nostro, non quello che genera MailKit. Con il valore di MailKit
+            // (tipo «6KRM1GJVEUU4.GSM4Q23KQ2Z83@host») il server di posta accetta la mail
+            // (250 OK) e poi la mail sparisce: non arriva, e nessun errore torna indietro.
+            // Trovato il 2026-09-26 con prove una variabile alla volta: stessa mail, stesso
+            // server, cambiando SOLO il valore del Message-Id, arriva. Colpiva tutte le mail
+            // del gestionale spedite con la posta dell'azienda (partecipanti, newsletter…).
+            message.MessageId = MessageIdPer(config.FromEmail);
+
             var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
             message.Body = bodyBuilder.ToMessageBody();
 
@@ -198,7 +207,18 @@ public class SmtpEmailSender : IEmailSender
         }
     }
 
-    private class SmtpConfig
+    /// <summary>
+    /// Un Message-Id che i filtri non scartano: data, un codice esadecimale e il dominio del
+    /// mittente. Vedi il commento in SendHtmlEmailAsync (2026-09-26).
+    /// </summary>
+    private static string MessageIdPer(string? fromEmail)
+    {
+        var at = fromEmail?.IndexOf('@') ?? -1;
+        var dominio = at >= 0 ? fromEmail![(at + 1)..] : "localhost";
+        return $"{DateTime.UtcNow:yyyyMMddHHmmssfff}.{Guid.NewGuid():N}@{dominio}";
+    }
+
+        private class SmtpConfig
     {
         public string Host { get; set; } = string.Empty;
         public int Port { get; set; }
