@@ -130,6 +130,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<Services.CRUD.TipoDocumentoService>();
         builder.Services.AddScoped<Services.CRUD.ClienteConsensoService>();
         builder.Services.AddScoped<Services.CRUD.ClienteEmailWebService>();
+        builder.Services.AddScoped<Services.CRUD.ClienteProposteWebService>();
         builder.Services.AddScoped<Services.Web.WebNewsletterBlocchiService>();
         builder.Services.AddScoped<Services.Web.NewsletterMediaService>();
         builder.Services.AddScoped<Services.Web.NewsletterRenderService>();

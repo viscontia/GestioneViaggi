@@ -15,6 +15,30 @@
     </TitleContent>
     <DialogContent>
         <div style="max-height: 80vh; overflow-y: auto;" class="pr-4">
+            @* L12-bis: una correzione proposta dal cliente sul sito, in attesa (SqlScripts/669-670). *@
+            @if (_proposta.Count > 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    <MudText Typo="Typo.subtitle2">
+                        Correzione proposta dal sito il @_proposta[0].CreataIl.ToLocalTime().ToString("dd/MM/yyyy HH:mm") da @_proposta[0].EmailProponente
+                    </MudText>
+                    <MudSimpleTable Dense="true" Class="mt-2" Style="background:transparent">
+                        <thead><tr><th>Campo</th><th>In archivio</th><th>Proposto</th></tr></thead>
+                        <tbody>
+                            @foreach (var c in _proposta)
+                            {
+                                <tr><td>@c.Etichetta</td><td>@(c.InArchivio ?? "—")</td><td><strong>@c.Proposto</strong></td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                    <div class="mt-2 d-flex gap-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   Disabled="@_propostaInCorso" OnClick="ApprovaPropostaAsync">Approva</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                                   Disabled="@_propostaInCorso" OnClick="ScartaPropostaAsync">Scarta</MudButton>
+                    </div>
+                </MudAlert>
+            }
             @* Le schede vecchie non sono mai passate dalle regole di oggi: chi ne apre una
                deve saperlo subito, non al salvataggio. *@
             @if (_avvisoIncompleta is not null)

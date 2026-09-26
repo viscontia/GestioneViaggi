@@ -28,6 +28,10 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     [Inject] public ClienteLinguaService ClienteLinguaService { get; set; } = default!;
     [Inject] public ClienteConsensoService ClienteConsensoService { get; set; } = default!;
     [Inject] public ClienteEmailWebService ClienteEmailWebService { get; set; } = default!;
+    [Inject] public ClienteProposteWebService ClienteProposteWebService { get; set; } = default!;
+    [Inject] public GestioneViaggi.Services.Email.EmailSenderFactory EmailSenderFactory { get; set; } = default!;
+    [Inject] public AziendaService AziendaService { get; set; } = default!;
+    [Inject] public GestioneViaggi.Services.Session.ITenantContext TenantContext { get; set; } = default!;
 
     [Parameter] public Cliente Entity { get; set; } = new();
     [Parameter] public bool IsEditMode { get; set; }
@@ -59,6 +63,9 @@ public partial class ClienteDialog : ComponentBase, IDisposable
     // L12: l'email l'ha agganciata il sito e nessuno l'ha confermata (SqlScripts/668).
     private bool _emailDaConfermare;
     private bool _confermaEmailInCorso;
+    // L12-bis: la correzione proposta dal cliente sul sito, in attesa (SqlScripts/669-670).
+    private List<PropostaCampo> _proposta = new();
+    private bool _propostaInCorso;
     /// <summary>Data e provenienza dell'ultimo cambio di consenso, mostrate in sola lettura.</summary>
     private DateTime? _consensoData;
     private string? _consensoFonte;
@@ -564,6 +571,7 @@ public partial class ClienteDialog : ComponentBase, IDisposable
                 _consensoFonte = consenso.Fonte;
 
                 _emailDaConfermare = await ClienteEmailWebService.DaConfermareAsync(Entity.ClienteId, Entity.AziendaFk);
+                _proposta = await ClienteProposteWebService.GetInAttesaAsync(Entity.ClienteId, Entity.AziendaFk);
             }
         }
         catch (Exception ex)
@@ -1062,6 +1070,104 @@ public partial class ClienteDialog : ComponentBase, IDisposable
         finally
         {
             _confermaEmailInCorso = false;
+        }
+    }
+
+    private async Task<string> UtenteCorrenteAsync()
+    {
+        var u = await TenantContext.GetCurrentUserAsync();
+        return string.IsNullOrWhiteSpace(u?.Email) ? "gestionale" : u!.Email;
+    }
+
+    /// <summary>
+    /// L12-bis: approva la correzione proposta dal sito. La scheda cambia nel database
+    /// (con la validazione di sempre); poi la finestra si chiude SENZA salvare, perché i
+    /// campi a video sono quelli di prima e un «Salva» li riscriverebbe. Al cliente parte
+    /// la mail «puoi completare l'iscrizione».
+    /// </summary>
+    private async Task ApprovaPropostaAsync()
+    {
+        if (_proposta.Count == 0) return;
+        var ok = await DialogService.ShowMessageBox("Approvi la correzione?",
+            "I dati proposti dal sito sostituiranno quelli in archivio. La scheda si chiuderà: riaprila per vederla aggiornata.",
+            yesText: "Approva", cancelText: "Annulla");
+        if (ok != true) return;
+
+        _propostaInCorso = true;
+        try
+        {
+            var approvata = await ClienteProposteWebService.ApprovaAsync(_proposta[0].PropostaId, Entity.AziendaFk, await UtenteCorrenteAsync());
+            var mail = approvata is null ? false : await MandaMailPuoiIscrivertiAsync(approvata);
+            Snackbar.Add(mail
+                ? "Scheda aggiornata. Al cliente è partita la mail per completare l'iscrizione."
+                : "Scheda aggiornata. ⚠️ La mail al cliente non è partita: avvisalo tu.",
+                mail ? Severity.Success : Severity.Warning);
+            MudDialog?.Cancel();
+        }
+        catch (Npgsql.PostgresException pex)
+        {
+            // La validazione ha rifiutato i dati: la scheda non è cambiata, la proposta resta.
+            Snackbar.Add($"Non approvata: {pex.MessageText}", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Approvazione proposta non riuscita, cliente {Id}", Entity.ClienteId);
+            Snackbar.Add("Non è stato possibile approvare la correzione.", Severity.Error);
+        }
+        finally
+        {
+            _propostaInCorso = false;
+        }
+    }
+
+    private async Task ScartaPropostaAsync()
+    {
+        if (_proposta.Count == 0) return;
+        var ok = await DialogService.ShowMessageBox("Scarti la correzione?",
+            "La scheda resta com'è e al cliente non parte nessuna mail: se serve, avvisalo tu.",
+            yesText: "Scarta", cancelText: "Annulla");
+        if (ok != true) return;
+        _propostaInCorso = true;
+        try
+        {
+            await ClienteProposteWebService.ScartaAsync(_proposta[0].PropostaId, Entity.AziendaFk, await UtenteCorrenteAsync());
+            _proposta = new();
+            Snackbar.Add("Correzione scartata.", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Scarto proposta non riuscito, cliente {Id}", Entity.ClienteId);
+            Snackbar.Add("Non è stato possibile scartare la correzione.", Severity.Error);
+        }
+        finally
+        {
+            _propostaInCorso = false;
+        }
+    }
+
+    /// <summary>«La tua scheda è aggiornata: puoi completare l'iscrizione», con il link al sito.</summary>
+    private async Task<bool> MandaMailPuoiIscrivertiAsync(PropostaApprovata a)
+    {
+        try
+        {
+            var utente = await TenantContext.GetCurrentUserAsync();
+            var azienda = await AziendaService.GetByIdAsync(Entity.AziendaFk);
+            var link = azienda?.SitoWebIscrizione;
+            var nome = System.Net.WebUtility.HtmlEncode($"{a.Nome} {a.Cognome}".Trim());
+            var corpo =
+                $"<p>Gentile <strong>{nome}</strong>,</p>" +
+                "<p>abbiamo aggiornato la tua scheda con i dati che ci hai mandato dal sito di iscrizione.</p>" +
+                (string.IsNullOrWhiteSpace(link)
+                    ? "<p>Ora puoi completare l'iscrizione dal nostro sito.</p>"
+                    : $"<p>Ora puoi completare l'iscrizione: <a href=\"{System.Net.WebUtility.HtmlEncode(link)}\">{System.Net.WebUtility.HtmlEncode(link)}</a></p>") +
+                $"<p>{System.Net.WebUtility.HtmlEncode(azienda?.RagioneSociale ?? "")}</p>";
+            var sender = await EmailSenderFactory.GetSenderAsync(utente?.RoleCode, Entity.AziendaFk);
+            return await sender.SendHtmlEmailAsync(new[] { a.Email }, "La tua scheda è aggiornata: puoi completare l'iscrizione", corpo);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Mail «puoi iscriverti» non inviata, cliente {Id}", Entity.ClienteId);
+            return false;
         }
     }
 }
