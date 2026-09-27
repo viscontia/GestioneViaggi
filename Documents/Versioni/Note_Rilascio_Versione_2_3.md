@@ -1,9 +1,9 @@
 # Note di Rilascio — Versione 2.3
 
-> ### 📦 Pronta da compilare — 2026-09-27
+> ### ✅ Consegnata ad Antonio — 2026-09-27
 > I numeri di versione sono stati portati a **2.3** nei quattro punti del codice (build 39 → 40) e
-> nell'intestazione dei **cinque** manuali; i PDF sono rigenerati. Resta la compilazione
-> dell'installer e la consegna.
+> nell'intestazione dei **cinque** manuali; i PDF sono rigenerati. Installer compilato su
+> Parallels, provato sulla VM e consegnato: `GestioneViaggi_Setup_2.3.exe`.
 > Versione precedente: **2.2** del 2026-09-21 (consegnata ad Antonio).
 
 ---
@@ -135,5 +135,5 @@ chiamata dal codice esiste in PROD (i soli nomi assenti sono prefissi di nomi co
    **arrivata**, foto **HEIC** caricata nella Libreria immagini (e poi cancellata). Il riquadro
    Approva / Scarta non si è potuto vedere: in PROD non c'è nessuna proposta in attesa (provato in
    locale, M11-M12).
-5. ⏳ Consegnare ad Antonio `GestioneViaggi_Setup_2.3.exe`, `Novita_Versione_2_3.pdf` e i manuali;
+5. ✅ **Fatto il 2026-09-27** — consegnati ad Antonio `GestioneViaggi_Setup_2.3.exe`, `Novita_Versione_2_3.pdf` e i manuali;
    cancellare i setup vecchi.
