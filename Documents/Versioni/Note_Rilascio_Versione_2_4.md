@@ -55,6 +55,7 @@ Disegno e piano: `Documents/Progetti/Promemoria_Apertura/`.
 | Script | Cosa | In PROD |
 |---|---|---|
 | `671_Promemoria_Apertura.sql` | `fn_promemoria_apertura`, `fn_promemoria_giorni_newsletter`, riga `promemoria` a 90 giorni per ogni azienda. Test `Test_671_…` | ⏳ in locale il 2026-09-27; PROD da fare |
+| `672_Elimina_Viaggio_Di_Test_2.sql` | Via il «VIAGGIO DI TEST 2» (903) con le sue 2 iscrizioni e 2 camere; anagrafiche intatte. Pulizia dati, non serve all'eseguibile | ✅ 2026-09-27 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
