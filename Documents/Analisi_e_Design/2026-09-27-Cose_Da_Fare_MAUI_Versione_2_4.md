@@ -125,7 +125,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 
 | Cosa | Dove |
 |---|---|
-| **Promemoria all'apertura** (L2): finestra «Cose in sospeso» all'avvio e dal menu, parametro dei giorni della newsletter in Funzioni Web. ✅ Fatto in locale il 2026-09-27; ⏳ prova a mano di Adriano; ⏳ script 671 in PROD | `PromemoriaDialog`, `PromemoriaService`, `SqlScripts/671` |
+| **Promemoria all'apertura** (L2): finestra «Cose in sospeso» all'avvio e dal menu, parametro dei giorni della newsletter in Funzioni Web. ✅ Fatto in locale e provato da Adriano il 2026-09-27; ⏳ script 671 in PROD con la 2.4 | `PromemoriaDialog`, `PromemoriaService`, `SqlScripts/671` |
 
 ---
 
@@ -139,7 +139,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | Codice | Cosa, in una riga | Dettaglio |
 |---|---|---|
 | **L1** | I titoli dei tour arrivano al sito in MAIUSCOLO (`viaggio_descrizione_breve`, forzato in maiuscolo). ✅ Deciso il 2026-09-25: **nessuna modifica al gestionale**, li converte il codice del sito | Sito |
-| **L2** | Il promemoria all'apertura: quattro righe servono al sito (bozza, senza scheda, senza foto, senza capienza), più le **correzioni dal sito da approvare** (L12-bis, `fn_web_proposte_in_attesa`). ✅ Fatto in locale il 2026-09-27 (script 671, finestra, parametro); ⏳ prova di Adriano, PROD con la 2.4 | Qui, §1 |
+| **L2** | Il promemoria all'apertura: quattro righe servono al sito (bozza, senza scheda, senza foto, senza capienza), più le **correzioni dal sito da approvare** (L12-bis, `fn_web_proposte_in_attesa`). ✅ Fatto e provato da Adriano il 2026-09-27 (script 671, finestra, parametro); esce con la 2.4 | Qui, §1 |
 | **L3** | La scheda web proposta dopo una data nuova | Qui, §2 |
 | **L4** | Dati personali nel sito Flask: ✅ rubinetto in produzione dal 2026-09-21 (script 651). ✅ Disegno nuovo approvato il 2026-09-25: chi è riconosciuto usa la sua scheda senza ricompilarla, completa solo i campi mancanti, OTP solo per modificare. Gli script SQL (`660` e seguenti) nascono qui. ✅ Fatto in locale il 2026-09-26 (script 660–663, gruppo H del piano di test); ✅ **In produzione dal 2026-09-26** (sito Flask v5.0.0, script 660–663, 666, 667; prova in PROD superata). Nel rilascio anche: gunicorn solo su 127.0.0.1 (la porta 5002 rispondeva da internet scavalcando nginx) e radice del dominio chiusa (il sito si raggiunge solo col prefisso dell'azienda). | `Iscrizione-Viaggi-Offroad PostgreSQL/docs/plans/2026-09-25-cliente-riconosciuto-otp-design.md` |
 | **L5** | Indirizzo del sito scritto nel codice Flask: con il dominio nuovo va nella configurazione azienda | `Prossime_Funzioni` §2-bis |
