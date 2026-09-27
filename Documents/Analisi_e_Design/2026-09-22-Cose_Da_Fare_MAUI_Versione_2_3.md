@@ -102,7 +102,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 
 ## Già nel codice, da portare con la 2.3
 
-⚠️ Al rilascio `ApplicationDisplayVersion` passa da **2.2 a 2.3** (`GestioneViaggi.csproj`).
+✅ **2026-09-27** — versione portata a **2.3** (build 40) nel codice e nei manuali; controlli preliminari su PROD puliti. Note: `Documents/Versioni/Note_Rilascio_Versione_2_3.md`; per Antonio `Novita_Versione_2_3.pdf`. ⏳ Restano compilazione su Parallels, prova sulla VM e consegna.
 
 | Cosa | Dove |
 |---|---|
