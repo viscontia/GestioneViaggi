@@ -16,7 +16,25 @@
 
 ## Sezione 1 — Novità
 
-*(ancora niente)*
+### ⭐️ 1.1 — Il promemoria all'apertura (L2)
+
+All'avvio, se c'è qualcosa in sospeso, compare la finestra **«Cose in sospeso»**: una tabella con
+una riga per caso, i bottoni-filtro per voce con il conteggio, la ricerca e le pagine da 25. Ogni
+riga ha **Apri**, che porta dove il caso si risolve; chiusa la scheda, la tabella si rilegge.
+
+Le voci: correzioni dal sito da approvare, documenti scaduti o in scadenza degli iscritti, iscritti
+che oggi non potrebbero iscriversi, partenze future senza scheda web / in bozza / senza foto,
+viaggi senza capienza o soglia, partenze entro N giorni senza newsletter inviata, partenze passate
+non segnate come effettuate. Le decide tutte il database (`fn_promemoria_apertura`, script 671).
+
+- Non si chiude cliccando fuori, con Esc o con la rotella; **«Non mostrarmelo più oggi»** vale per
+  quell'utente e quel giorno. Se non c'è niente, non compare.
+- Si riapre dal menu, voce **«Promemoria (N)»**.
+- **Anagrafica Aziende → Funzioni Web**: interruttore «Promemoria all'apertura» e il campo
+  **«Giorni di anticipo per la newsletter»** (90 se non impostato).
+- La scheda del viaggio ora si può aprire direttamente sui **Contenuti Web** di una partenza.
+
+Disegno e piano: `Documents/Progetti/Promemoria_Apertura/`.
 
 ---
 
@@ -36,7 +54,7 @@
 
 | Script | Cosa | In PROD |
 |---|---|---|
-| | | |
+| `671_Promemoria_Apertura.sql` | `fn_promemoria_apertura`, `fn_promemoria_giorni_newsletter`, riga `promemoria` a 90 giorni per ogni azienda. Test `Test_671_…` | ⏳ in locale il 2026-09-27; PROD da fare |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
