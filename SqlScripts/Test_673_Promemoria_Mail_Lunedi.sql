@@ -10,8 +10,7 @@ DECLARE
     v_dest      text[];
     r           record;
 BEGIN
-    SELECT btrim(email) INTO v_principale FROM ana_aziende_email
-     WHERE azienda_fk = v_az AND is_principale ORDER BY email_id LIMIT 1;
+    v_principale := btrim(fn_ana_aziende_email_principale(v_az));
     ASSERT v_principale IS NOT NULL, '0: l''azienda 2 deve avere un''email principale';
 
     -- 1. spenta: nessuno

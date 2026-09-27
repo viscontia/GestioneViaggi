@@ -39,10 +39,11 @@ AS $$
     SELECT CASE
         WHEN NOT EXISTS (SELECT 1 FROM f) THEN '{}'::text[]
         WHEN (SELECT indirizzi FROM dal_parametro) IS NOT NULL THEN (SELECT indirizzi FROM dal_parametro)
+        -- La stessa email principale che usano il gestionale e il sito (se manca la
+        -- principale, la prima dell'azienda: regola di fn_ana_aziende_email_principale).
         ELSE COALESCE(
-            (SELECT ARRAY[btrim(e.email)::text] FROM ana_aziende_email e
-              WHERE e.azienda_fk = p_azienda_id AND e.is_principale AND btrim(coalesce(e.email, '')) <> ''
-              ORDER BY e.email_id LIMIT 1),
+            (SELECT ARRAY[btrim(e)::text] FROM fn_ana_aziende_email_principale(p_azienda_id) e
+              WHERE btrim(coalesce(e, '')) <> ''),
             '{}'::text[])
     END;
 $$;
