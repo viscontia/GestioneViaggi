@@ -40,7 +40,12 @@ Disegno e piano: `Documents/Progetti/Promemoria_Apertura/`.
 
 ## Sezione 2 — Correzioni
 
-*(ancora niente)*
+### 2.1 — Le icone delle date viaggio sfalsate da una riga all'altra
+
+Nella griglia «Date in Programma» l'ultima icona (stato della scheda web) è un **pulsante** quando la
+scheda manca e un'**icona semplice** quando c'è: la seconda è più stretta, e la fila centrata
+scivolava di lato (segnalato da Adriano il 2026-09-27, Capodanno in Ogliastra). Ora l'icona semplice
+occupa lo stesso spazio di un pulsante (`StatoContenutoWebIcon`, parametro `IngombroPulsante`).
 
 ---
 

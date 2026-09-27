@@ -45,7 +45,7 @@
                            anche la scorciatoia per crearla o clonarla. *@
                         @if (EdizioneDi(context.Item) is { HaContenuto: true } conScheda)
                         {
-                            <StatoContenutoWebIcon StatoPubblicazione="@conScheda.StatoPubblicazione" />
+                            <StatoContenutoWebIcon StatoPubblicazione="@conScheda.StatoPubblicazione" IngombroPulsante="true" />
                         }
                         else
                         {
