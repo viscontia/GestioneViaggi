@@ -123,8 +123,9 @@ chiamata dal codice esiste in PROD (i soli nomi assenti sono prefissi di nomi co
    §7 passo 0): zero firme doppie, nessuna funzione mancante.
 1. ✅ **Fatto il 2026-09-27** — versione a **2.3** in `Versione.txt`, nel `#define` di Inno Setup,
    in `ApplicationDisplayVersion` (build 39 → 40) e nei cinque manuali; PDF rigenerati.
-2. Provare sul Mac in **Release** (punta a PROD): mail a sé stessi dall'anagrafica clienti →
-   deve arrivare.
+2. ✅ **Fatto il 2026-09-27** — sul Mac la 2.3 Release ha sostituito la 2.2 in
+   `/Applications/GestioneViaggi.app` (rifirmata ad hoc); mail a sé stessi dall'anagrafica
+   clienti **arrivata**.
 3. Compilare su Parallels seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**,
    sorgente `C:\GestioneViaggi-build`.
 4. Installare sulla VM e provare:
