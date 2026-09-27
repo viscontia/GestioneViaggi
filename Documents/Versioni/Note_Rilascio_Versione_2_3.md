@@ -126,11 +126,14 @@ chiamata dal codice esiste in PROD (i soli nomi assenti sono prefissi di nomi co
 2. ✅ **Fatto il 2026-09-27** — sul Mac la 2.3 Release ha sostituito la 2.2 in
    `/Applications/GestioneViaggi.app` (rifirmata ad hoc); mail a sé stessi dall'anagrafica
    clienti **arrivata**.
-3. Compilare su Parallels seguendo `Scripts/windows/COME_SI_GENERA_L_INSTALLER.md`: **win10-x64**,
-   sorgente `C:\GestioneViaggi-build`.
-4. Installare sulla VM e provare:
-   - una mail dall'anagrafica clienti **arriva** (§1.1, la ragione di questa versione);
-   - caricare una foto **HEIC** in una sezione del sito: si carica (§1.2);
-   - la scheda di un cliente con una proposta in attesa mostra il riquadro Approva / Scarta (§2.2).
-5. Consegnare ad Antonio `GestioneViaggi_Setup_2.3.exe`, `Novita_Versione_2_3.pdf` e i manuali;
+3. ✅ **Fatto il 2026-09-27** — compilato su Parallels (`-r win10-x64`, 105 s, 64 avvisi e nessun
+   errore): `GestioneViaggi.exe` **x64**, versione **2.3.0.0**, Magick.NET incluso. Copiato in
+   `C:\GestioneViaggi-build` e installer `GestioneViaggi_Setup_2.3.exe` generato con Inno Setup.
+   ⚠️ Il comando va lanciato in PowerShell **dentro Windows**: dal Terminale del Mac risponde
+   `NETSDK1083 … 'win10-x64' is not recognized`.
+4. ✅ **Fatto il 2026-09-27** — installato sulla VM sopra la 2.2: versione 2.3, mail a sé stessi
+   **arrivata**, foto **HEIC** caricata nella Libreria immagini (e poi cancellata). Il riquadro
+   Approva / Scarta non si è potuto vedere: in PROD non c'è nessuna proposta in attesa (provato in
+   locale, M11-M12).
+5. ⏳ Consegnare ad Antonio `GestioneViaggi_Setup_2.3.exe`, `Novita_Versione_2_3.pdf` e i manuali;
    cancellare i setup vecchi.
