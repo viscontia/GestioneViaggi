@@ -218,6 +218,7 @@ Flask, che si connette come `postgres`, proprietario. Tutte hanno `SET search_pa
 |---|---|---|
 | `fn_promemoria_apertura(p_azienda_id)` → `TABLE(voce, voce_titolo, perche, oggetto, urgenza, data_rif, viaggio_id, data_viaggio_id, cliente_id)` | Una riga per ogni cosa in sospeso: proposte dal sito, documenti, clienti che non potrebbero iscriversi (stesse regole di `fn_cliente_iscrivibile` e `fn_documento_esito_per_partenza`), partenze future senza scheda / in bozza / senza foto, viaggi senza capienza o soglia, partenze senza newsletter inviata entro N giorni, partenze passate non effettuate. Il gestionale la disegna e basta; la mail del lunedì la riuserà | `PromemoriaService`, `PromemoriaDialog` |
 | `fn_promemoria_giorni_newsletter(p_azienda_id)` → `integer` | Gli N giorni della newsletter: parametro `giorni_newsletter` della funzione `promemoria` in `web_aziende_funzioni` (linguetta Funzioni Web); senza, **90** | `WebAziendeFunzioniService` |
+| `fn_promemoria_mail_destinatari(p_azienda_id)` → `text[]` (`673`) | A chi va la **mail del lunedì**: vuoto se la funzione `mail_lunedi` è spenta o manca; altrimenti il parametro `destinatari` (virgole) o l'email principale dell'azienda. La chiama il server del sito, che spedisce le righe di `fn_promemoria_apertura` | `promemoria_lunedi.py` (sito Flask), `WebAziendeFunzioniService` |
 
 ⛔️ **Email agganciata dal sito = nessun codice** (`SqlScripts/662`): su una scheda la cui email è stata agganciata dal sito, `fn_web_otp_genera` risponde `EMAIL_NON_VERIFICATA`. Altrimenti chi conosce i dati anagrafici di una persona senza email si fa agganciare la propria casella e ne riceve il codice. Il controllo torna libero quando il gestionale cambia l'email. ⚠️ Il 662 **ridefinisce** `fn_web_otp_genera`: va applicato sempre dopo il 660.
 
@@ -2325,6 +2326,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2552,8 +2554,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_get_scadenzario_print_data` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | jsonb |  |
 | `fn_get_scadenzario_stampa` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | TABLE(gruppochiave text, gruppodisplay text, gruppoordine integer, transazioneid integer, datascadenza date, datadocumento date, numerodocumento character varying, controparteragionesociale character varying, causaleciclo character varying, causaledescrizione character varying, importooriginale numeric, residuo numeric, valutacodiceiso character varying, giorniascadenza integer, urgenza character varying, stato character varying, viaggiodescrizione character varying, note text) | Restituisce le scadenze aperte con calcolo del residuo e classificazione urgenza per la stampa. |
 | `fn_get_smtp_config_for_email` | p_azienda_id integer, p_master text | jsonb |  |
-| `fn_get_tasso_cambio` | p_valuta_da integer, p_valuta_a integer, p_data date | numeric | Restituisce il tasso di cambio più recente (<= data) calcolando anche l'inverso. Core function. |
 | `fn_get_tasso_cambio` | p_iso_da character varying, p_iso_a character varying, p_data date | numeric | Wrapper che accetta codici ISO e invoca la core function. |
+| `fn_get_tasso_cambio` | p_valuta_da integer, p_valuta_a integer, p_data date | numeric | Restituisce il tasso di cambio più recente (<= data) calcolando anche l'inverso. Core function. |
 | `fn_get_transazione_init_data` | p_azienda_id integer, p_transazione_id integer DEFAULT NULL::integer | json | Dati di apertura del dialog movimenti contabili. Chiavi in snake_case (641) e alias id per controparti e viaggi, le cui classi ereditano Id da BaseEntity (642). |
 | `fn_get_transazioni_by_azienda` | p_azienda_id integer, p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_transazione date DEFAULT NULL::date, p_solo_da_pagare boolean DEFAULT false, p_causale_tipo_id integer DEFAULT NULL::integer | TABLE(transazione_id integer, transazione_azienda_id integer, transazione_viaggio_id integer, transazione_data_viaggio_id integer, transazione_controparte_id integer, transazione_causale_tipo_id integer, transazione_importo numeric, transazione_valuta_id integer, transazione_importo_eur numeric, transazione_data date, transazione_data_scadenza date, transazione_data_pagamento date, transazione_stato character varying, transazione_causale text, transazione_note text, transazione_numero_documento character varying, transazione_data_documento date, transazione_fattura_fk integer, transazione_aliquota_iva_fk integer, transazione_imponibile_eur numeric, transazione_iva_eur numeric, transazione_lordo_eur numeric, transazione_iva_modalita_input character varying, transazione_tasso_cambio_applicato numeric, transazione_tasso_fonte character varying, transazione_tasso_data_validita date, created_at timestamp with time zone, created_by character varying, updated_at timestamp with time zone, updated_by character varying, azienda_codice text, controparte_ragione_sociale character varying, valuta_codice_iso character varying, causale_descrizione character varying, causale_segno integer, causale_ciclo character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, causale_ciclo character varying, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, imponibile_eur numeric, iva_eur numeric, lordo_eur numeric, aliquota_iva_codice character varying, aliquota_iva_percentuale numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
@@ -2608,6 +2610,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `gia' effettuata, conclusa, o cominciata. NULL se invece e' iscrivibile.` |  |  |  |
 | `fn_promemoria_apertura` | p_azienda_id integer | TABLE(voce character varying, voce_titolo character varying, perche text, oggetto text, urgenza integer, data_rif date, viaggio_id integer, data_viaggio_id integer, cliente_id integer) |  |
 | `fn_promemoria_giorni_newsletter` | p_azienda_id integer | integer |  |
+| `fn_promemoria_mail_destinatari` | p_azienda_id integer | text[] |  |
 | `fn_search_clienti` | p_azienda_fk integer, p_search_text character varying | json | DB-First: Full-text search clienti by cognome, nome, email, CF, telefono |
 | `fn_set_azienda_id` |  | trigger |  |
 | `fn_silos_movimenti_fuori_azienda` |  | TABLE(tabella character varying, azienda_viaggio integer, partenza integer, cliente_id integer, nominativo text, azienda_cliente integer, gemello_id integer, rimediabile character varying) | I movimenti in cui il cliente appartiene a un'azienda diversa da quella del viaggio, |
@@ -2619,8 +2622,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
-| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
+| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_query_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying DEFAULT NULL::character varying, p_limit_count integer DEFAULT NULL::integer | jsonb | SELECT generico per SuperAdmin su qualsiasi tabella |
 | `fn_sys_utente_pref_get` | p_utente_id uuid, p_chiave character varying | text |  |
 | `fn_sys_utente_pref_set` | p_utente_id uuid, p_chiave character varying, p_valore text | void |  |
@@ -2971,10 +2974,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_cf_verifica_cliente`
 - `fn_check_firme_duplicate`
 - `fn_cliente_gemello_in_azienda`
-- `fn_cliente_iscrivibile`
 - `fn_consenso_da_chiedere`
 - `fn_consenso_registra_risposta`
-- `fn_documento_esito_per_partenza`
 - `fn_e_iscritto`
 - `fn_enforce_user_azienda_integrity`
 - `fn_get_calendar_data`
@@ -2997,8 +2998,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_partenza_etichetta`
 - `fn_partenza_iscrivibile`
 - `fn_partenza_motivo_non_iscrivibile`
-- `fn_promemoria_apertura`
 - `fn_promemoria_giorni_newsletter`
+- `fn_promemoria_mail_destinatari`
 - `fn_set_azienda_id`
 - `fn_silos_movimenti_fuori_azienda`
 - `fn_silos_rimappa_movimenti`
