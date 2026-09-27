@@ -148,6 +148,8 @@ else
     [Parameter] public int NumeroGiorni { get; set; }
     /// <summary>Bubbla al parent (AnaViaggiDialog) lo stato "modifiche non salvate" della scheda Contenuti.</summary>
     [Parameter] public EventCallback<bool> HasUnsavedChangesChanged { get; set; }
+    /// <summary>Partenza da selezionare all'apertura (promemoria all'apertura, L2). Senza: la prima.</summary>
+    [Parameter] public int? InitialDataViaggioId { get; set; }
 
     private List<EdizioneViaggio> _edizioni = new();
     private EdizioneViaggio? _selected;
@@ -245,6 +247,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (InitialDataViaggioId is int id) _selectedDataId = id;
         await ReloadAsync();
         _loading = false;
     }

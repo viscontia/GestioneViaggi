@@ -228,6 +228,7 @@
                     <MudTabPanel Text="Contenuti Web" Icon="@Icons.Material.Filled.Language">
                         <WebEdizioniManager @ref="_webEdizioniManager" ViaggioId="@Entity.Id" AziendaId="@GetAziendaId()"
                                             DescrizioneBreve="@Entity.DescrizioneBreve" NumeroGiorni="@Entity.NumeroGiorni"
+                                            InitialDataViaggioId="@StartDataViaggioId"
                                             HasUnsavedChangesChanged="OnContentDirtyChanged" />
                     </MudTabPanel>
                 }
@@ -289,6 +290,10 @@
     [Parameter] public bool IsEditMode { get; set; }
     [Parameter] public bool StartOnDatesTab { get; set; }
     [Parameter] public bool AutoOpenAddDate { get; set; } // Shortcut for "Quick Add"
+    /// <summary>Apre sulla linguetta Contenuti Web (solo in modifica): la usa il promemoria all'apertura (L2).</summary>
+    [Parameter] public bool StartOnContenutiWebTab { get; set; }
+    /// <summary>Con <see cref="StartOnContenutiWebTab"/>: la partenza (edizione) da selezionare.</summary>
+    [Parameter] public int? StartDataViaggioId { get; set; }
 
     private MudTabs _tabs = default!;
     private int _activeTabIndex = 0;
@@ -359,6 +364,7 @@
     protected override void OnInitialized()
     {
         if (StartOnDatesTab) _activeTabIndex = 1;
+        else if (StartOnContenutiWebTab && IsEditMode) _activeTabIndex = ContenutiWebTabIndex;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -428,6 +434,11 @@
                              await _datesManager.AddDate();
                          }
                      }
+                }
+                else if (StartOnContenutiWebTab && IsEditMode)
+                {
+                     _activeTabIndex = ContenutiWebTabIndex;
+                     StateHasChanged();
                 }
             }
             catch { /* Ignore JS errors on init */ }
