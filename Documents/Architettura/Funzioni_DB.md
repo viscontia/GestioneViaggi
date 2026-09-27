@@ -208,9 +208,16 @@ Flask, che si connette come `postgres`, proprietario. Tutte hanno `SET search_pa
 | `fn_web_email_conferma(p_cliente_id, p_azienda_id)` → `boolean` (`SqlScripts/668`, L12) | Il gestionale conferma l'email agganciata dal sito (toglie la riga di `web_email_agganciate`): da qui il codice può partire | `ClienteEmailWebService` (gestionale) |
 | `fn_web_proposta_crea(p_azienda_id, p_cliente_id, p_email, p_dati)` → `bigint` (`SqlScripts/669`, L12-bis) | Conserva una proposta di correzione dal sito **senza toccare la scheda**: solo i campi di `fn_web_proposta_campi_ammessi()` (documento e recapiti), una sola in attesa per cliente (la nuova sostituisce), 3 al giorno | `Classi_Tabelle_DB/cliente.py` (sito Flask) |
 | `fn_web_proposta_del_cliente(p_cliente_id, p_azienda_id)` → `TABLE(proposta_id, creata_il, email_proponente, campo, etichetta, in_archivio, proposto)` (`670`) | La proposta in attesa, un campo per riga, accanto al valore in archivio | `ClienteProposteWebService` (gestionale) |
-| `fn_web_proposte_in_attesa(p_azienda_id)` (`670`) | Le proposte da approvare: per il promemoria all'apertura (L2) | — (L2) |
+| `fn_web_proposte_in_attesa(p_azienda_id)` (`670`) | Le proposte da approvare: per il promemoria all'apertura (L2) | `fn_promemoria_apertura` (671) |
 | `fn_web_proposta_approva(p_proposta_id, p_azienda_id, p_utente)` → `TABLE(email, cognome, nome)` (`670`) | Scrive con `fn_ana_clienti_update` (stessa validazione); se rifiuta, niente cambia | `ClienteProposteWebService` |
 | `fn_web_proposta_scarta(p_proposta_id, p_azienda_id, p_utente)` → `boolean` (`670`) | Scarta: la scheda resta com'è | `ClienteProposteWebService` |
+
+### Il promemoria all'apertura (L2, `SqlScripts/671`)
+
+| Funzione | Cosa fa | Files Coinvolti |
+|---|---|---|
+| `fn_promemoria_apertura(p_azienda_id)` → `TABLE(voce, voce_titolo, perche, oggetto, urgenza, data_rif, viaggio_id, data_viaggio_id, cliente_id)` | Una riga per ogni cosa in sospeso: proposte dal sito, documenti, clienti che non potrebbero iscriversi (stesse regole di `fn_cliente_iscrivibile` e `fn_documento_esito_per_partenza`), partenze future senza scheda / in bozza / senza foto, viaggi senza capienza o soglia, partenze senza newsletter inviata entro N giorni, partenze passate non effettuate. Il gestionale la disegna e basta; la mail del lunedì la riuserà | `PromemoriaService`, `PromemoriaDialog` |
+| `fn_promemoria_giorni_newsletter(p_azienda_id)` → `integer` | Gli N giorni della newsletter: parametro `giorni_newsletter` della funzione `promemoria` in `web_aziende_funzioni` (linguetta Funzioni Web); senza, **90** | `WebAziendeFunzioniService` |
 
 ⛔️ **Email agganciata dal sito = nessun codice** (`SqlScripts/662`): su una scheda la cui email è stata agganciata dal sito, `fn_web_otp_genera` risponde `EMAIL_NON_VERIFICATA`. Altrimenti chi conosce i dati anagrafici di una persona senza email si fa agganciare la propria casella e ne riceve il codice. Il controllo torna libero quando il gestionale cambia l'email. ⚠️ Il 662 **ridefinisce** `fn_web_otp_genera`: va applicato sempre dopo il 660.
 
@@ -2317,6 +2324,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 `~/Documents/Backup_GoLive/newsletter_drupal/`.
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2364,7 +2372,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_alloggi_combinazioni` | p_data_viaggio_id integer, p_persone integer | TABLE(forma integer, gruppi integer[], camere integer, chiedere_chi boolean) | Le forme in cui N persone possono dividersi fra le sistemazioni disponibili su questa |
 | `partenza, con l'indicazione se serve chiedere chi sta con chi. ⚠️ N sono le persone che una` |  |  |  |
 | `sistemazione la vogliono: chi sceglie «nessuna» esce dal conto prima.` |  |  |  |
-| `fn_alloggi_salva_camera` | p_alloggio_pk integer, p_viaggio_id integer, p_data_viaggio_id integer, p_tipo_alloggio_id integer, p_clienti integer[], p_adeguamenti jsonb DEFAULT '[]'::jsonb, p_created_by character varying DEFAULT NULL::character varying | integer | ⛔️ **L'unica scrittura** di mov_clienti_alloggi per il gestionale e per il sito. Dal `666` accetta solo persone iscritte a quella partenza e clienti dell'azienda del viaggio. Salva una |
+| `fn_alloggi_salva_camera` | p_alloggio_pk integer, p_viaggio_id integer, p_data_viaggio_id integer, p_tipo_alloggio_id integer, p_clienti integer[], p_adeguamenti jsonb DEFAULT '[]'::jsonb, p_created_by character varying DEFAULT NULL::character varying | integer | ⛔️ **L'unica scrittura** di mov_clienti_alloggi per il gestionale e per il sito. Salva una |
 | `sistemazione e, nella stessa transazione, toglie i suoi occupanti dalle altre della stessa` |  |  |  |
 | `partenza: quelle che restano vuote si eliminano, quelle che restano con meno persone prendono` |  |  |  |
 | `il tipo indicato in p_adeguamenti — che va DETTO, perche' il software non sceglie da solo.` |  |  |  |
@@ -2544,8 +2552,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_get_scadenzario_print_data` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | jsonb |  |
 | `fn_get_scadenzario_stampa` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | TABLE(gruppochiave text, gruppodisplay text, gruppoordine integer, transazioneid integer, datascadenza date, datadocumento date, numerodocumento character varying, controparteragionesociale character varying, causaleciclo character varying, causaledescrizione character varying, importooriginale numeric, residuo numeric, valutacodiceiso character varying, giorniascadenza integer, urgenza character varying, stato character varying, viaggiodescrizione character varying, note text) | Restituisce le scadenze aperte con calcolo del residuo e classificazione urgenza per la stampa. |
 | `fn_get_smtp_config_for_email` | p_azienda_id integer, p_master text | jsonb |  |
-| `fn_get_tasso_cambio` | p_iso_da character varying, p_iso_a character varying, p_data date | numeric | Wrapper che accetta codici ISO e invoca la core function. |
 | `fn_get_tasso_cambio` | p_valuta_da integer, p_valuta_a integer, p_data date | numeric | Restituisce il tasso di cambio più recente (<= data) calcolando anche l'inverso. Core function. |
+| `fn_get_tasso_cambio` | p_iso_da character varying, p_iso_a character varying, p_data date | numeric | Wrapper che accetta codici ISO e invoca la core function. |
 | `fn_get_transazione_init_data` | p_azienda_id integer, p_transazione_id integer DEFAULT NULL::integer | json | Dati di apertura del dialog movimenti contabili. Chiavi in snake_case (641) e alias id per controparti e viaggi, le cui classi ereditano Id da BaseEntity (642). |
 | `fn_get_transazioni_by_azienda` | p_azienda_id integer, p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_transazione date DEFAULT NULL::date, p_solo_da_pagare boolean DEFAULT false, p_causale_tipo_id integer DEFAULT NULL::integer | TABLE(transazione_id integer, transazione_azienda_id integer, transazione_viaggio_id integer, transazione_data_viaggio_id integer, transazione_controparte_id integer, transazione_causale_tipo_id integer, transazione_importo numeric, transazione_valuta_id integer, transazione_importo_eur numeric, transazione_data date, transazione_data_scadenza date, transazione_data_pagamento date, transazione_stato character varying, transazione_causale text, transazione_note text, transazione_numero_documento character varying, transazione_data_documento date, transazione_fattura_fk integer, transazione_aliquota_iva_fk integer, transazione_imponibile_eur numeric, transazione_iva_eur numeric, transazione_lordo_eur numeric, transazione_iva_modalita_input character varying, transazione_tasso_cambio_applicato numeric, transazione_tasso_fonte character varying, transazione_tasso_data_validita date, created_at timestamp with time zone, created_by character varying, updated_at timestamp with time zone, updated_by character varying, azienda_codice text, controparte_ragione_sociale character varying, valuta_codice_iso character varying, causale_descrizione character varying, causale_segno integer, causale_ciclo character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, causale_ciclo character varying, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, imponibile_eur numeric, iva_eur numeric, lordo_eur numeric, aliquota_iva_codice character varying, aliquota_iva_percentuale numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
@@ -2598,6 +2606,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `dice se il viaggio e' finito: a un viaggio in corso non ci si iscrive, ma concluso non e'.` |  |  |  |
 | `fn_partenza_motivo_non_iscrivibile` | p_data_viaggio_id integer | text | Perche' a questa partenza non ci si puo' iscrivere, con le parole giuste per il caso: |
 | `gia' effettuata, conclusa, o cominciata. NULL se invece e' iscrivibile.` |  |  |  |
+| `fn_promemoria_apertura` | p_azienda_id integer | TABLE(voce character varying, voce_titolo character varying, perche text, oggetto text, urgenza integer, data_rif date, viaggio_id integer, data_viaggio_id integer, cliente_id integer) |  |
+| `fn_promemoria_giorni_newsletter` | p_azienda_id integer | integer |  |
 | `fn_search_clienti` | p_azienda_fk integer, p_search_text character varying | json | DB-First: Full-text search clienti by cognome, nome, email, CF, telefono |
 | `fn_set_azienda_id` |  | trigger |  |
 | `fn_silos_movimenti_fuori_azienda` |  | TABLE(tabella character varying, azienda_viaggio integer, partenza integer, cliente_id integer, nominativo text, azienda_cliente integer, gemello_id integer, rimediabile character varying) | I movimenti in cui il cliente appartiene a un'azienda diversa da quella del viaggio, |
@@ -2641,9 +2651,14 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_aziende_funzioni_insert` | p_azienda_id integer, p_funzione character varying, p_attiva boolean DEFAULT false, p_parametri jsonb DEFAULT NULL::jsonb | bigint |  |
 | `fn_web_aziende_funzioni_list` | p_azienda_id integer | SETOF web_aziende_funzioni |  |
 | `fn_web_aziende_funzioni_update` | p_id bigint, p_azienda_id integer, p_funzione character varying, p_attiva boolean, p_parametri jsonb | integer |  |
+| `fn_web_cliente_aggancia_email` | p_cliente_id integer, p_azienda_id integer, p_email character varying | boolean | L'aggancio dell'email fatto dal sito: come fn_ana_clienti_aggancia_email (solo su schede senza email), e in piu' lo registra, perche' quell'email non riceva codici usa e getta. Il sito chiama questa, non la 593 (script 662). |
+| `fn_web_cliente_completa` | p_cliente_id integer, p_azienda_id integer, p_dati jsonb | TABLE(campo character varying, etichetta text) | Scrive sulla scheda SOLO i campi del modulo oggi vuoti e restituisce quali, con un'etichetta per l'avviso al cliente. E' l'unica scrittura che il sito puo' fare su una scheda esistente senza codice usa e getta (script 661). |
+| `fn_web_cliente_completa_esito_cf` | p_scheda jsonb | character varying | Solo l'esito di fn_cf_verifica su una scheda in jsonb, senza messaggio ne' codice atteso. Serve a fn_web_cliente_completa (script 661). |
 | `fn_web_cliente_profilo_pubblico` | p_azienda_id integer, p_email character varying, p_data_viaggio_id integer DEFAULT NULL::integer, p_pilota boolean DEFAULT true | json | Cio' che il sito puo' dire a chi digita un'email: esiste, come si chiama, quali campi mancano (i NOMI) e se il documento va bene per quella partenza. Nessun dato personale (script 651). |
 | `fn_web_destinatari_newsletter` | p_azienda_id integer, p_invio_id bigint DEFAULT NULL::bigint | TABLE(email citext, nome character varying, cognome character varying, lingua character, fonte character varying, cliente_id integer, iscritto_id bigint, token_disiscrizione character varying, telefono character varying) |  |
 | `fn_web_edizioni_per_viaggio` | p_viaggio_id integer, p_azienda_id integer | TABLE(data_viaggio_id integer, data_inizio date, data_fine date, effettuato_sino character, web_tour_contenuti_id bigint, stato_pubblicazione character varying) |  |
+| `fn_web_email_conferma` | p_cliente_id integer, p_azienda_id integer | boolean | L12 (668): il gestionale conferma l'email agganciata dal sito; da qui il codice usa e getta puo' partire. |
+| `fn_web_email_da_confermare` | p_cliente_id integer, p_azienda_id integer | boolean | L12 (668): true se l'email attuale della scheda e' stata agganciata dal sito e nessuno l'ha confermata. |
 | `fn_web_ha_tour_brevi_pubblicati` | p_azienda_id integer | boolean |  |
 | `fn_web_immagini_azienda` | p_azienda_id integer | TABLE(url character varying, storage_path character varying, alt_text character varying, contesto character varying) |  |
 | `fn_web_immagini_in_uso` | p_contenuto_id bigint, p_azienda_id integer | TABLE(storage_path character varying) |  |
@@ -2704,8 +2719,16 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_newsletter_tipi_blocco` |  | TABLE(tipo character varying, etichetta character varying, obbligatorio boolean, max_occorrenze integer, ordine_catalogo integer) |  |
 | `fn_web_newsletter_traduzioni` | p_invio_id bigint, p_azienda_id integer, p_lingua character varying DEFAULT NULL::character varying | TABLE(lingua character, entita character varying, entita_id bigint, campo character varying, testo text) | Traduzioni valide (non obsolete) di una newsletter: oggetto e campi dei blocchi. p_lingua NULL = tutte. |
 | `fn_web_newsletter_traduzioni_stato` | p_invio_id bigint, p_azienda_id integer | TABLE(lingua character, traducibili integer, tradotti integer, obsoleti integer, mancanti integer) | Copertura delle traduzioni di una newsletter per lingua: traducibili, tradotti, obsoleti, mancanti. |
+| `fn_web_otp_genera` | p_azienda_id integer, p_cliente_id integer | TABLE(esito text, codice text, email character varying) | Genera un codice a 8 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Tetto: 3 richieste in 15 minuti, 10 in 24 ore. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, EMAIL_NON_VERIFICATA (email agganciata dal sito, script 662), TROPPE_RICHIESTE (script 660, 662). |
+| `fn_web_otp_verifica` | p_azienda_id integer, p_cliente_id integer, p_codice text | text | Verifica il codice del cliente. Esiti: OK (e il codice non vale piu'), ERRATO, SCADUTO, TENTATIVI_ESAURITI, NESSUN_CODICE (script 660). |
 | `fn_web_prezzo_da` | p_viaggio_id integer | integer |  |
 | `fn_web_prezzo_da_data` | p_data_viaggio_id integer | integer |  |
+| `fn_web_proposta_approva` | p_proposta_id bigint, p_azienda_id integer, p_utente character varying | TABLE(email character varying, cognome character varying, nome character varying) |  |
+| `fn_web_proposta_campi_ammessi` |  | text[] |  |
+| `fn_web_proposta_crea` | p_azienda_id integer, p_cliente_id integer, p_email character varying, p_dati jsonb | bigint | L12-bis (669): conserva una proposta di correzione dal sito senza toccare la scheda; solo campi ammessi, una in attesa per cliente, 3 al giorno. |
+| `fn_web_proposta_del_cliente` | p_cliente_id integer, p_azienda_id integer | TABLE(proposta_id bigint, creata_il timestamp with time zone, email_proponente character varying, campo text, etichetta text, in_archivio text, proposto text) |  |
+| `fn_web_proposta_scarta` | p_proposta_id bigint, p_azienda_id integer, p_utente character varying | boolean |  |
+| `fn_web_proposte_in_attesa` | p_azienda_id integer | TABLE(proposta_id bigint, cliente_id integer, cognome character varying, nome character varying, creata_il timestamp with time zone) |  |
 | `fn_web_recensioni_config` | p_azienda_id integer | jsonb |  |
 | `fn_web_revalidate_accoda` | p_azienda_id integer, p_oggetto character varying, p_riferimento bigint, p_origine character varying | void |  |
 | `fn_web_revalidate_completa` | p_ids bigint[] | integer |  |
@@ -2780,7 +2803,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_wizard_get_all_tipi_mezzi` |  | TABLE(ana_tipo_mezzo_id integer, ana_tipo_mezzo_descrizione character varying) | Restituisce tutti i tipi di mezzi ordinati per descrizione. Usato per popolare il combobox tipo mezzo nello Step 4. |
 | `fn_wizard_get_alloggi_viaggio` | p_viaggio_id integer, p_data_viaggio_id integer | TABLE(mov_clienti_alloggio_pk integer, viaggio_id_fk integer, data_viaggio_id_fk integer, tipo_alloggio_id_fk integer, cliente_id1_fk integer, cliente_id2_fk integer, cliente_id3_fk integer, cliente_id4_fk integer, cliente_id5_fk integer, cliente_id6_fk integer) |  |
 | `fn_wizard_get_azienda_email_principale` | p_azienda_id integer | character varying | Restituisce l'indirizzo email principale (is_principale=true) dell'azienda specificata. Usato per inviare la mail di riepilogo alla segreteria. |
-| `fn_wizard_get_client_data` | p_cliente_id integer | TABLE(cliente_cognome character varying, cliente_nome character varying, cliente_data_nascita date, cliente_sesso character, comune_codfisc character varying, cliente_intolleranza text) | Restituisce i dati anagrafici di un cliente dato il suo ID, incluso il codice catastale del comune di nascita. Usato per la validazione del codice fiscale. |
+| `fn_wizard_get_client_data` | p_cliente_id integer, p_azienda_id integer | TABLE(cliente_cognome character varying, cliente_nome character varying, cliente_data_nascita date, cliente_sesso character, comune_codfisc character varying, cliente_intolleranza text) | Restituisce i dati anagrafici di un cliente dato il suo ID, incluso il codice catastale del comune di nascita. Usato per la validazione del codice fiscale. Solo clienti dell'azienda indicata (script 663). |
 | `fn_wizard_get_comune_by_id` | p_comune_id integer | TABLE(comune_id integer, comune_descrizione character varying, comune_istat character varying, comune_provincia_fk integer, comune_preftel character varying, comune_cap character varying, comune_codfisc character varying, comune_num_abitanti integer, comune_link character varying, comune_ripgeo_fk integer, comune_capoluogo_fk integer, comune_estero character) | Restituisce i dati di un comune dato il suo ID. Sostituisce il SELECT inline in comuni.py::get_comune_by_id(). |
 | `fn_wizard_get_comune_by_istat` | p_istat character varying | TABLE(comune_codfisc character varying) | Restituisce il codice catastale (comune_codfisc) di un comune dato il codice ISTAT. Sostituisce il SELECT inline in comuni.py::get_comune_by_istat(). |
 | `fn_wizard_get_comuni_by_cliente` | p_cliente_id integer | TABLE(cliente_comune_nascita_fk integer, cliente_comune_residenza_fk integer) | Restituisce i FK dei comuni di nascita e residenza di un cliente. Sostituisce il SELECT inline in comuni.py::get_comuni_by_cliente(). |
@@ -2794,8 +2817,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_wizard_get_modelli_by_mezzo_and_tipo` | p_mezzo_id integer, p_tipo_id integer | TABLE(mezzo_modello_id integer, mezzo_modello_descrizione character varying, mezzo_modello_mezzo_fk integer, mezzo_modello_tipo_fk integer) | Restituisce tutti i modelli per una marca specifica filtrati per tipo, ordinati per descrizione. Usato per popolare il combobox modello con solo i modelli pertinenti al tipo selezionato. |
 | `fn_wizard_get_modello_by_id` | p_modello_id integer | TABLE(mezzo_modello_id integer, mezzo_modello_descrizione character varying, mezzo_modello_mezzo_fk integer, mezzo_modello_tipo_fk integer) |  |
 | `fn_wizard_get_nazione_by_regione` | p_regione_id integer | TABLE(country_id integer, name character varying, nationality character varying, country_code character varying, iso_alpha2 character varying, capital character varying, population bigint, area_km2 numeric, region_id integer, sub_region_id integer, intermediate_region_id integer, organization_region_id integer) | Restituisce la nazione associata a una regione tramite JOIN. Sostituisce il SELECT inline in nazioni.py::get_nazione_by_regione(). |
-| `fn_wizard_get_partecipanti` | p_ids integer[], p_azienda_id integer (663) | TABLE(cliente_id integer, cliente_cognome character varying, cliente_nome character varying) |  |
-| `fn_wizard_get_partecipanti_details` | p_ids integer[], p_azienda_id integer (663) | TABLE(cliente_id integer, cliente_cognome character varying, cliente_nome character varying, cliente_email character varying, cliente_data_nascita date, cliente_intolleranza text) | Restituisce i dettagli (ID, cognome, nome, email, data nascita, intolleranze) per una lista di ID partecipanti. Usato per comporre il riepilogo iscrizione e l'email di conferma. |
+| `fn_wizard_get_partecipanti` | p_ids integer[], p_azienda_id integer | TABLE(cliente_id integer, cliente_cognome character varying, cliente_nome character varying) | Cognome e nome, in ordine alfabetico, per una lista di ID partecipanti (/api/partecipanti del sito). Gli ID di un'altra azienda si ignorano (script 663). |
+| `fn_wizard_get_partecipanti_details` | p_ids integer[], p_azienda_id integer | TABLE(cliente_id integer, cliente_cognome character varying, cliente_nome character varying, cliente_email character varying, cliente_data_nascita date, cliente_intolleranza text) | Restituisce i dettagli (ID, cognome, nome, email, data nascita, intolleranze) per una lista di ID partecipanti. Usato per comporre il riepilogo iscrizione e l'email di conferma. Gli ID di un'altra azienda si ignorano (script 663). |
 | `fn_wizard_get_provincia_by_comune` | p_comune_id integer | TABLE(provincia_id integer, provincia_descrizione character varying, provincia_sigla character varying, provincia_superficie numeric, provincia_residenti integer, provincia_num_comuni integer, regione_id_fk integer) | Restituisce la provincia associata a un comune tramite JOIN. Sostituisce il SELECT inline in province.py::get_provincia_by_comune(). |
 | `fn_wizard_get_regione_by_provincia` | p_provincia_id integer | TABLE(regione_id integer, regione_descrizione character varying, regione_nr_residenti integer, regione_perc_residenti numeric, regione_densita_kmq numeric, regione_nr_province integer, regione_nr_comuni integer, country_id_fk integer) | Restituisce la regione associata a una provincia tramite JOIN. Sostituisce il SELECT inline in regioni.py::get_regione_by_provincia(). |
 | `fn_wizard_get_registrazioni_viaggio` | p_viaggio_id integer, p_data_viaggio_id integer | TABLE(viaggio_id_fk integer, data_viaggio_id_fk integer, cliente_id_fk integer, tipo_partecipante_id_fk integer, cliente_pilota_id_fk integer, ana_mezzi_id_fk integer, mezzo_modello_id_fk integer, mov_cliente_viaggio_targa_mezzo character varying, mov_cliente_viaggio_cane_sino character varying, mov_cliente_viaggio_note text) |  |
@@ -2920,7 +2943,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_ana_aziende_email_principale`
 - `fn_ana_aziende_get_claude_key`
 - `fn_ana_aziende_set_claude_key`
-- `fn_ana_clienti_aggancia_email`
 - `fn_ana_clienti_campi_mancanti`
 - `fn_ana_clienti_delete`
 - `fn_ana_clienti_get_consenso`
@@ -2930,7 +2952,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_ana_clienti_set_consenso`
 - `fn_ana_clienti_set_lingua`
 - `fn_ana_clienti_titolo_fk`
-- `fn_ana_clienti_update`
 - `fn_ana_date_viaggi_effettuato_guardia`
 - `fn_ana_date_viaggi_get_by_id`
 - `fn_ana_mezzi_marche_per_tipo`
@@ -2947,7 +2968,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_cf_calcola`
 - `fn_cf_decodifica`
 - `fn_cf_omocodia_a_base`
-- `fn_cf_verifica`
 - `fn_cf_verifica_cliente`
 - `fn_check_firme_duplicate`
 - `fn_cliente_gemello_in_azienda`
@@ -2977,6 +2997,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_partenza_etichetta`
 - `fn_partenza_iscrivibile`
 - `fn_partenza_motivo_non_iscrivibile`
+- `fn_promemoria_apertura`
+- `fn_promemoria_giorni_newsletter`
 - `fn_set_azienda_id`
 - `fn_silos_movimenti_fuori_azienda`
 - `fn_silos_rimappa_movimenti`
@@ -3003,8 +3025,13 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_aziende_funzioni_insert`
 - `fn_web_aziende_funzioni_list`
 - `fn_web_aziende_funzioni_update`
+- `fn_web_cliente_aggancia_email`
+- `fn_web_cliente_completa`
+- `fn_web_cliente_completa_esito_cf`
 - `fn_web_cliente_profilo_pubblico`
 - `fn_web_edizioni_per_viaggio`
+- `fn_web_email_conferma`
+- `fn_web_email_da_confermare`
 - `fn_web_immagini_azienda`
 - `fn_web_immagini_libreria_delete`
 - `fn_web_immagini_libreria_in_uso`
@@ -3057,7 +3084,14 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_newsletter_tipi_blocco`
 - `fn_web_newsletter_traduzioni`
 - `fn_web_newsletter_traduzioni_stato`
+- `fn_web_otp_verifica`
 - `fn_web_prezzo_da_data`
+- `fn_web_proposta_approva`
+- `fn_web_proposta_campi_ammessi`
+- `fn_web_proposta_crea`
+- `fn_web_proposta_del_cliente`
+- `fn_web_proposta_scarta`
+- `fn_web_proposte_in_attesa`
 - `fn_web_revalidate_accoda`
 - `fn_web_revalidate_completa`
 - `fn_web_revalidate_fallita`
