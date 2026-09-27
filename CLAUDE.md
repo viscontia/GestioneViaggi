@@ -18,7 +18,7 @@ Questo file contiene l'architettura completa del progetto, le regole obbligatori
 
 ## ⛔️ Le due liste delle cose da fare vanno SEMPRE allineate
 
-`Documents/Analisi_e_Design/2026-09-22-Cose_Da_Fare_MAUI_Versione_2_3.md` (sezione «Legato al sito
+`Documents/Analisi_e_Design/2026-09-27-Cose_Da_Fare_MAUI_Versione_2_4.md` (sezione «Legato al sito
 pubblico») e `../../Sito Web SFT/Documenti/2026-09-25-Cose_Da_Fare_Sito.md` sono gemelle: sito e
 gestionale leggono lo stesso database. Ogni volta che si aggiunge, si cambia di stato o si chiude
 una voce che tocca tutti e due i progetti (codici `L1`, `L2`…), **si aggiornano tutte e due nella
