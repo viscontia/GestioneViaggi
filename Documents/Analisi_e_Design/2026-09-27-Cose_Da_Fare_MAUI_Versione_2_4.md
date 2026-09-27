@@ -23,6 +23,8 @@ portarcelo con un clic.
 
 ## 1. Il promemoria all'apertura ⭐️ *(la più importante)*
 
+> ✅ **Disegno approvato il 2026-09-27**: `../Progetti/Promemoria_Apertura/2026-09-27-promemoria-apertura-design.md`.
+
 **Cosa.** All'avvio del gestionale compare una finestra con una **tabella delle cose rimaste in
 sospeso**. Ogni riga ha un bottone che porta **dritto alla funzione** che la risolve.
 
@@ -55,6 +57,20 @@ su ciò che c'è.
 ℹ️ **Nota di progetto:** ogni riga è una funzione di database che risponde «quanti e quali».
 Così la stessa lista potrà un giorno comparire anche altrove (una mail del lunedì mattina, per
 dire) senza riscrivere niente.
+
+---
+
+## 1-bis. La mail del lunedì
+
+**Cosa.** Ogni lunedì mattina parte ad Antonio una mail con lo stesso elenco del promemoria
+all'apertura.
+
+**Perché.** Antonio passa quasi tutte le giornate in viaggio con i clienti: il promemoria lo vede
+solo quando apre il programma, la mail la legge anche dal telefono. Idea nata disegnando L2 il
+2026-09-27, approvata da Adriano.
+
+ℹ️ Riusa `fn_promemoria_apertura(azienda)` così com'è: il disegno di L2 l'ha pensata apposta. Si fa
+dopo il promemoria, quando Antonio l'avrà provato.
 
 ---
 
