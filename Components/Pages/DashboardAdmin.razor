@@ -932,11 +932,15 @@
 
     /// <summary>
     /// All'avvio, il promemoria delle cose in sospeso (L2), se ce ne sono. Dopo il primo disegno
-    /// della dashboard, perché la finestra le si apre sopra.
+    /// della dashboard, perché la finestra le si apre sopra. Non sul solo primo disegno: l'utente
+    /// si legge in modo asincrono e al primo disegno può non esserci ancora.
     /// </summary>
+    private bool _promemoriaTentato;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || _currentUser?.AziendaId is not int aziendaId) return;
+        if (_promemoriaTentato || _currentUser?.AziendaId is not int aziendaId) return;
+        _promemoriaTentato = true;
         try
         {
             await GestioneViaggi.Components.Shared.PromemoriaLauncher.MostraAllAvvioSeServeAsync(
