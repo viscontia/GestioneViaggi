@@ -2327,6 +2327,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)

@@ -28,6 +28,7 @@ public class WebAziendeFunzioniService : BaseCrudService<WebAziendaFunzione>
     public const string FunzioneBlog = "blog";
     public const string FunzionePagamentiOnline = "pagamenti_online";
     public const string FunzionePromemoria = "promemoria";
+    public const string FunzioneMailLunedi = "mail_lunedi";
 
     public WebAziendeFunzioniService(IDatabaseService databaseService, ILogger<WebAziendeFunzioniService> logger, ITenantContext? tenantContext = null)
         : base(databaseService, logger, tenantContext)
@@ -247,6 +248,52 @@ public class WebAziendeFunzioniService : BaseCrudService<WebAziendaFunzione>
         var existing = await GetByFunzioneAsync(aziendaId, FunzionePromemoria);
         if (existing is null)
             await CreateAsync(new WebAziendaFunzione { AziendaId = aziendaId, Funzione = FunzionePromemoria, Attiva = true, Parametri = json });
+        else
+        {
+            existing.Parametri = json;
+            await UpdateAsync(existing);
+        }
+    }
+
+    // ---- Mail del lunedì (SqlScripts/673): destinatari nel JSONB `parametri` ----------------
+
+    /// <summary>
+    /// I destinatari scritti a mano (virgole), o null. Vuoto = email principale dell'azienda:
+    /// lo decide fn_promemoria_mail_destinatari, qui si legge solo il testo del campo.
+    /// </summary>
+    public async Task<string?> GetDestinatariMailLunediAsync(int aziendaId)
+    {
+        var row = await GetByFunzioneAsync(aziendaId, FunzioneMailLunedi);
+        if (string.IsNullOrWhiteSpace(row?.Parametri)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(row.Parametri);
+            return doc.RootElement.TryGetProperty("destinatari", out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>L'email principale dell'azienda: il suggerimento del campo destinatari.</summary>
+    public async Task<string?> GetEmailPrincipaleAsync(int aziendaId)
+    {
+        await using var conn = await _databaseService.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand(
+            "SELECT btrim(fn_ana_aziende_email_principale(@AziendaId::integer))", conn);
+        cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+        return await cmd.ExecuteScalarAsync() as string;
+    }
+
+    /// <summary>Salva i destinatari (null o vuoto = email principale) preservando lo stato attiva.</summary>
+    public async Task SaveDestinatariMailLunediAsync(int aziendaId, string? destinatari)
+    {
+        var pulito = string.IsNullOrWhiteSpace(destinatari) ? null : destinatari.Trim();
+        var json = pulito is null ? null : JsonSerializer.Serialize(new Dictionary<string, string> { ["destinatari"] = pulito });
+        var existing = await GetByFunzioneAsync(aziendaId, FunzioneMailLunedi);
+        if (existing is null)
+            await CreateAsync(new WebAziendaFunzione { AziendaId = aziendaId, Funzione = FunzioneMailLunedi, Attiva = true, Parametri = json });
         else
         {
             existing.Parametri = json;

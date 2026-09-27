@@ -79,6 +79,27 @@
             </MudPaper>
         }
 
+        <!-- Mail del lunedì (SqlScripts/673): visibile solo quando 'mail_lunedi' è attiva -->
+        @if (_state.TryGetValue(WebAziendeFunzioniService.FunzioneMailLunedi, out var mailOn) && mailOn)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mt-3" Style="max-width:680px;">
+                <MudText Typo="Typo.body1" Class="mb-1">Mail del lunedì</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    A chi mandarla. Più indirizzi si separano con la virgola.
+                </MudText>
+                <MudTextField T="string" @bind-Value="_destinatariLunedi" Label="Destinatari"
+                              Variant="Variant.Outlined" Class="mb-3" Disabled="@_mailSaving"
+                              Placeholder="@_emailPrincipale"
+                              HelperText="@($"Vuoto = l'email principale dell'azienda{(string.IsNullOrWhiteSpace(_emailPrincipale) ? "" : $" ({_emailPrincipale})")}.")" />
+                <div class="d-flex justify-end">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveMailLunedi" Disabled="@_mailSaving"
+                               StartIcon="@(_mailSaving ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Save)">
+                        @(_mailSaving ? "Salvataggio..." : "Salva")
+                    </MudButton>
+                </div>
+            </MudPaper>
+        }
+
         <!-- Predisposizione regole di pagamento (Fase 4): non attiva -->
         <MudPaper Outlined="true" Class="pa-3 mt-4" Style="max-width:680px;opacity:0.6;">
             <div class="d-flex align-center gap-2">
@@ -113,6 +134,8 @@
             "Predisposta per il sito pubblico (Fase 3/4): checkout online. Oggi non ha effetto nel gestionale.", false),
         new(WebAziendeFunzioniService.FunzionePromemoria, "Promemoria all'apertura",
             "All'avvio mostra le cose rimaste in sospeso: partenze da chiudere, schede web, newsletter, clienti e documenti.", true),
+        new(WebAziendeFunzioniService.FunzioneMailLunedi, "Mail del lunedì",
+            "Ogni lunedì alle 7:30 manda per email le stesse cose del promemoria all'apertura. Non parte se non c'è niente in sospeso.", false),
     };
 
     private bool _loading = true;
@@ -128,6 +151,11 @@
     private int _giorniNewsletter;
     private bool _promSaving;
 
+    // Mail del lunedì (SqlScripts/673)
+    private string? _destinatariLunedi;
+    private string? _emailPrincipale;
+    private bool _mailSaving;
+
     protected override async Task OnInitializedAsync()
     {
         var rows = await FunzioniService.ListByAziendaAsync(AziendaId);
@@ -142,6 +170,8 @@
         _recTripAdvisorUrl = recCfg.TripAdvisorUrl;
 
         _giorniNewsletter = await FunzioniService.GetGiorniNewsletterAsync(AziendaId);
+        _destinatariLunedi = await FunzioniService.GetDestinatariMailLunediAsync(AziendaId);
+        _emailPrincipale = await FunzioniService.GetEmailPrincipaleAsync(AziendaId);
 
         _loading = false;
     }
@@ -182,6 +212,31 @@
             Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
         }
         finally { _promSaving = false; }
+    }
+
+    private async Task SaveMailLunedi()
+    {
+        var sbagliati = (_destinatariLunedi ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(e => !System.Net.Mail.MailAddress.TryCreate(e, out var a) || a.Address != e)
+            .ToList();
+        if (sbagliati.Count > 0)
+        {
+            Snackbar.Add($"Indirizzo non valido: {string.Join(", ", sbagliati)}", Severity.Warning);
+            return;
+        }
+        _mailSaving = true;
+        try
+        {
+            await FunzioniService.SaveDestinatariMailLunediAsync(AziendaId, _destinatariLunedi);
+            _state[WebAziendeFunzioniService.FunzioneMailLunedi] = true;
+            Snackbar.Add("Mail del lunedì salvata.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally { _mailSaving = false; }
     }
 
     private async Task OnToggle(string code, bool value)
