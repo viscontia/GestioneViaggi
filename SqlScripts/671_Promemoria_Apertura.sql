@@ -76,7 +76,14 @@ AS $$
     UNION ALL
     -- Iscritto che oggi non potrebbe iscriversi: blocca iscrizione e schedina alloggiati
     SELECT DISTINCT ON (i.cliente_id_fk)
-           'CLIENTE_INCOMPLETO', 'Scheda cliente incompleta', e.messaggio,
+           -- Il messaggio della regola parla al cliente («integra la tua anagrafica»):
+           -- qui lo legge la segreteria. Gli esiti noti hanno una frase sua; un esito
+           -- nuovo passa con il messaggio originale, meglio che sparire.
+           'CLIENTE_INCOMPLETO', 'Scheda cliente incompleta',
+           CASE e.esito
+               WHEN 'MANCA_CF_PER_ISCRIZIONE' THEN 'Manca il codice fiscale: serve per la fattura a chi guida'
+               ELSE e.messaggio
+           END,
            i.nome || ' — ' || i.etichetta, 30, i.inizio, i.viaggio_id_fk, i.data_viaggio_id, i.cliente_id_fk
       FROM iscritti i
      CROSS JOIN LATERAL fn_cliente_iscrivibile(i.cliente_id_fk, p_azienda_id, i.guida) e
