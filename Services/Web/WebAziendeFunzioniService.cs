@@ -27,6 +27,7 @@ public class WebAziendeFunzioniService : BaseCrudService<WebAziendaFunzione>
     public const string FunzioneRecensioni = "recensioni";
     public const string FunzioneBlog = "blog";
     public const string FunzionePagamentiOnline = "pagamenti_online";
+    public const string FunzionePromemoria = "promemoria";
 
     public WebAziendeFunzioniService(IDatabaseService databaseService, ILogger<WebAziendeFunzioniService> logger, ITenantContext? tenantContext = null)
         : base(databaseService, logger, tenantContext)
@@ -221,6 +222,31 @@ public class WebAziendeFunzioniService : BaseCrudService<WebAziendaFunzione>
         var existing = await GetByFunzioneAsync(aziendaId, FunzioneRecensioni);
         if (existing is null)
             await CreateAsync(new WebAziendaFunzione { AziendaId = aziendaId, Funzione = FunzioneRecensioni, Attiva = true, Parametri = json });
+        else
+        {
+            existing.Parametri = json;
+            await UpdateAsync(existing);
+        }
+    }
+
+    // ---- Promemoria all'apertura (L2, SqlScripts/671): giorni della newsletter nel JSONB `parametri` ----
+
+    /// <summary>Gli N giorni della voce «senza newsletter». Il default (90) lo decide il database.</summary>
+    public async Task<int> GetGiorniNewsletterAsync(int aziendaId)
+    {
+        await using var conn = await _databaseService.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT fn_promemoria_giorni_newsletter(@AziendaId::integer)", conn);
+        cmd.Parameters.AddWithValue("AziendaId", aziendaId);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+    }
+
+    /// <summary>Salva i giorni preservando lo stato attiva. Se la riga non esiste la crea attiva.</summary>
+    public async Task SaveGiorniNewsletterAsync(int aziendaId, int giorni)
+    {
+        var json = JsonSerializer.Serialize(new Dictionary<string, int> { ["giorni_newsletter"] = giorni });
+        var existing = await GetByFunzioneAsync(aziendaId, FunzionePromemoria);
+        if (existing is null)
+            await CreateAsync(new WebAziendaFunzione { AziendaId = aziendaId, Funzione = FunzionePromemoria, Attiva = true, Parametri = json });
         else
         {
             existing.Parametri = json;

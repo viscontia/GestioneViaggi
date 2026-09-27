@@ -59,6 +59,26 @@
             </MudPaper>
         }
 
+        <!-- Promemoria all'apertura (L2): visibile solo quando 'promemoria' è attiva -->
+        @if (_state.TryGetValue(WebAziendeFunzioniService.FunzionePromemoria, out var promOn) && promOn)
+        {
+            <MudPaper Outlined="true" Class="pa-3 mt-3" Style="max-width:680px;">
+                <MudText Typo="Typo.body1" Class="mb-1">Promemoria all'apertura</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    Quanto guardare avanti per le partenze che non hanno ancora avuto una newsletter.
+                </MudText>
+                <MudNumericField T="int" @bind-Value="_giorniNewsletter" Label="Giorni di anticipo per la newsletter"
+                                 Variant="Variant.Outlined" Min="1" Max="365" Class="mb-3" Disabled="@_promSaving"
+                                 HelperText="Le partenze entro questi giorni senza una newsletter inviata compaiono nel promemoria." />
+                <div class="d-flex justify-end">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SavePromemoria" Disabled="@_promSaving"
+                               StartIcon="@(_promSaving ? Icons.Material.Filled.HourglassTop : Icons.Material.Filled.Save)">
+                        @(_promSaving ? "Salvataggio..." : "Salva")
+                    </MudButton>
+                </div>
+            </MudPaper>
+        }
+
         <!-- Predisposizione regole di pagamento (Fase 4): non attiva -->
         <MudPaper Outlined="true" Class="pa-3 mt-4" Style="max-width:680px;opacity:0.6;">
             <div class="d-flex align-center gap-2">
@@ -91,6 +111,8 @@
             "Predisposta per il sito pubblico (Fase 3): abilita il blog. Oggi non ha effetto nel gestionale.", false),
         new(WebAziendeFunzioniService.FunzionePagamentiOnline, "Pagamenti online",
             "Predisposta per il sito pubblico (Fase 3/4): checkout online. Oggi non ha effetto nel gestionale.", false),
+        new(WebAziendeFunzioniService.FunzionePromemoria, "Promemoria all'apertura",
+            "All'avvio mostra le cose rimaste in sospeso: partenze da chiudere, schede web, newsletter, clienti e documenti.", true),
     };
 
     private bool _loading = true;
@@ -101,6 +123,10 @@
     private string? _recGooglePlaceId;
     private string? _recTripAdvisorUrl;
     private bool _recSaving;
+
+    // Promemoria all'apertura (L2)
+    private int _giorniNewsletter;
+    private bool _promSaving;
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,6 +140,8 @@
         var recCfg = await FunzioniService.GetRecensioniConfigAsync(AziendaId);
         _recGooglePlaceId = recCfg.GooglePlaceId;
         _recTripAdvisorUrl = recCfg.TripAdvisorUrl;
+
+        _giorniNewsletter = await FunzioniService.GetGiorniNewsletterAsync(AziendaId);
 
         _loading = false;
     }
@@ -133,6 +161,27 @@
             Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
         }
         finally { _recSaving = false; }
+    }
+
+    private async Task SavePromemoria()
+    {
+        if (_giorniNewsletter < 1 || _giorniNewsletter > 365)
+        {
+            Snackbar.Add("I giorni vanno da 1 a 365.", Severity.Warning);
+            return;
+        }
+        _promSaving = true;
+        try
+        {
+            await FunzioniService.SaveGiorniNewsletterAsync(AziendaId, _giorniNewsletter);
+            _state[WebAziendeFunzioniService.FunzionePromemoria] = true;
+            Snackbar.Add("Promemoria salvato.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore: {ex.Message}", Severity.Error);
+        }
+        finally { _promSaving = false; }
     }
 
     private async Task OnToggle(string code, bool value)
