@@ -1,0 +1,245 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Navigation
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject PromemoriaService Promemoria
+@inject AnaViaggiService ViaggiService
+@inject IClienteService ClienteService
+@inject IDialogService DialogService
+@inject ITabManagerService TabManager
+@inject ISnackbar Snackbar
+
+@* Il promemoria all'apertura (L2). Le righe, il loro ordine e i testi li decide il database
+   (fn_promemoria_apertura, SqlScripts/671): qui si filtrano, si cercano e si aprono.
+   Una tabella e non un elenco a gruppi: i casi possono essere tre o trecento. *@
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Class="mr-2" Style="vertical-align:middle;" />
+            Cose in sospeso
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_errore is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">Il promemoria non si è potuto leggere: @_errore</MudAlert>
+        }
+        else if (_caricamento)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_righe.Count == 0)
+        {
+            <MudAlert Severity="Severity.Success">Niente in sospeso.</MudAlert>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap align-center gap-1 mb-2">
+                <MudChip T="string" Color="@(_voce is null ? Color.Primary : Color.Default)"
+                         Variant="@(_voce is null ? Variant.Filled : Variant.Outlined)"
+                         OnClick="@(() => _voce = null)">Tutte (@_righe.Count)</MudChip>
+                @foreach (var g in _gruppi)
+                {
+                    <MudChip T="string" Color="@(_voce == g.Voce ? Color.Primary : Color.Default)"
+                             Variant="@(_voce == g.Voce ? Variant.Filled : Variant.Outlined)"
+                             OnClick="@(() => _voce = g.Voce)">@g.Titolo (@g.Conteggio)</MudChip>
+                }
+            </div>
+
+            <MudTextField T="string" @bind-Value="_ricerca" Immediate="true" DebounceInterval="200"
+                          Placeholder="Cerca un viaggio o un cliente" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Clearable="true" Class="mb-2" />
+
+            <MudTable T="PromemoriaVoce" Items="@Filtrate" Dense="true" Hover="true" RowsPerPage="25"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Cosa</MudTh>
+                    <MudTh>Su che cosa</MudTh>
+                    <MudTh>Perché conta</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Cosa" Style="white-space:nowrap;">@context.VoceTitolo</MudTd>
+                    <MudTd DataLabel="Su che cosa">@context.Oggetto</MudTd>
+                    <MudTd DataLabel="Perché conta">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@context.Perche</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                   Disabled="@_apertura" OnClick="@(() => ApriAsync(context))">Apri</MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Typo="Typo.body2">Nessuna riga con questo filtro.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" RowsPerPageString="Righe per pagina:"
+                                   InfoFormat="{first_item}-{last_item} di {all_items}" />
+                </PagerContent>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="NascondiOggiAsync" Disabled="@_apertura">Non mostrarmelo più oggi</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => MudDialog.Close())">Chiudi</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    private sealed record Gruppo(string Voce, string Titolo, int Conteggio);
+
+    private List<PromemoriaVoce> _righe = new();
+    private List<Gruppo> _gruppi = new();
+    private string? _voce;
+    private string? _ricerca;
+    private bool _caricamento = true;
+    private bool _apertura;
+    private string? _errore;
+
+    private IEnumerable<PromemoriaVoce> Filtrate => _righe
+        .Where(r => _voce is null || r.Voce == _voce)
+        .Where(r => string.IsNullOrWhiteSpace(_ricerca)
+                    || r.Oggetto.Contains(_ricerca.Trim(), StringComparison.OrdinalIgnoreCase)
+                    || r.VoceTitolo.Contains(_ricerca.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    protected override Task OnInitializedAsync() => CaricaAsync();
+
+    private async Task CaricaAsync()
+    {
+        _caricamento = true;
+        try
+        {
+            _righe = await Promemoria.ElencoAsync(AziendaId);
+            // I gruppi nell'ordine in cui arrivano (urgenza del database)
+            _gruppi = _righe.GroupBy(r => r.Voce)
+                            .Select(g => new Gruppo(g.Key, g.First().VoceTitolo, g.Count()))
+                            .ToList();
+            if (_voce is not null && _gruppi.All(g => g.Voce != _voce)) _voce = null;
+            _errore = null;
+        }
+        catch (Exception ex)
+        {
+            _errore = ex.Message;
+        }
+        finally { _caricamento = false; }
+    }
+
+    private async Task NascondiOggiAsync()
+    {
+        await Promemoria.NascondiOggiAsync();
+        MudDialog.Close();
+    }
+
+    /// <summary>Porta dove il caso si risolve; chiusa la scheda, la tabella si rilegge.</summary>
+    private async Task ApriAsync(PromemoriaVoce riga)
+    {
+        _apertura = true;
+        try
+        {
+            switch (riga.Voce)
+            {
+                case "PARTENZA_NON_EFFETTUATA":
+                    await ApriViaggioAsync(riga, dateTab: true);
+                    break;
+                case "SENZA_SCHEDA_WEB":
+                case "SCHEDA_IN_BOZZA":
+                case "SCHEDA_SENZA_FOTO":
+                    await ApriViaggioAsync(riga, contenutiWeb: true);
+                    break;
+                case "SENZA_CAPIENZA":
+                    await ApriViaggioAsync(riga);
+                    break;
+                case "SENZA_NEWSLETTER":
+                    if (!TabManager.OpenTab("/newsletter", "Newsletter", "email"))
+                    {
+                        Snackbar.Add("Troppe linguette aperte: chiudine una e riprova.", Severity.Warning);
+                        return;
+                    }
+                    MudDialog.Close();
+                    return;
+                case "CLIENTE_INCOMPLETO":
+                case "PROPOSTA_DAL_SITO":
+                    await ApriClienteAsync(riga);
+                    break;
+                case "DOCUMENTO":
+                    await ApriPartecipantiAsync(riga);
+                    break;
+                default:
+                    Snackbar.Add($"Voce sconosciuta: {riga.Voce}", Severity.Warning);
+                    return;
+            }
+            await CaricaAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Errore di apertura: {ex.Message}", Severity.Error);
+        }
+        finally { _apertura = false; }
+    }
+
+    private async Task ApriViaggioAsync(PromemoriaVoce riga, bool dateTab = false, bool contenutiWeb = false)
+    {
+        var viaggio = riga.ViaggioId is int id ? await ViaggiService.GetByIdAsync(id) : null;
+        if (viaggio == null)
+        {
+            Snackbar.Add("Viaggio non trovato", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<AnaViaggiDialog>
+        {
+            { x => x.Entity, viaggio },
+            { x => x.IsEditMode, true },
+            { x => x.AziendaFk, AziendaId },
+            { x => x.StartOnDatesTab, dateTab },
+            { x => x.StartOnContenutiWebTab, contenutiWeb },
+            { x => x.StartDataViaggioId, riga.DataViaggioId }
+        };
+        // Come dal calendario della dashboard: la X la mette AnaViaggiDialog.
+        var options = new DialogOptions { CloseButton = false, MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<AnaViaggiDialog>(viaggio.DescrizioneBreve, parameters, options);
+        await dialog.Result;
+    }
+
+    private async Task ApriClienteAsync(PromemoriaVoce riga)
+    {
+        var cliente = riga.ClienteId is int id ? await ClienteService.GetByIdAsync(id, AziendaId) : null;
+        if (cliente == null)
+        {
+            Snackbar.Add("Cliente non trovato", Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<ClienteDialog>
+        {
+            { x => x.Entity, cliente },
+            { x => x.IsEditMode, true },
+            { x => x.AziendaFk, AziendaId }
+        };
+        var options = new DialogOptions { BackdropClick = false, CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ClienteDialog>($"Modifica Cliente: {cliente.Cognome} {cliente.Nome}", parameters, options);
+        await dialog.Result;
+    }
+
+    private async Task ApriPartecipantiAsync(PromemoriaVoce riga)
+    {
+        var parameters = new DialogParameters
+        {
+            ["DataViaggioId"] = riga.DataViaggioId ?? 0,
+            ["ViaggioId"] = riga.ViaggioId ?? 0,
+            ["AziendaId"] = AziendaId,
+            ["HeaderTitle"] = riga.Oggetto
+        };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true, BackdropClick = false };
+        var dialog = await DialogService.ShowAsync<ViaggioPartecipantiManagerDialog>("", parameters, options);
+        await dialog.Result;
+    }
+}
