@@ -43,9 +43,12 @@ In **Funzioni Web**: interruttore «Mail del lunedì» (spento di default) e «D
 email principale dell'azienda, per SFT `segreteria@`). Non parte se non c'è niente in sospeso.
 La spedisce il server del sito (`promemoria_lunedi.py` + timer systemd), non il gestionale.
 
-⛔️ **Al rilascio, sul server**: deploy del sito dal ramo `feature/mail-lunedi`, unità in
-`deploy/` (procedura in `Configurazione_Server_Hetzner.md`), prova con `systemctl start`, poi
-accensione per SFT in Funzioni Web.
+✅ **Già in produzione dal 2026-09-27**, prima della 2.4 (decisione di Adriano: la spedisce il
+server, non dipende dall'eseguibile). Script 671 e 673 in PROD, sito pubblicato dal ramo
+`feature/mail-lunedi` (solo i 6 file nuovi), timer `iscrizione-promemoria-2.timer` attivo, prova
+dal server deviata ad Adriano arrivata, `mail_lunedi` accesa per SFT → prima mail vera lunedì
+2026-09-28 alle 7:30 a `segreteria@`. Con la 2.4 arriva solo la schermata di Funzioni Web per
+accenderla, spegnerla e cambiare i destinatari (fino ad allora: da database).
 
 ---
 
@@ -70,8 +73,8 @@ occupa lo stesso spazio di un pulsante (`StatoContenutoWebIcon`, parametro `Ingo
 
 | Script | Cosa | In PROD |
 |---|---|---|
-| `671_Promemoria_Apertura.sql` | `fn_promemoria_apertura`, `fn_promemoria_giorni_newsletter`, riga `promemoria` a 90 giorni per ogni azienda. Test `Test_671_…` | ⏳ in locale il 2026-09-27; PROD da fare |
-| `673_Promemoria_Mail_Lunedi.sql` | `fn_promemoria_mail_destinatari`, riga `mail_lunedi` spenta per ogni azienda. Test `Test_673_…` | ⏳ in locale il 2026-09-27; PROD da fare |
+| `671_Promemoria_Apertura.sql` | `fn_promemoria_apertura`, `fn_promemoria_giorni_newsletter`, riga `promemoria` a 90 giorni per ogni azienda. Test `Test_671_…` | ✅ 2026-09-27 (anticipato per la mail del lunedì; la finestra arriva con l'eseguibile 2.4) |
+| `673_Promemoria_Mail_Lunedi.sql` | `fn_promemoria_mail_destinatari`, riga `mail_lunedi` spenta per ogni azienda. Test `Test_673_…` | ✅ 2026-09-27; `mail_lunedi` **accesa per l'azienda 2** |
 | `672_Elimina_Viaggio_Di_Test_2.sql` | Via il «VIAGGIO DI TEST 2» (903) con le sue 2 iscrizioni e 2 camere; anagrafiche intatte. Pulizia dati, non serve all'eseguibile | ✅ 2026-09-27 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
