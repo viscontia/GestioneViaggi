@@ -18,6 +18,8 @@
 @inject Services.Printing.IRoomingListPrintService RoomingListPrintService
 @inject Services.Printing.IPdfOpenerService PdfOpenerService
 @inject ISnackbar Snackbar
+@inject GestioneViaggi.Services.Web.PromemoriaService PromemoriaService
+@inject GestioneViaggi.Services.Web.WebAziendeFunzioniService WebFunzioniService
 @inject GestioneViaggi.Services.Printing.RoomingListStampaService RoomingListStampaService
 @inject GestioneViaggi.Services.Printing.SchedaViaggioStampaService SchedaViaggioStampaService
 
@@ -927,6 +929,24 @@
     private List<GestioneViaggi.Models.DTOs.ActivityLogItem>? _activities;
 
     private bool _isIscrizioneWebDisabled = true;
+
+    /// <summary>
+    /// All'avvio, il promemoria delle cose in sospeso (L2), se ce ne sono. Dopo il primo disegno
+    /// della dashboard, perché la finestra le si apre sopra.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _currentUser?.AziendaId is not int aziendaId) return;
+        try
+        {
+            await GestioneViaggi.Components.Shared.PromemoriaLauncher.MostraAllAvvioSeServeAsync(
+                DialogService, PromemoriaService, WebFunzioniService, _currentUser.UserId, aziendaId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Il promemoria non si è potuto aprire: {ex.Message}", Severity.Warning);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

@@ -5,6 +5,7 @@
 @inject IAuthenticationService AuthService
 @inject GestioneViaggi.Services.Session.ITenantContext TenantContext
 @inject GestioneViaggi.Services.Web.WebAziendeFunzioniService WebFunzioniService
+@inject GestioneViaggi.Services.Web.PromemoriaService PromemoriaService
 
 @inject NavigationManager Navigation
 @inject ITabManagerService TabManager
@@ -20,6 +21,14 @@
                 OnClick="@(() => OpenTabAndNotify(_dashboardRoute, "Dashboard", "dashboard"))">
         <MudText Typo="Typo.body1">Dashboard</MudText>
     </MudNavLink>
+
+    @* Il promemoria all'apertura (L2): da qui si riapre quando si vuole, anche se nascosto per oggi *@
+    @if (_promemoriaAziendaId is not null)
+    {
+        <MudNavLink Icon="@Icons.Material.Filled.NotificationsActive" OnClick="ApriPromemoriaAsync">
+            <MudText Typo="Typo.body1">Promemoria@(_promemoriaConteggio > 0 ? $" ({_promemoriaConteggio})" : "")</MudText>
+        </MudNavLink>
+    }
 
     @* MULTI-TENANT: Tutti vedono menu Aziende (SuperAdmin: tutte | Altri: solo propria) *@
     <MudNavGroup Title="Anagrafiche" Icon="@Icons.Material.Filled.AccountBox" Expanded="false">
@@ -341,6 +350,34 @@
         {
             _newsletterVisible = true;
         }
+
+        try
+        {
+            _promemoriaAziendaId = await TenantContext.GetCurrentAziendaIdAsync();
+            await ContaPromemoriaAsync();
+        }
+        catch
+        {
+            _promemoriaConteggio = 0; // la voce resta: aprendola, l'errore si vede nella finestra
+        }
+    }
+
+    private int? _promemoriaAziendaId;
+    private int _promemoriaConteggio;
+
+    private async Task ContaPromemoriaAsync()
+    {
+        if (_promemoriaAziendaId is int az)
+            _promemoriaConteggio = (await PromemoriaService.ElencoAsync(az)).Count;
+    }
+
+    private async Task ApriPromemoriaAsync()
+    {
+        if (_promemoriaAziendaId is not int az) return;
+        await OnItemClick.InvokeAsync();
+        await PromemoriaLauncher.MostraAsync(DialogService, az);
+        try { await ContaPromemoriaAsync(); } catch { /* resta il conteggio di prima */ }
+        StateHasChanged();
     }
 
     private void OpenTab(string route, string title, string icon)
