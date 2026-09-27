@@ -62,6 +62,8 @@ dire) senza riscrivere niente.
 
 ## 1-bis. La mail del lunedì
 
+> ✅ **Disegno approvato e fatto in locale il 2026-09-27** (L18): `../Progetti/Promemoria_Apertura/2026-09-27-mail-del-lunedi-design.md`.
+
 **Cosa.** Ogni lunedì mattina parte ad Antonio una mail con lo stesso elenco del promemoria
 all'apertura.
 
@@ -126,6 +128,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 | Cosa | Dove |
 |---|---|
 | **Promemoria all'apertura** (L2): finestra «Cose in sospeso» all'avvio e dal menu, parametro dei giorni della newsletter in Funzioni Web. ✅ Fatto in locale e provato da Adriano il 2026-09-27; ⏳ script 671 in PROD con la 2.4 | `PromemoriaDialog`, `PromemoriaService`, `SqlScripts/671` |
+| **Mail del lunedì** (L18): interruttore e destinatari in Funzioni Web. ✅ Fatto e provato in locale il 2026-09-27; ⏳ script 673 in PROD, deploy del sito (ramo `feature/mail-lunedi`) e timer sul server | `AziendaTabFunzioniWeb`, `SqlScripts/673`, sito: `promemoria_lunedi.py` |
 
 ---
 
@@ -156,6 +159,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L15** | Mail di conferma del sito Flask: anche il passeggero legge «(e quella degli eventuali passeggeri)», che vale solo per il pilota. ✅ In produzione dal 2026-09-26 | Sito |
 | **L16** | Due rifiniture del wizard Flask rimandabili a dopo L4: il messaggio sul documento scaduto con la modifica già aperta, e un bottone «Riprova» dopo un caricamento del profilo non riuscito ✅ In produzione dal 2026-09-26: messaggio giusto a modifica aperta e bottone «Riprova» | Sito |
 | **L17** | Sito Flask: errori `DuplicatePreparedStatement` col pooler di Supabase in modalità transazione (porta 6543), preesistenti; possono accendere per un attimo l'icona rossa. Correzione: `prepare_threshold=None` nel pool (`db_manager.py`) ✅ In produzione dal 2026-09-26: `prepare_threshold=None` (misurato: 6 errori su 60 chiamate prima, 0 dopo) | Sito |
+| **L18** | La mail del lunedì (§1-bis): script 673, parametro in Funzioni Web, `promemoria_lunedi.py` e timer sul server del sito (ramo `feature/mail-lunedi`). ✅ Fatto e provato in locale il 2026-09-27; ⏳ PROD con la 2.4 | Qui, §1-bis + Sito |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un
