@@ -202,6 +202,7 @@ public static class MauiProgram
         builder.Services.AddScoped<WebNewsletterSoppressioniService>();
         builder.Services.AddScoped<Services.Web.NewsletterSenderService>();
         builder.Services.AddScoped<WebAziendeFunzioniService>();
+        builder.Services.AddScoped<Services.Web.PromemoriaService>(); // L2, promemoria all'apertura
 
         builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IRoleService, RoleService>();
