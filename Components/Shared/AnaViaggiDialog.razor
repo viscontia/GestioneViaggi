@@ -150,16 +150,14 @@
 
                         <MudDivider Class="my-4" />
 
-                        <!-- 5. NOTE E LINK -->
+                        <!-- 5. NOTE (il «Link Documentazione» del vecchio gestionale e' tolto dalla
+                             finestra: vuoto su tutti i viaggi e superato dalla scheda web; la colonna
+                             viaggio_link resta, le funzioni che la restituiscono non cambiano) -->
                         <MudGrid>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="Entity.Note" For="@(() => Entity.Note)" Label="Note"
                                     Variant="Variant.Outlined" Lines="2" Class="uppercase-input" Immediate="true"
                                     Converter="@_uppercaseNullableConverter" />
-                            </MudItem>
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="Entity.Link" For="@(() => Entity.Link)" Label="Link Documentazione"
-                                    Variant="Variant.Outlined" InputType="InputType.Url" />
                             </MudItem>
                         </MudGrid>
 
