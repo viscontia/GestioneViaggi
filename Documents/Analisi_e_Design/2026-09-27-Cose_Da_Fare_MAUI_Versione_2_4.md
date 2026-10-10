@@ -129,6 +129,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 |---|---|
 | **Promemoria all'apertura** (L2): finestra «Cose in sospeso» all'avvio e dal menu, parametro dei giorni della newsletter in Funzioni Web. ✅ Fatto in locale e provato da Adriano il 2026-09-27; script 671 già in PROD (per la mail del lunedì); la finestra esce con la 2.4 | `PromemoriaDialog`, `PromemoriaService`, `SqlScripts/671` |
 | **Mail del lunedì** (L18): interruttore e destinatari in Funzioni Web. ✅ In produzione dal 2026-09-27 (673 in PROD, sito, timer, accesa per SFT); con la 2.4 arriva la schermata | `AziendaTabFunzioniWeb`, `SqlScripts/673`, sito: `promemoria_lunedi.py` |
+| **Cane nella rooming list**: sotto le intolleranze, «** CANE AL SEGUITO **» per chi porta il cane (prima usciva solo nella stampa del viaggio). ✅ 674 in locale e in PROD il 2026-10-10; PDF di prova approvato da Adriano (data 1870). La 2.3 ignora la colonna nuova (provato: stessa stampa di prima); la riga sul foglio esce con la 2.4. Il cane segnato su tutti e due i componenti della coppia resta così: è il dato dell'anagrafica | `RoomingListPrinter`, `RoomingListPrintService`, `SqlScripts/674` |
 
 ---
 

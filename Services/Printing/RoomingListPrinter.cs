@@ -247,6 +247,13 @@ public class RoomingListPrinter
                                 partCol.Item().Text($"** INT. ALIMENTARE: {participant.Intolleranze.ToUpper()} **")
                                     .FontSize(9).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
                             }
+
+                            // Cane al seguito: il foglio va all'albergo, che deve saperlo
+                            if (participant.ConCane)
+                            {
+                                partCol.Item().Text("** CANE AL SEGUITO **")
+                                    .FontSize(9).Bold().FontColor(ReportHeaderHelper.BrandColors.Accent);
+                            }
                         });
                     }
 

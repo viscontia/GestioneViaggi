@@ -98,6 +98,7 @@ public class RoomingListPrintService : IRoomingListPrintService
                 DataRilascio = p.data_rilascio,
                 DataScadenza = p.data_scadenza,
                 Intolleranze = p.intolleranze ?? "",
+                ConCane = p.con_cane ?? false,
                 TipoAlloggioId = p.tipo_alloggio_id ?? 0,
                 TipoAlloggioDescrizione = p.tipo_alloggio_descrizione ?? "NESSUNA CAMERA ASSEGNATA",
                 MaxOccupanti = p.max_occupanti ?? 0,
@@ -195,6 +196,7 @@ public class RoomingParticipantRaw
     public DateTime? data_rilascio { get; set; }
     public DateTime? data_scadenza { get; set; }
     public string? intolleranze { get; set; }
+    public bool? con_cane { get; set; }
     public int? tipo_alloggio_id { get; set; }
     public string? tipo_alloggio_descrizione { get; set; }
     public int? max_occupanti { get; set; }

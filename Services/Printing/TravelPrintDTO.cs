@@ -344,6 +344,9 @@ public class RoomingListParticipant
     // Intolleranze
     public string Intolleranze { get; set; } = string.Empty;
 
+    // Cane al seguito (deciso dal DB, script 674)
+    public bool ConCane { get; set; }
+
     // Tipo Camera (for grouping)
     public int TipoAlloggioId { get; set; }
     public string TipoAlloggioDescrizione { get; set; } = string.Empty;
