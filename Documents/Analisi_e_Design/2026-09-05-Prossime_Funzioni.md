@@ -929,6 +929,14 @@ informazione che invecchia, è l'identità della partenza.
 scegliere la strada — generato dal sito o pre-generato dal gestionale — e da fare l'analisi vera.
 Non pianificato: da riprendere insieme agli altri lavori sul sito pubblico.
 
+**2026-10-12 — Antonio lo ricorda; strada proposta.** Il sito nuovo non è più Flask ma Next.js, e
+c'è una terza strada che prende i pro di tutte e due: il PDF **nasce dalla pagina stessa** del
+sito, in una versione da stampa, stampata da Chromium sul server; si **rigenera quando la scheda
+cambia** con la coda `web_revalidate_coda` che già aggiorna le pagine, e si serve già pronto. Un
+impaginato solo (la pagina), sempre aggiornato, nessun costo al clic, nessun bottone «rigenera» nel
+gestionale. Provata lo stesso giorno sui PDF dei mockup, stampati con Chrome dalla pagina della
+scheda tour. Si fa con la Tappa 3 del sito (catalogo e scheda tour). Voce L9 delle due liste.
+
 ---
 
 ## 13. ✅ Il margine di un forfettario era calcolato al netto di un'IVA che non recupera — **RISOLTO il 2026-09-17**
