@@ -896,6 +896,8 @@ prezzo, che vive sulla data e non sul contenuto web (vedi il *Manuale — I cont
 
 ### ✅ DECISO il 2026-09-14: nel PDF **il prezzo non ci va**
 
+✅ **Confermato da Antonio il 2026-10-12**: nel PDF niente costo del viaggio e niente «N posti ancora disponibili».
+
 Un PDF scaricato è un documento che il cliente **conserva** e che, a distanza di mesi, tira fuori
 dicendo «qui c'era scritto così». Il prezzo sul sito invece cambia: è il minimo delle sei tariffe
 di quella partenza e lo si corregge in anagrafica quando serve. Mettercelo significa produrre a
