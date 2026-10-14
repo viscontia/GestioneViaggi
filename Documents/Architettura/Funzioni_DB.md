@@ -199,6 +199,26 @@ sito non legge tabelle — chiama funzioni.
 
 ---
 
+#### Chi svuota la coda: l'utente `sito_rigenera` (`SqlScripts/679`, 2026-10-14)
+
+Il programma che svuota la coda gira sul server del sito (Hetzner, un timer ogni minuto) e si
+connette come **`sito_rigenera`**, un ruolo che può **solo** chiamare `fn_web_revalidate_prossimi`,
+`_completa`, `_fallita` e `_pulisci`: nessuna tabella leggibile o scrivibile, nessun'altra
+funzione nostra (verificato in locale e in PROD). Se la password uscisse, si potrebbe al più
+svuotare la coda.
+
+- Le quattro funzioni sono **`SECURITY DEFINER`** con `search_path` fissato e non sono più di
+  `PUBLIC`; `fn_web_revalidate_accoda` resta com'era (la chiamano i trigger).
+- `fn_web_revalidate_prossimi(p_limite, p_azienda_id)`: **filtro facoltativo per azienda**, così
+  con un secondo sito ognuno svuota solo le proprie righe. La vecchia firma senza azienda è stata
+  tolta (non la chiamava nessuno).
+- Il ruolo ha `USAGE` sullo schema `public`: su Supabase lo schema è aperto solo al proprietario e
+  ad `anon`, e senza `USAGE` il ruolo non vede le funzioni («function does not exist»).
+- ⛔️ Nasce **NOLOGIN e senza password**: login e password si danno a mano e vivono solo nel `.env`
+  del server.
+- ℹ️ In PROD (PostgreSQL 17) `postgres` non può impersonarlo con `SET ROLE`: le chiamate reali si
+  provano collegandosi come `sito_rigenera`.
+
 ## 0.3 Sito di iscrizione — chi è già cliente: usare, completare, modificare (`SqlScripts/660`, `661`)
 
 Disegno: `Iscrizione-Viaggi-Offroad PostgreSQL/docs/plans/2026-09-25-cliente-riconosciuto-otp-design.md`.
@@ -2750,7 +2770,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_revalidate_accoda` | p_azienda_id integer, p_oggetto character varying, p_riferimento bigint, p_origine character varying | void |  |
 | `fn_web_revalidate_completa` | p_ids bigint[] | integer |  |
 | `fn_web_revalidate_fallita` | p_id bigint, p_errore text | void |  |
-| `fn_web_revalidate_prossimi` | p_limite integer DEFAULT 20 | TABLE(coda_id bigint, azienda_id integer, oggetto character varying, riferimento bigint, slug character varying, origine character varying, creata timestamp with time zone) | Le prossime pagine da rigenerare, marcandole come prese. SKIP LOCKED: due ascoltatori non si pestano i piedi (script 654). |
+| `fn_web_revalidate_prossimi` | p_limite integer DEFAULT 20, p_azienda_id integer DEFAULT NULL | TABLE(coda_id bigint, azienda_id integer, oggetto character varying, riferimento bigint, slug character varying, origine character varying, creata timestamp with time zone) | Le prossime pagine da rigenerare, marcandole come prese. SKIP LOCKED: due ascoltatori non si pestano i piedi (script 654). |
 | `fn_web_revalidate_pulisci` | p_giorni integer DEFAULT 7 | integer |  |
 | `fn_web_sezione_stato` | p_azienda_id integer, p_slug character varying | character varying | Come rispondere all'indirizzo di una sezione: attiva / ritirata (410) / sconosciuta (404). Script 678. |
 | `fn_web_sezioni_tipologia` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(sezione_id bigint, nome character varying, slug character varying, ordine integer, tour_disponibili integer) | Le sezioni da mostrare ADESSO nel menu del sito: quelle con almeno un tour pubblicato e con partenza da domani. Poggia su fn_web_tour_pubblicati per non avere due definizioni di «pubblicato». Nome tradotto senza filtro azienda, perche' la tabella delle descrizioni e' globale (script 653). |
