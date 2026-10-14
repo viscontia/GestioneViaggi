@@ -70,6 +70,18 @@ partenza **da domani in avanti**. Restituisce `sezione_id, nome, slug, ordine, t
   principale non dev'essere pubblicabile): se il filtro stesse qui, una scheda risulterebbe
   pubblicata nel gestionale e invisibile sul sito.
 
+### `fn_web_sezione_stato(p_azienda_id, p_slug)` (`SqlScripts/678`, 2026-10-14)
+Dice al sito come rispondere all'indirizzo di una sezione: `attiva` (compare oggi in
+`fn_web_sezioni_tipologia` → 200), `ritirata` (lo slug esiste in `web_tipi_viaggio_descrizioni`
+ma oggi non ha tour pubblicati → **410 Gone**), `sconosciuta` (mai esistito → 404).
+
+- ⚠️ **Poggia su `fn_web_sezioni_tipologia`**, quindi su `fn_web_tour_pubblicati`: il criterio di
+  «pubblicato» resta uno solo.
+- `SECURITY DEFINER`, `search_path` fissato, `EXECUTE` ad `anon` e `authenticated`. In locale e in
+  PROD dal 2026-10-14 (test `Test_678_Web_Sezione_Stato.sql`).
+- ℹ️ Una sezione che non ha **mai** avuto tour (es. e-bike) risulta `ritirata`, non `sconosciuta`:
+  lo slug esiste. Per Google un 410 su un indirizzo mai visto è innocuo.
+
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
 
@@ -158,7 +170,7 @@ dal gestionale funziona benissimo. È esattamente quello che è successo a
 > **non** è superuser ma è il **proprietario** delle funzioni, e il proprietario esegue
 > sempre.
 
-Funzioni già promosse: `fn_web_tour_pubblicati`, `fn_web_sezioni_tipologia`,
+Funzioni già promosse: `fn_web_tour_pubblicati`, `fn_web_sezioni_tipologia`, `fn_web_sezione_stato` (678, nata così),
 `fn_web_ha_tour_brevi_pubblicati`, `fn_web_tour_pubblicati_nome_sezione`, più
 `fn_web_mezzi_occupati_data` e `fn_web_recensioni_config`, che erano già nate così.
 Le funzioni delle Tappe 2-4 (scheda tour, itinerario, immagini, mappa, prossime partenze)
@@ -2740,6 +2752,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_revalidate_fallita` | p_id bigint, p_errore text | void |  |
 | `fn_web_revalidate_prossimi` | p_limite integer DEFAULT 20 | TABLE(coda_id bigint, azienda_id integer, oggetto character varying, riferimento bigint, slug character varying, origine character varying, creata timestamp with time zone) | Le prossime pagine da rigenerare, marcandole come prese. SKIP LOCKED: due ascoltatori non si pestano i piedi (script 654). |
 | `fn_web_revalidate_pulisci` | p_giorni integer DEFAULT 7 | integer |  |
+| `fn_web_sezione_stato` | p_azienda_id integer, p_slug character varying | character varying | Come rispondere all'indirizzo di una sezione: attiva / ritirata (410) / sconosciuta (404). Script 678. |
 | `fn_web_sezioni_tipologia` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(sezione_id bigint, nome character varying, slug character varying, ordine integer, tour_disponibili integer) | Le sezioni da mostrare ADESSO nel menu del sito: quelle con almeno un tour pubblicato e con partenza da domani. Poggia su fn_web_tour_pubblicati per non avere due definizioni di «pubblicato». Nome tradotto senza filtro azienda, perche' la tabella delle descrizioni e' globale (script 653). |
 | `fn_web_tipi_viaggio_descrizioni_delete` | p_id bigint | integer |  |
 | `fn_web_tipi_viaggio_descrizioni_get` | p_id bigint | SETOF web_tipi_viaggio_descrizioni |  |
