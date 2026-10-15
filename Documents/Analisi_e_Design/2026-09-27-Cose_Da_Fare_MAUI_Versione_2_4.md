@@ -165,6 +165,7 @@ chiude in tutti e due. Il dettaglio sta dove vive la cosa, l'altro documento lo 
 | **L19** | Sito Flask: transazioni di lettura lasciate aperte (170 avvisi del pool in una settimana), che coprono l'unico segnale di una scrittura senza commit. ✅ Corretto in `DbManager.release_connection`, in produzione dal 2026-09-28; nessun lavoro qui | Sito |
 | **L20** | Contare nel database gli **arrivi al wizard dal sito** (non i clic): il sito Flask li registra con una funzione SQL nuova in `SqlScripts/`, per la mail settimanale «arrivi → iscrizioni». Proposta del 2026-10-14, da confermare | Sito, Flask, SQL |
 | **L21** | Formato degli slug controllato dal database (`CHECK` su sezioni e schede web): oggi il campo si scrive anche a mano senza controllo. Tutti gli slug in PROD sono già nella forma giusta (2026-10-14). ✅ **Deciso da Adriano il 2026-10-14: il controllo a database si fa** | `SqlScripts/` |
+| **L22** | Meta titolo e meta descrizione dei tour non tradotti sul sito: le traduzioni ci sono in `web_traduzioni`, ma `fn_web_tour_pubblicati` legge il campo italiano (il sottotitolo invece lo traduce). Le pagine del sito nelle altre lingue hanno titolo e descrizione per Google in italiano. Trovato il 2026-10-15; correzione solo a database: script 680. Dettaglio nella lista del sito | `SqlScripts/680` | ✅ fatto il 2026-10-15 (locale e PROD, test OK) |
 
 ℹ️ **Al go-live del sito**, in PROD: `web_indirizzi` «SITO INTERNET» e il sito web dell'azienda
 nelle newsletter passano a `fuoritracciatravel.com`. Non prima: le newsletter porterebbero su un

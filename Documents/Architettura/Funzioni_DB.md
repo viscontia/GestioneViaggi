@@ -100,6 +100,20 @@ Il nome della sezione nella lingua richiesta. ⚠️ `fn_web_tour_pubblicati` re
 `descrizione_web` **sempre in italiano**: un visitatore tedesco leggeva «Viaggi in 4x4» accanto
 a tutto il resto tradotto.
 
+### `fn_web_tour_pubblicati`: meta titolo e meta descrizione tradotti (`SqlScripts/680`, 2026-10-15, voce L22) — ✅ locale e PROD
+⚠️ Stessa famiglia di difetto: le traduzioni di `meta_title` e `meta_description` c'erano in
+`web_traduzioni`, ma la funzione leggeva il campo italiano. Le pagine EN/DE/FR/ES del sito avevano
+titolo e descrizione per Google in italiano. Ora si leggono come il sottotitolo (lingua chiesta,
+non obsolete). Ripieghi:
+- `meta_title`: tradotto → meta italiano → titolo;
+- `meta_description`: tradotta → **sottotitolo tradotto** → meta italiana → sottotitolo (su una
+  pagina inglese un sottotitolo inglese vale più di una meta descrizione italiana).
+
+In italiano il risultato **non cambia** (verificato con l'impronta di tutte le righe prima e dopo);
+nelle altre lingue cambiano solo le due colonne meta. `CREATE OR REPLACE` con firma e colonne
+invariate: permessi conservati. Test: `Test_680_Web_Meta_Tradotti.sql` (traduzioni, italiano
+invariato, ripieghi, testo di soli spazi, firma, permessi, SECURITY DEFINER).
+
 ### La coda di rigenerazione (`SqlScripts/654`)
 
 Il sito è fatto di pagine statiche: restano com'erano finché qualcuno non dice «rifalla».
