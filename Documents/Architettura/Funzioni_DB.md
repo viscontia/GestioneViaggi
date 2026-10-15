@@ -238,6 +238,24 @@ svuotare la coda.
 - ℹ️ In PROD (PostgreSQL 17) `postgres` non può impersonarlo con `SET ROLE`: le chiamate reali si
   provano collegandosi come `sito_rigenera`.
 
+#### Chi legge la posta del guardiano: l'utente `sito_guardiano` (`SqlScripts/681`, 2026-10-15)
+
+Il guardiano del sito (programma a parte, timer ogni 5 minuti) avvisa via mail se il database non
+risponde: proprio allora non può leggere la configurazione SMTP, che sta in `ana_aziende_smtp`
+(cifrata). Perciò, quando il database funziona, ne tiene una **copia protetta** sul server (file
+con permessi 600, riletto al massimo una volta all'ora). Decisione di Adriano del 2026-10-15.
+
+- `fn_web_guardiano_smtp(p_azienda_id, p_master)` → `jsonb`: funzione «porta» **SECURITY DEFINER**
+  che chiama `fn_get_smtp_config_for_email` (la stessa del gestionale e del sito iscrizioni, che è
+  SECURITY INVOKER e decifra con la chiave dei segreti). Aperta **solo** a `sito_guardiano`: non
+  `anon`, non `authenticated`, non `sito_rigenera`. Senza la chiave giusta la decifratura fallisce.
+- ⚠️ `search_path = public, extensions, pg_temp`: pgcrypto (`pgp_sym_decrypt`) sta nello schema
+  **`extensions`**, in locale e in PROD. Con il solo `public` fallirebbe (il test lo controlla).
+- `sito_guardiano` nasce **NOLOGIN**: nessuna tabella, nessuna coda, solo questa funzione; `USAGE`
+  sullo schema `public` (come 679). Il login si dà a mano; la password vive solo nel `.env`.
+- Test: `Test_681_Web_Utente_Sito_Guardiano.sql`. In locale: ✅ 2026-10-15 (con login locale per le
+  prove). **In PROD: non ancora** (serve il via di Adriano).
+
 ## 0.3 Sito di iscrizione — chi è già cliente: usare, completare, modificare (`SqlScripts/660`, `661`)
 
 Disegno: `Iscrizione-Viaggi-Offroad PostgreSQL/docs/plans/2026-09-25-cliente-riconosciuto-otp-design.md`.
@@ -2381,6 +2399,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2717,6 +2737,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_email_conferma` | p_cliente_id integer, p_azienda_id integer | boolean | L12 (668): il gestionale conferma l'email agganciata dal sito; da qui il codice usa e getta puo' partire. |
 | `fn_web_email_da_confermare` | p_cliente_id integer, p_azienda_id integer | boolean | L12 (668): true se l'email attuale della scheda e' stata agganciata dal sito e nessuno l'ha confermata. |
 | `fn_web_giorno` | p_preposizione text, p_data date | text |  |
+| `fn_web_guardiano_smtp` | p_azienda_id integer, p_master text | jsonb |  |
 | `fn_web_ha_tour_brevi_pubblicati` | p_azienda_id integer | boolean |  |
 | `fn_web_immagini_azienda` | p_azienda_id integer | TABLE(url character varying, storage_path character varying, alt_text character varying, contesto character varying) |  |
 | `fn_web_immagini_in_uso` | p_contenuto_id bigint, p_azienda_id integer | TABLE(storage_path character varying) |  |
@@ -3091,6 +3112,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_email_conferma`
 - `fn_web_email_da_confermare`
 - `fn_web_giorno`
+- `fn_web_guardiano_smtp`
 - `fn_web_immagini_azienda`
 - `fn_web_immagini_libreria_delete`
 - `fn_web_immagini_libreria_in_uso`
