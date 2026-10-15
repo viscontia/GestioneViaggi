@@ -230,6 +230,11 @@ svuotare la coda.
   ad `anon`, e senza `USAGE` il ruolo non vede le funzioni («function does not exist»).
 - ⛔️ Nasce **NOLOGIN e senza password**: login e password si danno a mano e vivono solo nel `.env`
   del server.
+- ✅ **PROD, 2026-10-15**: login dato (`ALTER ROLE … LOGIN PASSWORD '<impronta SCRAM-SHA-256>'`:
+  a Supabase è arrivata solo l'impronta, calcolata sul Mac; la password in chiaro non è passata da
+  nessuna query). La password è nel `.env.local` del sito sul Mac, commentata, da portare nel `.env`
+  del server. Provato collegandosi come `sito_rigenera` dal pooler: tabelle e coda non leggibili,
+  `fn_web_revalidate_accoda` negata, le 4 funzioni sì; svuotate le 9 righe in attesa dal 2026-09-24.
 - ℹ️ In PROD (PostgreSQL 17) `postgres` non può impersonarlo con `SET ROLE`: le chiamate reali si
   provano collegandosi come `sito_rigenera`.
 
