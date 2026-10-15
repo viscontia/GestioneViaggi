@@ -254,7 +254,11 @@ con permessi 600, riletto al massimo una volta all'ora). Decisione di Adriano de
 - `sito_guardiano` nasce **NOLOGIN**: nessuna tabella, nessuna coda, solo questa funzione; `USAGE`
   sullo schema `public` (come 679). Il login si dà a mano; la password vive solo nel `.env`.
 - Test: `Test_681_Web_Utente_Sito_Guardiano.sql`. In locale: ✅ 2026-10-15 (con login locale per le
-  prove). **In PROD: non ancora** (serve il via di Adriano).
+  prove). ✅ **In PROD il 2026-10-15** (via di Adriano): impronta della funzione uguale al locale
+  (`6dbe03db…`), test OK, `EXECUTE` solo a `sito_guardiano`; login dato inviando solo l'impronta
+  SCRAM (password nel `.env.local` del sito, commentata, da portare nel `.env` del server). Provato
+  collegandosi come `sito_guardiano`: segreti, clienti, coda e funzione interna negati; con la chiave
+  vera il guardiano ha creato la copia della posta (600) senza mandare mail.
 
 ## 0.3 Sito di iscrizione — chi è già cliente: usare, completare, modificare (`SqlScripts/660`, `661`)
 
