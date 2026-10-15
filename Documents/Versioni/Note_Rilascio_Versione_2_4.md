@@ -50,6 +50,20 @@ dal server deviata ad Adriano arrivata, `mail_lunedi` accesa per SFT → prima m
 2026-09-28 alle 7:30 a `segreteria@`. Con la 2.4 arriva solo la schermata di Funzioni Web per
 accenderla, spegnerla e cambiare i destinatari (fino ad allora: da database).
 
+### 1.3 — Pubblicare non è vederlo subito sul sito (L23)
+
+Salvando la scheda web di un tour, il messaggio dice **quando** il sito se ne accorge: il sito si
+aggiorna al giro successivo della sua coda, non nell'istante del salvataggio (richiesta di Adriano,
+2026-10-15; «1–2 minuti» per restare larghi):
+
+- da bozza o archiviata a **pubblicata** → «Scheda pubblicata: comparirà sul sito entro 1–2 minuti.»
+- una scheda **già pubblicata** → «Modifiche salvate: saranno sul sito entro 1–2 minuti.»
+- da pubblicata a **bozza o archiviata** (anche quando la riporta a bozza il programma, perché manca
+  qualcosa) → «Scheda tolta dal sito: sparirà entro 1–2 minuti.»
+- una bozza che resta bozza → il messaggio di sempre.
+
+Lo dice anche l'aiuto (icona ?) dello stato «Pubblicato».
+
 ---
 
 ## Sezione 2 — Correzioni

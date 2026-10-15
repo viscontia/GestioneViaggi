@@ -46,4 +46,20 @@ public static class ContenutoWebRules
         null => new(LivelloContenutoWeb.Assente, "Senza scheda web",
             "Questa partenza non ha una scheda web. Clicca per crearla.")
     };
+
+    /// <summary>
+    /// Il messaggio dopo il salvataggio della scheda (voce L23): ciò che tocca il sito non compare subito,
+    /// ma al giro successivo del programma della coda di rigenerazione. Si dice «1–2 minuti» per restare
+    /// larghi. Anche il ritorno automatico a bozza di una scheda pubblicata va detto: sparisce dal sito.
+    /// </summary>
+    /// <param name="statoPrima">Stato com'era salvato prima, null se non noto.</param>
+    /// <param name="statoDopo">Stato appena salvato.</param>
+    public static string MessaggioSalvataggio(string? statoPrima, string statoDopo) =>
+        (statoPrima == "pubblicato", statoDopo == "pubblicato") switch
+        {
+            (false, true) => "Scheda pubblicata: comparirà sul sito entro 1–2 minuti.",
+            (true, true) => "Modifiche salvate: saranno sul sito entro 1–2 minuti.",
+            (true, false) => "Scheda tolta dal sito: sparirà entro 1–2 minuti.",
+            (false, false) => "Contenuti web salvati con successo"
+        };
 }

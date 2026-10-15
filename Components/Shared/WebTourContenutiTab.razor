@@ -49,7 +49,9 @@ else
                         puoi modificare tutto senza conseguenze.
                     </MudText>
                     <MudText Typo="Typo.body2" Class="mt-2">
-                        <b>Pubblicato</b> — Il tour è online e visibile a chi visita il sito.
+                        <b>Pubblicato</b> — Il tour è online e visibile a chi visita il sito. Compare sul sito
+                        <b>entro 1–2 minuti</b> dal salvataggio, non subito; lo stesso vale per ogni modifica
+                        successiva e per il ritorno a bozza.
                     </MudText>
                     <MudText Typo="Typo.body2" Class="mt-2">
                         <b>Archiviato</b> — Non è visibile sul sito, <b>esattamente come una bozza</b>. Il programma
@@ -271,6 +273,8 @@ else
     private bool _saving;
     private bool _htmlLoaded;
     private bool _dirty;
+    /// <summary>Stato di pubblicazione com'è salvato nel database: dice se il salvataggio tocca il sito (L23).</summary>
+    private string? _statoSalvato;
 
     private BlazoredTextEditor _edDescrizione = default!;
     private BlazoredTextEditor _edPernottamento = default!;
@@ -323,7 +327,10 @@ else
         {
             var existing = await ContenutiService.GetByIdAsync(ContenutoId, AziendaId);
             if (existing != null)
+            {
                 _model = existing;
+                _statoSalvato = existing.StatoPubblicazione;
+            }
             else
                 Snackbar.Add("Contenuto non trovato.", Severity.Error);
 
@@ -608,7 +615,9 @@ else
         try
         {
             _model = await ContenutiService.UpdateAsync(_model);
-            Snackbar.Add("Contenuti web salvati con successo", Severity.Success);
+            // L23: ciò che tocca il sito compare (o sparisce) dopo 1–2 minuti, non subito.
+            Snackbar.Add(ContenutoWebRules.MessaggioSalvataggio(_statoSalvato, _model.StatoPubblicazione), Severity.Success);
+            _statoSalvato = _model.StatoPubblicazione;
             _dirty = false;
             await HasUnsavedChangesChanged.InvokeAsync(false);
             await NotifyStatoAsync();
