@@ -77,6 +77,9 @@ successivo l'ha ridefinita, conta quello.
 | 680 | `680_Web_Meta_Tradotti.sql` | Meta titolo e meta descrizione dei tour tradotti sul sito (voce L22) | Sito pubblico | ✅ funzioni identiche al locale | `Funzioni_DB.md`; piani del sito |
 | 681 | `681_Web_Utente_Sito_Guardiano.sql` | Un utente del database che sa solo leggere la posta del guardiano | Sito pubblico | ✅ funzioni identiche al locale | `Funzioni_DB.md`; piani del sito |
 | 682 | `682_Web_Tour_Slug_Stato.sql` | Lo stato di ogni indirizzo di tour, per il proxy del sito (Tappa 3) | Sito pubblico | ⏳ **non ancora** (Tappa 3 del sito, Task 6) | `Funzioni_DB.md`; piani del sito |
+| 683 | `683_Web_Tour_Scheda.sql` | La scheda di un tour in una chiamata sola, già tradotta | Sito pubblico | ⏳ **non ancora** (Tappa 3, Task 6) | `Funzioni_DB.md`; piani del sito |
+| 684 | `684_Web_Titolo_Sezioni_Tradotti.sql` | Titolo del tour e nome della sezione tradotti; paese per le card | Sito pubblico + gestionale | ⏳ **non ancora** (Task 6, **dopo il 685**: vedi `Funzioni_DB.md`) | `Funzioni_DB.md`; piani del sito |
+| 685 | `685_Web_Titoli_Tradotti.sql` | I titoli dei tour tradotti (dati, 44 righe revisionate) prima del 684 | Sito pubblico + gestionale | ✅ **2026-10-16** (autorizzazione di Adriano; 11 schede × 4 lingue verificate) | `Funzioni_DB.md` |
 
 **Effetti verificati per gli script senza funzioni (2026-10-16):** 645 tabella
 `ana_modalita_pagamento` presente; 655 le quattro funzioni pubbliche del sito `SECURITY DEFINER`;

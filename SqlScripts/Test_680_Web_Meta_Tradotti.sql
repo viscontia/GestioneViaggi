@@ -75,7 +75,8 @@ BEGIN
     ASSERT (SELECT pg_get_function_identity_arguments(p.oid) FROM pg_proc p WHERE p.proname = 'fn_web_tour_pubblicati')
            = 'p_azienda_id integer, p_lingua character', 'firma cambiata';
     ASSERT (SELECT pg_get_function_result(p.oid) FROM pg_proc p WHERE p.proname = 'fn_web_tour_pubblicati')
-           LIKE '%meta_title character varying, meta_description character varying)', 'colonne cambiate';
+           LIKE '%meta_title character varying, meta_description character varying%', 'colonne cambiate';
+    -- (dal 684 dopo meta_description c'è anche «paese»: si controlla che le colonne meta ci siano)
     ASSERT has_function_privilege('anon', 'fn_web_tour_pubblicati(integer, character)', 'EXECUTE'),
         'anon deve poter chiamare la funzione';
     ASSERT (SELECT p.prosecdef FROM pg_proc p WHERE p.proname = 'fn_web_tour_pubblicati'), 'deve restare SECURITY DEFINER';

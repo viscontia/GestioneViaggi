@@ -133,6 +133,7 @@ documento raccoglie solo quelle nate dopo la 2.2.)*
 | **Via il «Link Documentazione» dall'anagrafica viaggio**: residuo del vecchio gestionale Oracle (era il link alla pagina del vecchio sito), vuoto su tutti i 23 viaggi in PROD e non usato da nessuna parte; la pagina del tour la fa la scheda web. ✅ Tolto dalla finestra il 2026-10-10; la colonna `viaggio_link` resta nel DB (nessuno script) | `AnaViaggiDialog.razor` |
 
 | **Pubblicare non è vederlo subito sul sito** (L23): dopo il salvataggio della scheda web il messaggio dice «entro 1–2 minuti» (pubblicata, modificata, tolta dal sito); stessa frase nell'aiuto dello stato. ✅ Nel codice il 2026-10-15, compilato; da provare a mano da Adriano | `WebTourContenutiTab`, `ContenutoWebRules.MessaggioSalvataggio` |
+| **Il titolo del tour si traduce** (sito, Tappa 3): fra i campi della linguetta Traduzioni, con il testo leggibile; titolo cambiato → traduzioni obsolete. ✅ Nel codice il 2026-10-16, compilato; il 684 (database) va in PROD dopo il 685 (titoli già tradotti, in PROD dal 2026-10-16) | `WebTraduzioneOrchestratorService`, `AnaViaggiService`, `SqlScripts/684`, `685` |
 ---
 
 ## Legato al sito pubblico

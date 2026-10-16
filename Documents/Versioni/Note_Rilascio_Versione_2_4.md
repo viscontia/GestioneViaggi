@@ -64,6 +64,14 @@ aggiorna al giro successivo della sua coda, non nell'istante del salvataggio (ri
 
 Lo dice anche l'aiuto (icona ?) dello stato «Pubblicato».
 
+### 1.4 — Il titolo del tour si traduce (sito, Tappa 3)
+
+Nella linguetta **Traduzioni** della scheda web compare anche il **Titolo** del tour: il sito lo
+mostra nella lingua del visitatore (prima restava in italiano). Si traduce la forma leggibile, non il
+maiuscolo dell'anagrafica; cambiando il titolo del viaggio, le sue traduzioni diventano «obsolete»
+come succede già per Incluso ed Escluso. I titoli delle 11 schede attuali sono già tradotti e
+revisionati (script 685), quindi nessuna scheda cambia stato.
+
 ---
 
 ## Sezione 2 — Correzioni

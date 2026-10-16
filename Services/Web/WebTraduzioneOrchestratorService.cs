@@ -92,6 +92,16 @@ public sealed class WebTraduzioneOrchestratorService
 
     // ---- Campi traducibili di un viaggio -------------------------------------
 
+    /// <summary>La forma leggibile del titolo (il gestionale lo scrive in maiuscolo): la decide il database.</summary>
+    private async Task<string?> TitoloLeggibileAsync(string? titolo)
+    {
+        if (string.IsNullOrWhiteSpace(titolo)) return null;
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT fn_web_titolo_leggibile(@T::text)", conn);
+        cmd.Parameters.AddWithValue("T", titolo);
+        return (await cmd.ExecuteScalarAsync()) as string;
+    }
+
     public async Task<List<TranslatableItem>> GetTranslatableItemsAsync(long contenutoId, int aziendaId)
     {
         var items = new List<TranslatableItem>();
@@ -127,6 +137,10 @@ public sealed class WebTraduzioneOrchestratorService
                 }
                 AddViaggio("viaggio_incluso", "Incluso", viaggio.Incluso);
                 AddViaggio("viaggio_escluso", "Escluso", viaggio.Escluso);
+                // 684: il titolo del tour, come lo legge il sito. Il gestionale lo scrive in MAIUSCOLO:
+                // si traduce la forma leggibile che decide il database (fn_web_titolo_leggibile, 675).
+                // Lo stesso elenco vive in fn_web_tour_campi_traducibili: vanno tenuti uguali.
+                AddViaggio("viaggio_descrizione_breve", "Titolo", await TitoloLeggibileAsync(viaggio.DescrizioneBreve));
             }
         }
 

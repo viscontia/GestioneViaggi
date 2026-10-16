@@ -123,6 +123,26 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   altra azienda, altre partenze con una seconda edizione costruita, dati aziendali, permessi.
 - In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
 
+### Titolo del tour e nome della sezione tradotti, paese (`SqlScripts/684` e `685`, 2026-10-16, Tappa 3)
+- **684** — `fn_web_tour_pubblicati`: `titolo` tradotto (`ana_viaggi.viaggio_descrizione_breve`, ripiego
+  la forma leggibile del 675), `descrizione_web` (nome della sezione) tradotto come già nel menu,
+  colonna nuova **`paese`** (ISO). In italiano nulla cambia (impronte delle 25 colonne di prima
+  identiche nelle 5 lingue). ⚠️ `DROP` + `CREATE`: permessi rimessi uguali (`anon`, `authenticated`,
+  `service_role`). `fn_web_tour_campi_traducibili`: + il titolo. **Il titolo si traduce in tre punti da
+  tenere uguali**: questa funzione, `WebTraduzioneOrchestratorService.GetTranslatableItemsAsync`
+  (testo di partenza = `fn_web_titolo_leggibile`, non il maiuscolo) e
+  `AnaViaggiService.MarcaTraduzioniInclusoEsclusoObsoleteAsync` (titolo cambiato → traduzioni obsolete).
+- ⛔️ **Perché il 685 va PRIMA del 684 in PROD**: con il titolo fra i campi da tradurre, una scheda
+  senza titolo tradotto e revisionato ha il semaforo «Traduzioni» incompleto, e il salvataggio di una
+  scheda **pubblicata** la riporterebbe a bozza (esce dal sito). Vale anche per il gestionale 2.3: il
+  conteggio è del database.
+- **685** — dati: i titoli delle 11 schede (7 pubblicate, 4 bozze) in EN/DE/FR/ES, `revisionato`
+  (autorizzazione di Adriano), nomi di prodotto uguali in ogni lingua. ✅ **In PROD il 2026-10-16**.
+- Test `Test_684_…` (traduzione e ripiego, obsoleta, sezione nel menu e nei tour, titolo fra i
+  campi, semaforo = campi, permessi, funzioni che la usano) e `Test_685_…` (4 titoli revisionati per
+  ogni scheda, mai in maiuscolo). Il test 680 controlla ora che le colonne meta ci siano (non che
+  siano le ultime). 684 in locale ✅; in PROD con il Task 6 (dopo il 685).
+
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
 
@@ -2448,6 +2468,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2905,7 +2927,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_tour_mappa_list_by_contenuto` | p_web_tour_contenuti_id bigint, p_azienda_id integer | SETOF web_tour_mappa | Mappe di una edizione: prima quella dell'intero viaggio, poi le giornate in ordine di giorno_numero. |
 | `fn_web_tour_mappa_update` | p_id bigint, p_azienda_id integer, p_web_tour_contenuti_id_fk bigint, p_gpx_originale text, p_gpx_filename character varying, p_bbox_min_lat numeric, p_bbox_min_lon numeric, p_bbox_max_lat numeric, p_bbox_max_lon numeric, p_provider character varying, p_stile character varying, p_parametri_render jsonb, p_immagine_url text, p_immagine_storage_path character varying, p_data_generazione timestamp with time zone, p_web_tour_itinerario_id_fk bigint DEFAULT NULL::bigint, p_descrizione character varying DEFAULT NULL::character varying, p_gpx_bytes integer DEFAULT NULL::integer | integer |  |
 | `fn_web_tour_prossime_partenze` | p_contenuto_id bigint, p_azienda_id integer | TABLE(data_viaggio_id integer, data_inizio date, data_fine date, e_questa_edizione boolean) | Partenze future (data_inizio >= oggi) del viaggio a cui appartiene il contenuto, con il flag dell'edizione in lavorazione. Usata dal promemoria in testa all'anteprima. |
-| `fn_web_tour_pubblicati` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(viaggio_id integer, contenuto_id bigint, titolo character varying, sottotitolo character varying, descrizione_html text, slug character varying, difficolta character varying, durata_testo character varying, numero_giorni integer, descrizione_web character varying, descrizione_slug character varying, prezzo_da integer, data_inizio date, data_fine date, immagine_url text, immagine_storage_path character varying, data_pubblicazione timestamp with time zone, ordine integer, incluso text, escluso text, posti_rimasti integer, posti_stato text, is_tour_breve boolean, meta_title character varying, meta_description character varying) |  |
+| `fn_web_tour_pubblicati` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(viaggio_id integer, contenuto_id bigint, titolo character varying, sottotitolo character varying, descrizione_html text, slug character varying, difficolta character varying, durata_testo character varying, numero_giorni integer, descrizione_web character varying, descrizione_slug character varying, prezzo_da integer, data_inizio date, data_fine date, immagine_url text, immagine_storage_path character varying, data_pubblicazione timestamp with time zone, ordine integer, incluso text, escluso text, posti_rimasti integer, posti_stato text, is_tour_breve boolean, meta_title character varying, meta_description character varying, paese character varying) |  |
 | `fn_web_tour_pubblicati_nome_sezione` | p_descrizione_id bigint, p_lingua character, p_fallback character varying | character varying |  |
 | `fn_web_tour_scheda` | p_azienda_id integer, p_slug character varying, p_lingua character | jsonb |  |
 | `fn_web_tour_slug_stato` | p_azienda_id integer | TABLE(slug character varying, stato character varying, sezione_slug character varying, slug_nuovo character varying, sezione_nuova character varying) |  |
@@ -3183,7 +3205,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_newsletter_corpi_list`
 - `fn_web_newsletter_corpo_archivia`
 - `fn_web_newsletter_crea_bozza`
-- `fn_web_newsletter_dati_azienda`
 - `fn_web_newsletter_dati_tour`
 - `fn_web_newsletter_elenco`
 - `fn_web_newsletter_filtri_delete`
