@@ -1,5 +1,11 @@
 # Checklist Go-Live PROD — Estensione Web
 
+> ✅ **GO-LIVE ESEGUITO il 2026-09-09** (script 406–636, resoconto in
+> `../../PROD/2026-09-09-Go_Live_Eseguito.md`). **Questa checklist è chiusa per gli script**: dal 637
+> in poi ogni script va in PROD da solo e si registra in **`../../PROD/Registro_Script_PROD.md`**
+> (deciso con Adriano il 2026-10-16). Restano valide, finché non sono chiuse, le voci operative
+> ancora aperte qui sotto (sezioni §2, §3, §6, §7).
+
 > **Scopo.** Documento **operativo e vivo**: elenca *tutto* ciò che va modificato/configurato in produzione (Supabase) prima di rilasciare l'Estensione Web. Va aggiornato **a ogni nuovo script SQL o requisito di deploy**. In locale si lavora su Docker (`postgres_db`); la PROD è Supabase/PgBouncer.
 >
 > **Ultimo aggiornamento:** 2026-08-09 (nuovi script `511` telefono destinatari e `512` newsletter a blocchi Fase 1; intervallo esteso a 406–512). **Stato:** NON ancora rilasciato.
@@ -1957,6 +1963,10 @@ claude mcp list | grep supabase
 ```
 
 ## 8. Manutenzione di questo documento
+
+> ⛔️ **Superato dal 2026-10-16 per gli script**: le regole e il controllo qui sotto valevano fino al
+> go-live; ora gli script si aggiungono al **Registro degli script in PROD**
+> (`../../PROD/Registro_Script_PROD.md`), che ha il suo controllo automatico.
 
 Ogni volta che si aggiunge uno script SQL all'Estensione Web (numero > 510) o un nuovo requisito di configurazione:
 1. aggiungere la riga in §1 (con eventuale ⚠️ e rimando a §2 se serve azione manuale);

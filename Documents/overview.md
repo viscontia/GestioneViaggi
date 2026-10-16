@@ -476,7 +476,8 @@ sostituito parola per parola da un altro documento.
 | `Architettura/CRUD_PATTERN.md` | Pattern standard per i CRUD service | raramente |
 | `Architettura/PDF_Creation_Standard.md` | Standard di generazione PDF con QuestPDF | raramente |
 | `Architettura/Enterprise_DataGrid.md` | Documentazione EnterpriseDataGrid | raramente |
-| `Progetti/Estensione_Web/2026-07-10-Checklist_Go_Live_PROD.md` | Cosa va applicato in produzione, in ordine | ⛔️ ad ogni nuovo script web |
+| `PROD/Registro_Script_PROD.md` | **Ogni script dal 637 in poi**: cosa fa, per chi, stato in PROD **verificato** (impronte), dove è documentato | ⛔️ ad ogni script portato in PROD |
+| `Progetti/Estensione_Web/2026-07-10-Checklist_Go_Live_PROD.md` | Il go-live dell'estensione web (406–636, **eseguito il 2026-09-09**): chiusa per gli script, restano le voci operative aperte | quando si chiude una voce |
 
 ---
 
