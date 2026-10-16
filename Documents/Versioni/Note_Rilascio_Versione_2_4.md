@@ -72,6 +72,20 @@ maiuscolo dell'anagrafica; cambiando il titolo del viaggio, le sue traduzioni di
 come succede già per Incluso ed Escluso. I titoli delle 11 schede attuali sono già tradotti e
 revisionati (script 685), quindi nessuna scheda cambia stato.
 
+### 1.5 — Il cane nella rooming list
+
+Nella stampa della rooming list, sotto le intolleranze, compare «** CANE AL SEGUITO **» per chi porta
+il cane (prima usciva solo nella stampa del viaggio). Il dato è quello dell'iscrizione: se il cane è
+segnato su tutti e due i componenti di una coppia, compare per tutti e due (scelta di Adriano: è il
+dato dell'anagrafica). Script 674, in PROD dal 2026-10-10 (riallineato identico il 2026-10-16); con la
+2.3 la stampa resta quella di prima, la riga esce con la 2.4.
+
+### 1.6 — Via il «Link Documentazione» dall'anagrafica viaggio
+
+Era un residuo del vecchio gestionale Oracle (il link alla pagina del vecchio sito): vuoto su tutti i
+viaggi e non usato da nessuna parte. La pagina del tour, oggi, è la scheda web. Tolto dalla finestra
+del viaggio; i valori vecchi erano già stati svuotati in PROD (script 665).
+
 ---
 
 ## Sezione 2 — Correzioni
@@ -83,11 +97,29 @@ scheda manca e un'**icona semplice** quando c'è: la seconda è più stretta, e 
 scivolava di lato (segnalato da Adriano il 2026-09-27, Capodanno in Ogliastra). Ora l'icona semplice
 occupa lo stesso spazio di un pulsante (`StatoContenutoWebIcon`, parametro `IngombroPulsante`).
 
+### 2.2 — Newsletter: titoli dei tour leggibili e periodo in buon italiano
+
+Nelle newsletter i titoli dei tour non escono più in MAIUSCOLO come nell'anagrafica
+(«Ponte dell'Immacolata in 4x4»), e il periodo usa le elisioni corrette («dall'8», «all'11») e «1°».
+Lo decide il database (script 676 e 677), quindi è già attivo in PROD anche con la 2.3.
+
+### 2.3 — Traduzioni: il marchio non si traduce, le sezioni sì
+
+Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autorizzazione di Adriano):
+- in tre meta titoli il marchio era stato tradotto («Off Track Travel», «Hors Piste Travel»): ora è
+  «Fuori Traccia Travel» (script 686);
+- i nomi delle 5 sezioni del sito (Viaggi 4x4, in moto, in quad e SSV, Escursioni e-bike MTB,
+  Esperienze) sono tradotti nelle 4 lingue (script 686), e lo sono anche i titoli delle 11 schede
+  (script 685). Tutto revisionato; si cambia dal gestionale come ogni traduzione.
+
 ---
 
 ## Sezione 3 — Documentazione
 
-*(ancora niente)*
+- **Registro degli script in PROD** (`Documents/PROD/Registro_Script_PROD.md`, 2026-10-16): una riga
+  per ogni script dal 637, con lo stato in PROD **verificato** (impronte delle funzioni) e un controllo
+  automatico degli script mancanti. Sostituisce, per gli script, la checklist del go-live
+  dell'estensione web, ora chiusa (go-live eseguito il 2026-09-09).
 
 ---
 
@@ -98,6 +130,12 @@ occupa lo stesso spazio di un pulsante (`StatoContenutoWebIcon`, parametro `Ingo
 | `671_Promemoria_Apertura.sql` | `fn_promemoria_apertura`, `fn_promemoria_giorni_newsletter`, riga `promemoria` a 90 giorni per ogni azienda. Test `Test_671_…` | ✅ 2026-09-27 (anticipato per la mail del lunedì; la finestra arriva con l'eseguibile 2.4) |
 | `673_Promemoria_Mail_Lunedi.sql` | `fn_promemoria_mail_destinatari`, riga `mail_lunedi` spenta per ogni azienda. Test `Test_673_…` | ✅ 2026-09-27; `mail_lunedi` **accesa per l'azienda 2** |
 | `672_Elimina_Viaggio_Di_Test_2.sql` | Via il «VIAGGIO DI TEST 2» (903) con le sue 2 iscrizioni e 2 camere; anagrafiche intatte. Pulizia dati, non serve all'eseguibile | ✅ 2026-09-27 |
+| `665_Viaggi_Svuota_Link_Documentazione.sql` | Svuota `ana_viaggi.viaggio_link` (link al vecchio sito), insieme al campo tolto dalla finestra (1.6) | ✅ (verificato il 2026-10-16: nessun valore rimasto) |
+| `674_Rooming_List_Cane.sql` | `get_rooming_list_data` con `con_cane` (1.5) | ✅ 2026-10-10; riapplicato identico il 2026-10-16 |
+| `676_Web_Newsletter_Titoli_Leggibili.sql`, `677_Web_Newsletter_Periodo_Elisioni.sql` | Titoli e periodo delle newsletter (2.2) | ✅ (verificati il 2026-10-16: funzioni identiche al locale) |
+| `684_Web_Titolo_Sezioni_Tradotti.sql` | Il titolo del tour fra i campi da tradurre (1.4); titolo e sezione tradotti sul sito | ⏳ **col rilascio della 2.4, DOPO il 685** (vedi `Funzioni_DB.md`): confrontare prima e dopo il semaforo Traduzioni di ogni scheda |
+| `685_Web_Titoli_Tradotti.sql` | Titoli delle 11 schede tradotti e revisionati (2.3) | ✅ 2026-10-16 |
+| `686_Web_Correzioni_Traduzioni.sql` | Marchio corretto in 3 meta titoli; nomi delle 5 sezioni tradotti (2.3) | ✅ 2026-10-16 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.

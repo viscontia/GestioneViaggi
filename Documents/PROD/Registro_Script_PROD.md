@@ -80,6 +80,7 @@ successivo l'ha ridefinita, conta quello.
 | 683 | `683_Web_Tour_Scheda.sql` | La scheda di un tour in una chiamata sola, già tradotta | Sito pubblico | ⏳ **non ancora** (Tappa 3, Task 6) | `Funzioni_DB.md`; piani del sito |
 | 684 | `684_Web_Titolo_Sezioni_Tradotti.sql` | Titolo del tour e nome della sezione tradotti; paese per le card | Sito pubblico + gestionale | ⏳ **non ancora** (Task 6, **dopo il 685**: vedi `Funzioni_DB.md`) | `Funzioni_DB.md`; piani del sito |
 | 685 | `685_Web_Titoli_Tradotti.sql` | I titoli dei tour tradotti (dati, 44 righe revisionate) prima del 684 | Sito pubblico + gestionale | ✅ **2026-10-16** (autorizzazione di Adriano; 11 schede × 4 lingue verificate) | `Funzioni_DB.md` |
+| 686 | `686_Web_Correzioni_Traduzioni.sql` | Il marchio non si traduce (3 meta titoli corretti); nomi delle 5 sezioni tradotti (20 righe revisionate) | Sito pubblico + gestionale | ✅ **2026-10-16** (autorizzazione di Adriano; verificati: nessun marchio tradotto, menu EN/DE tradotto) | `Funzioni_DB.md`; note 2.4 §2.3 |
 
 **Effetti verificati per gli script senza funzioni (2026-10-16):** 645 tabella
 `ana_modalita_pagamento` presente; 655 le quattro funzioni pubbliche del sito `SECURITY DEFINER`;

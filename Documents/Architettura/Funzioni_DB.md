@@ -142,6 +142,9 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   campi, semaforo = campi, permessi, funzioni che la usano) e `Test_685_…` (4 titoli revisionati per
   ogni scheda, mai in maiuscolo). Il test 680 controlla ora che le colonne meta ci siano (non che
   siano le ultime). 684 in locale ✅; in PROD con il Task 6 (dopo il 685).
+- **686** — dati: il marchio non si traduce («Off Track Travel», «Hors Piste Travel» → «Fuori Traccia
+  Travel» in 3 meta titoli) e i nomi delle 5 sezioni nelle 4 lingue (traduzioni globali, revisionate).
+  ✅ **In PROD il 2026-10-16** (autorizzazione di Adriano). Test `Test_686_…`.
 
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
@@ -2470,6 +2473,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -3251,8 +3255,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_tipi_viaggio_descrizioni_insert`
 - `fn_web_tipi_viaggio_descrizioni_list`
 - `fn_web_tipi_viaggio_descrizioni_update`
-- `fn_web_titolo_leggibile`
-- `fn_web_tour_campi_traducibili`
 - `fn_web_tour_contenuti_clona`
 - `fn_web_tour_contenuti_delete`
 - `fn_web_tour_contenuti_get`
