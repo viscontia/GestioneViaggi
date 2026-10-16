@@ -82,6 +82,24 @@ ma oggi non ha tour pubblicati → **410 Gone**), `sconosciuta` (mai esistito �
 - ℹ️ Una sezione che non ha **mai** avuto tour (es. e-bike) risulta `ritirata`, non `sconosciuta`:
   lo slug esiste. Per Google un 410 su un indirizzo mai visto è innocuo.
 
+### `fn_web_tour_slug_stato(p_azienda_id)` (`SqlScripts/682`, 2026-10-16, Tappa 3)
+Lo stato di **ogni indirizzo di tour** dell'azienda, in un elenco solo che il proxy del sito legge
+ogni 60 secondi. Righe `(slug, stato, sezione_slug, slug_nuovo, sezione_nuova)`:
+- `pubblicato` → la scheda è online; `sezione_slug` = la sua sezione;
+- `sostituito` → non è più online ma lo stesso viaggio ha un'altra edizione pubblicata:
+  `slug_nuovo`/`sezione_nuova` = quella con la **partenza più vicina** (il sito risponde 308);
+- `ritirato` → è stata online e il viaggio non ha più partenze pubblicate; `sezione_slug` per il
+  link (il sito risponde 410);
+- le schede **mai pubblicate** (`data_pubblicazione` nulla) **non compaiono**: il loro indirizzo non
+  è mai stato pubblico (404).
+
+- ⚠️ **Poggia su `fn_web_tour_pubblicati`**: «pubblicato» resta definito in un posto solo.
+- `SECURITY DEFINER`, `search_path` fissato, `EXECUTE` ad `anon` e `authenticated`.
+- Test `Test_682_Web_Tour_Slug_Stato.sql`: costruisce in transazione una seconda e una terza
+  edizione del Ponte dell'Immacolata (741), archivia, controlla sostituito (verso la più vicina) e
+  ritirato. In PROD oggi non ci sono edizioni passate: i casi si provano solo così.
+- In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
+
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
 
@@ -2405,6 +2423,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2632,8 +2651,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_get_scadenzario_print_data` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | jsonb |  |
 | `fn_get_scadenzario_stampa` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying, p_urgenza character varying DEFAULT NULL::character varying, p_data_scadenza_da date DEFAULT NULL::date, p_data_scadenza_a date DEFAULT NULL::date, p_viaggio_id integer DEFAULT NULL::integer, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_raggruppamento character varying DEFAULT 'URGENZA'::character varying | TABLE(gruppochiave text, gruppodisplay text, gruppoordine integer, transazioneid integer, datascadenza date, datadocumento date, numerodocumento character varying, controparteragionesociale character varying, causaleciclo character varying, causaledescrizione character varying, importooriginale numeric, residuo numeric, valutacodiceiso character varying, giorniascadenza integer, urgenza character varying, stato character varying, viaggiodescrizione character varying, note text) | Restituisce le scadenze aperte con calcolo del residuo e classificazione urgenza per la stampa. |
 | `fn_get_smtp_config_for_email` | p_azienda_id integer, p_master text | jsonb |  |
-| `fn_get_tasso_cambio` | p_valuta_da integer, p_valuta_a integer, p_data date | numeric | Restituisce il tasso di cambio più recente (<= data) calcolando anche l'inverso. Core function. |
 | `fn_get_tasso_cambio` | p_iso_da character varying, p_iso_a character varying, p_data date | numeric | Wrapper che accetta codici ISO e invoca la core function. |
+| `fn_get_tasso_cambio` | p_valuta_da integer, p_valuta_a integer, p_data date | numeric | Restituisce il tasso di cambio più recente (<= data) calcolando anche l'inverso. Core function. |
 | `fn_get_transazione_init_data` | p_azienda_id integer, p_transazione_id integer DEFAULT NULL::integer | json | Dati di apertura del dialog movimenti contabili. Chiavi in snake_case (641) e alias id per controparti e viaggi, le cui classi ereditano Id da BaseEntity (642). |
 | `fn_get_transazioni_by_azienda` | p_azienda_id integer, p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_data_transazione date DEFAULT NULL::date, p_solo_da_pagare boolean DEFAULT false, p_causale_tipo_id integer DEFAULT NULL::integer | TABLE(transazione_id integer, transazione_azienda_id integer, transazione_viaggio_id integer, transazione_data_viaggio_id integer, transazione_controparte_id integer, transazione_causale_tipo_id integer, transazione_importo numeric, transazione_valuta_id integer, transazione_importo_eur numeric, transazione_data date, transazione_data_scadenza date, transazione_data_pagamento date, transazione_stato character varying, transazione_causale text, transazione_note text, transazione_numero_documento character varying, transazione_data_documento date, transazione_fattura_fk integer, transazione_aliquota_iva_fk integer, transazione_imponibile_eur numeric, transazione_iva_eur numeric, transazione_lordo_eur numeric, transazione_iva_modalita_input character varying, transazione_tasso_cambio_applicato numeric, transazione_tasso_fonte character varying, transazione_tasso_data_validita date, created_at timestamp with time zone, created_by character varying, updated_at timestamp with time zone, updated_by character varying, azienda_codice text, controparte_ragione_sociale character varying, valuta_codice_iso character varying, causale_descrizione character varying, causale_segno integer, causale_ciclo character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
 | `fn_get_transazioni_stampa_dettaglio` | p_azienda_id integer DEFAULT NULL::integer, p_controparte_id integer DEFAULT NULL::integer, p_causale_tipo_id integer DEFAULT NULL::integer, p_stati character varying[] DEFAULT NULL::character varying[], p_viaggio_id integer DEFAULT NULL::integer, p_data_viaggio_id integer DEFAULT NULL::integer, p_valuta_id integer DEFAULT NULL::integer, p_data_transazione_da date DEFAULT NULL::date, p_data_transazione_a date DEFAULT NULL::date, p_data_documento_da date DEFAULT NULL::date, p_data_documento_a date DEFAULT NULL::date, p_importo_da numeric DEFAULT NULL::numeric, p_importo_a numeric DEFAULT NULL::numeric, p_numero_documento character varying DEFAULT NULL::character varying, p_solo_con_documento boolean DEFAULT false, p_solo_scadute boolean DEFAULT false, p_solo_con_viaggio boolean DEFAULT false, p_solo_senza_viaggio boolean DEFAULT false, p_solo_con_fattura boolean DEFAULT false, p_ordinamento character varying DEFAULT 'FORNITORE'::character varying, p_valuta_target_id integer DEFAULT NULL::integer, p_causale_ciclo character varying DEFAULT NULL::character varying | TABLE(gruppo_chiave text, gruppo_display text, gruppo_ordine integer, transazione_id integer, transazione_data date, transazione_data_documento date, transazione_data_scadenza date, transazione_data_pagamento date, controparte_ragione_sociale character varying, tipo_movimento_codice character varying, tipo_movimento_descrizione character varying, causale_segno integer, transazione_causale text, causale_ciclo character varying, transazione_stato character varying, transazione_numero_documento character varying, valuta_codice_iso character varying, imponibile_eur numeric, iva_eur numeric, lordo_eur numeric, aliquota_iva_codice character varying, aliquota_iva_percentuale numeric, importo_valuta_target numeric, valuta_target_iso character varying, viaggio_descrizione character varying, data_viaggio_inizio date) |  |
@@ -2700,8 +2719,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
-| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
+| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_query_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying DEFAULT NULL::character varying, p_limit_count integer DEFAULT NULL::integer | jsonb | SELECT generico per SuperAdmin su qualsiasi tabella |
 | `fn_sys_utente_pref_get` | p_utente_id uuid, p_chiave character varying | text |  |
 | `fn_sys_utente_pref_set` | p_utente_id uuid, p_chiave character varying, p_valore text | void |  |
@@ -2864,6 +2883,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_tour_prossime_partenze` | p_contenuto_id bigint, p_azienda_id integer | TABLE(data_viaggio_id integer, data_inizio date, data_fine date, e_questa_edizione boolean) | Partenze future (data_inizio >= oggi) del viaggio a cui appartiene il contenuto, con il flag dell'edizione in lavorazione. Usata dal promemoria in testa all'anteprima. |
 | `fn_web_tour_pubblicati` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(viaggio_id integer, contenuto_id bigint, titolo character varying, sottotitolo character varying, descrizione_html text, slug character varying, difficolta character varying, durata_testo character varying, numero_giorni integer, descrizione_web character varying, descrizione_slug character varying, prezzo_da integer, data_inizio date, data_fine date, immagine_url text, immagine_storage_path character varying, data_pubblicazione timestamp with time zone, ordine integer, incluso text, escluso text, posti_rimasti integer, posti_stato text, is_tour_breve boolean, meta_title character varying, meta_description character varying) |  |
 | `fn_web_tour_pubblicati_nome_sezione` | p_descrizione_id bigint, p_lingua character, p_fallback character varying | character varying |  |
+| `fn_web_tour_slug_stato` | p_azienda_id integer | TABLE(slug character varying, stato character varying, sezione_slug character varying, slug_nuovo character varying, sezione_nuova character varying) |  |
 | `fn_web_tour_stato_sezioni` | p_contenuto_id bigint, p_azienda_id integer, p_lingue character varying[] | TABLE(ha_slug boolean, ha_sottotitolo boolean, ha_descrizione boolean, n_immagini integer, ha_principale boolean, n_giornate integer, n_traducibili integer, n_tradotte integer, n_revisionate integer) | Fatti grezzi per il semaforo dei sotto-tab contenuti web di una edizione. n_tradotte = righe presenti; n_revisionate = revisionate e non obsolete (è questo che rende Completo il tab Traduzioni e sblocca la pubblicazione). Soglie in C# (WebTabStatoRules). |
 | `fn_web_tour_verifiche` | p_contenuto_id bigint, p_azienda_id integer | TABLE(n_giornate integer, n_giornate_senza_passi integer, n_giornate_senza_foto integer, n_giornate_senza_mappa integer, ha_mappa_insieme boolean, n_immagini integer, ha_meta_title boolean, ha_meta_description boolean, ha_incluso boolean, ha_escluso boolean, ha_capienza boolean) | Fatti grezzi per le verifiche NON bloccanti sui contenuti web di una edizione (giornate senza foto/mappa/passi, galleria vuota, SEO, incluso/escluso, capienza). Soglie e messaggi in C# (WebVerificheRules). |
 | `fn_web_traduzioni_approva_contenuto` | p_contenuto_id bigint, p_azienda_id integer, p_lingue character varying[] | integer | Approva in blocco le traduzioni di una edizione (revisionato=true, obsoleto=false). Ritorna quante righe sono cambiate. La condizione "almeno una revisionata a mano per lingua" è applicata dalla UI. |
@@ -3218,6 +3238,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_tour_mappa_list_by_contenuto`
 - `fn_web_tour_mappa_update`
 - `fn_web_tour_prossime_partenze`
+- `fn_web_tour_slug_stato`
 - `fn_web_tour_stato_sezioni`
 - `fn_web_tour_verifiche`
 - `fn_web_traduzioni_approva_contenuto`
