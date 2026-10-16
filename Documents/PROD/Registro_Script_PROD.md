@@ -68,7 +68,7 @@ successivo l'ha ridefinita, conta quello.
 | 671 | `671_Promemoria_Apertura.sql` | Il promemoria all'apertura (L2) | Gestionale | ✅ funzioni identiche al locale | Note di rilascio 2.4 |
 | 672 | `672_Elimina_Viaggio_Di_Test_2.sql` | Via il «VIAGGIO DI TEST 2» (viaggio 903, partenza 1865 del 09/04/2026 | Gestionale | ✅ effetti presenti (vedi sotto) | Note di rilascio 2.4 |
 | 673 | `673_Promemoria_Mail_Lunedi.sql` | La mail del lunedi' (prosegue il promemoria all'apertura, L2) | Gestionale | ✅ funzioni identiche al locale | Note di rilascio 2.4 |
-| 674 | `674_Rooming_List_Cane.sql` | La rooming list dice chi porta il cane | Gestionale | ✅ **equivalente**: in PROD la versione compatta (senza gli alias ridondanti nei rami `UNION`, che non hanno effetto); da riapplicare identica col via di Adriano | — |
+| 674 | `674_Rooming_List_Cane.sql` | La rooming list dice chi porta il cane | Gestionale | ✅ identica al locale dal **2026-10-16** (riapplicata col via di Adriano: prima era una versione compatta, senza gli alias ridondanti nei rami `UNION`, equivalente; permessi invariati, solo `postgres`; prova: 45 righe sulla partenza più numerosa) | — |
 | 675 | `675_Web_Titoli_Leggibili.sql` | I titoli dei tour, sul sito, non in MAIUSCOLO | Sito pubblico | ✅ funzioni identiche al locale | `Funzioni_DB.md`; piani del sito |
 | 676 | `676_Web_Newsletter_Titoli_Leggibili.sql` | Anche nelle newsletter i titoli dei tour non in MAIUSCOLO | Newsletter (gestionale) | ✅ funzioni identiche al locale | `Funzioni_DB.md`; piani del sito |
 | 677 | `677_Web_Newsletter_Periodo_Elisioni.sql` | Il periodo delle newsletter in italiano corretto: «dall'8», «all'11» | Newsletter (gestionale) | ✅ funzioni identiche al locale | `Funzioni_DB.md`; piani del sito |
