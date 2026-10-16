@@ -165,6 +165,20 @@ per tour.
 - Test `Test_687_…` (stessa ora / dopo un'ora / altro visitatore, altra azienda, formati, conclusione,
   permessi, RLS); 5 prove dell'errore rilevate. In locale ✅; in PROD con il Task 6.
 
+### Le richieste del PDF della scheda, contate: l'utente `sito_statistiche` (`SqlScripts/688`, 2026-10-16, Tappa 3)
+**L'unica eccezione alla regola «il sito non scrive»** (decisione di Adriano del 2026-10-16): il
+**server** del sito, quando consegna il PDF di una scheda, lo conta per la mail settimanale.
+- Ruolo **`sito_statistiche`** (NOLOGIN; login a mano con la sola impronta SCRAM, come 679/681):
+  può **solo** chiamare `fn_web_pdf_richiesta`. Nessuna tabella (nemmeno la sua), nessun'altra
+  funzione (né arrivi, né posta, né coda: il test lo controlla).
+- Tabella `web_pdf_richieste(azienda_id, data_viaggio_id, lingua, impronta, richiesta_il)`: impronta
+  di 64 caratteri esadecimali (l'IP non si salva), lingua fra le 5 del sito, **RLS attiva**, niente al
+  pubblico.
+- `fn_web_pdf_richiesta(azienda, data_viaggio, lingua, impronta)` → `boolean`: formati controllati
+  sempre per primi, edizione dell'azienda, `true` se contata, `false` se lo stesso visitatore aveva
+  già chiesto lo stesso PDF (edizione e lingua) nell'ultima ora.
+- Test `Test_688_…`; 5 prove dell'errore rilevate. In locale ✅; in PROD con il Task 6.
+
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
 
@@ -2496,6 +2510,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2897,6 +2913,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_newsletter_traduzioni_stato` | p_invio_id bigint, p_azienda_id integer | TABLE(lingua character, traducibili integer, tradotti integer, obsoleti integer, mancanti integer) | Copertura delle traduzioni di una newsletter per lingua: traducibili, tradotti, obsoleti, mancanti. |
 | `fn_web_otp_genera` | p_azienda_id integer, p_cliente_id integer | TABLE(esito text, codice text, email character varying) | Genera un codice a 8 cifre per il cliente e lo restituisce UNA volta, per spedirlo alla casella in archivio. Tetto: 3 richieste in 15 minuti, 10 in 24 ore. Esiti: OK, CLIENTE_ASSENTE, SENZA_EMAIL, EMAIL_NON_VERIFICATA (email agganciata dal sito, script 662), TROPPE_RICHIESTE (script 660, 662). |
 | `fn_web_otp_verifica` | p_azienda_id integer, p_cliente_id integer, p_codice text | text | Verifica il codice del cliente. Esiti: OK (e il codice non vale piu'), ERRATO, SCADUTO, TENTATIVI_ESAURITI, NESSUN_CODICE (script 660). |
+| `fn_web_pdf_richiesta` | p_azienda_id integer, p_data_viaggio_id integer, p_lingua character varying, p_impronta character varying | boolean |  |
 | `fn_web_prezzo_da` | p_viaggio_id integer | integer |  |
 | `fn_web_prezzo_da_data` | p_data_viaggio_id integer | integer |  |
 | `fn_web_proposta_approva` | p_proposta_id bigint, p_azienda_id integer, p_utente character varying | TABLE(email character varying, cognome character varying, nome character varying) |  |
@@ -3266,6 +3283,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_newsletter_traduzioni`
 - `fn_web_newsletter_traduzioni_stato`
 - `fn_web_otp_verifica`
+- `fn_web_pdf_richiesta`
 - `fn_web_prezzo_da_data`
 - `fn_web_proposta_approva`
 - `fn_web_proposta_campi_ammessi`
