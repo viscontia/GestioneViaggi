@@ -100,6 +100,29 @@ ogni 60 secondi. Righe `(slug, stato, sezione_slug, slug_nuovo, sezione_nuova)`:
   ritirato. In PROD oggi non ci sono edizioni passate: i casi si provano solo così.
 - In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
 
+### `fn_web_tour_scheda(p_azienda_id, p_slug, p_lingua)` → `jsonb` (`SqlScripts/683`, 2026-10-16, Tappa 3)
+**Tutta la scheda di un tour in una chiamata**, già nella lingua chiesta (ripiego: italiano). È il
+contratto fra database e pagina del tour: il sito disegna e basta. `null` se lo slug non è fra i
+pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
+
+| Chiave | Contenuto |
+|---|---|
+| `tour` | **i campi di `fn_web_tour_pubblicati`** (un solo «pubblicato») + `luoghi_visitati`, `info_pernottamento_html`, `info_pasti_html`, `info_equipaggiamento_html`, `altre_info_html` tradotti; `paese` (ISO a due lettere, da `eba_countries`); `edizione_id` (la data di viaggio, per «Iscriviti») |
+| `galleria` | `[{url, larghezza, altezza, alt}]`, foto di tipo `galleria` nell'ordine del gestionale; `alt` = testo alternativo o titolo (non tradotti) |
+| `itinerario` | `[{giorno, titolo, passaggi: [{testo_html, foto: {url, didascalia} \| null}], mappe: [{url, descrizione}]}]`, giornate e passaggi in ordine, titoli e testi tradotti |
+| `mappa` | `{url, descrizione}` della mappa del tour intero (la più recente), o `null` |
+| `altre_partenze` | `[{slug, sezione_slug, data_inizio, data_fine, posti_rimasti, posti_stato}]`: le altre edizioni pubblicate dello stesso viaggio, per data |
+| `azienda` | `fn_web_newsletter_dati_azienda` (ragione sociale, P.IVA, indirizzo, email, telefono, sito) + `whatsapp` (`web_indirizzi`, social `whatsapp`) |
+
+- Traduzioni valide = `NOT obsoleto` e testo non vuoto (come `fn_web_tour_pubblicati`).
+- Misurata in locale: **~9 ms**, ~13 kB per il Ponte dell'Immacolata in inglese.
+- `SECURITY DEFINER`, `search_path` fissato, `EXECUTE` ad `anon` e `authenticated`.
+- Test `Test_683_Web_Tour_Scheda.sql`: forma e coerenza per ogni scheda pubblicata (campi uguali a
+  `fn_web_tour_pubblicati`, galleria e giornate in ordine, passaggi completi, paese, edizione, mappa),
+  traduzioni con ripiego (traduzione resa obsoleta in transazione), `null` per bozza / slug inventato /
+  altra azienda, altre partenze con una seconda edizione costruita, dati aziendali, permessi.
+- In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
+
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
 
@@ -2424,6 +2447,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2883,6 +2907,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_tour_prossime_partenze` | p_contenuto_id bigint, p_azienda_id integer | TABLE(data_viaggio_id integer, data_inizio date, data_fine date, e_questa_edizione boolean) | Partenze future (data_inizio >= oggi) del viaggio a cui appartiene il contenuto, con il flag dell'edizione in lavorazione. Usata dal promemoria in testa all'anteprima. |
 | `fn_web_tour_pubblicati` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(viaggio_id integer, contenuto_id bigint, titolo character varying, sottotitolo character varying, descrizione_html text, slug character varying, difficolta character varying, durata_testo character varying, numero_giorni integer, descrizione_web character varying, descrizione_slug character varying, prezzo_da integer, data_inizio date, data_fine date, immagine_url text, immagine_storage_path character varying, data_pubblicazione timestamp with time zone, ordine integer, incluso text, escluso text, posti_rimasti integer, posti_stato text, is_tour_breve boolean, meta_title character varying, meta_description character varying) |  |
 | `fn_web_tour_pubblicati_nome_sezione` | p_descrizione_id bigint, p_lingua character, p_fallback character varying | character varying |  |
+| `fn_web_tour_scheda` | p_azienda_id integer, p_slug character varying, p_lingua character | jsonb |  |
 | `fn_web_tour_slug_stato` | p_azienda_id integer | TABLE(slug character varying, stato character varying, sezione_slug character varying, slug_nuovo character varying, sezione_nuova character varying) |  |
 | `fn_web_tour_stato_sezioni` | p_contenuto_id bigint, p_azienda_id integer, p_lingue character varying[] | TABLE(ha_slug boolean, ha_sottotitolo boolean, ha_descrizione boolean, n_immagini integer, ha_principale boolean, n_giornate integer, n_traducibili integer, n_tradotte integer, n_revisionate integer) | Fatti grezzi per il semaforo dei sotto-tab contenuti web di una edizione. n_tradotte = righe presenti; n_revisionate = revisionate e non obsolete (è questo che rende Completo il tab Traduzioni e sblocca la pubblicazione). Soglie in C# (WebTabStatoRules). |
 | `fn_web_tour_verifiche` | p_contenuto_id bigint, p_azienda_id integer | TABLE(n_giornate integer, n_giornate_senza_passi integer, n_giornate_senza_foto integer, n_giornate_senza_mappa integer, ha_mappa_insieme boolean, n_immagini integer, ha_meta_title boolean, ha_meta_description boolean, ha_incluso boolean, ha_escluso boolean, ha_capienza boolean) | Fatti grezzi per le verifiche NON bloccanti sui contenuti web di una edizione (giornate senza foto/mappa/passi, galleria vuota, SEO, incluso/escluso, capienza). Soglie e messaggi in C# (WebVerificheRules). |
@@ -3238,6 +3263,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_tour_mappa_list_by_contenuto`
 - `fn_web_tour_mappa_update`
 - `fn_web_tour_prossime_partenze`
+- `fn_web_tour_scheda`
 - `fn_web_tour_slug_stato`
 - `fn_web_tour_stato_sezioni`
 - `fn_web_tour_verifiche`
