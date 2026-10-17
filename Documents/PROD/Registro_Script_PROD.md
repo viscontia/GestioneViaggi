@@ -83,6 +83,7 @@ successivo l'ha ridefinita, conta quello.
 | 686 | `686_Web_Correzioni_Traduzioni.sql` | Il marchio non si traduce (3 meta titoli corretti); nomi delle 5 sezioni tradotti (20 righe revisionate) | Sito pubblico + gestionale | ✅ **2026-10-16** (autorizzazione di Adriano; verificati: nessun marchio tradotto, menu EN/DE tradotto) | `Funzioni_DB.md`; note 2.4 §2.3 |
 | 687 | `687_Web_Iscrizione_Arrivi.sql` | Gli arrivi al wizard dal sito, contati (L20): tabella e due funzioni per il Flask | Sito iscrizioni + sito pubblico | ✅ **2026-10-17** (identiche al locale; RLS attiva, niente ad `anon`/`authenticated`; test superato, tabella vuota) | `Funzioni_DB.md` |
 | 688 | `688_Web_Pdf_Richieste.sql` | Le richieste del PDF della scheda, contate dal server del sito con l'utente `sito_statistiche` (unica eccezione alla regola 3) | Sito pubblico | ✅ **2026-10-17** (identica al locale; `EXECUTE` solo a `sito_statistiche`; test superato, tabella vuota; login dato con la sola impronta SCRAM, password solo nel `.env.local` del sito, riga commentata di PROD) | `Funzioni_DB.md` |
+| 689 | `689_Web_Andalucia_Durata_Tradotta.sql` | Andalucia: le 4 traduzioni della durata «9 giorni / 8 notti» (erano «8 …», obsolete) | Sito pubblico + gestionale | ✅ **2026-10-17** (autorizzazione di Adriano; test rosso prima e verde dopo; semaforo «Traduzioni» della scheda completo) | `Funzioni_DB.md`; note 2.4 §4 |
 
 **Effetti verificati per gli script senza funzioni (2026-10-16):** 645 tabella
 `ana_modalita_pagamento` presente; 655 le quattro funzioni pubbliche del sito `SECURITY DEFINER`;

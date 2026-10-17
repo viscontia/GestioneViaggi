@@ -146,6 +146,10 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - **686** — dati: il marchio non si traduce («Off Track Travel», «Hors Piste Travel» → «Fuori Traccia
   Travel» in 3 meta titoli) e i nomi delle 5 sezioni nelle 4 lingue (traduzioni globali, revisionate).
   ✅ **In PROD il 2026-10-16** (autorizzazione di Adriano). Test `Test_686_…`.
+- **689** — dati: le 4 traduzioni della durata di *Andalucia - Deserti e Segreti* («9 giorni / 8
+  notti»; erano «8 …» e obsolete, così il sito mostrava l'italiano in ogni lingua e il semaforo era
+  incompleto). Tocca le righe solo se l'italiano è ancora quello. ✅ **In PROD il 2026-10-17**
+  (autorizzazione di Adriano). Test `Test_689_…`.
 
 ### Arrivi al wizard dal sito (`SqlScripts/687`, 2026-10-16, Tappa 3, voce L20)
 Il sito Flask registra l'**arrivo** al wizard da «Iscriviti» (non il clic: il sito pubblico non
@@ -2515,6 +2519,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -3286,7 +3292,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_newsletter_traduzioni`
 - `fn_web_newsletter_traduzioni_stato`
 - `fn_web_otp_verifica`
-- `fn_web_pdf_richiesta`
 - `fn_web_prezzo_da_data`
 - `fn_web_proposta_approva`
 - `fn_web_proposta_campi_ammessi`
