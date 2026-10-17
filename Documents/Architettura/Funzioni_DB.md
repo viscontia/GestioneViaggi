@@ -156,6 +156,23 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   testo lungo). ✅ **In PROD il 2026-10-17**: da qui **tutte e 7 le schede pubblicate** hanno il
   semaforo «Traduzioni» completo. Test `Test_690_…`.
 
+### La coda si accorge di anagrafica, traduzioni e testi delle giornate (`SqlScripts/691`, 2026-10-17, Tappa 3)
+Il trigger `trg_web_revalidate_func` (654) avvisava la coda solo per schede, foto, giornate, mappe,
+date e viaggi. Il **691** lo estende (i casi del 654 copiati senza cambiamenti) e lo attacca a 8
+tabelle in più:
+- **anagrafica dell'azienda** `ana_aziende`, `ana_aziende_sedi`, `ana_aziende_email` → `menu`
+  (tutto il sito e **tutti i PDF del programma**: nome, sede, P.IVA sono nel piede); stesso effetto per
+  `web_indirizzi` (WhatsApp) e `web_aziende_funzioni` (Place ID delle recensioni);
+- `web_tipi_viaggio_descrizioni` (nomi delle sezioni, tabella comune) → `menu` di ogni azienda con schede;
+- `web_tour_itinerario_passaggi` (testi delle giornate) → `tour` della sua scheda;
+- `web_traduzioni` → la scheda di ciò che traduce (contenuto, giornata, passaggio, mappa, viaggio:
+  tutte le sue schede), `menu` per i nomi delle sezioni, niente per le traduzioni che il sito non usa.
+
+Resta leggerissimo (letture per chiave, una riga in coda; i doppioni li unisce l'indice unico). Il sito
+ha comunque la seconda rete: pagine e PDF non più vecchi di un'ora. Test `Test_691_…` (ogni tabella,
+ogni tipo di traduzione, traduzione estranea, doppioni uniti); prova dell'errore (trigger tolto); casi
+del 654 riverificati. In locale ✅; in PROD: ⏳ col via di Adriano.
+
 ### Arrivi al wizard dal sito (`SqlScripts/687`, 2026-10-16, Tappa 3, voce L20)
 Il sito Flask registra l'**arrivo** al wizard da «Iscriviti» (non il clic: il sito pubblico non
 scrive) e lo segna **concluso** a iscrizione completata. Per la mail settimanale: arrivi → iscrizioni,
@@ -2505,6 +2522,10 @@ che serve a dimostrarlo.
 ⛔️ **Gli indirizzi non stanno nello script**: sono dati personali di migliaia di persone e non
 entrano nel repository. Arrivano come parametro da un file tenuto in
 `~/Documents/Backup_GoLive/newsletter_drupal/`.
+
+
+
+
 
 
 
