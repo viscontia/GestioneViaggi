@@ -98,7 +98,7 @@ ogni 60 secondi. Righe `(slug, stato, sezione_slug, slug_nuovo, sezione_nuova)`:
 - Test `Test_682_Web_Tour_Slug_Stato.sql`: costruisce in transazione una seconda e una terza
   edizione del Ponte dell'Immacolata (741), archivia, controlla sostituito (verso la più vicina) e
   ritirato. In PROD oggi non ci sono edizioni passate: i casi si provano solo così.
-- In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
+- In locale ✅ 2026-10-16. ✅ **In PROD il 2026-10-17** (impronta uguale al locale, test superato).
 
 ### `fn_web_tour_scheda(p_azienda_id, p_slug, p_lingua)` → `jsonb` (`SqlScripts/683`, 2026-10-16, Tappa 3)
 **Tutta la scheda di un tour in una chiamata**, già nella lingua chiesta (ripiego: italiano). È il
@@ -121,7 +121,7 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   `fn_web_tour_pubblicati`, galleria e giornate in ordine, passaggi completi, paese, edizione, mappa),
   traduzioni con ripiego (traduzione resa obsoleta in transazione), `null` per bozza / slug inventato /
   altra azienda, altre partenze con una seconda edizione costruita, dati aziendali, permessi.
-- In locale ✅ 2026-10-16. In PROD: con il Task 6 della Tappa 3.
+- In locale ✅ 2026-10-16. ✅ **In PROD il 2026-10-17** (impronta uguale al locale, test superato).
 
 ### Titolo del tour e nome della sezione tradotti, paese (`SqlScripts/684` e `685`, 2026-10-16, Tappa 3)
 - **684** — `fn_web_tour_pubblicati`: `titolo` tradotto (`ana_viaggi.viaggio_descrizione_breve`, ripiego
@@ -141,7 +141,8 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_684_…` (traduzione e ripiego, obsoleta, sezione nel menu e nei tour, titolo fra i
   campi, semaforo = campi, permessi, funzioni che la usano) e `Test_685_…` (4 titoli revisionati per
   ogni scheda, mai in maiuscolo). Il test 680 controlla ora che le colonne meta ci siano (non che
-  siano le ultime). 684 in locale ✅; in PROD con il Task 6 (dopo il 685).
+  siano le ultime). 684 in locale ✅; ✅ **in PROD il 2026-10-17**, dopo il 685: semaforo «completo» invariato per tutte le
+  11 schede (un campo traducibile in più ciascuna), impronta dell'italiano invariata, test superato.
 - **686** — dati: il marchio non si traduce («Off Track Travel», «Hors Piste Travel» → «Fuori Traccia
   Travel» in 3 meta titoli) e i nomi delle 5 sezioni nelle 4 lingue (traduzioni globali, revisionate).
   ✅ **In PROD il 2026-10-16** (autorizzazione di Adriano). Test `Test_686_…`.
@@ -163,7 +164,7 @@ per tour.
 - Chi chiama: il Flask, collegato come `postgres`. **Niente al pubblico**: funzioni e tabella negate
   ad `anon`/`authenticated`, **RLS attiva** (su Supabase una tabella nuova di `public` è esposta).
 - Test `Test_687_…` (stessa ora / dopo un'ora / altro visitatore, altra azienda, formati, conclusione,
-  permessi, RLS); 5 prove dell'errore rilevate. In locale ✅; in PROD con il Task 6.
+  permessi, RLS); 5 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-17** (test superato).
 
 ### Le richieste del PDF della scheda, contate: l'utente `sito_statistiche` (`SqlScripts/688`, 2026-10-16, Tappa 3)
 **L'unica eccezione alla regola «il sito non scrive»** (decisione di Adriano del 2026-10-16): il
@@ -177,7 +178,9 @@ per tour.
 - `fn_web_pdf_richiesta(azienda, data_viaggio, lingua, impronta)` → `boolean`: formati controllati
   sempre per primi, edizione dell'azienda, `true` se contata, `false` se lo stesso visitatore aveva
   già chiesto lo stesso PDF (edizione e lingua) nell'ultima ora.
-- Test `Test_688_…`; 5 prove dell'errore rilevate. In locale ✅; in PROD con il Task 6.
+- Test `Test_688_…`; 5 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-17** (test
+  superato; login di `sito_statistiche` dato con la sola impronta SCRAM, password solo nel
+  `.env.local` del sito, riga commentata di PROD, da portare nel `.env` del server).
 
 ### `fn_web_traduzioni_list_by_entita_global(p_entita, p_entita_id)`
 Traduzioni di un'entità **globale**, senza filtro azienda.
