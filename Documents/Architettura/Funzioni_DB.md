@@ -150,6 +150,11 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   notti»; erano «8 …» e obsolete, così il sito mostrava l'italiano in ogni lingua e il semaforo era
   incompleto). Tocca le righe solo se l'italiano è ancora quello. ✅ **In PROD il 2026-10-17**
   (autorizzazione di Adriano). Test `Test_689_…`.
+- **690** — dati: *Mongolia in fuoristrada*, «Equipaggiamento» nelle 4 lingue (non era mai stato
+  tradotto); *Tour Enduro Gallura*, durata e sottotitolo come l'italiano riscritto in minuscolo (le
+  traduzioni in maiuscolo erano obsolete). Ogni gruppo solo se l'italiano è ancora quello (md5 per il
+  testo lungo). ✅ **In PROD il 2026-10-17**: da qui **tutte e 7 le schede pubblicate** hanno il
+  semaforo «Traduzioni» completo. Test `Test_690_…`.
 
 ### Arrivi al wizard dal sito (`SqlScripts/687`, 2026-10-16, Tappa 3, voce L20)
 Il sito Flask registra l'**arrivo** al wizard da «Iscriviti» (non il clic: il sito pubblico non
@@ -2500,6 +2505,8 @@ che serve a dimostrarlo.
 ⛔️ **Gli indirizzi non stanno nello script**: sono dati personali di migliaia di persone e non
 entrano nel repository. Arrivano come parametro da un file tenuto in
 `~/Documents/Backup_GoLive/newsletter_drupal/`.
+
+
 
 
 

@@ -137,6 +137,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `685_Web_Titoli_Tradotti.sql` | Titoli delle 11 schede tradotti e revisionati (2.3) | ✅ 2026-10-16 |
 | `686_Web_Correzioni_Traduzioni.sql` | Marchio corretto in 3 meta titoli; nomi delle 5 sezioni tradotti (2.3) | ✅ 2026-10-16 |
 | `689_Web_Andalucia_Durata_Tradotta.sql` | Durata di Andalucia tradotta nelle 4 lingue (era obsoleta): semaforo della scheda completo | ✅ 2026-10-17 |
+| `690_Web_Mongolia_Gallura_Traduzioni.sql` | Mongolia: equipaggiamento tradotto; Gallura: durata e sottotitolo tradotti di nuovo. Tutte le schede pubblicate col semaforo completo | ✅ 2026-10-17 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
