@@ -171,7 +171,8 @@ tabelle in più:
 Resta leggerissimo (letture per chiave, una riga in coda; i doppioni li unisce l'indice unico). Il sito
 ha comunque la seconda rete: pagine e PDF non più vecchi di un'ora. Test `Test_691_…` (ogni tabella,
 ogni tipo di traduzione, traduzione estranea, doppioni uniti); prova dell'errore (trigger tolto); casi
-del 654 riverificati. In locale ✅; in PROD: ⏳ col via di Adriano.
+del 654 riverificati. In locale ✅; ✅ **in PROD il 2026-10-17** (via di Adriano; impronta `4776150b…`
+uguale al locale, test superato).
 
 ### Arrivi al wizard dal sito (`SqlScripts/687`, 2026-10-16, Tappa 3, voce L20)
 Il sito Flask registra l'**arrivo** al wizard da «Iscriviti» (non il clic: il sito pubblico non

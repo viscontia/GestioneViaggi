@@ -138,6 +138,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `686_Web_Correzioni_Traduzioni.sql` | Marchio corretto in 3 meta titoli; nomi delle 5 sezioni tradotti (2.3) | ✅ 2026-10-16 |
 | `689_Web_Andalucia_Durata_Tradotta.sql` | Durata di Andalucia tradotta nelle 4 lingue (era obsoleta): semaforo della scheda completo | ✅ 2026-10-17 |
 | `690_Web_Mongolia_Gallura_Traduzioni.sql` | Mongolia: equipaggiamento tradotto; Gallura: durata e sottotitolo tradotti di nuovo. Tutte le schede pubblicate col semaforo completo | ✅ 2026-10-17 |
+| `691_Web_Coda_Anagrafica_Traduzioni.sql` | Salvare nel gestionale l'anagrafica dell'azienda, una traduzione o il testo di una giornata mette in coda la rigenerazione del sito e dei PDF (prima no: il sito se ne accorgeva entro un'ora). Nessun cambiamento visibile nel gestionale | ✅ 2026-10-17 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
