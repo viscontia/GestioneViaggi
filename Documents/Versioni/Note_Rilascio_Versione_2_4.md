@@ -139,6 +139,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `689_Web_Andalucia_Durata_Tradotta.sql` | Durata di Andalucia tradotta nelle 4 lingue (era obsoleta): semaforo della scheda completo | ✅ 2026-10-17 |
 | `690_Web_Mongolia_Gallura_Traduzioni.sql` | Mongolia: equipaggiamento tradotto; Gallura: durata e sottotitolo tradotti di nuovo. Tutte le schede pubblicate col semaforo completo | ✅ 2026-10-17 |
 | `691_Web_Coda_Anagrafica_Traduzioni.sql` | Salvare nel gestionale l'anagrafica dell'azienda, una traduzione o il testo di una giornata mette in coda la rigenerazione del sito e dei PDF (prima no: il sito se ne accorgeva entro un'ora). Nessun cambiamento visibile nel gestionale | ✅ 2026-10-17 |
+| `692_Web_Sito_Contenuti.sql` | Tabelle della scheda «Sito web» dell'azienda (home: foto, motto, frase, email dei messaggi del sito; «In evidenza»: fino a 3 tour) e garanzie del tour operator (polizza RC, fondo di garanzia) nell'anagrafica; ogni modifica aggiorna il sito (L24, L26, L28). La scheda nel gestionale arriva con l'eseguibile 2.4. Test `Test_692_…` | ⏳ solo in locale (2026-10-19) |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
