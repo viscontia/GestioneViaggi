@@ -1,11 +1,11 @@
 -- ============================================================================
--- Test dello script 698. Transazione annullata.
+-- Test dello script 698 (firma del 699: con la copertina). Transazione annullata.
 -- Prima dello script deve FALLIRE (le colonne e la funzione non esistono).
 -- ============================================================================
 BEGIN;
 DO $$
 DECLARE
-    f      constant text := 'fn_web_sito_video_home_save(integer, text, text, text, text, integer, integer, numeric, character varying)';
+    f      constant text := 'fn_web_sito_video_home_save(integer, text, text, text, text, text, text, integer, integer, numeric, character varying)';
     v_j    jsonb;
     v_old  text[];
     v_ver  bigint;
@@ -20,9 +20,9 @@ BEGIN
         'mancano colonne del video';
 
     -- 2. il primo video: niente di vecchio da cancellare; la home lo legge
-    PERFORM fn_web_sito_video_home_save(2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test698');   -- si parte senza video
+    PERFORM fn_web_sito_video_home_save(2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test698');   -- si parte senza video
     SELECT array_agg(percorso) INTO v_old FROM fn_web_sito_video_home_save(2,
-        'https://x/libreria/2/home-a.mp4', 'libreria/2/home-a.mp4', 'https://x/libreria/2/home-a-tel.mp4', 'libreria/2/home-a-tel.mp4',
+        'https://x/libreria/2/home-a.mp4', 'libreria/2/home-a.mp4', 'https://x/libreria/2/home-a-tel.mp4', 'libreria/2/home-a-tel.mp4', 'https://x/libreria/2/cop.webp', 'libreria/2/cop.webp',
         1920, 1080, 20, 'test698');
     ASSERT v_old IS NULL, 'primo video: niente da cancellare';
     v_j := fn_web_sito_home(2, 'IT')->'video';
@@ -36,7 +36,7 @@ BEGIN
     -- 3. il video cambia: si restituiscono i percorsi del vecchio, la versione cambia
     PERFORM pg_sleep(0.01);
     SELECT array_agg(percorso) INTO v_old FROM fn_web_sito_video_home_save(2,
-        'https://x/libreria/2/home-b.mp4', 'libreria/2/home-b.mp4', 'https://x/libreria/2/home-b-tel.mp4', 'libreria/2/home-b-tel.mp4',
+        'https://x/libreria/2/home-b.mp4', 'libreria/2/home-b.mp4', 'https://x/libreria/2/home-b-tel.mp4', 'libreria/2/home-b-tel.mp4', 'https://x/libreria/2/cop.webp', 'libreria/2/cop.webp',
         1920, 1440, 2, 'test698');
     ASSERT v_old @> ARRAY['libreria/2/home-a-tel.mp4', 'libreria/2/home-a.mp4'] AND array_length(v_old, 1) = 2, 'vecchi percorsi: ' || COALESCE(v_old::text, 'nessuno');
     ASSERT (fn_web_sito_home(2, 'IT')->'video'->>'versione')::bigint <> v_ver, 'la versione cambia col video';
@@ -49,26 +49,26 @@ BEGIN
     -- 5. cambiare il video avvisa la coda
     DELETE FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL;
     PERFORM fn_web_sito_video_home_save(2,
-        'https://x/libreria/2/home-c.mp4', 'libreria/2/home-c.mp4', 'https://x/libreria/2/home-c-tel.mp4', 'libreria/2/home-c-tel.mp4',
+        'https://x/libreria/2/home-c.mp4', 'libreria/2/home-c.mp4', 'https://x/libreria/2/home-c-tel.mp4', 'libreria/2/home-c-tel.mp4', 'https://x/libreria/2/cop.webp', 'libreria/2/cop.webp',
         1920, 1440, 2, 'test698');
     ASSERT EXISTS (SELECT 1 FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL), 'coda avvisata';
 
     -- 6. togliere il video: tutto NULL, si restituiscono i vecchi, la home non ha più video
-    SELECT array_agg(percorso) INTO v_old FROM fn_web_sito_video_home_save(2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test698');
-    ASSERT array_length(v_old, 1) = 2, 'togliendo il video si restituiscono i vecchi';
+    SELECT array_agg(percorso) INTO v_old FROM fn_web_sito_video_home_save(2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test698');
+    ASSERT array_length(v_old, 1) = 3, 'togliendo il video si restituiscono i vecchi (due versioni e la copertina)';
     ASSERT fn_web_sito_home(2, 'IT')->'video' = 'null'::jsonb, 'senza video: null';
 
     -- 7. rifiuti: dati a metà, file di un'altra azienda, durata oltre 20 s
     BEGIN
-        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/2/d.mp4', 'libreria/2/d.mp4', NULL, NULL, 1920, 1080, 10, 'test698');
+        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/2/d.mp4', 'libreria/2/d.mp4', NULL, NULL, 'https://x/libreria/2/cop.webp', 'libreria/2/cop.webp', 1920, 1080, 10, 'test698');
         RAISE EXCEPTION 'accettato senza versione da telefono';
     EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'accettato%' THEN RAISE; END IF; END;
     BEGIN
-        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/6/d.mp4', 'libreria/6/d.mp4', 'https://x/libreria/6/t.mp4', 'libreria/6/t.mp4', 1920, 1080, 10, 'test698');
+        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/6/d.mp4', 'libreria/6/d.mp4', 'https://x/libreria/6/t.mp4', 'libreria/6/t.mp4', 'https://x/libreria/6/cop.webp', 'libreria/6/cop.webp', 1920, 1080, 10, 'test698');
         RAISE EXCEPTION 'accettato il file di un''altra azienda';
     EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'accettato%' THEN RAISE; END IF; END;
     BEGIN
-        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/2/d.mp4', 'libreria/2/d.mp4', 'https://x/libreria/2/t.mp4', 'libreria/2/t.mp4', 1920, 1080, 45, 'test698');
+        PERFORM fn_web_sito_video_home_save(2, 'https://x/libreria/2/d.mp4', 'libreria/2/d.mp4', 'https://x/libreria/2/t.mp4', 'libreria/2/t.mp4', 'https://x/libreria/2/cop.webp', 'libreria/2/cop.webp', 1920, 1080, 45, 'test698');
         RAISE EXCEPTION 'accettato un video di 45 s';
     EXCEPTION WHEN raise_exception THEN IF SQLERRM LIKE 'accettato%' THEN RAISE; END IF; END;
 

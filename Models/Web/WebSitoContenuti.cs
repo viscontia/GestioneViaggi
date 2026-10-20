@@ -100,6 +100,9 @@ public sealed class SitoWebBozza
     public GestioneViaggi.Services.Shared.Storage.WebVideoProcessor.VideoPreparato? VideoNuovo { get; set; }
     public bool VideoTolto { get; set; }
 
+    /// <summary>Foto o video in preparazione (sul computer): finché dura, «Aggiorna» non si può premere.</summary>
+    public bool InPreparazione { get; set; }
+
     /// <summary>Butta via foto e video non ancora caricati (e i file temporanei del video).</summary>
     public void ScartaMedia()
     {

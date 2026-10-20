@@ -2662,6 +2662,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2959,8 +2960,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
-| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
+| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_query_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying DEFAULT NULL::character varying, p_limit_count integer DEFAULT NULL::integer | jsonb | SELECT generico per SuperAdmin su qualsiasi tabella |
 | `fn_sys_utente_pref_get` | p_utente_id uuid, p_chiave character varying | text |  |
 | `fn_sys_utente_pref_set` | p_utente_id uuid, p_chiave character varying, p_valore text | void |  |
@@ -3094,7 +3095,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_sito_piede` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_posta` | p_azienda_id integer, p_master text | jsonb |  |
 | `fn_web_sito_testo` | p_entita character varying, p_entita_id bigint, p_campo character varying, p_lingua character varying, p_italiano text | text |  |
-| `fn_web_sito_video_home_save` | p_azienda_id integer, p_url text, p_path text, p_telefono_url text, p_telefono_path text, p_larghezza integer, p_altezza integer, p_durata numeric, p_utente character varying | TABLE(percorso text) |  |
+| `fn_web_sito_video_home_save` | p_azienda_id integer, p_url text, p_path text, p_telefono_url text, p_telefono_path text, p_copertina_url text, p_copertina_path text, p_larghezza integer, p_altezza integer, p_durata numeric, p_utente character varying | TABLE(percorso text) |  |
 | `fn_web_tipi_viaggio_descrizioni_delete` | p_id bigint | integer |  |
 | `fn_web_tipi_viaggio_descrizioni_get` | p_id bigint | SETOF web_tipi_viaggio_descrizioni |  |
 | `fn_web_tipi_viaggio_descrizioni_insert` | p_descrizione_web character varying, p_slug character varying, p_ordine integer DEFAULT 0 | bigint |  |

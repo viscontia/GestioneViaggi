@@ -197,33 +197,42 @@ public sealed class WebSitoContenutiService
     }
 
     /// <summary>
-    /// Manda allo Storage le due versioni del video della home (698) e le registra; cancella le vecchie.
+    /// Manda allo Storage le due versioni del video della home e la sua copertina (698, 699) e le registra; cancella le vecchie.
     /// Stesse regole della foto. <c>null</c> = togliere il video.
     /// </summary>
     public async Task SalvaVideoHomeAsync(int aziendaId, WebVideoProcessor.VideoPreparato? video, string utente, CancellationToken ct = default)
     {
-        string? path = null, pathTel = null;
+        string? path = null, pathTel = null, pathCop = null;
         if (video is not null)
         {
             var nome = $"libreria/{aziendaId}/home-video-{Guid.NewGuid():N}";
-            path = $"{nome}.mp4";
-            pathTel = $"{nome}-telefono.mp4";
-            await using (var f = File.OpenRead(video.FileComputer))
-                await _storage.UploadAsync(path, f, WebVideoProcessor.Mime, ct);
+            var caricati = new List<string>();
             try
             {
-                await using var t = File.OpenRead(video.FileTelefono);
-                await _storage.UploadAsync(pathTel, t, WebVideoProcessor.Mime, ct);
+                foreach (var (p, file, mime) in new[]
+                         {
+                             ($"{nome}.mp4", video.FileComputer, WebVideoProcessor.Mime),
+                             ($"{nome}-telefono.mp4", video.FileTelefono, WebVideoProcessor.Mime),
+                             ($"{nome}-copertina.webp", video.FileCopertina, WebImageProcessor.Mime),
+                         })
+                {
+                    await using var f = File.OpenRead(file);
+                    await _storage.UploadAsync(p, f, mime, ct);
+                    caricati.Add(p);
+                }
             }
             catch
             {
-                try { await _storage.DeleteAsync(path, ct); } catch { }
+                // un caricamento a metà non lascia file orfani
+                foreach (var p in caricati)
+                    try { await _storage.DeleteAsync(p, ct); } catch { }
                 throw;
             }
+            (path, pathTel, pathCop) = (caricati[0], caricati[1], caricati[2]);
         }
         var vecchi = await RegistraAsync(
             "SELECT percorso FROM fn_web_sito_video_home_save(@Az::integer, @Url::text, @Path::text, @UrlTel::text, @PathTel::text, " +
-            "@W::integer, @H::integer, @Durata::numeric, @Utente::varchar)",
+            "@UrlCop::text, @PathCop::text, @W::integer, @H::integer, @Durata::numeric, @Utente::varchar)",
             cmd =>
             {
                 cmd.Parameters.AddWithValue("Az", aziendaId);
@@ -231,11 +240,13 @@ public sealed class WebSitoContenutiService
                 cmd.Parameters.AddWithValue("Path", (object?)path ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("UrlTel", pathTel is null ? DBNull.Value : _storage.BuildPublicUrl(pathTel));
                 cmd.Parameters.AddWithValue("PathTel", (object?)pathTel ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("UrlCop", pathCop is null ? DBNull.Value : _storage.BuildPublicUrl(pathCop));
+                cmd.Parameters.AddWithValue("PathCop", (object?)pathCop ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("W", (object?)video?.Larghezza ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("H", (object?)video?.Altezza ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("Durata", video is null ? DBNull.Value : (decimal)Math.Round(video.Durata, 2));
                 cmd.Parameters.AddWithValue("Utente", utente);
-            }, new[] { path, pathTel }, ct);
+            }, new[] { path, pathTel, pathCop }, ct);
         await CancellaAsync(vecchi, ct);
     }
 

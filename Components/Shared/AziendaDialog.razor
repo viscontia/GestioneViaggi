@@ -373,7 +373,7 @@
                 </MudTabPanel>
 
                 <MudTabPanel Text="Sito web" Icon="@Icons.Material.Filled.Public">
-                    <AziendaTabSitoWeb AziendaId="@Entity.Id" Stato="@_sitoWeb" />
+                    <AziendaTabSitoWeb AziendaId="@Entity.Id" Stato="@_sitoWeb" OnStato="@StateHasChanged" />
                 </MudTabPanel>
 
                 <MudTabPanel Text="Funzioni Web" Icon="@Icons.Material.Filled.Language">
@@ -408,10 +408,21 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="@_traducendo">
+        @* Mentre foto o video si preparano «Aggiorna» aspetta (salverebbe senza); mentre «Aggiorna» invia i file,
+           «Annulla» non si può premere (chiuderebbe il dialogo con l'invio ancora in corso: non annullerebbe niente). *@
+        @if (_sitoWeb.InPreparazione)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">Preparo il video: «Aggiorna» si attiva alla fine.</MudText>
+        }
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="@(_traducendo || _salvando)">
             Annulla
         </MudButton>
-        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_traducendo">
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_traducendo || _salvando || _sitoWeb.InPreparazione)">
+            @if (_salvando)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
             @(IsEditMode ? "Aggiorna" : "Crea")
         </MudButton>
     </DialogActions>
@@ -648,7 +659,19 @@
         StateHasChanged();
     }
 
+    private bool _salvando;
+
+    // Un salvataggio alla volta, e mai mentre foto o video si preparano (vale anche per Invio da tastiera).
     private async Task HandleSubmit()
+    {
+        if (_salvando || _sitoWeb.InPreparazione) return;
+        _salvando = true;
+        StateHasChanged();
+        try { await SalvaAsync(); }
+        finally { _salvando = false; StateHasChanged(); }
+    }
+
+    private async Task SalvaAsync()
     {
         if (_form != null)
         {

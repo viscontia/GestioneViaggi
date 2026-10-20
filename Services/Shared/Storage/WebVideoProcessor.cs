@@ -22,9 +22,12 @@ public static class WebVideoProcessor
     public const int BitrateTelefono = 800_000;
     public const string Mime = "video/mp4";
 
-    /// <summary>Le due versioni pronte, su file temporanei, con le misure (della versione computer).</summary>
+    /// <summary>
+    /// Le due versioni pronte e la COPERTINA (il primo fotogramma, in WebP: il sito la mostra finché il video non
+    /// parte, e il passaggio non si vede — script 699), su file temporanei, con le misure della versione computer.
+    /// </summary>
     public sealed record VideoPreparato(
-        string FileComputer, string FileTelefono, int Larghezza, int Altezza,
+        string FileComputer, string FileTelefono, string FileCopertina, int Larghezza, int Altezza,
         double DurataOriginale, double Durata)
     {
         /// <summary>Il video era più lungo: se ne usano solo i primi <see cref="MaxSecondi"/> secondi.</summary>
@@ -33,7 +36,7 @@ public static class WebVideoProcessor
         /// <summary>Cancella i file temporanei (scheda chiusa senza aggiornare, video tolto, caricato).</summary>
         public void Cancella()
         {
-            foreach (var f in new[] { FileComputer, FileTelefono })
+            foreach (var f in new[] { FileComputer, FileTelefono, FileCopertina })
                 try { if (File.Exists(f)) File.Delete(f); } catch { /* temporaneo: lo pulisce il sistema */ }
         }
     }
@@ -65,26 +68,38 @@ public static class WebVideoProcessor
         var nome = Guid.NewGuid().ToString("N");
         var computer = Path.Combine(cartella, $"{nome}.mp4");
         var telefono = Path.Combine(cartella, $"{nome}-telefono.mp4");
+        var copertina = Path.Combine(cartella, $"{nome}-copertina.webp");
         try
         {
 #if MACCATALYST || IOS
             var (w, h, durata) = await Mac.ConvertiAsync(sorgente, computer, LatoComputer, BitrateComputer, ct).ConfigureAwait(false);
             await Mac.ConvertiAsync(sorgente, telefono, LatoTelefono, BitrateTelefono, ct).ConfigureAwait(false);
+            await using (var fotogramma = Mac.PrimoFotogramma(sorgente))
+                await SalvaCopertinaAsync(fotogramma, copertina, ct).ConfigureAwait(false);
 #elif WINDOWS
             var (w, h, durata) = await Win.ConvertiAsync(sorgente, computer, LatoComputer, BitrateComputer, ct).ConfigureAwait(false);
             await Win.ConvertiAsync(sorgente, telefono, LatoTelefono, BitrateTelefono, ct).ConfigureAwait(false);
+            await using (var fotogramma = await Win.PrimoFotogrammaAsync(sorgente).ConfigureAwait(false))
+                await SalvaCopertinaAsync(fotogramma, copertina, ct).ConfigureAwait(false);
 #else
             int w = 0, h = 0; double durata = 0;
             await Task.CompletedTask;
             throw new PlatformNotSupportedException("Video: solo Mac e Windows.");
 #endif
-            return new VideoPreparato(computer, telefono, w, h, durata, DurataTenuta(durata));
+            return new VideoPreparato(computer, telefono, copertina, w, h, durata, DurataTenuta(durata));
         }
         catch
         {
-            new VideoPreparato(computer, telefono, 0, 0, 0, 0).Cancella();
+            new VideoPreparato(computer, telefono, copertina, 0, 0, 0, 0).Cancella();
             throw;
         }
+    }
+
+    // La copertina come le foto del sito: WebP, lato lungo al massimo 2000 px (WebImageProcessor).
+    private static async Task SalvaCopertinaAsync(Stream fotogramma, string destinazione, CancellationToken ct)
+    {
+        var img = await WebImageProcessor.ToOptimizedWebpAsync(fotogramma, ct).ConfigureAwait(false);
+        await File.WriteAllBytesAsync(destinazione, img.Bytes, ct).ConfigureAwait(false);
     }
 
 #if MACCATALYST || IOS
@@ -178,6 +193,25 @@ public static class WebVideoProcessor
                 throw new InvalidOperationException(scrittore.Error?.LocalizedDescription ?? "Video: conversione non completata.");
             return (wVista, hVista, durata);
         }
+
+        /// <summary>Il primo fotogramma, nel verso in cui si guarda, in JPEG (lo converte poi ImageSharp).</summary>
+        public static Stream PrimoFotogramma(string sorgente)
+        {
+            using var asset = AVFoundation.AVAsset.FromUrl(Foundation.NSUrl.FromFilename(sorgente));
+            using var generatore = new AVFoundation.AVAssetImageGenerator(asset)
+            {
+                AppliesPreferredTrackTransform = true,   // un video verticale dà una copertina verticale
+                RequestedTimeToleranceBefore = CoreMedia.CMTime.Zero,
+                RequestedTimeToleranceAfter = CoreMedia.CMTime.Zero,
+            };
+#pragma warning disable CA1422   // la versione asincrona non serve qui: un fotogramma, una volta
+            using var immagine = generatore.CopyCGImageAtTime(CoreMedia.CMTime.Zero, out _, out var errore)
+                                 ?? throw new InvalidOperationException(errore?.LocalizedDescription ?? MessaggioNonLetto);
+#pragma warning restore CA1422
+            using var ui = new UIKit.UIImage(immagine);
+            using var jpeg = ui.AsJPEG(0.92f) ?? throw new InvalidOperationException("Video: copertina non creata.");
+            return new MemoryStream(jpeg.ToArray());
+        }
     }
 #endif
 
@@ -228,6 +262,23 @@ public static class WebVideoProcessor
                 throw new InvalidOperationException($"{MessaggioNonLetto} ({preparato.FailureReason})");
             await preparato.TranscodeAsync().AsTask(ct).ConfigureAwait(false);
             return (w, h, durata);
+        }
+
+        /// <summary>Il primo fotogramma (Windows.Media.Editing), come immagine da convertire poi con ImageSharp.</summary>
+        public static async Task<Stream> PrimoFotogrammaAsync(string sorgente)
+        {
+            var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(sorgente).AsTask().ConfigureAwait(false);
+            var clip = await Windows.Media.Editing.MediaClip.CreateFromFileAsync(file).AsTask().ConfigureAwait(false);
+            var composizione = new Windows.Media.Editing.MediaComposition();
+            composizione.Clips.Add(clip);
+            var prop = await file.Properties.GetVideoPropertiesAsync().AsTask().ConfigureAwait(false);
+            var (w, h) = Misure((int)prop.Width, (int)prop.Height, LatoComputer);
+            var immagine = await composizione.GetThumbnailAsync(TimeSpan.Zero, w, h,
+                Windows.Media.Editing.VideoFramePrecision.NearestFrame).AsTask().ConfigureAwait(false);
+            var copia = new MemoryStream();
+            await immagine.AsStreamForRead().CopyToAsync(copia).ConfigureAwait(false);
+            copia.Position = 0;
+            return copia;
         }
     }
 #endif

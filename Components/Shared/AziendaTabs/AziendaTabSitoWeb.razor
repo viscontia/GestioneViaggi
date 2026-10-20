@@ -10,6 +10,7 @@
 @inject AziendaEmailService EmailService
 @inject ISessionManager SessionManager
 @inject ISnackbar Snackbar
+@implements IDisposable
 
 @* Scheda «Sito web» dell'azienda (voce L28, script 692). Ciò che il sito pubblico mostra e che
    decide il titolare: qui, non nel codice del sito (il prodotto serve più tour operator).
@@ -205,6 +206,13 @@
     /// <summary>Lo stato della scheda, tenuto dal dialogo: sopravvive al cambio di scheda.</summary>
     [Parameter, EditorRequired] public SitoWebBozza Stato { get; set; } = new();
 
+    /// <summary>Avvisa il dialogo quando cambia la preparazione di foto o video (abilita o no «Aggiorna»).</summary>
+    [Parameter] public EventCallback OnStato { get; set; }
+
+    // Chiudere il dialogo (Annulla) mentre il video si prepara interrompe la preparazione: niente file lasciati in giro.
+    private readonly CancellationTokenSource _chiusura = new();
+    public void Dispose() { _chiusura.Cancel(); _chiusura.Dispose(); }
+
     private bool _loading = true;
     private int _revisione;
 
@@ -274,11 +282,22 @@
 
     private async Task ScegliFoto(FileUploader.FileDaCaricare f)
     {
-        // Come le gallerie dei tour: 2000 px in WebP (non la versione da newsletter della libreria)
-        var img = await WebImageProcessor.ToOptimizedWebpAsync(f.Contenuto);
-        Stato.FotoNuova = new FotoHomeNuova(img.Bytes, img.Width, img.Height, img.Mime);
-        Stato.FotoTolta = false;
-        Cambiato();
+        Stato.InPreparazione = true;
+        await OnStato.InvokeAsync();
+        try
+        {
+            // Come le gallerie dei tour: 2000 px in WebP (non la versione da newsletter della libreria)
+            var img = await WebImageProcessor.ToOptimizedWebpAsync(f.Contenuto, _chiusura.Token);
+            Stato.FotoNuova = new FotoHomeNuova(img.Bytes, img.Width, img.Height, img.Mime);
+            Stato.FotoTolta = false;
+            Cambiato();
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            Stato.InPreparazione = false;
+            if (!_chiusura.IsCancellationRequested) await OnStato.InvokeAsync();
+        }
     }
 
     // «Togli» toglie ciò che si vede: la foto appena scelta (si torna a quella salvata), altrimenti quella salvata.
@@ -296,17 +315,21 @@
         Directory.CreateDirectory(cartella);
         var copia = Path.Combine(cartella, $"originale-{Guid.NewGuid():N}{Path.GetExtension(f.Nome)}");
         _preparoVideo = true;
-        StateHasChanged();
+        Stato.InPreparazione = true;
+        await OnStato.InvokeAsync();
+        var ct = _chiusura.Token;
         try
         {
             await using (var dest = File.Create(copia))
-                await f.Contenuto.CopyToAsync(dest);
-            var v = await WebVideoProcessor.PreparaAsync(copia);
+                await f.Contenuto.CopyToAsync(dest, ct);
+            var v = await WebVideoProcessor.PreparaAsync(copia, ct);
+            if (ct.IsCancellationRequested) { v.Cancella(); return; }   // dialogo chiuso nel frattempo
             Stato.VideoNuovo?.Cancella();
             Stato.VideoNuovo = v;
             Stato.VideoTolto = false;
             Cambiato();
         }
+        catch (OperationCanceledException) { /* Annulla durante la preparazione: il database non è stato toccato */ }
         catch (Exception ex)
         {
             Snackbar.Add($"Video non preparato: {ex.Message}", Severity.Error);
@@ -315,6 +338,8 @@
         {
             try { File.Delete(copia); } catch { }
             _preparoVideo = false;
+            Stato.InPreparazione = false;
+            if (!ct.IsCancellationRequested) await OnStato.InvokeAsync();
         }
     }
 
