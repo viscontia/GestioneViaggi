@@ -156,6 +156,21 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   testo lungo). ✅ **In PROD il 2026-10-17**: da qui **tutte e 7 le schede pubblicate** hanno il
   semaforo «Traduzioni» completo. Test `Test_690_…`.
 
+### La posta del sito pubblico: l'utente `sito_posta` (`SqlScripts/694`, 2026-10-20, Tappa 4A)
+Il modulo Contatti del sito manda una mail dal **server** del sito e **non scrive** nel database
+(decisione di Adriano del 2026-10-19).
+- Ruolo **`sito_posta`** (NOLOGIN; login a mano con la sola impronta SCRAM, come 679/681/688): può
+  **solo** chiamare `fn_web_sito_posta`. Nessuna tabella, né la funzione del guardiano, né quella interna
+  di decifratura (il test lo controlla). Il pezzo 4D gli aggiungerà le due funzioni della newsletter.
+- `fn_web_sito_posta(azienda, chiave)` → `{smtp, destinatario, mittente_nome}`: `smtp` è la configurazione
+  decifrata (`fn_get_smtp_config_for_email`; chiave sbagliata → errore, mai una password; `null` se
+  l'azienda non ne ha una attiva); `destinatario` è l'email scelta nella scheda «Sito web» (692),
+  altrimenti la principale; `mittente_nome` la ragione sociale. `SECURITY DEFINER`,
+  `search_path = public, extensions, pg_temp` (pgcrypto), niente a `PUBLIC`/`anon`/`authenticated`.
+- Test `Test_694_…` (non usa mai la chiave vera: per il destinatario spegne la posta nella transazione);
+  5 prove dell'errore rilevate; prova vera come `sito_posta` con la chiave del Mac: password decifrata.
+  In locale ✅.
+
 ### Le letture del sito per home e piede (`SqlScripts/693`, 2026-10-20, Tappa 4A)
 Quattro funzioni per il sito, `SECURITY DEFINER` con `search_path` fissato, lingua fra le 5 del sito
 (altro → errore), testi tradotti con ripiego sull'italiano (traduzione obsoleta o vuota → italiano).
@@ -2601,6 +2616,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2898,8 +2914,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
-| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
+| `fn_superadmin_get_all_companies` |  | jsonb |  |
 | `fn_superadmin_query_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying DEFAULT NULL::character varying, p_limit_count integer DEFAULT NULL::integer | jsonb | SELECT generico per SuperAdmin su qualsiasi tabella |
 | `fn_sys_utente_pref_get` | p_utente_id uuid, p_chiave character varying | text |  |
 | `fn_sys_utente_pref_set` | p_utente_id uuid, p_chiave character varying, p_valore text | void |  |
@@ -3029,6 +3045,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_sito_home` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_lingua_valida` | p_lingua character varying | void |  |
 | `fn_web_sito_piede` | p_azienda_id integer, p_lingua character varying | jsonb |  |
+| `fn_web_sito_posta` | p_azienda_id integer, p_master text | jsonb |  |
 | `fn_web_sito_testo` | p_entita character varying, p_entita_id bigint, p_campo character varying, p_lingua character varying, p_italiano text | text |  |
 | `fn_web_tipi_viaggio_descrizioni_delete` | p_id bigint | integer |  |
 | `fn_web_tipi_viaggio_descrizioni_get` | p_id bigint | SETOF web_tipi_viaggio_descrizioni |  |
@@ -3403,9 +3420,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_sito_evidenza_list`
 - `fn_web_sito_evidenza_save`
 - `fn_web_sito_home`
-- `fn_web_sito_lingua_valida`
 - `fn_web_sito_piede`
-- `fn_web_sito_testo`
+- `fn_web_sito_posta`
 - `fn_web_tipi_viaggio_descrizioni_delete`
 - `fn_web_tipi_viaggio_descrizioni_get`
 - `fn_web_tipi_viaggio_descrizioni_insert`
