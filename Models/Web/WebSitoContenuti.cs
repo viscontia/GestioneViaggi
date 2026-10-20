@@ -21,8 +21,23 @@ public sealed class WebSitoContenuti
 
     public int AziendaId { get; set; }
 
-    /// <summary>La foto d'apertura della home (libreria immagini dell'azienda). NULL = nessuna foto.</summary>
+    /// <summary>
+    /// La foto d'apertura scelta dalla libreria (1200 px, per le newsletter). Dal 698 resta solo come ripiego
+    /// finché non si carica una foto dalla scheda (<see cref="FotoHomeUrl"/>), che la spegne.
+    /// </summary>
     public long? FotoHomeFk { get; set; }
+
+    /// <summary>La foto d'apertura caricata dalla scheda (698): 2000 px in WebP. NULL = nessuna.</summary>
+    public string? FotoHomeUrl { get; set; }
+    public int? FotoHomeLarghezza { get; set; }
+    public int? FotoHomeAltezza { get; set; }
+
+    /// <summary>Il video d'apertura (698): versione computer e telefono, misure, durata. NULL = nessun video.</summary>
+    public string? VideoHomeUrl { get; set; }
+    public string? VideoHomeTelefonoUrl { get; set; }
+    public int? VideoHomeLarghezza { get; set; }
+    public int? VideoHomeAltezza { get; set; }
+    public decimal? VideoHomeDurata { get; set; }
 
     public string? Motto { get; set; }
     /// <summary>Il titolo dell'apertura, sotto il motto (script 695: era la «frase d'apertura»).</summary>
@@ -78,6 +93,25 @@ public sealed class SitoWebBozza
     public List<long> EvidenzaSalvata { get; set; } = new();
     public List<long> Evidenza { get; set; } = new();
     public bool Modificata { get; set; }
+
+    /// <summary>Foto e video scelti ma non ancora mandati allo Storage: ci vanno all'«Aggiorna».</summary>
+    public FotoHomeNuova? FotoNuova { get; set; }
+    public bool FotoTolta { get; set; }
+    public GestioneViaggi.Services.Shared.Storage.WebVideoProcessor.VideoPreparato? VideoNuovo { get; set; }
+    public bool VideoTolto { get; set; }
+
+    /// <summary>Butta via foto e video non ancora caricati (e i file temporanei del video).</summary>
+    public void ScartaMedia()
+    {
+        VideoNuovo?.Cancella();
+        VideoNuovo = null; FotoNuova = null; VideoTolto = false; FotoTolta = false;
+    }
+}
+
+/// <summary>La foto della home pronta per lo Storage (WebP 2000 px) e la sua anteprima.</summary>
+public sealed record FotoHomeNuova(byte[] Bytes, int Larghezza, int Altezza, string Mime)
+{
+    public string Anteprima => $"data:{Mime};base64,{Convert.ToBase64String(Bytes)}";
 }
 
 /// <summary>Lo stato di una lingua: quanti testi compilati, quanti tradotti (validi), quanti da rifare.</summary>

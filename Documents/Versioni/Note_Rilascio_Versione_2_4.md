@@ -90,8 +90,12 @@ del viaggio; i valori vecchi erano già stati svuotati in PROD (script 665).
 
 Nell'anagrafica dell'azienda c'è una scheda nuova, **«Sito web»**: ciò che il sito pubblico mostra e
 che decide il titolare. Per ora la sotto-scheda **Home**:
-- la **foto d'apertura** (scelta dalla libreria immagini, con anteprima e un avviso se è troppo piccola),
-  il **motto**, il **titolo** e il **sottotitolo** (facoltativo), tutti tradotti;
+- la **foto d'apertura**, caricata dalla scheda con «Scegli foto» (a piena qualità: 2000 pixel; la libreria
+  immagini resta per le newsletter), e il **video d'apertura** facoltativo con «Scegli video»: va bene anche
+  quello del telefono, il gestionale lo prepara da solo (primi 20 secondi, senza audio, una versione per il
+  computer e una per il telefono) e lo mostra in anteprima. Foto e video vanno sul sito con «Aggiorna»;
+  sostituiti, quelli vecchi si cancellano. Poi il **motto**, il **titolo** e il **sottotitolo** (facoltativo),
+  tutti tradotti;
 - l'**email che riceve i messaggi** del modulo Contatti del sito (vuota = l'email principale);
 - il blocco **«In evidenza»**: un titolo e fino a 3 tour, scelti fra quelli che il sito mostra; un tour
   non più pubblicato sparisce da solo dal sito;
@@ -102,7 +106,7 @@ di garanzia (ente, estremi), mostrati nel piede del sito.
 
 Si salva tutto con **«Aggiorna»**, che controlla anche le traduzioni del sito: se sono incomplete si può
 **tradurre subito**, **chiudere comunque** o **tornare indietro**. Le modifiche della scheda non si
-perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695.
+perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695, 698.
 
 ---
 
@@ -172,6 +176,7 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 | `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della frase d'apertura. Test `Test_695_…` | ✅ 2026-10-20 |
 | `696_Web_Sito_Partenze.sql` | Le partenze della home del sito in ordine di data. Nessun cambiamento nel gestionale. Test `Test_696_…` | ✅ 2026-10-20 |
 | `697_Messaggio_Pilota_Senza_CF.sql` | Pilota senza codice fiscale: il messaggio dice la residenza in anagrafica e cosa correggere (correzione 2.4). La regola non cambia. Test `Test_697_…` | ✅ 2026-10-20 |
+| `698_Web_Sito_Video_Home.sql` | Foto e video d'apertura della home caricati dalla scheda «Sito web» (§1.7). Test `Test_698_…` | ⏳ da portare in PROD (Task V5 del sito) |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.

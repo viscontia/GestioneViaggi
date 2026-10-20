@@ -618,6 +618,7 @@
 
     private void Cancel()
     {
+        _sitoWeb.ScartaMedia();   // foto e video scelti e non aggiornati: via anche i file temporanei
         MudDialog?.Cancel();
     }
 
@@ -919,6 +920,7 @@
 
     public void Dispose()
     {
+        _sitoWeb.ScartaMedia();
         try { JS.InvokeVoidAsync("dialogFormHelper.cleanup"); } catch { }
     }
 

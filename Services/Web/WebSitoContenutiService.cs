@@ -1,5 +1,6 @@
 using GestioneViaggi.Models.Web;
 using GestioneViaggi.Services.Database;
+using GestioneViaggi.Services.Shared.Storage;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 
@@ -18,11 +19,13 @@ public sealed class WebSitoContenutiService
 {
     private readonly IDatabaseService _db;
     private readonly WebTraduzioniService _traduzioni;
+    private readonly IWebMediaStorage _storage;
     private readonly ILogger<WebSitoContenutiService> _logger;
 
-    public WebSitoContenutiService(IDatabaseService db, WebTraduzioniService traduzioni, ILogger<WebSitoContenutiService> logger)
+    public WebSitoContenutiService(IDatabaseService db, WebTraduzioniService traduzioni, IWebMediaStorage storage,
+                                   ILogger<WebSitoContenutiService> logger)
     {
-        _db = db; _traduzioni = traduzioni; _logger = logger;
+        _db = db; _traduzioni = traduzioni; _storage = storage; _logger = logger;
     }
 
     /// <summary>I contenuti dell'azienda; vuoti (non null) se la riga non c'è ancora.</summary>
@@ -42,6 +45,14 @@ public sealed class WebSitoContenutiService
             SottotitoloHome = r["sottotitolo_home"] as string,
             EmailMessaggiFk = r["email_messaggi_fk"] as int?,
             EvidenzaTitolo = r["evidenza_titolo"] as string,
+            FotoHomeUrl = r["foto_home_url"] as string,
+            FotoHomeLarghezza = r["foto_home_larghezza"] as int?,
+            FotoHomeAltezza = r["foto_home_altezza"] as int?,
+            VideoHomeUrl = r["video_home_url"] as string,
+            VideoHomeTelefonoUrl = r["video_home_telefono_url"] as string,
+            VideoHomeLarghezza = r["video_home_larghezza"] as int?,
+            VideoHomeAltezza = r["video_home_altezza"] as int?,
+            VideoHomeDurata = r["video_home_durata"] as decimal?,
             UpdatedBy = r["updated_by"] as string,
             Updated = r["updated"] as DateTime?,
         };
@@ -157,6 +168,108 @@ public sealed class WebSitoContenutiService
         await cmd.ExecuteNonQueryAsync();
     }
 
+    /// <summary>
+    /// Manda allo Storage la foto della home (698) e la registra; cancella quella vecchia. Se il database
+    /// rifiuta, si cancella il file appena caricato: niente file orfani. <c>null</c> = togliere la foto.
+    /// </summary>
+    public async Task SalvaFotoHomeAsync(int aziendaId, FotoHomeNuova? foto, string utente, CancellationToken ct = default)
+    {
+        string? path = null, url = null;
+        if (foto is not null)
+        {
+            path = $"libreria/{aziendaId}/home-foto-{Guid.NewGuid():N}.webp";
+            await using (var ms = new MemoryStream(foto.Bytes))
+                await _storage.UploadAsync(path, ms, foto.Mime, ct);
+            url = _storage.BuildPublicUrl(path);
+        }
+        var vecchi = await RegistraAsync(
+            "SELECT percorso FROM fn_web_sito_foto_home_save(@Az::integer, @Url::text, @Path::text, @W::integer, @H::integer, @Utente::varchar)",
+            cmd =>
+            {
+                cmd.Parameters.AddWithValue("Az", aziendaId);
+                cmd.Parameters.AddWithValue("Url", (object?)url ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("Path", (object?)path ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("W", (object?)foto?.Larghezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("H", (object?)foto?.Altezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("Utente", utente);
+            }, new[] { path }, ct);
+        await CancellaAsync(vecchi, ct);
+    }
+
+    /// <summary>
+    /// Manda allo Storage le due versioni del video della home (698) e le registra; cancella le vecchie.
+    /// Stesse regole della foto. <c>null</c> = togliere il video.
+    /// </summary>
+    public async Task SalvaVideoHomeAsync(int aziendaId, WebVideoProcessor.VideoPreparato? video, string utente, CancellationToken ct = default)
+    {
+        string? path = null, pathTel = null;
+        if (video is not null)
+        {
+            var nome = $"libreria/{aziendaId}/home-video-{Guid.NewGuid():N}";
+            path = $"{nome}.mp4";
+            pathTel = $"{nome}-telefono.mp4";
+            await using (var f = File.OpenRead(video.FileComputer))
+                await _storage.UploadAsync(path, f, WebVideoProcessor.Mime, ct);
+            try
+            {
+                await using var t = File.OpenRead(video.FileTelefono);
+                await _storage.UploadAsync(pathTel, t, WebVideoProcessor.Mime, ct);
+            }
+            catch
+            {
+                try { await _storage.DeleteAsync(path, ct); } catch { }
+                throw;
+            }
+        }
+        var vecchi = await RegistraAsync(
+            "SELECT percorso FROM fn_web_sito_video_home_save(@Az::integer, @Url::text, @Path::text, @UrlTel::text, @PathTel::text, " +
+            "@W::integer, @H::integer, @Durata::numeric, @Utente::varchar)",
+            cmd =>
+            {
+                cmd.Parameters.AddWithValue("Az", aziendaId);
+                cmd.Parameters.AddWithValue("Url", path is null ? DBNull.Value : _storage.BuildPublicUrl(path));
+                cmd.Parameters.AddWithValue("Path", (object?)path ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("UrlTel", pathTel is null ? DBNull.Value : _storage.BuildPublicUrl(pathTel));
+                cmd.Parameters.AddWithValue("PathTel", (object?)pathTel ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("W", (object?)video?.Larghezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("H", (object?)video?.Altezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("Durata", video is null ? DBNull.Value : (decimal)Math.Round(video.Durata, 2));
+                cmd.Parameters.AddWithValue("Utente", utente);
+            }, new[] { path, pathTel }, ct);
+        await CancellaAsync(vecchi, ct);
+    }
+
+    // Registra nel database e restituisce i percorsi vecchi; se il database rifiuta, toglie i file nuovi.
+    private async Task<List<string>> RegistraAsync(string sql, Action<NpgsqlCommand> parametri, string?[] nuovi, CancellationToken ct)
+    {
+        try
+        {
+            var vecchi = new List<string>();
+            await using var conn = await _db.GetConnectionAsync();
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            parametri(cmd);
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct)) vecchi.Add(r.GetString(0));
+            return vecchi;
+        }
+        catch
+        {
+            foreach (var p in nuovi.OfType<string>())
+                try { await _storage.DeleteAsync(p, ct); } catch { /* resta orfano: lo si vede nello Storage */ }
+            throw;
+        }
+    }
+
+    // I file vecchi: se non si cancellano restano orfani nello Storage, ma la scheda è salvata: lo si scrive nel giornale.
+    private async Task CancellaAsync(IEnumerable<string> percorsi, CancellationToken ct)
+    {
+        foreach (var p in percorsi)
+        {
+            try { await _storage.DeleteAsync(p, ct); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Sito web: file vecchio {Path} non cancellato dallo Storage", p); }
+        }
+    }
+
     /// <summary>Carica (o ricarica) lo stato della scheda dal database: bozza = salvato.</summary>
     public async Task CaricaBozzaAsync(SitoWebBozza b, int aziendaId)
     {
@@ -165,19 +278,29 @@ public sealed class WebSitoContenutiService
         b.Bozza = b.Salvato.Copia();
         b.EvidenzaSalvata = await ListEvidenzaAsync(aziendaId);
         b.Evidenza = b.EvidenzaSalvata.ToList();
+        b.ScartaMedia();
         b.Modificata = false;
         b.Caricata = true;
     }
 
     /// <summary>
     /// Salva la bozza (testi e, se cambiato, l'elenco «In evidenza») e la ricarica. La usano il bottone
-    /// «Salva» della scheda e «Aggiorna» del dialogo. Restituisce le traduzioni diventate obsolete.
+    /// «Aggiorna» del dialogo e «Traduci» della scheda. Restituisce le traduzioni diventate obsolete.
     /// </summary>
     public async Task<int> SalvaBozzaAsync(SitoWebBozza b, string utente)
     {
         var obsolete = await SaveAsync(b.Bozza, utente);
         if (!b.Evidenza.SequenceEqual(b.EvidenzaSalvata))
             await SaveEvidenzaAsync(b.AziendaId, b.Evidenza, utente);
+        // Foto e video dopo i testi: una foto caricata spegne la scelta dalla libreria (698), e i testi la
+        // salvano ancora com'era. Ognuno si salva da sé: se il video non va, testi e foto restano salvati.
+        if (b.FotoNuova is not null || b.FotoTolta)
+        {
+            await SalvaFotoHomeAsync(b.AziendaId, b.FotoNuova, utente);
+            b.FotoNuova = null; b.FotoTolta = false;   // salvata: un secondo «Aggiorna» non la ricarica
+        }
+        if (b.VideoNuovo is not null || b.VideoTolto)
+            await SalvaVideoHomeAsync(b.AziendaId, b.VideoNuovo, utente);
         await CaricaBozzaAsync(b, b.AziendaId);
         return obsolete;
     }

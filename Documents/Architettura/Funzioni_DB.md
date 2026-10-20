@@ -164,7 +164,27 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_696_…`; 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (identica al
   locale, test superato).
 
-### Home: titolo e sottotitolo (`SqlScripts/695`, 2026-10-20, Tappa 4A)
+### Il video e la foto d'apertura della home (`SqlScripts/698`, 2026-10-20, Tappa 4A, Task V1)
+Decisioni del 2026-10-20 (disegno della Tappa 4, §8): il video lo prepara il gestionale (primi 20 s, senza
+audio, versioni computer e telefono) e lo manda allo Storage all'«Aggiorna» della scheda «Sito web».
+- `web_sito_contenuti` + `video_home_url`, `video_home_path`, `video_home_telefono_url`,
+  `video_home_telefono_path`, `video_home_larghezza`, `video_home_altezza`, `video_home_durata`,
+  `video_home_aggiornato`.
+- `fn_web_sito_video_home_save(azienda, url, path, url_telefono, path_telefono, larghezza, altezza, durata,
+  utente)` → `TABLE(percorso)`: registra il video nuovo (tutto NULL = lo toglie) e **restituisce i percorsi
+  del vecchio**, che il gestionale cancella dallo Storage (una copia sola, mai file orfani). Rifiuta dati a
+  metà, file fuori da `libreria/{azienda}/`, durate oltre 20 s. Solo `postgres`. Non tocca gli altri campi
+  della scheda, e `fn_web_sito_contenuti_save` non tocca il video.
+- `fn_web_sito_home` → in più `video: {computer, telefono, larghezza, altezza, versione} | null`; ai visitatori
+  vanno gli indirizzi, mai i percorsi interni; `versione` (millisecondi dell'ultima modifica) cambia a ogni
+  video. La coda di rigenerazione la avvisa il trigger della 692.
+- **La foto della home si carica dalla scheda** (Adriano, 2026-10-20): `foto_home_url`, `foto_home_path`,
+  `foto_home_larghezza`, `foto_home_altezza` (2000 px in WebP, a parte dalla libreria, che resta a 1200 px in
+  JPEG per le newsletter). `fn_web_sito_foto_home_save(azienda, url, path, larghezza, altezza, utente)` →
+  `TABLE(percorso)` come per il video; spegne `foto_home_fk` (il file della libreria non si cancella).
+  `fn_web_sito_home.foto`: quella della scheda, altrimenti quella scelta dalla libreria (ripiego).
+- Test `Test_698_…`; 10 prove dell'errore rilevate. In locale ✅; in PROD ⏳ (Task V5).
+
 Decisione di Adriano e Antonio del 2026-10-20: l'apertura della home ha **motto** (grande), **titolo** e
 **sottotitolo** (facoltativo), tutti tradotti (il motto per intero: «The world… off the beaten track»).
 - `web_sito_contenuti.frase_home` → **`titolo_home`**; nuova **`sottotitolo_home`** (300); le traduzioni
@@ -957,7 +977,7 @@ diceva in italiano, `fn_wizard_insert_prenotazione` (sito) inseriva e basta.
 
 | Funzione | Scopo |
 | :--- | :--- |
-| `fn_mov_clienti_viaggi_valida(dati, [modifica])` | Segnalazioni con gravità **e `riferimento`** |
+| `fn_mov_clienti_viaggi_valida(dati, [modifica])` | Segnalazioni con gravità **e `riferimento`**. Dal 697 (2026-10-20) il rifiuto del pilota senza codice fiscale dice la residenza in anagrafica e cosa correggere |
 | `fn_mov_clienti_viaggi_insert(dati, [conferme_accettate])` | Iscrizione |
 | `fn_mov_clienti_viaggi_update(dati, [conferme_accettate])` | Aggiornamento parziale |
 | `fn_mov_clienti_viaggi_delete(viaggio, data, cliente)` | Cancellazione |
@@ -2639,6 +2659,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2936,8 +2958,8 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_solo_testo` | p_html text | text | Testo leggibile di un frammento HTML: tag rimossi, spazi normalizzati. Per confronti di contenuto. |
 | `fn_superadmin_delete_from_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying | jsonb | DELETE generico per SuperAdmin su qualsiasi tabella |
 | `fn_superadmin_describe_table` | p_user_id uuid, p_table_name character varying | jsonb | DESCRIBE schema tabella per SuperAdmin |
-| `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
 | `fn_superadmin_get_all_companies` |  | jsonb |  |
+| `fn_superadmin_get_all_companies` | p_user_id uuid, p_tenant_filter character varying DEFAULT NULL::character varying | jsonb | Recupera tutte le aziende cross-tenant per SuperAdmin |
 | `fn_superadmin_query_table` | p_user_id uuid, p_table_name character varying, p_where_clause character varying DEFAULT NULL::character varying, p_limit_count integer DEFAULT NULL::integer | jsonb | SELECT generico per SuperAdmin su qualsiasi tabella |
 | `fn_sys_utente_pref_get` | p_utente_id uuid, p_chiave character varying | text |  |
 | `fn_sys_utente_pref_set` | p_utente_id uuid, p_chiave character varying, p_valore text | void |  |
@@ -3064,12 +3086,14 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_sito_evidenza` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_evidenza_list` | p_azienda_id integer | TABLE(ordine smallint, web_tour_contenuti_id bigint) |  |
 | `fn_web_sito_evidenza_save` | p_azienda_id integer, p_contenuti bigint[], p_utente character varying | void |  |
+| `fn_web_sito_foto_home_save` | p_azienda_id integer, p_url text, p_path text, p_larghezza integer, p_altezza integer, p_utente character varying | TABLE(percorso text) |  |
 | `fn_web_sito_home` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_lingua_valida` | p_lingua character varying | void |  |
 | `fn_web_sito_partenze` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_piede` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_posta` | p_azienda_id integer, p_master text | jsonb |  |
 | `fn_web_sito_testo` | p_entita character varying, p_entita_id bigint, p_campo character varying, p_lingua character varying, p_italiano text | text |  |
+| `fn_web_sito_video_home_save` | p_azienda_id integer, p_url text, p_path text, p_telefono_url text, p_telefono_path text, p_larghezza integer, p_altezza integer, p_durata numeric, p_utente character varying | TABLE(percorso text) |  |
 | `fn_web_tipi_viaggio_descrizioni_delete` | p_id bigint | integer |  |
 | `fn_web_tipi_viaggio_descrizioni_get` | p_id bigint | SETOF web_tipi_viaggio_descrizioni |  |
 | `fn_web_tipi_viaggio_descrizioni_insert` | p_descrizione_web character varying, p_slug character varying, p_ordine integer DEFAULT 0 | bigint |  |
@@ -3438,12 +3462,13 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_revalidate_fallita`
 - `fn_web_revalidate_pulisci`
 - `fn_web_sito_contenuti_get`
-- `fn_web_sito_contenuti_save`
 - `fn_web_sito_evidenza`
 - `fn_web_sito_evidenza_list`
 - `fn_web_sito_evidenza_save`
+- `fn_web_sito_foto_home_save`
 - `fn_web_sito_partenze`
 - `fn_web_sito_piede`
+- `fn_web_sito_video_home_save`
 - `fn_web_tipi_viaggio_descrizioni_delete`
 - `fn_web_tipi_viaggio_descrizioni_get`
 - `fn_web_tipi_viaggio_descrizioni_insert`

@@ -2,6 +2,7 @@
 @using GestioneViaggi.Models.Web
 @using GestioneViaggi.Services.CRUD
 @using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Shared.Storage
 @using GestioneViaggi.Services.Web
 @using MudBlazor
 @inject WebSitoContenutiService SitoService
@@ -33,39 +34,70 @@
                 <MudPaper Outlined="true" Class="pa-3 mb-3">
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Apertura della home</MudText>
 
-                    @if (_foto.Count == 0)
+                    @* Foto e video (698): si scelgono qui e vanno al sito con «Aggiorna», come i testi. *@
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Foto d'apertura</MudText>
+                    @if (FotoMostrata is { } fm)
                     {
-                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
-                            La libreria immagini è vuota: caricare prima la foto in <strong>Tabelle → Tabelle web → Libreria immagini</strong>.
-                            Senza foto, la home mostra il motto su fondo blu.
-                        </MudAlert>
+                        <img src="@fm.Src" alt="Foto d'apertura"
+                             style="max-width:100%; max-height:220px; border-radius:6px; display:block;" class="mb-1" />
+                        <MudText Typo="Typo.caption" Color="@(fm.Larghezza is < 1600 ? Color.Warning : Color.Secondary)">
+                            @fm.Nota
+                        </MudText>
                     }
                     else
                     {
-                        <MudSelect T="long?" Label="Foto d'apertura" Value="@Stato.Bozza.FotoHomeFk"
-                                   ValueChanged="@(v => { Stato.Bozza.FotoHomeFk = v; Cambiato(); })"
-                                   Variant="Variant.Outlined" Clearable="true" Class="mb-2"
-                                   HelperText="Una foto larga e luminosa (almeno 2000 pixel di larghezza). Vuoto = nessuna foto.">
-                            <MudSelectItem T="long?" Value="@((long?)null)">Nessuna foto</MudSelectItem>
-                            @foreach (var f in _foto)
-                            {
-                                <MudSelectItem T="long?" Value="@((long?)f.WebImmagineLibreriaId)">
-                                    @f.Descrizione @(f.Larghezza is { } l ? $"({l}×{f.Altezza})" : "")
-                                </MudSelectItem>
-                            }
-                        </MudSelect>
-                        @if (FotoScelta is { } fs)
-                        {
-                            <img src="@fs.Url" alt="@fs.Descrizione"
-                                 style="max-width:100%; max-height:220px; border-radius:6px; display:block;" class="mb-1" />
-                            @if (fs.Larghezza is < 1600)
-                            {
-                                <MudText Typo="Typo.caption" Color="Color.Warning">
-                                    La foto è larga solo @fs.Larghezza pixel: sugli schermi grandi si vedrà sgranata.
-                                </MudText>
-                            }
-                        }
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna foto: la home mostra il motto su fondo blu.</MudText>
                     }
+                    <div class="d-flex gap-2 mt-2 mb-3">
+                        <FileUploader Accept="image/*" MaxByte="@MaxFotoBytes" MostraAttesa="false"
+                                      EstensioniAmmesse="@(new[] { ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif" })"
+                                      OnFile="@ScegliFoto">
+                            <Attivatore>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image">Scegli foto</MudButton>
+                            </Attivatore>
+                        </FileUploader>
+                        @if (FotoMostrata is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="@TogliFoto">Togli foto</MudButton>
+                        }
+                    </div>
+
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">Video d'apertura (facoltativo)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-1" Style="display:block;">
+                        Gira sotto il motto, muto e in ripetizione; la foto resta come copertina (mentre il video si carica, e per chi
+                        ha chiesto di ridurre le animazioni). Va bene anche il video del telefono: il gestionale lo prepara da solo
+                        (primi @((int)WebVideoProcessor.MaxSecondi) secondi, senza audio). Meglio 10–20 secondi.
+                    </MudText>
+                    @if (VideoMostrato is { } vm)
+                    {
+                        <video src="@vm.Src" muted autoplay loop playsinline
+                               style="max-width:100%; max-height:220px; border-radius:6px; display:block;" class="mb-1"></video>
+                        <MudText Typo="Typo.caption" Color="@(vm.Avviso ? Color.Warning : Color.Secondary)">@vm.Nota</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun video: la home mostra la foto.</MudText>
+                    }
+                    <div class="d-flex gap-2 mt-2">
+                        <FileUploader Accept="video/*" MaxByte="@MaxVideoBytes" MostraAttesa="false" Disabilitato="@_preparoVideo"
+                                      EstensioniAmmesse="@(new[] { ".mov", ".mp4", ".m4v" })"
+                                      MessaggioEstensione="Video ammessi: MOV o MP4 (come quelli del telefono)."
+                                      OnFile="@ScegliVideo">
+                            <Attivatore>
+                                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Movie" Disabled="@_preparoVideo">
+                                    @(_preparoVideo ? "Preparo il video…" : "Scegli video")
+                                </MudButton>
+                            </Attivatore>
+                        </FileUploader>
+                        @if (_preparoVideo)
+                        {
+                            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                        }
+                        @if (VideoMostrato is not null && !_preparoVideo)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="@TogliVideo">Togli video</MudButton>
+                        }
+                    </div>
 
                     <MudTextField T="string" Label="Motto" Value="@Stato.Bozza.Motto"
                                   ValueChanged="@(v => { Stato.Bozza.Motto = v; Cambiato(); })" Immediate="true"
@@ -181,7 +213,117 @@
     private string? _principale;
     private List<TourPubblicatoScelta> _tour = new();
 
-    private WebImmagineLibreria? FotoScelta => _foto.FirstOrDefault(f => f.WebImmagineLibreriaId == Stato.Bozza.FotoHomeFk);
+    private const long MaxFotoBytes = 30L * 1024 * 1024;
+    /// <summary>Il video del telefono così com'è: un minuto in 4K pesa ~400 MB, ma se ne usano solo 20 s.</summary>
+    private const long MaxVideoBytes = 500L * 1024 * 1024;
+    private bool _preparoVideo;
+
+    private sealed record Anteprima(string Src, int? Larghezza, string Nota, bool Avviso = false);
+
+    // Cosa si vede ora: la foto appena scelta, altrimenti quella salvata (dalla scheda o, come ripiego, dalla libreria).
+    private Anteprima? FotoMostrata
+    {
+        get
+        {
+            if (Stato.FotoTolta) return null;
+            if (Stato.FotoNuova is { } n)
+                return new(n.Anteprima, n.Larghezza, $"Nuova foto, {n.Larghezza}×{n.Altezza}: va sul sito con «Aggiorna».");
+            if (Stato.Salvato.FotoHomeUrl is { } u)
+                return new(u, Stato.Salvato.FotoHomeLarghezza, $"{Stato.Salvato.FotoHomeLarghezza}×{Stato.Salvato.FotoHomeAltezza}");
+            if (_foto.FirstOrDefault(f => f.WebImmagineLibreriaId == Stato.Salvato.FotoHomeFk) is { } l)
+                return new(l.Url, l.Larghezza,
+                    $"Dalla libreria immagini ({l.Larghezza}×{l.Altezza}, la misura delle newsletter): sugli schermi grandi si vedrà " +
+                    "sgranata. Con «Scegli foto» si carica a piena qualità.");
+            return null;
+        }
+    }
+
+    private Anteprima? VideoMostrato
+    {
+        get
+        {
+            if (Stato.VideoTolto) return null;
+            if (Stato.VideoNuovo is { } v)
+                return new(AnteprimaVideo(v), v.Larghezza,
+                    v.Accorciato
+                        ? $"Il video dura {Durata(v.DurataOriginale)}: per la home si usano i primi {(int)WebVideoProcessor.MaxSecondi} secondi. Va sul sito con «Aggiorna»."
+                        : $"Nuovo video, {Durata(v.Durata)}: va sul sito con «Aggiorna».",
+                    Avviso: v.Accorciato);
+            if (Stato.Salvato.VideoHomeTelefonoUrl is { } u)
+                return new(u, Stato.Salvato.VideoHomeLarghezza,
+                    $"{Stato.Salvato.VideoHomeLarghezza}×{Stato.Salvato.VideoHomeAltezza}, {Durata((double)(Stato.Salvato.VideoHomeDurata ?? 0))}");
+            return null;
+        }
+    }
+
+    // L'anteprima del video appena preparato (versione telefono, qualche centinaio di KB): letta una volta sola.
+    private string? _anteprimaVideo;
+    private string? _anteprimaVideoDi;
+    private string AnteprimaVideo(WebVideoProcessor.VideoPreparato v)
+    {
+        if (_anteprimaVideoDi != v.FileTelefono)
+        {
+            _anteprimaVideo = $"data:{WebVideoProcessor.Mime};base64,{Convert.ToBase64String(File.ReadAllBytes(v.FileTelefono))}";
+            _anteprimaVideoDi = v.FileTelefono;
+        }
+        return _anteprimaVideo!;
+    }
+
+    private static string Durata(double secondi) =>
+        secondi >= 60 ? $"{(int)secondi / 60}:{(int)secondi % 60:00}" : $"{secondi:0.#} secondi";
+
+    private async Task ScegliFoto(FileUploader.FileDaCaricare f)
+    {
+        // Come le gallerie dei tour: 2000 px in WebP (non la versione da newsletter della libreria)
+        var img = await WebImageProcessor.ToOptimizedWebpAsync(f.Contenuto);
+        Stato.FotoNuova = new FotoHomeNuova(img.Bytes, img.Width, img.Height, img.Mime);
+        Stato.FotoTolta = false;
+        Cambiato();
+    }
+
+    // «Togli» toglie ciò che si vede: la foto appena scelta (si torna a quella salvata), altrimenti quella salvata.
+    private void TogliFoto()
+    {
+        if (Stato.FotoNuova is not null) Stato.FotoNuova = null;
+        else Stato.FotoTolta = true;
+        Cambiato();
+    }
+
+    private async Task ScegliVideo(FileUploader.FileDaCaricare f)
+    {
+        // Lo stream del componente si chiude subito dopo: il video si copia in un file temporaneo e si prepara da lì.
+        var cartella = Path.Combine(Path.GetTempPath(), "GestioneViaggi-video");
+        Directory.CreateDirectory(cartella);
+        var copia = Path.Combine(cartella, $"originale-{Guid.NewGuid():N}{Path.GetExtension(f.Nome)}");
+        _preparoVideo = true;
+        StateHasChanged();
+        try
+        {
+            await using (var dest = File.Create(copia))
+                await f.Contenuto.CopyToAsync(dest);
+            var v = await WebVideoProcessor.PreparaAsync(copia);
+            Stato.VideoNuovo?.Cancella();
+            Stato.VideoNuovo = v;
+            Stato.VideoTolto = false;
+            Cambiato();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Video non preparato: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            try { File.Delete(copia); } catch { }
+            _preparoVideo = false;
+        }
+    }
+
+    private void TogliVideo()
+    {
+        if (Stato.VideoNuovo is { } v) { v.Cancella(); Stato.VideoNuovo = null; }
+        else Stato.VideoTolto = true;
+        Cambiato();
+    }
     private IEnumerable<TourPubblicatoScelta> TourDisponibili => _tour.Where(t => !Stato.Evidenza.Contains(t.ContenutoId));
 
     // Un tour scelto può non essere più pubblicato: resta nell'elenco (il sito lo salta da solo), ma si dice.
