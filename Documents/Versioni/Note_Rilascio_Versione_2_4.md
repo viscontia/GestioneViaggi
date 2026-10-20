@@ -93,7 +93,8 @@ che decide il titolare. Per ora la sotto-scheda **Home**:
 - la **foto d'apertura**, caricata dalla scheda con «Scegli foto» (a piena qualità: 2000 pixel; la libreria
   immagini resta per le newsletter), e il **video d'apertura** facoltativo con «Scegli video»: va bene anche
   quello del telefono, il gestionale lo prepara da solo (primi 20 secondi, senza audio, una versione per il
-  computer e una per il telefono) e lo mostra in anteprima. Foto e video vanno sul sito con «Aggiorna»;
+  computer e una per il telefono, più la copertina: il primo fotogramma, che il sito mostra finché il video
+  non parte) e lo mostra in anteprima; finché lo prepara, «Aggiorna» aspetta. Foto e video vanno sul sito con «Aggiorna»;
   sostituiti, quelli vecchi si cancellano. Poi il **motto**, il **titolo** e il **sottotitolo** (facoltativo),
   tutti tradotti;
 - l'**email che riceve i messaggi** del modulo Contatti del sito (vuota = l'email principale);
@@ -106,7 +107,7 @@ di garanzia (ente, estremi), mostrati nel piede del sito.
 
 Si salva tutto con **«Aggiorna»**, che controlla anche le traduzioni del sito: se sono incomplete si può
 **tradurre subito**, **chiudere comunque** o **tornare indietro**. Le modifiche della scheda non si
-perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695, 698.
+perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695, 698, 699.
 
 ---
 
@@ -177,6 +178,7 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 | `696_Web_Sito_Partenze.sql` | Le partenze della home del sito in ordine di data. Nessun cambiamento nel gestionale. Test `Test_696_…` | ✅ 2026-10-20 |
 | `697_Messaggio_Pilota_Senza_CF.sql` | Pilota senza codice fiscale: il messaggio dice la residenza in anagrafica e cosa correggere (correzione 2.4). La regola non cambia. Test `Test_697_…` | ✅ 2026-10-20 |
 | `698_Web_Sito_Video_Home.sql` | Foto e video d'apertura della home caricati dalla scheda «Sito web» (§1.7). Test `Test_698_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già; la scheda arriva con l'eseguibile 2.4) |
+| `699_Web_Sito_Video_Copertina.sql` | La copertina del video d'apertura (§1.7). Test `Test_699_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già) |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.

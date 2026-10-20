@@ -164,6 +164,16 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_696_…`; 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (identica al
   locale, test superato).
 
+### La copertina del video d'apertura (`SqlScripts/699`, 2026-10-20, Tappa 4A, Task V5)
+Prova di Adriano sull'anteprima: col video, finché non partiva, si vedeva il fondo blu; i siti d'esempio
+mostrano il primo fotogramma del video, e il video ci parte sopra senza salti.
+- `web_sito_contenuti` + `video_home_copertina_url`, `video_home_copertina_path` (WebP, dal gestionale).
+- `fn_web_sito_video_home_save(azienda, url, path, url_telefono, path_telefono, url_copertina, path_copertina,
+  larghezza, altezza, durata, utente)`: la copertina è obbligatoria e torna fra i percorsi vecchi; la firma a 9
+  parametri del 698 è tolta (la usava solo il codice della 2.4, non rilasciato). Test del 698 aggiornato.
+- `fn_web_sito_home.video` → in più `copertina` (null per un video registrato prima del 699).
+- Test `Test_699_…`; 5 prove dell'errore rilevate. ✅ In locale e **in PROD il 2026-10-20** (test superato).
+
 ### Il video e la foto d'apertura della home (`SqlScripts/698`, 2026-10-20, Tappa 4A, Task V1)
 Decisioni del 2026-10-20 (disegno della Tappa 4, §8): il video lo prepara il gestionale (primi 20 s, senza
 audio, versioni computer e telefono) e lo manda allo Storage all'«Aggiorna» della scheda «Sito web».
