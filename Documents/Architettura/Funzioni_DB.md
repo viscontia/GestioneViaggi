@@ -169,7 +169,7 @@ Il modulo Contatti del sito manda una mail dal **server** del sito e **non scriv
   `search_path = public, extensions, pg_temp` (pgcrypto), niente a `PUBLIC`/`anon`/`authenticated`.
 - Test `Test_694_…` (non usa mai la chiave vera: per il destinatario spegne la posta nella transazione);
   5 prove dell'errore rilevate; prova vera come `sito_posta` con la chiave del Mac: password decifrata.
-  In locale ✅.
+  In locale ✅; ✅ **in PROD il 2026-10-20** (test superato; login di `sito_posta` non ancora dato).
 
 ### Le letture del sito per home e piede (`SqlScripts/693`, 2026-10-20, Tappa 4A)
 Quattro funzioni per il sito, `SECURITY DEFINER` con `search_path` fissato, lingua fra le 5 del sito
@@ -192,7 +192,7 @@ Quattro funzioni per il sito, `SECURITY DEFINER` con `search_path` fissato, ling
   ⚠️ `CREATE OR REPLACE` **conserva i permessi** di una funzione che esiste già: per provare un errore
   sui permessi va prima cancellata (scoperto qui, 2026-10-20).
 - Test `Test_693_…` (si costruisce da solo i tour pubblicati e non pubblicati che gli servono);
-  8 prove dell'errore rilevate. In locale ✅.
+  8 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (test superato).
 
 ### La scheda «Sito web» dell'azienda: home, «In evidenza», garanzie (`SqlScripts/692`, 2026-10-19, Tappa 4A, voci L24 L26 L28)
 Disegno: `Sito Web SFT/Documenti/Analisi/2026-10-19-Tappa_4_Contorno_Disegno.md`.
@@ -217,7 +217,7 @@ Disegno: `Sito Web SFT/Documenti/Analisi/2026-10-19-Tappa_4_Contorno_Disegno.md`
   `menu` (tutto il sito). Le garanzie avvisano già con `ana_aziende` (691).
 - RLS attiva sulle due tabelle, niente ad `anon`/`authenticated`.
 - Test `Test_692_…`; 6 prove dell'errore rilevate (una scoperta così: in locale non c'erano tour di
-  altre aziende e il controllo veniva saltato; ora il test se ne «presta» uno). In locale ✅.
+  altre aziende e il controllo veniva saltato; ora il test se ne «presta» uno). In locale ✅; ✅ **in PROD il 2026-10-20** (test superato).
 
 ### La coda si accorge di anagrafica, traduzioni e testi delle giornate (`SqlScripts/691`, 2026-10-17, Tappa 3)
 Il trigger `trg_web_revalidate_func` (654) avvisava la coda solo per schede, foto, giornate, mappe,
