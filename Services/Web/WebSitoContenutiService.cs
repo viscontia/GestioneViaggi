@@ -213,7 +213,7 @@ public sealed class WebSitoContenutiService
                          {
                              ($"{nome}.mp4", video.FileComputer, WebVideoProcessor.Mime),
                              ($"{nome}-telefono.mp4", video.FileTelefono, WebVideoProcessor.Mime),
-                             ($"{nome}-copertina.webp", video.FileCopertina, WebImageProcessor.Mime),
+                             ($"{nome}-copertina.jpg", video.FileCopertina, WebVideoProcessor.MimeCopertina),
                          })
                 {
                     await using var f = File.OpenRead(file);

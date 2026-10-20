@@ -21,9 +21,16 @@ public static class WebVideoProcessor
     public const int BitrateComputer = 2_000_000;
     public const int BitrateTelefono = 800_000;
     public const string Mime = "video/mp4";
+    /// <summary>
+    /// La copertina è un JPEG, non un WebP: il codificatore WebP di ImageSharp impiegava 16 s per un fotogramma
+    /// (misurato il 2026-10-20), quello JPEG del sistema pochi millisecondi. Ai visitatori la riconverte il sito.
+    /// </summary>
+    public const string MimeCopertina = "image/jpeg";
+    /// <summary>Qualità della copertina: si vede un istante, prima del video; più leggera = meno attesa.</summary>
+    public const float QualitaCopertina = 0.5f;   // scala di Apple: 0,7 dava 1 MB per 1744×1308, 0,5 circa la metà
 
     /// <summary>
-    /// Le due versioni pronte e la COPERTINA (il primo fotogramma, in WebP: il sito la mostra finché il video non
+    /// Le due versioni pronte e la COPERTINA (il primo fotogramma, in JPEG: il sito la mostra finché il video non
     /// parte, e il passaggio non si vede — script 699), su file temporanei, con le misure della versione computer.
     /// </summary>
     public sealed record VideoPreparato(
@@ -68,19 +75,23 @@ public static class WebVideoProcessor
         var nome = Guid.NewGuid().ToString("N");
         var computer = Path.Combine(cartella, $"{nome}.mp4");
         var telefono = Path.Combine(cartella, $"{nome}-telefono.mp4");
-        var copertina = Path.Combine(cartella, $"{nome}-copertina.webp");
+        var copertina = Path.Combine(cartella, $"{nome}-copertina.jpg");
         try
         {
 #if MACCATALYST || IOS
             var (w, h, durata) = await Mac.ConvertiAsync(sorgente, computer, LatoComputer, BitrateComputer, ct).ConfigureAwait(false);
             await Mac.ConvertiAsync(sorgente, telefono, LatoTelefono, BitrateTelefono, ct).ConfigureAwait(false);
-            await using (var fotogramma = Mac.PrimoFotogramma(sorgente))
-                await SalvaCopertinaAsync(fotogramma, copertina, ct).ConfigureAwait(false);
+            await File.WriteAllBytesAsync(copertina, Mac.PrimoFotogramma(sorgente), ct).ConfigureAwait(false);
 #elif WINDOWS
             var (w, h, durata) = await Win.ConvertiAsync(sorgente, computer, LatoComputer, BitrateComputer, ct).ConfigureAwait(false);
             await Win.ConvertiAsync(sorgente, telefono, LatoTelefono, BitrateTelefono, ct).ConfigureAwait(false);
             await using (var fotogramma = await Win.PrimoFotogrammaAsync(sorgente).ConfigureAwait(false))
-                await SalvaCopertinaAsync(fotogramma, copertina, ct).ConfigureAwait(false);
+            {
+                // su Windows il fotogramma arriva come immagine da ricomprimere: JPEG (veloce anche con ImageSharp)
+                using var img = await SixLabors.ImageSharp.Image.LoadAsync(fotogramma, ct).ConfigureAwait(false);
+                await SixLabors.ImageSharp.ImageExtensions.SaveAsJpegAsync(img, copertina,
+                    new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder { Quality = (int)(QualitaCopertina * 100) }, ct).ConfigureAwait(false);
+            }
 #else
             int w = 0, h = 0; double durata = 0;
             await Task.CompletedTask;
@@ -95,12 +106,6 @@ public static class WebVideoProcessor
         }
     }
 
-    // La copertina come le foto del sito: WebP, lato lungo al massimo 2000 px (WebImageProcessor).
-    private static async Task SalvaCopertinaAsync(Stream fotogramma, string destinazione, CancellationToken ct)
-    {
-        var img = await WebImageProcessor.ToOptimizedWebpAsync(fotogramma, ct).ConfigureAwait(false);
-        await File.WriteAllBytesAsync(destinazione, img.Bytes, ct).ConfigureAwait(false);
-    }
 
 #if MACCATALYST || IOS
     /// <summary>AVFoundation: si legge solo la traccia video (niente audio) per i primi 20 s e la si riscrive.</summary>
@@ -194,8 +199,8 @@ public static class WebVideoProcessor
             return (wVista, hVista, durata);
         }
 
-        /// <summary>Il primo fotogramma, nel verso in cui si guarda, in JPEG (lo converte poi ImageSharp).</summary>
-        public static Stream PrimoFotogramma(string sorgente)
+        /// <summary>Il primo fotogramma, nel verso in cui si guarda, in JPEG (codificatore del sistema).</summary>
+        public static byte[] PrimoFotogramma(string sorgente)
         {
             using var asset = AVFoundation.AVAsset.FromUrl(Foundation.NSUrl.FromFilename(sorgente));
             using var generatore = new AVFoundation.AVAssetImageGenerator(asset)
@@ -209,8 +214,8 @@ public static class WebVideoProcessor
                                  ?? throw new InvalidOperationException(errore?.LocalizedDescription ?? MessaggioNonLetto);
 #pragma warning restore CA1422
             using var ui = new UIKit.UIImage(immagine);
-            using var jpeg = ui.AsJPEG(0.92f) ?? throw new InvalidOperationException("Video: copertina non creata.");
-            return new MemoryStream(jpeg.ToArray());
+            using var jpeg = ui.AsJPEG(QualitaCopertina) ?? throw new InvalidOperationException("Video: copertina non creata.");
+            return jpeg.ToArray();
         }
     }
 #endif
