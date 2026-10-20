@@ -91,6 +91,7 @@ successivo l'ha ridefinita, conta quello.
 | 694 | `694_Web_Utente_Sito_Posta.sql` | L'utente `sito_posta` (posta del modulo Contatti, nessuna scrittura) | Sito pubblico | ✅ **2026-10-20** (identica al locale; test superato in PROD). ⏳ **Login non ancora dato** (impronta SCRAM, al Task 15 della Tappa 4A) | `Funzioni_DB.md` |
 | 695 | `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della «frase d'apertura» (colonna rinominata, traduzioni seguite, firma del salvataggio con un parametro in più) | Sito pubblico + gestionale 2.4 | ✅ **2026-10-20** (identiche al locale; test superato in PROD; testi di Antonio inseriti e tradotti) | `Funzioni_DB.md` |
 | 696 | `696_Web_Sito_Partenze.sql` | Le partenze della home in ordine di data (blocco «Si parte») | Sito pubblico | ✅ **2026-10-20** (identica al locale `ec017814…`; test superato in PROD) | `Funzioni_DB.md` |
+| 697 | `697_Messaggio_Pilota_Senza_CF.sql` | Pilota senza codice fiscale: il messaggio dice la residenza in anagrafica e cosa correggere (regola invariata) | Gestionale e sito Flask | ✅ **2026-10-20** (identica al locale `02abdd18…`; test superato in PROD) | `Note_Rilascio_Versione_2_4.md` §2.4 |
 
 **Effetti verificati per gli script senza funzioni (2026-10-16):** 645 tabella
 `ana_modalita_pagamento` presente; 655 le quattro funzioni pubbliche del sito `SECURITY DEFINER`;

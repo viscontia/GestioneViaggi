@@ -130,6 +130,15 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
   Esperienze) sono tradotti nelle 4 lingue (script 686), e lo sono anche i titoli delle 11 schede
   (script 685). Tutto revisionato; si cambia dal gestionale come ogni traduzione.
 
+### 2.4 — Pilota senza codice fiscale: il messaggio dice perché
+
+Quando si iscrive come pilota un cliente senza codice fiscale, il messaggio ora dice dove risulta
+residente in anagrafica e cosa correggere: «… risulta residente in Italia (COMO): il codice fiscale
+serve per emettere la fattura a chi guida. Se risiede all'estero, correggi il comune di residenza.»
+La regola non cambia (chi risiede all'estero non deve avere il codice fiscale). Nato da un caso
+reale del 2026-10-20: un cliente svizzero sembrava bloccato da un controllo sbagliato, invece in
+anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con la 2.3.
+
 ---
 
 ## Sezione 3 — Documentazione
@@ -162,6 +171,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `694_Web_Utente_Sito_Posta.sql` | L'utente `sito_posta` del server del sito: legge solo la configurazione di posta e l'indirizzo che riceve i messaggi del modulo Contatti. Dopo lo script: login a mano (impronta SCRAM) e password nel `.env` del server. Test `Test_694_…` | ✅ 2026-10-20 (login non ancora dato) |
 | `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della frase d'apertura. Test `Test_695_…` | ✅ 2026-10-20 |
 | `696_Web_Sito_Partenze.sql` | Le partenze della home del sito in ordine di data. Nessun cambiamento nel gestionale. Test `Test_696_…` | ✅ 2026-10-20 |
+| `697_Messaggio_Pilota_Senza_CF.sql` | Pilota senza codice fiscale: il messaggio dice la residenza in anagrafica e cosa correggere (correzione 2.4). La regola non cambia. Test `Test_697_…` | ✅ 2026-10-20 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
