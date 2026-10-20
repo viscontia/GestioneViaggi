@@ -90,6 +90,7 @@ successivo l'ha ridefinita, conta quello.
 | 693 | `693_Web_Sito_Letture.sql` | Le letture del sito per home, «In evidenza», piede e zone della mappa | Sito pubblico | ✅ **2026-10-20** (identiche al locale; solo `anon`/`authenticated`; test superato in PROD) | `Funzioni_DB.md` |
 | 694 | `694_Web_Utente_Sito_Posta.sql` | L'utente `sito_posta` (posta del modulo Contatti, nessuna scrittura) | Sito pubblico | ✅ **2026-10-20** (identica al locale; test superato in PROD). ⏳ **Login non ancora dato** (impronta SCRAM, al Task 15 della Tappa 4A) | `Funzioni_DB.md` |
 | 695 | `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della «frase d'apertura» (colonna rinominata, traduzioni seguite, firma del salvataggio con un parametro in più) | Sito pubblico + gestionale 2.4 | ✅ **2026-10-20** (identiche al locale; test superato in PROD; testi di Antonio inseriti e tradotti) | `Funzioni_DB.md` |
+| 696 | `696_Web_Sito_Partenze.sql` | Le partenze della home in ordine di data (blocco «Si parte») | Sito pubblico | ✅ **2026-10-20** (identica al locale `ec017814…`; test superato in PROD) | `Funzioni_DB.md` |
 
 **Effetti verificati per gli script senza funzioni (2026-10-16):** 645 tabella
 `ana_modalita_pagamento` presente; 655 le quattro funzioni pubbliche del sito `SECURITY DEFINER`;

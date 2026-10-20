@@ -161,6 +161,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `693_Web_Sito_Letture.sql` | Le letture del sito per home, «In evidenza», piede e mappa delle zone (dati della scheda «Sito web» e dell'anagrafica, tradotti). Nessun cambiamento visibile nel gestionale. Test `Test_693_…` | ✅ 2026-10-20 |
 | `694_Web_Utente_Sito_Posta.sql` | L'utente `sito_posta` del server del sito: legge solo la configurazione di posta e l'indirizzo che riceve i messaggi del modulo Contatti. Dopo lo script: login a mano (impronta SCRAM) e password nel `.env` del server. Test `Test_694_…` | ✅ 2026-10-20 (login non ancora dato) |
 | `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della frase d'apertura. Test `Test_695_…` | ✅ 2026-10-20 |
+| `696_Web_Sito_Partenze.sql` | Le partenze della home del sito in ordine di data. Nessun cambiamento nel gestionale. Test `Test_696_…` | ✅ 2026-10-20 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
