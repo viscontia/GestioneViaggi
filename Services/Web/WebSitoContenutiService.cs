@@ -38,7 +38,8 @@ public sealed class WebSitoContenutiService
             AziendaId = aziendaId,
             FotoHomeFk = r["foto_home_fk"] as long?,
             Motto = r["motto"] as string,
-            FraseHome = r["frase_home"] as string,
+            TitoloHome = r["titolo_home"] as string,
+            SottotitoloHome = r["sottotitolo_home"] as string,
             EmailMessaggiFk = r["email_messaggi_fk"] as int?,
             EvidenzaTitolo = r["evidenza_titolo"] as string,
             UpdatedBy = r["updated_by"] as string,
@@ -56,13 +57,14 @@ public sealed class WebSitoContenutiService
 
         await using (var conn = await _db.GetConnectionAsync())
         await using (var cmd = new NpgsqlCommand(
-            "SELECT fn_web_sito_contenuti_save(@Az::integer, @Foto::bigint, @Motto::varchar, @Frase::varchar, " +
-            "@Email::integer, @Titolo::varchar, @Utente::varchar)", conn))
+            "SELECT fn_web_sito_contenuti_save(@Az::integer, @Foto::bigint, @Motto::varchar, @TitoloHome::varchar, " +
+            "@SottotitoloHome::varchar, @Email::integer, @Titolo::varchar, @Utente::varchar)", conn))
         {
             cmd.Parameters.AddWithValue("Az", c.AziendaId);
             cmd.Parameters.AddWithValue("Foto", (object?)c.FotoHomeFk ?? DBNull.Value);
             cmd.Parameters.AddWithValue("Motto", (object?)c.Motto ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("Frase", (object?)c.FraseHome ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("TitoloHome", (object?)c.TitoloHome ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("SottotitoloHome", (object?)c.SottotitoloHome ?? DBNull.Value);
             cmd.Parameters.AddWithValue("Email", (object?)c.EmailMessaggiFk ?? DBNull.Value);
             cmd.Parameters.AddWithValue("Titolo", (object?)c.EvidenzaTitolo ?? DBNull.Value);
             cmd.Parameters.AddWithValue("Utente", utente);

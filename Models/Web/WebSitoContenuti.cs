@@ -2,7 +2,7 @@ namespace GestioneViaggi.Models.Web;
 
 /// <summary>
 /// La scheda «Sito web» dell'azienda (tabella web_sito_contenuti, script 692): una riga per azienda.
-/// Sotto-scheda Home: foto d'apertura, motto, frase, email che riceve i messaggi del sito, titolo del
+/// Sotto-scheda Home: foto d'apertura, motto, titolo e sottotitolo (script 695), email che riceve i messaggi del sito, titolo del
 /// blocco «In evidenza». Chi siamo e testi legali arriveranno con i pezzi 4B/4C del sito.
 /// </summary>
 /// <remarks>
@@ -15,7 +15,8 @@ public sealed class WebSitoContenuti
     public const string Entita = "web_sito_contenuti";
 
     public const int MaxMotto = 120;
-    public const int MaxFraseHome = 300;
+    public const int MaxTitoloHome = 300;
+    public const int MaxSottotitoloHome = 300;
     public const int MaxEvidenzaTitolo = 120;
 
     public int AziendaId { get; set; }
@@ -24,7 +25,11 @@ public sealed class WebSitoContenuti
     public long? FotoHomeFk { get; set; }
 
     public string? Motto { get; set; }
-    public string? FraseHome { get; set; }
+    /// <summary>Il titolo dell'apertura, sotto il motto (script 695: era la «frase d'apertura»).</summary>
+    public string? TitoloHome { get; set; }
+
+    /// <summary>Il sottotitolo dell'apertura: facoltativo (vuoto = non si mostra).</summary>
+    public string? SottotitoloHome { get; set; }
 
     /// <summary>L'email che riceve i messaggi del modulo Contatti. NULL = l'email principale.</summary>
     public int? EmailMessaggiFk { get; set; }
@@ -39,7 +44,8 @@ public sealed class WebSitoContenuti
     public IEnumerable<(string Campo, string Etichetta, string? Valore)> CampiTraducibili()
     {
         yield return ("motto", "Home — Motto", Motto);
-        yield return ("frase_home", "Home — Frase d'apertura", FraseHome);
+        yield return ("titolo_home", "Home — Titolo", TitoloHome);
+        yield return ("sottotitolo_home", "Home — Sottotitolo", SottotitoloHome);
         yield return ("evidenza_titolo", "Home — Titolo «In evidenza»", EvidenzaTitolo);
     }
 

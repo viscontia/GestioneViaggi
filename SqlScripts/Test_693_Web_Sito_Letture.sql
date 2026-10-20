@@ -1,5 +1,6 @@
 -- ============================================================================
 -- Test dello script 693. Transazione annullata: dati di prova spariscono.
+-- (Aggiornato col 695: titolo e sottotitolo al posto della frase.)
 -- Prima dello script deve FALLIRE (le funzioni non esistono).
 -- ============================================================================
 BEGIN;
@@ -48,14 +49,16 @@ BEGIN
     END LOOP;
 
     -- 2. home: senza riga → null; poi italiano e traduzioni
+    -- il test non dipende dai testi e dalle traduzioni che ci sono già (in PROD ci sono)
+    DELETE FROM web_traduzioni WHERE entita = 'web_sito_contenuti' AND entita_id = 2;
     DELETE FROM web_sito_contenuti WHERE azienda_id = 2;
     ASSERT fn_web_sito_home(2, 'IT') IS NULL, 'senza contenuti la home non ha dati';
     INSERT INTO web_immagini_libreria (descrizione, url, storage_path, larghezza, altezza, azienda_id, created_by)
     VALUES ('Tramonto in Ogliastra', 'https://esempio.invalid/home.jpg', 'prova/home.jpg', 2400, 1600, 2, 'test693')
     RETURNING web_immagini_libreria_id INTO v_foto;
-    PERFORM fn_web_sito_contenuti_save(2, v_foto, 'Il mondo… fuori traccia', 'Tour in fuoristrada', NULL, 'Capodanno fuori traccia', 'test693');
+    PERFORM fn_web_sito_contenuti_save(2, v_foto, 'Il mondo… fuori traccia', 'Tour in fuoristrada', NULL, NULL, 'Capodanno fuori traccia', 'test693');
     v_j := fn_web_sito_home(2, 'IT');
-    ASSERT v_j->>'motto' = 'Il mondo… fuori traccia' AND v_j->>'frase' = 'Tour in fuoristrada', 'home in italiano';
+    ASSERT v_j->>'motto' = 'Il mondo… fuori traccia' AND v_j->>'titolo' = 'Tour in fuoristrada', 'home in italiano';
     ASSERT v_j->'foto'->>'url' = 'https://esempio.invalid/home.jpg' AND (v_j->'foto'->>'larghezza')::int = 2400, 'foto della home';
     INSERT INTO web_traduzioni (entita, entita_id, campo, lingua, testo, azienda_id, created_by) VALUES
         ('web_sito_contenuti', 2, 'motto', 'EN', 'The world… off the beaten track', 2, 'test693'),
@@ -63,10 +66,10 @@ BEGIN
         ('web_sito_contenuti', 2, 'motto', 'FR', '   ', 2, 'test693');
     UPDATE web_traduzioni SET obsoleto = true WHERE entita = 'web_sito_contenuti' AND entita_id = 2 AND lingua = 'DE';
     ASSERT fn_web_sito_home(2, 'EN')->>'motto' = 'The world… off the beaten track', 'motto tradotto';
-    ASSERT fn_web_sito_home(2, 'EN')->>'frase' = 'Tour in fuoristrada', 'traduzione mancante → italiano';
+    ASSERT fn_web_sito_home(2, 'EN')->>'titolo' = 'Tour in fuoristrada', 'traduzione mancante → italiano';
     ASSERT fn_web_sito_home(2, 'DE')->>'motto' = 'Il mondo… fuori traccia', 'traduzione obsoleta → italiano';
     ASSERT fn_web_sito_home(2, 'FR')->>'motto' = 'Il mondo… fuori traccia', 'traduzione vuota → italiano';
-    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Il mondo… fuori traccia', NULL, NULL, 'Capodanno fuori traccia', 'test693');
+    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Il mondo… fuori traccia', NULL, NULL, NULL, 'Capodanno fuori traccia', 'test693');
     ASSERT fn_web_sito_home(2, 'IT')->'foto' = 'null'::jsonb, 'senza foto: foto null, il resto c''è';
 
     -- 3. in evidenza: solo i tour ancora pubblicati, nell'ordine scelto, già tradotti

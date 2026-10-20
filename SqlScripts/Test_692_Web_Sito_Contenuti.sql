@@ -1,5 +1,6 @@
 -- ============================================================================
 -- Test dello script 692. Transazione annullata: dati di prova e righe di coda spariscono.
+-- (Aggiornato col 695: titolo e sottotitolo al posto della frase.)
 -- Prima dello script deve FALLIRE (le tabelle e le funzioni non esistono).
 -- ============================================================================
 BEGIN;
@@ -38,7 +39,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
         ASSERT NOT has_table_privilege('anon', 'web_sito_contenuti', 'SELECT'), 'anon non legge web_sito_contenuti';
         ASSERT NOT has_table_privilege('anon', 'web_sito_evidenza', 'SELECT'), 'anon non legge web_sito_evidenza';
-        ASSERT NOT has_function_privilege('anon', 'fn_web_sito_contenuti_save(integer, bigint, character varying, character varying, integer, character varying, character varying)', 'EXECUTE'),
+        ASSERT NOT has_function_privilege('anon', 'fn_web_sito_contenuti_save(integer, bigint, character varying, character varying, character varying, integer, character varying, character varying)', 'EXECUTE'),
             'anon non salva i contenuti';
         ASSERT NOT has_function_privilege('anon', 'fn_web_sito_evidenza_save(integer, bigint[], character varying)', 'EXECUTE'), 'anon non salva l''evidenza';
         ASSERT NOT has_function_privilege('anon', 'fn_ana_aziende_garanzie_save(integer, character varying, character varying, character varying, character varying)', 'EXECUTE'),
@@ -46,13 +47,13 @@ BEGIN
     END IF;
 
     -- 2. contenuti: salvataggio, rilettura, campi vuoti → NULL
-    PERFORM fn_web_sito_contenuti_save(2, v_foto, '  Il mondo… fuori traccia ', 'Tour in fuoristrada', v_email, '', 'test692');
+    PERFORM fn_web_sito_contenuti_save(2, v_foto, '  Il mondo… fuori traccia ', 'Tour in fuoristrada', NULL, v_email, '', 'test692');
     SELECT * INTO v_r FROM fn_web_sito_contenuti_get(2);
     ASSERT v_r.foto_home_fk = v_foto AND v_r.email_messaggi_fk = v_email, 'foto ed email salvate';
     ASSERT v_r.motto = 'Il mondo… fuori traccia', 'motto senza spazi ai bordi';
     ASSERT v_r.evidenza_titolo IS NULL, 'titolo vuoto → NULL';
     -- un secondo salvataggio aggiorna la stessa riga
-    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Motto 2', NULL, NULL, 'Capodanno fuori traccia', 'test692');
+    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Motto 2', NULL, NULL, NULL, 'Capodanno fuori traccia', 'test692');
     ASSERT (SELECT count(*) FROM web_sito_contenuti WHERE azienda_id = 2) = 1, 'una riga per azienda';
     SELECT * INTO v_r FROM fn_web_sito_contenuti_get(2);
     ASSERT v_r.motto = 'Motto 2' AND v_r.foto_home_fk IS NULL AND v_r.evidenza_titolo = 'Capodanno fuori traccia', 'aggiornata';
@@ -61,7 +62,7 @@ BEGIN
     ASSERT v_email_alt IS NOT NULL AND v_foto_alt IS NOT NULL, 'servono un''email e una foto di un''altra azienda';
     IF v_email_alt IS NOT NULL THEN
         BEGIN
-            PERFORM fn_web_sito_contenuti_save(2, NULL, NULL, NULL, v_email_alt, NULL, 'test692');
+            PERFORM fn_web_sito_contenuti_save(2, NULL, NULL, NULL, NULL, v_email_alt, NULL, 'test692');
             RAISE EXCEPTION 'email di un''altra azienda accettata';
         EXCEPTION WHEN raise_exception THEN
             IF SQLERRM LIKE 'email di un''altra azienda accettata' THEN RAISE; END IF;
@@ -118,7 +119,7 @@ BEGIN
 
     -- 6. ogni modifica avvisa la coda (tutto il sito: «menu»)
     DELETE FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL;
-    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Motto 3', NULL, NULL, NULL, 'test692');
+    PERFORM fn_web_sito_contenuti_save(2, NULL, 'Motto 3', NULL, NULL, NULL, NULL, 'test692');
     EXECUTE c INTO v_n; ASSERT v_n = 1, 'web_sito_contenuti: atteso menu';
     DELETE FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL;
     PERFORM fn_web_sito_evidenza_save(2, ARRAY[v_tour[1]], 'test692');

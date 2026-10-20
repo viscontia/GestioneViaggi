@@ -91,7 +91,7 @@ del viaggio; i valori vecchi erano già stati svuotati in PROD (script 665).
 Nell'anagrafica dell'azienda c'è una scheda nuova, **«Sito web»**: ciò che il sito pubblico mostra e
 che decide il titolare. Per ora la sotto-scheda **Home**:
 - la **foto d'apertura** (scelta dalla libreria immagini, con anteprima e un avviso se è troppo piccola),
-  il **motto** e la **frase d'apertura**;
+  il **motto**, il **titolo** e il **sottotitolo** (facoltativo), tutti tradotti;
 - l'**email che riceve i messaggi** del modulo Contatti del sito (vuota = l'email principale);
 - il blocco **«In evidenza»**: un titolo e fino a 3 tour, scelti fra quelli che il sito mostra; un tour
   non più pubblicato sparisce da solo dal sito;
@@ -102,7 +102,7 @@ di garanzia (ente, estremi), mostrati nel piede del sito.
 
 Si salva tutto con **«Aggiorna»**, che controlla anche le traduzioni del sito: se sono incomplete si può
 **tradurre subito**, **chiudere comunque** o **tornare indietro**. Le modifiche della scheda non si
-perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694.
+perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695.
 
 ---
 
@@ -160,6 +160,7 @@ Nella linguetta Traduzioni si vedono i dati sistemati il 2026-10-16 (con l'autor
 | `692_Web_Sito_Contenuti.sql` | Tabelle della scheda «Sito web» dell'azienda (home: foto, motto, frase, email dei messaggi del sito; «In evidenza»: fino a 3 tour) e garanzie del tour operator (polizza RC, fondo di garanzia) nell'anagrafica; ogni modifica aggiorna il sito (L24, L26, L28). La scheda nel gestionale arriva con l'eseguibile 2.4. Test `Test_692_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già; la scheda arriva con l'eseguibile 2.4) |
 | `693_Web_Sito_Letture.sql` | Le letture del sito per home, «In evidenza», piede e mappa delle zone (dati della scheda «Sito web» e dell'anagrafica, tradotti). Nessun cambiamento visibile nel gestionale. Test `Test_693_…` | ✅ 2026-10-20 |
 | `694_Web_Utente_Sito_Posta.sql` | L'utente `sito_posta` del server del sito: legge solo la configurazione di posta e l'indirizzo che riceve i messaggi del modulo Contatti. Dopo lo script: login a mano (impronta SCRAM) e password nel `.env` del server. Test `Test_694_…` | ✅ 2026-10-20 (login non ancora dato) |
+| `695_Web_Sito_Titolo_Sottotitolo.sql` | Home: titolo e sottotitolo al posto della frase d'apertura. Test `Test_695_…` | ✅ 2026-10-20 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.

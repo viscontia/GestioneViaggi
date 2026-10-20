@@ -1,5 +1,6 @@
 -- ============================================================================
 -- Test dello script 694. Transazione annullata.
+-- (Aggiornato col 695: titolo e sottotitolo al posto della frase.)
 -- Prima dello script deve FALLIRE (il ruolo e la funzione non esistono).
 -- ⛔️ Il test non usa MAI la chiave vera dei segreti: per leggere il destinatario
 --    spegne (nella transazione) la configurazione di posta dell'azienda.
@@ -42,7 +43,7 @@ BEGIN
     ASSERT v_j->'smtp' = 'null'::jsonb, 'senza configurazione di posta: smtp null (niente da decifrare)';
     ASSERT v_j->>'destinatario' = v_princ, 'senza scelta: la principale';
     ASSERT v_j->>'mittente_nome' = (SELECT ragione_sociale FROM ana_aziende WHERE azienda_id = 2), 'mittente: la ragione sociale';
-    PERFORM fn_web_sito_contenuti_save(2, NULL, NULL, NULL, v_info, NULL, 'test694');
+    PERFORM fn_web_sito_contenuti_save(2, NULL, NULL, NULL, NULL, v_info, NULL, 'test694');
     ASSERT fn_web_sito_posta(2, 'non-usata')->>'destinatario' = (SELECT email FROM ana_aziende_email WHERE email_id = v_info),
         'con la scelta: l''email scelta';
 
@@ -55,7 +56,7 @@ BEGIN
     ASSERT NOT has_function_privilege('sito_posta', 'fn_web_pdf_richiesta(integer, integer, character varying, character varying)', 'EXECUTE'), 'non conta PDF';
     ASSERT NOT has_function_privilege('sito_posta', 'fn_web_iscrizione_arrivo(integer, integer, character varying, character varying)', 'EXECUTE'), 'non registra arrivi';
     ASSERT NOT has_function_privilege('sito_posta', 'fn_web_revalidate_prossimi(integer, integer)', 'EXECUTE'), 'non tocca la coda';
-    ASSERT NOT has_function_privilege('sito_posta', 'fn_web_sito_contenuti_save(integer, bigint, character varying, character varying, integer, character varying, character varying)', 'EXECUTE'),
+    ASSERT NOT has_function_privilege('sito_posta', 'fn_web_sito_contenuti_save(integer, bigint, character varying, character varying, character varying, integer, character varying, character varying)', 'EXECUTE'),
         'non scrive la scheda «Sito web»';
     ASSERT NOT has_table_privilege('sito_posta', 'ana_aziende_smtp', 'SELECT'), 'non legge la tabella della posta';
     ASSERT NOT has_table_privilege('sito_posta', 'ana_clienti', 'SELECT'), 'non legge i clienti';

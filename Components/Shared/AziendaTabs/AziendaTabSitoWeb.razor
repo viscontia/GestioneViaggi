@@ -71,10 +71,14 @@
                                   ValueChanged="@(v => { Stato.Bozza.Motto = v; Cambiato(); })" Immediate="true"
                                   Variant="Variant.Outlined" MaxLength="@WebSitoContenuti.MaxMotto" Counter="@WebSitoContenuti.MaxMotto"
                                   HelperText="Il titolo grande della home. L'ultima parola si colora in arancio." Class="mt-3" />
-                    <MudTextField T="string" Label="Frase d'apertura" Value="@Stato.Bozza.FraseHome"
-                                  ValueChanged="@(v => { Stato.Bozza.FraseHome = v; Cambiato(); })" Immediate="true"
-                                  Variant="Variant.Outlined" Lines="3" MaxLength="@WebSitoContenuti.MaxFraseHome" Counter="@WebSitoContenuti.MaxFraseHome"
-                                  HelperText="Una o due righe sotto il motto." Class="mt-2" />
+                    <MudTextField T="string" Label="Titolo" Value="@Stato.Bozza.TitoloHome"
+                                  ValueChanged="@(v => { Stato.Bozza.TitoloHome = v; Cambiato(); })" Immediate="true"
+                                  Variant="Variant.Outlined" Lines="2" MaxLength="@WebSitoContenuti.MaxTitoloHome" Counter="@WebSitoContenuti.MaxTitoloHome"
+                                  HelperText="Sotto il motto, più piccolo. Una o due frasi." Class="mt-2" />
+                    <MudTextField T="string" Label="Sottotitolo (facoltativo)" Value="@Stato.Bozza.SottotitoloHome"
+                                  ValueChanged="@(v => { Stato.Bozza.SottotitoloHome = v; Cambiato(); })" Immediate="true"
+                                  Variant="Variant.Outlined" Lines="2" MaxLength="@WebSitoContenuti.MaxSottotitoloHome" Counter="@WebSitoContenuti.MaxSottotitoloHome"
+                                  HelperText="Sotto il titolo. Vuoto = non si mostra." Class="mt-2" />
                 </MudPaper>
 
                 @* — Messaggi del sito — *@
@@ -157,7 +161,7 @@
                                  InAttesaDiSalvataggio="@Stato.Modificata"
                                  PrimaDiTradurre="@SalvaPerTradurre"
                                  SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
-                                 Nota="Si traducono motto, frase d'apertura e titolo «In evidenza». I titoli dei tour si traducono nella loro scheda web." />
+                                 Nota="Si traducono motto, titolo, sottotitolo e titolo «In evidenza». I titoli dei tour si traducono nella loro scheda web." />
             </div>
         }
     </MudTabPanel>
