@@ -156,6 +156,29 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
   testo lungo). ✅ **In PROD il 2026-10-17**: da qui **tutte e 7 le schede pubblicate** hanno il
   semaforo «Traduzioni» completo. Test `Test_690_…`.
 
+### Le letture del sito per home e piede (`SqlScripts/693`, 2026-10-20, Tappa 4A)
+Quattro funzioni per il sito, `SECURITY DEFINER` con `search_path` fissato, lingua fra le 5 del sito
+(altro → errore), testi tradotti con ripiego sull'italiano (traduzione obsoleta o vuota → italiano).
+- `fn_web_sito_home(azienda, lingua)` → `{foto: {url, larghezza, altezza, descrizione} | null, motto,
+  frase}`; `null` se l'azienda non ha la riga in `web_sito_contenuti`.
+- `fn_web_sito_evidenza(azienda, lingua)` → `{titolo, tour: [righe di fn_web_tour_pubblicati]}` nell'ordine
+  scelto, **solo i tour ancora pubblicati** (si chiama `fn_web_tour_pubblicati`: una sola definizione di
+  «pubblicato»); `null` se non ne resta nessuno.
+- `fn_web_sito_piede(azienda, lingua)` → ragione sociale, forma giuridica, P.IVA, CF, REA
+  (`sigla-numero`), capitale, socio unico, `anno_inizio` (inizio attività, altrimenti costituzione),
+  `sede` (indirizzo, CAP, comune, provincia, lat/lng), telefono, email principale, WhatsApp, `social`
+  (da `web_indirizzi` attivi con `social`, WhatsApp escluso), `polizza_rc` / `fondo_garanzia` (`null` se
+  vuoti).
+- `fn_web_tour_zone(azienda, lingua)` → `[{lat, lng, tour: [{contenuto_id, titolo, sezione_slug, slug,
+  data_inizio}]}]`: **centro** del riquadro della mappa di ogni tour pubblicato, raggruppato per mezzo
+  grado. Mai traccia né riquadro.
+- Aiuti interni (non pubblici): `fn_web_sito_lingua_valida`, `fn_web_sito_testo`.
+- Permessi: `EXECUTE` **tolto a `PUBLIC`** e dato **solo** ad `anon` e `authenticated`.
+  ⚠️ `CREATE OR REPLACE` **conserva i permessi** di una funzione che esiste già: per provare un errore
+  sui permessi va prima cancellata (scoperto qui, 2026-10-20).
+- Test `Test_693_…` (si costruisce da solo i tour pubblicati e non pubblicati che gli servono);
+  8 prove dell'errore rilevate. In locale ✅.
+
 ### La scheda «Sito web» dell'azienda: home, «In evidenza», garanzie (`SqlScripts/692`, 2026-10-19, Tappa 4A, voci L24 L26 L28)
 Disegno: `Sito Web SFT/Documenti/Analisi/2026-10-19-Tappa_4_Contorno_Disegno.md`.
 - Tabella **`web_sito_contenuti`** (una riga per azienda, PK `azienda_id`): `foto_home_fk` (dalla
@@ -2577,6 +2600,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -2999,8 +3023,13 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_sezioni_tipologia` | p_azienda_id integer, p_lingua character DEFAULT 'IT'::bpchar | TABLE(sezione_id bigint, nome character varying, slug character varying, ordine integer, tour_disponibili integer) | Le sezioni da mostrare ADESSO nel menu del sito: quelle con almeno un tour pubblicato e con partenza da domani. Poggia su fn_web_tour_pubblicati per non avere due definizioni di «pubblicato». Nome tradotto senza filtro azienda, perche' la tabella delle descrizioni e' globale (script 653). |
 | `fn_web_sito_contenuti_get` | p_azienda_id integer | SETOF web_sito_contenuti |  |
 | `fn_web_sito_contenuti_save` | p_azienda_id integer, p_foto_home_fk bigint, p_motto character varying, p_frase_home character varying, p_email_messaggi_fk integer, p_evidenza_titolo character varying, p_utente character varying | void |  |
+| `fn_web_sito_evidenza` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_evidenza_list` | p_azienda_id integer | TABLE(ordine smallint, web_tour_contenuti_id bigint) |  |
 | `fn_web_sito_evidenza_save` | p_azienda_id integer, p_contenuti bigint[], p_utente character varying | void |  |
+| `fn_web_sito_home` | p_azienda_id integer, p_lingua character varying | jsonb |  |
+| `fn_web_sito_lingua_valida` | p_lingua character varying | void |  |
+| `fn_web_sito_piede` | p_azienda_id integer, p_lingua character varying | jsonb |  |
+| `fn_web_sito_testo` | p_entita character varying, p_entita_id bigint, p_campo character varying, p_lingua character varying, p_italiano text | text |  |
 | `fn_web_tipi_viaggio_descrizioni_delete` | p_id bigint | integer |  |
 | `fn_web_tipi_viaggio_descrizioni_get` | p_id bigint | SETOF web_tipi_viaggio_descrizioni |  |
 | `fn_web_tipi_viaggio_descrizioni_insert` | p_descrizione_web character varying, p_slug character varying, p_ordine integer DEFAULT 0 | bigint |  |
@@ -3049,6 +3078,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_tour_slug_stato` | p_azienda_id integer | TABLE(slug character varying, stato character varying, sezione_slug character varying, slug_nuovo character varying, sezione_nuova character varying) |  |
 | `fn_web_tour_stato_sezioni` | p_contenuto_id bigint, p_azienda_id integer, p_lingue character varying[] | TABLE(ha_slug boolean, ha_sottotitolo boolean, ha_descrizione boolean, n_immagini integer, ha_principale boolean, n_giornate integer, n_traducibili integer, n_tradotte integer, n_revisionate integer) | Fatti grezzi per il semaforo dei sotto-tab contenuti web di una edizione. n_tradotte = righe presenti; n_revisionate = revisionate e non obsolete (è questo che rende Completo il tab Traduzioni e sblocca la pubblicazione). Soglie in C# (WebTabStatoRules). |
 | `fn_web_tour_verifiche` | p_contenuto_id bigint, p_azienda_id integer | TABLE(n_giornate integer, n_giornate_senza_passi integer, n_giornate_senza_foto integer, n_giornate_senza_mappa integer, ha_mappa_insieme boolean, n_immagini integer, ha_meta_title boolean, ha_meta_description boolean, ha_incluso boolean, ha_escluso boolean, ha_capienza boolean) | Fatti grezzi per le verifiche NON bloccanti sui contenuti web di una edizione (giornate senza foto/mappa/passi, galleria vuota, SEO, incluso/escluso, capienza). Soglie e messaggi in C# (WebVerificheRules). |
+| `fn_web_tour_zone` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_traduzioni_approva_contenuto` | p_contenuto_id bigint, p_azienda_id integer, p_lingue character varying[] | integer | Approva in blocco le traduzioni di una edizione (revisionato=true, obsoleto=false). Ritorna quante righe sono cambiate. La condizione "almeno una revisionata a mano per lingua" è applicata dalla UI. |
 | `fn_web_traduzioni_delete` | p_id bigint, p_azienda_id integer | integer |  |
 | `fn_web_traduzioni_get` | p_id bigint, p_azienda_id integer | SETOF web_traduzioni |  |
@@ -3369,8 +3399,13 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_revalidate_pulisci`
 - `fn_web_sito_contenuti_get`
 - `fn_web_sito_contenuti_save`
+- `fn_web_sito_evidenza`
 - `fn_web_sito_evidenza_list`
 - `fn_web_sito_evidenza_save`
+- `fn_web_sito_home`
+- `fn_web_sito_lingua_valida`
+- `fn_web_sito_piede`
+- `fn_web_sito_testo`
 - `fn_web_tipi_viaggio_descrizioni_delete`
 - `fn_web_tipi_viaggio_descrizioni_get`
 - `fn_web_tipi_viaggio_descrizioni_insert`
@@ -3411,6 +3446,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_tour_slug_stato`
 - `fn_web_tour_stato_sezioni`
 - `fn_web_tour_verifiche`
+- `fn_web_tour_zone`
 - `fn_web_traduzioni_approva_contenuto`
 - `fn_web_traduzioni_delete`
 - `fn_web_traduzioni_get`
@@ -3449,7 +3485,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `trg_web_newsletter_blocchi_pulizia_trad`
 - `trg_web_newsletter_blocco_eredita`
 - `trg_web_newsletter_invii_pulizia_trad`
-- `trg_web_sito_stessa_azienda`
 - `update_changetimestamp_column`
 - `update_modified_column`
 <!-- AUTO-GENERATED-END -->
