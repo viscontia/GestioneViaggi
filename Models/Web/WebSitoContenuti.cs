@@ -56,3 +56,29 @@ public sealed record TourPubblicatoScelta(long ContenutoId, string Titolo, DateO
 {
     public string Etichetta => DataInizio is { } d ? $"{Titolo} — {d:dd/MM/yyyy}" : Titolo;
 }
+
+/// <summary>
+/// Lo stato della scheda «Sito web» mentre il dialogo dell'azienda è aperto: quello salvato e la
+/// bozza con le modifiche. Lo tiene il DIALOGO, non la scheda: il dialogo non tiene vive le schede
+/// (le ricrea a ogni clic, per non aprire troppe connessioni insieme), e una bozza tenuta dalla
+/// scheda si perdeva in silenzio cambiando scheda o premendo «Aggiorna» (prova di Adriano, 2026-10-20).
+/// </summary>
+public sealed class SitoWebBozza
+{
+    public int AziendaId { get; set; }
+    public bool Caricata { get; set; }
+    public WebSitoContenuti Salvato { get; set; } = new();
+    public WebSitoContenuti Bozza { get; set; } = new();
+    public List<long> EvidenzaSalvata { get; set; } = new();
+    public List<long> Evidenza { get; set; } = new();
+    public bool Modificata { get; set; }
+}
+
+/// <summary>Lo stato di una lingua: quanti testi compilati, quanti tradotti (validi), quanti da rifare.</summary>
+public sealed record StatoLinguaTraduzioni(string Lingua, int Traducibili, int Tradotti, int Obsoleti)
+{
+    public int Mancanti => Traducibili - Tradotti - Obsoleti;
+    public bool Completa => Traducibili == 0 || Tradotti == Traducibili;
+    public bool DaRifare => Obsoleti > 0;
+}
+

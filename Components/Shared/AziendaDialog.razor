@@ -15,6 +15,12 @@
 @inject AziendaLogoService LogoService
 @inject AziendaService AziendaService
 @inject AnaRegimiFiscaliService RegimiFiscaliService
+@inject GestioneViaggi.Services.Web.WebSitoContenutiService SitoService
+@inject ISnackbar Snackbar
+@inject GestioneViaggi.Services.Session.ISessionManager SessionManager
+@inject GestioneViaggi.Services.Web.WebTraduzioniService TraduzioniService
+@inject IDialogService DialogService
+@inject GestioneViaggi.Services.Web.WebTraduzioneOrchestratorService Orchestrator
 @implements IDisposable
 @implements IAsyncDisposable
 
@@ -25,6 +31,13 @@
         </MudText>
     </TitleContent>
     <DialogContent>
+        @if (_traducendo)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                Traduzione dei testi del sito in corso: @_avanzamentoTraduzione
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-1" />
+            </MudAlert>
+        }
         <div style="height: 600px; overflow-y: auto;">
         @if (!IsEditMode)
         {
@@ -291,6 +304,34 @@
                                 <MudSelectItem Value="@regime.RegimeId">@regime.DisplayText</MudSelectItem>
                             }
                         </MudSelect>
+
+                        <MudDivider Class="my-4" />
+
+                        @* L26 (script 692): li mostra il piede del sito pubblico, accanto ai dati societari.
+                           Si salvano con «Aggiorna», con una funzione a parte (fn_ana_aziende_garanzie_save). *@
+                        <MudText Typo="Typo.subtitle1" Class="mb-1">Garanzie del tour operator</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                            Polizza di responsabilità civile e fondo di garanzia (Direttiva UE sui pacchetti turistici):
+                            compaiono nel piede del sito. Vuoti = non si mostrano.
+                        </MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="7">
+                                <MudTextField @bind-Value="_garanzie.PolizzaRcCompagnia" Label="Polizza RC — compagnia"
+                                    Variant="Variant.Outlined" MaxLength="150" />
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="_garanzie.PolizzaRcNumero" Label="Polizza RC — numero"
+                                    Variant="Variant.Outlined" MaxLength="80" />
+                            </MudItem>
+                            <MudItem xs="12" sm="7">
+                                <MudTextField @bind-Value="_garanzie.FondoGaranziaEnte" Label="Fondo di garanzia — ente"
+                                    Variant="Variant.Outlined" MaxLength="150" />
+                            </MudItem>
+                            <MudItem xs="12" sm="5">
+                                <MudTextField @bind-Value="_garanzie.FondoGaranziaEstremi" Label="Fondo di garanzia — estremi"
+                                    Variant="Variant.Outlined" MaxLength="150" />
+                            </MudItem>
+                        </MudGrid>
                     </MudForm>
                 </MudTabPanel>
 
@@ -331,6 +372,10 @@
                     <AziendaTabTraduzioni AziendaId="@Entity.Id" />
                 </MudTabPanel>
 
+                <MudTabPanel Text="Sito web" Icon="@Icons.Material.Filled.Public">
+                    <AziendaTabSitoWeb AziendaId="@Entity.Id" Stato="@_sitoWeb" />
+                </MudTabPanel>
+
                 <MudTabPanel Text="Funzioni Web" Icon="@Icons.Material.Filled.Language">
                     @*
                         L'indirizzo del sito di iscrizione sta qui e non piu' in «Dati
@@ -363,10 +408,10 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="@_traducendo">
             Annulla
         </MudButton>
-        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary">
+        <MudButton OnClick="HandleSubmit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_traducendo">
             @(IsEditMode ? "Aggiorna" : "Crea")
         </MudButton>
     </DialogActions>
@@ -422,6 +467,120 @@
         if (IsEditMode && Entity.Id > 0)
         {
             await LoadBadgeCountsAsync();
+            await CaricaGaranzieAsync();
+        }
+    }
+
+    // Polizza RC e fondo di garanzia (script 692): campi modificabili, letti una volta per azienda
+    // (OnParametersSetAsync scatta a ogni ridisegno: rileggere butterebbe via quanto scritto).
+    private sealed class GaranzieModifica
+    {
+        public string? PolizzaRcCompagnia { get; set; }
+        public string? PolizzaRcNumero { get; set; }
+        public string? FondoGaranziaEnte { get; set; }
+        public string? FondoGaranziaEstremi { get; set; }
+    }
+    private GaranzieModifica _garanzie = new();
+
+    // La scheda «Sito web»: la bozza vive qui, così non si perde cambiando scheda, e «Aggiorna» la salva.
+    private readonly GestioneViaggi.Models.Web.SitoWebBozza _sitoWeb = new();
+    private int _garanzieCaricatePer;
+
+    /// <summary>
+    /// «Aggiorna» controlla anche le traduzioni della scheda «Sito web» (Adriano, 2026-10-20): se ne
+    /// mancano o sono da rifare lo dice, e si sceglie se restare a tradurre o chiudere comunque.
+    /// Vero = si può chiudere. Un errore nel controllo non blocca il salvataggio (già fatto).
+    /// </summary>
+    private async Task<bool> TraduzioniSitoWebAPostoAsync()
+    {
+        try
+        {
+            if (!_sitoWeb.Caricata || _sitoWeb.AziendaId != Entity.Id)
+                await SitoService.CaricaBozzaAsync(_sitoWeb, Entity.Id);
+            var elementi = GestioneViaggi.Services.Web.WebSitoContenutiService.ElementiDaTradurre(_sitoWeb.Salvato);
+            var stato = await TraduzioniService.StatoAsync(Entity.Id, elementi);
+            var incomplete = stato.Where(x => !x.Completa).ToList();
+            if (incomplete.Count == 0) return true;
+
+            var dettaglio = string.Join(" · ", incomplete.Select(x =>
+                $"{x.Lingua} {x.Tradotti}/{x.Traducibili}{(x.Obsoleti > 0 ? $" ({x.Obsoleti} da rifare)" : "")}"));
+            var scelta = await DialogService.ShowMessageBox(new MessageBoxOptions
+            {
+                Title = "Traduzioni del sito incomplete",
+                MarkupMessage = new MarkupString(
+                    $"Le traduzioni della scheda «Sito web» non sono complete: <b>{dettaglio}</b>.<br/>" +
+                    "Sul sito, per quei testi, chi visita in quella lingua vedrà l'italiano.<br/><br/>" +
+                    "<b>Traduci adesso</b>: traduce quello che manca e chiude (qualche secondo per testo).<br/>" +
+                    "<b>Chiudi comunque</b>: chiude; si potrà tradurre in un altro momento.<br/>" +
+                    "<b>Torna indietro</b>: resta aperto. Scheda «Sito web» e garanzie sono già salvate; i dati " +
+                    "generali dell'anagrafica si salvano quando il dialogo si chiude con «Aggiorna»."),
+                YesText = "Traduci adesso",
+                NoText = "Chiudi comunque",
+                CancelText = "Torna indietro"
+            });
+            if (scelta == false) return true;     // chiudi comunque
+            if (scelta is null) return false;     // torna indietro
+            return await TraduciAdessoAsync(elementi);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Stato delle traduzioni del sito non controllato: {ex.Message}", Severity.Warning);
+            return true;
+        }
+    }
+
+    private bool _traducendo;
+    private string _avanzamentoTraduzione = "";
+
+    /// <summary>«Traduci adesso» dal controllo di «Aggiorna»: traduce ciò che manca; vero = tutto a posto, si chiude.</summary>
+    private async Task<bool> TraduciAdessoAsync(IReadOnlyList<GestioneViaggi.Services.Web.TranslatableItem> elementi)
+    {
+        _traducendo = true;
+        _avanzamentoTraduzione = "raccolta dei testi…";
+        StateHasChanged();
+        try
+        {
+            var progress = new Progress<string>(t => { _avanzamentoTraduzione = t; _ = InvokeAsync(StateHasChanged); });
+            var (ok, errori, markup, _) = await Orchestrator.TranslateAsync(
+                Entity.Id, elementi, GestioneViaggi.Services.Web.WebTraduzioneOrchestratorService.Lingue, progress);
+            if (errori > 0)
+            {
+                Snackbar.Add($"Tradotti {ok} testi, {errori} non riusciti: il dialogo resta aperto (scheda «Sito web», «Lingue»).", Severity.Warning);
+                return false;
+            }
+            if (markup > 0)
+                Snackbar.Add($"{markup} testi con formattazione da ricontrollare.", Severity.Warning);
+            Snackbar.Add($"Tradotti {ok} testi.", Severity.Success);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Traduzione non riuscita: {ex.Message}. Il dialogo resta aperto.", Severity.Error);
+            return false;
+        }
+        finally
+        {
+            _traducendo = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CaricaGaranzieAsync()
+    {
+        if (_garanzieCaricatePer == Entity.Id) return;
+        _garanzieCaricatePer = Entity.Id;
+        try
+        {
+            var g = await SitoService.GetGaranzieAsync(Entity.Id);
+            _garanzie = new GaranzieModifica
+            {
+                PolizzaRcCompagnia = g.PolizzaRcCompagnia, PolizzaRcNumero = g.PolizzaRcNumero,
+                FondoGaranziaEnte = g.FondoGaranziaEnte, FondoGaranziaEstremi = g.FondoGaranziaEstremi,
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Garanzie del tour operator non lette: {ex.Message}", Severity.Error);
         }
     }
 
@@ -499,6 +658,36 @@
                 var validationResults = Entity.Validate(new System.ComponentModel.DataAnnotations.ValidationContext(Entity));
                 if (!validationResults.Any())
                 {
+                    if (IsEditMode && Entity.Id > 0)
+                    {
+                        try
+                        {
+                            await SitoService.SaveGaranzieAsync(Entity.Id, new GestioneViaggi.Models.Web.GaranzieAzienda(
+                                _garanzie.PolizzaRcCompagnia, _garanzie.PolizzaRcNumero,
+                                _garanzie.FondoGaranziaEnte, _garanzie.FondoGaranziaEstremi));
+                        }
+                        catch (Exception ex)
+                        {
+                            // Il dialogo resta aperto: niente si perde, e si vede cosa non va.
+                            Snackbar.Add($"Garanzie del tour operator non salvate: {ex.Message}", Severity.Error);
+                            return;
+                        }
+                        if (_sitoWeb.Modificata)
+                        {
+                            try
+                            {
+                                var utente = (await SessionManager.GetSessionAsync())?.User?.Email ?? "gestionale";
+                                await SitoService.SalvaBozzaAsync(_sitoWeb, utente);
+                            }
+                            catch (Exception ex)
+                            {
+                                Snackbar.Add($"Scheda «Sito web» non salvata: {ex.Message}", Severity.Error);
+                                return;
+                            }
+                        }
+                    }
+                    if (IsEditMode && Entity.Id > 0 && !await TraduzioniSitoWebAPostoAsync())
+                        return;   // resta aperto: si va a tradurre
                     MudDialog?.Close(DialogResult.Ok(Entity));
                 }
                 else

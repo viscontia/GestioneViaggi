@@ -1,0 +1,258 @@
+@using GestioneViaggi.Models
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.CRUD
+@using GestioneViaggi.Services.Session
+@using GestioneViaggi.Services.Web
+@using MudBlazor
+@inject WebSitoContenutiService SitoService
+@inject WebImmaginiLibreriaService LibreriaService
+@inject AziendaEmailService EmailService
+@inject ISessionManager SessionManager
+@inject ISnackbar Snackbar
+
+@* Scheda «Sito web» dell'azienda (voce L28, script 692). Ciò che il sito pubblico mostra e che
+   decide il titolare: qui, non nel codice del sito (il prodotto serve più tour operator).
+   Sotto-schede: Home (Tappa 4A del sito). Chi siamo, FAQ e testi legali arrivano con 4B/4C.
+   Ogni salvataggio aggiorna il sito da solo entro 1–2 minuti (coda di rigenerazione). *@
+
+<MudTabs Elevation="0" Rounded="true" PanelClass="pt-3" Border="false">
+    <MudTabPanel Text="Home" Icon="@Icons.Material.Filled.Home">
+        @if (_loading)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+        }
+        else
+        {
+            <div style="max-width:760px;">
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                    L'apertura della home del sito e il blocco «In evidenza». I testi si scrivono in italiano e si
+                    traducono con il riquadro «Lingue» in fondo. Dopo il salvataggio il sito si aggiorna entro 1–2 minuti.
+                </MudText>
+
+                @* — Apertura — *@
+                <MudPaper Outlined="true" Class="pa-3 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Apertura della home</MudText>
+
+                    @if (_foto.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                            La libreria immagini è vuota: caricare prima la foto in <strong>Tabelle → Tabelle web → Libreria immagini</strong>.
+                            Senza foto, la home mostra il motto su fondo blu.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudSelect T="long?" Label="Foto d'apertura" Value="@Stato.Bozza.FotoHomeFk"
+                                   ValueChanged="@(v => { Stato.Bozza.FotoHomeFk = v; Cambiato(); })"
+                                   Variant="Variant.Outlined" Clearable="true" Class="mb-2"
+                                   HelperText="Una foto larga e luminosa (almeno 2000 pixel di larghezza). Vuoto = nessuna foto.">
+                            <MudSelectItem T="long?" Value="@((long?)null)">Nessuna foto</MudSelectItem>
+                            @foreach (var f in _foto)
+                            {
+                                <MudSelectItem T="long?" Value="@((long?)f.WebImmagineLibreriaId)">
+                                    @f.Descrizione @(f.Larghezza is { } l ? $"({l}×{f.Altezza})" : "")
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                        @if (FotoScelta is { } fs)
+                        {
+                            <img src="@fs.Url" alt="@fs.Descrizione"
+                                 style="max-width:100%; max-height:220px; border-radius:6px; display:block;" class="mb-1" />
+                            @if (fs.Larghezza is < 1600)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    La foto è larga solo @fs.Larghezza pixel: sugli schermi grandi si vedrà sgranata.
+                                </MudText>
+                            }
+                        }
+                    }
+
+                    <MudTextField T="string" Label="Motto" Value="@Stato.Bozza.Motto"
+                                  ValueChanged="@(v => { Stato.Bozza.Motto = v; Cambiato(); })" Immediate="true"
+                                  Variant="Variant.Outlined" MaxLength="@WebSitoContenuti.MaxMotto" Counter="@WebSitoContenuti.MaxMotto"
+                                  HelperText="Il titolo grande della home. L'ultima parola si colora in arancio." Class="mt-3" />
+                    <MudTextField T="string" Label="Frase d'apertura" Value="@Stato.Bozza.FraseHome"
+                                  ValueChanged="@(v => { Stato.Bozza.FraseHome = v; Cambiato(); })" Immediate="true"
+                                  Variant="Variant.Outlined" Lines="3" MaxLength="@WebSitoContenuti.MaxFraseHome" Counter="@WebSitoContenuti.MaxFraseHome"
+                                  HelperText="Una o due righe sotto il motto." Class="mt-2" />
+                </MudPaper>
+
+                @* — Messaggi del sito — *@
+                <MudPaper Outlined="true" Class="pa-3 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Messaggi dal sito</MudText>
+                    <MudSelect T="int?" Label="Email che riceve i messaggi del modulo Contatti" Value="@Stato.Bozza.EmailMessaggiFk"
+                               ValueChanged="@(v => { Stato.Bozza.EmailMessaggiFk = v; Cambiato(); })"
+                               Variant="Variant.Outlined"
+                               HelperText="Chi scrive dal sito riceve la risposta da questo indirizzo. Le email si gestiscono nella scheda «Email».">
+                        <MudSelectItem T="int?" Value="@((int?)null)">L'email principale@(_principale is null ? "" : $" ({_principale})")</MudSelectItem>
+                        @foreach (var e in _email)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)e.Id)">@e.Email@(e.IsPrincipale ? " (principale)" : "")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudPaper>
+
+                @* — In evidenza — *@
+                <MudPaper Outlined="true" Class="pa-3 mb-3">
+                    <MudText Typo="Typo.subtitle1" Class="mb-1">In evidenza</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                        Un blocco della home con fino a 3 tour scelti (per esempio quelli di Capodanno). Un tour che non è più
+                        pubblicato sparisce da solo dal sito; senza tour il blocco non si mostra.
+                    </MudText>
+                    <MudTextField T="string" Label="Titolo del blocco" Value="@Stato.Bozza.EvidenzaTitolo"
+                                  ValueChanged="@(v => { Stato.Bozza.EvidenzaTitolo = v; Cambiato(); })" Immediate="true"
+                                  Variant="Variant.Outlined" MaxLength="@WebSitoContenuti.MaxEvidenzaTitolo"
+                                  Counter="@WebSitoContenuti.MaxEvidenzaTitolo" Class="mb-2" />
+
+                    @for (var i = 0; i < Stato.Evidenza.Count; i++)
+                    {
+                        var pos = i;
+                        var id = Stato.Evidenza[pos];
+                        <div class="d-flex align-center gap-1 mb-1">
+                            <MudText Typo="Typo.body2" Style="min-width:1.5em;">@(pos + 1).</MudText>
+                            <MudText Typo="Typo.body2" Class="flex-grow-1">@NomeTour(id)</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(pos == 0)"
+                                           OnClick="@(() => Sposta(pos, -1))" title="Sposta su" />
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(pos == Stato.Evidenza.Count - 1)"
+                                           OnClick="@(() => Sposta(pos, 1))" title="Sposta giù" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => { Stato.Evidenza.RemoveAt(pos); Cambiato(); })" title="Togli" />
+                        </div>
+                    }
+
+                    @if (Stato.Evidenza.Count < 3)
+                    {
+                        <MudSelect T="long?" Label="Aggiungi un tour" Value="@((long?)null)" ValueChanged="@Aggiungi"
+                                   Variant="Variant.Outlined" Dense="true" Class="mt-2"
+                                   Disabled="@(!TourDisponibili.Any())"
+                                   HelperText="@(TourDisponibili.Any() ? "Solo i tour pubblicati con partenza futura (quelli che il sito mostra)." : "Non ci sono altri tour pubblicati da aggiungere.")">
+                            @foreach (var t in TourDisponibili)
+                            {
+                                <MudSelectItem T="long?" Value="@((long?)t.ContenutoId)">@t.Etichetta</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Al massimo 3 tour: per aggiungerne un altro, togline uno.</MudText>
+                    }
+                </MudPaper>
+
+                <div class="d-flex align-center gap-2 mb-3">
+                    @if (Stato.Modificata)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">Modifiche non salvate: si salvano con «Aggiorna».</MudText>
+                    }
+                    else if (Stato.Salvato.Updated is { } u)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Salvato il @u.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(string.IsNullOrEmpty(Stato.Salvato.UpdatedBy) ? "" : $" da {Stato.Salvato.UpdatedBy}")
+                        </MudText>
+                    }
+                </div>
+
+                <TraduzioniPanel AziendaId="@AziendaId"
+                                 Elementi="@WebSitoContenutiService.ElementiDaTradurre(Stato.Salvato)"
+                                 Revisione="@_revisione"
+                                 InAttesaDiSalvataggio="@Stato.Modificata"
+                                 PrimaDiTradurre="@SalvaPerTradurre"
+                                 SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
+                                 Nota="Si traducono motto, frase d'apertura e titolo «In evidenza». I titoli dei tour si traducono nella loro scheda web." />
+            </div>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    /// <summary>Lo stato della scheda, tenuto dal dialogo: sopravvive al cambio di scheda.</summary>
+    [Parameter, EditorRequired] public SitoWebBozza Stato { get; set; } = new();
+
+    private bool _loading = true;
+    private int _revisione;
+
+    private List<WebImmagineLibreria> _foto = new();
+    private List<AziendaEmail> _email = new();
+    private string? _principale;
+    private List<TourPubblicatoScelta> _tour = new();
+
+    private WebImmagineLibreria? FotoScelta => _foto.FirstOrDefault(f => f.WebImmagineLibreriaId == Stato.Bozza.FotoHomeFk);
+    private IEnumerable<TourPubblicatoScelta> TourDisponibili => _tour.Where(t => !Stato.Evidenza.Contains(t.ContenutoId));
+
+    // Un tour scelto può non essere più pubblicato: resta nell'elenco (il sito lo salta da solo), ma si dice.
+    private string NomeTour(long id) =>
+        _tour.FirstOrDefault(t => t.ContenutoId == id)?.Etichetta ?? $"Tour {id} — non più pubblicato: sul sito non compare";
+
+    // La scheda viene ricreata a ogni clic sulla sua linguetta: le liste di scelta si rileggono (poche
+    // righe), la bozza no — sta nel dialogo, e ricaricarla butterebbe via le modifiche non salvate.
+    private bool _montata;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId <= 0 || _montata) return;
+        _montata = true;
+        _loading = true;
+        try
+        {
+            if (!Stato.Caricata || Stato.AziendaId != AziendaId)
+                await SitoService.CaricaBozzaAsync(Stato, AziendaId);
+            await CaricaScelteAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Scheda «Sito web» non letta: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CaricaScelteAsync()
+    {
+        _foto = await LibreriaService.ListAsync(AziendaId);
+        _email = await EmailService.GetByAziendaIdAsync(AziendaId);
+        _principale = _email.OrderByDescending(e => e.IsPrincipale).ThenBy(e => e.Id).FirstOrDefault()?.Email;
+        _tour = await SitoService.ListTourPubblicatiAsync(AziendaId);
+    }
+
+    private void Cambiato() => Stato.Modificata = true;
+
+    private void Aggiungi(long? id)
+    {
+        if (id is not { } v || Stato.Evidenza.Contains(v) || Stato.Evidenza.Count >= 3) return;
+        Stato.Evidenza.Add(v);
+        Cambiato();
+    }
+
+    private void Sposta(int pos, int verso)
+    {
+        var nuova = pos + verso;
+        if (nuova < 0 || nuova >= Stato.Evidenza.Count) return;
+        (Stato.Evidenza[pos], Stato.Evidenza[nuova]) = (Stato.Evidenza[nuova], Stato.Evidenza[pos]);
+        Cambiato();
+    }
+
+    // Si traduce ciò che è salvato: con modifiche in sospeso, «Traduci» prima le salva (è un'azione
+    // esplicita; dopo, «Annulla» non le toglie più). Senza modifiche non salva niente.
+    private async Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurre()
+    {
+        if (Stato.Modificata)
+        {
+            try
+            {
+                var utente = (await SessionManager.GetSessionAsync())?.User?.Email ?? "gestionale";
+                await SitoService.SalvaBozzaAsync(Stato, utente);
+                _revisione++;
+            }
+            catch (Exception ex)
+            {
+                // Il database spiega già cosa non va (per esempio: più di 3 tour, email di un'altra azienda).
+                Snackbar.Add($"Non salvato, quindi non tradotto: {ex.Message}", Severity.Error);
+                return null;
+            }
+        }
+        return WebSitoContenutiService.ElementiDaTradurre(Stato.Salvato);
+    }
+}

@@ -23,7 +23,7 @@
         <MudSpacer />
         <MudTooltip Text="@PercheSpento" Disabled="@(PercheSpento is null)">
             <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoAwesome"
-                       Disabled="@(Disabilitato || _inCorso || !CeQualcosaDaFare)" OnClick="Traduci">
+                       Disabled="@(Disabilitato || _inCorso || (!CeQualcosaDaFare && !InAttesaDiSalvataggio))" OnClick="Traduci">
                 Traduci quello che manca
             </MudButton>
         </MudTooltip>
@@ -68,14 +68,6 @@
 </MudPaper>
 
 @code {
-    /// <summary>Lo stato di una lingua: quanti testi compilati, quanti tradotti, quanti da rifare.</summary>
-    public sealed record StatoLingua(string Lingua, int Traducibili, int Tradotti, int Obsoleti)
-    {
-        public int Mancanti => Traducibili - Tradotti - Obsoleti;
-        public bool Completa => Traducibili > 0 && Tradotti == Traducibili;
-        public bool DaRifare => Obsoleti > 0;
-    }
-
     [Parameter, EditorRequired] public int AziendaId { get; set; }
 
     /// <summary>
@@ -91,11 +83,20 @@
     [Parameter] public bool Disabilitato { get; set; }
     [Parameter] public string? MotivoDisabilitato { get; set; }
 
+    /// <summary>
+    /// Facoltativo: eseguito prima di tradurre (per esempio: salvare le modifiche). Restituisce i testi
+    /// da tradurre aggiornati, oppure null per non tradurre (il motivo lo ha già detto chi ospita).
+    /// </summary>
+    [Parameter] public Func<Task<IReadOnlyList<TranslatableItem>?>>? PrimaDiTradurre { get; set; }
+
+    /// <summary>Il suggerimento del bottone quando c'è un passo prima di tradurre (es. «Salva le modifiche e traduce»).</summary>
+    [Parameter] public string? SpiegaPrimaDiTradurre { get; set; }
+
     [Parameter] public string? Nota { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public EventCallback OnTradotto { get; set; }
 
-    private List<StatoLingua> _stato = new();
+    private List<StatoLinguaTraduzioni> _stato = new();
     private bool _inCorso;
     private string _avanzamento = "";
     private string? _esito;
@@ -107,9 +108,13 @@
 
     private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
 
+    /// <summary>Vero se chi ospita ha modifiche da salvare prima di tradurre (il bottone resta acceso).</summary>
+    [Parameter] public bool InAttesaDiSalvataggio { get; set; }
+
     private string? PercheSpento =>
         Disabilitato ? (MotivoDisabilitato ?? "Salva prima le modifiche: si traduce ciò che è salvato.")
         : _inCorso ? null
+        : InAttesaDiSalvataggio ? SpiegaPrimaDiTradurre
         : Elementi.Count == 0 ? "Non c'è testo da tradurre: i campi sono vuoti."
         : !CeQualcosaDaFare ? "Tutte le lingue sono a posto: non c'è niente da tradurre."
         : null;
@@ -132,23 +137,7 @@
         catch (Exception ex) { Snackbar.Add($"Stato traduzioni non letto: {ex.Message}", Severity.Error); }
     }
 
-    /// <summary>Per ogni lingua: testi compilati, tradotti (validi), obsoleti. Una lettura per entità.</summary>
-    private async Task<List<StatoLingua>> CalcolaStatoAsync()
-    {
-        var esistenti = new List<WebTraduzione>();
-        foreach (var g in Elementi.GroupBy(e => (e.Entita, e.EntitaId)))
-            esistenti.AddRange(await Traduzioni.ListByEntitaAsync(g.Key.Entita, g.Key.EntitaId, AziendaId));
-
-        var chiavi = Elementi.Select(e => (e.Entita, e.EntitaId, e.Campo)).ToHashSet();
-        return WebTraduzioneOrchestratorService.Lingue.Select(lingua =>
-        {
-            var diLingua = esistenti.Where(t => string.Equals(t.Lingua.Trim(), lingua, StringComparison.OrdinalIgnoreCase)
-                                             && chiavi.Contains((t.Entita, t.EntitaId, t.Campo))
-                                             && !string.IsNullOrWhiteSpace(t.Testo)).ToList();
-            return new StatoLingua(lingua, Elementi.Count,
-                                   diLingua.Count(t => !t.Obsoleto), diLingua.Count(t => t.Obsoleto));
-        }).ToList();
-    }
+    private Task<List<StatoLinguaTraduzioni>> CalcolaStatoAsync() => Traduzioni.StatoAsync(AziendaId, Elementi);
 
     private async Task Traduci()
     {
@@ -157,6 +146,20 @@
         await InvokeAsync(StateHasChanged);
         try
         {
+            var elementi = Elementi;
+            if (PrimaDiTradurre is not null)
+            {
+                var aggiornati = await PrimaDiTradurre();
+                if (aggiornati is null) return;
+                elementi = aggiornati;
+                await RicaricaAsync();
+            }
+            if (elementi.Count == 0)
+            {
+                Snackbar.Add("Non c'è testo da tradurre: i campi sono vuoti.", Severity.Info);
+                return;
+            }
+
             var fatti = 0;
             var progress = new Progress<string>(t =>
             {
@@ -170,7 +173,7 @@
                 });
             });
             var (ok, errori, markup, saltate) = await Orchestrator.TranslateAsync(
-                AziendaId, Elementi, WebTraduzioneOrchestratorService.Lingue, progress);
+                AziendaId, elementi, WebTraduzioneOrchestratorService.Lingue, progress);
 
             await RicaricaAsync();
             await OnTradotto.InvokeAsync();
@@ -198,15 +201,15 @@
         }
     }
 
-    private static Color Colore(StatoLingua s) =>
-        s.DaRifare ? Color.Warning : s.Completa ? Color.Success : s.Tradotti > 0 ? Color.Info : Color.Default;
+    private static Color Colore(StatoLinguaTraduzioni s) =>
+        s.DaRifare ? Color.Warning : s.Traducibili > 0 && s.Completa ? Color.Success : s.Tradotti > 0 ? Color.Info : Color.Default;
 
-    private static string Icona(StatoLingua s) =>
+    private static string Icona(StatoLinguaTraduzioni s) =>
         s.DaRifare ? Icons.Material.Filled.Update
-        : s.Completa ? Icons.Material.Filled.CheckCircle
+        : s.Traducibili > 0 && s.Completa ? Icons.Material.Filled.CheckCircle
         : Icons.Material.Filled.RadioButtonUnchecked;
 
-    private static string Spiega(StatoLingua s)
+    private static string Spiega(StatoLinguaTraduzioni s)
     {
         if (s.Traducibili == 0) return "Non c'è testo da tradurre.";
         if (s.DaRifare) return $"{s.Obsoleti} testi sono cambiati in italiano dopo la traduzione: sul sito, per quei campi, si vede l'italiano.";

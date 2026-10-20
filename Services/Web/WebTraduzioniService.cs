@@ -51,6 +51,27 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     /// Marca obsolete tutte le traduzioni (ogni lingua) di un campo sorgente quando l'IT cambia.
     /// Non lancia: l'obsolescenza non deve rompere il salvataggio della sorgente.
     /// </summary>
+    /// <summary>
+    /// Per ogni lingua di destinazione: testi compilati, tradotti (non obsoleti e non vuoti), obsoleti.
+    /// Una lettura per entità. Lo usano il pannello delle traduzioni e il controllo di «Aggiorna».
+    /// </summary>
+    public async Task<List<StatoLinguaTraduzioni>> StatoAsync(int aziendaId, IReadOnlyList<TranslatableItem> elementi)
+    {
+        var esistenti = new List<WebTraduzione>();
+        foreach (var g in elementi.GroupBy(e => (e.Entita, e.EntitaId)))
+            esistenti.AddRange(await ListByEntitaAsync(g.Key.Entita, g.Key.EntitaId, aziendaId));
+
+        var chiavi = elementi.Select(e => (e.Entita, e.EntitaId, e.Campo)).ToHashSet();
+        return WebTraduzioneOrchestratorService.Lingue.Select(lingua =>
+        {
+            var diLingua = esistenti.Where(t => string.Equals(t.Lingua.Trim(), lingua, StringComparison.OrdinalIgnoreCase)
+                                             && chiavi.Contains((t.Entita, t.EntitaId, t.Campo))
+                                             && !string.IsNullOrWhiteSpace(t.Testo)).ToList();
+            return new StatoLinguaTraduzioni(lingua, elementi.Count,
+                                             diLingua.Count(t => !t.Obsoleto), diLingua.Count(t => t.Obsoleto));
+        }).ToList();
+    }
+
     public async Task<int> MarkObsoleteAsync(int aziendaId, string entita, long entitaId, string campo)
     {
         try

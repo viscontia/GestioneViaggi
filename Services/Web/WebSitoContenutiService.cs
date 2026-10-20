@@ -155,6 +155,31 @@ public sealed class WebSitoContenutiService
         await cmd.ExecuteNonQueryAsync();
     }
 
+    /// <summary>Carica (o ricarica) lo stato della scheda dal database: bozza = salvato.</summary>
+    public async Task CaricaBozzaAsync(SitoWebBozza b, int aziendaId)
+    {
+        b.AziendaId = aziendaId;
+        b.Salvato = await GetAsync(aziendaId);
+        b.Bozza = b.Salvato.Copia();
+        b.EvidenzaSalvata = await ListEvidenzaAsync(aziendaId);
+        b.Evidenza = b.EvidenzaSalvata.ToList();
+        b.Modificata = false;
+        b.Caricata = true;
+    }
+
+    /// <summary>
+    /// Salva la bozza (testi e, se cambiato, l'elenco «In evidenza») e la ricarica. La usano il bottone
+    /// «Salva» della scheda e «Aggiorna» del dialogo. Restituisce le traduzioni diventate obsolete.
+    /// </summary>
+    public async Task<int> SalvaBozzaAsync(SitoWebBozza b, string utente)
+    {
+        var obsolete = await SaveAsync(b.Bozza, utente);
+        if (!b.Evidenza.SequenceEqual(b.EvidenzaSalvata))
+            await SaveEvidenzaAsync(b.AziendaId, b.Evidenza, utente);
+        await CaricaBozzaAsync(b, b.AziendaId);
+        return obsolete;
+    }
+
     /// <summary>I testi della sotto-scheda Home da tradurre (solo quelli compilati).</summary>
     public static List<TranslatableItem> ElementiDaTradurre(WebSitoContenuti c) =>
         c.CampiTraducibili()

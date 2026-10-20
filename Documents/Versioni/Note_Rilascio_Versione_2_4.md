@@ -86,6 +86,24 @@ Era un residuo del vecchio gestionale Oracle (il link alla pagina del vecchio si
 viaggi e non usato da nessuna parte. La pagina del tour, oggi, è la scheda web. Tolto dalla finestra
 del viaggio; i valori vecchi erano già stati svuotati in PROD (script 665).
 
+### ⭐️ 1.7 — La scheda «Sito web» dell'azienda (L28) e le garanzie del tour operator (L26)
+
+Nell'anagrafica dell'azienda c'è una scheda nuova, **«Sito web»**: ciò che il sito pubblico mostra e
+che decide il titolare. Per ora la sotto-scheda **Home**:
+- la **foto d'apertura** (scelta dalla libreria immagini, con anteprima e un avviso se è troppo piccola),
+  il **motto** e la **frase d'apertura**;
+- l'**email che riceve i messaggi** del modulo Contatti del sito (vuota = l'email principale);
+- il blocco **«In evidenza»**: un titolo e fino a 3 tour, scelti fra quelli che il sito mostra; un tour
+  non più pubblicato sparisce da solo dal sito;
+- il riquadro **«Lingue»** con «Traduci quello che manca» (se ci sono modifiche, prima le salva).
+
+Nei **Dati generali**, il riquadro **«Garanzie del tour operator»**: polizza RC (compagnia, numero) e fondo
+di garanzia (ente, estremi), mostrati nel piede del sito.
+
+Si salva tutto con **«Aggiorna»**, che controlla anche le traduzioni del sito: se sono incomplete si può
+**tradurre subito**, **chiudere comunque** o **tornare indietro**. Le modifiche della scheda non si
+perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694.
+
 ---
 
 ## Sezione 2 — Correzioni
