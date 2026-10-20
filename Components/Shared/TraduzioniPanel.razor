@@ -1,0 +1,217 @@
+@using GestioneViaggi.Models.Web
+@using GestioneViaggi.Services.Web
+@using Microsoft.Extensions.Logging
+@using MudBlazor
+@inject WebTraduzioneOrchestratorService Orchestrator
+@inject WebTraduzioniService Traduzioni
+@inject ISnackbar Snackbar
+@inject ILogger<TraduzioniPanel> Logger
+@implements IDisposable
+
+@* Le lingue di un gruppo di testi qualunque (scheda «Sito web» dell'azienda: Home, e poi Chi siamo,
+   FAQ, testi legali). Stesso aspetto e stesso comportamento del pannello della newsletter
+   (NewsletterTraduzioniPanel), che resta com'è: chi ospita il pannello gli passa i testi da
+   tradurre, lo stato per lingua si calcola dalle traduzioni di quei testi, e a tradurre è
+   l'orchestratore di sempre (solo ciò che manca o è obsoleto: le traduzioni riviste non si toccano).
+
+   Il ripiego del sito è per CAMPO: dove una traduzione manca o è obsoleta, quel campo è in italiano. *@
+
+<MudPaper Outlined="true" Class="@($"pa-3 {Class}")">
+    <div class="d-flex align-center gap-2 mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Translate" Color="Color.Primary" />
+        <MudText Typo="Typo.subtitle2">Lingue</MudText>
+        <MudSpacer />
+        <MudTooltip Text="@PercheSpento" Disabled="@(PercheSpento is null)">
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AutoAwesome"
+                       Disabled="@(Disabilitato || _inCorso || !CeQualcosaDaFare)" OnClick="Traduci">
+                Traduci quello che manca
+            </MudButton>
+        </MudTooltip>
+    </div>
+
+    @if (_inCorso)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@_avanzamento</MudText>
+    }
+
+    <div class="d-flex flex-wrap gap-2 mb-1">
+        @foreach (var s in _stato)
+        {
+            <MudTooltip Text="@Spiega(s)">
+                <MudChip T="string" Size="Size.Small" Color="@Colore(s)" Icon="@Icona(s)">
+                    @s.Lingua @s.Tradotti/@s.Traducibili
+                </MudChip>
+            </MudTooltip>
+        }
+    </div>
+
+    @if (_stato.Any(x => x.DaRifare))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">
+            Alcuni testi italiani sono cambiati dopo la traduzione: sul sito, per <strong>quei campi</strong>,
+            si vede l'italiano. Ritraduci per riallinearli.
+        </MudAlert>
+    }
+
+    @if (_esito is not null)
+    {
+        <MudText Typo="Typo.caption" Class="d-block mt-2" Style="font-weight:500;">
+            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-1" />@_esito
+        </MudText>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Nota))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">@Nota</MudText>
+    }
+</MudPaper>
+
+@code {
+    /// <summary>Lo stato di una lingua: quanti testi compilati, quanti tradotti, quanti da rifare.</summary>
+    public sealed record StatoLingua(string Lingua, int Traducibili, int Tradotti, int Obsoleti)
+    {
+        public int Mancanti => Traducibili - Tradotti - Obsoleti;
+        public bool Completa => Traducibili > 0 && Tradotti == Traducibili;
+        public bool DaRifare => Obsoleti > 0;
+    }
+
+    [Parameter, EditorRequired] public int AziendaId { get; set; }
+
+    /// <summary>
+    /// I testi da tradurre, già compilati in italiano (quelli vuoti non si contano: un campo vuoto non
+    /// è una traduzione mancante).
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TranslatableItem> Elementi { get; set; } = Array.Empty<TranslatableItem>();
+
+    /// <summary>Cambia quando i testi italiani cambiano (salvataggio): il pannello rilegge lo stato.</summary>
+    [Parameter] public int Revisione { get; set; }
+
+    /// <summary>Vero quando ci sono modifiche non salvate: si traduce ciò che è nel database, non la bozza.</summary>
+    [Parameter] public bool Disabilitato { get; set; }
+    [Parameter] public string? MotivoDisabilitato { get; set; }
+
+    [Parameter] public string? Nota { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnTradotto { get; set; }
+
+    private List<StatoLingua> _stato = new();
+    private bool _inCorso;
+    private string _avanzamento = "";
+    private string? _esito;
+    private int _revisioneCaricata = -1;
+    private int _aziendaCaricata;
+    private bool _smontato;
+
+    public void Dispose() => _smontato = true;
+
+    private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
+
+    private string? PercheSpento =>
+        Disabilitato ? (MotivoDisabilitato ?? "Salva prima le modifiche: si traduce ciò che è salvato.")
+        : _inCorso ? null
+        : Elementi.Count == 0 ? "Non c'è testo da tradurre: i campi sono vuoti."
+        : !CeQualcosaDaFare ? "Tutte le lingue sono a posto: non c'è niente da tradurre."
+        : null;
+
+    // Come nel pannello della newsletter: OnParametersSetAsync scatta a ogni ridisegno del genitore,
+    // quindi si rilegge solo quando cambiano azienda o revisione dei testi.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (AziendaId == 0) return;
+        if (AziendaId == _aziendaCaricata && Revisione == _revisioneCaricata) return;
+        if (AziendaId != _aziendaCaricata) _esito = null;
+        _aziendaCaricata = AziendaId;
+        _revisioneCaricata = Revisione;
+        await RicaricaAsync();
+    }
+
+    private async Task RicaricaAsync()
+    {
+        try { _stato = await CalcolaStatoAsync(); }
+        catch (Exception ex) { Snackbar.Add($"Stato traduzioni non letto: {ex.Message}", Severity.Error); }
+    }
+
+    /// <summary>Per ogni lingua: testi compilati, tradotti (validi), obsoleti. Una lettura per entità.</summary>
+    private async Task<List<StatoLingua>> CalcolaStatoAsync()
+    {
+        var esistenti = new List<WebTraduzione>();
+        foreach (var g in Elementi.GroupBy(e => (e.Entita, e.EntitaId)))
+            esistenti.AddRange(await Traduzioni.ListByEntitaAsync(g.Key.Entita, g.Key.EntitaId, AziendaId));
+
+        var chiavi = Elementi.Select(e => (e.Entita, e.EntitaId, e.Campo)).ToHashSet();
+        return WebTraduzioneOrchestratorService.Lingue.Select(lingua =>
+        {
+            var diLingua = esistenti.Where(t => string.Equals(t.Lingua.Trim(), lingua, StringComparison.OrdinalIgnoreCase)
+                                             && chiavi.Contains((t.Entita, t.EntitaId, t.Campo))
+                                             && !string.IsNullOrWhiteSpace(t.Testo)).ToList();
+            return new StatoLingua(lingua, Elementi.Count,
+                                   diLingua.Count(t => !t.Obsoleto), diLingua.Count(t => t.Obsoleto));
+        }).ToList();
+    }
+
+    private async Task Traduci()
+    {
+        _inCorso = true;
+        _avanzamento = "Raccolta dei testi…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var fatti = 0;
+            var progress = new Progress<string>(t =>
+            {
+                _avanzamento = t;
+                var vaiDiStato = (++fatti % 4) == 0;
+                _ = InvokeAsync(async () =>
+                {
+                    if (_smontato) return;
+                    if (vaiDiStato) { try { await RicaricaAsync(); } catch { } }
+                    StateHasChanged();
+                });
+            });
+            var (ok, errori, markup, saltate) = await Orchestrator.TranslateAsync(
+                AziendaId, Elementi, WebTraduzioneOrchestratorService.Lingue, progress);
+
+            await RicaricaAsync();
+            await OnTradotto.InvokeAsync();
+
+            var msg = $"Tradotti {ok} testi";
+            if (saltate > 0) msg += $", {saltate} già a posto";
+            if (errori > 0) msg += $", {errori} non riusciti";
+            _esito = $"{DateTime.Now:HH:mm} — {msg}.";
+            Logger.LogInformation("Traduzione testi del sito (azienda {Az}): {Esito}", AziendaId, msg);
+            Snackbar.Add(msg + ".", errori > 0 ? Severity.Warning : Severity.Success);
+            if (markup > 0)
+                Snackbar.Add($"{markup} testi con formattazione da ricontrollare: la traduzione c'è, ma i tag potrebbero essere cambiati.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            _esito = $"{DateTime.Now:HH:mm} — traduzione non riuscita: {ex.Message}";
+            Logger.LogError(ex, "Traduzione testi del sito (azienda {Az}) fallita", AziendaId);
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _inCorso = false;
+            _avanzamento = "";
+            if (!_smontato) await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static Color Colore(StatoLingua s) =>
+        s.DaRifare ? Color.Warning : s.Completa ? Color.Success : s.Tradotti > 0 ? Color.Info : Color.Default;
+
+    private static string Icona(StatoLingua s) =>
+        s.DaRifare ? Icons.Material.Filled.Update
+        : s.Completa ? Icons.Material.Filled.CheckCircle
+        : Icons.Material.Filled.RadioButtonUnchecked;
+
+    private static string Spiega(StatoLingua s)
+    {
+        if (s.Traducibili == 0) return "Non c'è testo da tradurre.";
+        if (s.DaRifare) return $"{s.Obsoleti} testi sono cambiati in italiano dopo la traduzione: sul sito, per quei campi, si vede l'italiano.";
+        if (s.Completa) return "Tutti i testi sono tradotti.";
+        if (s.Tradotti == 0) return "Nessun testo tradotto: chi visita il sito in questa lingua vedrà l'italiano.";
+        return $"{s.Mancanti} testi non tradotti: sul sito quei campi saranno in italiano.";
+    }
+}
