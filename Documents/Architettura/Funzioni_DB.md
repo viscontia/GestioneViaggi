@@ -183,7 +183,8 @@ audio, versioni computer e telefono) e lo manda allo Storage all'«Aggiorna» de
   JPEG per le newsletter). `fn_web_sito_foto_home_save(azienda, url, path, larghezza, altezza, utente)` →
   `TABLE(percorso)` come per il video; spegne `foto_home_fk` (il file della libreria non si cancella).
   `fn_web_sito_home.foto`: quella della scheda, altrimenti quella scelta dalla libreria (ripiego).
-- Test `Test_698_…`; 10 prove dell'errore rilevate. In locale ✅; in PROD ⏳ (Task V5).
+- Test `Test_698_…`; 10 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (test superato; video
+  d'esempio registrato nella home, file dello Storage di prova).
 
 Decisione di Adriano e Antonio del 2026-10-20: l'apertura della home ha **motto** (grande), **titolo** e
 **sottotitolo** (facoltativo), tutti tradotti (il motto per intero: «The world… off the beaten track»).
