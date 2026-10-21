@@ -126,7 +126,9 @@ BEGIN
     EXECUTE c INTO v_n; ASSERT v_n = 1, 'web_sito_evidenza: atteso menu';
     DELETE FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL;
     INSERT INTO web_traduzioni (entita, entita_id, campo, lingua, testo, azienda_id, created_by)
-    VALUES ('web_sito_contenuti', 2, 'motto', 'EN', 'The world… off the beaten track', 2, 'test692');
+    VALUES ('web_sito_contenuti', 2, 'motto', 'EN', 'The world… off the beaten track (test692)', 2, 'test692')
+    -- la traduzione può esserci già (fatta dal gestionale): si aggiorna, e l'aggiornamento avvisa la coda lo stesso
+    ON CONFLICT (entita, entita_id, campo, lingua) DO UPDATE SET testo = EXCLUDED.testo;
     EXECUTE c INTO v_n; ASSERT v_n = 1, 'traduzione dei contenuti del sito: atteso menu';
     DELETE FROM web_revalidate_coda WHERE azienda_id = 2 AND completata_il IS NULL;
     INSERT INTO web_traduzioni (entita, entita_id, campo, lingua, testo, azienda_id, created_by)

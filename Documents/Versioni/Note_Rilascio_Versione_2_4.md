@@ -179,6 +179,7 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 | `697_Messaggio_Pilota_Senza_CF.sql` | Pilota senza codice fiscale: il messaggio dice la residenza in anagrafica e cosa correggere (correzione 2.4). La regola non cambia. Test `Test_697_…` | ✅ 2026-10-20 |
 | `698_Web_Sito_Video_Home.sql` | Foto e video d'apertura della home caricati dalla scheda «Sito web» (§1.7). Test `Test_698_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già; la scheda arriva con l'eseguibile 2.4) |
 | `699_Web_Sito_Video_Copertina.sql` | La copertina del video d'apertura (§1.7). Test `Test_699_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già) |
+| `700_Web_Sito_Piede_Email.sql` | Il sito (Contatti, piede) mostra l'email scelta per i messaggi del sito, non più la principale. Nessun cambiamento nel gestionale. Test `Test_700_…` | ✅ 2026-10-21 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.

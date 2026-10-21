@@ -164,6 +164,14 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_696_…`; 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (identica al
   locale, test superato).
 
+### L'email mostrata dal sito (`SqlScripts/700`, 2026-10-21, Tappa 4A)
+Decisione di Adriano (Antonio vuole `info@fuoritracciatravel.com` sul sito): `fn_web_sito_piede.email` è l'**email
+dei messaggi del sito** scelta nella scheda «Sito web» (`web_sito_contenuti.email_messaggi_fk`), altrimenti la
+principale (`fn_ana_aziende_email_principale`). La principale non cambia: resta per stampa delle fatture,
+newsletter e gestionale. Pagina Contatti, piede e dati per Google la leggono da qui. Test `Test_700_…` (con un'altra
+azienda costruita nel test); 3 prove dell'errore rilevate. ✅ In locale e **in PROD il 2026-10-21**.
+Test del 692 reso indipendente dalle traduzioni già presenti (ON CONFLICT).
+
 ### La copertina del video d'apertura (`SqlScripts/699`, 2026-10-20, Tappa 4A, Task V5)
 Prova di Adriano sull'anteprima: col video, finché non partiva, si vedeva il fondo blu; i siti d'esempio
 mostrano il primo fotogramma del video, e il video ci parte sopra senza salti.
@@ -2637,6 +2645,7 @@ che serve a dimostrarlo.
 ⛔️ **Gli indirizzi non stanno nello script**: sono dati personali di migliaia di persone e non
 entrano nel repository. Arrivano come parametro da un file tenuto in
 `~/Documents/Backup_GoLive/newsletter_drupal/`.
+
 
 
 
