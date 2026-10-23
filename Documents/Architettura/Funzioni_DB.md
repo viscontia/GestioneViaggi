@@ -164,6 +164,12 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_696_…`; 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (identica al
   locale, test superato).
 
+### L'impronta del conteggio dei PDF dura 12 mesi (`SqlScripts/702`, 2026-10-23, Tappa 4B, Task 2)
+Scritta la privacy del sito, le impronte di `web_pdf_richieste` (688) non si cancellavano mai. `fn_web_pdf_richiesta`
+ora, a ogni conteggio, cancella quelle più vecchie di **12 mesi**, di tutte le aziende (nessun compito a orario;
+un'azienda senza richieste non le tiene per sempre). Il resto invariato. Test `Test_702_…` (e il 688 resta verde);
+3 prove dell'errore rilevate. In locale ✅; in PROD ⏳ (Task 8).
+
 ### I testi legali del sito (`SqlScripts/701`, 2026-10-23, Tappa 4B, Task 1)
 Note legali, Privacy e Cookie scritti nella scheda «Sito web» → «Testi legali» (Quill) e tradotti.
 - `web_sito_contenuti` + `note_legali`, `privacy`, `cookie` (HTML) e `*_aggiornato` (data dell'ultimo cambiamento
@@ -2699,6 +2705,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -3507,7 +3514,6 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_sito_evidenza_list`
 - `fn_web_sito_evidenza_save`
 - `fn_web_sito_foto_home_save`
-- `fn_web_sito_html_pieno`
 - `fn_web_sito_pagina`
 - `fn_web_sito_pagine`
 - `fn_web_sito_partenze`
