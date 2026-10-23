@@ -189,12 +189,49 @@
                 </div>
 
                 <TraduzioniPanel AziendaId="@AziendaId"
-                                 Elementi="@WebSitoContenutiService.ElementiDaTradurre(Stato.Salvato)"
+                                 Elementi="@WebSitoContenutiService.ElementiHome(Stato.Salvato)"
                                  Revisione="@_revisione"
                                  InAttesaDiSalvataggio="@Stato.Modificata"
-                                 PrimaDiTradurre="@SalvaPerTradurre"
+                                 PrimaDiTradurre="@(() => SalvaPerTradurre(WebSitoContenutiService.ElementiHome))"
                                  SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
                                  Nota="Si traducono motto, titolo, sottotitolo e titolo «In evidenza». I titoli dei tour si traducono nella loro scheda web." />
+            </div>
+        }
+    </MudTabPanel>
+
+    @* Testi legali (pezzo 4B, script 701): note legali, privacy, cookie. Un testo vuoto = la pagina non c'è sul sito.
+       I dati dell'azienda (titolare, sede, P.IVA, email) NON si scrivono qui: il sito li mette da solo in cima alla
+       pagina, presi dall'anagrafica. *@
+    <MudTabPanel Text="Testi legali" Icon="@Icons.Material.Filled.Gavel">
+        @if (!_loading)
+        {
+            <div style="max-width:900px;">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Ogni testo diventa una pagina del sito (Note legali, Privacy, Cookie), con il link nel piede. Un testo
+                    vuoto = la pagina non c'è. I dati dell'azienda (titolare, sede, P.IVA, email) non vanno scritti qui: il
+                    sito li mette da solo in cima alla pagina, presi dall'anagrafica.
+                </MudAlert>
+                <style>.editor-html-bozza .ql-editor { max-height: 360px; overflow-y: auto; }</style>
+                @foreach (var (chiave, titolo, aggiornato) in TestiLegali)
+                {
+                    var k = chiave;
+                    <div class="d-flex align-center mb-1 mt-3">
+                        <MudText Typo="Typo.subtitle2">@titolo</MudText>
+                        @if (aggiornato is { } a)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">— ultimo aggiornamento sul sito: @a.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                        }
+                    </div>
+                    <EditorHtmlBozza Testo="@TestoBozza(k)" TestoChanged="@(v => ImpostaTesto(k, v))"
+                                     Placeholder="@($"Testo della pagina «{titolo}»…")" />
+                }
+                <TraduzioniPanel AziendaId="@AziendaId" Class="mt-4"
+                                 Elementi="@WebSitoContenutiService.ElementiTestiLegali(Stato.Salvato)"
+                                 Revisione="@_revisione"
+                                 InAttesaDiSalvataggio="@Stato.Modificata"
+                                 PrimaDiTradurre="@(() => SalvaPerTradurre(WebSitoContenutiService.ElementiTestiLegali))"
+                                 SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
+                                 Nota="Testi legali: la traduzione automatica va riletta (sul sito, nelle altre lingue, è scritto che fa fede il testo italiano)." />
             </div>
         }
     </MudTabPanel>
@@ -407,7 +444,28 @@
 
     // Si traduce ciò che è salvato: con modifiche in sospeso, «Traduci» prima le salva (è un'azione
     // esplicita; dopo, «Annulla» non le toglie più). Senza modifiche non salva niente.
-    private async Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurre()
+    // — Testi legali (ogni editor si carica e si rilegge da solo: EditorHtmlBozza) —
+    private IEnumerable<(string Chiave, string Titolo, DateTime? Aggiornato)> TestiLegali =>
+    [
+        ("note_legali", "Note legali", Stato.Salvato.NoteLegaliAggiornato),
+        ("privacy", "Privacy", Stato.Salvato.PrivacyAggiornato),
+        ("cookie", "Cookie", Stato.Salvato.CookieAggiornato),
+    ];
+
+    private string? TestoBozza(string k) => k switch { "note_legali" => Stato.Bozza.NoteLegali, "privacy" => Stato.Bozza.Privacy, _ => Stato.Bozza.Cookie };
+
+    private void ImpostaTesto(string k, string? html)
+    {
+        switch (k)
+        {
+            case "note_legali": Stato.Bozza.NoteLegali = html; break;
+            case "privacy": Stato.Bozza.Privacy = html; break;
+            default: Stato.Bozza.Cookie = html; break;
+        }
+        Cambiato();
+    }
+
+    private async Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurre(Func<WebSitoContenuti, List<TranslatableItem>> elementi)
     {
         if (Stato.Modificata)
         {
@@ -424,6 +482,6 @@
                 return null;
             }
         }
-        return WebSitoContenutiService.ElementiDaTradurre(Stato.Salvato);
+        return elementi(Stato.Salvato);
     }
 }

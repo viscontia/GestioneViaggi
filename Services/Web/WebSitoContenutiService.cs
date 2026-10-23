@@ -53,6 +53,12 @@ public sealed class WebSitoContenutiService
             VideoHomeLarghezza = r["video_home_larghezza"] as int?,
             VideoHomeAltezza = r["video_home_altezza"] as int?,
             VideoHomeDurata = r["video_home_durata"] as decimal?,
+            NoteLegali = r["note_legali"] as string,
+            Privacy = r["privacy"] as string,
+            Cookie = r["cookie"] as string,
+            NoteLegaliAggiornato = r["note_legali_aggiornato"] as DateTime?,
+            PrivacyAggiornato = r["privacy_aggiornato"] as DateTime?,
+            CookieAggiornato = r["cookie_aggiornato"] as DateTime?,
             UpdatedBy = r["updated_by"] as string,
             Updated = r["updated"] as DateTime?,
         };
@@ -94,6 +100,35 @@ public sealed class WebSitoContenutiService
         }
         if (obsolete > 0)
             _logger.LogInformation("Scheda «Sito web» {Az}: {N} traduzioni diventate obsolete", c.AziendaId, obsolete);
+        return obsolete;
+    }
+
+    /// <summary>
+    /// Salva i tre testi legali (script 701; a parte dalla Home). Il database normalizza l'HTML vuoto di Quill e
+    /// aggiorna la data solo del testo che cambia. Le traduzioni dei testi cambiati diventano obsolete.
+    /// </summary>
+    public async Task<int> SaveTestiLegaliAsync(WebSitoContenuti c, string utente)
+    {
+        var prima = await GetAsync(c.AziendaId);
+        await using (var conn = await _db.GetConnectionAsync())
+        await using (var cmd = new NpgsqlCommand(
+            "SELECT fn_web_sito_testi_legali_save(@Az::integer, @Note::text, @Privacy::text, @Cookie::text, @Utente::varchar)", conn))
+        {
+            cmd.Parameters.AddWithValue("Az", c.AziendaId);
+            cmd.Parameters.AddWithValue("Note", (object?)c.NoteLegali ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Privacy", (object?)c.Privacy ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Cookie", (object?)c.Cookie ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Utente", utente);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        var dopo = await GetAsync(c.AziendaId);
+        var obsolete = 0;
+        var vecchi = prima.CampiTestiLegali().ToDictionary(x => x.Campo, x => x.Valore);
+        foreach (var (campo, _, valore) in dopo.CampiTestiLegali())
+        {
+            if (string.Equals(vecchi[campo], valore, StringComparison.Ordinal)) continue;
+            obsolete += await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo);
+        }
         return obsolete;
     }
 
@@ -301,6 +336,8 @@ public sealed class WebSitoContenutiService
     public async Task<int> SalvaBozzaAsync(SitoWebBozza b, string utente)
     {
         var obsolete = await SaveAsync(b.Bozza, utente);
+        if (b.Bozza.TestiLegaliDiversiDa(b.Salvato))
+            obsolete += await SaveTestiLegaliAsync(b.Bozza, utente);
         if (!b.Evidenza.SequenceEqual(b.EvidenzaSalvata))
             await SaveEvidenzaAsync(b.AziendaId, b.Evidenza, utente);
         // Foto e video dopo i testi: una foto caricata spegne la scelta dalla libreria (698), e i testi la
@@ -317,8 +354,22 @@ public sealed class WebSitoContenutiService
     }
 
     /// <summary>I testi della sotto-scheda Home da tradurre (solo quelli compilati).</summary>
-    public static List<TranslatableItem> ElementiDaTradurre(WebSitoContenuti c) =>
+    public static List<TranslatableItem> ElementiHome(WebSitoContenuti c) =>
         c.CampiTraducibili()
+         .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
+         .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
+         .ToList();
+
+    /// <summary>I testi legali da tradurre (solo quelli compilati).</summary>
+    public static List<TranslatableItem> ElementiTestiLegali(WebSitoContenuti c) =>
+        c.CampiTestiLegali()
+         .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
+         .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
+         .ToList();
+
+    /// <summary>Tutti i testi della scheda «Sito web» da tradurre: «Aggiorna» li controlla tutti.</summary>
+    public static List<TranslatableItem> ElementiDaTradurre(WebSitoContenuti c) =>
+        c.CampiTraducibili().Concat(c.CampiTestiLegali())
          .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
          .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
          .ToList();

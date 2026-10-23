@@ -8,7 +8,11 @@ namespace GestioneViaggi.Services.Shared.Ai;
 public sealed class ClaudeOptions
 {
     public string Model { get; set; } = "claude-haiku-4-5-20251001";
-    public int MaxTokens { get; set; } = 4096;
+    /// <summary>
+    /// Il massimo che il modello può scrivere in una risposta. 16000 (era 4096): le pagine legali del sito (pezzo 4B)
+    /// superano 10.000 caratteri di HTML, e in tedesco crescono; si paga solo ciò che si usa, non il limite.
+    /// </summary>
+    public int MaxTokens { get; set; } = 16000;
     public string ApiVersion { get; set; } = "2023-06-01";
 
     /// <summary>
@@ -133,6 +137,12 @@ public sealed class ClaudeTranslationClient
         }
 
         using var doc = JsonDocument.Parse(body);
+        // Una risposta tagliata per lunghezza non è una traduzione: salvarla metterebbe online un testo a metà.
+        if (doc.RootElement.TryGetProperty("stop_reason", out var motivo) && motivo.GetString() == "max_tokens")
+        {
+            _logger.LogWarning("Claude: risposta tagliata a {Max} token", maxTokens);
+            throw new InvalidOperationException("Il testo è troppo lungo per una traduzione sola: la risposta è stata tagliata e non è stata salvata.");
+        }
         var text = doc.RootElement.GetProperty("content")[0].GetProperty("text").GetString();
 
         // "usage" è sempre presente nelle risposte Messages, ma se un domani cambiasse formato non

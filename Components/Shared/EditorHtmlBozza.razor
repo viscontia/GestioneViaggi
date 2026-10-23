@@ -1,0 +1,70 @@
+@using Blazored.TextEditor
+
+@* Editor Quill per un testo HTML che vive in una BOZZA tenuta da altri (il dialogo), non nell'editor.
+   Si carica da solo quando nasce e avvisa a ogni modifica: così sopravvive alle linguette che MudBlazor ricrea
+   (prova di Adriano, 2026-10-23: passando a un'altra linguetta e tornando il testo spariva, perché gli editor
+   ricreati non venivano ricaricati da chi li conteneva). Nato per i testi legali della scheda «Sito web». *@
+
+<div class="editor-html-bozza" style="height:@(Altezza)px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;"
+     @oninput="RileggiAsync" @onkeyup="RileggiAsync" @onclick="RileggiAsync" @onfocusout="RileggiAsync">
+    <BlazoredTextEditor @ref="_editor" Placeholder="@Placeholder">
+        <ToolbarContent>
+            <select class="ql-header"><option selected=""></option><option value="2"></option><option value="3"></option></select>
+            <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button></span>
+            <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>
+            <span class="ql-formats"><button class="ql-link"></button></span>
+        </ToolbarContent>
+    </BlazoredTextEditor>
+</div>
+
+@code {
+    /// <summary>Il testo della bozza, come HTML (null = nessun testo).</summary>
+    [Parameter] public string? Testo { get; set; }
+
+    /// <summary>Chiamata quando il testo cambia, con l'HTML normalizzato (l'HTML vuoto di Quill diventa null).</summary>
+    [Parameter] public EventCallback<string?> TestoChanged { get; set; }
+
+    [Parameter] public string? Placeholder { get; set; }
+    [Parameter] public int Altezza { get; set; } = 420;
+
+    private BlazoredTextEditor? _editor;
+    // finché il testo della bozza non è dentro l'editor, l'editor non si rilegge: un editor vuoto «creduto
+    // pronto» cancellerebbe la bozza al primo tocco
+    private bool _caricato;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _editor is null) return;
+        // Quill si inizializza dopo il disegno: qualche tentativo
+        for (var tentativo = 0; tentativo < 5; tentativo++)
+        {
+            try
+            {
+                await Task.Delay(150);
+                if (!string.IsNullOrEmpty(Testo)) await _editor.LoadHTMLContent(Testo);
+                _caricato = true;
+                return;
+            }
+            catch { /* Quill non ancora pronto: riprova; alla fine resta non caricato (e non tocca la bozza) */ }
+        }
+    }
+
+    private async Task RileggiAsync()
+    {
+        if (!_caricato || _editor is null) return;
+        string? html;
+        try { html = Normalizza(await _editor.GetHTML()); } catch { return; }
+        if (string.Equals(html, Testo, StringComparison.Ordinal)) return;
+        Testo = html;
+        await TestoChanged.InvokeAsync(html);
+    }
+
+    /// <summary>L'HTML che Quill lascia quando si cancella tutto vale «nessun testo» (lo stesso fa il database, 701).</summary>
+    public static string? Normalizza(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return null;
+        var resto = System.Text.RegularExpressions.Regex.Replace(html, @"<p>(\s|<br\s*/?>|&nbsp;)*</p>", "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        return resto.Length == 0 ? null : html;
+    }
+}

@@ -1227,6 +1227,18 @@ Valida **prima** di salvare (nome ≥ 2 caratteri, URL con protocollo) pur avend
 sulla tabella: dire subito cosa manca è meglio che far tornare l'errore dal database a salvataggio
 avvenuto. I messaggi dei vincoli sono comunque nel dizionario centrale, per i casi che sfuggono.
 
+## EditorHtmlBozza
+
+`Components/Shared/EditorHtmlBozza.razor` — editor Quill (`Blazored.TextEditor`) per un testo HTML che vive in una
+**bozza tenuta da altri** (il dialogo), non nell'editor. Si **carica da solo** quando nasce (qualche tentativo: Quill
+si inizializza dopo il disegno) e **avvisa a ogni modifica** (`TestoChanged`, con l'HTML vuoto di Quill normalizzato a
+`null`). Nato il 2026-10-23 per i testi legali della scheda «Sito web»: passando a un'altra linguetta e tornando il
+testo spariva, perché gli editor ricreati da MudBlazor non venivano ricaricati da chi li conteneva (un `MudTabs`
+ridisegna solo sé stesso, non il genitore). Finché il testo non è dentro l'editor, l'editor non si rilegge: un
+editor vuoto creduto pronto cancellerebbe la bozza al primo tocco.
+- Parametri: `Testo`, `TestoChanged`, `Placeholder`, `Altezza` (420).
+- Uso: `<EditorHtmlBozza Testo="@x" TestoChanged="@(v => { x = v; Cambiato(); })" />`.
+
 ## FileUploader
 
 Caricamento di file, **unico per tutta l'applicazione**. Creato il 2026-08-11 dopo aver constatato

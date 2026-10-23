@@ -52,8 +52,30 @@ public sealed class WebSitoContenuti
     /// <summary>Il titolo del blocco «In evidenza» della home (es. «Capodanno fuori traccia»).</summary>
     public string? EvidenzaTitolo { get; set; }
 
+    /// <summary>I testi legali del sito (script 701; sotto-scheda «Testi legali»): HTML dell'editor Quill. NULL = la pagina non c'è.</summary>
+    public string? NoteLegali { get; set; }
+    public string? Privacy { get; set; }
+    public string? Cookie { get; set; }
+    public DateTime? NoteLegaliAggiornato { get; set; }
+    public DateTime? PrivacyAggiornato { get; set; }
+    public DateTime? CookieAggiornato { get; set; }
+
     public string? UpdatedBy { get; set; }
     public DateTime? Updated { get; set; }
+
+    /// <summary>I testi legali che si traducono (campo = nome della pagina, come li legge fn_web_sito_pagina).</summary>
+    public IEnumerable<(string Campo, string Etichetta, string? Valore)> CampiTestiLegali()
+    {
+        yield return ("note_legali", "Testi legali — Note legali", NoteLegali);
+        yield return ("privacy", "Testi legali — Privacy", Privacy);
+        yield return ("cookie", "Testi legali — Cookie", Cookie);
+    }
+
+    /// <summary>Un testo legale è cambiato rispetto a <paramref name="altro"/>?</summary>
+    public bool TestiLegaliDiversiDa(WebSitoContenuti altro) =>
+        !string.Equals(NoteLegali, altro.NoteLegali, StringComparison.Ordinal)
+        || !string.Equals(Privacy, altro.Privacy, StringComparison.Ordinal)
+        || !string.Equals(Cookie, altro.Cookie, StringComparison.Ordinal);
 
     /// <summary>I campi che si traducono: (campo in web_traduzioni, etichetta per chi traduce, valore).</summary>
     public IEnumerable<(string Campo, string Etichetta, string? Valore)> CampiTraducibili()
