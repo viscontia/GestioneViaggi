@@ -168,7 +168,7 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 Scritta la privacy del sito, le impronte di `web_pdf_richieste` (688) non si cancellavano mai. `fn_web_pdf_richiesta`
 ora, a ogni conteggio, cancella quelle più vecchie di **12 mesi**, di tutte le aziende (nessun compito a orario;
 un'azienda senza richieste non le tiene per sempre). Il resto invariato. Test `Test_702_…` (e il 688 resta verde);
-3 prove dell'errore rilevate. In locale ✅; in PROD ⏳ (Task 8).
+3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-23** (test superato).
 
 ### I testi legali del sito (`SqlScripts/701`, 2026-10-23, Tappa 4B, Task 1)
 Note legali, Privacy e Cookie scritti nella scheda «Sito web» → «Testi legali» (Quill) e tradotti.
@@ -184,7 +184,7 @@ Note legali, Privacy e Cookie scritti nella scheda «Sito web» → «Testi lega
 - Test `Test_701_…`; 7 prove dell'errore rilevate. ⚠️ **Scoperta:** in locale le funzioni nuove nascono eseguibili
   solo da `postgres` (`pg_default_acl`), in PROD da chiunque: la prova dell'errore sui permessi va fatta
   simulando la PROD nella transazione (`ALTER DEFAULT PRIVILEGES … GRANT EXECUTE ON FUNCTIONS TO PUBLIC` e DROP
-  delle funzioni). In locale ✅; in PROD ⏳ (Task 8).
+  delle funzioni). In locale ✅; ✅ **in PROD il 2026-10-23** (anticipato per il Task 4 del sito; test superato).
 
 ### L'email mostrata dal sito (`SqlScripts/700`, 2026-10-21, Tappa 4A)
 Decisione di Adriano (Antonio vuole `info@fuoritracciatravel.com` sul sito): `fn_web_sito_piede.email` è l'**email

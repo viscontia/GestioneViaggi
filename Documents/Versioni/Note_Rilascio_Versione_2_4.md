@@ -188,8 +188,8 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 | `698_Web_Sito_Video_Home.sql` | Foto e video d'apertura della home caricati dalla scheda «Sito web» (§1.7). Test `Test_698_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già; la scheda arriva con l'eseguibile 2.4) |
 | `699_Web_Sito_Video_Copertina.sql` | La copertina del video d'apertura (§1.7). Test `Test_699_…` | ✅ 2026-10-20 (anticipato: il sito lo usa già) |
 | `700_Web_Sito_Piede_Email.sql` | Il sito (Contatti, piede) mostra l'email scelta per i messaggi del sito, non più la principale. Nessun cambiamento nel gestionale. Test `Test_700_…` | ✅ 2026-10-21 |
-| `701_Web_Sito_Testi_Legali.sql` | Testi legali del sito (sotto-scheda «Testi legali»). Test `Test_701_…` | ⏳ da portare in PROD (Task 8 del 4B) |
-| `702_Web_Pdf_Impronte_12_Mesi.sql` | Le impronte del conteggio dei PDF del sito si cancellano dopo 12 mesi. Nessun cambiamento nel gestionale. Test `Test_702_…` | ⏳ da portare in PROD (Task 8 del 4B) |
+| `701_Web_Sito_Testi_Legali.sql` | Testi legali del sito (sotto-scheda «Testi legali»). Test `Test_701_…` | ✅ 2026-10-23 (anticipato: il sito lo usa già) |
+| `702_Web_Pdf_Impronte_12_Mesi.sql` | Le impronte del conteggio dei PDF del sito si cancellano dopo 12 mesi. Nessun cambiamento nel gestionale. Test `Test_702_…` | ✅ 2026-10-23 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
