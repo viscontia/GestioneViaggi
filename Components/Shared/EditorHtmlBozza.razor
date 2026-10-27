@@ -2,6 +2,7 @@
 @inject IJSRuntime JS
 @using Microsoft.Extensions.Logging
 @inject ILogger<EditorHtmlBozza> Log
+@implements IAsyncDisposable
 
 @* Editor Quill per un testo HTML che vive in una BOZZA tenuta da altri (il dialogo), non nell'editor.
    Si carica da solo quando nasce e avvisa a ogni modifica: così sopravvive alle linguette che MudBlazor ricrea
@@ -46,7 +47,8 @@
         // nella bozza, e alla prima volta che veniva ricreato il testo spariva (prova di Adriano sulle FAQ, 2026-10-27).
         try
         {
-            _caricato = await JS.InvokeAsync<bool>("editorHtmlBozza.carica", _contenitore, Testo);
+            _dotnet = DotNetObjectReference.Create(this);
+            _caricato = await JS.InvokeAsync<bool>("editorHtmlBozza.carica", _contenitore, Testo, _dotnet);
             if (!_caricato)
                 Log.LogWarning("Editor HTML: Quill non è partito in 5 s; l'editor non copia nella bozza ({Lunghezza} caratteri in bozza)",
                     Testo?.Length ?? 0);
@@ -58,6 +60,17 @@
     }
 
     private bool _segnalatoNonCaricato;
+    private DotNetObjectReference<EditorHtmlBozza>? _dotnet;
+
+    /// <summary>Diagnosi dallo script (solo lunghezze, mai il testo): nel registro del gestionale.</summary>
+    [JSInvokable]
+    public void Diagnosi(string messaggio) => Log.LogWarning("Editor HTML: {Messaggio}", messaggio);
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("editorHtmlBozza.stacca", _contenitore); } catch { /* pagina già chiusa */ }
+        _dotnet?.Dispose();
+    }
 
     private async Task RileggiAsync()
     {
@@ -75,6 +88,9 @@
         string? html;
         try { html = Normalizza(await _editor.GetHTML()); } catch { return; }
         if (string.Equals(html, Testo, StringComparison.Ordinal)) return;
+        // un testo che crolla di colpo (incolla sparito?) lo si scrive nel registro: solo le lunghezze
+        if ((Testo?.Length ?? 0) >= 60 && (html?.Length ?? 0) < (Testo!.Length / 3))
+            Log.LogWarning("Editor HTML: testo calato di colpo da {Prima} a {Dopo} caratteri", Testo.Length, html?.Length ?? 0);
         Testo = html;
         await TestoChanged.InvokeAsync(html);
     }

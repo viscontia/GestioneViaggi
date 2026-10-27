@@ -1246,6 +1246,9 @@ editor vuoto creduto pronto cancellerebbe la bozza al primo tocco.
 - Il caricamento aspetta Quill fino a 5 s (prima si rinunciava dopo 0,75 s, e un editor «non caricato» non copiava
   più niente nella bozza: il testo spariva alla prima ricreazione). Se non parte, o se una modifica viene ignorata,
   lo scrive nel registro del gestionale («Editor HTML: …»).
+- Se gli appunti arrivano vuoti allo script (WebView), incolla la WebView e subito dopo il modello si rifà da ciò che
+  c'è sulla pagina. Ogni incolla lascia nel registro la strada presa e le lunghezze (mai il testo); un testo che crolla
+  di colpo (da ≥ 60 caratteri a meno di un terzo) pure.
 
 ## FileUploader
 
