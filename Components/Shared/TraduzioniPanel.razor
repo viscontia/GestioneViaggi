@@ -106,6 +106,12 @@
 
     public void Dispose() => _smontato = true;
 
+    // Dopo «PrimaDiTradurre» (che salva) chi ospita non si è ancora ridisegnato: i suoi Elementi sono quelli di prima
+    // del salvataggio — con un testo appena scritto, nessuno: contatori a «0/0» dopo una traduzione riuscita (prova di
+    // Adriano, Chi siamo, 2026-10-27). Si usano quelli restituiti, finché non arriva la revisione nuova.
+    private IReadOnlyList<TranslatableItem>? _elementiAggiornati;
+    private IReadOnlyList<TranslatableItem> ElementiCorrenti => _elementiAggiornati ?? Elementi;
+
     private bool CeQualcosaDaFare => _stato.Any(s => s.Mancanti > 0 || s.Obsoleti > 0);
 
     /// <summary>Vero se chi ospita ha modifiche da salvare prima di tradurre (il bottone resta acceso).</summary>
@@ -115,7 +121,7 @@
         Disabilitato ? (MotivoDisabilitato ?? "Salva prima le modifiche: si traduce ciò che è salvato.")
         : _inCorso ? null
         : InAttesaDiSalvataggio ? SpiegaPrimaDiTradurre
-        : Elementi.Count == 0 ? "Non c'è testo da tradurre: i campi sono vuoti."
+        : ElementiCorrenti.Count == 0 ? "Non c'è testo da tradurre: i campi sono vuoti."
         : !CeQualcosaDaFare ? "Tutte le lingue sono a posto: non c'è niente da tradurre."
         : null;
 
@@ -128,6 +134,7 @@
         if (AziendaId != _aziendaCaricata) _esito = null;
         _aziendaCaricata = AziendaId;
         _revisioneCaricata = Revisione;
+        _elementiAggiornati = null;   // chi ospita ha passato i testi nuovi
         await RicaricaAsync();
     }
 
@@ -137,7 +144,7 @@
         catch (Exception ex) { Snackbar.Add($"Stato traduzioni non letto: {ex.Message}", Severity.Error); }
     }
 
-    private Task<List<StatoLinguaTraduzioni>> CalcolaStatoAsync() => Traduzioni.StatoAsync(AziendaId, Elementi);
+    private Task<List<StatoLinguaTraduzioni>> CalcolaStatoAsync() => Traduzioni.StatoAsync(AziendaId, ElementiCorrenti);
 
     private async Task Traduci()
     {
@@ -152,6 +159,7 @@
                 var aggiornati = await PrimaDiTradurre();
                 if (aggiornati is null) return;
                 elementi = aggiornati;
+                _elementiAggiornati = aggiornati;
                 await RicaricaAsync();
             }
             if (elementi.Count == 0)

@@ -1472,6 +1472,18 @@ si toccano. Le function lo impongono comunque, ma è meglio non offrire un pulsa
 > cosa si è già letto) e notificare **solo quando il valore è cambiato**. Servono entrambi: il
 > primo evita il giro, il secondo lo interrompe comunque se qualcuno lo riapre.
 
+## TraduzioniPanel
+
+`Components/Shared/TraduzioniPanel.razor` — il riquadro «Lingue» delle schede web (scheda «Sito web»: Home, Chi siamo,
+Testi legali; e le altre che traducono testi di una pagina): per ogni lingua quanti testi sono tradotti, quanti mancano,
+quanti sono da rifare, e «Traduci quello che manca».
+- Parametri: `AziendaId`, `Elementi` (i testi italiani **salvati** e compilati), `Revisione` (chi ospita la cambia dopo
+  un salvataggio: il riquadro rilegge lo stato), `InAttesaDiSalvataggio`, `PrimaDiTradurre` (es. salva la bozza e
+  restituisce i testi aggiornati; `null` = non tradurre), `SpiegaPrimaDiTradurre`, `Nota`, `OnTradotto`.
+- ⚠️ Dopo `PrimaDiTradurre` il riquadro usa i testi che quella restituisce finché chi ospita non passa una `Revisione`
+  nuova: chi ospita non si è ancora ridisegnato e i suoi `Elementi` sono quelli di prima del salvataggio (con un testo
+  appena scritto: nessuno → contatori «0/0» dopo una traduzione riuscita; corretto il 2026-10-27).
+
 ## NewsletterTraduzioniPanel
 
 `Components/Shared/NewsletterTraduzioniPanel.razor` — in quali lingue parte una newsletter, e cosa
