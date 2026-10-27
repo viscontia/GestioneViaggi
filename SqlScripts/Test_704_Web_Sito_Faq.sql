@@ -3,6 +3,7 @@
 -- Prima dello script deve FALLIRE (tabelle e funzioni non esistono).
 -- ============================================================================
 BEGIN;
+-- (dal 705 la galleria si riempie da sola con le foto dei tour: qui si guarda l'elenco senza di lei)
 DO $$
 DECLARE
     salva  constant text := 'fn_web_sito_faq_save(integer, jsonb, character varying)';
@@ -21,7 +22,7 @@ BEGIN
     PERFORM fn_web_sito_chi_siamo_save(2, NULL, 'test704');
     PERFORM fn_web_sito_testi_legali_save(2, NULL, NULL, NULL, 'test704');
     ASSERT fn_web_sito_faq(2, 'IT') = '[]'::jsonb, 'senza domande: elenco vuoto';
-    ASSERT fn_web_sito_pagine(2) = '[]'::jsonb, 'senza domande: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '[]'::jsonb, 'senza domande: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_faq_list(2) = '[]'::jsonb, 'il gestionale vede vuoto';
 
     -- 3. due gruppi: solo le domande attive e con risposta; un gruppo senza domande visibili non si vede
@@ -35,7 +36,7 @@ BEGIN
     v_j := fn_web_sito_faq(2, 'IT');
     ASSERT v_j = '[{"nome": "Prima di partire", "domande": [{"lingua": "IT", "domanda": "Serve esperienza?", "risposta": "<p>No.</p>"}]}]'::jsonb,
         'solo il visibile: ' || v_j::text;
-    ASSERT fn_web_sito_pagine(2) = '["faq"]'::jsonb, 'con una domanda attiva la pagina c''è: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["faq"]'::jsonb, 'con una domanda attiva la pagina c''è: ' || fn_web_sito_pagine(2)::text;
     ASSERT (SELECT risposta FROM web_sito_faq WHERE domanda = 'Senza risposta') IS NULL, 'l''HTML vuoto di Quill diventa NULL';
     -- il gestionale vede tutto, con gli identificativi
     v_j := fn_web_sito_faq_list(2);
@@ -55,7 +56,7 @@ BEGIN
     ASSERT NOT EXISTS (SELECT 1 FROM web_sito_faq WHERE web_sito_faq_id = q3), 'la domanda tolta dall''elenco è cancellata';
     PERFORM fn_web_sito_chi_siamo_save(2, '<p>Chi</p>', 'test704');
     PERFORM fn_web_sito_testi_legali_save(2, NULL, '<p>Privacy</p>', NULL, 'test704');
-    ASSERT fn_web_sito_pagine(2) = '["chi_siamo", "faq", "privacy"]'::jsonb, 'ordine delle pagine: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["chi_siamo", "faq", "privacy"]'::jsonb, 'ordine delle pagine: ' || fn_web_sito_pagine(2)::text;
 
     -- 5. traduzioni: nome, domanda, risposta; mancante o obsoleta → italiano, e la domanda dice in che lingua è
     INSERT INTO web_traduzioni (entita, entita_id, campo, lingua, testo, azienda_id, created_by) VALUES

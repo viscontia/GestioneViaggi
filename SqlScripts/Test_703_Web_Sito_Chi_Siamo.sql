@@ -3,6 +3,7 @@
 -- Prima dello script deve FALLIRE (le colonne e le funzioni non esistono).
 -- ============================================================================
 BEGIN;
+-- (dal 705 la galleria si riempie da sola con le foto dei tour: qui si guarda l'elenco senza di lei)
 DO $$
 DECLARE
     salva  constant text := 'fn_web_sito_chi_siamo_save(integer, text, character varying)';
@@ -24,23 +25,23 @@ BEGIN
     PERFORM fn_web_sito_chi_siamo_save(2, NULL, 'test703');
     PERFORM fn_web_sito_foto_chi_siamo_save(2, 1, NULL, NULL, NULL, NULL, 'test703');
     PERFORM fn_web_sito_foto_chi_siamo_save(2, 2, NULL, NULL, NULL, NULL, 'test703');
-    ASSERT fn_web_sito_pagine(2) = '[]'::jsonb, 'senza testo: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '[]'::jsonb, 'senza testo: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_pagina(2, 'IT', 'chi_siamo') IS NULL, 'Chi siamo vuota: null';
 
     -- 3. le foto da sole non fanno esistere la pagina (serve il testo)
     PERFORM fn_web_sito_foto_chi_siamo_save(2, 1, 'https://x/libreria/2/a.webp', 'libreria/2/a.webp', 2000, 1333, 'test703');
-    ASSERT fn_web_sito_pagine(2) = '[]'::jsonb, 'solo foto, senza testo: nessuna pagina';
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '[]'::jsonb, 'solo foto, senza testo: nessuna pagina';
 
     -- 4. col testo esiste, prima delle pagine legali; l'HTML vuoto di Quill non conta
     PERFORM fn_web_sito_chi_siamo_save(2, '<p><br></p>', 'test703');
     ASSERT (SELECT chi_siamo FROM web_sito_contenuti WHERE azienda_id = 2) IS NULL, 'l''HTML vuoto di Quill diventa NULL';
     PERFORM fn_web_sito_chi_siamo_save(2, '<p>Chi siamo IT</p>', 'test703');
     PERFORM fn_web_sito_testi_legali_save(2, NULL, '<p>Privacy</p>', NULL, 'test703');
-    ASSERT fn_web_sito_pagine(2) = '["chi_siamo", "privacy"]'::jsonb, 'ordine delle pagine: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["chi_siamo", "privacy"]'::jsonb, 'ordine delle pagine: ' || fn_web_sito_pagine(2)::text;
 
     -- 4-bis. un «vuoto» scritto per un'altra strada (non dal salvataggio) non fa esistere la pagina
     UPDATE web_sito_contenuti SET chi_siamo = '<p><br></p> <p>&nbsp;</p>' WHERE azienda_id = 2;
-    ASSERT fn_web_sito_pagine(2) = '["privacy"]'::jsonb, 'Chi siamo «vuota» non esiste: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["privacy"]'::jsonb, 'Chi siamo «vuota» non esiste: ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_pagina(2, 'IT', 'chi_siamo') IS NULL, 'Chi siamo «vuota»: null';
     PERFORM fn_web_sito_chi_siamo_save(2, '<p>Chi siamo IT</p>', 'test703');
 
