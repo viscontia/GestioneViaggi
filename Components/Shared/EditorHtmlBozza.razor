@@ -52,6 +52,8 @@
             if (!_caricato)
                 Log.LogWarning("Editor HTML: Quill non è partito in 5 s; l'editor non copia nella bozza ({Lunghezza} caratteri in bozza)",
                     Testo?.Length ?? 0);
+            else   // diagnosi del testo che sparisce: quando nasce un editor, e con quale testo
+                Log.LogWarning("Editor HTML #{Id}: creato con {Lunghezza} caratteri", _id, Testo?.Length ?? 0);
         }
         catch (Exception ex)
         {
@@ -64,7 +66,16 @@
 
     /// <summary>Diagnosi dallo script (solo lunghezze, mai il testo): nel registro del gestionale.</summary>
     [JSInvokable]
-    public void Diagnosi(string messaggio) => Log.LogWarning("Editor HTML: {Messaggio}", messaggio);
+    public void Diagnosi(string messaggio)
+    {
+        if (messaggio.StartsWith("incolla")) _ultimoIncolla = DateTime.Now;
+        Log.LogWarning("Editor HTML #{Id}: {Messaggio}", _id, messaggio);
+    }
+
+    // per la diagnosi: quale editor, e quanto dopo l'ultimo incolla
+    private readonly int _id = System.Threading.Interlocked.Increment(ref _contatore);
+    private static int _contatore;
+    private DateTime? _ultimoIncolla;
 
     public async ValueTask DisposeAsync()
     {
@@ -90,7 +101,9 @@
         if (string.Equals(html, Testo, StringComparison.Ordinal)) return;
         // un testo che crolla di colpo (incolla sparito?) lo si scrive nel registro: solo le lunghezze
         if ((Testo?.Length ?? 0) >= 60 && (html?.Length ?? 0) < (Testo!.Length / 3))
-            Log.LogWarning("Editor HTML: testo calato di colpo da {Prima} a {Dopo} caratteri", Testo.Length, html?.Length ?? 0);
+            Log.LogWarning("Editor HTML #{Id}: testo calato di colpo da {Prima} a {Dopo} caratteri ({Secondi} s dopo l'ultimo incolla)",
+                _id, Testo.Length, html?.Length ?? 0,
+                _ultimoIncolla is { } u ? Math.Round((DateTime.Now - u).TotalSeconds) : -1);
         Testo = html;
         await TestoChanged.InvokeAsync(html);
     }
