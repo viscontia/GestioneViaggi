@@ -1238,6 +1238,11 @@ ridisegna solo sé stesso, non il genitore). Finché il testo non è dentro l'ed
 editor vuoto creduto pronto cancellerebbe la bozza al primo tocco.
 - Parametri: `Testo`, `TestoChanged`, `Placeholder`, `Altezza` (420).
 - Uso: `<EditorHtmlBozza Testo="@x" TestoChanged="@(v => { x = v; Cambiato(); })" />`.
+- ⚠️ Caricamento e incolla passano dal **modello di Quill** (`wwwroot/js/editorHtmlBozza.js`, `dangerouslyPasteHTML`), non
+  da `LoadHTMLContent` di Blazored (che scrive `root.innerHTML`, cioè solo nella pagina): con pagina e modello diversi,
+  alla prima modifica Quill ridisegnava dal modello e il testo incollato spariva (prova di Adriano sulle FAQ,
+  2026-10-27: incollato da una pagina web con Cmd+V). L'incolla lo fa l'editor dagli appunti (HTML o testo), nel punto
+  del cursore o in fondo, e avvisa del cambiamento: vale anche per «Incolla» dal tasto destro.
 
 ## FileUploader
 

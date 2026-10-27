@@ -1,11 +1,14 @@
 @using Blazored.TextEditor
+@inject IJSRuntime JS
 
 @* Editor Quill per un testo HTML che vive in una BOZZA tenuta da altri (il dialogo), non nell'editor.
    Si carica da solo quando nasce e avvisa a ogni modifica: così sopravvive alle linguette che MudBlazor ricrea
    (prova di Adriano, 2026-10-23: passando a un'altra linguetta e tornando il testo spariva, perché gli editor
-   ricreati non venivano ricaricati da chi li conteneva). Nato per i testi legali della scheda «Sito web». *@
+   ricreati non venivano ricaricati da chi li conteneva). Nato per i testi legali della scheda «Sito web».
+   Caricamento e incolla passano dal modello di Quill (wwwroot/js/editorHtmlBozza.js): scritti direttamente nella pagina,
+   come fa Blazored, alla prima modifica potevano sparire (prova di Adriano sulle FAQ, 2026-10-27). *@
 
-<div class="editor-html-bozza" style="height:@(Altezza)px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;"
+<div @ref="_contenitore" class="editor-html-bozza" style="height:@(Altezza)px; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden; display:flex; flex-direction:column;"
      @oninput="RileggiAsync" @onkeyup="RileggiAsync" @onclick="RileggiAsync" @onfocusout="RileggiAsync">
     <BlazoredTextEditor @ref="_editor" Placeholder="@Placeholder">
         <ToolbarContent>
@@ -28,6 +31,7 @@
     [Parameter] public int Altezza { get; set; } = 420;
 
     private BlazoredTextEditor? _editor;
+    private ElementReference _contenitore;
     // finché il testo della bozza non è dentro l'editor, l'editor non si rilegge: un editor vuoto «creduto
     // pronto» cancellerebbe la bozza al primo tocco
     private bool _caricato;
@@ -41,7 +45,8 @@
             try
             {
                 await Task.Delay(150);
-                if (!string.IsNullOrEmpty(Testo)) await _editor.LoadHTMLContent(Testo);
+                // false = Quill non ancora pronto: si riprova
+                if (!await JS.InvokeAsync<bool>("editorHtmlBozza.carica", _contenitore, Testo)) continue;
                 _caricato = true;
                 return;
             }
