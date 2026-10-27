@@ -508,7 +508,7 @@
         {
             if (!_sitoWeb.Caricata || _sitoWeb.AziendaId != Entity.Id)
                 await SitoService.CaricaBozzaAsync(_sitoWeb, Entity.Id);
-            var elementi = GestioneViaggi.Services.Web.WebSitoContenutiService.ElementiDaTradurre(_sitoWeb.Salvato);
+            var elementi = GestioneViaggi.Services.Web.WebSitoContenutiService.ElementiDaTradurre(_sitoWeb);
             var stato = await TraduzioniService.StatoAsync(Entity.Id, elementi);
             var incomplete = stato.Where(x => !x.Completa).ToList();
             if (incomplete.Count == 0) return true;

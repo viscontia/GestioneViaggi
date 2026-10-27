@@ -14,7 +14,7 @@
 
 @* Scheda «Sito web» dell'azienda (voce L28, script 692). Ciò che il sito pubblico mostra e che
    decide il titolare: qui, non nel codice del sito (il prodotto serve più tour operator).
-   Sotto-schede: Home (Tappa 4A del sito), Chi siamo (4C, script 703), Testi legali (4B). Le FAQ arrivano col 4C.
+   Sotto-schede: Home (Tappa 4A del sito), Chi siamo e FAQ (4C, script 703 e 704), Testi legali (4B).
    Ogni salvataggio aggiorna il sito da solo entro 1–2 minuti (coda di rigenerazione). *@
 
 <MudTabs Elevation="0" Rounded="true" PanelClass="pt-3" Border="false">
@@ -258,6 +258,108 @@
                                  PrimaDiTradurre="@(() => SalvaPerTradurre(WebSitoContenutiService.ElementiChiSiamo))"
                                  SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
                                  Nota="Si traduce il testo di Chi siamo." />
+            </div>
+        }
+    </MudTabPanel>
+
+    @* FAQ (pezzo 4C, script 704): gruppi con le loro domande, nell'ordine. Sul sito vanno solo le domande attive e con
+       risposta; un gruppo senza domande così non si vede, e senza nessuna la pagina non c'è. Tutto si salva con
+       «Aggiorna» (l'elenco intero: ciò che si toglie qui si cancella, con le sue traduzioni). L'editor di una risposta
+       si apre solo quando serve: trenta editor aperti insieme renderebbero la scheda pesante. *@
+    <MudTabPanel Text="FAQ" Icon="@Icons.Material.Filled.QuestionAnswer">
+        @if (!_loading)
+        {
+            <div style="max-width:900px;">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Le domande frequenti del sito, divise in gruppi (per esempio «Prima di partire», «Mezzi e attrezzatura»),
+                    con il link nel piede. Sul sito vanno solo le domande <b>attive</b> e con la risposta; un gruppo senza
+                    domande così non si vede, e senza nessuna la pagina non c'è.
+                </MudAlert>
+                <style>.editor-html-bozza .ql-editor { max-height: 360px; overflow-y: auto; }</style>
+                @for (var gi = 0; gi < Stato.Faq.Count; gi++)
+                {
+                    var gPos = gi;
+                    var g = Stato.Faq[gPos];
+                    <MudPaper @key="g" Outlined="true" Class="pa-3 mb-3">
+                        <div class="d-flex align-center gap-1">
+                            <MudTextField T="string" Label="@($"Gruppo {gPos + 1}")" Value="@g.Nome"
+                                          ValueChanged="@(v => { g.Nome = v ?? ""; Cambiato(); })" Immediate="true"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="@FaqGruppo.MaxNome"
+                                          Error="@string.IsNullOrWhiteSpace(g.Nome)" ErrorText="Serve un nome" Class="flex-grow-1" />
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(gPos == 0)"
+                                           OnClick="@(() => SpostaGruppo(gPos, -1))" title="Sposta il gruppo su" />
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(gPos == Stato.Faq.Count - 1)"
+                                           OnClick="@(() => SpostaGruppo(gPos, 1))" title="Sposta il gruppo giù" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => { Stato.Faq.RemoveAt(gPos); Cambiato(); })" title="Togli il gruppo e le sue domande" />
+                        </div>
+                        @for (var qi = 0; qi < g.Domande.Count; qi++)
+                        {
+                            var qPos = qi;
+                            var d = g.Domande[qPos];
+                            <div @key="d" class="mt-2 pl-3" style="border-left:3px solid var(--mud-palette-lines-default);">
+                                <div class="d-flex align-center gap-1">
+                                    <MudTextField T="string" Label="@($"Domanda {qPos + 1}")" Value="@d.Domanda"
+                                                  ValueChanged="@(v => { d.Domanda = v ?? ""; Cambiato(); })" Immediate="true"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="@FaqDomanda.MaxDomanda"
+                                                  Error="@string.IsNullOrWhiteSpace(d.Domanda)" ErrorText="Scrivi la domanda" Class="flex-grow-1" />
+                                    <MudSwitch T="bool" Value="@d.Attiva" ValueChanged="@(v => { d.Attiva = v; Cambiato(); })"
+                                               Color="Color.Success" Size="Size.Small" Label="Attiva" />
+                                    <MudIconButton Icon="@(_risposteAperte.Contains(d) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.Edit)"
+                                                   Size="Size.Small" OnClick="@(() => ApriChiudiRisposta(d))"
+                                                   title="@(_risposteAperte.Contains(d) ? "Chiudi la risposta" : "Scrivi la risposta")" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(qPos == 0)"
+                                                   OnClick="@(() => SpostaDomanda(g, qPos, -1))" title="Sposta su" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(qPos == g.Domande.Count - 1)"
+                                                   OnClick="@(() => SpostaDomanda(g, qPos, 1))" title="Sposta giù" />
+                                    @if (Stato.Faq.Count > 1)
+                                    {
+                                        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
+                                            <ActivatorContent>
+                                                <MudIconButton Icon="@Icons.Material.Filled.DriveFileMove" Size="Size.Small" title="Sposta in un altro gruppo" />
+                                            </ActivatorContent>
+                                            <ChildContent>
+                                                @foreach (var altro in Stato.Faq.Where(x => !ReferenceEquals(x, g)))
+                                                {
+                                                    var destinazione = altro;
+                                                    <MudMenuItem OnClick="@(() => SpostaInGruppo(g, d, destinazione))">
+                                                        @(string.IsNullOrWhiteSpace(destinazione.Nome) ? "(gruppo senza nome)" : destinazione.Nome)
+                                                    </MudMenuItem>
+                                                }
+                                            </ChildContent>
+                                        </MudMenu>
+                                    }
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => { g.Domande.RemoveAt(qPos); Cambiato(); })" title="Togli la domanda" />
+                                </div>
+                                @if (string.IsNullOrWhiteSpace(d.Risposta) && !_risposteAperte.Contains(d))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Warning">Senza risposta: sul sito non compare.</MudText>
+                                }
+                                else if (!d.Attiva)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Non attiva: sul sito non compare.</MudText>
+                                }
+                                @if (_risposteAperte.Contains(d))
+                                {
+                                    <EditorHtmlBozza Testo="@d.Risposta" TestoChanged="@(v => { d.Risposta = v; Cambiato(); })"
+                                                     Altezza="220" Placeholder="La risposta…" />
+                                }
+                            </div>
+                        }
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" Class="mt-2"
+                                   OnClick="@(() => AggiungiDomanda(g))">Aggiungi domanda</MudButton>
+                    </MudPaper>
+                }
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.PlaylistAdd"
+                           OnClick="@AggiungiGruppo">Aggiungi gruppo</MudButton>
+                <TraduzioniPanel AziendaId="@AziendaId" Class="mt-4"
+                                 Elementi="@WebSitoContenutiService.ElementiFaq(Stato.FaqSalvate)"
+                                 Revisione="@_revisione"
+                                 InAttesaDiSalvataggio="@Stato.Modificata"
+                                 PrimaDiTradurre="@(() => SalvaPerTradurreBozza(b => WebSitoContenutiService.ElementiFaq(b.FaqSalvate)))"
+                                 SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
+                                 Nota="Si traducono i nomi dei gruppi e le domande attive con la risposta (quelle che il sito mostra)." />
             </div>
         }
     </MudTabPanel>
@@ -560,7 +662,57 @@
         Cambiato();
     }
 
-    private async Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurre(Func<WebSitoContenuti, List<TranslatableItem>> elementi)
+    // — FAQ: tutto nella bozza; si salva con «Aggiorna» —
+    // Le risposte aperte nell'editor (per riferimento: una domanda nuova non ha ancora l'id).
+    private readonly HashSet<FaqDomanda> _risposteAperte = new(ReferenceEqualityComparer.Instance);
+
+    private void ApriChiudiRisposta(FaqDomanda d)
+    {
+        if (!_risposteAperte.Remove(d)) _risposteAperte.Add(d);
+    }
+
+    private void AggiungiGruppo()
+    {
+        Stato.Faq.Add(new FaqGruppo());
+        Cambiato();
+    }
+
+    private void AggiungiDomanda(FaqGruppo g)
+    {
+        var d = new FaqDomanda();
+        g.Domande.Add(d);
+        _risposteAperte.Add(d);
+        Cambiato();
+    }
+
+    private void SpostaGruppo(int pos, int verso)
+    {
+        var nuova = pos + verso;
+        if (nuova < 0 || nuova >= Stato.Faq.Count) return;
+        (Stato.Faq[pos], Stato.Faq[nuova]) = (Stato.Faq[nuova], Stato.Faq[pos]);
+        Cambiato();
+    }
+
+    private void SpostaDomanda(FaqGruppo g, int pos, int verso)
+    {
+        var nuova = pos + verso;
+        if (nuova < 0 || nuova >= g.Domande.Count) return;
+        (g.Domande[pos], g.Domande[nuova]) = (g.Domande[nuova], g.Domande[pos]);
+        Cambiato();
+    }
+
+    // In fondo al gruppo di destinazione; la domanda resta la stessa (id e traduzioni conservati).
+    private void SpostaInGruppo(FaqGruppo da, FaqDomanda d, FaqGruppo a)
+    {
+        if (!da.Domande.Remove(d)) return;
+        a.Domande.Add(d);
+        Cambiato();
+    }
+
+    private Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurre(Func<WebSitoContenuti, List<TranslatableItem>> elementi) =>
+        SalvaPerTradurreBozza(b => elementi(b.Salvato));
+
+    private async Task<IReadOnlyList<TranslatableItem>?> SalvaPerTradurreBozza(Func<SitoWebBozza, List<TranslatableItem>> elementi)
     {
         if (Stato.Modificata)
         {
@@ -577,6 +729,6 @@
                 return null;
             }
         }
-        return elementi(Stato.Salvato);
+        return elementi(Stato);
     }
 }

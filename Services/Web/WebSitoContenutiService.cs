@@ -3,6 +3,7 @@ using GestioneViaggi.Services.Database;
 using GestioneViaggi.Services.Shared.Storage;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using System.Text.Json;
 
 namespace GestioneViaggi.Services.Web;
 
@@ -160,6 +161,41 @@ public sealed class WebSitoContenutiService
         if (string.Equals(prima.ChiSiamo, dopo.ChiSiamo, StringComparison.Ordinal)) return 0;
         return await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, "chi_siamo");
     }
+
+    private static readonly JsonSerializerOptions FaqJson = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    /// <summary>Tutte le FAQ dell'azienda (gruppi e domande, anche non attive), nell'ordine (fn_web_sito_faq_list, 704).</summary>
+    public async Task<List<FaqGruppo>> ListFaqAsync(int aziendaId)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT fn_web_sito_faq_list(@Az::integer)::text", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        var json = await cmd.ExecuteScalarAsync() as string;
+        return string.IsNullOrEmpty(json) ? new() : JsonSerializer.Deserialize<List<FaqGruppo>>(json, FaqJson) ?? new();
+    }
+
+    /// <summary>
+    /// Salva l'elenco intero delle FAQ (704): ordine = posizione; ciò che manca si cancella con le sue traduzioni; i
+    /// testi italiani cambiati rendono obsolete le loro traduzioni (lo fa il database). Nome o domanda vuoti → errore
+    /// del database, che dice quale.
+    /// </summary>
+    public async Task SaveFaqAsync(int aziendaId, IReadOnlyList<FaqGruppo> gruppi, string utente)
+    {
+        await using var conn = await _db.GetConnectionAsync();
+        await using var cmd = new NpgsqlCommand("SELECT fn_web_sito_faq_save(@Az::integer, @Gruppi::jsonb, @Utente::varchar)", conn);
+        cmd.Parameters.AddWithValue("Az", aziendaId);
+        cmd.Parameters.AddWithValue("Gruppi", JsonSerializer.Serialize(gruppi, FaqJson));
+        cmd.Parameters.AddWithValue("Utente", utente);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>Le FAQ in bozza sono diverse da quelle salvate (testi, ordine, gruppi, attive)?</summary>
+    public static bool FaqCambiate(SitoWebBozza b) =>
+        JsonSerializer.Serialize(b.Faq, FaqJson) != JsonSerializer.Serialize(b.FaqSalvate, FaqJson);
 
     /// <summary>I contenuti dei tour in evidenza, nell'ordine.</summary>
     public async Task<List<long>> ListEvidenzaAsync(int aziendaId)
@@ -382,6 +418,8 @@ public sealed class WebSitoContenutiService
         b.Bozza = b.Salvato.Copia();
         b.EvidenzaSalvata = await ListEvidenzaAsync(aziendaId);
         b.Evidenza = b.EvidenzaSalvata.ToList();
+        b.FaqSalvate = await ListFaqAsync(aziendaId);
+        b.Faq = b.FaqSalvate.Select(g => g.Copia()).ToList();
         b.ScartaMedia();
         b.Modificata = false;
         b.Caricata = true;
@@ -400,6 +438,8 @@ public sealed class WebSitoContenutiService
             obsolete += await SaveChiSiamoAsync(b.Bozza, utente);
         if (!b.Evidenza.SequenceEqual(b.EvidenzaSalvata))
             await SaveEvidenzaAsync(b.AziendaId, b.Evidenza, utente);
+        if (FaqCambiate(b))
+            await SaveFaqAsync(b.AziendaId, b.Faq, utente);
         // Foto e video dopo i testi: una foto caricata spegne la scelta dalla libreria (698), e i testi la
         // salvano ancora com'era. Ognuno si salva da sé: se il video non va, testi e foto restano salvati.
         if (b.FotoNuova is not null || b.FotoTolta)
@@ -440,10 +480,33 @@ public sealed class WebSitoContenutiService
          .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
          .ToList();
 
-    /// <summary>Tutti i testi della scheda «Sito web» da tradurre: «Aggiorna» li controlla tutti.</summary>
-    public static List<TranslatableItem> ElementiDaTradurre(WebSitoContenuti c) =>
-        c.CampiTraducibili().Concat(c.CampiChiSiamo()).Concat(c.CampiTestiLegali())
+    /// <summary>
+    /// Le FAQ salvate da tradurre: solo quelle che il sito mostra (domande attive e con risposta, e i loro gruppi), così
+    /// una bozza non attiva non risulta «da tradurre». Una domanda nuova si traduce dopo il primo salvataggio (serve l'id).
+    /// </summary>
+    public static List<TranslatableItem> ElementiFaq(IEnumerable<FaqGruppo> gruppi)
+    {
+        var list = new List<TranslatableItem>();
+        foreach (var g in gruppi.Where(g => g.Id is not null))
+        {
+            var visibili = g.Domande.Where(d => d.Id is not null && d.Attiva && !string.IsNullOrWhiteSpace(d.Domanda)
+                                                && !string.IsNullOrWhiteSpace(d.Risposta)).ToList();
+            if (visibili.Count == 0) continue;
+            list.Add(new TranslatableItem("web_sito_faq_gruppi", g.Id!.Value, "nome", $"FAQ — gruppo «{g.Nome}»", g.Nome));
+            foreach (var d in visibili)
+            {
+                list.Add(new TranslatableItem("web_sito_faq", d.Id!.Value, "domanda", $"FAQ — {d.Domanda}", d.Domanda));
+                list.Add(new TranslatableItem("web_sito_faq", d.Id!.Value, "risposta", $"FAQ — risposta a «{d.Domanda}»", d.Risposta!));
+            }
+        }
+        return list;
+    }
+
+    /// <summary>Tutti i testi della scheda «Sito web» da tradurre: «Aggiorna» li controlla tutti (FAQ comprese).</summary>
+    public static List<TranslatableItem> ElementiDaTradurre(SitoWebBozza b) =>
+        b.Salvato.CampiTraducibili().Concat(b.Salvato.CampiChiSiamo()).Concat(b.Salvato.CampiTestiLegali())
          .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
-         .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
+         .Select(x => new TranslatableItem(WebSitoContenuti.Entita, b.Salvato.AziendaId, x.Campo, x.Etichetta, x.Valore!))
+         .Concat(ElementiFaq(b.FaqSalvate))
          .ToList();
 }

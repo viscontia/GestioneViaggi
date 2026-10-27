@@ -138,6 +138,10 @@ public sealed class SitoWebBozza
     public WebSitoContenuti Bozza { get; set; } = new();
     public List<long> EvidenzaSalvata { get; set; } = new();
     public List<long> Evidenza { get; set; } = new();
+
+    /// <summary>Le FAQ (script 704): salvate e in bozza. Si salvano tutte insieme all'«Aggiorna».</summary>
+    public List<FaqGruppo> FaqSalvate { get; set; } = new();
+    public List<FaqGruppo> Faq { get; set; } = new();
     public bool Modificata { get; set; }
 
     /// <summary>Foto e video scelti ma non ancora mandati allo Storage: ci vanno all'«Aggiorna».</summary>
@@ -160,6 +164,31 @@ public sealed class SitoWebBozza
         VideoNuovo = null; FotoNuova = null; VideoTolto = false; FotoTolta = false;
         Array.Clear(FotoChiSiamoNuova); Array.Clear(FotoChiSiamoTolta);
     }
+}
+
+/// <summary>
+/// Un gruppo di FAQ (web_sito_faq_gruppi, script 704) con le sue domande, nell'ordine. <see cref="Id"/> null = nuovo,
+/// lo crea il salvataggio.
+/// </summary>
+public sealed class FaqGruppo
+{
+    public const int MaxNome = 150;
+    public long? Id { get; set; }
+    public string Nome { get; set; } = "";
+    public List<FaqDomanda> Domande { get; set; } = new();
+    public FaqGruppo Copia() => new() { Id = Id, Nome = Nome, Domande = Domande.Select(d => d.Copia()).ToList() };
+}
+
+/// <summary>Una domanda delle FAQ (web_sito_faq): testo semplice; la risposta è HTML dell'editor Quill.</summary>
+public sealed class FaqDomanda
+{
+    public const int MaxDomanda = 300;
+    public long? Id { get; set; }
+    public string Domanda { get; set; } = "";
+    public string? Risposta { get; set; }
+    /// <summary>Solo le domande attive e con risposta vanno sul sito.</summary>
+    public bool Attiva { get; set; } = true;
+    public FaqDomanda Copia() => (FaqDomanda)MemberwiseClone();
 }
 
 /// <summary>Una foto della scheda pronta per lo Storage (WebP 2000 px) e la sua anteprima: home e Chi siamo.</summary>
