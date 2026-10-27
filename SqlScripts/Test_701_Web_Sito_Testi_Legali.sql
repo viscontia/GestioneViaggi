@@ -15,7 +15,9 @@ BEGIN
              AND column_name IN ('note_legali', 'privacy', 'cookie', 'note_legali_aggiornato', 'privacy_aggiornato', 'cookie_aggiornato')) = 6,
         'mancano le colonne dei testi legali';
 
-    -- 2. si parte vuoti: nessuna pagina legale esiste; leggerne una dà null
+    -- 2. si parte vuoti: nessuna pagina legale esiste; leggerne una dà null. Anche senza traduzioni (dal 2026-10-25
+    --    ci sono i testi provvisori tradotti: il test non deve dipendere dai dati; la transazione si annulla)
+    DELETE FROM web_traduzioni WHERE entita = 'web_sito_contenuti' AND entita_id = 2 AND campo IN ('note_legali', 'privacy', 'cookie');
     PERFORM fn_web_sito_testi_legali_save(2, NULL, NULL, NULL, 'test701');
     ASSERT fn_web_sito_pagine(2) = '[]'::jsonb, 'senza testi: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_pagina(2, 'IT', 'privacy') IS NULL, 'pagina vuota: null';
