@@ -59,6 +59,14 @@ public sealed class WebSitoContenutiService
             NoteLegaliAggiornato = r["note_legali_aggiornato"] as DateTime?,
             PrivacyAggiornato = r["privacy_aggiornato"] as DateTime?,
             CookieAggiornato = r["cookie_aggiornato"] as DateTime?,
+            ChiSiamo = r["chi_siamo"] as string,
+            ChiSiamoAggiornato = r["chi_siamo_aggiornato"] as DateTime?,
+            ChiSiamoFoto1Url = r["chi_siamo_foto1_url"] as string,
+            ChiSiamoFoto1Larghezza = r["chi_siamo_foto1_larghezza"] as int?,
+            ChiSiamoFoto1Altezza = r["chi_siamo_foto1_altezza"] as int?,
+            ChiSiamoFoto2Url = r["chi_siamo_foto2_url"] as string,
+            ChiSiamoFoto2Larghezza = r["chi_siamo_foto2_larghezza"] as int?,
+            ChiSiamoFoto2Altezza = r["chi_siamo_foto2_altezza"] as int?,
             UpdatedBy = r["updated_by"] as string,
             Updated = r["updated"] as DateTime?,
         };
@@ -130,6 +138,27 @@ public sealed class WebSitoContenutiService
             obsolete += await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo);
         }
         return obsolete;
+    }
+
+    /// <summary>
+    /// Salva il testo di Chi siamo (script 703; a parte dalla Home). Il database normalizza l'HTML vuoto di Quill e
+    /// aggiorna la data solo se il testo cambia. Se il testo è cambiato, le sue traduzioni diventano obsolete.
+    /// </summary>
+    public async Task<int> SaveChiSiamoAsync(WebSitoContenuti c, string utente)
+    {
+        var prima = await GetAsync(c.AziendaId);
+        await using (var conn = await _db.GetConnectionAsync())
+        await using (var cmd = new NpgsqlCommand(
+            "SELECT fn_web_sito_chi_siamo_save(@Az::integer, @Html::text, @Utente::varchar)", conn))
+        {
+            cmd.Parameters.AddWithValue("Az", c.AziendaId);
+            cmd.Parameters.AddWithValue("Html", (object?)c.ChiSiamo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Utente", utente);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        var dopo = await GetAsync(c.AziendaId);
+        if (string.Equals(prima.ChiSiamo, dopo.ChiSiamo, StringComparison.Ordinal)) return 0;
+        return await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, "chi_siamo");
     }
 
     /// <summary>I contenuti dei tour in evidenza, nell'ordine.</summary>
@@ -222,6 +251,35 @@ public sealed class WebSitoContenutiService
             cmd =>
             {
                 cmd.Parameters.AddWithValue("Az", aziendaId);
+                cmd.Parameters.AddWithValue("Url", (object?)url ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("Path", (object?)path ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("W", (object?)foto?.Larghezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("H", (object?)foto?.Altezza ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("Utente", utente);
+            }, new[] { path }, ct);
+        await CancellaAsync(vecchi, ct);
+    }
+
+    /// <summary>
+    /// Manda allo Storage una foto di Chi siamo (703; posizione 1 = in cima, 2 = a metà testo) e la registra; cancella
+    /// quella vecchia. Stesse regole della foto della home. <c>null</c> = togliere la foto.
+    /// </summary>
+    public async Task SalvaFotoChiSiamoAsync(int aziendaId, int posizione, FotoHomeNuova? foto, string utente, CancellationToken ct = default)
+    {
+        string? path = null, url = null;
+        if (foto is not null)
+        {
+            path = $"libreria/{aziendaId}/chi-siamo-{posizione}-{Guid.NewGuid():N}.webp";
+            await using (var ms = new MemoryStream(foto.Bytes))
+                await _storage.UploadAsync(path, ms, foto.Mime, ct);
+            url = _storage.BuildPublicUrl(path);
+        }
+        var vecchi = await RegistraAsync(
+            "SELECT percorso FROM fn_web_sito_foto_chi_siamo_save(@Az::integer, @Pos::integer, @Url::text, @Path::text, @W::integer, @H::integer, @Utente::varchar)",
+            cmd =>
+            {
+                cmd.Parameters.AddWithValue("Az", aziendaId);
+                cmd.Parameters.AddWithValue("Pos", posizione);
                 cmd.Parameters.AddWithValue("Url", (object?)url ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("Path", (object?)path ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("W", (object?)foto?.Larghezza ?? DBNull.Value);
@@ -338,6 +396,8 @@ public sealed class WebSitoContenutiService
         var obsolete = await SaveAsync(b.Bozza, utente);
         if (b.Bozza.TestiLegaliDiversiDa(b.Salvato))
             obsolete += await SaveTestiLegaliAsync(b.Bozza, utente);
+        if (!string.Equals(b.Bozza.ChiSiamo, b.Salvato.ChiSiamo, StringComparison.Ordinal))
+            obsolete += await SaveChiSiamoAsync(b.Bozza, utente);
         if (!b.Evidenza.SequenceEqual(b.EvidenzaSalvata))
             await SaveEvidenzaAsync(b.AziendaId, b.Evidenza, utente);
         // Foto e video dopo i testi: una foto caricata spegne la scelta dalla libreria (698), e i testi la
@@ -346,6 +406,12 @@ public sealed class WebSitoContenutiService
         {
             await SalvaFotoHomeAsync(b.AziendaId, b.FotoNuova, utente);
             b.FotoNuova = null; b.FotoTolta = false;   // salvata: un secondo «Aggiorna» non la ricarica
+        }
+        for (var i = 0; i < 2; i++)
+        {
+            if (b.FotoChiSiamoNuova[i] is null && !b.FotoChiSiamoTolta[i]) continue;
+            await SalvaFotoChiSiamoAsync(b.AziendaId, i + 1, b.FotoChiSiamoNuova[i], utente);
+            b.FotoChiSiamoNuova[i] = null; b.FotoChiSiamoTolta[i] = false;
         }
         if (b.VideoNuovo is not null || b.VideoTolto)
             await SalvaVideoHomeAsync(b.AziendaId, b.VideoNuovo, utente);
@@ -367,9 +433,16 @@ public sealed class WebSitoContenutiService
          .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
          .ToList();
 
+    /// <summary>Il testo di Chi siamo da tradurre (se compilato).</summary>
+    public static List<TranslatableItem> ElementiChiSiamo(WebSitoContenuti c) =>
+        c.CampiChiSiamo()
+         .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
+         .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
+         .ToList();
+
     /// <summary>Tutti i testi della scheda «Sito web» da tradurre: «Aggiorna» li controlla tutti.</summary>
     public static List<TranslatableItem> ElementiDaTradurre(WebSitoContenuti c) =>
-        c.CampiTraducibili().Concat(c.CampiTestiLegali())
+        c.CampiTraducibili().Concat(c.CampiChiSiamo()).Concat(c.CampiTestiLegali())
          .Where(x => !string.IsNullOrWhiteSpace(x.Valore))
          .Select(x => new TranslatableItem(WebSitoContenuti.Entita, c.AziendaId, x.Campo, x.Etichetta, x.Valore!))
          .ToList();

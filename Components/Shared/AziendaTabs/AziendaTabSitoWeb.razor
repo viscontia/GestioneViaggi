@@ -14,7 +14,7 @@
 
 @* Scheda «Sito web» dell'azienda (voce L28, script 692). Ciò che il sito pubblico mostra e che
    decide il titolare: qui, non nel codice del sito (il prodotto serve più tour operator).
-   Sotto-schede: Home (Tappa 4A del sito). Chi siamo, FAQ e testi legali arrivano con 4B/4C.
+   Sotto-schede: Home (Tappa 4A del sito), Chi siamo (4C, script 703), Testi legali (4B). Le FAQ arrivano col 4C.
    Ogni salvataggio aggiorna il sito da solo entro 1–2 minuti (coda di rigenerazione). *@
 
 <MudTabs Elevation="0" Rounded="true" PanelClass="pt-3" Border="false">
@@ -199,6 +199,69 @@
         }
     </MudTabPanel>
 
+    @* Chi siamo (pezzo 4C, script 703): testo e due foto facoltative (1 in cima, 2 a metà testo). Testo vuoto = la
+       pagina non c'è (le foto da sole non bastano). Le foto si caricano come quella della home, all'«Aggiorna». *@
+    <MudTabPanel Text="Chi siamo" Icon="@Icons.Material.Filled.Groups">
+        @if (!_loading)
+        {
+            <div style="max-width:900px;">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    La pagina «Chi siamo» del sito, con la voce nel menu. Testo vuoto = la pagina non c'è. Le foto sono
+                    facoltative: la prima va in cima, grande; la seconda a metà del testo.
+                </MudAlert>
+                <div class="d-flex flex-wrap gap-4 mb-3">
+                    @for (var i = 0; i < 2; i++)
+                    {
+                        var pos = i;
+                        <div style="width:300px;">
+                            <MudText Typo="Typo.subtitle2" Class="mb-1">@(pos == 0 ? "Foto in cima" : "Foto a metà testo")</MudText>
+                            @if (FotoChiSiamoMostrata(pos) is { } fm)
+                            {
+                                <img src="@fm.Src" alt="@(pos == 0 ? "Foto in cima" : "Foto a metà testo")"
+                                     style="max-width:100%; max-height:180px; border-radius:6px; display:block;" class="mb-1" />
+                                <MudText Typo="Typo.caption" Color="@(pos == 0 && fm.Larghezza is < 1600 ? Color.Warning : Color.Secondary)">@fm.Nota</MudText>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna foto.</MudText>
+                            }
+                            <div class="d-flex gap-2 mt-2">
+                                <FileUploader Accept="image/*" MaxByte="@MaxFotoBytes" MostraAttesa="false"
+                                              EstensioniAmmesse="@(new[] { ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif" })"
+                                              OnFile="@(f => ScegliFotoChiSiamo(pos, f))">
+                                    <Attivatore>
+                                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image">Scegli foto</MudButton>
+                                    </Attivatore>
+                                </FileUploader>
+                                @if (FotoChiSiamoMostrata(pos) is not null)
+                                {
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" OnClick="@(() => TogliFotoChiSiamo(pos))">Togli foto</MudButton>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <style>.editor-html-bozza .ql-editor { max-height: 360px; overflow-y: auto; }</style>
+                <div class="d-flex align-center mb-1">
+                    <MudText Typo="Typo.subtitle2">Testo</MudText>
+                    @if (Stato.Salvato.ChiSiamoAggiornato is { } a)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-2">— ultimo aggiornamento sul sito: @a.ToLocalTime().ToString("dd/MM/yyyy")</MudText>
+                    }
+                </div>
+                <EditorHtmlBozza Testo="@Stato.Bozza.ChiSiamo" TestoChanged="@(v => { Stato.Bozza.ChiSiamo = v; Cambiato(); })"
+                                 Placeholder="Chi siete, da quando organizzate viaggi, le guide, il modo di viaggiare…" />
+                <TraduzioniPanel AziendaId="@AziendaId" Class="mt-4"
+                                 Elementi="@WebSitoContenutiService.ElementiChiSiamo(Stato.Salvato)"
+                                 Revisione="@_revisione"
+                                 InAttesaDiSalvataggio="@Stato.Modificata"
+                                 PrimaDiTradurre="@(() => SalvaPerTradurre(WebSitoContenutiService.ElementiChiSiamo))"
+                                 SpiegaPrimaDiTradurre="@(Stato.Modificata ? "Salva le modifiche e poi traduce." : null)"
+                                 Nota="Si traduce il testo di Chi siamo." />
+            </div>
+        }
+    </MudTabPanel>
+
     @* Testi legali (pezzo 4B, script 701): note legali, privacy, cookie. Un testo vuoto = la pagina non c'è sul sito.
        I dati dell'azienda (titolare, sede, P.IVA, email) NON si scrivono qui: il sito li mette da solo in cima alla
        pagina, presi dall'anagrafica. *@
@@ -319,22 +382,54 @@
 
     private async Task ScegliFoto(FileUploader.FileDaCaricare f)
     {
+        if (await PreparaFoto(f) is not { } foto) return;
+        Stato.FotoNuova = foto;
+        Stato.FotoTolta = false;
+        Cambiato();
+    }
+
+    // Una foto della scheda (home, Chi siamo): come le gallerie dei tour, 2000 px in WebP (non la versione da
+    // newsletter della libreria). Mentre si prepara, «Aggiorna» resta fermo. null = dialogo chiuso nel frattempo.
+    private async Task<FotoHomeNuova?> PreparaFoto(FileUploader.FileDaCaricare f)
+    {
         Stato.InPreparazione = true;
         await OnStato.InvokeAsync();
         try
         {
-            // Come le gallerie dei tour: 2000 px in WebP (non la versione da newsletter della libreria)
             var img = await WebImageProcessor.ToOptimizedWebpAsync(f.Contenuto, _chiusura.Token);
-            Stato.FotoNuova = new FotoHomeNuova(img.Bytes, img.Width, img.Height, img.Mime);
-            Stato.FotoTolta = false;
-            Cambiato();
+            return new FotoHomeNuova(img.Bytes, img.Width, img.Height, img.Mime);
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { return null; }
         finally
         {
             Stato.InPreparazione = false;
             if (!_chiusura.IsCancellationRequested) await OnStato.InvokeAsync();
         }
+    }
+
+    // Chi siamo: come la foto della home, una per posizione (indice 0 = in cima, 1 = a metà testo).
+    private Anteprima? FotoChiSiamoMostrata(int i)
+    {
+        if (Stato.FotoChiSiamoTolta[i]) return null;
+        if (Stato.FotoChiSiamoNuova[i] is { } n)
+            return new(n.Anteprima, n.Larghezza, $"Nuova foto, {n.Larghezza}×{n.Altezza}: va sul sito con «Aggiorna».");
+        var (url, l, h) = Stato.Salvato.FotoChiSiamo(i + 1);
+        return url is null ? null : new(url, l, $"{l}×{h}");
+    }
+
+    private async Task ScegliFotoChiSiamo(int i, FileUploader.FileDaCaricare f)
+    {
+        if (await PreparaFoto(f) is not { } foto) return;
+        Stato.FotoChiSiamoNuova[i] = foto;
+        Stato.FotoChiSiamoTolta[i] = false;
+        Cambiato();
+    }
+
+    private void TogliFotoChiSiamo(int i)
+    {
+        if (Stato.FotoChiSiamoNuova[i] is not null) Stato.FotoChiSiamoNuova[i] = null;
+        else Stato.FotoChiSiamoTolta[i] = true;
+        Cambiato();
     }
 
     // «Togli» toglie ciò che si vede: la foto appena scelta (si torna a quella salvata), altrimenti quella salvata.

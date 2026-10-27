@@ -3,7 +3,7 @@ namespace GestioneViaggi.Models.Web;
 /// <summary>
 /// La scheda «Sito web» dell'azienda (tabella web_sito_contenuti, script 692): una riga per azienda.
 /// Sotto-scheda Home: foto d'apertura, motto, titolo e sottotitolo (script 695), email che riceve i messaggi del sito, titolo del
-/// blocco «In evidenza». Chi siamo e testi legali arriveranno con i pezzi 4B/4C del sito.
+/// blocco «In evidenza». Testi legali (script 701, pezzo 4B) e Chi siamo (script 703, pezzo 4C).
 /// </summary>
 /// <remarks>
 /// I testi sono in italiano; le traduzioni stanno in web_traduzioni con
@@ -60,8 +60,32 @@ public sealed class WebSitoContenuti
     public DateTime? PrivacyAggiornato { get; set; }
     public DateTime? CookieAggiornato { get; set; }
 
+    /// <summary>
+    /// La pagina «Chi siamo» (script 703; sotto-scheda «Chi siamo»): HTML dell'editor Quill. NULL = la pagina non c'è.
+    /// Le due foto si caricano dalla scheda come la foto della home: 1 in cima, 2 a metà del testo.
+    /// </summary>
+    public string? ChiSiamo { get; set; }
+    public DateTime? ChiSiamoAggiornato { get; set; }
+    public string? ChiSiamoFoto1Url { get; set; }
+    public int? ChiSiamoFoto1Larghezza { get; set; }
+    public int? ChiSiamoFoto1Altezza { get; set; }
+    public string? ChiSiamoFoto2Url { get; set; }
+    public int? ChiSiamoFoto2Larghezza { get; set; }
+    public int? ChiSiamoFoto2Altezza { get; set; }
+
+    /// <summary>La foto di Chi siamo in posizione 1 o 2 (indirizzo e misure; Url null = nessuna).</summary>
+    public (string? Url, int? Larghezza, int? Altezza) FotoChiSiamo(int posizione) => posizione == 1
+        ? (ChiSiamoFoto1Url, ChiSiamoFoto1Larghezza, ChiSiamoFoto1Altezza)
+        : (ChiSiamoFoto2Url, ChiSiamoFoto2Larghezza, ChiSiamoFoto2Altezza);
+
     public string? UpdatedBy { get; set; }
     public DateTime? Updated { get; set; }
+
+    /// <summary>Il testo di Chi siamo che si traduce (campo = nome della pagina, come lo legge fn_web_sito_pagina).</summary>
+    public IEnumerable<(string Campo, string Etichetta, string? Valore)> CampiChiSiamo()
+    {
+        yield return ("chi_siamo", "Chi siamo — Testo", ChiSiamo);
+    }
 
     /// <summary>I testi legali che si traducono (campo = nome della pagina, come li legge fn_web_sito_pagina).</summary>
     public IEnumerable<(string Campo, string Etichetta, string? Valore)> CampiTestiLegali()
@@ -119,6 +143,10 @@ public sealed class SitoWebBozza
     /// <summary>Foto e video scelti ma non ancora mandati allo Storage: ci vanno all'«Aggiorna».</summary>
     public FotoHomeNuova? FotoNuova { get; set; }
     public bool FotoTolta { get; set; }
+
+    /// <summary>Le due foto di Chi siamo (indice 0 = posizione 1): scelte o tolte, vanno allo Storage all'«Aggiorna».</summary>
+    public FotoHomeNuova?[] FotoChiSiamoNuova { get; } = new FotoHomeNuova?[2];
+    public bool[] FotoChiSiamoTolta { get; } = new bool[2];
     public GestioneViaggi.Services.Shared.Storage.WebVideoProcessor.VideoPreparato? VideoNuovo { get; set; }
     public bool VideoTolto { get; set; }
 
@@ -130,10 +158,11 @@ public sealed class SitoWebBozza
     {
         VideoNuovo?.Cancella();
         VideoNuovo = null; FotoNuova = null; VideoTolto = false; FotoTolta = false;
+        Array.Clear(FotoChiSiamoNuova); Array.Clear(FotoChiSiamoTolta);
     }
 }
 
-/// <summary>La foto della home pronta per lo Storage (WebP 2000 px) e la sua anteprima.</summary>
+/// <summary>Una foto della scheda pronta per lo Storage (WebP 2000 px) e la sua anteprima: home e Chi siamo.</summary>
 public sealed record FotoHomeNuova(byte[] Bytes, int Larghezza, int Altezza, string Mime)
 {
     public string Anteprima => $"data:{Mime};base64,{Convert.ToBase64String(Bytes)}";
