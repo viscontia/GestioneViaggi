@@ -1,5 +1,7 @@
 @using Blazored.TextEditor
 @inject IJSRuntime JS
+@using Microsoft.Extensions.Logging
+@inject ILogger<EditorHtmlBozza> Log
 
 @* Editor Quill per un testo HTML che vive in una BOZZA tenuta da altri (il dialogo), non nell'editor.
    Si carica da solo quando nasce e avvisa a ogni modifica: così sopravvive alle linguette che MudBlazor ricrea
@@ -39,24 +41,37 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _editor is null) return;
-        // Quill si inizializza dopo il disegno: qualche tentativo
-        for (var tentativo = 0; tentativo < 5; tentativo++)
+        // Quill si inizializza dopo il disegno: lo script lo aspetta (fino a 5 s) e poi ci mette il testo della bozza.
+        // Prima si rinunciava dopo 0,75 s: con Quill lento l'editor funzionava a vista ma non copiava più niente
+        // nella bozza, e alla prima volta che veniva ricreato il testo spariva (prova di Adriano sulle FAQ, 2026-10-27).
+        try
         {
-            try
-            {
-                await Task.Delay(150);
-                // false = Quill non ancora pronto: si riprova
-                if (!await JS.InvokeAsync<bool>("editorHtmlBozza.carica", _contenitore, Testo)) continue;
-                _caricato = true;
-                return;
-            }
-            catch { /* Quill non ancora pronto: riprova; alla fine resta non caricato (e non tocca la bozza) */ }
+            _caricato = await JS.InvokeAsync<bool>("editorHtmlBozza.carica", _contenitore, Testo);
+            if (!_caricato)
+                Log.LogWarning("Editor HTML: Quill non è partito in 5 s; l'editor non copia nella bozza ({Lunghezza} caratteri in bozza)",
+                    Testo?.Length ?? 0);
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning(ex, "Editor HTML: testo della bozza non caricato nell'editor");
         }
     }
 
+    private bool _segnalatoNonCaricato;
+
     private async Task RileggiAsync()
     {
-        if (!_caricato || _editor is null) return;
+        if (_editor is null) return;
+        if (!_caricato)
+        {
+            // si scrive nell'editor ma la bozza non lo riceve: lo si dice una volta nel registro (diagnosi)
+            if (!_segnalatoNonCaricato)
+            {
+                _segnalatoNonCaricato = true;
+                Log.LogWarning("Editor HTML: modifica ignorata perché l'editor non risulta caricato: la bozza non la riceve");
+            }
+            return;
+        }
         string? html;
         try { html = Normalizza(await _editor.GetHTML()); } catch { return; }
         if (string.Equals(html, Testo, StringComparison.Ordinal)) return;

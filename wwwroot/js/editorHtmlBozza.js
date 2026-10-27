@@ -35,9 +35,10 @@ window.editorHtmlBozza = (function () {
     }
 
     return {
-        // Mette il testo della bozza nell'editor (anche vuoto) e prende in mano l'incolla. false = Quill non è ancora
-        // pronto (si riprova da .NET).
-        carica: function (contenitore, html) {
+        // Mette il testo della bozza nell'editor (anche vuoto) e prende in mano l'incolla. Aspetta che Quill sia pronto
+        // (fino a 5 s: in una scheda piena può partire tardi); false = non è mai partito.
+        carica: async function (contenitore, html) {
+            for (let i = 0; i < 100 && !quillDi(contenitore); i++) await new Promise(function (r) { setTimeout(r, 50); });
             const q = quillDi(contenitore);
             if (!q) return false;
             q.setContents([], 'silent');

@@ -1243,6 +1243,9 @@ editor vuoto creduto pronto cancellerebbe la bozza al primo tocco.
   alla prima modifica Quill ridisegnava dal modello e il testo incollato spariva (prova di Adriano sulle FAQ,
   2026-10-27: incollato da una pagina web con Cmd+V). L'incolla lo fa l'editor dagli appunti (HTML o testo), nel punto
   del cursore o in fondo, e avvisa del cambiamento: vale anche per «Incolla» dal tasto destro.
+- Il caricamento aspetta Quill fino a 5 s (prima si rinunciava dopo 0,75 s, e un editor «non caricato» non copiava
+  più niente nella bozza: il testo spariva alla prima ricreazione). Se non parte, o se una modifica viene ignorata,
+  lo scrive nel registro del gestionale («Editor HTML: …»).
 
 ## FileUploader
 
