@@ -170,6 +170,26 @@ ora, a ogni conteggio, cancella quelle più vecchie di **12 mesi**, di tutte le 
 un'azienda senza richieste non le tiene per sempre). Il resto invariato. Test `Test_702_…` (e il 688 resta verde);
 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-23** (test superato).
 
+### Le FAQ del sito, in gruppi (`SqlScripts/704`, 2026-10-27, Tappa 4C, Task 2)
+Gruppi e domande scritti nella scheda «Sito web» → «FAQ» e tradotti. La pagina esiste se c'è almeno una domanda da
+mostrare.
+- `web_sito_faq_gruppi` (azienda, ordine, nome) e `web_sito_faq` (gruppo, azienda, ordine, domanda, risposta HTML,
+  attiva); la domanda sta nella stessa azienda del gruppo (chiave doppia). RLS accese, tabelle chiuse al pubblico.
+  Traduzioni: `web_sito_faq_gruppi.nome`, `web_sito_faq.domanda`/`risposta`.
+- `fn_web_sito_faq_save(azienda, gruppi jsonb, utente)`: `[{id?, nome, domande: [{id?, domanda, risposta, attiva}]}]`,
+  l'elenco intero: ordine = posizione; con `id` aggiorna (anche spostando una domanda di gruppo), senza crea; ciò che
+  manca si cancella con le sue traduzioni; testo italiano cambiato → sue traduzioni obsolete
+  (`fn_web_traduzioni_marca_obsolete`). Id di un'altra azienda, nome o domanda vuoti → errore. Solo `postgres`.
+- `fn_web_sito_faq_list(azienda)` → tutto, con gli id (per il gestionale). Solo `postgres`.
+- `fn_web_sito_faq(azienda, lingua)` → `[{nome, domande: [{domanda, risposta, lingua}]}]`: gruppi in ordine, domande
+  attive e con risposta; gruppo vuoto escluso; una domanda è tradotta solo se domanda e risposta lo sono tutte e due.
+  `anon`/`authenticated`, `SECURITY DEFINER`.
+- `fn_web_sito_pagine`: `faq` dopo `chi_siamo`, se `fn_web_sito_faq` non è vuota (una sola definizione).
+- `trg_web_revalidate_func` (dalla 692): le due tabelle e le loro traduzioni → «menu» (tutto il sito).
+- ⚠️ In PROD insieme al sito del 4C (Task 5). Test `Test_704_…`; 9 prove dell'errore rilevate (non attiva mostrata,
+  gruppo vuoto mostrato, altra azienda, ordine, traduzioni orfane, due lingue, coda, obsolescenza, REVOKE con la PROD
+  simulata). 692, 693, 698, 691, 701, 703 restano verdi. In locale ✅.
+
 ### La pagina «Chi siamo» del sito (`SqlScripts/703`, 2026-10-27, Tappa 4C, Task 1)
 Testo scritto nella scheda «Sito web» → «Chi siamo» (Quill) e tradotto; 2 foto caricate dalla scheda come la foto della
 home (698). Senza testo la pagina non esiste (le foto da sole non bastano).
@@ -2724,6 +2744,7 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 
 
 
+
 <!-- AUTO-GENERATED-START (generate_db_functions_doc.sh — NON modificare a mano, rigenerato da deploy_sql.sh) -->
 
 ## 📌 Appendice Auto-Generata (pg_catalog)
@@ -3150,6 +3171,9 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 | `fn_web_sito_evidenza` | p_azienda_id integer, p_lingua character varying | jsonb |  |
 | `fn_web_sito_evidenza_list` | p_azienda_id integer | TABLE(ordine smallint, web_tour_contenuti_id bigint) |  |
 | `fn_web_sito_evidenza_save` | p_azienda_id integer, p_contenuti bigint[], p_utente character varying | void |  |
+| `fn_web_sito_faq` | p_azienda_id integer, p_lingua character varying | jsonb |  |
+| `fn_web_sito_faq_list` | p_azienda_id integer | jsonb |  |
+| `fn_web_sito_faq_save` | p_azienda_id integer, p_gruppi jsonb, p_utente character varying | void |  |
 | `fn_web_sito_foto_chi_siamo_save` | p_azienda_id integer, p_posizione integer, p_url text, p_path text, p_larghezza integer, p_altezza integer, p_utente character varying | TABLE(percorso text) |  |
 | `fn_web_sito_foto_home_save` | p_azienda_id integer, p_url text, p_path text, p_larghezza integer, p_altezza integer, p_utente character varying | TABLE(percorso text) |  |
 | `fn_web_sito_home` | p_azienda_id integer, p_lingua character varying | jsonb |  |
@@ -3534,10 +3558,11 @@ entrano nel repository. Arrivano come parametro da un file tenuto in
 - `fn_web_sito_evidenza`
 - `fn_web_sito_evidenza_list`
 - `fn_web_sito_evidenza_save`
+- `fn_web_sito_faq`
+- `fn_web_sito_faq_list`
+- `fn_web_sito_faq_save`
 - `fn_web_sito_foto_chi_siamo_save`
 - `fn_web_sito_foto_home_save`
-- `fn_web_sito_pagina`
-- `fn_web_sito_pagine`
 - `fn_web_sito_partenze`
 - `fn_web_sito_piede`
 - `fn_web_sito_testi_legali_save`
