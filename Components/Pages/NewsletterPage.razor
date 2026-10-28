@@ -325,7 +325,7 @@ else
                         <td>@s.Email</td>
                         <td>@($"{s.Nome} {s.Cognome}".Trim())</td>
                         <td>@s.Lingua</td>
-                        <td>@s.Stato</td>
+                        <td>@(s.Stato == "in_attesa" ? "in attesa di conferma" : s.Stato)</td>
                         <td>@(s.Consenso ? "sì" : "no")</td>
                     </tr>
                 }

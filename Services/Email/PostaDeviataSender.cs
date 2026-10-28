@@ -32,11 +32,12 @@ public sealed class PostaDeviataSender : IEmailSender
         return _vero.SendPasswordResetEmailAsync(_deviaA, userName, resetCode);
     }
 
-    public Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
+    public Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null,
+                                         IReadOnlyDictionary<string, string>? intestazioni = null)
     {
         var originali = string.Join(", ", toEmails);
         _logger.LogWarning("[POSTA DEVIATA] {Originali} → {DeviaA}", originali, _deviaA);
         // Il cc sparisce: anche lui andrebbe a una persona vera.
-        return _vero.SendHtmlEmailAsync(new[] { _deviaA }, $"[PROVA → {originali}] {subject}", htmlBody, fromName, null);
+        return _vero.SendHtmlEmailAsync(new[] { _deviaA }, $"[PROVA → {originali}] {subject}", htmlBody, fromName, null, intestazioni);
     }
 }

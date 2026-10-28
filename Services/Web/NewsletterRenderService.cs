@@ -217,7 +217,7 @@ public sealed class NewsletterRenderService
         List<Models.Web.WebNewsletterBlocco> Blocchi,
         NewsletterRenderAzienda Azienda,
         NewsletterFooterConfig Footer,
-        string? Token,
+        string? Segreto,
         long InvioId,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>> Traduzioni,
         IReadOnlyDictionary<long, (DateTime Inizio, DateTime? Fine)> Periodi);
@@ -256,8 +256,8 @@ public sealed class NewsletterRenderService
         var logoUrl = await _media.GetLogoUrlAsync(aziendaId);
         var azienda = await GetDatiAziendaAsync(aziendaId, logoUrl);
         var footer = await GetFooterConfigAsync(aziendaId);
-        var token = await GetTokenIscrizioneAsync(aziendaId);
-        return new ContestoRender(blocchi, azienda, footer, token, invioId,
+        var segreto = await GetSegretoDisiscrizioneAsync(aziendaId);
+        return new ContestoRender(blocchi, azienda, footer, segreto, invioId,
                                   await CaricaTraduzioniAsync(invioId, aziendaId),
                                   await CaricaPeriodiAsync(invioId, aziendaId));
     }
@@ -275,7 +275,7 @@ public sealed class NewsletterRenderService
         // conto proprio era un posto in cui la regola poteva divergere.
         lingua = string.IsNullOrWhiteSpace(lingua) ? "IT" : lingua.Trim().ToUpperInvariant();
 
-        var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Token);
+        var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Segreto, lingua);
 
         // Fallback CAMPO PER CAMPO, non per newsletter: se manca solo la traduzione di un titolo,
         // il resto resta tradotto e quel titolo torna in italiano. Fermarsi all'italiano per tutto
@@ -464,10 +464,11 @@ public sealed class NewsletterRenderService
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 
-    private async Task<string?> GetTokenIscrizioneAsync(int aziendaId)
+    /// <summary>Segreto che firma il link di disiscrizione (script 707): lo stesso con cui il database controlla la firma.</summary>
+    private async Task<string?> GetSegretoDisiscrizioneAsync(int aziendaId)
     {
         await using var conn = await _db.GetConnectionAsync();
-        await using var cmd = new NpgsqlCommand("SELECT token_iscrizione FROM ana_aziende WHERE azienda_id=@Id", conn);
+        await using var cmd = new NpgsqlCommand("SELECT segreto_disiscrizione FROM ana_aziende WHERE azienda_id=@Id", conn);
         cmd.Parameters.AddWithValue("Id", aziendaId);
         var v = await cmd.ExecuteScalarAsync();
         return v == null || v == DBNull.Value ? null : (string)v;

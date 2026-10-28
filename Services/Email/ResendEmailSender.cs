@@ -87,7 +87,8 @@ public class ResendEmailSender : IEmailSender
         }
     }
 
-    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
+    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null,
+                                               IReadOnlyDictionary<string, string>? intestazioni = null)
     {
         await EnsureConfigLoadedAsync();
 
@@ -118,7 +119,8 @@ public class ResendEmailSender : IEmailSender
                 ? []                        // Un solo destinatario → non serve BCC
                 : recipients,
             Subject = subject,
-            Html = htmlBody
+            Html = htmlBody,
+            Headers = intestazioni
         });
 
         var response = await _httpClient.SendAsync(request);
@@ -153,5 +155,9 @@ public class ResendEmailSender : IEmailSender
 
         [JsonPropertyName("html")]
         public string Html { get; set; } = string.Empty;
+
+        [JsonPropertyName("headers")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyDictionary<string, string>? Headers { get; set; }
     }
 }

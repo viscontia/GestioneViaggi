@@ -29,7 +29,7 @@ public class WebNewsletterIscritto : BaseEntity
     public DateTime? ConsensoData { get; set; }
     public string? ConsensoFonte { get; set; }
 
-    /// <summary>Stato: attivo | disiscritto.</summary>
+    /// <summary>Stato: attivo | disiscritto | in_attesa (iscritto dal sito, non ha ancora confermato: non riceve; script 707).</summary>
     public string Stato { get; set; } = "attivo";
 
     /// <summary>Token per il link di disiscrizione. Generato dal DB, sola lettura lato C#.</summary>

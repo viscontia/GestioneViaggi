@@ -255,7 +255,10 @@ public sealed class NewsletterSenderService
             var oggettoLingua = NewsletterRenderService.Oggetto(ctx, oggetto, rec.Lingua);
 
             bool sent;
-            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggettoLingua, html, ctx.Azienda.RagioneSociale); }
+            // Lo stesso link del piè di pagina, nelle intestazioni: disiscrizione con un clic dal programma di posta.
+            var disiscrizione = NewsletterUnsubscribe.Intestazioni(
+                NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, rec.Email, ctx.Segreto, rec.Lingua));
+            try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggettoLingua, html, ctx.Azienda.RagioneSociale, null, disiscrizione); }
             catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
             if (sent) ok++; else err++;
 
@@ -333,7 +336,9 @@ public sealed class NewsletterSenderService
         var html = NewsletterRenderService.Render(ctx, emailProva, lingua);
         var oggettoTradotto = NewsletterRenderService.Oggetto(ctx, oggetto, lingua);
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
-        return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggettoTradotto, html, ctx.Azienda.RagioneSociale);
+        var disiscrizione = NewsletterUnsubscribe.Intestazioni(
+            NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailProva, ctx.Segreto, lingua));
+        return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggettoTradotto, html, ctx.Azienda.RagioneSociale, null, disiscrizione);
     }
 
 }

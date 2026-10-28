@@ -108,7 +108,8 @@ public class SmtpEmailSender : IEmailSender
         }
     }
 
-    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null)
+    public async Task<bool> SendHtmlEmailAsync(IEnumerable<string> toEmails, string subject, string htmlBody, string? fromName = null, string? ccEmail = null,
+                                               IReadOnlyDictionary<string, string>? intestazioni = null)
     {
         SmtpConfig? config = null;
         try
@@ -166,6 +167,8 @@ public class SmtpEmailSender : IEmailSender
             // server, cambiando SOLO il valore del Message-Id, arriva. Colpiva tutte le mail
             // del gestionale spedite con la posta dell'azienda (partecipanti, newsletter…).
             message.MessageId = MessageIdPer(config.FromEmail);
+            foreach (var (nome, valore) in intestazioni ?? new Dictionary<string, string>())
+                message.Headers.Add(nome, valore);
 
             var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
             message.Body = bodyBuilder.ToMessageBody();
