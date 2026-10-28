@@ -3,7 +3,7 @@
 -- Prima dello script deve FALLIRE (le colonne e le funzioni non esistono).
 -- ============================================================================
 BEGIN;
--- (dal 705 la galleria si riempie da sola con le foto dei tour: qui si guarda l'elenco senza di lei)
+-- (qui si guardano solo i testi legali: dal 703-705 Chi siamo, FAQ e galleria hanno i loro test e restano fuori dall'elenco)
 DO $$
 DECLARE
     salva  constant text := 'fn_web_sito_testi_legali_save(integer, text, text, text, character varying)';
@@ -20,19 +20,19 @@ BEGIN
     --    ci sono i testi provvisori tradotti: il test non deve dipendere dai dati; la transazione si annulla)
     DELETE FROM web_traduzioni WHERE entita = 'web_sito_contenuti' AND entita_id = 2 AND campo IN ('note_legali', 'privacy', 'cookie');
     PERFORM fn_web_sito_testi_legali_save(2, NULL, NULL, NULL, 'test701');
-    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '[]'::jsonb, 'senza testi: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria' - 'faq' - 'chi_siamo') = '[]'::jsonb, 'senza testi: nessuna pagina, non ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_pagina(2, 'IT', 'privacy') IS NULL, 'pagina vuota: null';
 
     -- 3. salvati due testi: esistono quelle due pagine, in un ordine fisso; l'HTML vuoto di Quill non conta
     PERFORM fn_web_sito_testi_legali_save(2, '<p>Note IT</p>', '<p>Privacy IT</p>', '<p><br></p>', 'test701');
-    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["note_legali", "privacy"]'::jsonb, 'pagine: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria' - 'faq' - 'chi_siamo') = '["note_legali", "privacy"]'::jsonb, 'pagine: ' || fn_web_sito_pagine(2)::text;
     ASSERT (SELECT cookie FROM web_sito_contenuti WHERE azienda_id = 2) IS NULL, 'l''HTML vuoto di Quill diventa NULL';
     v_j := fn_web_sito_pagina(2, 'IT', 'privacy');
     ASSERT v_j->>'html' = '<p>Privacy IT</p>' AND v_j->>'lingua' = 'IT' AND (v_j->>'aggiornato') IS NOT NULL, 'privacy IT: ' || v_j::text;
 
     -- 3-bis. un «vuoto» arrivato per un'altra strada (scritto direttamente, non dal salvataggio) non fa esistere la pagina
     UPDATE web_sito_contenuti SET cookie = '<p><br></p> <p>&nbsp;</p>' WHERE azienda_id = 2;
-    ASSERT (fn_web_sito_pagine(2) - 'galleria') = '["note_legali", "privacy"]'::jsonb, 'un cookie «vuoto» non esiste: ' || fn_web_sito_pagine(2)::text;
+    ASSERT (fn_web_sito_pagine(2) - 'galleria' - 'faq' - 'chi_siamo') = '["note_legali", "privacy"]'::jsonb, 'un cookie «vuoto» non esiste: ' || fn_web_sito_pagine(2)::text;
     ASSERT fn_web_sito_pagina(2, 'IT', 'cookie') IS NULL, 'pagina cookie «vuota»: null';
     UPDATE web_sito_contenuti SET cookie = NULL WHERE azienda_id = 2;
 
