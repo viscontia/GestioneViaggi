@@ -105,7 +105,7 @@ public sealed class WebSitoContenutiService
         foreach (var (campo, _, valore) in dopo.CampiTraducibili())
         {
             if (string.Equals(vecchi[campo], valore, StringComparison.Ordinal)) continue;
-            obsolete += await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo);
+            obsolete += await _traduzioni.DopoModificaAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo, vecchi[campo], valore);
         }
         if (obsolete > 0)
             _logger.LogInformation("Scheda «Sito web» {Az}: {N} traduzioni diventate obsolete", c.AziendaId, obsolete);
@@ -136,7 +136,7 @@ public sealed class WebSitoContenutiService
         foreach (var (campo, _, valore) in dopo.CampiTestiLegali())
         {
             if (string.Equals(vecchi[campo], valore, StringComparison.Ordinal)) continue;
-            obsolete += await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo);
+            obsolete += await _traduzioni.DopoModificaAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, campo, vecchi[campo], valore);
         }
         return obsolete;
     }
@@ -159,7 +159,7 @@ public sealed class WebSitoContenutiService
         }
         var dopo = await GetAsync(c.AziendaId);
         if (string.Equals(prima.ChiSiamo, dopo.ChiSiamo, StringComparison.Ordinal)) return 0;
-        return await _traduzioni.MarkObsoleteAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, "chi_siamo");
+        return await _traduzioni.DopoModificaAsync(c.AziendaId, WebSitoContenuti.Entita, c.AziendaId, "chi_siamo", prima.ChiSiamo, dopo.ChiSiamo);
     }
 
     private static readonly JsonSerializerOptions FaqJson = new()

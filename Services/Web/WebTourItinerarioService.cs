@@ -119,7 +119,8 @@ public class WebTourItinerarioService : BaseCrudService<WebTourItinerario>
             _logger.LogInformation("Giornata itinerario {Id} aggiornata", entity.WebTourItinerarioId);
             if (_traduzioni != null && old != null &&
                 !string.Equals(old.TitoloGiornata ?? "", entity.TitoloGiornata ?? "", StringComparison.Ordinal))
-                await _traduzioni.MarkObsoleteAsync(entity.AziendaId, "web_tour_itinerario", entity.WebTourItinerarioId, "titolo_giornata");
+                await _traduzioni.DopoModificaAsync(entity.AziendaId, "web_tour_itinerario", entity.WebTourItinerarioId, "titolo_giornata",
+                                                    old.TitoloGiornata, entity.TitoloGiornata);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

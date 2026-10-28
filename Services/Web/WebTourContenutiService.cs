@@ -354,12 +354,12 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         }
     }
 
-    /// <summary>Marca obsolete le traduzioni dei campi editoriali IT cambiati (Blocco 10). No-op senza _traduzioni.</summary>
+    /// <summary>Campi editoriali IT cambiati (Blocco 10): traduzioni obsolete, o riformattate se è cambiata solo la formattazione (706). No-op senza _traduzioni.</summary>
     private async Task MarcaTraduzioniObsoleteAsync(WebTourContenuto? old, WebTourContenuto nuovo)
     {
         if (_traduzioni == null || old == null) return;
-        var campi = new List<string>();
-        void Chk(string campo, string? o, string? n) { if (!string.Equals(o ?? "", n ?? "", StringComparison.Ordinal)) campi.Add(campo); }
+        var campi = new List<(string Campo, string? Vecchio, string? Nuovo)>();
+        void Chk(string campo, string? o, string? n) { if (!string.Equals(o ?? "", n ?? "", StringComparison.Ordinal)) campi.Add((campo, o, n)); }
         Chk("sottotitolo", old.Sottotitolo, nuovo.Sottotitolo);
         Chk("descrizione_html", old.DescrizioneHtml, nuovo.DescrizioneHtml);
         Chk("durata_testo", old.DurataTesto, nuovo.DurataTesto);
@@ -370,8 +370,8 @@ public class WebTourContenutiService : BaseCrudService<WebTourContenuto>
         Chk("altre_info_html", old.AltreInfoHtml, nuovo.AltreInfoHtml);
         Chk("meta_title", old.MetaTitle, nuovo.MetaTitle);
         Chk("meta_description", old.MetaDescription, nuovo.MetaDescription);
-        foreach (var campo in campi)
-            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "web_tour_contenuti", nuovo.WebTourContenutoId, campo);
+        foreach (var (campo, vecchio, valore) in campi)
+            await _traduzioni.DopoModificaAsync(nuovo.AziendaId, "web_tour_contenuti", nuovo.WebTourContenutoId, campo, vecchio, valore);
     }
 
     /// <summary>Elimina un contenuto tour, scopato per azienda. True se una riga è stata eliminata.</summary>

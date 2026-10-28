@@ -119,7 +119,8 @@ public class WebTourItinerarioPassaggiService : BaseCrudService<WebTourItinerari
 
             _logger.LogInformation("Passaggio {Id} aggiornato", entity.WebTourItinerarioPassaggioId);
             if (_traduzioni != null && old != null && !string.Equals(old.TestoHtml ?? "", entity.TestoHtml ?? "", StringComparison.Ordinal))
-                await _traduzioni.MarkObsoleteAsync(entity.AziendaId, "web_tour_itinerario_passaggi", entity.WebTourItinerarioPassaggioId, "testo_html");
+                await _traduzioni.DopoModificaAsync(entity.AziendaId, "web_tour_itinerario_passaggi", entity.WebTourItinerarioPassaggioId, "testo_html",
+                                                    old.TestoHtml, entity.TestoHtml);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

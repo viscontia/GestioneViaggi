@@ -107,7 +107,8 @@ public class WebTipiViaggioDescrizioniService : BaseCrudService<WebTipoViaggioDe
 
             _logger.LogInformation("Descrizione web {Id} aggiornata", entity.WebTipoViaggioDescrizioneId);
             if (_traduzioni != null && old != null && !string.Equals(old.DescrizioneWeb ?? "", entity.DescrizioneWeb ?? "", StringComparison.Ordinal))
-                await _traduzioni.MarkObsoleteGlobalAsync("web_tipi_viaggio_descrizioni", entity.WebTipoViaggioDescrizioneId, "descrizione_web");
+                await _traduzioni.DopoModificaGlobalAsync("web_tipi_viaggio_descrizioni", entity.WebTipoViaggioDescrizioneId, "descrizione_web",
+                                                          old.DescrizioneWeb, entity.DescrizioneWeb);
             return entity;
         }
         catch (PostgresException pex) when (pex.SqlState == "P0001")

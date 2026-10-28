@@ -48,10 +48,6 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     }
 
     /// <summary>
-    /// Marca obsolete tutte le traduzioni (ogni lingua) di un campo sorgente quando l'IT cambia.
-    /// Non lancia: l'obsolescenza non deve rompere il salvataggio della sorgente.
-    /// </summary>
-    /// <summary>
     /// Per ogni lingua di destinazione: testi compilati, tradotti (non obsoleti e non vuoti), obsoleti.
     /// Una lettura per entità. Lo usano il pannello delle traduzioni e il controllo di «Aggiorna».
     /// </summary>
@@ -72,22 +68,30 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
         }).ToList();
     }
 
-    public async Task<int> MarkObsoleteAsync(int aziendaId, string entita, long entitaId, string campo)
+    /// <summary>
+    /// L'italiano di un campo è cambiato (script 706, L29): se sono cambiate le parole, le traduzioni (ogni lingua)
+    /// diventano obsolete; se è cambiata solo la formattazione, il database la riporta nelle traduzioni blocco per
+    /// blocco e restano valide (obsoleta solo quella con blocchi diversi). Ritorna quante sono diventate obsolete.
+    /// Non lancia: l'obsolescenza non deve rompere il salvataggio della sorgente.
+    /// </summary>
+    public async Task<int> DopoModificaAsync(int aziendaId, string entita, long entitaId, string campo, string? vecchio, string? nuovo)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_traduzioni_marca_obsolete(@Az::integer, @E::varchar, @Eid::bigint, @C::varchar)", conn);
+                "SELECT fn_web_traduzioni_dopo_modifica(@Az::integer, @E::varchar, @Eid::bigint, @C::varchar, @Vecchio::text, @Nuovo::text)", conn);
             cmd.Parameters.AddWithValue("Az", aziendaId);
             cmd.Parameters.AddWithValue("E", entita);
             cmd.Parameters.AddWithValue("Eid", entitaId);
             cmd.Parameters.AddWithValue("C", campo);
+            cmd.Parameters.AddWithValue("Vecchio", (object?)vecchio ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Nuovo", (object?)nuovo ?? DBNull.Value);
             return Convert.ToInt32(await cmd.ExecuteScalarAsync());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Marca-obsolete traduzioni fallita {Entita}/{Campo} (ignorato)", entita, campo);
+            _logger.LogWarning(ex, "Traduzioni dopo la modifica fallite {Entita}/{Campo} (ignorato)", entita, campo);
             return 0;
         }
     }
@@ -142,22 +146,24 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 
-    /// <summary>Marca obsolete le traduzioni di un campo di un'entità GLOBALE (senza filtro azienda). Non lancia.</summary>
-    public async Task<int> MarkObsoleteGlobalAsync(string entita, long entitaId, string campo)
+    /// <summary>Come <see cref="DopoModificaAsync"/>, per un campo di un'entità GLOBALE (senza filtro azienda). Non lancia.</summary>
+    public async Task<int> DopoModificaGlobalAsync(string entita, long entitaId, string campo, string? vecchio, string? nuovo)
     {
         try
         {
             await using var conn = await _databaseService.GetConnectionAsync();
             await using var cmd = new NpgsqlCommand(
-                "SELECT fn_web_traduzioni_marca_obsolete_global(@E::varchar, @Eid::bigint, @C::varchar)", conn);
+                "SELECT fn_web_traduzioni_dopo_modifica_global(@E::varchar, @Eid::bigint, @C::varchar, @Vecchio::text, @Nuovo::text)", conn);
             cmd.Parameters.AddWithValue("E", entita);
             cmd.Parameters.AddWithValue("Eid", entitaId);
             cmd.Parameters.AddWithValue("C", campo);
+            cmd.Parameters.AddWithValue("Vecchio", (object?)vecchio ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("Nuovo", (object?)nuovo ?? DBNull.Value);
             return Convert.ToInt32(await cmd.ExecuteScalarAsync());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Marca-obsolete-global traduzioni fallita {Entita}/{Campo} (ignorato)", entita, campo);
+            _logger.LogWarning(ex, "Traduzioni dopo la modifica (globale) fallite {Entita}/{Campo} (ignorato)", entita, campo);
             return 0;
         }
     }
@@ -200,7 +206,7 @@ public class WebTraduzioniService : BaseCrudService<WebTraduzione>
     /// <b>pagata</b> per riscrivere un testo che c'era già — e la upsert sovrascrive la riga
     /// dell'altra. Le due aziende si sovrascrivono a vicenda senza vedersi.
     ///
-    /// Stesso criterio di <see cref="MarkObsoleteGlobalAsync"/> (script 464).
+    /// Stesso criterio di <see cref="DopoModificaGlobalAsync"/> (script 464, poi 706).
     /// </remarks>
     public async Task<List<WebTraduzione>> ListByEntitaGlobalAsync(string entita, long entitaId)
     {

@@ -298,17 +298,17 @@ public class AnaViaggiService : BaseCrudService<AnaViaggi>
         }
     }
 
-    /// <summary>Se Incluso/Escluso o il titolo (IT) sono cambiati, marca obsolete le relative traduzioni (entita='ana_viaggi'). No-op senza _traduzioni.</summary>
+    /// <summary>Se Incluso/Escluso o il titolo (IT) sono cambiati, traduzioni obsolete o riformattate (706; entita='ana_viaggi'). No-op senza _traduzioni.</summary>
     private async Task MarcaTraduzioniInclusoEsclusoObsoleteAsync(AnaViaggi? old, AnaViaggi nuovo)
     {
         if (_traduzioni == null || old == null) return;
         // 684: il titolo del tour si traduce per il sito; cambiato l'italiano, le traduzioni non valgono più.
         if (!string.Equals(old.DescrizioneBreve ?? "", nuovo.DescrizioneBreve ?? "", StringComparison.Ordinal))
-            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_descrizione_breve");
+            await _traduzioni.DopoModificaAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_descrizione_breve", old.DescrizioneBreve, nuovo.DescrizioneBreve);
         if (!string.Equals(old.Incluso ?? "", nuovo.Incluso ?? "", StringComparison.Ordinal))
-            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_incluso");
+            await _traduzioni.DopoModificaAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_incluso", old.Incluso, nuovo.Incluso);
         if (!string.Equals(old.Escluso ?? "", nuovo.Escluso ?? "", StringComparison.Ordinal))
-            await _traduzioni.MarkObsoleteAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_escluso");
+            await _traduzioni.DopoModificaAsync(nuovo.AziendaId, "ana_viaggi", nuovo.Id, "viaggio_escluso", old.Escluso, nuovo.Escluso);
     }
 
     public override async Task<bool> DeleteAsync(int id)
