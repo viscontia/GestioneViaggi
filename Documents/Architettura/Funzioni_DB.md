@@ -174,7 +174,7 @@ Umami sul server del sito; qui ciò che fa fede.
   `conferma_usata`), i disiscritti le soppressioni `disiscritto dal sito`. Titolo con `fn_web_titolo_leggibile`;
   edizioni ordinate per arrivi, poi PDF.
 - Solo lettura, `SECURITY DEFINER`; `EXECUTE` **solo a `sito_guardiano`** (la mail parte dal server).
-- Test `Test_708_…`; 7 prove dell'errore rilevate. In locale ✅.
+- Test `Test_708_…`; 7 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-29**.
 
 ### Newsletter dal sito: doppio consenso e disiscrizione (`SqlScripts/707`, 2026-10-28, Tappa 4D, voce L7)
 Disegno e piano: `Sito Web SFT/Documenti/Analisi/2026-10-28-Tappa_4D_Piano_di_Lavoro.md`.
