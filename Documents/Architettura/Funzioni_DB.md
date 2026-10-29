@@ -164,6 +164,36 @@ pubblicati dell'azienda (bozza, archiviata, partita, inventata, altra azienda).
 - Test `Test_696_…`; 3 prove dell'errore rilevate. In locale ✅; ✅ **in PROD il 2026-10-20** (identica al
   locale, test superato).
 
+### I numeri della mail settimanale delle statistiche (`SqlScripts/708`, 2026-10-29, Tappa 4E, Task 3)
+Disegno: `Sito Web SFT/Documenti/Analisi/2026-10-29-Tappa_4E_Statistiche_Disegno_e_Piano.md`. Le visite le conta
+Umami sul server del sito; qui ciò che fa fede.
+- `fn_web_statistiche_settimana(azienda, dal, al)` → `jsonb`, intervallo `[dal, al)` (al contrario → errore):
+  `{totali: {arrivi, conclusi, pdf}, newsletter: {nuovi, disiscritti}, tour: [{data_viaggio_id, titolo, partenza,
+  arrivi, conclusi, pdf}]}`. Gli arrivi si contano per `arrivato_il`, i conclusi per `concluso_il` (687); i PDF
+  dal 688; i nuovi della newsletter sono i confermati dal sito (`consenso_fonte = 'sito, doppio consenso'`, per
+  `conferma_usata`), i disiscritti le soppressioni `disiscritto dal sito`. Titolo con `fn_web_titolo_leggibile`;
+  edizioni ordinate per arrivi, poi PDF.
+- Solo lettura, `SECURITY DEFINER`; `EXECUTE` **solo a `sito_guardiano`** (la mail parte dal server).
+- Test `Test_708_…`; 7 prove dell'errore rilevate. In locale ✅.
+
+### Newsletter dal sito: doppio consenso e disiscrizione (`SqlScripts/707`, 2026-10-28, Tappa 4D, voce L7)
+Disegno e piano: `Sito Web SFT/Documenti/Analisi/2026-10-28-Tappa_4D_Piano_di_Lavoro.md`.
+- `web_newsletter_iscritti`: stato anche `in_attesa` (senza consenso: non riceve), richiesta in corso con
+  `conferma_impronta` (SHA-256 del codice, mai il codice in chiaro), `conferma_scadenza` (48 ore),
+  `conferma_lingua`, `conferma_usata`. Via la regola `anon_insert_iscrizione`.
+- `web_newsletter_richieste` (impronta del visitatore, indirizzo, se è partita la mail): limiti di 3 richieste
+  all'ora per visitatore, e per indirizzo una mail ogni 10 minuti e 3 al giorno; si ripulisce dopo un giorno. RLS
+  accese, chiusa a tutti.
+- `ana_aziende.segreto_disiscrizione`: segreto casuale per azienda; firma del link di disiscrizione =
+  HMAC-SHA256 dell'indirizzo minuscolo (come `NewsletterUnsubscribe` del gestionale).
+- `fn_web_newsletter_richiedi(azienda, email, lingua, impronta)` → il codice da mettere nella mail, o `NULL`
+  (già iscritto, troppe richieste).
+- `fn_web_newsletter_conferma(azienda, codice)` → `confermato` | `scaduto` | `sconosciuto`: attivo con consenso,
+  fonte «sito, doppio consenso», lingua della pagina; toglie una soppressione precedente.
+- `fn_web_newsletter_disiscrivi(azienda, email, firma)` → `disiscritto` | `firma`: soppressione e iscritto
+  disiscritto.
+- Le tre solo a `sito_posta`. Test `Test_707_…`; 8 prove dell'errore rilevate. ✅ **In PROD il 2026-10-29**.
+
 ### L'impronta del conteggio dei PDF dura 12 mesi (`SqlScripts/702`, 2026-10-23, Tappa 4B, Task 2)
 Scritta la privacy del sito, le impronte di `web_pdf_richieste` (688) non si cancellavano mai. `fn_web_pdf_richiesta`
 ora, a ogni conteggio, cancella quelle più vecchie di **12 mesi**, di tutte le aziende (nessun compito a orario;
