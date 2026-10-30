@@ -1,0 +1,28 @@
+@using GestioneViaggi.Services.Shared.Storage
+@inject AnteprimeArchivio Anteprime
+
+@* L27: l'indirizzo da mettere in src per una foto o un video dell'archivio (firmato: gli originali non sono pubblici).
+   Uso: <ArchivioSrc Url="@img.Url" Context="src"><img src="@src" … /></ArchivioSrc>
+   Finché l'indirizzo non è pronto non si mostra nulla (pochi decimi di secondo, poi resta in memoria). *@
+@if (_src is not null)
+{
+    @ChildContent(_src)
+}
+
+@code {
+    [Parameter, EditorRequired] public string? Url { get; set; }
+    [Parameter, EditorRequired] public RenderFragment<string> ChildContent { get; set; } = default!;
+
+    private string? _src;
+    private string? _chiesto;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Url == _chiesto) return;
+        _chiesto = Url;
+        _src = null;
+        var src = await Anteprime.IndirizzoAsync(Url);
+        // nel frattempo l'indirizzo può essere cambiato (un'altra foto scelta): vale solo l'ultima richiesta
+        if (Url == _chiesto) _src = src;
+    }
+}

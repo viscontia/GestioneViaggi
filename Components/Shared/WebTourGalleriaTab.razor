@@ -53,7 +53,7 @@ else
     RenderFragment<WebTourImmagine> CardTemplateCopertina = img =>
     @<MudPaper Elevation="4" Class="img-card img-card-cover">
         <div class="thumb-wrap">
-            <img src="@img.Url" alt="@img.AltText" class="thumb" loading="lazy" />
+            <ArchivioSrc Url="@img.Url" Context="url"><img src="@url" alt="@img.AltText" class="thumb" loading="lazy" /></ArchivioSrc>
             <MudChip T="string" Color="Color.Primary" Size="Size.Medium" Icon="@Icons.Material.Filled.Star" Class="badge-cover">COPERTINA</MudChip>
         </div>
         <div class="pa-2">
@@ -76,7 +76,7 @@ else
     @<MudPaper Elevation="2" Class="img-card-row">
         <div class="d-flex">
             <div class="thumb-wrap-row">
-                <img src="@img.Url" alt="@img.AltText" class="thumb-row" loading="lazy" />
+                <ArchivioSrc Url="@img.Url" Context="url"><img src="@url" alt="@img.AltText" class="thumb-row" loading="lazy" /></ArchivioSrc>
             </div>
             <div class="pa-3 flex-grow-1 d-flex flex-column justify-space-between">
                 <div>
@@ -100,7 +100,7 @@ else
     RenderFragment<WebTourImmagine> CardTemplateGriglia = img =>
     @<MudPaper Elevation="2" Class="img-card img-card-mini">
         <div class="thumb-wrap">
-            <img src="@img.Url" alt="@img.AltText" class="thumb" loading="lazy" />
+            <ArchivioSrc Url="@img.Url" Context="url"><img src="@url" alt="@img.AltText" class="thumb" loading="lazy" /></ArchivioSrc>
             @if (img.Tipo == "principale")
             {
                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Icon="@Icons.Material.Filled.Star" Class="badge-cover">COPERTINA</MudChip>

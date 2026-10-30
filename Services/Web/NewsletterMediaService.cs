@@ -10,7 +10,8 @@ namespace GestioneViaggi.Services.Web;
 /// <remarks>
 /// Due regole, entrambe imposte da Outlook per Windows e non da preferenze:
 /// <list type="bullet">
-///   <item>niente URI <c>data:</c> — vanno URL pubblici https, quindi Supabase Storage;</item>
+///   <item>niente URI <c>data:</c> — vanno URL pubblici https, quindi Supabase Storage (l'archivio pubblico delle
+///         newsletter, <c>newsletter-media</c>: gli originali non sono pubblici, L27);</item>
 ///   <item>niente WebP — va JPEG, quindi le copertine dei tour (che la galleria salva in WebP)
 ///         hanno bisogno di un derivato dedicato.</item>
 /// </list>
@@ -70,9 +71,7 @@ public sealed class NewsletterMediaService
             var jpeg = await WebImageProcessor.ToEmailJpegAsync(ms, ct);
 
             await using var upload = new MemoryStream(jpeg.Bytes);
-            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeEmail, ct);
-
-            var url = _storage.BuildPublicUrl(path);
+            var url = await _storage.UploadNewsletterAsync(path, upload, WebImageProcessor.MimeEmail, ct);
             _cacheLogo[aziendaId] = (chiave, url);
             return url;
         }
@@ -101,8 +100,7 @@ public sealed class NewsletterMediaService
             var path = $"newsletter/social/{aziendaId}_{social}.png";
             var icona = await WebImageProcessor.ToEmailIconPngAsync(contenuto, ct);
             await using var upload = new MemoryStream(icona.Bytes);
-            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeIcona, ct);
-            return (_storage.BuildPublicUrl(path), path);
+            return (await _storage.UploadNewsletterAsync(path, upload, WebImageProcessor.MimeIcona, ct), path);
         }
         catch (Exception ex)
         {
@@ -112,7 +110,8 @@ public sealed class NewsletterMediaService
     }
 
     /// <summary>
-    /// Scarica un'immagine dal suo URL pubblico e ne restituisce la versione email (JPEG).
+    /// Legge un'immagine dall'archivio (con la chiave: l'originale non è pubblico, L27) e ne restituisce la versione
+    /// email (JPEG).
     /// E' la strada usata quando si compila un riquadro tour: la copertina e' gia' su Storage in
     /// WebP, e va derivata in JPEG perche' Outlook non mostra il WebP.
     /// Torna l'URL originale se la conversione fallisce: meglio un'immagine che non si vede su
@@ -125,11 +124,13 @@ public sealed class NewsletterMediaService
 
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-            await using var origine = await http.GetStreamAsync(url, ct);
-            using var buffer = new MemoryStream();
-            await origine.CopyToAsync(buffer, ct);
-            buffer.Position = 0;
+            var originale = await _storage.DownloadAsync(storagePath!, ct);
+            if (originale is null)
+            {
+                _logger.LogWarning("Immagine non trovata nell'archivio: {Path}", storagePath);
+                return url;
+            }
+            using var buffer = new MemoryStream(originale);
 
             return await GetImmagineEmailUrlAsync(storagePath!, buffer, ct) ?? url;
         }
@@ -142,7 +143,7 @@ public sealed class NewsletterMediaService
 
     /// <summary>
     /// Deriva la versione email (JPEG) di un'immagine gia' in Storage e ne restituisce l'URL
-    /// pubblico. <paramref name="storagePathOrigine"/> e' il percorso dell'originale (WebP della
+    /// pubblico (archivio delle newsletter). <paramref name="storagePathOrigine"/> e' il percorso dell'originale (WebP della
     /// galleria); il derivato finisce in <c>newsletter/img/{nome}.jpg</c>.
     /// </summary>
     public async Task<string?> GetImmagineEmailUrlAsync(
@@ -157,9 +158,7 @@ public sealed class NewsletterMediaService
 
             var jpeg = await WebImageProcessor.ToEmailJpegAsync(contenutoOriginale, ct);
             await using var upload = new MemoryStream(jpeg.Bytes);
-            await _storage.UploadAsync(path, upload, WebImageProcessor.MimeEmail, ct);
-
-            return _storage.BuildPublicUrl(path);
+            return await _storage.UploadNewsletterAsync(path, upload, WebImageProcessor.MimeEmail, ct);
         }
         catch (Exception ex)
         {

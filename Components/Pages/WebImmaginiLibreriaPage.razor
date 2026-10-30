@@ -94,8 +94,8 @@ else
             {
                 <MudPaper Outlined="true" Class="pa-2" Style="@($"width:{_thumbSize + 24}px;")">
                     <div style="@($"width:{_thumbSize}px;height:{(int)(_thumbSize * 0.75)}px;display:flex;align-items:center;justify-content:center;background:var(--mud-palette-background-grey);border-radius:4px;overflow:hidden;")">
-                        <img src="@img.Url" alt="@img.Descrizione"
-                             style="max-width:100%;max-height:100%;object-fit:contain;" loading="lazy" />
+                        <ArchivioSrc Url="@img.Url" Context="url"><img src="@url" alt="@img.Descrizione"
+                             style="max-width:100%;max-height:100%;object-fit:contain;" loading="lazy" /></ArchivioSrc>
                     </div>
                     <MudText Typo="Typo.body2" Class="mt-1"
                              Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@img.Descrizione</MudText>

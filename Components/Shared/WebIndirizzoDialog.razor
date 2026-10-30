@@ -39,8 +39,8 @@
                 <div class="d-flex align-center gap-3">
                     @if (!string.IsNullOrWhiteSpace(Indirizzo.IconaUrl))
                     {
-                        <img src="@Indirizzo.IconaUrl" alt="icona"
-                             style="width:36px;height:36px;object-fit:contain;background:#eee;border-radius:4px;" />
+                        <ArchivioSrc Url="@Indirizzo.IconaUrl" Context="url"><img src="@url" alt="icona"
+                             style="width:36px;height:36px;object-fit:contain;background:#eee;border-radius:4px;" /></ArchivioSrc>
                     }
                     else
                     {

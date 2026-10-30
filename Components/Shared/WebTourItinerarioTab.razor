@@ -154,8 +154,8 @@ else
                                         </div>
                                         @if (!string.IsNullOrWhiteSpace(passo.ImmagineUrl))
                                         {
-                                            <img src="@passo.ImmagineUrl" alt="@passo.ImmagineDidascalia"
-                                                 style="width:48px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0;" loading="lazy" />
+                                            <ArchivioSrc Url="@passo.ImmagineUrl" Context="url"><img src="@url" alt="@passo.ImmagineDidascalia"
+                                                 style="width:48px;height:48px;object-fit:cover;border-radius:4px;flex-shrink:0;" loading="lazy" /></ArchivioSrc>
                                         }
                                         <div class="flex-grow-1" style="min-width:0;">
                                             <MudText Typo="Typo.body2"

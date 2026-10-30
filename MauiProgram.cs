@@ -305,9 +305,12 @@ public static class MauiProgram
         {
             BaseUrl = webMediaStorageSection["BaseUrl"] ?? "",
             Bucket = webMediaStorageSection["Bucket"] ?? "tour-media",
+            NewsletterBucket = webMediaStorageSection["NewsletterBucket"] ?? "newsletter-media",
             ServiceKey = webMediaStorageSection["ServiceKey"] ?? ""
         });
         builder.Services.AddHttpClient<Services.Shared.Storage.IWebMediaStorage, Services.Shared.Storage.SupabaseMediaStorage>();
+        // Anteprime delle foto con indirizzi firmati (L27: gli originali non sono più pubblici)
+        builder.Services.AddScoped<Services.Shared.Storage.AnteprimeArchivio>();
 
         // Geoapify Static Maps (Blocco 9) - opzioni + client HTTP + pipeline GPX→mappa
         var geoapifySection = builder.Configuration.GetSection("Geoapify");

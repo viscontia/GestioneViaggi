@@ -41,8 +41,8 @@
     <MudText Typo="Typo.caption" Style="min-width:88px; white-space:nowrap;">Foto attuale</MudText>
     @if (!string.IsNullOrEmpty(SelectedUrl))
     {
-        <img src="@SelectedUrl" alt="Foto scelta"
-             style="height:90px; max-width:160px; object-fit:contain; border-radius:4px; background:#fff;" />
+        <ArchivioSrc Url="@SelectedUrl" Context="url"><img src="@url" alt="Foto scelta"
+             style="height:90px; max-width:160px; object-fit:contain; border-radius:4px; background:#fff;" /></ArchivioSrc>
     }
     else
     {
@@ -72,8 +72,8 @@ else
             <MudPaper Elevation="@(SelectedStoragePath == img.StoragePath ? 4 : 0)" Class="pa-0"
                       Style="@ThumbStyle(img.StoragePath)" @onclick="@(() => Scegli(img))">
                 <MudTooltip Text="@(img.Contesto ?? img.Alt ?? "")">
-                    <img src="@img.Url" alt="@img.Alt"
-                         style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" />
+                    <ArchivioSrc Url="@img.Url" Context="url"><img src="@url" alt="@img.Alt"
+                         style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy" /></ArchivioSrc>
                 </MudTooltip>
             </MudPaper>
         }

@@ -76,7 +76,7 @@ else
                                 @if (!string.IsNullOrWhiteSpace(i.IconaUrl))
                                 {
                                     <MudTooltip Text="Icona caricata">
-                                        <img src="@i.IconaUrl" alt="" style="width:18px;height:18px;object-fit:contain;" />
+                                        <ArchivioSrc Url="@i.IconaUrl" Context="url"><img src="@url" alt="" style="width:18px;height:18px;object-fit:contain;" /></ArchivioSrc>
                                     </MudTooltip>
                                 }
                                 else

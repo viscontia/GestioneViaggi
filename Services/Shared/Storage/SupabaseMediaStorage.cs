@@ -29,9 +29,18 @@ public sealed class SupabaseMediaStorage : IWebMediaStorage
         ? _opt.BaseUrl[..^"/public".Length]
         : _opt.BaseUrl;
 
-    public async Task<string> UploadAsync(string storagePath, Stream content, string contentType, CancellationToken ct = default)
+    public Task<string> UploadAsync(string storagePath, Stream content, string contentType, CancellationToken ct = default)
+        => CaricaAsync(_opt.Bucket, storagePath, content, contentType, ct);
+
+    public async Task<string> UploadNewsletterAsync(string storagePath, Stream content, string contentType, CancellationToken ct = default)
     {
-        var url = $"{ApiRoot}/{_opt.Bucket}/{storagePath}";
+        await CaricaAsync(_opt.NewsletterBucket, storagePath, content, contentType, ct);
+        return $"{_opt.BaseUrl.TrimEnd('/')}/{_opt.NewsletterBucket}/{storagePath}";
+    }
+
+    private async Task<string> CaricaAsync(string bucket, string storagePath, Stream content, string contentType, CancellationToken ct)
+    {
+        var url = $"{ApiRoot}/{bucket}/{storagePath}";
         using var req = new HttpRequestMessage(HttpMethod.Put, url);
         // Le nuove chiavi Supabase (sb_secret_…) NON sono JWT: vanno passate nell'header `apikey`.
         // Solo il Bearer causava "Invalid Compact JWS" (l'API prova a decodificarla come JWT) → 400.
@@ -53,6 +62,55 @@ public sealed class SupabaseMediaStorage : IWebMediaStorage
 
     public string BuildPublicUrl(string storagePath)
         => $"{_opt.BaseUrl.TrimEnd('/')}/{_opt.Bucket}/{storagePath}";
+
+    public string? StoragePathFromUrl(string? url)
+    {
+        var prefisso = $"{_opt.BaseUrl.TrimEnd('/')}/{_opt.Bucket}/";
+        if (string.IsNullOrEmpty(url) || !url.StartsWith(prefisso, StringComparison.Ordinal)) return null;
+        var path = url[prefisso.Length..];
+        return path.Length == 0 || path.Contains('?') || path.Contains("..") ? null : path;
+    }
+
+    public async Task<byte[]?> DownloadAsync(string storagePath, CancellationToken ct = default)
+    {
+        // «authenticated»: vale sia con l'archivio pubblico sia con quello privato
+        using var req = new HttpRequestMessage(HttpMethod.Get, $"{ApiRoot}/authenticated/{_opt.Bucket}/{storagePath}");
+        Autentica(req);
+        using var resp = await _http.SendAsync(req, ct);
+        // lo Storage risponde 400 «not_found» (o 404) per un file che non c'è
+        if (resp.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.BadRequest) return null;
+        if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Lettura dallo storage fallita ({(int)resp.StatusCode}) su {storagePath}.");
+        return await resp.Content.ReadAsByteArrayAsync(ct);
+    }
+
+    public async Task<string?> SignedUrlAsync(string storagePath, int secondi, CancellationToken ct = default)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{ApiRoot}/sign/{_opt.Bucket}/{storagePath}")
+        {
+            Content = new StringContent($"{{\"expiresIn\":{secondi}}}", System.Text.Encoding.UTF8, "application/json"),
+        };
+        Autentica(req);
+        using var resp = await _http.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Firma storage fallita {Status} su {Path}", (int)resp.StatusCode, storagePath);
+            return null;
+        }
+        using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        // «/object/sign/<archivio>/<percorso>?token=…», relativo a …/storage/v1
+        var firmato = doc.RootElement.TryGetProperty("signedURL", out var s) ? s.GetString() : null;
+        return firmato is null ? null : $"{StorageRoot}{firmato}";
+    }
+
+    // …/storage/v1/object → …/storage/v1
+    private string StorageRoot => ApiRoot.EndsWith("/object", StringComparison.Ordinal) ? ApiRoot[..^"/object".Length] : ApiRoot;
+
+    private void Autentica(HttpRequestMessage req)
+    {
+        req.Headers.TryAddWithoutValidation("apikey", _opt.ServiceKey);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _opt.ServiceKey);
+    }
 
     public async Task DeleteAsync(string storagePath, CancellationToken ct = default)
     {
