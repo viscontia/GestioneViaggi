@@ -110,12 +110,44 @@ anche cambiando linguetta prima di «Aggiorna». Script 701.
 Le traduzioni automatiche rifiutano una risposta tagliata per lunghezza (prima si sarebbe salvato un testo a metà) e
 possono essere più lunghe (necessario per i testi legali).
 
+La sotto-scheda **«Chi siamo»**: il testo della pagina, scritto con l'editor e tradotto, e **2 foto** caricate dalla
+scheda (in cima e a metà testo). Testo vuoto = la pagina non c'è. Script 703.
+
+La sotto-scheda **«FAQ»**: le domande frequenti del sito, divise in **gruppi** (ognuno col suo titolo), ogni domanda
+attivabile e disattivabile, risposte con l'editor, tutto tradotto; «Aggiorna» controlla anche le traduzioni delle FAQ.
+Script 704.
+
 Nei **Dati generali**, il riquadro **«Garanzie del tour operator»**: polizza RC (compagnia, numero) e fondo
 di garanzia (ente, estremi), mostrati nel piede del sito.
 
 Si salva tutto con **«Aggiorna»**, che controlla anche le traduzioni del sito: se sono incomplete si può
 **tradurre subito**, **chiudere comunque** o **tornare indietro**. Le modifiche della scheda non si
 perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script 692, 693, 694, 695, 698, 699.
+
+### ⭐️ 1.8 — Newsletter: iscrizione dal sito e disiscrizione verso il sito nuovo (L7)
+
+- Chi si iscrive dal sito nuovo conferma con un clic dalla mail (doppio consenso): nell'elenco degli iscritti compare
+  **«in attesa di conferma»** finché non conferma. Script 707.
+- Il link per **disiscriversi**, in fondo a ogni newsletter, porta alla pagina del **sito nuovo**
+  (`/{lingua}/newsletter/disiscrizione`), nella lingua del destinatario, firmato col segreto dell'azienda (lo controlla
+  il database). Ogni newsletter ha anche le intestazioni **List-Unsubscribe**: Gmail e Outlook mostrano «Annulla
+  iscrizione» e la disiscrizione avviene con un clic dal programma di posta.
+- ⚠️ Il link usa il **sito web dell'azienda** (anagrafica): finché è il vecchio `www.sardegnafuoritraccia.it`, quella
+  pagina non esiste. Va sul dominio nuovo prima di spedire newsletter con la 2.4 (vedi Sezione 5).
+
+### 1.9 — Traduzioni: se cambia solo la formattazione, restano valide (L29)
+
+Mettere in grassetto, spostare un a capo o trasformare un paragrafo in elenco nel testo italiano non rende più
+«obsolete» le traduzioni: ricevono la stessa formattazione, blocco per blocco, e restano approvate. Se cambia il testo,
+si ritraduce come sempre. Vale per tutte le schede che si traducono. Script 706.
+
+### 1.10 — Foto e video protetti (L27)
+
+Le foto e i video caricati nel gestionale non sono più scaricabili da chiunque conosca l'indirizzo: il sito li
+consegna rimpiccioliti, con la **filigrana** «© Fuori Traccia Travel» e il logo. Nel gestionale non cambia nulla da
+fare: le anteprime si vedono come prima (con un indirizzo valido un'ora, che il programma rinnova da solo). Le immagini
+preparate per le newsletter vanno in un archivio a parte, pubblico, perché i programmi di posta le possano mostrare.
+Script 709.
 
 ---
 
@@ -154,6 +186,13 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 
 ---
 
+### 2.5 — L'editor dei testi: il testo incollato non sparisce più
+
+Nell'editor dei testi lunghi (Chi siamo, FAQ, testi legali, giornate) un testo incollato poteva sparire alla prima
+modifica, o non essere salvato se l'editor non aveva finito di caricarsi. Ora l'incolla e il caricamento passano dal
+modello dell'editor, che aspetta fino a 5 secondi di essere pronto; ogni incolla resta nel registro del programma per la
+diagnosi. ⚠️ Un caso intermittente è ancora sotto osservazione.
+
 ## Sezione 3 — Documentazione
 
 - **Registro degli script in PROD** (`Documents/PROD/Registro_Script_PROD.md`, 2026-10-16): una riga
@@ -190,6 +229,13 @@ anagrafica aveva Como come residenza. Script 697, già attivo in PROD anche con 
 | `700_Web_Sito_Piede_Email.sql` | Il sito (Contatti, piede) mostra l'email scelta per i messaggi del sito, non più la principale. Nessun cambiamento nel gestionale. Test `Test_700_…` | ✅ 2026-10-21 |
 | `701_Web_Sito_Testi_Legali.sql` | Testi legali del sito (sotto-scheda «Testi legali»). Test `Test_701_…` | ✅ 2026-10-23 (anticipato: il sito lo usa già) |
 | `702_Web_Pdf_Impronte_12_Mesi.sql` | Le impronte del conteggio dei PDF del sito si cancellano dopo 12 mesi. Nessun cambiamento nel gestionale. Test `Test_702_…` | ✅ 2026-10-23 |
+| `703_Web_Sito_Chi_Siamo.sql` | La pagina «Chi siamo»: testo e 2 foto (§1.7). Test `Test_703_…` | ✅ 2026-10-27 |
+| `704_Web_Sito_Faq.sql` | Le FAQ del sito in gruppi (§1.7). Test `Test_704_…` | ✅ 2026-10-27 |
+| `705_Web_Sito_Galleria.sql` | La Galleria del sito per tipo di viaggio, dalle foto dei tour. Nessun cambiamento nel gestionale. Test `Test_705_…` | ✅ 2026-10-27 |
+| `706_Traduzioni_Solo_Formattazione.sql` | Solo formattazione cambiata: traduzioni ancora valide (§1.9). Test `Test_706_…` | ✅ 2026-10-28 (le FAQ subito, il resto con l'eseguibile 2.4) |
+| `707_Web_Newsletter_Dal_Sito.sql` | Iscrizione dal sito con doppio consenso, disiscrizione firmata (§1.8). Test `Test_707_…` | ✅ 2026-10-29 |
+| `708_Web_Statistiche_Settimana.sql` | I numeri del database per la mail settimanale delle statistiche del sito. Nessun cambiamento nel gestionale. Test `Test_708_…` | ✅ 2026-10-29 |
+| `709_Web_Foto_Archivio_Privato.sql` | Lettura degli originali per il sito e archivio pubblico delle newsletter (§1.10). Test `Test_709_…` | ✅ 2026-10-30 |
 
 ⚠️ **Uno script che sta in `SqlScripts/` non è uno script applicato.** Ogni riga qui sopra si
 chiude solo con la data dell'applicazione in PROD.
