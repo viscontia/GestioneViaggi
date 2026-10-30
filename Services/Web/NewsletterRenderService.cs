@@ -141,6 +141,32 @@ public sealed class NewsletterRenderService
         }
     }
 
+    /// <summary>
+    /// Il sito pubblico che apre il link di disiscrizione, dalla chiave <c>"sito_disiscrizione"</c> dei
+    /// parametri della funzione "newsletter". Serve quando il sito dell'azienda (<c>sito_web</c>) non è
+    /// ancora quello che ha la pagina di disiscrizione, per esempio prima che il sito nuovo vada online.
+    /// Assente o illeggibile → null, e il link parte da <c>sito_web</c> come sempre.
+    /// </summary>
+    public async Task<string?> GetSitoDisiscrizioneAsync(int aziendaId)
+    {
+        try
+        {
+            var f = await _funzioni.GetByFunzioneAsync(aziendaId, WebAziendeFunzioniService.FunzioneNewsletter);
+            if (string.IsNullOrWhiteSpace(f?.Parametri)) return null;
+
+            using var doc = JsonDocument.Parse(f!.Parametri!);
+            return doc.RootElement.TryGetProperty("sito_disiscrizione", out var s) && s.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(s.GetString())
+                ? s.GetString()!.Trim()
+                : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Sito della disiscrizione non leggibile per azienda {Az}: uso il sito dell'azienda", aziendaId);
+            return null;
+        }
+    }
+
     /// <summary>Campi disponibili nel footer, nell'ordine in cui vengono proposti.</summary>
     public static readonly (string Campo, string Etichetta)[] CampiFooter =
     {
@@ -220,7 +246,12 @@ public sealed class NewsletterRenderService
         string? Segreto,
         long InvioId,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(long Id, string Campo), string>> Traduzioni,
-        IReadOnlyDictionary<long, (DateTime Inizio, DateTime? Fine)> Periodi);
+        IReadOnlyDictionary<long, (DateTime Inizio, DateTime? Fine)> Periodi,
+        string? SitoDisiscrizione = null)
+    {
+        /// <summary>Base del link di disiscrizione: il sito pubblico se configurato, altrimenti il sito dell'azienda.</summary>
+        public string? BaseDisiscrizione => string.IsNullOrWhiteSpace(SitoDisiscrizione) ? Azienda.SitoWeb : SitoDisiscrizione;
+    }
 
     public async Task<ContestoRender> PreparaAsync(long invioId, int aziendaId)
     {
@@ -259,7 +290,8 @@ public sealed class NewsletterRenderService
         var segreto = await GetSegretoDisiscrizioneAsync(aziendaId);
         return new ContestoRender(blocchi, azienda, footer, segreto, invioId,
                                   await CaricaTraduzioniAsync(invioId, aziendaId),
-                                  await CaricaPeriodiAsync(invioId, aziendaId));
+                                  await CaricaPeriodiAsync(invioId, aziendaId),
+                                  await GetSitoDisiscrizioneAsync(aziendaId));
     }
 
     /// <summary>HTML per un singolo destinatario, dal contesto gia' preparato.</summary>
@@ -275,7 +307,7 @@ public sealed class NewsletterRenderService
         // conto proprio era un posto in cui la regola poteva divergere.
         lingua = string.IsNullOrWhiteSpace(lingua) ? "IT" : lingua.Trim().ToUpperInvariant();
 
-        var unsub = NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailDestinatario, ctx.Segreto, lingua);
+        var unsub = NewsletterUnsubscribe.BuildUrl(ctx.BaseDisiscrizione, emailDestinatario, ctx.Segreto, lingua);
 
         // Fallback CAMPO PER CAMPO, non per newsletter: se manca solo la traduzione di un titolo,
         // il resto resta tradotto e quel titolo torna in italiano. Fermarsi all'italiano per tutto

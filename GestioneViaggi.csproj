@@ -153,6 +153,8 @@
 
         <!-- Email SMTP (MailKit) -->
         <PackageReference Include="MailKit" Version="4.17.0" />
+        <!-- MimeKit porta la 8.0.1, con due vulnerabilità note (DoS): si fissa la versione corretta -->
+        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
 
         <!-- Rich Text Editor (Quill.js wrapper) -->
         <PackageReference Include="Blazored.TextEditor" Version="1.1.0" />

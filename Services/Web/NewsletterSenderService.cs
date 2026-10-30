@@ -229,7 +229,7 @@ public sealed class NewsletterSenderService
 
         var ctx = await render.PreparaAsync(invioId, aziendaId);
 
-        if (string.IsNullOrWhiteSpace(ctx.Azienda.SitoWeb))
+        if (string.IsNullOrWhiteSpace(ctx.BaseDisiscrizione))
             throw new InvalidOperationException(
                 "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
                 "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
@@ -257,7 +257,7 @@ public sealed class NewsletterSenderService
             bool sent;
             // Lo stesso link del piè di pagina, nelle intestazioni: disiscrizione con un clic dal programma di posta.
             var disiscrizione = NewsletterUnsubscribe.Intestazioni(
-                NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, rec.Email, ctx.Segreto, rec.Lingua));
+                NewsletterUnsubscribe.BuildUrl(ctx.BaseDisiscrizione, rec.Email, ctx.Segreto, rec.Lingua));
             try { sent = await sender.SendHtmlEmailAsync(new[] { rec.Email }, oggettoLingua, html, ctx.Azienda.RagioneSociale, null, disiscrizione); }
             catch (Exception ex) { _logger.LogError(ex, "Invio newsletter fallito a {Email}", rec.Email); sent = false; }
             if (sent) ok++; else err++;
@@ -328,7 +328,7 @@ public sealed class NewsletterSenderService
     {
         var ctx = await render.PreparaAsync(invioId, aziendaId);
 
-        if (string.IsNullOrWhiteSpace(ctx.Azienda.SitoWeb))
+        if (string.IsNullOrWhiteSpace(ctx.BaseDisiscrizione))
             throw new InvalidOperationException(
                 "L'azienda non ha un sito web configurato: il link di disiscrizione sarebbe rotto. " +
                 "Compila 'Sito web' in Anagrafica Aziende prima di inviare.");
@@ -337,7 +337,7 @@ public sealed class NewsletterSenderService
         var oggettoTradotto = NewsletterRenderService.Oggetto(ctx, oggetto, lingua);
         var sender = await _emailFactory.GetSenderAsync(null, aziendaId);
         var disiscrizione = NewsletterUnsubscribe.Intestazioni(
-            NewsletterUnsubscribe.BuildUrl(ctx.Azienda.SitoWeb, emailProva, ctx.Segreto, lingua));
+            NewsletterUnsubscribe.BuildUrl(ctx.BaseDisiscrizione, emailProva, ctx.Segreto, lingua));
         return await sender.SendHtmlEmailAsync(new[] { emailProva }, oggettoTradotto, html, ctx.Azienda.RagioneSociale, null, disiscrizione);
     }
 
