@@ -1,6 +1,6 @@
 # Note di Rilascio — Versione 2.4
 
-> ### 🛠️ In preparazione — aperta il 2026-09-27
+> ### ✅ Consegnata ad Antonio il 2026-10-30 (aperta il 2026-09-27)
 > Versione precedente: **2.3** del 2026-09-27 (consegnata ad Antonio).
 > Cosa entra: le voci di `../Analisi_e_Design/2026-09-27-Cose_Da_Fare_MAUI_Versione_2_4.md`, a
 > cominciare dal **promemoria all'apertura** (L2). Ogni cosa finita va segnata qui e nella sezione
@@ -265,7 +265,7 @@ La stessa sequenza della 2.3, con le lezioni imparate lì.
 ✅ **2026-10-30 — passi 0–4 fatti**: controlli su PROD puliti; versione 2.4 (build 41) nel codice e nei cinque manuali
 (PDF rigenerati, più `Novita_Versione_2_4.pdf`); Mac universale in `/Applications`; installer
 `GestioneViaggi_Setup_2.4.exe` (x64, 2.4.0.0) compilato, installato sulla VM e copiato in
-`Versioni Setup Windows/` (fuori da git). ⏳ Resta la consegna (passo 5).
+`Versioni Setup Windows/` (fuori da git). ✅ **Consegnata il 2026-10-30** (setup, novità e manuali via WeTransfer; mail di Adriano con le cose ancora a carico di Antonio). Subito dopo: `tour-media` privato (L27, Task 7).
 
 1. **Numero di versione a 2.4** in `Resources/Version/Versione.txt` (versione e data), nel
    `#define AppVersion` di `Scripts/windows/GestioneViaggi.iss`, in `ApplicationDisplayVersion`
