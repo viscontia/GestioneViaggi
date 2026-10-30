@@ -203,8 +203,8 @@ diagnosi. ⚠️ Un caso intermittente è ancora sotto osservazione.
   negazione del servizio. Dopo la correzione `dotnet list package --vulnerable` non segnala più nulla.
 - ⚠️ **ImageSharp resta alla 3.1.12**, che ha avvisi gravi (soprattutto nei decodificatori TIFF e nei profili ICC).
   La 3.2.0 li corregge ma **non compila senza una chiave di licenza Six Labors** (nuova regola della 3.2). Il rischio
-  è basso, perché il programma apre solo immagini scelte dall'utente. Decisione aperta (Adriano): licenza, oppure
-  sostituire ImageSharp (3 file: `WebImageProcessor`, `WebVideoProcessor`, `AziendaLogoDialog`).
+  è basso, perché il programma apre solo immagini scelte dall'utente. ✅ **Decisione di Adriano (2026-10-30): resta la
+  3.1.12**, rischio accettato. Da riconsiderare se il programma dovesse aprire immagini che non sceglie l'utente.
 
 ## Sezione 3 — Documentazione
 
