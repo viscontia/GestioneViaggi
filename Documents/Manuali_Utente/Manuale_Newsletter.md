@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi scrive e spedisce le newsletter ai clienti. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.3** · manuale aggiornato il **27 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.4** · manuale aggiornato il **30 ottobre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -352,6 +352,31 @@ Chi si è iscritto **dal sito**, con email, nome, lingua, stato e consenso.
 ℹ️ **Questo elenco non si compila a mano**: le iscrizioni arrivano dal sito. Se è vuoto, vuol dire
 che dal sito non si è ancora iscritto nessuno.
 
+### L'iscrizione dal sito: il doppio consenso
+
+Chi si iscrive dal modulo del sito riceve una mail, nella lingua della pagina, con un pulsante per
+**confermare**. Finché non conferma, nell'elenco compare **«in attesa di conferma»** e **non riceve
+nessuna newsletter**: non ha ancora dato il consenso.
+
+- La conferma vale **48 ore**. Un'iscrizione mai confermata si cancella da sola qualche giorno dopo.
+- Confermata, l'iscrizione diventa attiva e la persona entra fra i destinatari.
+
+È il modo per essere sicuri che l'indirizzo sia davvero di chi si è iscritto: nessuno può iscrivere
+un altro a sua insaputa.
+
+### La disiscrizione
+
+In fondo a ogni newsletter c'è il collegamento per **disiscriversi**. Porta a una pagina del sito
+nella lingua del destinatario, con un pulsante di conferma. In più Gmail, Outlook e gli altri
+programmi di posta mostrano accanto al mittente **«Annulla iscrizione»**, che fa la stessa cosa con
+un clic.
+
+✅ Non c'è niente da fare a mano: chi si disiscrive finisce da solo nelle **Soppressioni**, e da
+quel momento non riceve più niente, qualunque criterio tu metta.
+
+⚠️ Il collegamento è firmato per ogni destinatario: funziona solo per l'indirizzo a cui è stata
+spedita la newsletter. Non si può inoltrare a un altro per disiscriverlo.
+
 ### Soppressioni
 
 L'elenco degli indirizzi **a cui non si scrive più**. Un indirizzo qui dentro è escluso da ogni
@@ -360,7 +385,8 @@ invio, sempre, qualunque criterio tu abbia messo.
 Per aggiungerne uno servono **email** e **motivo**. ⚠️ Il motivo scrivilo davvero: fra sei mesi,
 davanti a una lamentela, è l'unica cosa che spiega perché quell'indirizzo era fuori.
 
-Casi tipici: qualcuno che ha chiesto di non ricevere più nulla per vie diverse dal collegamento di
+Chi si disiscrive dal collegamento in fondo alla newsletter ci finisce da solo. A mano si aggiungono
+gli altri casi tipici: qualcuno che ha chiesto di non ricevere più nulla per vie diverse dal collegamento di
 disiscrizione, un indirizzo che rimbalza sempre, una casella aziendale che non esiste più.
 
 Si può togliere una soppressione con il cestino — ⚠️ ma solo se sei sicuro: rimetterlo fra i
@@ -395,6 +421,8 @@ usare il footer di prima.
 | Vedere come arriva a uno straniero | **Invia prova**, scegliendo la lingua |
 | Sapere chi non l'ha ricevuta | Storico → **Log** |
 | Non scrivere mai più a un indirizzo | **Soppressioni**, con il motivo |
+| Capire perché un iscritto dal sito non riceve la newsletter | È **«in attesa di conferma»**: non ha ancora cliccato il pulsante nella mail (cap. 9) |
+| Disiscrivere chi lo chiede dalla newsletter | Niente: il collegamento in fondo lo mette da solo nelle Soppressioni (cap. 9) |
 | Cambiare i dati in fondo alla mail | **Impostazioni**, e premi *Salva composizione* |
 
 ### Le tre cose da non fare
@@ -405,6 +433,6 @@ usare il footer di prima.
 
 ---
 
-*📌 Gestione Viaggi **2.3** — manuale aggiornato il 27 settembre 2026.*
+*📌 Gestione Viaggi **2.4** — manuale aggiornato il 30 ottobre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*

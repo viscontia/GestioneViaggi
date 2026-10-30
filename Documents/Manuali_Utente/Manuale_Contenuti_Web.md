@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi prepara e pubblica le schede dei tour sul sito. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.3** · manuale aggiornato il **27 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.4** · manuale aggiornato il **30 ottobre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -42,7 +42,9 @@ Durante i collaudi sono emerse otto o nove situazioni di questo tipo. Sono tutte
 14. [Le verifiche che non bloccano](#14-le-verifiche-che-non-bloccano)
 15. [Eliminare una scheda web](#15-eliminare-una-scheda-web)
 16. [Eliminare una partenza](#16-eliminare-una-partenza)
-17. [Riepilogo in una pagina](#17-riepilogo-in-una-pagina)
+17. [La scheda «Sito web» dell'azienda](#17-la-scheda-sito-web-dellazienda)
+18. [Il promemoria all'apertura e la mail del lunedì](#18-il-promemoria-allapertura-e-la-mail-del-lunedì)
+19. [Riepilogo in una pagina](#19-riepilogo-in-una-pagina)
 
 ---
 
@@ -63,7 +65,21 @@ toccato da ciò che è ancora in lavorazione.
 Chi si aspetta che «archiviato» faccia qualcosa di più — nasconderlo altrove, spostarlo, tenerne
 una copia — resta spiazzato. Non fa nulla di tutto questo.
 
-✅ **Tornare a Bozza o Archiviato è sempre possibile**, e toglie il tour dal sito subito.
+✅ **Tornare a Bozza o Archiviato è sempre possibile**, e toglie il tour dal sito.
+
+### Quando il sito se ne accorge
+
+Il sito non cambia nell'istante del salvataggio: si aggiorna **entro 1–2 minuti**. Il messaggio
+che compare salvando lo dice:
+
+| Cosa hai fatto | Il messaggio |
+|---|---|
+| Da Bozza o Archiviato a **Pubblicato** | «Scheda pubblicata: comparirà sul sito entro 1–2 minuti.» |
+| Modificato una scheda **già pubblicata** | «Modifiche salvate: saranno sul sito entro 1–2 minuti.» |
+| Da Pubblicato a **Bozza o Archiviato** | «Scheda tolta dal sito: sparirà entro 1–2 minuti.» |
+
+ℹ️ Il terzo messaggio compare anche quando a riportare la scheda in bozza è il programma, perché
+manca qualcosa (capitolo 2).
 
 
 ---
@@ -227,6 +243,16 @@ capitolo 10.
 galleria di un tour: hanno un posto loro, **Tabelle → Tabelle web → Libreria immagini**. La
 separazione serve a non dover scorrere quattrocento fotografie per trovare un'icona. Il
 *Manuale — La newsletter* lo spiega al capitolo 4.
+
+### Le foto sul sito sono protette
+
+Il sito **non mostra più gli originali** delle foto e dei video caricati qui: li mostra
+rimpiccioliti, con la **filigrana** «© Fuori Traccia Travel» e il logo nell'angolo. Chi salva una
+foto dal sito si porta a casa quella con la filigrana; gli originali restano nell'archivio del
+programma.
+
+✅ Non c'è niente da fare: si carica come prima, e nel gestionale le anteprime si vedono come prima.
+La filigrana la mette il sito da solo.
 
 ---
 
@@ -784,6 +810,18 @@ e l'avviso in cima alla scheda dice quale dei due.
 
 Le lingue sono quattro: **EN / DE / FR / ES**.
 
+ℹ️ Fra i testi da tradurre c'è anche il **titolo del tour**: il sito lo mostra nella lingua del
+visitatore. Si traduce la forma leggibile («Ponte dell'Immacolata in 4x4»), non il maiuscolo
+dell'anagrafica. Se cambi il titolo del viaggio, le sue traduzioni diventano «obsolete», come
+succede per Incluso ed Escluso.
+
+### Se cambia solo la formattazione, le traduzioni restano valide
+
+Mettere una parola in grassetto, spostare un a capo, trasformare un paragrafo in elenco: nel testo
+italiano sono modifiche, ma le parole sono le stesse. In questi casi le traduzioni **non diventano
+obsolete**: ricevono la stessa formattazione e restano revisionate. Se invece cambia il testo, si
+ritraduce come sempre.
+
 ### Perché la revisione è obbligatoria per pubblicare
 
 Una traduzione automatica non revisionata è testo che nessuno ha letto. Finirebbe sul sito così
@@ -878,7 +916,119 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-## 17. Riepilogo in una pagina
+## 17. La scheda «Sito web» dell'azienda
+
+In **Anagrafica Aziende** c'è la scheda **«Sito web»**: le pagine del sito che non riguardano un
+singolo tour. Ha quattro linguette: **Home**, **Chi siamo**, **FAQ** e **Testi legali**.
+
+⭐️ **Tutto si salva con «Aggiorna»**, come il resto dell'anagrafica. Le modifiche restano anche
+cambiando linguetta o scheda prima di salvare. Il sito si aggiorna **entro 1–2 minuti**.
+
+### Home
+
+- **Foto d'apertura** — si carica con **«Scegli foto»**, direttamente da qui, a piena qualità.
+  Se è più stretta di 1600 pixel la nota diventa arancione: sul sito si vedrebbe sgranata. Senza
+  foto, la home mostra il motto su fondo blu.
+- **Video d'apertura (facoltativo)** — con **«Scegli video»**. Va bene anche quello del telefono:
+  il programma lo prepara da solo (primi 20 secondi, senza audio, una versione per il computer e
+  una per il telefono, più la copertina). Meglio un video di 10–20 secondi. Finché lo prepara,
+  «Aggiorna» aspetta. La foto resta come copertina mentre il video si carica.
+- **Motto**, **Titolo** e **Sottotitolo** — i testi grandi dell'apertura. Nel motto l'ultima
+  parola si colora in arancio; il sottotitolo vuoto non si mostra.
+- **Messaggi dal sito** — l'email che riceve i messaggi del modulo Contatti. Se non scegli niente,
+  è l'email principale. Le email si gestiscono nella scheda «Email».
+- **In evidenza** — un blocco della home con un titolo e **fino a 3 tour** (per esempio quelli di
+  Capodanno). Un tour che non è più pubblicato sparisce da solo dal blocco; senza tour il blocco
+  non si mostra.
+
+ℹ️ Sostituita una foto o un video, quelli vecchi si cancellano al salvataggio.
+
+### Chi siamo
+
+Il testo della pagina, scritto con l'editor (titoletti, grassetti, elenchi, link), e **due foto
+facoltative**: la prima in cima, grande; la seconda a metà testo.
+
+⚠️ **Testo vuoto = la pagina non c'è**, e sparisce anche dal menu. Le foto da sole non bastano.
+
+### FAQ
+
+Le domande frequenti, divise in **gruppi** (per esempio «Prima di partire», «Mezzi e
+attrezzatura»), ognuno con il suo titolo. Ogni domanda si può **attivare o disattivare**.
+
+Sul sito vanno solo le domande **attive e con la risposta**: un gruppo che non ne ha nessuna non
+si vede, e senza nessuna domanda la pagina non c'è. Le note arancioni sotto ogni domanda dicono
+perché non compare («Senza risposta», «Non attiva»).
+
+⚠️ Togliere una domanda o un gruppo e premere «Aggiorna» li **cancella**, con le loro traduzioni.
+
+### Testi legali
+
+**Note legali**, **Privacy** e **Cookie**: ogni testo diventa una pagina del sito, con il link nel
+piede. Un testo vuoto = la pagina non c'è.
+
+⚠️ **I dati dell'azienda non si scrivono qui**: titolare, sede, partita IVA ed email li mette il
+sito da solo in cima alla pagina, presi dall'anagrafica. Scriverli anche nel testo vuol dire
+doverli correggere in due posti.
+
+### Le garanzie del tour operator
+
+Nei **Dati generali** dell'anagrafica c'è il riquadro **«Garanzie del tour operator»**: la polizza
+di responsabilità civile (compagnia e numero) e il fondo di garanzia (ente ed estremi). Il sito
+li mostra nel piede di ogni pagina.
+
+### Le traduzioni del sito
+
+Ogni linguetta ha in fondo il riquadro **«Lingue»** con **«Traduci quello che manca»**: se ci sono
+modifiche non salvate, prima le salva e poi traduce. I titoli dei tour di «In evidenza» non si
+traducono qui, ma nella loro scheda web.
+
+«Aggiorna» controlla anche le traduzioni del sito. Se sono incomplete, la finestra
+**«Traduzioni del sito incomplete»** dice quante ne mancano per lingua e chiede cosa fare:
+
+| Scelta | Cosa succede |
+|---|---|
+| **Traduci adesso** | Traduce quello che manca e chiude (qualche secondo per testo) |
+| **Chiudi comunque** | Chiude: si potrà tradurre in un altro momento. Intanto, nelle altre lingue, il sito mostra quei testi in italiano |
+| **Torna indietro** | Resta aperto. La scheda «Sito web» è già salvata |
+
+---
+
+## 18. Il promemoria all'apertura e la mail del lunedì
+
+### Il promemoria
+
+All'avvio, se c'è qualcosa in sospeso, compare la finestra **«Cose in sospeso»**: una riga per
+ogni caso, con **Cosa**, **Su che cosa** e **Perché conta**. Sopra ci sono i bottoni-filtro per
+voce, con il conteggio, e la ricerca («Cerca un viaggio o un cliente»).
+
+Le voci:
+- correzioni dei dati proposte dai clienti dal sito, da approvare;
+- documenti degli iscritti scaduti o in scadenza, e iscritti che oggi non potrebbero iscriversi;
+- partenze future senza scheda web, con la scheda in bozza o senza foto;
+- viaggi senza capienza o senza soglia;
+- partenze vicine senza una newsletter inviata;
+- partenze passate non segnate come effettuate.
+
+✅ **Apri**, su ogni riga, porta dove il caso si risolve. Chiusa la scheda, la tabella si rilegge.
+
+- La finestra non si chiude cliccando fuori: si chiude con **Chiudi**.
+- **«Non mostrarmelo più oggi»** vale per te e per oggi: domani ricompare, se c'è ancora qualcosa.
+- Se non c'è niente in sospeso, non compare.
+- Si riapre quando vuoi dal menu, voce **«Promemoria (N)»**: N è il numero dei casi.
+
+### Le impostazioni
+
+In **Anagrafica Aziende → Funzioni Web**:
+- **Promemoria all'apertura** — l'interruttore, e **«Giorni di anticipo per la newsletter»**: le
+  partenze entro questi giorni senza una newsletter inviata compaiono nel promemoria (90 se non
+  impostato);
+- **Mail del lunedì** — ogni lunedì mattina le stesse righe arrivano per email, leggibili dal
+  telefono. **Destinatari**: vuoto = l'email principale dell'azienda. Se non c'è niente in sospeso,
+  la mail non parte.
+
+---
+
+## 19. Riepilogo in una pagina
 
 | Situazione | Spiegazione |
 |---|---|
@@ -900,6 +1050,11 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 | Ho cancellato una foto e sparisce da due schede | Sono lo stesso file: la scheda è stata clonata (cap. 10) |
 | Non riesco a eliminare una partenza | Uno dei quattro blocchi. Il messaggio dice quale (cap. 16) |
 | Etichetta arancione sulla partenza | Anomalia fra spunta e calendario: si corregge nella scheda Date (cap. 4) |
+| Ho pubblicato ma sul sito non c'è ancora | Il sito si aggiorna entro 1–2 minuti (cap. 1) |
+| Ho messo un grassetto e temo di dover ritradurre | No: se cambia solo la formattazione, le traduzioni restano valide (cap. 13) |
+| La pagina «Chi siamo» (o una FAQ) non compare sul sito | Testo vuoto, oppure domanda senza risposta o non attiva (cap. 17) |
+| Ho modificato la home ma il sito non cambia | Manca «Aggiorna», oppure il sito non ha ancora fatto il suo giro: 1–2 minuti (cap. 17) |
+| All'avvio compare «Cose in sospeso» | È il promemoria: «Apri» porta dove si risolve ogni caso (cap. 18) |
 
 ### Le tre cose da non fare
 
@@ -911,6 +1066,6 @@ Il programma controlla **quattro cose, in quest'ordine**, e si ferma alla prima 
 
 ---
 
-*📌 Gestione Viaggi **2.3** — manuale aggiornato il 27 settembre 2026.*
+*📌 Gestione Viaggi **2.4** — manuale aggiornato il 30 ottobre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*

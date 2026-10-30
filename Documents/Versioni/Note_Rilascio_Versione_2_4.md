@@ -132,8 +132,12 @@ perdono cambiando scheda. Il sito si aggiorna da solo entro 1–2 minuti. Script
   (`/{lingua}/newsletter/disiscrizione`), nella lingua del destinatario, firmato col segreto dell'azienda (lo controlla
   il database). Ogni newsletter ha anche le intestazioni **List-Unsubscribe**: Gmail e Outlook mostrano «Annulla
   iscrizione» e la disiscrizione avviene con un clic dal programma di posta.
-- ⚠️ Il link usa il **sito web dell'azienda** (anagrafica): finché è il vecchio `www.sardegnafuoritraccia.it`, quella
-  pagina non esiste. Va sul dominio nuovo prima di spedire newsletter con la 2.4 (vedi Sezione 5).
+- Il link parte dalla chiave **`sito_disiscrizione`** dei parametri della funzione «newsletter» dell'azienda
+  (`web_aziende_funzioni.parametri`), se c'è; altrimenti dal **sito web dell'azienda** (anagrafica), come prima. Serve
+  perché il sito web in anagrafica è ancora il vecchio `www.sardegnafuoritraccia.it`, dove quella pagina non esiste
+  (decisione di Adriano, 2026-10-30, strada B). In PROD, azienda 2: `https://anteprima.fuoritracciatravel.com`
+  (scritto il 2026-10-30). ⚠️ **Al go-live**: `sito_web` al dominio nuovo e la chiave tolta (o portata al dominio
+  nuovo); l'anteprima deve restare raggiungibile, o rimandare al dominio, per i link già spediti.
 
 ### 1.9 — Traduzioni: se cambia solo la formattazione, restano valide (L29)
 
@@ -193,6 +197,15 @@ modifica, o non essere salvato se l'editor non aveva finito di caricarsi. Ora l'
 modello dell'editor, che aspetta fino a 5 secondi di essere pronto; ogni incolla resta nel registro del programma per la
 diagnosi. ⚠️ Un caso intermittente è ancora sotto osservazione.
 
+### 2.6 — Librerie con vulnerabilità note
+
+- `System.Security.Cryptography.Pkcs` fissata a **8.0.2**: MimeKit (MailKit) portava la 8.0.1, con due avvisi di
+  negazione del servizio. Dopo la correzione `dotnet list package --vulnerable` non segnala più nulla.
+- ⚠️ **ImageSharp resta alla 3.1.12**, che ha avvisi gravi (soprattutto nei decodificatori TIFF e nei profili ICC).
+  La 3.2.0 li corregge ma **non compila senza una chiave di licenza Six Labors** (nuova regola della 3.2). Il rischio
+  è basso, perché il programma apre solo immagini scelte dall'utente. Decisione aperta (Adriano): licenza, oppure
+  sostituire ImageSharp (3 file: `WebImageProcessor`, `WebVideoProcessor`, `AziendaLogoDialog`).
+
 ## Sezione 3 — Documentazione
 
 - **Registro degli script in PROD** (`Documents/PROD/Registro_Script_PROD.md`, 2026-10-16): una riga
@@ -249,6 +262,11 @@ La stessa sequenza della 2.3, con le lezioni imparate lì.
 0. **Controlli preliminari su PROD** (procedura nelle note della 2.2, §7 passo 0):
    `SELECT * FROM fn_check_firme_duplicate();` deve rispondere zero righe, e ogni funzione chiamata
    dal codice deve esistere in PROD.
+✅ **2026-10-30 — passi 0–4 fatti**: controlli su PROD puliti; versione 2.4 (build 41) nel codice e nei cinque manuali
+(PDF rigenerati, più `Novita_Versione_2_4.pdf`); Mac universale in `/Applications`; installer
+`GestioneViaggi_Setup_2.4.exe` (x64, 2.4.0.0) compilato, installato sulla VM e copiato in
+`Versioni Setup Windows/` (fuori da git). ⏳ Resta la consegna (passo 5).
+
 1. **Numero di versione a 2.4** in `Resources/Version/Versione.txt` (versione e data), nel
    `#define AppVersion` di `Scripts/windows/GestioneViaggi.iss`, in `ApplicationDisplayVersion`
    (build 40 → 41) e nell'intestazione e nel piè di pagina dei cinque manuali, più il nome

@@ -2,7 +2,7 @@
 
 **A chi è rivolto**: chi iscrive i clienti ai viaggi e assegna le camere. Nessuna conoscenza tecnica richiesta.
 
-> ### 📌 Riferito a **Gestione Viaggi 2.3** · manuale aggiornato il **27 settembre 2026**
+> ### 📌 Riferito a **Gestione Viaggi 2.4** · manuale aggiornato il **30 ottobre 2026**
 >
 > ⚠️ **Controlla che il numero corrisponda** a quello che leggi in basso nella barra di stato del
 > programma. Se non corrisponde, questo manuale può descrivere schermate diverse da quelle che
@@ -45,7 +45,8 @@ Leggi almeno i capitoli 1 e 2: sono il 90% del lavoro quotidiano.
   - [7. Il genere della sistemazione: perché in tenda non vedi le camere d'albergo](#7-il-genere-della-sistemazione-perché-in-tenda-non-vedi-le-camere-dalbergo)
   - [8. Le sistemazioni che il programma non propone mai da solo](#8-le-sistemazioni-che-il-programma-non-propone-mai-da-solo)
   - [9. «Iscrizione Veloce — solo pilota»: cosa fa e cosa non fa](#9-iscrizione-veloce--solo-pilota-cosa-fa-e-cosa-non-fa)
-  - [10. Riepilogo in una pagina](#10-riepilogo-in-una-pagina)
+  - [10. Il cane nella rooming list, e il pilota senza codice fiscale](#10-il-cane-nella-rooming-list-e-il-pilota-senza-codice-fiscale)
+  - [11. Riepilogo in una pagina](#11-riepilogo-in-una-pagina)
     - [Le tre cose da non fare](#le-tre-cose-da-non-fare)
 
 ---
@@ -312,7 +313,31 @@ passeggeri, sei nel posto sbagliato.
 
 ---
 
-## 10. Riepilogo in una pagina
+## 10. Il cane nella rooming list, e il pilota senza codice fiscale
+
+### Il cane al seguito
+
+Nella stampa della **rooming list**, sotto le intolleranze, compare **«\*\* CANE AL SEGUITO \*\*»**
+per chi porta il cane. Prima usciva solo nella stampa del viaggio.
+
+ℹ️ Il dato è quello dell'iscrizione: se il cane è segnato su tutti e due i componenti di una
+coppia, la riga compare per tutti e due. Se ne basta una, togli la spunta da uno dei due.
+
+### Il pilota senza codice fiscale
+
+Chi guida deve avere il codice fiscale, perché la fattura si emette a lui; chi risiede all'estero,
+invece, non deve averlo. Quando iscrivi come pilota un cliente senza codice fiscale, il messaggio
+ora dice **dove risulta residente** in anagrafica e cosa correggere, per esempio:
+
+> … risulta residente in Italia (COMO): il codice fiscale serve per emettere la fattura a chi
+> guida. Se risiede all'estero, correggi il comune di residenza.
+
+✅ Due strade: se il cliente risiede in Italia, aggiungi il codice fiscale; se risiede all'estero,
+correggi la residenza nella sua scheda. La regola non è cambiata, è cambiato solo il messaggio.
+
+---
+
+## 11. Riepilogo in una pagina
 
 | Se devi… | Fai così |
 |---|---|
@@ -322,6 +347,7 @@ passeggeri, sei nel posto sbagliato.
 | Dare una camera a chi **non ce l'ha** | Il pulsante **Assegna** → **«In una camera nuova»** se nessuno ne ha ancora una |
 | Sapere se **è rimasto qualcosa in sospeso** | Guarda se c'è la linguetta «Partecipanti senza camere»: se non c'è, hai finito |
 | Capire perché **manca una sistemazione** in elenco | Tabelle → Tipologie di Pernottamento → «Sistemazioni previste» (capitolo 7) |
+| Iscrivere come pilota un cliente straniero che il programma ferma | Il messaggio dice la residenza in anagrafica: se è all'estero, correggila (capitolo 10) |
 
 ### Le tre cose da non fare
 
@@ -332,6 +358,6 @@ IN OGNI CASO QUANDO LANCERAI LA STAMPA DELLA ROOMING LIST, SE CI SARANNO PERSONE
 
 ---
 
-*📌 Gestione Viaggi **2.3** — manuale aggiornato il 27 settembre 2026.*
+*📌 Gestione Viaggi **2.4** — manuale aggiornato il 30 ottobre 2026.*
 *Se aggiorni questo manuale, aggiorna anche il numero di versione qui e in testa: serve a sapere
 a quale versione del programma le istruzioni si riferiscono davvero.*
