@@ -241,6 +241,10 @@ public static class DatabaseExceptionHelper
             { "ck_web_tipi_viaggio_descrizioni_descrizione_min", "La descrizione deve avere almeno 3 caratteri." },
             { "ck_web_tipi_viaggio_descrizioni_ordine_min", "L'ordine deve essere almeno 1." },
             { "ck_web_tour_mappa_descrizione_insieme", "La mappa dell'intero viaggio richiede una descrizione." },
+            // Forma degli slug (SqlScripts/710, L21): la stessa che il sito accetta negli indirizzi.
+            { "ck_web_tipi_viaggio_descrizioni_slug_forma", "Lo slug può contenere solo lettere minuscole senza accenti, cifre e trattini singoli (es. viaggi-4x4). Usa la bacchetta per generarlo dalla descrizione." },
+            { "ck_web_tour_contenuti_slug_forma", "L'indirizzo web può contenere solo lettere minuscole senza accenti, cifre e trattini singoli. Usa la bacchetta per generarlo dal titolo." },
+            { "ck_web_blog_articoli_slug_forma", "L'indirizzo web può contenere solo lettere minuscole senza accenti, cifre e trattini singoli." },
             { "chk_web_indirizzi_url", "L'indirizzo deve iniziare con https:// (o http://). Copialo dalla barra del browser." },
             { "chk_web_indirizzi_descrizione", "Il nome dell'indirizzo deve avere almeno 2 caratteri." },
 
